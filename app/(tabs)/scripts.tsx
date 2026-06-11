@@ -1,24 +1,140 @@
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import {
+  ScrollView,
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
+import { useAccount } from '../../src/contexts/AccountContext';
+import { ScriptCard } from '../../src/components/scripts/ScriptCard';
+import { getMockScripts } from '../../src/api/mock';
 
 export default function ScriptsScreen() {
   const { colors } = useTheme();
-  const { t } = useTranslation('common');
+  const { user } = useAccount();
+  const { t } = useTranslation('scripts');
+  const { t: tCommon } = useTranslation('common');
+  const [query, setQuery] = useState('');
+
+  const allScripts = useMemo(() => getMockScripts(), []);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return allScripts;
+    return allScripts.filter(
+      (s) =>
+        s.title.toLowerCase().includes(q) ||
+        s.tag.toLowerCase().includes(q),
+    );
+  }, [allScripts, query]);
+
+  const firstName = user?.firstName ?? '';
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
-      <View style={styles.inner}>
-        <Text style={[styles.title, { color: colors.ink }]}>{t('nav.scripts')}</Text>
-        <Text style={[styles.sub, { color: colors.inkSoft }]}>{t('comingSoon')}</Text>
-      </View>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.headerRow}>
+          <Text style={[styles.heading, { color: colors.ink }]}>
+            {tCommon('nav.scripts')}
+          </Text>
+          {firstName ? (
+            <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+              <Text style={styles.avatarText}>
+                {firstName.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+
+        {/* Search */}
+        <View style={[styles.searchBar, { borderColor: colors.line }]}>
+          <Text style={styles.searchIcon}>🔍</Text>
+          <TextInput
+            style={[styles.searchInput, { color: colors.ink }]}
+            placeholder={t('searchPlaceholder')}
+            placeholderTextColor={colors.inkSoft}
+            value={query}
+            onChangeText={setQuery}
+            returnKeyType="search"
+            autoCorrect={false}
+          />
+        </View>
+
+        {/* Script cards */}
+        {filtered.length > 0 ? (
+          filtered.map((script) => (
+            <ScriptCard key={script.id} script={script} />
+          ))
+        ) : (
+          <Text style={[styles.empty, { color: colors.inkSoft }]}>
+            {t('noResults')}
+          </Text>
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  inner: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: 24, fontWeight: '700' },
-  sub: { fontSize: 14, marginTop: 6 },
+  scroll: { flex: 1 },
+  content: { padding: 20, paddingBottom: 32 },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    marginTop: 8,
+  },
+  heading: {
+    fontSize: 24,
+    fontWeight: '700',
+    letterSpacing: -0.4,
+  },
+  avatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  searchBar: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderRadius: 13,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 14,
+  },
+  searchIcon: {
+    fontSize: 14,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 13.5,
+    padding: 0,
+  },
+  empty: {
+    fontSize: 13.5,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: 32,
+  },
 });
