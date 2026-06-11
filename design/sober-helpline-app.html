@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sober Helpline — Family Support Companion</title>
+<style>
+  :root{
+    --teal:#1a365d; --teal-dark:#0f2440; --teal-light:#e8eef6;
+    --sand:#e8ddc9; --cream:#faf6ef; --amber:#d9913b; --amber-light:#fdf3e3;
+    --coral:#c4604f; --coral-light:#fbeae7;
+    --ink:#22302f; --ink-soft:#5c6b6a; --line:#e2e0d8;
+    --green:#4d7c5f; --green-light:#e9f2ec;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Avenir Next','Segoe UI',system-ui,sans-serif;}
+  body{background:linear-gradient(135deg,#0f2440 0%,#1a365d 55%,#2e6da3 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px;gap:48px;flex-wrap:wrap;}
+
+  .pitch{color:#fff;max-width:340px;}
+  .pitch .logo{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+  .pitch .logo-mark{width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:26px;}
+  .pitch h1{font-size:34px;font-weight:700;letter-spacing:-.5px;}
+  .pitch p.tag{font-size:17px;line-height:1.55;opacity:.85;margin-bottom:24px;}
+  .pitch ul{list-style:none;}
+  .pitch li{padding:9px 0;font-size:14.5px;opacity:.9;display:flex;gap:10px;align-items:flex-start;border-bottom:1px solid rgba(255,255,255,.1);}
+  .pitch li span.dot{color:#f0c987;}
+  .pitch .hint{margin-top:22px;font-size:13px;opacity:.6;font-style:italic;}
+
+  /* Phone frame */
+  .phone{width:393px;height:812px;background:#0c0c0d;border-radius:54px;padding:12px;box-shadow:0 40px 90px rgba(0,0,0,.45);position:relative;flex-shrink:0;}
+  .screen{width:100%;height:100%;background:var(--cream);border-radius:44px;overflow:hidden;display:flex;flex-direction:column;position:relative;}
+  .notch{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:120px;height:30px;background:#0c0c0d;border-radius:18px;z-index:50;}
+  .statusbar{height:54px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 6px;font-size:13px;font-weight:600;color:var(--ink);flex-shrink:0;}
+
+  .content{flex:1;overflow-y:auto;padding:8px 20px 16px;scrollbar-width:none;}
+  .content::-webkit-scrollbar{display:none;}
+
+  .tab{display:none;}
+  .tab.active{display:block;animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* Bottom nav */
+  .nav{flex-shrink:0;display:flex;background:#fff;border-top:1px solid var(--line);padding:10px 6px 26px;}
+  .nav button{flex:1;background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9px;color:#9aa6a4;cursor:pointer;font-weight:600;}
+  .nav button .ico{font-size:19px;line-height:1;filter:grayscale(1);opacity:.55;}
+  .nav button.on{color:var(--teal);}
+  .nav button.on .ico{filter:none;opacity:1;}
+
+  /* Shared */
+  .h-row{display:flex;justify-content:space-between;align-items:center;margin:10px 2px 14px;}
+  .h-row h2{font-size:24px;color:var(--ink);letter-spacing:-.4px;}
+  .avatar{width:38px;height:38px;border-radius:50%;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;}
+  .card{background:#fff;border-radius:18px;padding:16px;margin-bottom:12px;border:1px solid var(--line);box-shadow:0 1px 3px rgba(34,48,47,.04);}
+  .eyebrow{font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink-soft);margin-bottom:6px;}
+  .chip{display:inline-block;font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;}
+
+  /* Today */
+  .hero{background:linear-gradient(135deg,var(--teal) 0%,#2e6da3 100%);color:#fff;border:none;}
+  .hero .day{font-size:12px;opacity:.75;margin-bottom:4px;font-weight:600;letter-spacing:.8px;}
+  .hero h3{font-size:19px;font-weight:700;margin-bottom:10px;line-height:1.35;}
+  .hero .streak{display:flex;gap:14px;margin-top:14px;}
+  .hero .streak div{background:rgba(255,255,255,.13);border-radius:12px;padding:8px 14px;text-align:center;}
+  .hero .streak b{display:block;font-size:20px;}
+  .hero .streak span{font-size:10.5px;opacity:.8;}
+  .moods{display:flex;justify-content:space-between;margin:12px 0 4px;}
+  .mood{width:54px;height:54px;border-radius:16px;border:2px solid var(--line);background:#fff;font-size:25px;cursor:pointer;transition:.15s;}
+  .mood:hover{transform:translateY(-2px);}
+  .mood.sel{border-color:var(--teal);background:var(--teal-light);transform:scale(1.06);}
+  .checkin-q{font-size:14.5px;color:var(--ink);font-weight:600;margin-bottom:4px;}
+  .checkin-sub{font-size:12.5px;color:var(--ink-soft);margin-bottom:8px;}
+  .btn{display:block;width:100%;background:var(--teal);color:#fff;border:none;border-radius:14px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;margin-top:10px;}
+  .btn:active{background:var(--teal-dark);}
+  .btn.ghost{background:var(--teal-light);color:var(--teal);}
+  .done-banner{display:none;background:var(--green-light);border:1px solid #cde3d4;color:var(--green);border-radius:14px;padding:13px 15px;font-size:13.5px;font-weight:600;margin-top:10px;}
+  .focus-item{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--line);}
+  .focus-item:last-child{border-bottom:none;}
+  .focus-item .fi-ico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+  .focus-item b{font-size:13.5px;color:var(--ink);display:block;}
+  .focus-item span{font-size:12px;color:var(--ink-soft);}
+
+  /* Scripts */
+  .search{background:#fff;border:1px solid var(--line);border-radius:13px;padding:11px 14px;font-size:13.5px;color:var(--ink-soft);margin-bottom:14px;display:flex;gap:8px;align-items:center;}
+  .script{cursor:pointer;}
+  .script .s-head{display:flex;justify-content:space-between;align-items:center;gap:10px;}
+  .script h4{font-size:14.5px;color:var(--ink);line-height:1.35;}
+  .script .arrow{color:var(--ink-soft);font-size:13px;transition:.2s;flex-shrink:0;}
+  .script.open .arrow{transform:rotate(90deg);}
+  .s-body{display:none;margin-top:12px;border-top:1px dashed var(--line);padding-top:12px;}
+  .script.open .s-body{display:block;}
+  .say{background:var(--green-light);border-left:3px solid var(--green);border-radius:0 10px 10px 0;padding:10px 12px;font-size:13px;color:var(--ink);margin-bottom:8px;line-height:1.5;}
+  .say b{color:var(--green);font-size:10.5px;letter-spacing:1px;display:block;margin-bottom:3px;}
+  .avoid{background:var(--coral-light);border-left:3px solid var(--coral);border-radius:0 10px 10px 0;padding:10px 12px;font-size:13px;color:var(--ink);line-height:1.5;}
+  .avoid b{color:var(--coral);font-size:10.5px;letter-spacing:1px;display:block;margin-bottom:3px;}
+  .why{font-size:12px;color:var(--ink-soft);margin-top:9px;line-height:1.5;font-style:italic;}
+
+  /* Tracker */
+  .sign{display:flex;justify-content:space-between;align-items:center;padding:13px 2px;border-bottom:1px solid var(--line);}
+  .sign:last-child{border-bottom:none;}
+  .sign .s-txt b{font-size:13.5px;color:var(--ink);display:block;}
+  .sign .s-txt span{font-size:11.5px;color:var(--ink-soft);}
+  .toggle{width:46px;height:27px;border-radius:99px;background:#d8d8d0;border:none;position:relative;cursor:pointer;transition:.2s;flex-shrink:0;}
+  .toggle::after{content:'';position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+  .toggle.on{background:var(--amber);}
+  .toggle.on::after{left:22px;}
+  .toggle.pos.on{background:var(--green);}
+  .risk-meter{margin-top:4px;}
+  .risk-bar{height:9px;border-radius:99px;background:#eee8db;overflow:hidden;margin:8px 0 6px;}
+  .risk-fill{height:100%;width:18%;border-radius:99px;background:var(--green);transition:.4s;}
+  .risk-label{font-size:12.5px;font-weight:700;color:var(--green);}
+  .alert-card{display:none;background:var(--amber-light);border:1px solid #f0ddb8;border-radius:14px;padding:13px 15px;margin-top:10px;}
+  .alert-card b{font-size:13px;color:#9a6717;}
+  .alert-card p{font-size:12.5px;color:#7a5512;margin-top:4px;line-height:1.45;}
+
+  /* Learn */
+  .lesson{display:flex;gap:13px;align-items:center;}
+  .lesson .thumb{width:58px;height:58px;border-radius:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:25px;}
+  .lesson b{font-size:13.5px;color:var(--ink);display:block;line-height:1.3;}
+  .lesson span{font-size:11.5px;color:var(--ink-soft);}
+  .progress{height:4px;border-radius:99px;background:#eee8db;margin-top:7px;overflow:hidden;}
+  .progress i{display:block;height:100%;border-radius:99px;background:var(--teal);}
+
+  /* Support */
+  .group{display:flex;gap:12px;align-items:center;}
+  .group .g-ico{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+  .group b{font-size:13.5px;color:var(--ink);display:block;}
+  .group span{font-size:11.5px;color:var(--ink-soft);}
+  .live{width:8px;height:8px;border-radius:50%;background:#4d9e6a;display:inline-block;margin-right:4px;}
+  .sos{background:var(--coral);color:#fff;border:none;border-radius:16px;padding:16px;width:100%;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;margin-bottom:14px;}
+  .msg{background:var(--teal-light);border-radius:14px 14px 14px 4px;padding:10px 13px;font-size:12.5px;color:var(--ink);margin-bottom:8px;line-height:1.45;}
+  .msg b{font-size:11px;color:var(--teal);display:block;margin-bottom:2px;}
+
+  /* Boundaries */
+  .acc{cursor:pointer;padding:0;}
+  .acc .a-head{display:flex;align-items:center;gap:11px;padding:15px 16px;}
+  .acc .a-ico{font-size:20px;flex-shrink:0;}
+  .acc h4{font-size:14px;color:var(--ink);flex:1;line-height:1.35;}
+  .acc .arrow{color:var(--ink-soft);font-size:12px;transition:.2s;}
+  .acc.open .arrow{transform:rotate(90deg);}
+  .acc .a-body{display:none;padding:0 16px 15px;font-size:13px;color:var(--ink-soft);line-height:1.6;}
+  .acc.open .a-body{display:block;}
+  .acc .a-body b{color:var(--ink);}
+  .anchor-card{border-left:4px solid var(--teal);}
+  .anchor-card.harm{border-left-color:var(--coral);}
+  .anchor-q{font-size:14.5px;font-weight:700;color:var(--ink);margin-bottom:3px;}
+  .anchor-sub{font-size:12px;color:var(--ink-soft);margin-bottom:11px;}
+  .pills{display:flex;gap:8px;flex-wrap:wrap;}
+  .pill{border:1.5px solid var(--line);background:#fff;border-radius:99px;padding:8px 14px;font-size:12.5px;font-weight:600;color:var(--ink-soft);cursor:pointer;transition:.15s;}
+  .pill.on{border-color:var(--teal);background:var(--teal-light);color:var(--teal);}
+  .anchor-card.harm .pill.on{border-color:var(--coral);background:var(--coral-light);color:var(--coral);}
+  .sugg{display:none;background:var(--sand);border-radius:12px;padding:11px 13px;font-size:12.5px;color:var(--ink);margin-top:8px;line-height:1.5;cursor:pointer;}
+  .sugg.show{display:flex;gap:9px;align-items:flex-start;}
+  .sugg .use{margin-left:auto;flex-shrink:0;background:var(--teal);color:#fff;border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;}
+  .builder textarea{width:100%;border:1.5px solid var(--line);border-radius:12px;padding:11px;font-size:13px;color:var(--ink);min-height:74px;resize:none;font-family:inherit;margin-top:8px;}
+  .builder textarea:focus{outline:none;border-color:var(--teal);}
+  .wall{background:linear-gradient(135deg,#f4efe5,#ece3d2);border:1px solid #ddd2bc;border-radius:14px;padding:12px 14px;margin-top:9px;display:flex;gap:10px;align-items:flex-start;}
+  .wall .w-ico{font-size:17px;}
+  .wall p{font-size:12.5px;color:var(--ink);line-height:1.5;flex:1;}
+  .wall span{display:block;font-size:10.5px;color:var(--ink-soft);margin-top:4px;}
+  .empty-walls{font-size:12.5px;color:var(--ink-soft);font-style:italic;padding:6px 2px;}
+
+  /* Account modes */
+  body.unatt .att-only{display:none!important;}
+  .unatt-only{display:none!important;}
+  body.unatt .unatt-only{display:block!important;}
+  body.unatt .unatt-only.crisis-row{display:flex!important;}
+  .unatt-i{display:none;}
+  body.unatt .unatt-i{display:inline;}
+  body.unatt .att-i{display:none;}
+  .modeswitch{display:flex;background:rgba(255,255,255,.12);border-radius:13px;padding:4px;margin-top:24px;}
+  .modeswitch button{flex:1;border:none;border-radius:10px;background:none;color:rgba(255,255,255,.75);font-size:12.5px;font-weight:700;padding:10px 8px;cursor:pointer;font-family:inherit;}
+  .modeswitch button.on{background:#fff;color:var(--teal-dark);}
+  .modecap{font-size:12px;opacity:.7;margin-top:10px;line-height:1.5;}
+  .tierline{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);}
+  .tierline:last-child{border-bottom:none;}
+  .tierline b{font-size:13px;color:var(--ink);display:block;}
+  .tierline span{font-size:11.5px;color:var(--ink-soft);}
+  .lock{font-size:10px;font-weight:700;color:#9a6717;background:var(--amber-light);border-radius:99px;padding:3px 8px;}
+
+  /* Crisis sheet */
+  .sheet-veil{display:none;position:absolute;inset:0;background:rgba(20,40,39,.5);z-index:70;border-radius:44px;}
+  .sheet-veil.show{display:block;}
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:26px 26px 44px 44px;padding:20px 18px 30px;z-index:80;transform:translateY(105%);transition:.3s ease;}
+  .sheet.show{transform:none;}
+  .sheet h3{font-size:17px;color:var(--ink);margin-bottom:3px;}
+  .sheet .s-sub{font-size:12px;color:var(--ink-soft);margin-bottom:14px;}
+  .crisis-row{display:flex;gap:11px;align-items:center;padding:11px 12px;border:1.5px solid var(--line);border-radius:14px;margin-bottom:9px;}
+  .crisis-row.oncall{border-color:var(--green);background:var(--green-light);}
+  .crisis-row .g-ico{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;background:var(--teal-light);}
+  .crisis-row b{font-size:13px;color:var(--ink);display:block;}
+  .crisis-row span{font-size:11px;color:var(--ink-soft);}
+  .crisis-row .cta{margin-left:auto;background:var(--teal);color:#fff;border:none;border-radius:10px;padding:9px 13px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;}
+  .crisis-row.oncall .cta{background:var(--green);}
+  .sheet .e911{text-align:center;font-size:11.5px;color:var(--coral);font-weight:700;margin-top:10px;}
+
+  .toast{position:absolute;bottom:110px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;font-size:13px;font-weight:600;padding:11px 20px;border-radius:99px;opacity:0;transition:.3s;pointer-events:none;white-space:nowrap;z-index:60;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="pitch">
+  <div class="logo"><div class="logo-mark" style="background:#fff"><img src="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNDggNDgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMjIiIGZpbGw9IiNmZmYiLz48Y2lyY2xlIGN4PSIyNCIgY3k9IjI0IiByPSIyMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMWEzNjVkIiBzdHJva2Utd2lkdGg9IjMiLz48Y2lyY2xlIGN4PSIyNCIgY3k9IjI2IiByPSIxMSIgZmlsbD0iI2Y2YTgyMSIvPjxnIHN0cm9rZT0iIzFhMzY1ZCIgc3Ryb2tlLXdpZHRoPSIyLjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+PGxpbmUgeDE9IjI0IiB5MT0iNiIgeDI9IjI0IiB5Mj0iMTMiLz48bGluZSB4MT0iMTMiIHkxPSIxMCIgeDI9IjE2LjUiIHkyPSIxNiIvPjxsaW5lIHgxPSIzNSIgeTE9IjEwIiB4Mj0iMzEuNSIgeTI9IjE2Ii8+PGxpbmUgeDE9IjgiIHkxPSIyMCIgeDI9IjE0LjUiIHkyPSIyMiIvPjxsaW5lIHgxPSI0MCIgeTE9IjIwIiB4Mj0iMzMuNSIgeTI9IjIyIi8+PC9nPjxwYXRoIGQ9Ik0yIDM0IFExNCAyOCAyNCAzMiBRMzYgMzcgNDYgMzIgTDQ2IDQwIFEyNCA0OCAyIDQwIFoiIGZpbGw9IiMyZTdkNDYiLz48cGF0aCBkPSJNMTYgMzQgTDI0IDE4IEwzMiAzNCBaIiBmaWxsPSIjMWEzNjVkIi8+PC9zdmc+" style="width:34px;height:34px"></div><div><h1 style="font-size:28px">Sober Helpline</h1><div style="font-size:12px;letter-spacing:2px;opacity:.8;font-weight:600">HOPE. HELP. RECOVERY.</div></div></div>
+  <p class="tag">The intervention is a moment.<br>The family's recovery is a journey.<br><b>Sober Helpline guides them through it.</b></p>
+  <ul>
+    <li><span class="dot">●</span>Daily check-ins keep families grounded and build healthy streaks</li>
+    <li><span class="dot">●</span>Boundary scripts for the hardest conversations — what to say, what to avoid</li>
+    <li><span class="dot">●</span>Relapse warning-sign tracker with smart alerts to your team</li>
+    <li><span class="dot">●</span>Moderated group support, on demand — not just Tuesdays at 7</li>
+  </ul>
+  <p class="hint">This prototype is clickable — try the tabs, log a mood, expand a script, flip a warning sign.</p>
+  <div class="modeswitch">
+    <button class="on" onclick="setMode('att',this)">Attached to provider</button>
+    <button onclick="setMode('unatt',this)">Direct · App Store</button>
+  </div>
+  <p class="modecap" id="modeCap">Sarah's family works with Freedom Interventions: assigned coach, provider sessions, no in-app billing.</p>
+</div>
+
+<div class="phone">
+  <div class="notch"></div>
+  <div class="screen">
+    <div class="statusbar"><span>9:41</span><span>𝗹𝗹𝗹 ⏽ ▮</span></div>
+    <div class="content">
+
+      <!-- TODAY -->
+      <div class="tab active" id="tab-today">
+        <div class="h-row"><h2>Good morning, Sarah</h2><div class="avatar">S</div></div>
+
+        <div class="card hero">
+          <div class="day">DAY 47 — SON IN RESIDENTIAL TREATMENT</div>
+          <h3>"You didn't cause it, you can't control it, you can't cure it."</h3>
+          <div class="streak">
+            <div><b>12</b><span>day check-in streak</span></div>
+            <div><b>3</b><span>boundaries held</span></div>
+            <div><b>2</b><span>group sessions</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="eyebrow">Daily check-in</div>
+          <div class="checkin-q">How are you holding up today?</div>
+          <div class="checkin-sub">Your answers are private. <span class="att-i">Patterns are shared only with your Freedom Interventions coach.</span><span class="unatt-i">Patterns stay private unless you choose to share them with a coach.</span></div>
+          <div class="moods">
+            <button class="mood" onclick="pickMood(this)">😞</button>
+            <button class="mood" onclick="pickMood(this)">😕</button>
+            <button class="mood" onclick="pickMood(this)">😐</button>
+            <button class="mood" onclick="pickMood(this)">🙂</button>
+            <button class="mood" onclick="pickMood(this)">😊</button>
+          </div>
+          <button class="btn" id="checkinBtn" onclick="completeCheckin()">Complete check-in</button>
+          <div class="done-banner" id="doneBanner">✓ Check-in complete — 13-day streak! Maria will see your update.</div>
+        </div>
+
+        <div class="card">
+          <div class="eyebrow">Today's focus</div>
+          <div class="focus-item">
+            <div class="fi-ico" style="background:var(--teal-light)">📞</div>
+            <div><b>Family call with treatment center — 4:00 PM</b><span>Prep script ready: "First call after week 6"</span></div>
+          </div>
+          <div class="focus-item">
+            <div class="fi-ico" style="background:var(--amber-light)">🛡️</div>
+            <div><b>Boundary practice: money requests</b><span>2-min rehearsal exercise</span></div>
+          </div>
+          <div class="focus-item">
+            <div class="fi-ico" style="background:var(--green-light)">🌿</div>
+            <div><b>Your own recovery: 10-min walk</b><span>Caring for yourself isn't selfish — it's the plan</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCRIPTS -->
+      <div class="tab" id="tab-scripts">
+        <div class="h-row"><h2>Scripts</h2><div class="avatar">S</div></div>
+        <div class="search">🔍 Search situations... <span style="margin-left:auto;font-size:11px;color:#b6bdbb">"money", "relapse"...</span></div>
+
+        <div class="card script" onclick="toggleScript(this)">
+          <div class="s-head"><div><span class="chip" style="background:var(--amber-light);color:#9a6717">MONEY</span><h4 style="margin-top:7px">When they ask you for money</h4></div><span class="arrow">▶</span></div>
+          <div class="s-body">
+            <div class="say"><b>TRY SAYING</b>"I love you, and I'm not able to give you money. I'm happy to bring you a meal or drive you to a meeting."</div>
+            <div class="avoid"><b>AVOID</b>"After everything we've done for you?" — guilt invites a fight, not a change.</div>
+            <div class="why">Offering non-cash support keeps the relationship open while protecting the boundary. Rehearse it out loud — twice.</div>
+          </div>
+        </div>
+
+        <div class="card script" onclick="toggleScript(this)">
+          <div class="s-head"><div><span class="chip" style="background:var(--coral-light);color:var(--coral)">CRISIS</span><h4 style="margin-top:7px">The 2 AM phone call</h4></div><span class="arrow">▶</span></div>
+          <div class="s-body">
+            <div class="say"><b>TRY SAYING</b>"I hear that you're hurting. I'll talk with you tomorrow when we're both rested. If this is an emergency, call 911."</div>
+            <div class="avoid"><b>AVOID</b>Long late-night negotiations. Crisis hours favor manipulation over honesty.</div>
+            <div class="why">You're allowed to protect your sleep. A boundary stated calmly once is stronger than an argument repeated ten times.</div>
+          </div>
+        </div>
+
+        <div class="card script" onclick="toggleScript(this)">
+          <div class="s-head"><div><span class="chip" style="background:var(--teal-light);color:var(--teal)">SUSPICION</span><h4 style="margin-top:7px">You suspect they've relapsed</h4></div><span class="arrow">▶</span></div>
+          <div class="s-body">
+            <div class="say"><b>TRY SAYING</b>"I've noticed some changes and I'm concerned. I'm not accusing you — I'm telling you what I see because I love you."</div>
+            <div class="avoid"><b>AVOID</b>Searching their room or phone before the conversation. Lead with observation, not evidence.</div>
+            <div class="why">Describing behavior ("I noticed...") lands differently than labeling ("You're using again"). Log what you've seen in the Tracker first.</div>
+          </div>
+        </div>
+
+        <div class="card script" onclick="toggleScript(this)">
+          <div class="s-head"><div><span class="chip" style="background:var(--green-light);color:var(--green)">REPAIR</span><h4 style="margin-top:7px">First visit after treatment begins</h4></div><span class="arrow">▶</span></div>
+          <div class="s-body">
+            <div class="say"><b>TRY SAYING</b>"I'm proud of the work you're doing. I'm working on my side of this too."</div>
+            <div class="avoid"><b>AVOID</b>Rehashing the intervention or past hurts in the first visits. There will be time — with a counselor present.</div>
+            <div class="why">Early visits set the tone for the whole family system. Keep them short, warm, and future-facing.</div>
+          </div>
+        </div>
+        <button class="btn ghost">Request a custom script from your coach</button>
+      </div>
+
+      <!-- TRACKER -->
+      <div class="tab" id="tab-track">
+        <div class="h-row"><h2>Warning Signs</h2><div class="avatar">S</div></div>
+
+        <div class="card risk-meter">
+          <div class="eyebrow">This week's pattern</div>
+          <div class="risk-bar"><div class="risk-fill" id="riskFill"></div></div>
+          <div class="risk-label" id="riskLabel">Low concern — keep observing</div>
+          <div class="alert-card" id="alertCard">
+            <b>⚠ Pattern worth a conversation</b>
+            <p>3+ signs this week. We've suggested talking points<span class="att-i"> and notified Maria, your family coach. She'll reach out within 24 hours</span><span class="unatt-i"> — the on-call coach is one tap away in Support</span>.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="eyebrow">What have you noticed this week?</div>
+          <div class="sign"><div class="s-txt"><b>Reconnecting with old using friends</b><span>Behavioral</span></div><button class="toggle" onclick="flipSign(this)"></button></div>
+          <div class="sign"><div class="s-txt"><b>Skipped aftercare meetings</b><span>Recovery routine</span></div><button class="toggle" onclick="flipSign(this)"></button></div>
+          <div class="sign"><div class="s-txt"><b>Unexplained money requests</b><span>Financial</span></div><button class="toggle" onclick="flipSign(this)"></button></div>
+          <div class="sign"><div class="s-txt"><b>Sleeping all day / up all night</b><span>Physical</span></div><button class="toggle" onclick="flipSign(this)"></button></div>
+          <div class="sign"><div class="s-txt"><b>Defensive when asked simple questions</b><span>Emotional</span></div><button class="toggle" onclick="flipSign(this)"></button></div>
+          <div class="sign"><div class="s-txt"><b>New "stomach flu" or frequent illness</b><span>Physical</span></div><button class="toggle" onclick="flipSign(this)"></button></div>
+        </div>
+        <div class="card risk-meter" style="margin-top:14px">
+          <div class="eyebrow">Recovery momentum</div>
+          <div class="risk-bar"><div class="risk-fill" id="posFill" style="width:8%;background:#c9d6cd"></div></div>
+          <div class="risk-label" id="posLabel" style="color:var(--ink-soft)">Watch for green shoots — they count too</div>
+          <div class="alert-card" id="posAlert" style="background:var(--green-light);border-color:#cde3d4">
+            <b style="color:var(--green)">🌱 Real momentum this week</b>
+            <p style="color:#3d6450">3+ recovery signs logged. Tell them what you see — specific, brief, no strings: "I noticed you've made every meeting this week. I see the work."</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="eyebrow">Signs of recovery — what's growing?</div>
+          <div class="sign"><div class="s-txt"><b>Attending meetings or therapy consistently</b><span>Recovery routine</span></div><button class="toggle pos" onclick="flipPos(this)"></button></div>
+          <div class="sign"><div class="s-txt"><b>Honest about struggles and cravings</b><span>Emotional honesty</span></div><button class="toggle pos" onclick="flipPos(this)"></button></div>
+          <div class="sign"><div class="s-txt"><b>Keeping commitments, even small ones</b><span>Reliability</span></div><button class="toggle pos" onclick="flipPos(this)"></button></div>
+          <div class="sign"><div class="s-txt"><b>Spending time with sober friends</b><span>Social</span></div><button class="toggle pos" onclick="flipPos(this)"></button></div>
+          <div class="sign"><div class="s-txt"><b>Regular sleep, meals, and self-care</b><span>Physical</span></div><button class="toggle pos" onclick="flipPos(this)"></button></div>
+          <div class="sign"><div class="s-txt"><b>Open about whereabouts without being asked</b><span>Transparency</span></div><button class="toggle pos" onclick="flipPos(this)"></button></div>
+          <div class="sign"><div class="s-txt"><b>Handling money responsibly</b><span>Financial</span></div><button class="toggle pos" onclick="flipPos(this)"></button></div>
+          <div class="sign"><div class="s-txt"><b>Accepting "no" without escalating</b><span>Respecting boundaries</span></div><button class="toggle pos" onclick="flipPos(this)"></button></div>
+          <div class="sign"><div class="s-txt"><b>Taking responsibility instead of blaming</b><span>Accountability</span></div><button class="toggle pos" onclick="flipPos(this)"></button></div>
+          <div class="sign"><div class="s-txt"><b>Showing interest in others' lives again</b><span>Reconnection</span></div><button class="toggle pos" onclick="flipPos(this)"></button></div>
+        </div>
+        <p style="font-size:11.5px;color:var(--ink-soft);padding:0 6px;line-height:1.5">Tracking isn't surveillance — it turns anxiety into observation, and observation into a plan. Watching for recovery signs matters as much as watching for warning signs: it teaches your eyes what healing looks like. Your log is visible only to you<span class="att-i"> and your coach</span><span class="unatt-i"> — and any coach you choose to share it with</span>.</p>
+      </div>
+
+      <!-- BOUNDARIES -->
+      <div class="tab" id="tab-bound">
+        <div class="h-row"><h2>Boundaries</h2><div class="avatar">S</div></div>
+
+        <div class="card acc" onclick="toggleAcc(this)">
+          <div class="a-head"><span class="a-ico">🏰</span><h4>Your family is a castle on a hill</h4><span class="arrow">▶</span></div>
+          <div class="a-body">Inside the castle are the people, values, resources, and peace you care about most. A castle's job is <b>not to prove its strength by taking constant damage</b> — it's to protect what matters and decide, with wisdom, who and what is allowed inside. When addiction is active and there are no boundaries, the castle has no defenses: anyone can walk in, take what they want, and leave wreckage behind. Bills disappear, trust erodes, and the whole household orbits the crisis. Boundaries don't remove love — they restore the truth that <b>this castle has a right and a responsibility to protect itself.</b></div>
+        </div>
+        <div class="card acc" onclick="toggleAcc(this)">
+          <div class="a-head"><span class="a-ico">🧱</span><h4>The walls — what is non-negotiable</h4><span class="arrow">▶</span></div>
+          <div class="a-body">Walls are the firm limits that keep danger out: <b>"No drugs or alcohol in this house." "We will not lie for you or cover up DUIs." "You cannot stay here if you are violent or refusing all help."</b> These are not threats — they are statements of reality about what is allowed inside the family. With walls, you can say: "Your choices are yours, but we will not let them destroy our home." A clearly stated wall, followed through, also ends the exhausting re-negotiation — the rules stop changing every time emotions run high.</div>
+        </div>
+        <div class="card acc" onclick="toggleAcc(this)">
+          <div class="a-head"><span class="a-ico">🌊</span><h4>The moat — emotional & physical distance</h4><span class="arrow">▶</span></div>
+          <div class="a-body">The moat is the space that keeps you from being pulled into every emergency, lie, or manipulation: not answering middle-of-the-night calls unless there's a true safety issue, refusing circular arguments with someone intoxicated. Families feel guilty about this distance, as if it means they don't care. In reality, <b>the moat is what keeps everyone from drowning.</b> It lets you respond instead of react — to think, get support, and decide from principles instead of panic. The moat doesn't cut your loved one off from help; it stops their addiction from constantly crashing against the walls.</div>
+        </div>
+        <div class="card acc" onclick="toggleAcc(this)">
+          <div class="a-head"><span class="a-ico">🌉</span><h4>The drawbridge — when and how you engage</h4><span class="arrow">▶</span></div>
+          <div class="a-body">The drawbridge is your active choice. <b>Lower it</b> for honest conversations, treatment planning, sober visits, therapy. <b>Raise it</b> when your loved one is intoxicated, abusive, demanding money, or refusing all responsibility. Enabling is leaving the drawbridge down 24/7 — even while people charge in with torches. Healthy support says: <b>"We will meet you on the bridge when you are reaching for recovery. We will not let your addiction storm the castle."</b> The more consistently the bridge moves, the clearer the message: love is available, but access is tied to respect and safety.</div>
+        </div>
+        <div class="card acc" onclick="toggleAcc(this)">
+          <div class="a-head"><span class="a-ico">🔧</span><h4>Maintenance — keeping the castle strong</h4><span class="arrow">▶</span></div>
+          <div class="a-body">Real castles need upkeep: walls patched, moats cleared, bridges repaired. It's easy to slip — lending money "just this once," letting substances back in, softening agreed consequences. Regular family check-ins (often with professional guidance) catch cracks before they become breaches. Remember: the goal isn't to punish your loved one — it's to <b>make ongoing use less comfortable and less protected while the door to change stays open.</b> The castle stands firm; help is always available.</div>
+        </div>
+        <div class="card acc" onclick="toggleAcc(this)">
+          <div class="a-head"><span class="a-ico">🛡️</span><h4>Guardians, not hostages</h4><span class="arrow">▶</span></div>
+          <div class="a-body">You cannot control whether your loved one chooses recovery. You <b>can</b> control the strength of your walls, the depth of your moat, and the position of your drawbridge. The message becomes clear and consistent: <b>"We love you deeply. We will not participate in your destruction. We will stand ready to welcome you when you choose a different path."</b> Boundaries aren't harsh or selfish — they're the architecture of love that survives addiction, and they leave room for a prodigal to come home through the front gate when they're finally ready.</div>
+        </div>
+        <div class="card acc" onclick="toggleAcc(this)">
+          <div class="a-head"><span class="a-ico">⚓</span><h4>Anchored in answers, not emotions</h4><span class="arrow">▶</span></div>
+          <div class="a-body">Anger fades, guilt creeps in, fear spikes at 2 AM — a boundary anchored in emotion shifts with it. Lasting boundaries are anchored in your honest answers to two questions: <b>Have I enabled the addiction in any way? Has the addiction harmed me in any way?</b> If either answer is yes, the boundary isn't optional and it isn't cruel — it's the foundation stone. Answer both below and build your walls on bedrock.</div>
+        </div>
+
+        <div class="card anchor-card">
+          <div class="eyebrow">Anchor question 1</div>
+          <div class="anchor-q">Have I enabled the addiction in any way?</div>
+          <div class="anchor-sub">Be honest — this is bedrock, not blame. Tap all that apply.</div>
+          <div class="pills">
+            <button class="pill" onclick="flipAnchor(this,'e-fin')">💵 Financially</button>
+            <button class="pill" onclick="flipAnchor(this,'e-emo')">💬 Emotionally</button>
+            <button class="pill" onclick="flipAnchor(this,'e-sil')">🤐 Silently</button>
+          </div>
+          <div class="sugg" id="sg-e-fin"><div>Money given "to help" funds the disease. <b>Suggested wall:</b> "I will no longer give cash, pay bills, or cover debts created by the addiction."</div><button class="use" onclick="useSugg(event,'I will no longer give cash, pay bills, or cover debts created by the addiction.')">Use</button></div>
+          <div class="sugg" id="sg-e-emo"><div>Rescuing, excusing, absorbing blame. <b>Suggested wall:</b> "I will no longer make excuses for them or rescue them from consequences."</div><button class="use" onclick="useSugg(event,'I will no longer make excuses for them or rescue them from the consequences of their use.')">Use</button></div>
+          <div class="sugg" id="sg-e-sil"><div>Silence is a vote for more of the same. <b>Suggested wall:</b> "I will no longer keep secrets or pretend I don't see what I see."</div><button class="use" onclick="useSugg(event,'I will no longer keep secrets about the addiction or pretend I don\'t see what I see.')">Use</button></div>
+        </div>
+
+        <div class="card anchor-card harm">
+          <div class="eyebrow">Anchor question 2</div>
+          <div class="anchor-q">Has the addiction harmed me in any way?</div>
+          <div class="anchor-sub">Your harm is real and it counts. Tap all that apply.</div>
+          <div class="pills">
+            <button class="pill" onclick="flipAnchor(this,'h-fin')">💵 Financially</button>
+            <button class="pill" onclick="flipAnchor(this,'h-emo')">💔 Emotionally</button>
+            <button class="pill" onclick="flipAnchor(this,'h-phys')">🤕 Physically</button>
+          </div>
+          <div class="sugg" id="sg-h-fin"><div>Drained savings, stolen items, mounting debt. <b>Suggested wall:</b> "I will protect my money — separate accounts, no shared cards, no loans."</div><button class="use" onclick="useSugg(event,'I will protect my money: separate accounts, no shared cards, no loans.')">Use</button></div>
+          <div class="sugg" id="sg-h-emo"><div>Manipulation, broken promises, walking on eggshells. <b>Suggested wall:</b> "I will end any conversation that turns manipulative or cruel."</div><button class="use" onclick="useSugg(event,'I will end any conversation that becomes manipulative or cruel, and revisit it when we\'re both calm.')">Use</button></div>
+          <div class="sugg" id="sg-h-phys"><div>Threats, violence, unsafe situations. <b>Suggested wall:</b> "If I feel unsafe, I will leave immediately and call for help."</div><button class="use" onclick="useSugg(event,'If I feel unsafe, I will leave immediately and call for help. My safety comes first.')">Use</button></div>
+        </div>
+
+        <div class="card builder">
+          <div class="eyebrow">Build your wall</div>
+          <div class="anchor-sub" style="margin-bottom:0">Tap a suggestion above or write your own. State what <b>you</b> will do.</div>
+          <textarea id="wallText" placeholder='"I will..."'></textarea>
+          <button class="btn" onclick="saveWall()">⚓ Anchor this boundary</button>
+        </div>
+
+        <div class="card">
+          <div class="eyebrow">My castle walls</div>
+          <div class="empty-walls" id="emptyWalls">No walls anchored yet. Answer the two questions above to lay your first stone.</div>
+          <div id="wallList"></div>
+          <button class="btn ghost" onclick="toast('Shared with your coach')"><span class="att-i">Review walls with my coach</span><span class="unatt-i">Share walls with the on-call coach</span></button>
+        </div>
+      </div>
+
+      <!-- LEARN -->
+      <div class="tab" id="tab-learn">
+        <div class="h-row"><h2>Learn</h2><div class="avatar">S</div></div>
+        <div class="card" style="background:var(--teal);border:none;color:#fff">
+          <div class="eyebrow" style="color:rgba(255,255,255,.7)">Your current path</div>
+          <b style="font-size:16px">Understanding Enabling vs. Helping</b>
+          <div class="progress" style="background:rgba(255,255,255,.2)"><i style="width:60%;background:#f0c987"></i></div>
+          <span style="font-size:11.5px;opacity:.8">Lesson 3 of 5 · 8 min remaining</span>
+        </div>
+        <div class="card lesson"><div class="thumb" style="background:var(--amber-light)">🧠</div><div style="flex:1"><b>Addiction is a brain disease, not a choice</b><span>Video · 6 min</span><div class="progress"><i style="width:100%"></i></div></div></div>
+        <div class="card lesson"><div class="thumb" style="background:var(--teal-light)">🗣️</div><div style="flex:1"><b>The CRAFT method: changing the conversation</b><span>Course · 4 lessons</span><div class="progress"><i style="width:25%"></i></div></div></div>
+        <div class="card lesson"><div class="thumb" style="background:var(--green-light)">🌱</div><div style="flex:1"><b>Your recovery matters too</b><span>Audio series · 5 episodes</span><div class="progress"><i style="width:0%"></i></div></div></div>
+        <div class="card lesson"><div class="thumb" style="background:var(--coral-light)">💔</div><div style="flex:1"><b>When they refuse treatment</b><span>Guide · 12 min read</span><div class="progress"><i style="width:0%"></i></div></div></div>
+      </div>
+
+      <!-- SUPPORT -->
+      <div class="tab" id="tab-support">
+        <div class="h-row"><h2>Support</h2><div class="avatar">S</div></div>
+        <button class="sos" onclick="openCrisis()">🆘 Talk to someone now</button>
+
+        <div class="card unatt-only">
+          <div class="eyebrow">Your plan</div>
+          <div class="tierline"><div><b>Essential — current plan</b><span>Message the on-call coach · full app · groups</span></div><span class="chip" style="background:var(--teal-light);color:var(--teal)">$19/MO</span></div>
+          <div class="tierline"><div><b>Premium</b><span>+ phone & video calls with a coach, business hours</span></div><span class="chip" style="background:var(--amber-light);color:#9a6717">$49/MO</span></div>
+          <div class="tierline"><div><b>After-hours calls</b><span>Outside your coach's local business hours</span></div><span class="lock">ADD-ON</span></div>
+          <button class="btn" onclick="toast('Opens App Store upgrade sheet (IAP)')">Upgrade to Premium</button>
+        </div>
+
+        <div class="card unatt-only">
+          <div class="eyebrow">Messages — on-call coach</div>
+          <div class="msg"><b>Denise · On-call coach</b>Hi Sarah — I read your check-in from this morning. That boundary you held on Sunday took real strength. I'm here if today gets heavy.</div>
+          <button class="btn ghost" onclick="toast('Message thread opened — included in Essential')">Reply</button>
+        </div>
+
+        <div class="card unatt-only">
+          <div class="eyebrow">Need more than an app?</div>
+          <div style="font-size:13px;color:var(--ink);line-height:1.5;margin-bottom:4px"><b>Work with a professional interventionist.</b></div>
+          <div style="font-size:12px;color:var(--ink-soft);line-height:1.5">Get matched with a vetted provider organization for assigned coaching, family sessions, and intervention support.</div>
+          <button class="btn ghost" onclick="toast('Provider matching — referral to vetted orgs')">Find a provider</button>
+        </div>
+
+        <div class="card att-only">
+          <div class="eyebrow">Your team</div>
+          <div class="group" style="padding-bottom:12px;border-bottom:1px solid var(--line)">
+            <div class="g-ico" style="background:var(--teal-light)">🧭</div>
+            <div style="flex:1"><b>Maria Delgado <span class="chip" style="background:var(--teal-light);color:var(--teal);margin-left:4px">COACH · CIP</span></b><span>Freedom Interventions · Replies within hours</span></div>
+            <button class="btn" style="width:auto;margin:0;padding:9px 16px;font-size:12.5px" onclick="toast('Message thread opened')">Message</button>
+          </div>
+          <div class="group" style="padding-top:12px">
+            <div class="g-ico" style="background:var(--green-light)">👩‍⚕️</div>
+            <div style="flex:1"><b>Dr. Anne Liu <span class="chip" style="background:var(--green-light);color:var(--green);margin-left:4px">COUNSELOR · LPC</span></b><span>Family therapy · Next session Thu</span></div>
+          </div>
+          <div style="margin-top:13px">
+            <div class="msg"><b>Maria</b>Sarah — saw your check-in streak. Proud of you. How did the boundary conversation with Jake go on Sunday?</div>
+          </div>
+        </div>
+
+        <div class="card att-only">
+          <div class="eyebrow">Upcoming sessions</div>
+          <div class="focus-item">
+            <div class="fi-ico" style="background:var(--teal-light)">📅</div>
+            <div style="flex:1"><b>Monday Night Family Support</b><span>Group · Mon 7:00 PM · Zoom</span></div>
+            <button class="btn ghost" style="width:auto;margin:0;padding:8px 13px;font-size:12px" onclick="toast('RSVP confirmed — link will arrive 1 hr before')">RSVP</button>
+          </div>
+          <div class="focus-item">
+            <div class="fi-ico" style="background:var(--amber-light)">🧭</div>
+            <div style="flex:1"><b>1:1 with Maria</b><span>Coaching · Wed 2:00 PM</span></div>
+            <button class="btn ghost" style="width:auto;margin:0;padding:8px 13px;font-size:12px" onclick="toast('Added to your calendar')">Confirm</button>
+          </div>
+          <div class="focus-item">
+            <div class="fi-ico" style="background:var(--green-light)">👩‍⚕️</div>
+            <div style="flex:1"><b>Family session with Dr. Liu</b><span>Counseling · Thu 5:30 PM</span></div>
+            <button class="btn ghost" style="width:auto;margin:0;padding:8px 13px;font-size:12px" onclick="toast('Added to your calendar')">Confirm</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="eyebrow">Moderated groups</div>
+          <div class="group" style="padding-bottom:12px;border-bottom:1px solid var(--line)">
+            <div class="g-ico" style="background:var(--amber-light)">👨‍👩‍👦</div>
+            <div style="flex:1"><b>Parents of Adult Children</b><span><span class="live"></span>14 online · Session tonight 7 PM</span></div>
+          </div>
+          <div class="group" style="padding:12px 0;border-bottom:1px solid var(--line)">
+            <div class="g-ico" style="background:var(--green-light)">🧭</div>
+            <div style="flex:1"><b>First 90 Days After Intervention</b><span><span class="live"></span>8 online · Drop-in anytime</span></div>
+          </div>
+          <div class="group" style="padding-top:12px">
+            <div class="g-ico" style="background:var(--coral-light)">💞</div>
+            <div style="flex:1"><b>Spouses & Partners Circle</b><span>Weekly · Thursdays 8 PM</span></div>
+          </div>
+        </div>
+
+        <div class="card att-only" style="display:flex;justify-content:space-between;align-items:center;padding:13px 16px">
+          <div><b style="font-size:12.5px;color:var(--ink)">Membership</b><span style="display:block;font-size:11px;color:var(--ink-soft)">Included through Freedom Interventions</span></div>
+          <span class="chip" style="background:var(--green-light);color:var(--green)">COVERED</span>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="sheet-veil" id="crisisVeil" onclick="closeCrisis()"></div>
+    <div class="sheet" id="crisisSheet">
+      <h3>You're not alone right now</h3>
+      <div class="s-sub"><span class="att-i">Maria is on call for Freedom Interventions families tonight.</span><span class="unatt-i">Denise is on call and will answer first. Or choose anyone showing available.</span></div>
+
+      <div class="crisis-row oncall att-only" style="display:flex">
+        <div class="g-ico" style="background:#d7e9dd">🧭</div>
+        <div><b>Maria Delgado · Your coach</b><span>🟢 On call now · set by Freedom Interventions</span></div>
+        <button class="cta" onclick="closeCrisis();toast('Calling Maria — included through your provider')">Call</button>
+      </div>
+      <div class="crisis-row att-only" style="display:flex">
+        <div class="g-ico" style="background:var(--green-light)">👩‍⚕️</div>
+        <div><b>Dr. Anne Liu · Counselor, LPC</b><span>🟢 Available</span></div>
+        <button class="cta" onclick="closeCrisis();toast('Calling Dr. Liu — included through your provider')">Call</button>
+      </div>
+      <div class="att-only" style="font-size:11px;color:var(--ink-soft);text-align:center;margin-top:2px">Calls during business hours are included through your provider.</div>
+
+      <div class="crisis-row oncall unatt-only">
+        <div class="g-ico" style="background:#d7e9dd">🧭</div>
+        <div><b>Denise Carter · Coach, CIP</b><span>🟢 On call now · replies in ~3 min</span></div>
+        <button class="cta" onclick="closeCrisis();toast('Message thread with Denise opened — included in Essential')">Message</button>
+      </div>
+      <div class="crisis-row unatt-only">
+        <div class="g-ico">🧔</div>
+        <div><b>Sam Whitfield · Coach</b><span>🟢 Available · 12 years sober · <span class="lock">PREMIUM</span></span></div>
+        <button class="cta" style="background:#b9c4c2" onclick="toast('Phone & video calls are part of Premium — upgrade in Support')">Call</button>
+      </div>
+      <div class="crisis-row unatt-only">
+        <div class="g-ico" style="background:var(--green-light)">👩‍⚕️</div>
+        <div><b>Dr. Priya Nair · Counselor, LCSW</b><span>🟢 Available · <span class="lock">PREMIUM</span></span></div>
+        <button class="cta" style="background:#b9c4c2" onclick="toast('Phone & video calls are part of Premium — upgrade in Support')">Call</button>
+      </div>
+      <div class="unatt-only" style="font-size:11px;color:var(--ink-soft);text-align:center;margin-top:2px">Premium calls happen during your coach's business hours.</div>
+
+      <div class="e911">If anyone is in immediate danger, call 911 or 988.</div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <div class="nav">
+      <button class="on" onclick="go('today',this)"><span class="ico">🏠</span>Today</button>
+      <button onclick="go('scripts',this)"><span class="ico">💬</span>Scripts</button>
+      <button onclick="go('bound',this)"><span class="ico">🏰</span>Boundaries</button>
+      <button onclick="go('track',this)"><span class="ico">📋</span>Tracker</button>
+      <button onclick="go('learn',this)"><span class="ico">📚</span>Learn</button>
+      <button onclick="go('support',this)"><span class="ico">🤝</span>Support</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function go(id,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.querySelector('.content').scrollTop=0;
+}
+function pickMood(el){
+  document.querySelectorAll('.mood').forEach(m=>m.classList.remove('sel'));
+  el.classList.add('sel');
+}
+function completeCheckin(){
+  if(!document.querySelector('.mood.sel')){toast('Pick a mood first 🙂');return;}
+  document.getElementById('checkinBtn').style.display='none';
+  document.getElementById('doneBanner').style.display='block';
+}
+function toggleScript(el){el.classList.toggle('open');}
+function flipSign(el){
+  event.stopPropagation();
+  el.classList.toggle('on');
+  const n=document.querySelectorAll('.toggle.on').length;
+  const fill=document.getElementById('riskFill'),label=document.getElementById('riskLabel'),alert=document.getElementById('alertCard');
+  const pct=Math.min(18+n*15,95);
+  fill.style.width=pct+'%';
+  if(n>=3){fill.style.background='var(--coral)';label.textContent='Elevated — counselor notified';label.style.color='var(--coral)';alert.style.display='block';}
+  else if(n>=1){fill.style.background='var(--amber)';label.textContent='Watching — '+n+' sign'+(n>1?'s':'')+' logged';label.style.color='#9a6717';alert.style.display='none';}
+  else{fill.style.background='var(--green)';label.textContent='Low concern — keep observing';label.style.color='var(--green)';alert.style.display='none';}
+}
+function flipPos(el){
+  event.stopPropagation();
+  el.classList.toggle('on');
+  const n=document.querySelectorAll('.toggle.pos.on').length;
+  const fill=document.getElementById('posFill'),label=document.getElementById('posLabel'),alert=document.getElementById('posAlert');
+  const pct=Math.min(8+n*9.5,98);
+  fill.style.width=pct+'%';
+  if(n>=3){fill.style.background='var(--green)';label.textContent='Strong momentum — '+n+' recovery signs';label.style.color='var(--green)';alert.style.display='block';}
+  else if(n>=1){fill.style.background='#8fb89d';label.textContent=n+' green shoot'+(n>1?'s':'')+' — name it when you see it';label.style.color='var(--green)';alert.style.display='none';}
+  else{fill.style.background='#c9d6cd';label.textContent='Watch for green shoots — they count too';label.style.color='var(--ink-soft)';alert.style.display='none';}
+}
+function setMode(m,btn){
+  document.body.classList.toggle('unatt',m==='unatt');
+  document.querySelectorAll('.modeswitch button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('modeCap').textContent = m==='unatt'
+    ? 'Sarah found Anchor on the App Store — no provider org. No assigned coach, tiered IAP plans, crisis access via your platform network.'
+    : "Sarah's family works with Freedom Interventions: assigned coach, provider sessions, no in-app billing.";
+  closeCrisis();
+}
+function openCrisis(){document.getElementById('crisisVeil').classList.add('show');document.getElementById('crisisSheet').classList.add('show');}
+function closeCrisis(){document.getElementById('crisisVeil').classList.remove('show');document.getElementById('crisisSheet').classList.remove('show');}
+function toggleAcc(el){el.classList.toggle('open');}
+function flipAnchor(btn,key){
+  btn.classList.toggle('on');
+  document.getElementById('sg-'+key).classList.toggle('show',btn.classList.contains('on'));
+}
+function useSugg(ev,text){
+  ev.stopPropagation();
+  document.getElementById('wallText').value=text;
+  document.getElementById('wallText').scrollIntoView({behavior:'smooth',block:'center'});
+  toast('Suggestion loaded — edit it to make it yours');
+}
+function saveWall(){
+  const ta=document.getElementById('wallText');
+  const v=ta.value.trim();
+  if(!v){toast('Write or pick a boundary first');return;}
+  document.getElementById('emptyWalls').style.display='none';
+  const d=document.createElement('div');
+  d.className='wall';
+  d.innerHTML='<div class="w-ico">🧱</div><p>'+v.replace(/</g,'&lt;')+'<span>Anchored today · Not in emotion — in your two answers</span></p>';
+  document.getElementById('wallList').prepend(d);
+  ta.value='';
+  toast('Wall anchored ⚓');
+}
+let toastTimer;
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2200);
+}
+</script>
+</body>
+</html>

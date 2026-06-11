@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sober Helpline Provider Console — Freedom Interventions</title>
+<style>
+  :root{
+    --teal:#1d5c5a; --teal-dark:#143f3e; --teal-light:#e3efee;
+    --cream:#faf6ef; --amber:#d9913b; --amber-light:#fdf3e3;
+    --coral:#c4604f; --coral-light:#fbeae7;
+    --ink:#22302f; --ink-soft:#5c6b6a; --line:#e2e0d8;
+    --green:#4d7c5f; --green-light:#e9f2ec;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Avenir Next','Segoe UI',system-ui,sans-serif;}
+  body{background:#eef0ec;min-height:100vh;display:flex;}
+
+  /* Sidebar */
+  .side{width:232px;background:var(--teal-dark);color:#fff;display:flex;flex-direction:column;padding:22px 14px;flex-shrink:0;min-height:100vh;}
+  .side .logo{display:flex;align-items:center;gap:10px;padding:0 8px 20px;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:8px;}
+  .side .logo .mark{width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:18px;}
+  .side .logo b{font-size:17px;display:block;}
+  .side .logo span{font-size:10px;opacity:.6;letter-spacing:1px;}
+  .org{font-size:11.5px;opacity:.65;padding:10px 8px 16px;}
+  .side nav button{display:flex;align-items:center;gap:11px;width:100%;background:none;border:none;color:rgba(255,255,255,.72);font-size:13.5px;font-weight:600;padding:11px 12px;border-radius:10px;cursor:pointer;text-align:left;margin-bottom:2px;}
+  .side nav button.on{background:rgba(255,255,255,.12);color:#fff;}
+  .side .me{margin-top:auto;display:flex;gap:10px;align-items:center;padding:12px 8px;border-top:1px solid rgba(255,255,255,.12);}
+  .side .me .av{width:34px;height:34px;border-radius:50%;background:var(--amber);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;}
+  .side .me b{font-size:12.5px;display:block;}
+  .side .me span{font-size:10.5px;opacity:.6;}
+
+  /* Main */
+  .main{flex:1;padding:28px 34px;overflow-y:auto;}
+  .pg{display:none;}
+  .pg.active{display:block;animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+  .pg-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+  .pg-head h1{font-size:23px;color:var(--ink);letter-spacing:-.4px;}
+  .pg-head p{font-size:13px;color:var(--ink-soft);margin-top:3px;}
+  .btn{background:var(--teal);color:#fff;border:none;border-radius:11px;padding:11px 18px;font-size:13.5px;font-weight:700;cursor:pointer;}
+  .btn.ghost{background:var(--teal-light);color:var(--teal);}
+  .btn.sm{padding:7px 13px;font-size:12px;border-radius:9px;}
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 18px;}
+  .stat b{font-size:26px;color:var(--ink);display:block;letter-spacing:-.5px;}
+  .stat span{font-size:12px;color:var(--ink-soft);}
+  .stat .up{font-size:11px;color:var(--green);font-weight:700;}
+  .stat .warn{font-size:11px;color:var(--coral);font-weight:700;}
+
+  .panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin-bottom:16px;}
+  .panel h3{font-size:15px;color:var(--ink);margin-bottom:12px;}
+  .eyebrow{font-size:10.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px;}
+
+  table{width:100%;border-collapse:collapse;}
+  th{font-size:10.5px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-soft);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);}
+  td{font-size:13px;color:var(--ink);padding:12px 10px;border-bottom:1px solid #f0ede5;vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  .chip{display:inline-block;font-size:10.5px;font-weight:700;padding:4px 10px;border-radius:99px;}
+  .c-teal{background:var(--teal-light);color:var(--teal);}
+  .c-green{background:var(--green-light);color:var(--green);}
+  .c-amber{background:var(--amber-light);color:#9a6717;}
+  .c-coral{background:var(--coral-light);color:var(--coral);}
+  select{border:1.5px solid var(--line);border-radius:9px;padding:7px 10px;font-size:12.5px;color:var(--ink);background:#fff;font-family:inherit;cursor:pointer;}
+  .alert-row{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid #f0ede5;}
+  .alert-row:last-child{border-bottom:none;}
+  .alert-row .a-ico{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+  .alert-row b{font-size:13px;display:block;color:var(--ink);}
+  .alert-row span{font-size:11.5px;color:var(--ink-soft);}
+
+  .two-col{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;}
+
+  /* Modal */
+  .overlay{display:none;position:fixed;inset:0;background:rgba(20,40,39,.45);z-index:100;align-items:center;justify-content:center;}
+  .overlay.show{display:flex;}
+  .modal{background:#fff;border-radius:20px;padding:24px;width:430px;max-width:92vw;}
+  .modal h3{font-size:17px;color:var(--ink);margin-bottom:16px;}
+  .modal label{display:block;font-size:11.5px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.8px;margin:12px 0 5px;}
+  .modal input,.modal select{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13.5px;font-family:inherit;}
+  .modal .row{display:flex;gap:10px;}
+  .modal .row>div{flex:1;}
+  .seg{display:flex;border:1.5px solid var(--line);border-radius:11px;overflow:hidden;}
+  .seg button{flex:1;border:none;background:#fff;padding:9px;font-size:12.5px;font-weight:600;color:var(--ink-soft);cursor:pointer;}
+  .seg button.on{background:var(--teal);color:#fff;}
+
+  .plan{border:1.5px solid var(--line);border-radius:14px;padding:15px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .plan b{font-size:14px;color:var(--ink);display:block;}
+  .plan span{font-size:11.5px;color:var(--ink-soft);}
+  .plan .price{font-size:18px;font-weight:700;color:var(--teal);}
+  .note{background:var(--amber-light);border:1px solid #f0ddb8;border-radius:12px;padding:12px 14px;font-size:12.5px;color:#7a5512;line-height:1.5;margin-top:12px;}
+  .toggle{width:42px;height:24px;border-radius:99px;background:#d8d8d0;border:none;position:relative;cursor:pointer;flex-shrink:0;}
+  .toggle::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+  .toggle.on{background:var(--green);}
+  .toggle.on::after{left:21px;}
+  .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;font-size:13px;font-weight:600;padding:12px 22px;border-radius:99px;opacity:0;transition:.3s;pointer-events:none;z-index:200;}
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<div class="side">
+  <div class="logo"><div class="mark" style="background:#fff"><img src="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNDggNDgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMjIiIGZpbGw9IiNmZmYiLz48Y2lyY2xlIGN4PSIyNCIgY3k9IjI0IiByPSIyMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMWEzNjVkIiBzdHJva2Utd2lkdGg9IjMiLz48Y2lyY2xlIGN4PSIyNCIgY3k9IjI2IiByPSIxMSIgZmlsbD0iI2Y2YTgyMSIvPjxnIHN0cm9rZT0iIzFhMzY1ZCIgc3Ryb2tlLXdpZHRoPSIyLjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+PGxpbmUgeDE9IjI0IiB5MT0iNiIgeDI9IjI0IiB5Mj0iMTMiLz48bGluZSB4MT0iMTMiIHkxPSIxMCIgeDI9IjE2LjUiIHkyPSIxNiIvPjxsaW5lIHgxPSIzNSIgeTE9IjEwIiB4Mj0iMzEuNSIgeTI9IjE2Ii8+PGxpbmUgeDE9IjgiIHkxPSIyMCIgeDI9IjE0LjUiIHkyPSIyMiIvPjxsaW5lIHgxPSI0MCIgeTE9IjIwIiB4Mj0iMzMuNSIgeTI9IjIyIi8+PC9nPjxwYXRoIGQ9Ik0yIDM0IFExNCAyOCAyNCAzMiBRMzYgMzcgNDYgMzIgTDQ2IDQwIFEyNCA0OCAyIDQwIFoiIGZpbGw9IiMyZTdkNDYiLz48cGF0aCBkPSJNMTYgMzQgTDI0IDE4IEwzMiAzNCBaIiBmaWxsPSIjMWEzNjVkIi8+PC9zdmc+" style="width:24px;height:24px"></div><div><b>Sober Helpline</b><span>PROVIDER CONSOLE</span></div></div>
+  <div class="org">🏢 Freedom Interventions<br><span style="opacity:.7">24 active families · 4 staff</span></div>
+  <nav>
+    <button class="on" onclick="pg('overview',this)">📊 Overview</button>
+    <button onclick="pg('meetings',this)">📅 Meetings & Groups</button>
+    <button onclick="pg('staff',this)">🧭 Coaches & Staff</button>
+    <button onclick="pg('families',this)">👨‍👩‍👧 Families</button>
+    <button onclick="pg('billing',this)">💳 Plans & Billing</button>
+    <button onclick="pg('account',this)">🎨 Account & Branding</button>
+  </nav>
+  <div class="me"><div class="av">MB</div><div><b>Matt Brown</b><span>Org Admin</span></div></div>
+</div>
+
+<div class="main">
+
+  <!-- OVERVIEW -->
+  <div class="pg active" id="pg-overview">
+    <div class="pg-head"><div><h1>Overview</h1><p>Wednesday, June 10 · Freedom Interventions</p></div></div>
+    <div class="stats">
+      <div class="stat"><b>24</b><span>Active families</span> <span class="up">+3 this month</span></div>
+      <div class="stat"><b>87%</b><span>Check-in rate (7d)</span> <span class="up">+5%</span></div>
+      <div class="stat"><b>2</b><span>Warning-sign alerts</span> <span class="warn">needs follow-up</span></div>
+      <div class="stat"><b>$4,210</b><span>MRR · subscriptions</span> <span class="up">+$340</span></div>
+    </div>
+    <div class="two-col">
+      <div class="panel">
+        <h3>Alerts needing follow-up</h3>
+        <div class="alert-row"><div class="a-ico" style="background:var(--coral-light)">⚠️</div><div style="flex:1"><b>Henderson family — 4 warning signs logged</b><span>Assigned: Maria Delgado · logged 6 hrs ago</span></div><button class="btn sm ghost" onclick="toast('Opened Henderson family record')">Open</button></div>
+        <div class="alert-row"><div class="a-ico" style="background:var(--amber-light)">📉</div><div style="flex:1"><b>Okafor family — check-in streak broken (9 days missed)</b><span>Assigned: Maria Delgado · flagged yesterday</span></div><button class="btn sm ghost" onclick="toast('Opened Okafor family record')">Open</button></div>
+        <div class="alert-row"><div class="a-ico" style="background:var(--green-light)">🌱</div><div style="flex:1"><b>Reyes family — 5 recovery signs this week</b><span>Momentum alert · great moment for coach encouragement</span></div><button class="btn sm ghost" onclick="toast('Opened Reyes family record')">Open</button></div>
+      </div>
+      <div class="panel">
+        <h3>Today's sessions</h3>
+        <div class="alert-row"><div class="a-ico" style="background:var(--teal-light)">📅</div><div style="flex:1"><b>Monday Night Family Support</b><span>7:00 PM · 18 RSVPs · Zoom</span></div></div>
+        <div class="alert-row"><div class="a-ico" style="background:var(--amber-light)">🧭</div><div style="flex:1"><b>1:1 — Sarah H. with Maria</b><span>2:00 PM · Coaching</span></div></div>
+        <div class="alert-row"><div class="a-ico" style="background:var(--green-light)">👩‍⚕️</div><div style="flex:1"><b>Family session — Reyes with Dr. Liu</b><span>5:30 PM · Counseling</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MEETINGS -->
+  <div class="pg" id="pg-meetings">
+    <div class="pg-head"><div><h1>Meetings & Groups</h1><p>What you create here appears in families' Support tab automatically</p></div><button class="btn" onclick="openModal()">+ New meeting</button></div>
+    <div class="panel">
+      <div class="eyebrow">Recurring groups</div>
+      <table id="meetTable">
+        <tr><th>Name</th><th>Type</th><th>Schedule</th><th>Led by</th><th>Visibility</th><th></th></tr>
+        <tr><td><b>Monday Night Family Support</b></td><td><span class="chip c-teal">GROUP</span></td><td>Mon 7:00 PM · Zoom</td><td>Matt Brown</td><td>All families</td><td><button class="btn sm ghost" onclick="toast('Edit meeting')">Edit</button></td></tr>
+        <tr><td><b>First 90 Days After Intervention</b></td><td><span class="chip c-teal">GROUP</span></td><td>Drop-in · Daily</td><td>Maria Delgado</td><td>All families</td><td><button class="btn sm ghost" onclick="toast('Edit meeting')">Edit</button></td></tr>
+        <tr><td><b>Spouses & Partners Circle</b></td><td><span class="chip c-teal">GROUP</span></td><td>Thu 8:00 PM · Zoom</td><td>Dr. Anne Liu</td><td>Invite only</td><td><button class="btn sm ghost" onclick="toast('Edit meeting')">Edit</button></td></tr>
+      </table>
+    </div>
+    <div class="panel">
+      <div class="eyebrow">Individual sessions this week</div>
+      <table>
+        <tr><th>Family</th><th>Type</th><th>When</th><th>With</th><th>Status</th></tr>
+        <tr><td>Sarah H.</td><td><span class="chip c-amber">1:1 COACHING</span></td><td>Wed 2:00 PM</td><td>Maria Delgado</td><td><span class="chip c-green">CONFIRMED</span></td></tr>
+        <tr><td>Reyes family</td><td><span class="chip c-green">COUNSELING</span></td><td>Thu 5:30 PM</td><td>Dr. Anne Liu</td><td><span class="chip c-green">CONFIRMED</span></td></tr>
+        <tr><td>Okafor family</td><td><span class="chip c-amber">1:1 COACHING</span></td><td>Fri 11:00 AM</td><td>Maria Delgado</td><td><span class="chip c-amber">PENDING</span></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- STAFF -->
+  <div class="pg" id="pg-staff">
+    <div class="pg-head"><div><h1>Coaches & Staff</h1><p>"Coach" by default — "Counselor" appears only when a clinical license is on file</p></div><button class="btn" onclick="toast('Invite sent — they set up their own login')">+ Invite staff</button></div>
+    <div class="panel">
+      <table>
+        <tr><th>Name</th><th>Role</th><th>Credential</th><th>Families assigned</th><th>Permissions</th></tr>
+        <tr><td><b>Matt Brown</b></td><td><span class="chip c-coral">ORG ADMIN</span></td><td>CIP</td><td>6</td><td>Full: staff, billing, assignments</td></tr>
+        <tr><td><b>Maria Delgado</b></td><td><span class="chip c-teal">COACH</span></td><td>CIP</td><td>12</td><td>Assigned families only</td></tr>
+        <tr><td><b>Dr. Anne Liu</b></td><td><span class="chip c-green">COUNSELOR</span></td><td>LPC ✓ verified</td><td>6</td><td>Assigned families only</td></tr>
+        <tr><td><b>James Okada</b></td><td><span class="chip c-teal">COACH</span></td><td>Peer support cert.</td><td>0 · onboarding</td><td>Assigned families only</td></tr>
+      </table>
+      <div class="note">💡 Role labels are automatic: staff with a verified clinical license (LPC, LCSW, LMFT, PhD…) display as <b>Counselor</b> in the family app; everyone else displays as <b>Coach</b>. Admins can manage staff and billing but families only ever see their own care team.</div>
+    </div>
+  </div>
+
+  <!-- FAMILIES -->
+  <div class="pg" id="pg-families">
+    <div class="pg-head"><div><h1>Families</h1><p>Assign coaches, watch engagement, manage plans</p></div><button class="btn" onclick="toast('Invite link copied — family signs up in the app')">+ Invite family</button></div>
+    <div class="panel">
+      <table>
+        <tr><th>Family</th><th>Day</th><th>Check-ins (7d)</th><th>Signals</th><th>Assigned coach</th><th>Plan</th></tr>
+        <tr><td><b>Sarah H.</b></td><td>Day 47</td><td>7/7 🔥</td><td><span class="chip c-green">🌱 3 recovery</span></td>
+          <td><select onchange="toast('Coach reassigned — family app updates instantly')"><option>Maria Delgado</option><option>James Okada</option><option>Dr. Anne Liu</option></select></td>
+          <td><span class="chip c-teal">FAMILY · IAP</span></td></tr>
+        <tr><td><b>Henderson</b></td><td>Day 112</td><td>5/7</td><td><span class="chip c-coral">⚠ 4 warning</span></td>
+          <td><select onchange="toast('Coach reassigned — family app updates instantly')"><option>Maria Delgado</option><option>James Okada</option><option>Dr. Anne Liu</option></select></td>
+          <td><span class="chip c-teal">FAMILY · IAP</span></td></tr>
+        <tr><td><b>Reyes</b></td><td>Day 203</td><td>6/7</td><td><span class="chip c-green">🌱 5 recovery</span></td>
+          <td><select onchange="toast('Coach reassigned — family app updates instantly')"><option>Dr. Anne Liu</option><option>Maria Delgado</option><option>James Okada</option></select></td>
+          <td><span class="chip c-amber">ANNUAL · WEB</span></td></tr>
+        <tr><td><b>Okafor</b></td><td>Day 31</td><td>0/7</td><td><span class="chip c-amber">📉 disengaged</span></td>
+          <td><select onchange="toast('Coach reassigned — family app updates instantly')"><option>Maria Delgado</option><option>James Okada</option><option>Dr. Anne Liu</option></select></td>
+          <td><span class="chip c-green">SCHOLARSHIP</span></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- BILLING -->
+  <div class="pg" id="pg-billing">
+    <div class="pg-head"><div><h1>Plans & Billing</h1><p>Recurring subscriptions — families pay in-app today, web portal later</p></div></div>
+    <div class="two-col">
+      <div class="panel">
+        <h3>Subscription plans</h3>
+        <div class="plan"><div><b>Family Monthly</b><span>Full app + groups + coach messaging</span></div><div class="price">$49/mo</div></div>
+        <div class="plan"><div><b>Family Annual</b><span>2 months free · same features</span></div><div class="price">$490/yr</div></div>
+        <div class="plan"><div><b>Scholarship</b><span>Admin-granted · funded seats</span></div><div class="price">$0</div></div>
+        <button class="btn ghost" onclick="toast('Plan editor opened')">Edit plans & pricing</button>
+      </div>
+      <div class="panel">
+        <h3>Payment channels</h3>
+        <div class="plan"><div><b>In-app purchase (IAP)</b><span>Apple & Google handle billing, renewal, refunds</span></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+        <div class="plan"><div><b>Web billing portal</b><span>Stripe · avoids 15–30% app store fee</span></div><button class="toggle" onclick="this.classList.toggle('on');toast('Phase 2 — flagged for build')"></button></div>
+        <div class="note">📐 <b>Build order:</b> launch with IAP only (fastest approval, zero PCI burden). Add the Stripe web portal in phase 2 — families who subscribe on the web skip the app-store fee, and both channels unlock the same account.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACCOUNT & BRANDING -->
+  <div class="pg" id="pg-account">
+    <div class="pg-head"><div><h1>Account & Branding</h1><p>White-label the app for every family under Freedom Interventions</p></div></div>
+    <div class="two-col">
+      <div>
+        <div class="panel">
+          <h3>Brand identity</h3>
+          <label style="display:block;font-size:11px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.8px;margin:10px 0 5px">Company name</label>
+          <input id="bName" value="Freedom Interventions" oninput="brand()" style="width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13.5px;font-family:inherit">
+          <label style="display:block;font-size:11px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.8px;margin:14px 0 5px">Logo</label>
+          <div style="display:flex;gap:12px;align-items:center">
+            <div id="bLogo" style="width:52px;height:52px;border-radius:14px;background:#1a365d;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px">🌅</div>
+            <button class="btn ghost sm" onclick="toast('Upload PNG/SVG — auto-resized for app header, splash, and emails')">Upload logo</button>
+          </div>
+          <div style="display:flex;gap:16px;margin-top:16px">
+            <div><label style="display:block;font-size:11px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px">Primary color</label>
+            <input type="color" id="bPrim" value="#1a365d" oninput="brand()" style="width:64px;height:38px;border:1.5px solid var(--line);border-radius:9px;cursor:pointer"></div>
+            <div><label style="display:block;font-size:11px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px">Accent color</label>
+            <input type="color" id="bAcc" value="#d9913b" oninput="brand()" style="width:64px;height:38px;border:1.5px solid var(--line);border-radius:9px;cursor:pointer"></div>
+          </div>
+          <button class="btn" style="margin-top:18px" onclick="toast('Submitted — Sober Helpline reviews once, then live for all 24 families')">Submit branding for review</button>
+          <div class="note">Applies to every family and individual account under your org: app header, daily check-in card, emails, and PDFs. One-time review by Sober Helpline keeps App Store compliance.</div>
+        </div>
+        <div class="panel">
+          <h3>Subscription</h3>
+          <div class="plan"><div><b>Growth tier</b><span>Up to 50 families · 10 staff seats · white-label</span></div><div class="price">$449/mo</div></div>
+          <div style="margin:4px 0 6px;font-size:12px;color:var(--ink-soft)">Family capacity</div>
+          <div style="height:10px;border-radius:99px;background:#eee8db;overflow:hidden"><div style="height:100%;width:48%;background:var(--teal);border-radius:99px"></div></div>
+          <div style="font-size:12px;color:var(--ink-soft);margin-top:5px">24 of 50 families · next tier (Scale, unlimited) $949/mo</div>
+          <div style="display:flex;gap:10px;margin-top:14px">
+            <button class="btn ghost sm" onclick="toast('Invoices: May $449 · Apr $449 · Mar $149 (Starter)')">View invoices</button>
+            <button class="btn ghost sm" onclick="toast('Card on file: •••• 4421 · update opened')">Payment method</button>
+            <button class="btn sm" onclick="toast('Upgrade preview: Scale $949/mo, effective next cycle')">Change tier</button>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Live preview — what your families see</h3>
+        <p class="sub" style="font-size:12px;color:var(--ink-soft);margin-bottom:12px">Updates as you type</p>
+        <div style="width:240px;margin:0 auto;background:#0c0c0d;border-radius:32px;padding:8px">
+          <div style="background:var(--cream);border-radius:26px;overflow:hidden">
+            <div id="pvHead" style="background:#1a365d;color:#fff;padding:18px 14px 14px;display:flex;gap:9px;align-items:center">
+              <div id="pvLogo" style="width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:15px">🌅</div>
+              <div><b id="pvName" style="font-size:12.5px;display:block">Freedom Interventions</b><span style="font-size:9px;opacity:.7">powered by Sober Helpline</span></div>
+            </div>
+            <div style="padding:12px">
+              <div id="pvHero" style="background:#1a365d;border-radius:13px;padding:12px;color:#fff">
+                <div style="font-size:8.5px;opacity:.75;letter-spacing:.8px">DAY 47 — CHECK-IN STREAK 12</div>
+                <div style="font-size:11.5px;font-weight:700;margin-top:4px">Good morning, Sarah</div>
+                <div id="pvBtn" style="background:#d9913b;border-radius:8px;text-align:center;font-size:10px;font-weight:700;padding:7px;margin-top:9px">Complete check-in</div>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e0d8;border-radius:13px;padding:10px;margin-top:9px">
+                <div style="font-size:8.5px;color:#5c6b6a;letter-spacing:.8px;font-weight:700">YOUR TEAM</div>
+                <div style="font-size:10.5px;color:#22302f;margin-top:4px"><b>Maria Delgado</b> · <span id="pvChip" style="color:#1a365d;font-weight:700">Coach</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- New meeting modal -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h3>New meeting</h3>
+    <div class="seg" id="typeSeg">
+      <button class="on" onclick="segPick(this)">Group</button>
+      <button onclick="segPick(this)">1:1 Coaching</button>
+      <button onclick="segPick(this)">Counseling</button>
+    </div>
+    <label>Name</label>
+    <input id="mName" placeholder="e.g., Dads' Tuesday Circle">
+    <div class="row">
+      <div><label>Day & time</label><input id="mWhen" placeholder="Tue 7:00 PM"></div>
+      <div><label>Led by</label><select id="mLead"><option>Matt Brown</option><option>Maria Delgado</option><option>Dr. Anne Liu</option><option>James Okada</option></select></div>
+    </div>
+    <label>Visibility</label>
+    <select><option>All families</option><option>Invite only</option><option>Specific families…</option></select>
+    <button class="btn" style="width:100%;margin-top:18px" onclick="addMeeting()">Create — appears in family apps instantly</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function pg(id,btn){
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('active'));
+  document.getElementById('pg-'+id).classList.add('active');
+  document.querySelectorAll('.side nav button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+function openModal(){document.getElementById('overlay').classList.add('show');}
+function closeModal(){document.getElementById('overlay').classList.remove('show');}
+function segPick(b){document.querySelectorAll('#typeSeg button').forEach(x=>x.classList.remove('on'));b.classList.add('on');}
+function addMeeting(){
+  const n=document.getElementById('mName').value.trim()||'New Group';
+  const w=document.getElementById('mWhen').value.trim()||'TBD';
+  const l=document.getElementById('mLead').value;
+  const t=document.querySelector('#typeSeg button.on').textContent;
+  const tbl=document.getElementById('meetTable');
+  const r=tbl.insertRow(1);
+  r.innerHTML='<td><b>'+n.replace(/</g,'&lt;')+'</b></td><td><span class="chip c-teal">'+t.toUpperCase()+'</span></td><td>'+w.replace(/</g,'&lt;')+'</td><td>'+l+'</td><td>All families</td><td><button class="btn sm ghost">Edit</button></td>';
+  closeModal();toast('Created — now visible in family apps');
+}
+function brand(){
+  const p=document.getElementById('bPrim').value, a=document.getElementById('bAcc').value, n=document.getElementById('bName').value||'Your Organization';
+  document.getElementById('pvHead').style.background=p;
+  document.getElementById('pvHero').style.background=p;
+  document.getElementById('pvBtn').style.background=a;
+  document.getElementById('pvName').textContent=n;
+  document.getElementById('pvChip').style.color=p;
+  document.getElementById('bLogo').style.background=p;
+}
+let tt;
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2400);}
+</script>
+</body>
+</html>
