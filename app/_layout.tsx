@@ -1,9 +1,29 @@
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { AccountProvider } from '../src/contexts/AccountContext';
+import { AccountProvider, useAccount } from '../src/contexts/AccountContext';
 import { ThemeProvider } from '../src/contexts/ThemeContext';
 import { initI18n } from '../src/i18n';
+
+// Handles redirect between (auth) and (tabs) based on session state.
+// Must be a child of AccountProvider so it can read useAccount().
+function InitialLayout() {
+  const { user, isLoading } = useAccount();
+  const router = useRouter();
+  const segments = useSegments();
+
+  useEffect(() => {
+    if (isLoading) return;
+    const inAuth = segments[0] === '(auth)';
+    if (!user && !inAuth) {
+      router.replace('/(auth)/sign-in');
+    } else if (user && inAuth) {
+      router.replace('/(tabs)');
+    }
+  }, [user, isLoading]);
+
+  return <Stack screenOptions={{ headerShown: false }} />;
+}
 
 export default function RootLayout() {
   const [i18nReady, setI18nReady] = useState(false);
@@ -12,14 +32,12 @@ export default function RootLayout() {
     initI18n().then(() => setI18nReady(true));
   }, []);
 
-  // Hold the render until i18n is ready (AsyncStorage read + init).
-  // The OS splash screen covers this gap on cold start.
   if (!i18nReady) return null;
 
   return (
     <AccountProvider>
       <ThemeProvider>
-        <Stack screenOptions={{ headerShown: false }} />
+        <InitialLayout />
         <StatusBar style="auto" />
       </ThemeProvider>
     </AccountProvider>

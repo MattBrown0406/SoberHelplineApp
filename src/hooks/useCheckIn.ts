@@ -1,16 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { CheckIn, CheckInStreak, MoodScore } from '../api/types';
-import { getCheckIn, saveCheckIn as persist, getCheckedInDates, toDateStr } from '../storage/checkIn';
+import { getCheckIn, saveCheckIn as persistLocal, getCheckedInDates, toDateStr } from '../storage/checkIn';
+import { supabase } from '../lib/supabase';
 
 export interface UseCheckInResult {
   todayCheckIn: CheckIn | null;
   streak: CheckInStreak;
   isLoading: boolean;
-  /** Persists today's check-in locally. Designed to accept a sync callback later. */
   saveCheckIn: (moodScore: MoodScore, note?: string) => Promise<void>;
 }
 
-export function useCheckIn(): UseCheckInResult {
+export function useCheckIn(accountId: string | null): UseCheckInResult {
   const [todayCheckIn, setTodayCheckIn] = useState<CheckIn | null>(null);
   const [streak, setStreak] = useState<CheckInStreak>({
     currentStreak: 0,
@@ -22,35 +22,99 @@ export function useCheckIn(): UseCheckInResult {
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      const [existing, dates] = await Promise.all([
-        getCheckIn(new Date()),
-        getCheckedInDates(),
-      ]);
-      if (cancelled) return;
-      setTodayCheckIn(existing);
-      setStreak(computeStreak(dates));
+      const today = toDateStr(new Date());
+
+      if (accountId) {
+        // Supabase-first: fetch today's check-in and full history from the database
+        const [todayResult, historyResult] = await Promise.all([
+          supabase
+            .from('checkins')
+            .select('id, mood, note, created_at')
+            .eq('account_id', accountId)
+            .gte('created_at', today + 'T00:00:00.000Z')
+            .lte('created_at', today + 'T23:59:59.999Z')
+            .maybeSingle(),
+          supabase
+            .from('checkins')
+            .select('created_at')
+            .eq('account_id', accountId)
+            .order('created_at', { ascending: false }),
+        ]);
+
+        if (cancelled) return;
+
+        if (todayResult.data) {
+          const remote: CheckIn = {
+            id: todayResult.data.id,
+            userId: accountId,
+            moodScore: todayResult.data.mood as MoodScore,
+            note: todayResult.data.note ?? null,
+            completedAt: todayResult.data.created_at,
+            synced: true,
+          };
+          await persistLocal(remote);
+          setTodayCheckIn(remote);
+        } else {
+          setTodayCheckIn(await getCheckIn(new Date()));
+        }
+
+        if (historyResult.data) {
+          const dates = historyResult.data.map((r) => toDateStr(new Date(r.created_at)));
+          setStreak(computeStreak(dates));
+        } else {
+          setStreak(computeStreak(await getCheckedInDates()));
+        }
+      } else {
+        // Offline / pre-auth fallback
+        const [existing, dates] = await Promise.all([
+          getCheckIn(new Date()),
+          getCheckedInDates(),
+        ]);
+        if (cancelled) return;
+        setTodayCheckIn(existing);
+        setStreak(computeStreak(dates));
+      }
+
       setIsLoading(false);
     }
     void load();
     return () => { cancelled = true; };
-  }, []);
+  }, [accountId]);
 
   const saveCheckIn = useCallback(async (moodScore: MoodScore, note?: string) => {
     const now = new Date();
     const checkIn: CheckIn = {
-      id: `ci-${now.getTime()}`,
-      userId: 'local', // replaced by real userId when sync layer is added
+      id: crypto.randomUUID ? crypto.randomUUID() : `ci-${now.getTime()}`,
+      userId: accountId ?? 'local',
       moodScore,
       note: note ?? null,
       completedAt: now.toISOString(),
       synced: false,
     };
-    await persist(checkIn);
+
+    // 1. Optimistic local write
+    await persistLocal(checkIn);
     setTodayCheckIn(checkIn);
-    const dates = await getCheckedInDates();
-    setStreak(computeStreak(dates));
-    // TODO: enqueue sync to POST /check-ins, flip synced: true on success
-  }, []);
+    const localDates = await getCheckedInDates();
+    setStreak(computeStreak(localDates));
+
+    // 2. Sync to Supabase if authenticated
+    if (accountId) {
+      const { error } = await supabase.from('checkins').insert({
+        id: checkIn.id,
+        account_id: accountId,
+        mood: checkIn.moodScore,
+        note: checkIn.note,
+        created_at: checkIn.completedAt,
+      });
+
+      if (!error) {
+        const synced = { ...checkIn, synced: true };
+        await persistLocal(synced);
+        setTodayCheckIn(synced);
+      }
+    }
+  }, [accountId]);
 
   return { todayCheckIn, streak, isLoading, saveCheckIn };
 }
@@ -64,11 +128,9 @@ function computeStreak(datesDesc: string[]): CheckInStreak {
   const yesterday = toDateStr(new Date(Date.now() - 86_400_000));
   const set = new Set(datesDesc);
 
-  // Current streak: count backwards from today (or yesterday if today not yet done)
   let current = 0;
   const startDate = set.has(today) ? today : set.has(yesterday) ? yesterday : null;
   if (startDate) {
-    // Use noon UTC to avoid DST edge cases when stepping back one day at a time
     const cursor = new Date(startDate + 'T12:00:00Z');
     while (set.has(toDateStr(cursor))) {
       current++;
@@ -76,7 +138,6 @@ function computeStreak(datesDesc: string[]): CheckInStreak {
     }
   }
 
-  // Longest streak: walk the sorted-ascending list
   const sorted = [...datesDesc].reverse();
   let longest = 0;
   let run = 1;

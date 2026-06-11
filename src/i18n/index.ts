@@ -7,10 +7,12 @@ import enCommon from '../locales/en/common.json';
 import enToday from '../locales/en/today.json';
 import enScripts from '../locales/en/scripts.json';
 import enBoundaries from '../locales/en/boundaries.json';
+import enAuth from '../locales/en/auth.json';
 import esCommon from '../locales/es/common.json';
 import esToday from '../locales/es/today.json';
 import esScripts from '../locales/es/scripts.json';
 import esBoundaries from '../locales/es/boundaries.json';
+import esAuth from '../locales/es/auth.json';
 
 export type SupportedLanguage = 'en' | 'es';
 
@@ -34,12 +36,12 @@ export async function initI18n(): Promise<void> {
 
   await i18n.use(initReactI18next).init({
     resources: {
-      en: { common: enCommon, today: enToday, scripts: enScripts, boundaries: enBoundaries },
-      es: { common: esCommon, today: esToday, scripts: esScripts, boundaries: esBoundaries },
+      en: { common: enCommon, today: enToday, scripts: enScripts, boundaries: enBoundaries, auth: enAuth },
+      es: { common: esCommon, today: esToday, scripts: esScripts, boundaries: esBoundaries, auth: esAuth },
     },
     lng,
     fallbackLng: 'en',
-    ns: ['common', 'today', 'scripts', 'boundaries'],
+    ns: ['common', 'today', 'scripts', 'boundaries', 'auth'],
     defaultNS: 'common',
     interpolation: { escapeValue: false },
   });

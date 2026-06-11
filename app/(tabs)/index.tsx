@@ -14,7 +14,7 @@ export default function TodayScreen() {
   const { user, isAttached } = useAccount();
   const { colors } = useTheme();
   const { t } = useTranslation('today');
-  const { todayCheckIn, streak, saveCheckIn } = useCheckIn();
+  const { todayCheckIn, streak, saveCheckIn } = useCheckIn(user?.id ?? null);
 
   // TODO: replace with useSWR / React Query against GET /today-feed
   const feed = getMockTodayFeed();
