@@ -1,0 +1,29 @@
+{
+  "greeting": {
+    "morning": "Buenos días, {{name}}",
+    "afternoon": "Buenas tardes, {{name}}",
+    "evening": "Buenas noches, {{name}}"
+  },
+  "hero": {
+    "dayLabel": "DÍA {{count}} — {{context}}"
+  },
+  "streak": {
+    "checkIn": "días seguidos",
+    "boundaries": "límites mantenidos",
+    "groups": "sesiones en grupo"
+  },
+  "checkIn": {
+    "eyebrow": "Registro diario",
+    "question": "¿Cómo estás hoy?",
+    "privacy": "Tus respuestas son privadas.",
+    "privacyAttached": "Los patrones se comparten únicamente con tu coach de {{orgName}}.",
+    "privacyDirect": "Los patrones son privados a menos que elijas compartirlos con un coach.",
+    "completeButton": "Completar registro",
+    "done": "✓ ¡Registro completo!",
+    "doneStreak": "✓ Registro completo — ¡{{count}} días seguidos!",
+    "doneCoach": "{{orgFirst}} verá tu actualización."
+  },
+  "focus": {
+    "eyebrow": "Tu enfoque de hoy"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "greeting": {
+    "morning": "Good morning, {{name}}",
+    "afternoon": "Good afternoon, {{name}}",
+    "evening": "Good evening, {{name}}"
+  },
+  "hero": {
+    "dayLabel": "DAY {{count}} — {{context}}"
+  },
+  "streak": {
+    "checkIn": "day check-in streak",
+    "boundaries": "boundaries held",
+    "groups": "group sessions"
+  },
+  "checkIn": {
+    "eyebrow": "Daily check-in",
+    "question": "How are you holding up today?",
+    "privacy": "Your answers are private.",
+    "privacyAttached": "Patterns are shared only with your {{orgName}} coach.",
+    "privacyDirect": "Patterns stay private unless you choose to share them with a coach.",
+    "completeButton": "Complete check-in",
+    "done": "✓ Check-in complete!",
+    "doneStreak": "✓ Check-in complete — {{count}}-day streak!",
+    "doneCoach": "{{orgFirst}} will see your update."
+  },
+  "focus": {
+    "eyebrow": "Today's focus"
+  }
+}

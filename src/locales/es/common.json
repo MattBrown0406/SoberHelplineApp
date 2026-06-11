@@ -1,0 +1,26 @@
+{
+  "app": {
+    "name": "Sober Helpline",
+    "tagline": "Esperanza. Ayuda. Recuperación."
+  },
+  "nav": {
+    "today": "Hoy",
+    "scripts": "Guiones",
+    "boundaries": "Límites",
+    "tracker": "Seguimiento",
+    "learn": "Aprende",
+    "support": "Apoyo"
+  },
+  "staff": {
+    "coach": "Coach",
+    "counselor": "Consejero/a",
+    "covered": "CUBIERTO",
+    "includedThrough": "Incluido a través de {{orgName}}"
+  },
+  "language": {
+    "eyebrow": "Idioma",
+    "english": "English",
+    "spanish": "Español"
+  },
+  "comingSoon": "Próximamente"
+}

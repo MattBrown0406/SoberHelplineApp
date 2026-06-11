@@ -1,0 +1,26 @@
+{
+  "app": {
+    "name": "Sober Helpline",
+    "tagline": "Hope. Help. Recovery."
+  },
+  "nav": {
+    "today": "Today",
+    "scripts": "Scripts",
+    "boundaries": "Boundaries",
+    "tracker": "Tracker",
+    "learn": "Learn",
+    "support": "Support"
+  },
+  "staff": {
+    "coach": "Coach",
+    "counselor": "Counselor",
+    "covered": "COVERED",
+    "includedThrough": "Included through {{orgName}}"
+  },
+  "language": {
+    "eyebrow": "Language",
+    "english": "English",
+    "spanish": "Español"
+  },
+  "comingSoon": "Coming soon"
+}
