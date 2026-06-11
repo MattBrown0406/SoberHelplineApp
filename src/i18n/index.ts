@@ -6,9 +6,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import enCommon from '../locales/en/common.json';
 import enToday from '../locales/en/today.json';
 import enScripts from '../locales/en/scripts.json';
+import enBoundaries from '../locales/en/boundaries.json';
 import esCommon from '../locales/es/common.json';
 import esToday from '../locales/es/today.json';
 import esScripts from '../locales/es/scripts.json';
+import esBoundaries from '../locales/es/boundaries.json';
 
 export type SupportedLanguage = 'en' | 'es';
 
@@ -32,12 +34,12 @@ export async function initI18n(): Promise<void> {
 
   await i18n.use(initReactI18next).init({
     resources: {
-      en: { common: enCommon, today: enToday, scripts: enScripts },
-      es: { common: esCommon, today: esToday, scripts: esScripts },
+      en: { common: enCommon, today: enToday, scripts: enScripts, boundaries: enBoundaries },
+      es: { common: esCommon, today: esToday, scripts: esScripts, boundaries: esBoundaries },
     },
     lng,
     fallbackLng: 'en',
-    ns: ['common', 'today', 'scripts'],
+    ns: ['common', 'today', 'scripts', 'boundaries'],
     defaultNS: 'common',
     interpolation: { escapeValue: false },
   });

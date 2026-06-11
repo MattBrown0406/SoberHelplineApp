@@ -1,0 +1,111 @@
+{
+  "frameworkEyebrow": "THE CASTLE FRAMEWORK",
+  "castleSections": [
+    {
+      "id": "castle",
+      "icon": "🏰",
+      "title": "Your family is a castle on a hill",
+      "body": "Inside the castle are the people, values, resources, and peace you care about most. A castle's job is not to prove its strength by taking constant damage — it's to protect what matters and decide, with wisdom, who and what is allowed inside. When addiction is active and there are no boundaries, the castle has no defenses: anyone can walk in, take what they want, and leave wreckage behind. Bills disappear, trust erodes, and the whole household orbits the crisis. Boundaries don't remove love — they restore the truth that this castle has a right and a responsibility to protect itself."
+    },
+    {
+      "id": "walls",
+      "icon": "🧱",
+      "title": "The walls — what is non-negotiable",
+      "body": "Walls are the firm limits that keep danger out: \"No drugs or alcohol in this house.\" \"We will not lie for you or cover up DUIs.\" \"You cannot stay here if you are violent or refusing all help.\" These are not threats — they are statements of reality about what is allowed inside the family. With walls, you can say: \"Your choices are yours, but we will not let them destroy our home.\" A clearly stated wall, followed through, also ends the exhausting re-negotiation — the rules stop changing every time emotions run high."
+    },
+    {
+      "id": "moat",
+      "icon": "🌊",
+      "title": "The moat — emotional & physical distance",
+      "body": "The moat is the space that keeps you from being pulled into every emergency, lie, or manipulation: not answering middle-of-the-night calls unless there's a true safety issue, refusing circular arguments with someone intoxicated. Families feel guilty about this distance, as if it means they don't care. In reality, the moat is what keeps everyone from drowning. It lets you respond instead of react — to think, get support, and decide from principles instead of panic. The moat doesn't cut your loved one off from help; it stops their addiction from constantly crashing against the walls."
+    },
+    {
+      "id": "drawbridge",
+      "icon": "🌉",
+      "title": "The drawbridge — when and how you engage",
+      "body": "The drawbridge is your active choice. Lower it for honest conversations, treatment planning, sober visits, therapy. Raise it when your loved one is intoxicated, abusive, demanding money, or refusing all responsibility. Enabling is leaving the drawbridge down 24/7 — even while people charge in with torches. Healthy support says: \"We will meet you on the bridge when you are reaching for recovery. We will not let your addiction storm the castle.\" The more consistently the bridge moves, the clearer the message: love is available, but access is tied to respect and safety."
+    },
+    {
+      "id": "maintenance",
+      "icon": "🔧",
+      "title": "Maintenance — keeping the castle strong",
+      "body": "Real castles need upkeep: walls patched, moats cleared, bridges repaired. It's easy to slip — lending money \"just this once,\" letting substances back in, softening agreed consequences. Regular family check-ins (often with professional guidance) catch cracks before they become breaches. Remember: the goal isn't to punish your loved one — it's to make ongoing use less comfortable and less protected while the door to change stays open. The castle stands firm; help is always available."
+    },
+    {
+      "id": "guardians",
+      "icon": "🛡️",
+      "title": "Guardians, not hostages",
+      "body": "You cannot control whether your loved one chooses recovery. You can control the strength of your walls, the depth of your moat, and the position of your drawbridge. The message becomes clear and consistent: \"We love you deeply. We will not participate in your destruction. We will stand ready to welcome you when you choose a different path.\" Boundaries aren't harsh or selfish — they're the architecture of love that survives addiction, and they leave room for a prodigal to come home through the front gate when they're finally ready."
+    },
+    {
+      "id": "anchored",
+      "icon": "⚓",
+      "title": "Anchored in answers, not emotions",
+      "body": "Anger fades, guilt creeps in, fear spikes at 2 AM — a boundary anchored in emotion shifts with it. Lasting boundaries are anchored in your honest answers to two questions: Have I enabled the addiction in any way? Has the addiction harmed me in any way? If either answer is yes, the boundary isn't optional and it isn't cruel — it's the foundation stone. Answer both below and build your walls on bedrock."
+    }
+  ],
+  "anchor1": {
+    "eyebrow": "Anchor question 1",
+    "question": "Have I enabled the addiction in any way?",
+    "sub": "Be honest — this is bedrock, not blame. Tap all that apply.",
+    "pills": [
+      { "id": "e-fin", "label": "💵 Financially" },
+      { "id": "e-emo", "label": "💬 Emotionally" },
+      { "id": "e-sil", "label": "🤐 Silently" }
+    ],
+    "suggestions": {
+      "e-fin": {
+        "reason": "Money given \"to help\" funds the disease.",
+        "wall": "I will no longer give cash, pay bills, or cover debts created by the addiction."
+      },
+      "e-emo": {
+        "reason": "Rescuing, excusing, absorbing blame.",
+        "wall": "I will no longer make excuses for them or rescue them from the consequences of their use."
+      },
+      "e-sil": {
+        "reason": "Silence is a vote for more of the same.",
+        "wall": "I will no longer keep secrets about the addiction or pretend I don't see what I see."
+      }
+    }
+  },
+  "anchor2": {
+    "eyebrow": "Anchor question 2",
+    "question": "Has the addiction harmed me in any way?",
+    "sub": "Your harm is real and it counts. Tap all that apply.",
+    "pills": [
+      { "id": "h-fin", "label": "💵 Financially" },
+      { "id": "h-emo", "label": "💔 Emotionally" },
+      { "id": "h-phys", "label": "🤕 Physically" }
+    ],
+    "suggestions": {
+      "h-fin": {
+        "reason": "Drained savings, stolen items, mounting debt.",
+        "wall": "I will protect my money: separate accounts, no shared cards, no loans."
+      },
+      "h-emo": {
+        "reason": "Manipulation, broken promises, walking on eggshells.",
+        "wall": "I will end any conversation that becomes manipulative or cruel, and revisit it when we're both calm."
+      },
+      "h-phys": {
+        "reason": "Threats, violence, unsafe situations.",
+        "wall": "If I feel unsafe, I will leave immediately and call for help. My safety comes first."
+      }
+    }
+  },
+  "suggestion": {
+    "label": "Suggested wall:",
+    "use": "Use"
+  },
+  "builder": {
+    "eyebrow": "Build your wall",
+    "sub": "Tap a suggestion above or write your own. State what you will do.",
+    "placeholder": "\"I will...\"",
+    "saveButton": "⚓ Anchor this boundary"
+  },
+  "walls": {
+    "eyebrow": "My castle walls",
+    "empty": "No walls anchored yet. Answer the two questions above to lay your first stone.",
+    "shareAttached": "Review walls with my coach",
+    "shareDirect": "Share walls with the on-call coach"
+  }
+}

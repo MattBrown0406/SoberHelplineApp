@@ -1,0 +1,111 @@
+{
+  "frameworkEyebrow": "EL MARCO DEL CASTILLO",
+  "castleSections": [
+    {
+      "id": "castle",
+      "icon": "🏰",
+      "title": "Tu familia es un castillo en la cima",
+      "body": "Dentro del castillo están las personas, los valores, los recursos y la paz que más te importan. La tarea de un castillo no es probar su fortaleza soportando daño constante — es proteger lo que importa y decidir, con sabiduría, a quién y a qué se permite entrar. Cuando la adicción está activa y no hay límites, el castillo no tiene defensas: cualquiera puede entrar, tomar lo que quiera y dejar el caos atrás. Las cuentas desaparecen, la confianza se erosiona, y todo el hogar gira en torno a la crisis. Los límites no eliminan el amor — restauran la verdad de que este castillo tiene el derecho y la responsabilidad de protegerse."
+    },
+    {
+      "id": "walls",
+      "icon": "🧱",
+      "title": "Las murallas — lo que no es negociable",
+      "body": "Las murallas son los límites firmes que mantienen el peligro afuera: \"Nada de drogas ni alcohol en esta casa.\" \"No mentiremos por ti ni encubriremos tus acciones.\" \"No puedes quedarte aquí si eres violento/a o rechazas toda ayuda.\" No son amenazas — son declaraciones de la realidad sobre lo que se permite dentro de la familia. Con murallas puedes decir: \"Tus decisiones son tuyas, pero no dejaremos que destruyan nuestro hogar.\" Una muralla bien planteada y seguida con consistencia también termina con el agotador renegociar — las reglas dejan de cambiar cada vez que las emociones se disparan."
+    },
+    {
+      "id": "moat",
+      "icon": "🌊",
+      "title": "El foso — distancia emocional y física",
+      "body": "El foso es el espacio que te impide ser arrastrado/a a cada emergencia, mentira o manipulación: no contestar llamadas a medianoche salvo que haya un problema de seguridad real, negarte a discusiones circulares con alguien bajo los efectos de las drogas. Las familias se sienten culpables por esta distancia, como si significara que no les importa. En realidad, el foso es lo que evita que todos se ahoguen. Te permite responder en lugar de reaccionar — pensar, buscar apoyo y decidir desde principios en lugar del pánico. El foso no aleja a tu ser querido de la ayuda; detiene a la adicción de estrellarse constantemente contra las murallas."
+    },
+    {
+      "id": "drawbridge",
+      "icon": "🌉",
+      "title": "El puente levadizo — cuándo y cómo te acercas",
+      "body": "El puente levadizo es tu elección activa. Bájalo para conversaciones honestas, planificación del tratamiento, visitas sobrias, terapia. Súbelo cuando tu ser querido esté bajo los efectos de sustancias, sea abusivo/a, pida dinero o rechace toda responsabilidad. Habilitar es dejar el puente levadizo abajo las 24 horas — incluso mientras la gente entra con antorchas. El apoyo sano dice: \"Te encontraremos en el puente cuando estés buscando la recuperación. No dejaremos que tu adicción tome el castillo.\" Cuanto más consistentemente se mueve el puente, más claro es el mensaje: el amor está disponible, pero el acceso está ligado al respeto y la seguridad."
+    },
+    {
+      "id": "maintenance",
+      "icon": "🔧",
+      "title": "Mantenimiento — mantener el castillo fuerte",
+      "body": "Los castillos reales necesitan mantenimiento: murallas reparadas, fosos despejados, puentes revisados. Es fácil ceder — prestar dinero \"solo esta vez\", dejar que las sustancias vuelvan, suavizar las consecuencias acordadas. Los encuentros familiares regulares (a menudo con orientación profesional) detectan las grietas antes de que se conviertan en brechas. Recuerda: el objetivo no es castigar a tu ser querido — es hacer que el uso continuo sea menos cómodo y menos protegido, mientras la puerta al cambio permanece abierta. El castillo se mantiene firme; la ayuda siempre está disponible."
+    },
+    {
+      "id": "guardians",
+      "icon": "🛡️",
+      "title": "Guardianes, no rehenes",
+      "body": "No puedes controlar si tu ser querido elige la recuperación. Sí puedes controlar la fortaleza de tus murallas, la profundidad de tu foso y la posición de tu puente levadizo. El mensaje se vuelve claro y consistente: \"Te amamos profundamente. No participaremos en tu destrucción. Estaremos listos para recibirte cuando elijas un camino diferente.\" Los límites no son duros ni egoístas — son la arquitectura del amor que sobrevive a la adicción, y dejan espacio para que alguien vuelva a casa por la puerta principal cuando finalmente esté listo/a."
+    },
+    {
+      "id": "anchored",
+      "icon": "⚓",
+      "title": "Anclado en respuestas, no en emociones",
+      "body": "La ira se desvanece, la culpa aparece, el miedo se dispara a las 2 AM — un límite anclado en la emoción se mueve con ella. Los límites duraderos están anclados en tus respuestas honestas a dos preguntas: ¿He habilitado la adicción de alguna manera? ¿La adicción me ha dañado de alguna manera? Si la respuesta a alguna es sí, el límite no es opcional ni es cruel — es la piedra fundamental. Responde ambas a continuación y construye tus murallas sobre roca sólida."
+    }
+  ],
+  "anchor1": {
+    "eyebrow": "Pregunta ancla 1",
+    "question": "¿He habilitado la adicción de alguna manera?",
+    "sub": "Sé honesto/a — esto es roca, no culpa. Toca todo lo que aplique.",
+    "pills": [
+      { "id": "e-fin", "label": "💵 Económicamente" },
+      { "id": "e-emo", "label": "💬 Emocionalmente" },
+      { "id": "e-sil", "label": "🤐 En silencio" }
+    ],
+    "suggestions": {
+      "e-fin": {
+        "reason": "El dinero dado \"para ayudar\" financia la enfermedad.",
+        "wall": "Ya no daré dinero en efectivo, pagaré facturas, ni cubriré deudas creadas por la adicción."
+      },
+      "e-emo": {
+        "reason": "Rescatar, excusar, absorber la culpa.",
+        "wall": "Ya no haré excusas por ellos ni los rescataré de las consecuencias de su uso."
+      },
+      "e-sil": {
+        "reason": "El silencio es un voto por más de lo mismo.",
+        "wall": "Ya no guardaré secretos sobre la adicción ni fingiré que no veo lo que veo."
+      }
+    }
+  },
+  "anchor2": {
+    "eyebrow": "Pregunta ancla 2",
+    "question": "¿La adicción me ha dañado de alguna manera?",
+    "sub": "Tu daño es real y cuenta. Toca todo lo que aplique.",
+    "pills": [
+      { "id": "h-fin", "label": "💵 Económicamente" },
+      { "id": "h-emo", "label": "💔 Emocionalmente" },
+      { "id": "h-phys", "label": "🤕 Físicamente" }
+    ],
+    "suggestions": {
+      "h-fin": {
+        "reason": "Ahorros agotados, objetos robados, deudas acumuladas.",
+        "wall": "Protegeré mi dinero: cuentas separadas, sin tarjetas compartidas, sin préstamos."
+      },
+      "h-emo": {
+        "reason": "Manipulación, promesas rotas, vivir con miedo.",
+        "wall": "Terminaré cualquier conversación que se vuelva manipuladora o cruel, y la retomaré cuando ambos estemos tranquilos."
+      },
+      "h-phys": {
+        "reason": "Amenazas, violencia, situaciones peligrosas.",
+        "wall": "Si me siento en peligro, saldré de inmediato y pediré ayuda. Mi seguridad es lo primero."
+      }
+    }
+  },
+  "suggestion": {
+    "label": "Muralla sugerida:",
+    "use": "Usar"
+  },
+  "builder": {
+    "eyebrow": "Construye tu muralla",
+    "sub": "Toca una sugerencia de arriba o escribe la tuya. Indica lo que tú harás.",
+    "placeholder": "\"Yo voy a...\"",
+    "saveButton": "⚓ Anclar este límite"
+  },
+  "walls": {
+    "eyebrow": "Mis murallas",
+    "empty": "Ninguna muralla anclada todavía. Responde las dos preguntas para poner tu primera piedra.",
+    "shareAttached": "Revisar murallas con mi coach",
+    "shareDirect": "Compartir murallas con el coach disponible"
+  }
+}
