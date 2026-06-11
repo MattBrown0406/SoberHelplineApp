@@ -1,99 +1,140 @@
 # Feature Spec 02 — Intervention Letter Builder
 
-**Status:** Approved for build — ⚠️ STRUCTURE PENDING REVIEW: sections below follow
-standard intervention-letter practice; Matt's actual family handout will replace/refine
-the section structure and coaching copy when attached. Build the engine so section
-definitions are data, not code.
+**Status:** Approved for build · Structure is FINAL — taken directly from Freedom
+Interventions' "Intervention Letter Guidelines" (Matt Brown's actual family handout).
+Do not invent additional sections.
 
 ## Problem
 
-Before an intervention (and often without one), family members need to say what addiction
-has done to their relationship — in a way that can be heard. Unguided, they write
-accusations, ultimatums, or essays of pain that close the loved one down. Matt hands
-families a structured letter guide today; this feature turns that guide into a step-by-step
+Before an intervention, family members must say what addiction has done to their
+relationship — in a way that can be heard and remembered. Unguided, they write
+accusations, ultimatums, or multi-page essays of pain. Matt's handout solves this with a
+strict three-paragraph, one-page structure; this feature turns that handout into a guided
 builder.
 
-## Concept
+## Governing principles (from the handout — these drive UX decisions)
 
-A guided writer that walks a family member through composing an intervention/impact letter
-section by section, with do/don't coaching, tone flagging, and export for intervention day.
-Lives in the Scripts tab as a featured card ("Write the letter").
+1. **One side of a single page. Brevity is critical.** Emotional intensity and stress
+   reduce attention and retention; a concise message is more likely to be absorbed.
+   The builder must actively enforce brevity, not just suggest it.
+2. **Exactly three paragraphs**, each with a distinct purpose. The structure is
+   standardized; the content is the writer's lived experience.
+3. **Rooted in care — never punishment, blame, or shame.**
 
-## Letter structure (v1 — replace with Matt's handout when provided)
+## Letter structure (data-driven; ships as JSON in en + es)
 
-1. **Love first.** Open with the relationship, a specific good memory, why they matter.
-   *Coach: no "but" in this section.*
-2. **What I've seen.** 2–4 specific, factual moments — dates, events, observations.
-   *Coach: facts, not characterizations. "On Christmas Eve you didn't come home" not
-   "you always ruin holidays."*
-3. **How it has affected me.** I-statements about the writer's own fear, sleep, finances,
-   health. Ties to anchor question 2 (Has the addiction harmed me?).
-4. **My part.** Optional, powerful: where the writer enabled — ties to anchor question 1.
-   *"I've protected you from consequences, and I see now that protected the addiction."*
-5. **The ask.** One clear sentence: accept the help being offered today.
-6. **My wall.** What the writer will and won't do going forward, anchored, regardless of
-   the answer. Pulls saved walls from the Boundaries tab.
-7. **Close with love.** The door is open; the drawbridge position is theirs to change.
+### Paragraph 1 — Why You Are Here
+- Express love; state that participation in the intervention is motivated by that love.
+- Name specific qualities valued in the loved one (kindness, humor, loyalty, creativity,
+  compassion) — "even if those qualities feel diminished right now."
+- Optional: one brief memory of them at their best or of the relationship at its
+  strongest.
+- Builder prompts: "What do you love about them that addiction hasn't erased?" /
+  "One moment that shows who they really are."
+- Coach note shown in UI: *"This paragraph exists so they know this meeting is care and
+  concern — not punishment, blame, or shame."*
 
-## UX
+### Paragraph 2 — How This Has Affected You
+- Opens with the handout's starter sentence (pre-filled, editable):
+  *"Your substance use has affected me in the following ways."* (label editable —
+  "your drinking," "your behavior" — the impact matters more than the label).
+- **Two or three** specific experiences, focused on how the writer FELT — not
+  diagnosing, criticizing, or cataloging behaviors. Builder caps this at 3 experience
+  blocks by design.
+- I-statement scaffolding (from the handout, shown as fill-in patterns):
+  - "When you lied to me about ___, I felt ___."
+  - "When you drove while impaired, you could've hurt yourself or someone else, and
+    I felt scared."
+  - "When I see how this is affecting our family, I feel helpless and heartbroken."
+- Coach note: *"The emotional impact you describe exists because of your love and
+  investment in the relationship."*
 
-- **Section-by-section flow.** One section per screen: prompt, 2–3 example lines
-  (genericized), text area, per-section "why this matters" expander.
-- **Tone flags (local, simple).** Highlight (never block) when a draft contains
-  accusation patterns: "you always," "you never," "after everything," "how could you,"
-  profanity, ALL CAPS runs. Suggestion chip: "Try describing one specific moment instead."
-  v1 is a wordlist + patterns; no AI dependency required.
-- **Boundary import.** Section 6 lists the writer's anchored walls → tap to insert.
-- **Read-aloud timer.** Letters get read out loud; show estimated reading time
-  (target 3–5 minutes; warn past 7).
-- **Save/resume drafts.** Multiple letters (one per family member writing).
-- **Export.** Clean print/PDF view, large type. No app branding on the printed page —
-  this gets read across a living room.
-- **Share with coach** (attached): coach reviews and comments before intervention day.
+### Paragraph 3 — The Request and the Boundary
+- **The request:** clear and direct — choose to accept help **today**. Pre-filled
+  starter: *"I want you to choose to go to treatment today."* UI states plainly:
+  this is not an invitation to negotiate alternatives.
+- What the writer hopes the relationship can become if they accept help; how the writer
+  will support them in healthy, **non-enabling** ways.
+- **The boundary:** what will change if they choose not to get help. Boundaries must be
+  anchored in one or both of the two questions (same anchors as the Boundaries tab):
+  1. Am I currently enabling the addiction?
+  2. Am I being harmed by the addiction emotionally, financially, or physically?
+  → Builder imports the writer's saved, anchored walls from the Boundaries tab here.
+- **Credibility check (required tap-through):** "Only include boundaries you are
+  genuinely prepared to follow through on." Writer confirms per boundary:
+  "I will follow through on this." Unconfirmed boundaries don't go in the letter.
+- **The close:** reaffirm love, then ask directly whether they see that help is needed
+  and are willing to accept it. (Pre-filled closing question, editable.)
+
+## Brevity enforcement (core UX, per principle 1)
+
+- Live **one-page meter** (not a word counter): renders draft at export type size and
+  shows fill of a single page. Green to ~85%, amber to 100%, red overflow blocks export
+  with: "Your letter must fit on one side of a single page. In the room, shorter is
+  stronger."
+- Paragraph 2 limited to 3 experience blocks; no "add paragraph" anywhere.
+- Estimated read-aloud time displayed (~2 minutes at full page).
+
+## Tone flags (highlight, never block)
+
+Wordlist + patterns, en + es: "you always," "you never," "after everything," "how could
+you," profanity, ALL-CAPS runs; es: "tú siempre," "tú nunca," "después de todo lo que
+hemos hecho por ti." Suggestion chip: "Try one specific moment and how it made you feel."
+
+## Workflow & sharing
+
+- Save/resume drafts; one letter per family member (Family Space shows completion
+  status only — contents stay private to each writer + coach).
+- **Send to your interventionist:** attached accounts → letter goes to the assigned
+  coach for review (replicates the handout's "send a copy to Matt" step in-app).
+  Direct accounts → option to email a PDF copy + the "feeling stuck?" support path:
+  in-app, "Get guidance" routes to coach messaging per their tier.
+- **Export:** clean print/PDF, one page, large type, no app branding on the printed page.
 
 ## The referral hook (direct accounts)
 
-After a letter is completed, direct members see one calm card: "A letter is most powerful
-read with professional support in the room. Talk to an interventionist about what's next."
-→ provider matching / consultation request. This is the app's single strongest bridge to
-Matt's practice; do not make it pushy — show once per completed letter.
-
-## Family Alignment integration
-
-If a Family Space exists, the builder shows which other members have completed letters
-(status only — letter contents stay private to each writer + coach until they choose to
-share on intervention day).
+After completing a letter, direct members see one calm card: "A letter like this is most
+powerful read with professional support in the room. Talk to an interventionist about
+what's next." → consultation request. Show once per completed letter; never pushy.
 
 ## Data model
 
 ```ts
-interface LetterSectionDef { id: string; order: number; title: string; prompt: string;
-  whyItMatters: string; examples: string[]; toneRules?: ToneRule[]; optional?: boolean; }
 interface LetterDraft { id: string; memberId: MemberId; familyId?: string;
-  sections: Record<string, string>; status: 'draft'|'complete'; readingSeconds: number;
+  p1: { qualities: string[]; memory?: string; body: string };
+  p2: { openerLabel: string; experiences: ExperienceBlock[] };   // max 3
+  p3: { request: string; hope: string; healthySupport?: string;
+        boundaries: ConfirmedBoundary[]; closingQuestion: string };
+  status: 'draft'|'complete'; pageFillPct: number;
   sharedWithCoach: boolean; updatedAt: ISODate; }
-interface ToneRule { pattern: string; flag: string; suggestion: string; }
+interface ExperienceBlock { when: string; felt: string; }
+interface ConfirmedBoundary { wallId?: string; text: string;
+  anchor: 'enabling'|'harm'|'both'; followThroughConfirmed: true; }
 ```
 
-Section definitions ship as JSON (en + es) so Matt's handout revisions don't require
-app releases.
+Prompts, starters, examples, and coach notes ship as locale-keyed JSON so Matt can
+revise wording without an app release.
 
 ## Account-state rules
 
-- All tiers can write and export letters (this is mission, not upsell).
-- Coach review requires attached, or direct-Premium via on-call coach.
+- All tiers can write and export letters (mission, not upsell).
+- Coach review: attached → assigned coach; direct-Premium → on-call coach;
+  direct-Essential → email-a-PDF path only.
 
 ## Sensitive-content note
 
 Letter content is among the most sensitive data in the app: encrypted at rest, excluded
-from analytics, never used as training data, deleted with account deletion.
+from analytics, never used for model training, deleted with account deletion.
 
 ## Out of scope (v1)
 
-AI letter generation (the writer's own words are the point; AI assists tone only — and
-even that is wordlist-based in v1), collaborative editing, audio recording of letters.
+AI-written letters (the writer's own words are the point; assistance is structural and
+tone-flag only), collaborative editing, audio recording, multi-page letters (explicitly
+against the method).
 
 ## Open questions
 
-- ⚠️ Await Matt's handout: section order, naming, and coaching language.
-- Should section 4 ("My part") be default-on or default-off? (Lean: on, skippable.)
+- Should the export include a discreet "prepared with Sober Helpline" footer on the
+  app-screen view only (never print)? (Lean: no branding anywhere near this moment.)
+- Direct-account PDF email: send via in-app share sheet (simplest, v1) or platform
+  email service (adds infrastructure)? (Lean: share sheet.)
