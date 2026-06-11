@@ -48,7 +48,7 @@ CREATE TABLE checkins (
 -- Prevents duplicate check-ins for the same day.
 -- Client de-duplication is the first line; this is the safety net.
 CREATE UNIQUE INDEX checkins_account_day
-  ON checkins (account_id, (created_at AT TIME ZONE 'UTC')::date);
+  ON checkins (account_id, CAST(created_at AT TIME ZONE 'UTC' AS date));
 
 -- ─── Walls (boundary walls) ───────────────────────────────────────────────────
 CREATE TABLE walls (
