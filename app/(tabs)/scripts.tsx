@@ -1,14 +1,16 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 
 export default function ScriptsScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation('common');
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
       <View style={styles.inner}>
-        <Text style={[styles.title, { color: colors.ink }]}>Scripts</Text>
-        <Text style={[styles.sub, { color: colors.inkSoft }]}>Coming soon</Text>
+        <Text style={[styles.title, { color: colors.ink }]}>{t('nav.scripts')}</Text>
+        <Text style={[styles.sub, { color: colors.inkSoft }]}>{t('comingSoon')}</Text>
       </View>
     </SafeAreaView>
   );

@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import { Text } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 
 function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
@@ -10,6 +11,7 @@ function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
 
 export default function TabLayout() {
   const { colors } = useTheme();
+  const { t } = useTranslation('common');
 
   return (
     <Tabs
@@ -32,42 +34,42 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Today',
+          title: t('nav.today'),
           tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="scripts"
         options={{
-          title: 'Scripts',
+          title: t('nav.scripts'),
           tabBarIcon: ({ focused }) => <TabIcon emoji="💬" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="boundaries"
         options={{
-          title: 'Boundaries',
+          title: t('nav.boundaries'),
           tabBarIcon: ({ focused }) => <TabIcon emoji="🏰" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="tracker"
         options={{
-          title: 'Tracker',
+          title: t('nav.tracker'),
           tabBarIcon: ({ focused }) => <TabIcon emoji="📋" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="learn"
         options={{
-          title: 'Learn',
+          title: t('nav.learn'),
           tabBarIcon: ({ focused }) => <TabIcon emoji="📚" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="support"
         options={{
-          title: 'Support',
+          title: t('nav.support'),
           tabBarIcon: ({ focused }) => <TabIcon emoji="🤝" focused={focused} />,
         }}
       />

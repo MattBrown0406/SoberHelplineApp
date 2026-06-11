@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import type { MoodScore } from '../../api/types';
 
@@ -15,7 +16,6 @@ interface Props {
   completed: boolean;
   selectedMood: MoodScore | null;
   onComplete: (mood: MoodScore) => void;
-  /** Streak count after today's check-in completes — shown in done banner. */
   newStreak: number;
   isAttached: boolean;
   orgName: string | null;
@@ -30,12 +30,23 @@ export function CheckInCard({
   orgName,
 }: Props) {
   const { colors } = useTheme();
+  const { t } = useTranslation('today');
   const [pendingMood, setPendingMood] = useState<MoodScore | null>(selectedMood);
 
   const privacyNote =
     isAttached && orgName
-      ? `Patterns are shared only with your ${orgName} coach.`
-      : 'Patterns stay private unless you choose to share them with a coach.';
+      ? t('checkIn.privacyAttached', { orgName })
+      : t('checkIn.privacyDirect');
+
+  const doneText =
+    newStreak > 0
+      ? t('checkIn.doneStreak', { count: newStreak })
+      : t('checkIn.done');
+
+  const doneCoach =
+    isAttached && orgName
+      ? ' ' + t('checkIn.doneCoach', { orgFirst: orgName.split(' ')[0] })
+      : '';
 
   function handleComplete() {
     if (pendingMood !== null) onComplete(pendingMood);
@@ -43,12 +54,14 @@ export function CheckInCard({
 
   return (
     <View style={[styles.card, { borderColor: colors.line }]}>
-      <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>Daily check-in</Text>
+      <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
+        {t('checkIn.eyebrow')}
+      </Text>
       <Text style={[styles.question, { color: colors.ink }]}>
-        How are you holding up today?
+        {t('checkIn.question')}
       </Text>
       <Text style={[styles.subtext, { color: colors.inkSoft }]}>
-        Your answers are private.{' '}
+        {t('checkIn.privacy')}{' '}
         <Text style={{ color: colors.inkSoft }}>{privacyNote}</Text>
       </Text>
 
@@ -77,13 +90,16 @@ export function CheckInCard({
           <TouchableOpacity
             style={[
               styles.btn,
-              { backgroundColor: colors.primary, opacity: pendingMood ? 1 : 0.45 },
+              {
+                backgroundColor: colors.primary,
+                opacity: pendingMood !== null ? 1 : 0.45,
+              },
             ]}
             onPress={handleComplete}
             disabled={pendingMood === null}
             activeOpacity={0.8}
           >
-            <Text style={styles.btnText}>Complete check-in</Text>
+            <Text style={styles.btnText}>{t('checkIn.completeButton')}</Text>
           </TouchableOpacity>
         </>
       ) : (
@@ -94,11 +110,7 @@ export function CheckInCard({
           ]}
         >
           <Text style={[styles.doneText, { color: colors.green }]}>
-            {'✓ Check-in complete'}
-            {newStreak > 0 ? ` — ${newStreak}-day streak!` : '!'}
-            {isAttached && orgName
-              ? ` ${orgName.split(' ')[0]} will see your update.`
-              : ''}
+            {doneText}{doneCoach}
           </Text>
         </View>
       )}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 
 interface Props {
@@ -21,6 +22,7 @@ export function HeroCard({
   groupSessions,
 }: Props) {
   const { colors } = useTheme();
+  const { t } = useTranslation('today');
 
   return (
     <LinearGradient
@@ -30,13 +32,13 @@ export function HeroCard({
       style={styles.card}
     >
       <Text style={styles.eyebrow}>
-        DAY {dayCount} — {contextLabel}
+        {t('hero.dayLabel', { count: dayCount, context: contextLabel })}
       </Text>
       <Text style={styles.quote}>"{quote}"</Text>
       <View style={styles.streakRow}>
-        <StreakStat value={checkInStreak} label="day check-in streak" />
-        <StreakStat value={boundariesHeld} label="boundaries held" />
-        <StreakStat value={groupSessions} label="group sessions" />
+        <StreakStat value={checkInStreak} label={t('streak.checkIn')} />
+        <StreakStat value={boundariesHeld} label={t('streak.boundaries')} />
+        <StreakStat value={groupSessions} label={t('streak.groups')} />
       </View>
     </LinearGradient>
   );

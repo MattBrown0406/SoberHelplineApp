@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import type { DailyFocusItem } from '../../api/types';
 
@@ -9,10 +10,13 @@ interface Props {
 
 export function FocusCard({ items }: Props) {
   const { colors } = useTheme();
+  const { t } = useTranslation('today');
 
   return (
     <View style={[styles.card, { borderColor: colors.line }]}>
-      <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>Today's focus</Text>
+      <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
+        {t('focus.eyebrow')}
+      </Text>
       {items.map((item, idx) => (
         <View
           key={item.id}
@@ -73,12 +77,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
-  icon: {
-    fontSize: 17,
-  },
-  text: {
-    flex: 1,
-  },
+  icon: { fontSize: 17 },
+  text: { flex: 1 },
   title: {
     fontSize: 13.5,
     fontWeight: '700',
