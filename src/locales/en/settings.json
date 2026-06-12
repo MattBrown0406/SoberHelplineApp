@@ -1,0 +1,28 @@
+{
+  "title": "Settings",
+  "account": {
+    "eyebrow": "Account",
+    "nameLabel": "Name",
+    "emailLabel": "Email"
+  },
+  "privacy": {
+    "eyebrow": "Privacy",
+    "shareCheckIns": "Share check-ins with my coach",
+    "shareCheckInsDesc": "Your assigned coach can see your daily check-ins and tracker entries. You can turn this off at any time."
+  },
+  "language": {
+    "eyebrow": "Language"
+  },
+  "notifications": {
+    "dailyNudgeTitle": "Sober Helpline",
+    "dailyNudgeBody": "How are you doing today? Take a moment to check in."
+  },
+  "signOut": "Sign out",
+  "deleteAccount": {
+    "button": "Delete account",
+    "confirmTitle": "Delete your account?",
+    "confirmMessage": "Your data will be permanently deleted within 30 days. This cannot be undone.",
+    "confirmButton": "Yes, delete my account",
+    "cancelButton": "Cancel"
+  }
+}

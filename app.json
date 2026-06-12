@@ -40,7 +40,15 @@
       ],
       "expo-asset",
       "expo-localization",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#1a365d",
+          "sounds": []
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

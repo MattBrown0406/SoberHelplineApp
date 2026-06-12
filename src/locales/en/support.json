@@ -1,0 +1,65 @@
+{
+  "header": "Support",
+  "settings": "Settings",
+  "crisis": {
+    "button": "Talk to someone now",
+    "sheetTitle": "You're not alone right now",
+    "attachedSub": "is on call for your family tonight.",
+    "directSub": "is on call and will respond first.",
+    "callButton": "Call",
+    "messageButton": "Message",
+    "divider": "Emergency lines — always available",
+    "line911": "911 — Life-threatening emergency",
+    "line988": "988 — Suicide & Crisis Lifeline"
+  },
+  "team": {
+    "eyebrow": "Your team",
+    "messageButton": "Message",
+    "onCall": "On call"
+  },
+  "sessions": {
+    "eyebrow": "Upcoming sessions",
+    "rsvpButton": "RSVP",
+    "confirmButton": "Confirmed",
+    "typeGroup": "Group",
+    "typeOneOnOne": "1-on-1",
+    "typeFamily": "Family"
+  },
+  "tier": {
+    "eyebrow": "Your plan",
+    "essentialName": "Essential",
+    "essentialFeatures": "Message the on-call coach · full app · groups",
+    "essentialPrice": "$19/mo",
+    "premiumName": "Premium",
+    "premiumFeatures": "Phone & video calls with a coach, business hours",
+    "premiumPrice": "$49/mo",
+    "upgradeButton": "Upgrade to Premium",
+    "current": "Current plan"
+  },
+  "messages": {
+    "eyebrow": "Message your coach",
+    "placeholder": "Type a message…",
+    "sendButton": "Send",
+    "comingSoon": "Messaging launches with your coach assignment. Tap 'Talk to someone now' for immediate support."
+  },
+  "referral": {
+    "eyebrow": "Need more than an app?",
+    "title": "Work with a professional interventionist.",
+    "body": "Get matched with a vetted provider organization for assigned coaching, family sessions, and intervention support.",
+    "button": "Find a provider"
+  },
+  "groups": {
+    "eyebrow": "Moderated groups",
+    "joinButton": "Join",
+    "online_one": "{{count}} online",
+    "online_other": "{{count}} online"
+  },
+  "membership": {
+    "eyebrow": "Membership",
+    "covered": "COVERED",
+    "coveredSub": "Your organization covers this membership."
+  },
+  "language": {
+    "eyebrow": "Language"
+  }
+}

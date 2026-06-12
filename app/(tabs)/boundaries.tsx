@@ -23,7 +23,7 @@ export default function BoundariesScreen() {
   const { colors } = useTheme();
   const { user, isAttached } = useAccount();
   const { t: tCommon, i18n } = useTranslation('common');
-  const { walls, addWall, removeWall } = useBoundaries();
+  const { walls, addWall, removeWall } = useBoundaries(user?.id ?? null);
 
   const content: BoundariesContent = i18n.language.startsWith('es')
     ? esContent

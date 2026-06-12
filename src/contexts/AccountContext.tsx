@@ -37,8 +37,33 @@ async function fetchAccount(authUser: User): Promise<AuthUser | null> {
 
   if (error || !data) return null;
 
-  const accountState: AccountState =
+  // Resolve accountState: attached accounts set by org; direct accounts check entitlements table
+  let accountState: AccountState =
     data.type === 'attached' ? 'attached' : 'direct-essential';
+
+  if (data.type === 'direct') {
+    const { data: ent } = await supabase
+      .from('entitlements')
+      .select('tier, expires_at')
+      .eq('account_id', data.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (ent) {
+      const expired = ent.expires_at ? new Date(ent.expires_at) < new Date() : false;
+      if (!expired && ent.tier === 'premium') accountState = 'direct-premium';
+    }
+  }
+
+  const entitlements: Entitlements = {
+    canMessageOnCallCoach: true,
+    canCallCoach: accountState === 'attached' || accountState === 'direct-premium',
+    canCallAfterHours: accountState === 'attached',
+    canAccessGroups: true,
+    canAccessLearningContent: true,
+    hasAssignedCoach: accountState === 'attached',
+  };
 
   return {
     id: data.id,
@@ -47,7 +72,7 @@ async function fetchAccount(authUser: User): Promise<AuthUser | null> {
     email: authUser.email ?? '',
     avatarUrl: null,
     accountState,
-    entitlements: DEFAULT_ENTITLEMENTS,
+    entitlements,
     orgId: data.org_id ?? null,
     branding: null,
     joinedAt: data.created_at,

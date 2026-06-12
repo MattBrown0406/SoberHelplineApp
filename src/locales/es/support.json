@@ -1,0 +1,65 @@
+{
+  "header": "Apoyo",
+  "settings": "Configuración",
+  "crisis": {
+    "button": "Hablar con alguien ahora",
+    "sheetTitle": "No estás solo/a en este momento",
+    "attachedSub": "está de guardia para tu familia esta noche.",
+    "directSub": "está de guardia y responderá primero.",
+    "callButton": "Llamar",
+    "messageButton": "Mensaje",
+    "divider": "Líneas de emergencia — siempre disponibles",
+    "line911": "911 — Emergencia que pone en riesgo la vida",
+    "line988": "988 — Línea de crisis de suicidio y crisis"
+  },
+  "team": {
+    "eyebrow": "Tu equipo",
+    "messageButton": "Mensaje",
+    "onCall": "De guardia"
+  },
+  "sessions": {
+    "eyebrow": "Próximas sesiones",
+    "rsvpButton": "Confirmar asistencia",
+    "confirmButton": "Confirmado",
+    "typeGroup": "Grupo",
+    "typeOneOnOne": "Individual",
+    "typeFamily": "Familiar"
+  },
+  "tier": {
+    "eyebrow": "Tu plan",
+    "essentialName": "Esencial",
+    "essentialFeatures": "Mensaje al coach de guardia · app completa · grupos",
+    "essentialPrice": "$19/mes",
+    "premiumName": "Premium",
+    "premiumFeatures": "Llamadas telefónicas y de video con un coach en horario laboral",
+    "premiumPrice": "$49/mes",
+    "upgradeButton": "Mejorar a Premium",
+    "current": "Plan actual"
+  },
+  "messages": {
+    "eyebrow": "Escríbele a tu coach",
+    "placeholder": "Escribe un mensaje…",
+    "sendButton": "Enviar",
+    "comingSoon": "La mensajería se activa con la asignación de tu coach. Toca 'Hablar con alguien ahora' para apoyo inmediato."
+  },
+  "referral": {
+    "eyebrow": "¿Necesitas más que una app?",
+    "title": "Trabaja con un intervencionista profesional.",
+    "body": "Conéctate con una organización proveedora verificada para coaching asignado, sesiones familiares y apoyo de intervención.",
+    "button": "Encontrar un proveedor"
+  },
+  "groups": {
+    "eyebrow": "Grupos moderados",
+    "joinButton": "Unirse",
+    "online_one": "{{count}} en línea",
+    "online_other": "{{count}} en línea"
+  },
+  "membership": {
+    "eyebrow": "Membresía",
+    "covered": "CUBIERTA",
+    "coveredSub": "Tu organización cubre esta membresía."
+  },
+  "language": {
+    "eyebrow": "Idioma"
+  }
+}

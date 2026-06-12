@@ -1,0 +1,43 @@
+{
+  "warning": {
+    "eyebrow": "What have you noticed this week?",
+    "meterLabel": "Warning pattern",
+    "riskLow": "Low concern — keep observing",
+    "riskMid": "Patterns emerging — trust what you see",
+    "riskHigh": "Pattern worth a conversation",
+    "alertText": "3+ warning signs this week.",
+    "alertCoachSuffix": " Your coach has been notified and will reach out within 24 hours.",
+    "alertDirectSuffix": " The on-call coach is one tap away in Support.",
+    "signs": [
+      { "id": "w-friends", "label": "Reconnecting with old using friends", "category": "Behavioral" },
+      { "id": "w-aftercare", "label": "Skipped aftercare meetings", "category": "Recovery routine" },
+      { "id": "w-money", "label": "Unexplained money requests", "category": "Financial" },
+      { "id": "w-sleep", "label": "Sleeping all day / up all night", "category": "Physical" },
+      { "id": "w-defensive", "label": "Defensive when asked simple questions", "category": "Emotional" },
+      { "id": "w-sick", "label": "New 'stomach flu' or frequent illness", "category": "Physical" }
+    ]
+  },
+  "recovery": {
+    "eyebrow": "Signs of recovery — what's growing?",
+    "meterLabel": "Recovery momentum",
+    "momentumLow": "Watch for green shoots — they count",
+    "momentumMid": "Encouraging signs this week",
+    "momentumHigh": "Real momentum this week",
+    "alertText": "3+ recovery signs logged. Tell them what you see — specific, brief, no strings: \"I noticed you've made every meeting this week. I see the work.\"",
+    "signs": [
+      { "id": "r-meetings", "label": "Attending meetings or therapy consistently", "category": "Recovery routine" },
+      { "id": "r-honest", "label": "Honest about struggles and cravings", "category": "Emotional" },
+      { "id": "r-commitments", "label": "Keeping commitments, even small ones", "category": "Reliability" },
+      { "id": "r-friends", "label": "Spending time with sober friends", "category": "Social" },
+      { "id": "r-selfcare", "label": "Regular sleep, meals, and self-care", "category": "Physical" },
+      { "id": "r-open", "label": "Open about whereabouts without being asked", "category": "Transparency" },
+      { "id": "r-money", "label": "Handling money responsibly", "category": "Financial" },
+      { "id": "r-no", "label": "Accepting 'no' without escalating", "category": "Behavioral" },
+      { "id": "r-accountability", "label": "Taking responsibility instead of blaming", "category": "Accountability" },
+      { "id": "r-reconnection", "label": "Showing interest in others' lives again", "category": "Reconnection" }
+    ]
+  },
+  "privacyNote": "Tracking isn't surveillance — it turns anxiety into observation, and observation into a plan. Recovery signs matter as much as warning signs: they teach your eyes what healing looks like.",
+  "privacyNoteCoach": " Your log is visible to you and your coach.",
+  "privacyNoteDirect": " Your log is visible only to you."
+}

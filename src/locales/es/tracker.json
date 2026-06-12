@@ -1,0 +1,43 @@
+{
+  "warning": {
+    "eyebrow": "¿Qué has notado esta semana?",
+    "meterLabel": "Señales de alerta",
+    "riskLow": "Preocupación baja — sigue observando",
+    "riskMid": "Patrones emergentes — confía en lo que ves",
+    "riskHigh": "Un patrón que merece una conversación",
+    "alertText": "3 o más señales de alerta esta semana.",
+    "alertCoachSuffix": " Tu coach ha sido notificado/a y se pondrá en contacto en las próximas 24 horas.",
+    "alertDirectSuffix": " El coach de guardia está a un toque en Apoyo.",
+    "signs": [
+      { "id": "w-friends", "label": "Retomando contacto con amigos que consumen", "category": "Conductual" },
+      { "id": "w-aftercare", "label": "Faltó a las reuniones de seguimiento", "category": "Rutina de recuperación" },
+      { "id": "w-money", "label": "Solicitudes de dinero sin explicación", "category": "Económico" },
+      { "id": "w-sleep", "label": "Duerme todo el día / despierto toda la noche", "category": "Físico" },
+      { "id": "w-defensive", "label": "Se pone a la defensiva ante preguntas sencillas", "category": "Emocional" },
+      { "id": "w-sick", "label": "Nueva 'gripe intestinal' o enfermedades frecuentes", "category": "Físico" }
+    ]
+  },
+  "recovery": {
+    "eyebrow": "Señales de recuperación — ¿qué está creciendo?",
+    "meterLabel": "Impulso de recuperación",
+    "momentumLow": "Busca señales positivas — también cuentan",
+    "momentumMid": "Señales alentadoras esta semana",
+    "momentumHigh": "Impulso real esta semana",
+    "alertText": "3 o más señales de recuperación registradas. Dile lo que ves — específico, breve, sin condiciones: «Noté que has ido a todas las reuniones esta semana. Veo el esfuerzo.»",
+    "signs": [
+      { "id": "r-meetings", "label": "Asistiendo a reuniones o terapia de forma constante", "category": "Rutina de recuperación" },
+      { "id": "r-honest", "label": "Honesto/a sobre las dificultades y los deseos de consumir", "category": "Emocional" },
+      { "id": "r-commitments", "label": "Cumpliendo compromisos, incluso los pequeños", "category": "Confiabilidad" },
+      { "id": "r-friends", "label": "Pasando tiempo con amigos sobrios", "category": "Social" },
+      { "id": "r-selfcare", "label": "Sueño regular, comidas y autocuidado", "category": "Físico" },
+      { "id": "r-open", "label": "Comparte dónde está sin que se le pregunte", "category": "Transparencia" },
+      { "id": "r-money", "label": "Manejando el dinero de forma responsable", "category": "Económico" },
+      { "id": "r-no", "label": "Acepta el 'no' sin escalar el conflicto", "category": "Conductual" },
+      { "id": "r-accountability", "label": "Asumiendo responsabilidad en lugar de culpar", "category": "Responsabilidad" },
+      { "id": "r-reconnection", "label": "Mostrando interés en la vida de los demás otra vez", "category": "Reconexión" }
+    ]
+  },
+  "privacyNote": "Registrar no es vigilar — convierte la ansiedad en observación y la observación en un plan. Las señales de recuperación importan tanto como las de alerta: enseñan a tus ojos cómo se ve la sanación.",
+  "privacyNoteCoach": " Tu registro es visible para ti y tu coach.",
+  "privacyNoteDirect": " Tu registro solo es visible para ti."
+}
