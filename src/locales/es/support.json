@@ -69,5 +69,27 @@
     "emptyState": "Esta es tu línea directa con el coach de guardia. Saluda — una persona real lee esto.",
     "crisisNote": "En una emergencia, llama siempre al 911 o al 988.",
     "openButton": "Abrir mi conversación"
+  },
+  "coaching": {
+    "eyebrow": "Coaching 1 a 1",
+    "cardTitle": "Sesión privada por Zoom con un coach",
+    "cardBody": "Una hora completa, uno a uno: tu situación, tus preguntas, un plan concreto. $150 por hora.",
+    "cardButton": "Reservar una sesión",
+    "title": "Reservar coaching 1 a 1",
+    "subtitle": "{{rate}}/hora · sesión privada por Zoom",
+    "description": "Cuéntanos cuándo puedes y en qué quieres trabajar. Confirmamos tu horario por mensaje, completas el pago seguro por PayPal y tu enlace privado de Zoom aparece aquí.",
+    "timesLabel": "¿Qué horarios te funcionan?",
+    "timesPlaceholder": "p. ej. Entre semana después de las 6 PM Pacífico, o sábados por la mañana",
+    "noteLabel": "¿En qué te gustaría enfocarte? (opcional)",
+    "notePlaceholder": "Límites con mi hijo, preparar una intervención...",
+    "submitButton": "Solicitar sesión y pagar {{rate}}",
+    "paymentNote": "El pago se procesa de forma segura por PayPal en tu navegador. Tu sesión se confirma cuando el pago y el horario coinciden. Cancelaciones con 24+ horas se reembolsan por completo.",
+    "submitted": "✓ Solicitud recibida. Completa el pago en la ventana de PayPal — confirmaremos tu horario por mensaje dentro de un día hábil.",
+    "myBookings": "Mis sesiones",
+    "statusRequested": "Solicitada · esperando pago y confirmación",
+    "statusPaidPending": "Pagada · esperando confirmación de horario",
+    "statusConfirmed": "Confirmada",
+    "statusCompleted": "Completada",
+    "statusCancelled": "Cancelada"
   }
 }

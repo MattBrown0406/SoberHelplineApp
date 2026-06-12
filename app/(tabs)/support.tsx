@@ -399,6 +399,27 @@ export default function SupportScreen() {
 
             <View style={[styles.card, { borderColor: colors.line }]}>
               <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
+                {t('coaching.eyebrow')}
+              </Text>
+              <Text style={[styles.referralTitle, { color: colors.ink }]}>
+                {t('coaching.cardTitle')}
+              </Text>
+              <Text style={[styles.referralBody, { color: colors.inkSoft }]}>
+                {t('coaching.cardBody')}
+              </Text>
+              <TouchableOpacity
+                style={[styles.outlineBtn, { borderColor: colors.primary, marginTop: 12 }]}
+                activeOpacity={0.8}
+                onPress={() => router.push('/book-coaching')}
+              >
+                <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
+                  {t('coaching.cardButton')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={[styles.card, { borderColor: colors.line }]}>
+              <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
                 {t('sessions.eyebrow')}
               </Text>
               {sessions.map((sess) => (
