@@ -292,6 +292,78 @@ export interface SupportGroup {
   requiresPremium: boolean;
 }
 
+// ─── Family Alignment ─────────────────────────────────────────────────────────
+
+export type CommitmentStatus = 'committed' | 'declined' | 'wavering';
+
+export interface FamilyMember {
+  id: string;
+  displayName: string;
+  role: 'owner' | 'member';
+  joinedAt: string; // ISO 8601
+}
+
+export interface WallCommitment {
+  memberId: string;
+  status: CommitmentStatus;
+  updatedAt: string;
+}
+
+export interface SharedWall {
+  id: string;
+  familySpaceId: string;
+  text: string;
+  proposedBy: string;
+  anchor: 'enabling' | 'harm' | 'both' | null;
+  createdAt: string;
+  commitments: WallCommitment[];
+}
+
+export interface FamilySpace {
+  id: string;
+  name: string;
+  createdBy: string;
+  inviteCode: string;
+  members: FamilyMember[];
+  sharedWalls: SharedWall[];
+}
+
+// ─── Letter Builder ───────────────────────────────────────────────────────────
+
+export interface ExperienceBlock {
+  when: string;
+  felt: string;
+}
+
+export interface ConfirmedBoundary {
+  wallId?: string;
+  text: string;
+  anchor: 'enabling' | 'harm' | 'both' | null;
+  followThroughConfirmed: true;
+}
+
+export interface LetterDraft {
+  recipientName: string;
+  p1Body: string;
+  p2OpenerLabel: string;
+  p2Experiences: ExperienceBlock[];
+  p3Request: string;
+  p3Hope: string;
+  p3HealthySupport: string;
+  p3ConfirmedBoundaryIds: string[];
+  p3ClosingQuestion: string;
+  status: 'draft' | 'complete';
+  updatedAt: string;
+}
+
+// ─── Rehearsal ────────────────────────────────────────────────────────────────
+
+export interface RehearsalSession {
+  id: string;
+  source: { type: 'script' | 'wall'; id: string };
+  count: number;
+}
+
 // ─── API Response Envelope ────────────────────────────────────────────────────
 
 export interface ApiSuccess<T> {

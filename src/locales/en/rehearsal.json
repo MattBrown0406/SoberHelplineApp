@@ -1,0 +1,24 @@
+{
+  "title": "Practice",
+  "practiceButton": "Practice this",
+  "count_one": "Rehearsed {{count}} time",
+  "count_other": "Rehearsed {{count}} times",
+  "promptEyebrow": "Say it out loud",
+  "recordButton": "Hold to record",
+  "recordingLabel": "Recording… release to stop",
+  "playButton": "Play back",
+  "rerecordButton": "Record again",
+  "privacyNote": "Sober Helpline records practice sessions only when you tap record, and they stay on your device.",
+  "selfCheck": {
+    "eyebrow": "Self-check",
+    "calm": "Did you sound calm?",
+    "additions": "Did you add apologies or justifications that weren't in the script?",
+    "pace": "Could you say it 20% slower?",
+    "yes": "Yes",
+    "no": "Not yet",
+    "retry": "Try again",
+    "done": "Done — great work"
+  },
+  "wallSource": "From your boundary",
+  "scriptSource": "From your scripts"
+}

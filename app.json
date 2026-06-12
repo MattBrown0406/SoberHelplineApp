@@ -15,7 +15,10 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.soberhelplineapp"
+      "bundleIdentifier": "com.soberhelplineapp",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Sober Helpline records practice sessions only when you tap record, and they stay on your device."
+      }
     },
     "android": {
       "adaptiveIcon": {

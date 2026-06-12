@@ -1,0 +1,24 @@
+{
+  "title": "Práctica",
+  "practiceButton": "Practicar esto",
+  "count_one": "Ensayado {{count}} vez",
+  "count_other": "Ensayado {{count}} veces",
+  "promptEyebrow": "Dilo en voz alta",
+  "recordButton": "Mantén presionado para grabar",
+  "recordingLabel": "Grabando… suelta para parar",
+  "playButton": "Escuchar",
+  "rerecordButton": "Grabar de nuevo",
+  "privacyNote": "Sober Helpline solo graba las sesiones de práctica cuando tú lo activas, y se quedan en tu dispositivo.",
+  "selfCheck": {
+    "eyebrow": "Autoevaluación",
+    "calm": "¿Sonaste tranquilo/a?",
+    "additions": "¿Agregaste disculpas o justificaciones que no estaban en el guión?",
+    "pace": "¿Podrías decirlo un 20% más lento?",
+    "yes": "Sí",
+    "no": "Todavía no",
+    "retry": "Intentar de nuevo",
+    "done": "Listo — excelente trabajo"
+  },
+  "wallSource": "De tu límite",
+  "scriptSource": "De tus guiones"
+}

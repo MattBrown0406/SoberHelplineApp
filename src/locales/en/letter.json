@@ -1,0 +1,69 @@
+{
+  "title": "Intervention Letter",
+  "entryEyebrow": "Write your letter",
+  "entryBody": "A guided three-paragraph structure — taken directly from Matt's intervention handout. Brevity is critical. One side of a single page.",
+  "entryButton": "Start a letter",
+  "recipientLabel": "Who is this letter for?",
+  "recipientPlaceholder": "Their first name",
+  "steps": {
+    "p1": "Why I'm here",
+    "p2": "The impact",
+    "p3": "The request",
+    "preview": "Preview"
+  },
+  "p1": {
+    "title": "Why You Are Here",
+    "coachNote": "This paragraph exists so they know this meeting is care and concern — not punishment, blame, or shame.",
+    "prompt": "What do you love about them that addiction hasn't erased?",
+    "placeholder": "Their kindness, humor, loyalty — name what's still true. What moment shows who they really are?",
+    "memoryPrompt": "One brief memory (optional)",
+    "memoryPlaceholder": "A moment of them at their best, or the relationship at its strongest."
+  },
+  "p2": {
+    "title": "How This Has Affected You",
+    "coachNote": "The emotional impact you describe exists because of your love and investment in the relationship.",
+    "openerLabel": "Opening sentence",
+    "whenLabel": "When",
+    "whenPlaceholder": "When you ___",
+    "feltLabel": "I felt",
+    "feltPlaceholder": "I felt ___",
+    "addExperience": "Add another experience",
+    "maxReached": "3 experiences maximum — in the room, shorter is stronger.",
+    "hints": "When you lied to me about ___, I felt ___. · When you drove impaired, I felt scared. · When I see how this affects our family, I feel helpless.",
+    "toneFlag": "Tone check: try one specific moment and how it made you feel."
+  },
+  "p3": {
+    "title": "The Request and the Boundary",
+    "requestLabel": "The request",
+    "requestNote": "This is not an invitation to negotiate alternatives.",
+    "hopeLabel": "What you hope for",
+    "hopePlaceholder": "What I hope our relationship can become if you accept help…",
+    "supportLabel": "How you'll support them (non-enabling)",
+    "supportPlaceholder": "I'll drive you to meetings, spend time with you sober…",
+    "boundariesEyebrow": "Your anchored boundaries",
+    "boundariesNote": "Only include boundaries you are genuinely prepared to follow through on.",
+    "boundaryConfirmLabel": "I will follow through on this.",
+    "noBoundaries": "Add anchored boundaries in the Boundaries tab first, then return here.",
+    "closingLabel": "Closing question",
+    "closingNote": "Pre-filled — edit to your voice."
+  },
+  "preview": {
+    "title": "Your letter",
+    "brevityLabel": "Page",
+    "readTime": "~{{min}} min read aloud",
+    "overflowWarning": "Your letter must fit on one side of a single page. In the room, shorter is stronger.",
+    "shareButton": "Share / Export",
+    "coachButton": "Send to coach for review",
+    "coachButtonDirect": "Email a copy",
+    "referralCard": "A letter like this is most powerful read with professional support in the room.",
+    "referralButton": "Talk to an interventionist"
+  },
+  "defaults": {
+    "openerLabel": "Your substance use has affected me in the following ways.",
+    "request": "I want you to choose to go to treatment today.",
+    "closing": "Do you see that you need help, and are you willing to accept it today?"
+  },
+  "save": "Saved",
+  "next": "Next",
+  "back": "Back"
+}

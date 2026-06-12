@@ -17,6 +17,7 @@ import type {
   Script,
   Session,
   Entitlements,
+  FamilySpace,
 } from './types';
 
 // ─── Staff fixtures ───────────────────────────────────────────────────────────
@@ -304,6 +305,48 @@ export function getMockSupportGroups(): SupportGroup[] {
       requiresPremium: false,
     },
   ];
+}
+
+export function getMockFamilySpace(): FamilySpace {
+  return {
+    id: 'family-johnson',
+    name: 'The Johnson Family',
+    createdBy: 'user-sarah',
+    inviteCode: 'JHN-4821',
+    members: [
+      { id: 'user-sarah', displayName: 'Sarah (You)', role: 'owner', joinedAt: '2024-01-15T10:00:00Z' },
+      { id: 'user-david', displayName: 'David', role: 'member', joinedAt: '2024-01-16T10:00:00Z' },
+      { id: 'user-linda', displayName: 'Linda', role: 'member', joinedAt: '2024-01-17T10:00:00Z' },
+    ],
+    sharedWalls: [
+      {
+        id: 'sw-1',
+        familySpaceId: 'family-johnson',
+        text: 'I will not give money directly — I will offer to pay bills directly.',
+        proposedBy: 'user-sarah',
+        anchor: 'enabling',
+        createdAt: '2024-01-20T10:00:00Z',
+        commitments: [
+          { memberId: 'user-sarah', status: 'committed', updatedAt: '2024-01-20T10:00:00Z' },
+          { memberId: 'user-david', status: 'committed', updatedAt: '2024-01-21T10:00:00Z' },
+          { memberId: 'user-linda', status: 'wavering', updatedAt: '2024-01-22T10:00:00Z' },
+        ],
+      },
+      {
+        id: 'sw-2',
+        familySpaceId: 'family-johnson',
+        text: 'I will not make excuses for missed appointments.',
+        proposedBy: 'user-david',
+        anchor: 'enabling',
+        createdAt: '2024-01-21T10:00:00Z',
+        commitments: [
+          { memberId: 'user-sarah', status: 'committed', updatedAt: '2024-01-21T10:00:00Z' },
+          { memberId: 'user-david', status: 'committed', updatedAt: '2024-01-21T10:00:00Z' },
+          { memberId: 'user-linda', status: 'committed', updatedAt: '2024-01-22T10:00:00Z' },
+        ],
+      },
+    ],
+  };
 }
 
 export function getMockScripts(): Script[] {

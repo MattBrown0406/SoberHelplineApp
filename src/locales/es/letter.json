@@ -1,0 +1,69 @@
+{
+  "title": "Carta de intervención",
+  "entryEyebrow": "Escribe tu carta",
+  "entryBody": "Una estructura guiada de tres párrafos — tomada directamente del manual de intervención de Matt. La brevedad es esencial. Una sola cara de una página.",
+  "entryButton": "Comenzar una carta",
+  "recipientLabel": "¿Para quién es esta carta?",
+  "recipientPlaceholder": "Su nombre",
+  "steps": {
+    "p1": "Por qué estoy aquí",
+    "p2": "El impacto",
+    "p3": "La petición",
+    "preview": "Vista previa"
+  },
+  "p1": {
+    "title": "Por qué estás aquí",
+    "coachNote": "Este párrafo existe para que sepan que esta reunión es por amor y preocupación — no por castigo, culpa o vergüenza.",
+    "prompt": "¿Qué amas de ellos que la adicción no ha borrado?",
+    "placeholder": "Su amabilidad, humor, lealtad — nombra lo que sigue siendo verdad. ¿Qué momento muestra quiénes son realmente?",
+    "memoryPrompt": "Un recuerdo breve (opcional)",
+    "memoryPlaceholder": "Un momento en que estaban en su mejor versión, o cuando la relación era más fuerte."
+  },
+  "p2": {
+    "title": "Cómo te ha afectado",
+    "coachNote": "El impacto emocional que describes existe por tu amor e inversión en la relación.",
+    "openerLabel": "Oración de apertura",
+    "whenLabel": "Cuando",
+    "whenPlaceholder": "Cuando tú ___",
+    "feltLabel": "Sentí",
+    "feltPlaceholder": "Sentí ___",
+    "addExperience": "Agregar otra experiencia",
+    "maxReached": "Máximo 3 experiencias — en el momento, lo breve es más poderoso.",
+    "hints": "Cuando me mentiste sobre ___, sentí ___. · Cuando manejaste bajo el efecto, sentí miedo. · Cuando veo cómo esto afecta a nuestra familia, me siento impotente.",
+    "toneFlag": "Revisión de tono: intenta un momento específico y cómo te hizo sentir."
+  },
+  "p3": {
+    "title": "La petición y el límite",
+    "requestLabel": "La petición",
+    "requestNote": "Esta no es una invitación a negociar alternativas.",
+    "hopeLabel": "Lo que esperas",
+    "hopePlaceholder": "Lo que espero que nuestra relación pueda ser si aceptas ayuda…",
+    "supportLabel": "Cómo los apoyarás (sin habilitar)",
+    "supportPlaceholder": "Te llevaré a las reuniones, pasaré tiempo contigo sobrio/a…",
+    "boundariesEyebrow": "Tus límites anclados",
+    "boundariesNote": "Solo incluye límites en los que estás genuinamente dispuesto/a a cumplir.",
+    "boundaryConfirmLabel": "Cumpliré con esto.",
+    "noBoundaries": "Primero agrega límites anclados en la pestaña Límites y luego regresa aquí.",
+    "closingLabel": "Pregunta de cierre",
+    "closingNote": "Prellenada — edítala con tu voz."
+  },
+  "preview": {
+    "title": "Tu carta",
+    "brevityLabel": "Página",
+    "readTime": "~{{min}} min en voz alta",
+    "overflowWarning": "Tu carta debe caber en una sola cara de una página. En el momento, lo breve es más poderoso.",
+    "shareButton": "Compartir / Exportar",
+    "coachButton": "Enviar al coach para revisión",
+    "coachButtonDirect": "Enviar una copia por correo",
+    "referralCard": "Una carta como esta es más poderosa cuando se lee con apoyo profesional en el momento.",
+    "referralButton": "Hablar con un intervencionista"
+  },
+  "defaults": {
+    "openerLabel": "Tu consumo de sustancias me ha afectado de las siguientes maneras.",
+    "request": "Quiero que elijas ir a tratamiento hoy.",
+    "closing": "¿Ves que necesitas ayuda y estás dispuesto/a a aceptarla hoy?"
+  },
+  "save": "Guardado",
+  "next": "Siguiente",
+  "back": "Atrás"
+}

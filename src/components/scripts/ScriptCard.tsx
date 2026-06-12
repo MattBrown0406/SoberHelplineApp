@@ -8,8 +8,10 @@ import {
   Platform,
   UIManager,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useRehearsalCount } from '../../hooks/useRehearsalCount';
 import type { Script } from '../../api/types';
 
 // Enable LayoutAnimation on Android
@@ -24,6 +26,8 @@ interface Props {
 export function ScriptCard({ script }: Props) {
   const { colors } = useTheme();
   const { t } = useTranslation('scripts');
+  const router = useRouter();
+  const { count } = useRehearsalCount(script.id);
   const [open, setOpen] = useState(false);
 
   function toggle() {
@@ -106,6 +110,27 @@ export function ScriptCard({ script }: Props) {
 
           {/* Why */}
           <Text style={[styles.why, { color: colors.inkSoft }]}>{script.why}</Text>
+
+          {/* Practice */}
+          <TouchableOpacity
+            style={[styles.practiceBtn, { backgroundColor: colors.primaryLight, borderColor: colors.primary }]}
+            onPress={() =>
+              router.push({
+                pathname: '/rehearsal',
+                params: {
+                  text: script.trySaying,
+                  sourceId: script.id,
+                  sourceType: 'script',
+                },
+              })
+            }
+            activeOpacity={0.85}
+          >
+            <Text style={[styles.practiceBtnText, { color: colors.primary }]}>
+              {t('practice')}
+              {count > 0 ? `  ×${count}` : ''}
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
     </TouchableOpacity>
@@ -188,5 +213,16 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     fontStyle: 'italic',
     marginTop: 1,
+  },
+  practiceBtn: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 9,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  practiceBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
   },
 });
