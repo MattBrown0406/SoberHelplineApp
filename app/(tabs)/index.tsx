@@ -60,10 +60,9 @@ export default function TodayScreen() {
   );
 }
 
-function timeGreeting(
-  t: (key: string, opts?: object) => string,
-  name: string,
-): string {
+import type { TFunction } from 'i18next';
+
+function timeGreeting(t: TFunction<'today'>, name: string): string {
   const h = new Date().getHours();
   const key =
     h < 12 ? 'greeting.morning' : h < 17 ? 'greeting.afternoon' : 'greeting.evening';

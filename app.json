@@ -11,7 +11,7 @@
     "splash": {
       "image": "./assets/images/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#1a365d"
+      "backgroundColor": "#142a47"
     },
     "ios": {
       "supportsTablet": false,
@@ -23,7 +23,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#1a365d"
+        "backgroundColor": "#142a47"
       },
       "package": "com.soberhelplineapp"
     },
@@ -37,7 +37,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#1a365d",
+          "backgroundColor": "#142a47",
           "resizeMode": "contain"
         }
       ],
@@ -48,7 +48,7 @@
         "expo-notifications",
         {
           "icon": "./assets/images/icon.png",
-          "color": "#1a365d",
+          "color": "#142a47",
           "sounds": []
         }
       ]

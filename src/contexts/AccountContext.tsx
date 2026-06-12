@@ -28,6 +28,27 @@ const AccountContext = createContext<AccountContextValue>({
   isAttached: false,
 });
 
+// Terms+Privacy consent (#1) must be recorded under an authenticated session.
+// Recording it at sign-up fails silently when email confirmation is enabled
+// (no session yet → RLS blocks the write), so we ensure it here on every
+// authenticated load. Idempotent: skips if the row already exists.
+async function ensureTermsConsent(accountId: string) {
+  const { data } = await supabase
+    .from('consents')
+    .select('id')
+    .eq('account_id', accountId)
+    .eq('consent_key', '1')
+    .maybeSingle();
+  if (!data) {
+    await supabase.from('consents').insert({
+      account_id: accountId,
+      consent_key: '1',
+      version: '1.0',
+      granted_at: new Date().toISOString(),
+    });
+  }
+}
+
 async function fetchAccount(authUser: User): Promise<AuthUser | null> {
   const { data, error } = await supabase
     .from('accounts')
@@ -36,6 +57,8 @@ async function fetchAccount(authUser: User): Promise<AuthUser | null> {
     .single();
 
   if (error || !data) return null;
+
+  ensureTermsConsent(data.id); // fire-and-forget; see note above
 
   // Resolve accountState: attached accounts set by org; direct accounts check entitlements table
   let accountState: AccountState =

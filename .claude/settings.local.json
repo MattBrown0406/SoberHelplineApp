@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx expo *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(npm install *)",
+      "Bash(git commit *)",
+      "Bash(npx expo start 2>&1 & *)",
+      "Bash(jobs)",
+      "Bash(git pull *)",
+      "Bash(npx tsc *)",
+      "Bash(supabase --version)",
+      "Bash(supabase login *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(git push *)",
+      "Bash(node -e \"const r = require\\('./src/i18n'\\); console.log\\('ok'\\)\")",
+      "Bash(EXPO_TOKEN=24j7RZaMgf0RMTJ0fYmzAWa59AcD2upgwK9PAW8f npx eas-cli init)",
+      "Bash(EXPO_TOKEN=24j7RZaMgf0RMTJ0fYmzAWa59AcD2upgwK9PAW8f npx eas-cli init --force)",
+      "Bash(gh run *)",
+      "Bash(echo \"PID: $!\")",
+      "Bash(curl -s http://localhost:8081)",
+      "mcp__Claude_in_Chrome__navigate",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\('version','?'\\)\\)\")",
+      "mcp__cb0f811d-52b5-45a2-b90a-8abf71000933__deploy_to_vercel",
+      "mcp__cb0f811d-52b5-45a2-b90a-8abf71000933__list_teams",
+      "mcp__cb0f811d-52b5-45a2-b90a-8abf71000933__list_projects",
+      "Bash(gh variable *)",
+      "Bash(git -C /Users/mattbrown/SoberHelplineApp add .github/workflows/deploy-web.yml metro.config.js app.json package.json package-lock.json)",
+      "Bash(git -C /Users/mattbrown/SoberHelplineApp commit -m ' *)",
+      "Bash(git -C /Users/mattbrown/SoberHelplineApp push)"
+    ]
+  }
+}
