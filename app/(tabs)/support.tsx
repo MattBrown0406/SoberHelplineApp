@@ -16,10 +16,10 @@ import { useTheme } from '../../src/contexts/ThemeContext';
 import { useLanguage } from '../../src/hooks/useLanguage';
 import {
   getMockOnCallRoster,
-  getMockUpcomingSessions,
   getMockSupportGroups,
 } from '../../src/api/mock';
-import type { StaffMember, Session, SupportGroup } from '../../src/api/types';
+import { useSessions, type DbSession } from '../../src/hooks/useSessions';
+import type { StaffMember, SupportGroup } from '../../src/api/types';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -27,35 +27,28 @@ function roleLabel(staff: StaffMember): string {
   return staff.roleLabel;
 }
 
-function sessionTypeKey(session: Session, t: (k: string) => string): string {
-  if (session.type === 'group') return t('sessions.typeGroup');
-  if (session.type === 'one-on-one') return t('sessions.typeOneOnOne');
+function sessionTypeKey(kind: DbSession['kind'], t: (k: string) => string): string {
+  if (kind === 'group') return t('sessions.typeGroup');
+  if (kind === 'one-on-one') return t('sessions.typeOneOnOne');
   return t('sessions.typeFamily');
 }
 
-function formatSessionTime(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-}
-
 // ── Crisis sheet ─────────────────────────────────────────────────────────────
+
+const CRISIS_LINE_TEL = 'tel:+15038362136'; // Sober Helpline guidance line — v1 direct dial; Twilio cascade is P2
 
 function CrisisSheet({
   visible,
   onClose,
   isAttached,
+  onMessage,
   t,
   colors,
 }: {
   visible: boolean;
   onClose: () => void;
   isAttached: boolean;
+  onMessage: () => void;
   t: (key: string) => string;
   colors: ReturnType<typeof useTheme>['colors'];
 }) {
@@ -102,6 +95,14 @@ function CrisisSheet({
           <TouchableOpacity
             style={[styles.sheetActionBtn, { backgroundColor: colors.primary }]}
             activeOpacity={0.8}
+            onPress={() => {
+              if (isAttached) {
+                Linking.openURL(CRISIS_LINE_TEL);
+              } else {
+                onClose();
+                onMessage();
+              }
+            }}
           >
             <Text style={styles.sheetActionBtnText}>
               {isAttached ? t('crisis.callButton') : t('crisis.messageButton')}
@@ -114,6 +115,14 @@ function CrisisSheet({
             {t('crisis.divider')}
           </Text>
         </View>
+
+        <TouchableOpacity
+          style={[styles.sheetRow, { borderBottomColor: colors.line }]}
+          onPress={() => Linking.openURL(CRISIS_LINE_TEL)}
+        >
+          <Text style={[styles.sheetRowName, { color: colors.ink }]}>{t('crisis.lineSh')}</Text>
+          <Text style={[styles.sheetRowAction, { color: colors.primary }]}>{t('crisis.callButton')}</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.sheetRow, styles.sheetRowLast, { borderBottomColor: colors.line }]}
@@ -178,7 +187,7 @@ export default function SupportScreen() {
   const [crisisOpen, setCrisisOpen] = useState(false);
 
   const roster = getMockOnCallRoster(isAttached ? 'attached' : 'direct');
-  const sessions = getMockUpcomingSessions();
+  const { sessions, toggleRsvp } = useSessions(user?.id ?? null);
   const groups = getMockSupportGroups();
 
   return (
@@ -187,6 +196,7 @@ export default function SupportScreen() {
         visible={crisisOpen}
         onClose={() => setCrisisOpen(false)}
         isAttached={isAttached}
+        onMessage={() => router.push('/chat')}
         t={t}
         colors={colors}
       />
@@ -231,6 +241,7 @@ export default function SupportScreen() {
               <TouchableOpacity
                 style={[styles.outlineBtn, { borderColor: colors.primary }]}
                 activeOpacity={0.8}
+                onPress={() => router.push('/chat')}
               >
                 <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
                   {t('team.messageButton')}
@@ -252,33 +263,27 @@ export default function SupportScreen() {
                       {sess.title}
                     </Text>
                     <Text style={[styles.sessionMeta, { color: colors.inkSoft }]}>
-                      {sessionTypeKey(sess, t)} · {formatSessionTime(sess.scheduledAt)}
+                      {sessionTypeKey(sess.kind, t)} · {sess.schedule_label}
                     </Text>
                   </View>
                   <TouchableOpacity
                     style={[
                       styles.sessionBtn,
                       {
-                        backgroundColor:
-                          sess.status === 'confirmed' ? colors.greenLight : colors.primaryLight,
-                        borderColor:
-                          sess.status === 'confirmed' ? colors.green : colors.primary,
+                        backgroundColor: sess.rsvped ? colors.greenLight : colors.primaryLight,
+                        borderColor: sess.rsvped ? colors.green : colors.primary,
                       },
                     ]}
                     activeOpacity={0.8}
+                    onPress={() => toggleRsvp(sess)}
                   >
                     <Text
                       style={[
                         styles.sessionBtnText,
-                        {
-                          color:
-                            sess.status === 'confirmed' ? colors.green : colors.primary,
-                        },
+                        { color: sess.rsvped ? colors.green : colors.primary },
                       ]}
                     >
-                      {sess.status === 'confirmed'
-                        ? t('sessions.confirmButton')
-                        : t('sessions.rsvpButton')}
+                      {sess.rsvped ? t('sessions.confirmButton') : t('sessions.rsvpButton')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -367,9 +372,56 @@ export default function SupportScreen() {
               <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
                 {t('messages.eyebrow')}
               </Text>
-              <Text style={[styles.comingSoonText, { color: colors.inkSoft }]}>
-                {t('messages.comingSoon')}
+              <TouchableOpacity
+                style={[styles.outlineBtn, { borderColor: colors.primary, marginTop: 0 }]}
+                activeOpacity={0.8}
+                onPress={() => router.push('/chat')}
+              >
+                <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
+                  {t('chat.openButton')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={[styles.card, { borderColor: colors.line }]}>
+              <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
+                {t('sessions.eyebrow')}
               </Text>
+              {sessions.map((sess) => (
+                <View
+                  key={sess.id}
+                  style={[styles.sessionRow, { borderBottomColor: colors.line }]}
+                >
+                  <View style={styles.sessionInfo}>
+                    <Text style={[styles.sessionTitle, { color: colors.ink }]}>
+                      {sess.title}
+                    </Text>
+                    <Text style={[styles.sessionMeta, { color: colors.inkSoft }]}>
+                      {sessionTypeKey(sess.kind, t)} · {sess.schedule_label}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[
+                      styles.sessionBtn,
+                      {
+                        backgroundColor: sess.rsvped ? colors.greenLight : colors.primaryLight,
+                        borderColor: sess.rsvped ? colors.green : colors.primary,
+                      },
+                    ]}
+                    activeOpacity={0.8}
+                    onPress={() => toggleRsvp(sess)}
+                  >
+                    <Text
+                      style={[
+                        styles.sessionBtnText,
+                        { color: sess.rsvped ? colors.green : colors.primary },
+                      ]}
+                    >
+                      {sess.rsvped ? t('sessions.confirmButton') : t('sessions.rsvpButton')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
             </View>
 
             <View style={[styles.card, { borderColor: colors.line }]}>

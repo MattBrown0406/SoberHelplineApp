@@ -1,0 +1,36 @@
+{
+  "welcome": {
+    "title": "Welcome to Sober Helpline",
+    "subtitle": "The intervention is a moment. The family's recovery is a journey. Let's set up yours.",
+    "providerButton": "I'm working with a provider",
+    "providerSub": "Enter the invite code from your interventionist or counselor",
+    "directButton": "I'm here on my own",
+    "directSub": "Start with daily check-ins, boundaries, and crisis support"
+  },
+  "invite": {
+    "title": "Enter your invite code",
+    "subtitle": "Your provider gave you a code that connects your account to their care team.",
+    "placeholder": "e.g. FREEDOM2026",
+    "submitButton": "Connect my account",
+    "skipButton": "I don't have a code",
+    "errorInvalid": "That code didn't match an active provider. Check it and try again, or continue on your own.",
+    "success": "Connected to {{org}}"
+  },
+  "consent": {
+    "title": "Share your check-ins with your coach?",
+    "body": "Your daily check-ins and tracker entries help your coach see patterns and reach out when it matters. Only your assigned coach sees them — never your family, never admin staff. You can turn this off anytime in Settings.",
+    "acceptButton": "Share with my coach",
+    "declineButton": "Not now"
+  },
+  "notifications": {
+    "title": "One small nudge a day",
+    "body": "A daily reminder for your 90-second check-in — plus session reminders. No streak shaming, no spam.",
+    "acceptButton": "Turn on reminders",
+    "declineButton": "Maybe later"
+  },
+  "done": {
+    "title": "Your castle starts today",
+    "body": "Check in once a day. Anchor your first wall when you're ready. Help is one tap away — always.",
+    "button": "Enter Sober Helpline"
+  }
+}

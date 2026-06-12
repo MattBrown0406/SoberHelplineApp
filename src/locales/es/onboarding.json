@@ -1,0 +1,36 @@
+{
+  "welcome": {
+    "title": "Bienvenido a Sober Helpline",
+    "subtitle": "La intervención es un momento. La recuperación de la familia es un camino. Preparemos el tuyo.",
+    "providerButton": "Trabajo con un proveedor",
+    "providerSub": "Ingresa el código de invitación de tu intervencionista o consejero",
+    "directButton": "Vengo por mi cuenta",
+    "directSub": "Comienza con registros diarios, límites y apoyo en crisis"
+  },
+  "invite": {
+    "title": "Ingresa tu código de invitación",
+    "subtitle": "Tu proveedor te dio un código que conecta tu cuenta con su equipo de cuidado.",
+    "placeholder": "p. ej. FREEDOM2026",
+    "submitButton": "Conectar mi cuenta",
+    "skipButton": "No tengo código",
+    "errorInvalid": "Ese código no corresponde a un proveedor activo. Revísalo e intenta de nuevo, o continúa por tu cuenta.",
+    "success": "Conectado con {{org}}"
+  },
+  "consent": {
+    "title": "¿Compartir tus registros con tu coach?",
+    "body": "Tus registros diarios ayudan a tu coach a ver patrones y acompañarte cuando importa. Solo tu coach asignado los ve — nunca tu familia, nunca el personal administrativo. Puedes desactivarlo cuando quieras en Configuración.",
+    "acceptButton": "Compartir con mi coach",
+    "declineButton": "Ahora no"
+  },
+  "notifications": {
+    "title": "Un pequeño recordatorio al día",
+    "body": "Un recordatorio diario para tu registro de 90 segundos — y avisos de sesiones. Sin presión, sin spam.",
+    "acceptButton": "Activar recordatorios",
+    "declineButton": "Quizás después"
+  },
+  "done": {
+    "title": "Tu castillo comienza hoy",
+    "body": "Regístrate una vez al día. Ancla tu primera muralla cuando estés lista. La ayuda está a un toque — siempre.",
+    "button": "Entrar a Sober Helpline"
+  }
+}
