@@ -52,6 +52,15 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "2858ea55-7e40-4b09-8928-fe9155c1772d"
+      }
+    },
+    "owner": "mattbrown0406s-organization"
   }
 }
