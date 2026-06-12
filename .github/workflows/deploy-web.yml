@@ -31,11 +31,26 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # GitHub Pages serves at /SoberHelplineApp/, so exported asset URLs need
+      # that prefix. Done here (CI only) so local dev stays at root.
+      - name: Set baseUrl for Pages subpath
+        run: |
+          node -e "
+            const fs = require('fs');
+            const cfg = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+            cfg.expo.experiments = { ...cfg.expo.experiments, baseUrl: '/SoberHelplineApp' };
+            fs.writeFileSync('app.json', JSON.stringify(cfg, null, 2));
+          "
+
       - name: Build web
         run: npx expo export --platform web
         env:
           EXPO_PUBLIC_SUPABASE_URL: ${{ vars.EXPO_PUBLIC_SUPABASE_URL }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+
+      # SPA fallback so deep links / refreshes don't 404 on Pages
+      - name: SPA 404 fallback
+        run: cp dist/index.html dist/404.html
 
       - uses: actions/configure-pages@v5
 
