@@ -266,6 +266,20 @@ export default function SupportScreen() {
                       {sessionTypeKey(sess.kind, t)} · {sess.schedule_label}
                     </Text>
                   </View>
+                  {sess.rsvped && sess.zoom_url ? (
+                    <TouchableOpacity
+                      style={[
+                        styles.sessionBtn,
+                        { backgroundColor: colors.green, borderColor: colors.green },
+                      ]}
+                      activeOpacity={0.8}
+                      onPress={() => Linking.openURL(sess.zoom_url!)}
+                    >
+                      <Text style={[styles.sessionBtnText, { color: '#fff' }]}>
+                        {t('sessions.joinZoom')}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : null}
                   <TouchableOpacity
                     style={[
                       styles.sessionBtn,
@@ -400,6 +414,20 @@ export default function SupportScreen() {
                       {sessionTypeKey(sess.kind, t)} · {sess.schedule_label}
                     </Text>
                   </View>
+                  {sess.rsvped && sess.zoom_url ? (
+                    <TouchableOpacity
+                      style={[
+                        styles.sessionBtn,
+                        { backgroundColor: colors.green, borderColor: colors.green },
+                      ]}
+                      activeOpacity={0.8}
+                      onPress={() => Linking.openURL(sess.zoom_url!)}
+                    >
+                      <Text style={[styles.sessionBtnText, { color: '#fff' }]}>
+                        {t('sessions.joinZoom')}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : null}
                   <TouchableOpacity
                     style={[
                       styles.sessionBtn,

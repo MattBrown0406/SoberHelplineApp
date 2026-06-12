@@ -24,7 +24,8 @@
     "confirmButton": "Confirmed",
     "typeGroup": "Group",
     "typeOneOnOne": "1-on-1",
-    "typeFamily": "Family"
+    "typeFamily": "Family",
+    "joinZoom": "Join Zoom"
   },
   "tier": {
     "eyebrow": "Your plan",
