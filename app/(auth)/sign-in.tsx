@@ -109,7 +109,6 @@ export default function SignInScreen() {
                 autoCapitalize="none"
                 keyboardType="email-address"
                 autoComplete="email"
-                textContentType="emailAddress"
               />
             </View>
 
@@ -123,7 +122,6 @@ export default function SignInScreen() {
                 onChangeText={setPassword}
                 secureTextEntry
                 autoComplete="current-password"
-                textContentType="password"
               />
             </View>
 

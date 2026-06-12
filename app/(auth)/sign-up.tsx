@@ -167,7 +167,6 @@ export default function SignUpScreen() {
                   value={firstName}
                   onChangeText={setFirstName}
                   autoComplete="given-name"
-                  textContentType="givenName"
                 />
               </View>
               <View style={[styles.field, styles.flex1]}>
@@ -179,7 +178,6 @@ export default function SignUpScreen() {
                   value={lastName}
                   onChangeText={setLastName}
                   autoComplete="family-name"
-                  textContentType="familyName"
                 />
               </View>
             </View>
@@ -195,7 +193,6 @@ export default function SignUpScreen() {
                 autoCapitalize="none"
                 keyboardType="email-address"
                 autoComplete="email"
-                textContentType="emailAddress"
               />
             </View>
 
@@ -209,7 +206,6 @@ export default function SignUpScreen() {
                 onChangeText={setPassword}
                 secureTextEntry
                 autoComplete="new-password"
-                textContentType="newPassword"
               />
             </View>
 
