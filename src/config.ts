@@ -14,4 +14,4 @@ export const COACHING_PAYMENT_URL =
 // Where group Join taps land when a group has no specific Zoom link yet,
 // and the destination for "more groups & topics."
 export const GROUPS_URL =
-  process.env.EXPO_PUBLIC_GROUPS_URL ?? 'https://soberhelpline.com/groups';
+  process.env.EXPO_PUBLIC_GROUPS_URL ?? 'https://soberhelpline.com/family-forum';
