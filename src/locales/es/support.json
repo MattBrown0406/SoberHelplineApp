@@ -53,6 +53,8 @@
   "groups": {
     "eyebrow": "Grupos moderados",
     "joinButton": "Unirse",
+    "goLive": "Transmitir",
+    "joinLive": "Unirse en vivo",
     "online_one": "{{count}} en línea",
     "online_other": "{{count}} en línea",
     "moreIntro": "Más grupos y temas en",

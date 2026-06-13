@@ -1,0 +1,28 @@
+{
+  "joinLive": "Unirse en vivo",
+  "goLive": "Transmitir",
+  "live": "EN VIVO",
+  "connecting": "Conectando…",
+  "endBroadcast": "Finalizar transmisión",
+  "leave": "Salir",
+  "webFallback": "Los grupos en vivo están disponibles en la aplicación móvil de Sober Helpline.",
+  "host": {
+    "eyebrow": "TRANSMISIÓN",
+    "watching": "{{count}} viendo",
+    "remove": "Eliminar"
+  },
+  "viewer": {
+    "noHost": "Esperando que el anfitrión comience…",
+    "hostLeft": "La transmisión ha terminado."
+  },
+  "chat": {
+    "eyebrow": "PREGUNTAS",
+    "placeholder": "Hacer una pregunta…",
+    "send": "Enviar"
+  },
+  "crisis": {
+    "line911": "Emergencias — 911",
+    "line988": "Línea de crisis — 988"
+  },
+  "privacyNote": "Eres anónimo — solo tu nombre. Los participantes no pueden verse entre sí."
+}

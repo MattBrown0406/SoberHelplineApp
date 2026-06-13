@@ -281,6 +281,7 @@ export function getMockSupportGroups(): SupportGroup[] {
       scheduleType: 'recurring',
       joinUrl: null,
       requiresPremium: false,
+      liveRoomId: 'shp-parents',
     },
     {
       id: 'group-spouses',
@@ -293,6 +294,7 @@ export function getMockSupportGroups(): SupportGroup[] {
       scheduleType: 'recurring',
       joinUrl: null,
       requiresPremium: false,
+      liveRoomId: 'shp-spouses',
     },
     {
       id: 'group-boundaries',
@@ -305,6 +307,7 @@ export function getMockSupportGroups(): SupportGroup[] {
       scheduleType: 'recurring',
       joinUrl: null,
       requiresPremium: false,
+      liveRoomId: 'shp-boundaries',
     },
     {
       id: 'group-treatment',
@@ -317,6 +320,7 @@ export function getMockSupportGroups(): SupportGroup[] {
       scheduleType: 'recurring',
       joinUrl: null,
       requiresPremium: false,
+      liveRoomId: 'shp-treatment',
     },
   ];
 }

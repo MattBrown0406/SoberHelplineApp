@@ -290,6 +290,7 @@ export interface SupportGroup {
   scheduleType: GroupScheduleType;
   joinUrl: string | null;
   requiresPremium: boolean;
+  liveRoomId: string | null; // LiveKit room name (e.g. "shp-parents"), null = no live option
 }
 
 // ─── Family Alignment ─────────────────────────────────────────────────────────

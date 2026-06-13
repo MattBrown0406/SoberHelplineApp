@@ -1,0 +1,28 @@
+{
+  "joinLive": "Join Live",
+  "goLive": "Go Live",
+  "live": "LIVE",
+  "connecting": "Connecting…",
+  "endBroadcast": "End Broadcast",
+  "leave": "Leave",
+  "webFallback": "Live groups are available in the Sober Helpline mobile app.",
+  "host": {
+    "eyebrow": "BROADCAST",
+    "watching": "{{count}} watching",
+    "remove": "Remove"
+  },
+  "viewer": {
+    "noHost": "Waiting for host to start…",
+    "hostLeft": "The broadcast has ended."
+  },
+  "chat": {
+    "eyebrow": "QUESTIONS",
+    "placeholder": "Ask a question…",
+    "send": "Send"
+  },
+  "crisis": {
+    "line911": "Emergency — 911",
+    "line988": "Crisis line — 988"
+  },
+  "privacyNote": "You are anonymous — first name only. Attendees cannot see each other."
+}

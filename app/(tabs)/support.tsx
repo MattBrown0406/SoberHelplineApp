@@ -19,6 +19,7 @@ import {
   getMockSupportGroups,
 } from '../../src/api/mock';
 import { useSessions, type DbSession } from '../../src/hooks/useSessions';
+import { useGroupPresence } from '../../src/hooks/useGroupPresence';
 import { GROUPS_URL } from '../../src/config';
 import type { StaffMember, SupportGroup } from '../../src/api/types';
 
@@ -190,6 +191,7 @@ export default function SupportScreen() {
   const roster = getMockOnCallRoster(isAttached ? 'attached' : 'direct');
   const { sessions, toggleRsvp } = useSessions(user?.id ?? null);
   const groups = getMockSupportGroups();
+  const { myRooms, liveRooms } = useGroupPresence(user?.id ?? null);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
@@ -520,15 +522,48 @@ export default function SupportScreen() {
                     : ''}
                 </Text>
               </View>
-              <TouchableOpacity
-                style={[styles.joinBtn, { borderColor: colors.primary }]}
-                activeOpacity={0.8}
-                onPress={() => Linking.openURL(group.joinUrl ?? GROUPS_URL)}
-              >
-                <Text style={[styles.joinBtnText, { color: colors.primary }]}>
-                  {t('groups.joinButton')}
-                </Text>
-              </TouchableOpacity>
+              {(() => {
+                const room = group.liveRoomId;
+                const isMyRoom = room && myRooms.includes(room);
+                const isLive = room && liveRooms.includes(room);
+                if (isMyRoom) {
+                  return (
+                    <TouchableOpacity
+                      style={[styles.joinBtn, { borderColor: colors.coral, backgroundColor: colors.coral }]}
+                      activeOpacity={0.8}
+                      onPress={() => router.push({ pathname: '/live-room' as never, params: { room } })}
+                    >
+                      <Text style={[styles.joinBtnText, { color: '#fff' }]}>
+                        {t('groups.goLive')}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                }
+                if (isLive) {
+                  return (
+                    <TouchableOpacity
+                      style={[styles.joinBtn, { borderColor: colors.coral }]}
+                      activeOpacity={0.8}
+                      onPress={() => router.push({ pathname: '/live-room' as never, params: { room } })}
+                    >
+                      <Text style={[styles.joinBtnText, { color: colors.coral }]}>
+                        {t('groups.joinLive')}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                }
+                return (
+                  <TouchableOpacity
+                    style={[styles.joinBtn, { borderColor: colors.primary }]}
+                    activeOpacity={0.8}
+                    onPress={() => Linking.openURL(group.joinUrl ?? GROUPS_URL)}
+                  >
+                    <Text style={[styles.joinBtnText, { color: colors.primary }]}>
+                      {t('groups.joinButton')}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })()}
             </View>
           ))}
           <TouchableOpacity

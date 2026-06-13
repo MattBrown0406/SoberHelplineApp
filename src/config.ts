@@ -15,3 +15,11 @@ export const COACHING_PAYMENT_URL =
 // and the destination for "more groups & topics."
 export const GROUPS_URL =
   process.env.EXPO_PUBLIC_GROUPS_URL ?? 'https://soberhelpline.com/family-forum';
+
+// LiveKit cloud endpoint — safe to ship in the client bundle (no secrets here).
+export const LIVEKIT_URL =
+  process.env.EXPO_PUBLIC_LIVEKIT_URL ?? 'wss://sober-helpline-75uawvbt.livekit.cloud';
+
+// Supabase project URL (needed for edge-function fetches inside native screens).
+export const SUPABASE_URL =
+  process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
