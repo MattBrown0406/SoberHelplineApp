@@ -81,7 +81,7 @@ export default function InviteCodeScreen() {
               )}
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => router.push('/(onboarding)/consent')}
+              onPress={() => router.push('/(onboarding)/notifications')}
               style={styles.skipBtn}
             >
               <Text style={[styles.skipText, { color: colors.inkSoft }]}>

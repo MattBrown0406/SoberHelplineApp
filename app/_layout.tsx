@@ -5,7 +5,7 @@ import { AccountProvider, useAccount } from '../src/contexts/AccountContext';
 import { ThemeProvider } from '../src/contexts/ThemeContext';
 import { initI18n } from '../src/i18n';
 import { usePushNotifications } from '../src/hooks/usePushNotifications';
-import { isOnboarded } from '../src/onboarding/state';
+import { isOnboarded, subscribeOnboarded } from '../src/onboarding/state';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import i18n from '../src/i18n';
 
@@ -23,6 +23,7 @@ function InitialLayout() {
 
   useEffect(() => {
     isOnboarded().then(setOnboarded);
+    return subscribeOnboarded(() => setOnboarded(true));
   }, [user?.id]);
 
   useEffect(() => {

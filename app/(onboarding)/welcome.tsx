@@ -28,10 +28,12 @@ export default function WelcomeScreen() {
           <Text style={styles.choiceSub}>{t('welcome.providerSub')}</Text>
         </TouchableOpacity>
 
+        {/* Direct path skips coach-sharing consent — per consent-architecture,
+            direct users are asked at first coach interaction instead. */}
         <TouchableOpacity
           style={[styles.choiceBtn, styles.choiceBtnOutline]}
           activeOpacity={0.85}
-          onPress={() => router.push('/(onboarding)/consent')}
+          onPress={() => router.push('/(onboarding)/notifications')}
         >
           <Text style={[styles.choiceTitle, { color: '#fff' }]}>
             {t('welcome.directButton')}
