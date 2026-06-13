@@ -29,7 +29,10 @@
       "Bash(gh variable *)",
       "Bash(git -C /Users/mattbrown/SoberHelplineApp add .github/workflows/deploy-web.yml metro.config.js app.json package.json package-lock.json)",
       "Bash(git -C /Users/mattbrown/SoberHelplineApp commit -m ' *)",
-      "Bash(git -C /Users/mattbrown/SoberHelplineApp push)"
+      "Bash(git -C /Users/mattbrown/SoberHelplineApp push)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('version:', d['version']\\); print\\('exports keys:', list\\(\\(d.get\\('exports'\\) or {}\\).keys\\(\\)\\)[:5]\\)\")",
+      "Bash(git -C /Users/mattbrown/SoberHelplineApp add supabase/migrations/20260613000000_p2_live_groups_is_live.sql supabase/functions/livekit-remove/index.ts src/config.ts src/api/types.ts src/api/mock.ts src/i18n/index.ts src/locales/en/live.json src/locales/es/live.json src/locales/en/support.json src/locales/es/support.json src/hooks/useGroupPresence.ts app.json app/live-room.web.tsx app/live-room.native.tsx 'app/\\(tabs\\)/support.tsx' package.json package-lock.json)",
+      "Bash(git -C /Users/mattbrown/SoberHelplineApp status --short)"
     ]
   }
 }

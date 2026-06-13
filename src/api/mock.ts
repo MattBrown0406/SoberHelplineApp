@@ -4,8 +4,8 @@
  *
  * Three states to test (per App Store Review requirement):
  *   mockAttachedUser()     — provider-org family (Sarah / Freedom Interventions)
- *   mockDirectEssential()  — App Store $19/mo
- *   mockDirectPremium()    — App Store $49/mo
+ *   mockDirectEssential()  — App Store $14.99/mo
+ *   mockDirectPremium()    — App Store $44.99/mo
  */
 
 import type {
