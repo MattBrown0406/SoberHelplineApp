@@ -19,6 +19,7 @@ import {
   getMockSupportGroups,
 } from '../../src/api/mock';
 import { useSessions, type DbSession } from '../../src/hooks/useSessions';
+import { GROUPS_URL } from '../../src/config';
 import type { StaffMember, SupportGroup } from '../../src/api/types';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -522,6 +523,7 @@ export default function SupportScreen() {
               <TouchableOpacity
                 style={[styles.joinBtn, { borderColor: colors.primary }]}
                 activeOpacity={0.8}
+                onPress={() => Linking.openURL(group.joinUrl ?? GROUPS_URL)}
               >
                 <Text style={[styles.joinBtnText, { color: colors.primary }]}>
                   {t('groups.joinButton')}
@@ -529,6 +531,18 @@ export default function SupportScreen() {
               </TouchableOpacity>
             </View>
           ))}
+          <TouchableOpacity
+            style={styles.moreGroupsRow}
+            activeOpacity={0.7}
+            onPress={() => Linking.openURL(GROUPS_URL)}
+          >
+            <Text style={[styles.moreGroupsText, { color: colors.inkSoft }]}>
+              {t('groups.moreIntro')}{' '}
+              <Text style={{ color: colors.primary, fontWeight: '700' }}>
+                {t('groups.moreLink')}
+              </Text>
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Language selector */}
@@ -697,6 +711,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   joinBtnText: { fontSize: 12, fontWeight: '600' },
+  moreGroupsRow: { paddingTop: 12, alignItems: 'center' },
+  moreGroupsText: { fontSize: 12.5, lineHeight: 18, textAlign: 'center' },
 
   comingSoonText: { fontSize: 13, fontStyle: 'italic' },
   referralTitle: { fontSize: 15, fontWeight: '700', marginBottom: 6 },

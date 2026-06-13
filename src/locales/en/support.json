@@ -54,7 +54,9 @@
     "eyebrow": "Moderated groups",
     "joinButton": "Join",
     "online_one": "{{count}} online",
-    "online_other": "{{count}} online"
+    "online_other": "{{count}} online",
+    "moreIntro": "More groups and topics at",
+    "moreLink": "SoberHelpline.com"
   },
   "membership": {
     "eyebrow": "Membership",
