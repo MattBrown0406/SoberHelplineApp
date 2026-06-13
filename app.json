@@ -14,7 +14,7 @@
       "backgroundColor": "#142a47"
     },
     "ios": {
-      "supportsTablet": false,
+      "supportsTablet": true,
       "bundleIdentifier": "com.soberhelplineapp",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "Sober Helpline records practice sessions only when you tap record, and they stay on your device.",
