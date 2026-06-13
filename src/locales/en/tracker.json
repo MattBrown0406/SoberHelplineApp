@@ -12,7 +12,8 @@
       { "id": "w-friends", "label": "Reconnecting with old using friends", "category": "Behavioral" },
       { "id": "w-aftercare", "label": "Skipped aftercare meetings", "category": "Recovery routine" },
       { "id": "w-money", "label": "Unexplained money requests", "category": "Financial" },
-      { "id": "w-sleep", "label": "Sleeping all day / up all night", "category": "Physical" },
+      { "id": "w-sleep", "label": "Changes in healthy sleep patterns", "category": "Physical" },
+      { "id": "w-weight", "label": "Noticeable changes in weight", "category": "Physical" },
       { "id": "w-defensive", "label": "Defensive when asked simple questions", "category": "Emotional" },
       { "id": "w-sick", "label": "New 'stomach flu' or frequent illness", "category": "Physical" }
     ]

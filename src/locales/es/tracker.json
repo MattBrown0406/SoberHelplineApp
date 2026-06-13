@@ -12,7 +12,8 @@
       { "id": "w-friends", "label": "Retomando contacto con amigos que consumen", "category": "Conductual" },
       { "id": "w-aftercare", "label": "Faltó a las reuniones de seguimiento", "category": "Rutina de recuperación" },
       { "id": "w-money", "label": "Solicitudes de dinero sin explicación", "category": "Económico" },
-      { "id": "w-sleep", "label": "Duerme todo el día / despierto toda la noche", "category": "Físico" },
+      { "id": "w-sleep", "label": "Cambios en los patrones de sueño saludables", "category": "Físico" },
+      { "id": "w-weight", "label": "Cambios notables de peso", "category": "Físico" },
       { "id": "w-defensive", "label": "Se pone a la defensiva ante preguntas sencillas", "category": "Emocional" },
       { "id": "w-sick", "label": "Nueva 'gripe intestinal' o enfermedades frecuentes", "category": "Físico" }
     ]

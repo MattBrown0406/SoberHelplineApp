@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 
-const WARNING_TOTAL = 6;
+const WARNING_TOTAL = 7;
 const RECOVERY_TOTAL = 10;
 
 function getWeekStart(): string {
