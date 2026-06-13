@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { CheckIn, CheckInStreak, MoodScore } from '../api/types';
-import { getCheckIn, saveCheckIn as persistLocal, getCheckedInDates, toDateStr } from '../storage/checkIn';
+import { getCheckIn, saveCheckIn as persistLocal, getCheckedInDates, toDateStr, localDayRangeUtc } from '../storage/checkIn';
 import { supabase } from '../lib/supabase';
 
 export interface UseCheckInResult {
@@ -22,17 +22,18 @@ export function useCheckIn(accountId: string | null): UseCheckInResult {
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      const today = toDateStr(new Date());
+      const { startIso, endIso } = localDayRangeUtc(new Date());
 
       if (accountId) {
-        // Supabase-first: fetch today's check-in and full history from the database
+        // Supabase-first: fetch today's check-in and full history from the database.
+        // "Today" is the user's LOCAL calendar day, bounded as UTC instants.
         const [todayResult, historyResult] = await Promise.all([
           supabase
             .from('checkins')
             .select('id, mood, note, created_at')
             .eq('account_id', accountId)
-            .gte('created_at', today + 'T00:00:00.000Z')
-            .lte('created_at', today + 'T23:59:59.999Z')
+            .gte('created_at', startIso)
+            .lte('created_at', endIso)
             .maybeSingle(),
           supabase
             .from('checkins')

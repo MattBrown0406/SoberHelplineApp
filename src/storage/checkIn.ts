@@ -7,8 +7,23 @@ function dateKey(date: Date): string {
   return KEY_PREFIX + toDateStr(date);
 }
 
+/**
+ * Local calendar date as YYYY-MM-DD. Uses the device's own day boundary so a
+ * new check-in is requested at local midnight (12:01 AM) — not UTC midnight,
+ * which for US users would flip the counter mid-afternoon.
+ */
 export function toDateStr(date: Date): string {
-  return date.toISOString().split('T')[0];
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/** UTC instants bounding the given local calendar day — for ranged DB queries. */
+export function localDayRangeUtc(date: Date): { startIso: string; endIso: string } {
+  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+  const end = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+  return { startIso: start.toISOString(), endIso: end.toISOString() };
 }
 
 export async function getCheckIn(date: Date): Promise<CheckIn | null> {
