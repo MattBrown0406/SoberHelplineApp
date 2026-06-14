@@ -271,7 +271,7 @@ function ViewerView({ onLeave }: { onLeave: () => void }) {
           </View>
           <View style={[styles.landscapeSidePanel, { backgroundColor: 'rgba(0,0,0,0.92)' }]}>
             <TouchableOpacity
-              style={[styles.leaveBtn, { backgroundColor: 'rgba(255,255,255,0.15)', position: 'relative', top: 0, right: 0, alignSelf: 'flex-end', marginBottom: 8 }]}
+              style={[styles.leaveBtnLandscape, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
               onPress={onLeave}
               activeOpacity={0.85}
             >
@@ -404,7 +404,14 @@ const styles = StyleSheet.create({
   landscapeRow: { flex: 1, flexDirection: 'row' },
   landscapeVideoCol: { flex: 1, position: 'relative', backgroundColor: '#000' },
   landscapeVideo: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-  landscapeSidePanel: { width: 300, paddingTop: 8 },
+  landscapeSidePanel: { width: 300, padding: 16 },
+  leaveBtnLandscape: {
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    alignSelf: 'flex-end',
+    marginBottom: 8,
+  },
 
   // Host
   hostPreviewWrap: {
