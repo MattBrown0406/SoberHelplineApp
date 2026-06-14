@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
+import { AppLogo } from '../../src/components/ui/AppLogo';
 
 export default function WelcomeScreen() {
   const { colors } = useTheme();
@@ -13,7 +14,7 @@ export default function WelcomeScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.primary }]}>
       <View style={styles.body}>
-        <Text style={styles.mark}>☀️</Text>
+        <View style={styles.mark}><AppLogo size={64} /></View>
         <Text style={styles.title}>{t('welcome.title')}</Text>
         <Text style={styles.subtitle}>{t('welcome.subtitle')}</Text>
 
@@ -50,7 +51,7 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   body: { flex: 1, justifyContent: 'center', padding: 28, alignSelf: 'center', width: '100%', maxWidth: 480 },
-  mark: { fontSize: 44, marginBottom: 14 },
+  mark: { marginBottom: 14 },
   title: { color: '#fff', fontSize: 27, fontWeight: '700', letterSpacing: -0.4 },
   subtitle: {
     color: 'rgba(255,255,255,0.8)',

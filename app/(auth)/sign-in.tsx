@@ -17,6 +17,7 @@ import * as Crypto from 'expo-crypto';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { supabase } from '../../src/lib/supabase';
+import { AppLogo } from '../../src/components/ui/AppLogo';
 
 export default function SignInScreen() {
   const { colors } = useTheme();
@@ -83,7 +84,7 @@ export default function SignInScreen() {
         >
           {/* Logo / brand */}
           <View style={styles.brand}>
-            <Text style={[styles.logo, { color: colors.primary }]}>🏠</Text>
+            <AppLogo size={72} />
             <Text style={[styles.appName, { color: colors.primary }]}>Sober Helpline</Text>
             <Text style={[styles.tagline, { color: colors.inkSoft }]}>{t('appTagline')}</Text>
           </View>
@@ -175,7 +176,6 @@ const styles = StyleSheet.create({
   kav: { flex: 1 },
   scroll: { flexGrow: 1, padding: 24, paddingBottom: 40 },
   brand: { alignItems: 'center', marginTop: 32, marginBottom: 28 },
-  logo: { fontSize: 48, marginBottom: 8 },
   appName: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5 },
   tagline: { fontSize: 13, marginTop: 4 },
   card: {

@@ -1,7 +1,8 @@
 import { Tabs } from 'expo-router';
-import { Text } from 'react-native';
+import { Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
+import { AppLogo } from '../../src/components/ui/AppLogo';
 
 function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
   return (
@@ -35,7 +36,11 @@ export default function TabLayout() {
         name="index"
         options={{
           title: t('nav.today'),
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <View style={{ opacity: focused ? 1 : 0.5 }}>
+              <AppLogo size={24} />
+            </View>
+          ),
         }}
       />
       <Tabs.Screen

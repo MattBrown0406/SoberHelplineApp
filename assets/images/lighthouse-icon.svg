@@ -1,0 +1,27 @@
+<svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+<defs><linearGradient id="bl" x1="1" y1="0" x2="0" y2="0">
+<stop offset="0" stop-color="#ffffff" stop-opacity=".85"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient>
+<linearGradient id="br" x1="0" y1="0" x2="1" y2="0">
+<stop offset="0" stop-color="#ffffff" stop-opacity=".85"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient></defs>
+<rect width="128" height="128" fill="#16294a"/>
+<path d="M60 40 L18 26 L18 54 Z" fill="url(#bl)"/>
+<path d="M68 40 L110 26 L110 54 Z" fill="url(#br)"/>
+<g fill="#ffffff">
+<!-- dome + finial -->
+<circle cx="64" cy="23" r="3.2"/>
+<path d="M55 34 Q64 24 73 34 Z"/>
+<!-- lantern room -->
+<rect x="56" y="34" width="16" height="11" rx="1"/>
+<rect x="58" y="35.5" width="2.2" height="8" fill="#16294a"/>
+<rect x="63" y="35.5" width="2.2" height="8" fill="#16294a"/>
+<rect x="68" y="35.5" width="2.2" height="8" fill="#16294a"/>
+<!-- gallery -->
+<rect x="53" y="45" width="22" height="4" rx="1"/>
+<!-- tower (tapered) -->
+<path d="M56 49 L72 49 L77 96 L51 96 Z"/>
+<!-- door -->
+<path d="M60 96 L60 82 Q64 77 68 82 L68 96 Z" fill="#16294a"/>
+<!-- waves -->
+<path d="M40 100 Q52 93 64 100 Q76 107 88 100 L88 108 Q76 114 64 108 Q52 102 40 108 Z"/>
+</g>
+</svg>

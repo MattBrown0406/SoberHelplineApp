@@ -17,6 +17,7 @@ import * as Crypto from 'expo-crypto';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { supabase } from '../../src/lib/supabase';
+import { AppLogo } from '../../src/components/ui/AppLogo';
 
 const TERMS_VERSION = '1.0';
 
@@ -148,6 +149,13 @@ export default function SignUpScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {/* Logo / brand */}
+          <View style={styles.brand}>
+            <AppLogo size={72} />
+            <Text style={[styles.appName, { color: colors.primary }]}>Sober Helpline</Text>
+            <Text style={[styles.tagline, { color: colors.inkSoft }]}>{t('appTagline')}</Text>
+          </View>
+
           <View style={[styles.card, { borderColor: colors.line }]}>
             <Text style={[styles.title, { color: colors.ink }]}>{t('signUp.title')}</Text>
 
@@ -264,7 +272,10 @@ export default function SignUpScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   kav: { flex: 1 },
-  scroll: { flexGrow: 1, padding: 24, paddingTop: 40, paddingBottom: 40 },
+  scroll: { flexGrow: 1, padding: 24, paddingBottom: 40 },
+  brand: { alignItems: 'center', marginTop: 32, marginBottom: 28 },
+  appName: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5 },
+  tagline: { fontSize: 13, marginTop: 4 },
   card: {
     backgroundColor: '#fff',
     borderRadius: 20,
