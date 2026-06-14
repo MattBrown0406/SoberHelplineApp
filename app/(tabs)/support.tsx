@@ -20,7 +20,7 @@ import {
 } from '../../src/api/mock';
 import { useSessions, type DbSession } from '../../src/hooks/useSessions';
 import { useGroupPresence } from '../../src/hooks/useGroupPresence';
-import { GROUPS_URL } from '../../src/config';
+import { GROUPS_URL, SUBSCRIBE_URL, PROVIDERS_URL } from '../../src/config';
 import type { StaffMember, SupportGroup } from '../../src/api/types';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -376,6 +376,7 @@ export default function SupportScreen() {
                 <TouchableOpacity
                   style={[styles.solidBtn, { backgroundColor: colors.primary }]}
                   activeOpacity={0.85}
+                  onPress={() => void Linking.openURL(SUBSCRIBE_URL)}
                 >
                   <Text style={styles.solidBtnText}>{t('tier.upgradeButton')}</Text>
                 </TouchableOpacity>
@@ -486,6 +487,7 @@ export default function SupportScreen() {
               <TouchableOpacity
                 style={[styles.outlineBtn, { borderColor: colors.secondary, marginTop: 12 }]}
                 activeOpacity={0.8}
+                onPress={() => void Linking.openURL(PROVIDERS_URL)}
               >
                 <Text style={[styles.outlineBtnText, { color: colors.secondary }]}>
                   {t('referral.button')}

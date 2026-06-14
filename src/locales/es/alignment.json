@@ -8,6 +8,7 @@
   "joinWithCode": "Unirse con un código",
   "joinPlaceholder": "Ingresa el código de invitación",
   "joinButton": "Unirse",
+  "joinError": "Ese código no fue encontrado. Por favor verifica e intenta de nuevo.",
   "noFamilyTitle": "Las familias se recuperan juntas.",
   "noFamilyBody": "Crea un espacio compartido para que cada miembro de la familia se comprometa con los mismos muros — y puedan apoyarse mutuamente cuando sea difícil.",
   "createButton": "Crear un espacio familiar",

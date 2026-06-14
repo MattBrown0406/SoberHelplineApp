@@ -5,7 +5,9 @@
     "evening": "Buenas noches, {{name}}"
   },
   "hero": {
-    "dayLabel": "DÍA {{count}} — {{context}}"
+    "dayLabel": "DÍA {{count}} — {{context}}",
+    "contextAttached": "PROGRAMA DE APOYO FAMILIAR",
+    "contextDirect": "CAMINO AUTOGUIADO"
   },
   "streak": {
     "checkIn": "días seguidos",
@@ -24,6 +26,58 @@
     "doneCoach": "{{orgFirst}} verá tu actualización."
   },
   "focus": {
-    "eyebrow": "Tu enfoque de hoy"
+    "eyebrow": "Tu enfoque de hoy",
+    "scriptPractice": {
+      "title": "Practica una conversación difícil",
+      "subtitle": "Ensayo de guion: dinero, crisis o reparación"
+    },
+    "boundaryReview": {
+      "title": "Revisa tus muros de límites",
+      "subtitle": "Revisión de 2 minutos: ¿qué muros necesitan atención hoy?"
+    },
+    "selfCare": {
+      "title": "Tu propia recuperación: caminata de 10 min",
+      "subtitle": "Cuidarte no es egoísmo — es el plan"
+    },
+    "dailyCheckIn": {
+      "title": "Completa tu registro diario",
+      "subtitle": "Sigue cómo estás — los patrones cuentan la historia"
+    },
+    "letter": {
+      "title": "Escribe una carta de intervención",
+      "subtitle": "Estructura guiada de tres párrafos de Matt"
+    },
+    "breathe": {
+      "title": "Ejercicio de respiración de cinco minutos",
+      "subtitle": "Restablécete antes de una conversación difícil"
+    },
+    "group": {
+      "title": "Únete al grupo de apoyo familiar de esta noche",
+      "subtitle": "No estás solo en esto"
+    },
+    "tracker": {
+      "title": "Registra el seguimiento de hoy",
+      "subtitle": "Estado de ánimo, sueño y estrés en el hogar"
+    },
+    "anchor": {
+      "title": "Lee tu declaración de anclaje",
+      "subtitle": "\"No voy a permitir conductas que dañen a mi familia\""
+    }
+  },
+  "dailyQuote": {
+    "0": "No lo causaste, no puedes controlarlo, no puedes curarlo.",
+    "1": "Cuidarte es lo más poderoso que puedes hacer por tu familia.",
+    "2": "El objetivo es el progreso, no la perfección.",
+    "3": "No puedes salvar a alguien que no quiere ser salvado — pero puedes mantenerte entero.",
+    "4": "Tus límites no son castigos. Son tus valores hechos visibles.",
+    "5": "La única salida es atravesarlo — juntos.",
+    "6": "Ama a la persona. Rechaza el caos.",
+    "7": "La recuperación ocurre en comunidad, no en aislamiento.",
+    "8": "Establecer un límite es un acto de amor.",
+    "9": "Mantener tu posición es la forma en que apareces.",
+    "10": "No eres la enfermedad. Tampoco lo es tu familia.",
+    "11": "Cada día que te mantienes firme es un día que modelas la recuperación para alguien que está mirando.",
+    "12": "Suelta lo que no puedes controlar. Aférrate a lo que importa.",
+    "13": "Los límites crean el espacio donde puede ocurrir la sanación."
   }
 }

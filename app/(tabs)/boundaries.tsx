@@ -20,8 +20,7 @@ import { WallBuilder } from '../../src/components/boundaries/WallBuilder';
 import { WallsList } from '../../src/components/boundaries/WallsList';
 import enContent from '../../src/locales/en/boundaries.json';
 import esContent from '../../src/locales/es/boundaries.json';
-import { getMockFamilySpace } from '../../src/api/mock';
-import type { FamilySpace } from '../../src/api/types';
+import { useFamilySpace } from '../../src/hooks/useFamilySpace';
 
 type BoundariesContent = typeof enContent;
 
@@ -37,9 +36,9 @@ export default function BoundariesScreen() {
     ? esContent
     : enContent;
 
+  const { space: familySpace, create: createFamilySpace, joinByCode } = useFamilySpace(user?.id ?? null);
   const [prefill, setPrefill] = useState('');
   const [lastAnchorTag, setLastAnchorTag] = useState<string | null>(null);
-  const [familySpace, setFamilySpace] = useState<FamilySpace | null>(null);
   const [joinCode, setJoinCode] = useState('');
   const scrollRef = useRef<ScrollView>(null);
 
@@ -231,7 +230,7 @@ export default function BoundariesScreen() {
               </Text>
               <TouchableOpacity
                 style={[styles.solidBtn, { backgroundColor: colors.primary }]}
-                onPress={() => setFamilySpace(getMockFamilySpace())}
+                onPress={() => void createFamilySpace(firstName || 'My')}
                 activeOpacity={0.85}
               >
                 <Text style={styles.solidBtnText}>{tAlign('createButton')}</Text>
@@ -249,7 +248,10 @@ export default function BoundariesScreen() {
                 <TouchableOpacity
                   style={[styles.joinBtn, { backgroundColor: joinCode.trim() ? colors.primary : colors.line }]}
                   disabled={!joinCode.trim()}
-                  onPress={() => setFamilySpace(getMockFamilySpace())}
+                  onPress={async () => {
+                    const ok = await joinByCode(joinCode);
+                    if (!ok) Alert.alert(tAlign('joinError'));
+                  }}
                   activeOpacity={0.85}
                 >
                   <Text style={styles.joinBtnText}>{tAlign('joinButton')}</Text>

@@ -8,6 +8,7 @@
   "joinWithCode": "Join with a code",
   "joinPlaceholder": "Enter invite code",
   "joinButton": "Join",
+  "joinError": "That code wasn't found. Please check and try again.",
   "noFamilyTitle": "Families recover together.",
   "noFamilyBody": "Create a shared space so every family member commits to the same walls — and can show up for each other when it gets hard.",
   "createButton": "Create a family space",

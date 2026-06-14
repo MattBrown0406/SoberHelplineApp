@@ -5,7 +5,9 @@
     "evening": "Good evening, {{name}}"
   },
   "hero": {
-    "dayLabel": "DAY {{count}} — {{context}}"
+    "dayLabel": "DAY {{count}} — {{context}}",
+    "contextAttached": "FAMILY SUPPORT PROGRAM",
+    "contextDirect": "SELF-GUIDED JOURNEY"
   },
   "streak": {
     "checkIn": "day check-in streak",
@@ -24,6 +26,58 @@
     "doneCoach": "{{orgFirst}} will see your update."
   },
   "focus": {
-    "eyebrow": "Today's focus"
+    "eyebrow": "Today's focus",
+    "scriptPractice": {
+      "title": "Practice a difficult conversation",
+      "subtitle": "Script rehearsal: money, crisis, or repair"
+    },
+    "boundaryReview": {
+      "title": "Review your boundary walls",
+      "subtitle": "2-minute check: which walls need attention today?"
+    },
+    "selfCare": {
+      "title": "Your own recovery: 10-min walk",
+      "subtitle": "Caring for yourself isn't selfish — it's the plan"
+    },
+    "dailyCheckIn": {
+      "title": "Complete your daily check-in",
+      "subtitle": "Track how you're holding up — patterns tell the story"
+    },
+    "letter": {
+      "title": "Write an intervention letter",
+      "subtitle": "Matt's three-paragraph guided structure"
+    },
+    "breathe": {
+      "title": "Five-minute breathing exercise",
+      "subtitle": "Reset before a hard conversation"
+    },
+    "group": {
+      "title": "Join tonight's family support group",
+      "subtitle": "You are not alone in this"
+    },
+    "tracker": {
+      "title": "Log today's tracker",
+      "subtitle": "Mood, sleep, and household stress"
+    },
+    "anchor": {
+      "title": "Read your anchor statement",
+      "subtitle": "\"I will not enable behaviors that harm my family\""
+    }
+  },
+  "dailyQuote": {
+    "0": "You didn't cause it, you can't control it, you can't cure it.",
+    "1": "Caring for yourself is the most powerful thing you can do for your family.",
+    "2": "Progress, not perfection, is the goal.",
+    "3": "You cannot save someone who doesn't want to be saved — but you can stay whole.",
+    "4": "Your limits are not punishments. They are your values made visible.",
+    "5": "The only way out is through — together.",
+    "6": "Love the person. Decline the chaos.",
+    "7": "Recovery happens in community, not isolation.",
+    "8": "Setting a limit is an act of love.",
+    "9": "Holding your ground is how you show up.",
+    "10": "You are not the disease. Neither is your family.",
+    "11": "Every day you stay steady is a day you model recovery for someone who is watching.",
+    "12": "Let go of what you cannot control. Hold on to what matters.",
+    "13": "Boundaries create the space where healing can happen."
   }
 }

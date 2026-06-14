@@ -23,3 +23,11 @@ export const LIVEKIT_URL =
 // Supabase project URL (needed for edge-function fetches inside native screens).
 export const SUPABASE_URL =
   process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
+
+// Subscription upgrade page — placeholder until StoreKit IAP is wired.
+export const SUBSCRIBE_URL =
+  process.env.EXPO_PUBLIC_SUBSCRIBE_URL ?? 'https://soberhelpline.com/subscribe';
+
+// Provider directory — used for interventionist referral CTAs.
+export const PROVIDERS_URL =
+  process.env.EXPO_PUBLIC_PROVIDERS_URL ?? 'https://soberhelpline.com/providers';

@@ -7,6 +7,7 @@ import {
   ScrollView,
   Share,
   Alert,
+  Linking,
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,6 +18,8 @@ import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
 import { useBoundaries } from '../src/hooks/useBoundaries';
 import { MAX_CONTENT_WIDTH } from '../src/components/ui/ScreenContainer';
+import { supabase } from '../src/lib/supabase';
+import { PROVIDERS_URL } from '../src/config';
 import type { LetterDraft, ExperienceBlock } from '../src/api/types';
 
 // ── Tone flag detection ───────────────────────────────────────────────────────
@@ -124,6 +127,7 @@ export default function LetterScreen() {
   const [recipientName, setRecipientName] = useState('');
   const [draft, setDraft] = useState<LetterDraft | null>(null);
   const [saving, setSaving] = useState(false);
+  const [sendingLetter, setSendingLetter] = useState(false);
 
   // Load defaults from locale
   useEffect(() => {
@@ -187,6 +191,39 @@ export default function LetterScreen() {
       ? draft.p3ConfirmedBoundaryIds.filter((id) => id !== wallId)
       : [...draft.p3ConfirmedBoundaryIds, wallId];
     updateDraft({ p3ConfirmedBoundaryIds: ids });
+  }
+
+  async function sendToCoach() {
+    if (!user || !draft) return;
+    setSendingLetter(true);
+    try {
+      const { data: existing } = await supabase
+        .from('threads')
+        .select('id')
+        .eq('kind', 'oncall')
+        .maybeSingle();
+
+      let tid = existing?.id as string | undefined;
+      if (!tid) {
+        const { data: created } = await supabase
+          .from('threads')
+          .insert({ account_id: user.id, kind: 'oncall' })
+          .select('id')
+          .single();
+        tid = created?.id;
+      }
+
+      if (tid) {
+        await supabase.from('messages').insert({
+          thread_id: tid,
+          sender_role: 'member',
+          body: assembleLetterText(draft),
+        });
+      }
+      router.push('/chat');
+    } finally {
+      setSendingLetter(false);
+    }
   }
 
   async function shareExport() {
@@ -494,6 +531,8 @@ export default function LetterScreen() {
                 <TouchableOpacity
                   style={[styles.outlineBtn, { borderColor: colors.primary }]}
                   activeOpacity={0.8}
+                  onPress={() => void sendToCoach()}
+                  disabled={sendingLetter}
                 >
                   <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
                     {isAttached ? t('preview.coachButton') : t('preview.coachButtonDirect')}
@@ -506,7 +545,7 @@ export default function LetterScreen() {
                     <Text style={[styles.referralText, { color: colors.ink }]}>
                       {t('preview.referralCard')}
                     </Text>
-                    <TouchableOpacity activeOpacity={0.8}>
+                    <TouchableOpacity activeOpacity={0.8} onPress={() => void Linking.openURL(PROVIDERS_URL)}>
                       <Text style={[styles.referralBtn, { color: colors.secondary }]}>
                         {t('preview.referralButton')} →
                       </Text>

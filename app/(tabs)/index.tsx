@@ -8,19 +8,23 @@ import { HeroCard } from '../../src/components/today/HeroCard';
 import { CheckInCard } from '../../src/components/today/CheckInCard';
 import { FocusCard } from '../../src/components/today/FocusCard';
 import { useCheckIn } from '../../src/hooks/useCheckIn';
-import { getMockTodayFeed } from '../../src/api/mock';
+import { useTodayFeed } from '../../src/hooks/useTodayFeed';
+import type { DailyFocusItem } from '../../src/api/types';
+import type { TFunction } from 'i18next';
 
 export default function TodayScreen() {
   const { user, isAttached } = useAccount();
   const { colors } = useTheme();
   const { t } = useTranslation('today');
   const { todayCheckIn, streak, saveCheckIn } = useCheckIn(user?.id ?? null);
-
-  // TODO: replace with useSWR / React Query against GET /today-feed
-  const feed = getMockTodayFeed();
+  const { dayCount, boundariesHeld, groupSessions, quoteIndex, focusSlot } =
+    useTodayFeed(user?.id ?? null, user?.joinedAt ?? null);
 
   const firstName = user?.firstName ?? 'there';
   const greeting = timeGreeting(t, firstName);
+  const contextLabel = t(isAttached ? 'hero.contextAttached' : 'hero.contextDirect');
+  const dailyQuote = t(`dailyQuote.${quoteIndex}`);
+  const focusItems = buildFocusItems(t, focusSlot);
 
   return (
     <ScreenContainer backgroundColor={colors.cream}>
@@ -32,12 +36,12 @@ export default function TodayScreen() {
       </View>
 
       <HeroCard
-        dayCount={feed.dayCount}
-        contextLabel={feed.contextLabel}
-        quote={feed.dailyQuote}
+        dayCount={dayCount}
+        contextLabel={contextLabel}
+        quote={dailyQuote}
         checkInStreak={streak.currentStreak}
-        boundariesHeld={feed.boundariesHeld}
-        groupSessions={feed.groupSessions}
+        boundariesHeld={boundariesHeld}
+        groupSessions={groupSessions}
       />
 
       <CheckInCard
@@ -49,12 +53,31 @@ export default function TodayScreen() {
         orgName={user?.branding?.orgName ?? null}
       />
 
-      <FocusCard items={feed.focus} />
+      <FocusCard items={focusItems} />
     </ScreenContainer>
   );
 }
 
-import type { TFunction } from 'i18next';
+function buildFocusItems(t: TFunction<'today'>, slot: number): DailyFocusItem[] {
+  const pools: DailyFocusItem[][] = [
+    [
+      { id: 'f-script', icon: '💬', title: t('focus.scriptPractice.title'), subtitle: t('focus.scriptPractice.subtitle'), accentColor: '#e8eef6', actionType: 'script', actionId: null },
+      { id: 'f-boundary', icon: '🛡️', title: t('focus.boundaryReview.title'), subtitle: t('focus.boundaryReview.subtitle'), accentColor: '#fdf3e3', actionType: 'exercise', actionId: null },
+      { id: 'f-self', icon: '🌿', title: t('focus.selfCare.title'), subtitle: t('focus.selfCare.subtitle'), accentColor: '#e9f2ec', actionType: null, actionId: null },
+    ],
+    [
+      { id: 'f-checkin', icon: '📋', title: t('focus.dailyCheckIn.title'), subtitle: t('focus.dailyCheckIn.subtitle'), accentColor: '#e8eef6', actionType: 'reminder', actionId: null },
+      { id: 'f-letter', icon: '✉️', title: t('focus.letter.title'), subtitle: t('focus.letter.subtitle'), accentColor: '#fdf3e3', actionType: 'exercise', actionId: null },
+      { id: 'f-breathe', icon: '🧘', title: t('focus.breathe.title'), subtitle: t('focus.breathe.subtitle'), accentColor: '#e9f2ec', actionType: null, actionId: null },
+    ],
+    [
+      { id: 'f-group', icon: '🤝', title: t('focus.group.title'), subtitle: t('focus.group.subtitle'), accentColor: '#e8eef6', actionType: 'reminder', actionId: null },
+      { id: 'f-track', icon: '📊', title: t('focus.tracker.title'), subtitle: t('focus.tracker.subtitle'), accentColor: '#fdf3e3', actionType: 'exercise', actionId: null },
+      { id: 'f-anchor', icon: '⚓', title: t('focus.anchor.title'), subtitle: t('focus.anchor.subtitle'), accentColor: '#e9f2ec', actionType: null, actionId: null },
+    ],
+  ];
+  return pools[slot] ?? pools[0];
+}
 
 function timeGreeting(t: TFunction<'today'>, name: string): string {
   const h = new Date().getHours();
