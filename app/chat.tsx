@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
 import { useThread, type ChatMessage } from '../src/hooks/useThread';
+import { MAX_CONTENT_WIDTH } from '../src/components/ui/ScreenContainer';
 
 export default function ChatScreen() {
   const { colors } = useTheme();
@@ -53,6 +54,7 @@ export default function ChatScreen() {
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
+        <View style={styles.chatColumn}>
         {loading ? (
           <View style={styles.center}>
             <ActivityIndicator color={colors.primary} />
@@ -113,6 +115,7 @@ export default function ChatScreen() {
         <Text style={[styles.crisisNote, { color: colors.inkSoft }]}>
           {t('chat.crisisNote')}
         </Text>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -121,6 +124,7 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   flex: { flex: 1 },
+  chatColumn: { flex: 1, alignSelf: 'center', width: '100%', maxWidth: MAX_CONTENT_WIDTH },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row',

@@ -1,6 +1,6 @@
 import React from 'react';
-import { ScrollView, View, Text, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet } from 'react-native';
+import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { useTranslation } from 'react-i18next';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { useTheme } from '../../src/contexts/ThemeContext';
@@ -23,40 +23,34 @@ export default function TodayScreen() {
   const greeting = timeGreeting(t, firstName);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.headerRow}>
-          <Text style={[styles.greeting, { color: colors.ink }]}>{greeting}</Text>
-          <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-            <Text style={styles.avatarText}>{firstName.charAt(0).toUpperCase()}</Text>
-          </View>
+    <ScreenContainer backgroundColor={colors.cream}>
+      <View style={styles.headerRow}>
+        <Text style={[styles.greeting, { color: colors.ink }]}>{greeting}</Text>
+        <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+          <Text style={styles.avatarText}>{firstName.charAt(0).toUpperCase()}</Text>
         </View>
+      </View>
 
-        <HeroCard
-          dayCount={feed.dayCount}
-          contextLabel={feed.contextLabel}
-          quote={feed.dailyQuote}
-          checkInStreak={streak.currentStreak}
-          boundariesHeld={feed.boundariesHeld}
-          groupSessions={feed.groupSessions}
-        />
+      <HeroCard
+        dayCount={feed.dayCount}
+        contextLabel={feed.contextLabel}
+        quote={feed.dailyQuote}
+        checkInStreak={streak.currentStreak}
+        boundariesHeld={feed.boundariesHeld}
+        groupSessions={feed.groupSessions}
+      />
 
-        <CheckInCard
-          completed={todayCheckIn !== null}
-          selectedMood={todayCheckIn?.moodScore ?? null}
-          onComplete={saveCheckIn}
-          newStreak={streak.currentStreak}
-          isAttached={isAttached}
-          orgName={user?.branding?.orgName ?? null}
-        />
+      <CheckInCard
+        completed={todayCheckIn !== null}
+        selectedMood={todayCheckIn?.moodScore ?? null}
+        onComplete={saveCheckIn}
+        newStreak={streak.currentStreak}
+        isAttached={isAttached}
+        orgName={user?.branding?.orgName ?? null}
+      />
 
-        <FocusCard items={feed.focus} />
-      </ScrollView>
-    </SafeAreaView>
+      <FocusCard items={feed.focus} />
+    </ScreenContainer>
   );
 }
 
@@ -70,9 +64,6 @@ function timeGreeting(t: TFunction<'today'>, name: string): string {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  scroll: { flex: 1 },
-  content: { padding: 20, paddingBottom: 32 },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-  ScrollView,
   View,
   Text,
   Switch,
@@ -8,7 +7,7 @@ import {
   Alert,
   StyleSheet,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAccount } from '../src/contexts/AccountContext';
@@ -94,12 +93,7 @@ export default function SettingsScreen() {
     [user?.firstName, user?.lastName].filter(Boolean).join(' ') || '—';
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
+    <ScreenContainer backgroundColor={colors.cream}>
         {/* Header */}
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => router.back()} hitSlop={12}>
@@ -198,8 +192,7 @@ export default function SettingsScreen() {
             {t('deleteAccount.button')}
           </Text>
         </TouchableOpacity>
-      </ScrollView>
-    </SafeAreaView>
+    </ScreenContainer>
   );
 }
 
@@ -223,9 +216,6 @@ function Row({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  scroll: { flex: 1 },
-  content: { padding: 20, paddingBottom: 60 },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -8,7 +8,7 @@ import {
   Alert,
   StyleSheet,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
@@ -63,14 +63,7 @@ export default function BoundariesScreen() {
   const firstName = user?.firstName ?? '';
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
-      <ScrollView
-        ref={scrollRef}
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
+    <ScreenContainer scrollRef={scrollRef} backgroundColor={colors.cream} keyboardShouldPersistTaps="handled">
         <View style={styles.headerRow}>
           <Text style={[styles.heading, { color: colors.ink }]}>
             {tCommon('nav.boundaries')}
@@ -265,15 +258,11 @@ export default function BoundariesScreen() {
             </>
           )}
         </View>
-      </ScrollView>
-    </SafeAreaView>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  scroll: { flex: 1 },
-  content: { padding: 20, paddingBottom: 48 },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

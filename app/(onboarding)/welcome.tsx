@@ -49,7 +49,7 @@ export default function WelcomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  body: { flex: 1, justifyContent: 'center', padding: 28 },
+  body: { flex: 1, justifyContent: 'center', padding: 28, alignSelf: 'center', width: '100%', maxWidth: 480 },
   mark: { fontSize: 44, marginBottom: 14 },
   title: { color: '#fff', fontSize: 27, fontWeight: '700', letterSpacing: -0.4 },
   subtitle: {

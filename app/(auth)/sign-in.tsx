@@ -189,6 +189,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
     gap: 14,
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 480,
   },
   title: { fontSize: 20, fontWeight: '700', marginBottom: 2 },
   errorBox: {

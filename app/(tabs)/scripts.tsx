@@ -1,12 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import {
-  ScrollView,
   View,
   Text,
   TextInput,
   StyleSheet,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { useAccount } from '../../src/contexts/AccountContext';
@@ -35,13 +34,7 @@ export default function ScriptsScreen() {
   const firstName = user?.firstName ?? '';
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
+    <ScreenContainer backgroundColor={colors.cream}>
         <View style={styles.headerRow}>
           <Text style={[styles.heading, { color: colors.ink }]}>
             {tCommon('nav.scripts')}
@@ -79,15 +72,11 @@ export default function ScriptsScreen() {
             {t('noResults')}
           </Text>
         )}
-      </ScrollView>
-    </SafeAreaView>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  scroll: { flex: 1 },
-  content: { padding: 20, paddingBottom: 32 },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

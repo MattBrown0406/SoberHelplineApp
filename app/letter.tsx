@@ -16,6 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
 import { useBoundaries } from '../src/hooks/useBoundaries';
+import { MAX_CONTENT_WIDTH } from '../src/components/ui/ScreenContainer';
 import type { LetterDraft, ExperienceBlock } from '../src/api/types';
 
 // ── Tone flag detection ───────────────────────────────────────────────────────
@@ -548,7 +549,7 @@ function CoachNote({ text, colors }: { text: string; colors: any }) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { flex: 1 },
-  content: { padding: 20, paddingBottom: 60 },
+  content: { padding: 20, paddingBottom: 60, alignSelf: 'center', width: '100%', maxWidth: MAX_CONTENT_WIDTH },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

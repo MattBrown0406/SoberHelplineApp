@@ -3,11 +3,10 @@ import {
   View,
   Text,
   TouchableOpacity,
-  ScrollView,
   StyleSheet,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Audio } from 'expo-av';
@@ -110,12 +109,7 @@ export default function RehearsalScreen() {
   const currentQuestion = SELF_CHECK_QUESTIONS[questionIndex];
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.ink }]}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
+    <ScreenContainer backgroundColor={colors.ink}>
         {/* Back */}
         <TouchableOpacity onPress={() => router.back()} style={styles.backRow} hitSlop={12}>
           <Text style={[styles.backText, { color: colors.inkSoft }]}>‹ {t('title')}</Text>
@@ -230,15 +224,11 @@ export default function RehearsalScreen() {
             </Text>
           </TouchableOpacity>
         )}
-      </ScrollView>
-    </SafeAreaView>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  scroll: { flex: 1 },
-  content: { padding: 24, paddingBottom: 60 },
   backRow: { marginBottom: 20 },
   backText: { fontSize: 15 },
   countBadge: { fontSize: 12, marginBottom: 16, textAlign: 'center' },

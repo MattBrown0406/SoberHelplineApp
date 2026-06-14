@@ -67,7 +67,7 @@ export default function ConsentScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  body: { flex: 1, justifyContent: 'center', padding: 28 },
+  body: { flex: 1, justifyContent: 'center', padding: 28, alignSelf: 'center', width: '100%', maxWidth: 480 },
   icon: { fontSize: 40, marginBottom: 12 },
   title: { fontSize: 23, fontWeight: '700', letterSpacing: -0.3 },
   bodyText: { fontSize: 14.5, lineHeight: 22, marginTop: 10, marginBottom: 30 },

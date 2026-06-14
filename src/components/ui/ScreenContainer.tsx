@@ -21,6 +21,8 @@ interface Props {
   contentContainerStyle?: StyleProp<ViewStyle>;
   edges?: ReadonlyArray<Edge>;
   keyboardShouldPersistTaps?: 'always' | 'never' | 'handled';
+  /** Forward a ref to the inner ScrollView (e.g. to call scrollToEnd). */
+  scrollRef?: React.RefObject<ScrollView>;
 }
 
 /**
@@ -35,6 +37,7 @@ export function ScreenContainer({
   contentContainerStyle,
   edges,
   keyboardShouldPersistTaps = 'handled',
+  scrollRef,
 }: Props) {
   const { colors } = useTheme();
   const bg = backgroundColor ?? colors.cream;
@@ -51,6 +54,7 @@ export function ScreenContainer({
     >
       {scroll ? (
         <ScrollView
+          ref={scrollRef}
           style={styles.flex}
           contentContainerStyle={innerStyle}
           showsVerticalScrollIndicator={false}

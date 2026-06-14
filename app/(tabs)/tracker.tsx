@@ -1,12 +1,11 @@
 import React, { useMemo } from 'react';
 import {
-  ScrollView,
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { useTranslation } from 'react-i18next';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { useTheme } from '../../src/contexts/ThemeContext';
@@ -125,12 +124,7 @@ export default function TrackerScreen() {
     t('privacyNote') + (isAttached ? t('privacyNoteCoach') : t('privacyNoteDirect'));
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
+    <ScreenContainer backgroundColor={colors.cream}>
         {/* ── Warning signs ─────────────────────────────────────── */}
         <View style={[styles.card, { borderColor: colors.line }]}>
           <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
@@ -200,15 +194,11 @@ export default function TrackerScreen() {
 
         {/* ── Privacy note ──────────────────────────────────────── */}
         <Text style={[styles.privacyNote, { color: colors.inkSoft }]}>{privacyNote}</Text>
-      </ScrollView>
-    </SafeAreaView>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  scroll: { flex: 1 },
-  content: { padding: 20, paddingBottom: 40 },
   card: {
     backgroundColor: '#fff',
     borderRadius: 18,

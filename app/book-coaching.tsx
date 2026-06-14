@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
 import { supabase } from '../src/lib/supabase';
+import { MAX_CONTENT_WIDTH } from '../src/components/ui/ScreenContainer';
 import { COACHING_PAYMENT_URL, COACHING_RATE_LABEL } from '../src/config';
 
 interface Booking {
@@ -198,7 +199,7 @@ const styles = StyleSheet.create({
   back: { fontSize: 30, fontWeight: '600', marginTop: -4 },
   headerTitle: { fontSize: 16, fontWeight: '700' },
   headerSub: { fontSize: 11.5, marginTop: 1 },
-  content: { padding: 20, paddingBottom: 40 },
+  content: { padding: 20, paddingBottom: 40, alignSelf: 'center', width: '100%', maxWidth: MAX_CONTENT_WIDTH },
   bodyText: { fontSize: 13.5, lineHeight: 20, marginBottom: 16 },
   label: { fontSize: 13, fontWeight: '600', marginBottom: 6 },
   input: {

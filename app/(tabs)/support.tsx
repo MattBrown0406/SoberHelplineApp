@@ -3,12 +3,11 @@ import {
   View,
   Text,
   TouchableOpacity,
-  ScrollView,
   Modal,
   Linking,
   StyleSheet,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAccount } from '../../src/contexts/AccountContext';
@@ -194,7 +193,7 @@ export default function SupportScreen() {
   const { myRooms, liveRooms } = useGroupPresence(user?.id ?? null);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
+    <ScreenContainer backgroundColor={colors.cream}>
       <CrisisSheet
         visible={crisisOpen}
         onClose={() => setCrisisOpen(false)}
@@ -204,11 +203,6 @@ export default function SupportScreen() {
         colors={colors}
       />
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
         {/* Header */}
         <View style={styles.headerRow}>
           <Text style={[styles.heading, { color: colors.ink }]}>{t('header')}</Text>
@@ -614,15 +608,11 @@ export default function SupportScreen() {
             })}
           </View>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  scroll: { flex: 1 },
-  content: { padding: 20, paddingBottom: 40 },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
