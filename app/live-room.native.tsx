@@ -29,6 +29,7 @@ import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
 import { supabase } from '../src/lib/supabase';
 import { LIVEKIT_URL, SUPABASE_URL } from '../src/config';
+import { useResponsive } from '../src/hooks/useResponsive';
 
 registerGlobals();
 
@@ -88,6 +89,7 @@ function HostView({
   const tracks = useTracks([Track.Source.Camera]);
   const { chatMessages, send } = useChat();
 
+  const { isLandscape } = useResponsive();
   const myTrack = tracks.find((tr) => tr.participant.isLocal);
 
   async function handleRemove(identity: string) {
@@ -105,73 +107,81 @@ function HostView({
     );
   }
 
+  const cameraEl = myTrack ? (
+    <VideoTrack trackRef={myTrack} style={isLandscape ? styles.landscapeVideo : styles.hostPreview} mirror objectFit="cover" />
+  ) : (
+    <View style={[isLandscape ? styles.landscapeVideo : styles.hostPreview, styles.hostPreviewPlaceholder, { backgroundColor: colors.primaryDark }]}>
+      <Text style={styles.placeholderIcon}>📷</Text>
+    </View>
+  );
+
+  const questionList = (
+    <FlatList
+      data={[...chatMessages].reverse()}
+      keyExtractor={(m) => m.id}
+      style={styles.messageList}
+      inverted
+      renderItem={({ item }) => (
+        <View style={[styles.messageRow, { borderBottomColor: colors.primaryDark }]}>
+          <View style={styles.messageBody}>
+            <Text style={[styles.messageSender, { color: colors.inkSoft }]}>
+              {item.from?.name ?? item.from?.identity ?? '?'}
+            </Text>
+            <Text style={[styles.messageText, { color: '#fff' }]}>{item.message}</Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.removeBtn, { borderColor: colors.coral }]}
+            onPress={() => handleRemove(item.from?.identity ?? '')}
+          >
+            <Text style={[styles.removeBtnText, { color: colors.coral }]}>
+              {t('host.remove')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    />
+  );
+
+  if (isLandscape) {
+    return (
+      <View style={[styles.roomContainer, { backgroundColor: colors.ink }]}>
+        <View style={styles.landscapeRow}>
+          <View style={styles.landscapeVideoCol}>
+            {cameraEl}
+            <View style={styles.liveBadge}><Text style={styles.liveBadgeText}>{t('live')}</Text></View>
+            <View style={[styles.countBadge, { backgroundColor: colors.coral }]}>
+              <Text style={styles.countBadgeText}>{t('host.watching', { count: remoteParticipants.length })}</Text>
+            </View>
+          </View>
+          <View style={[styles.landscapeSidePanel, { backgroundColor: colors.ink }]}>
+            <Text style={[styles.chatEyebrow, { color: colors.inkSoft }]}>{t('chat.eyebrow')}</Text>
+            {questionList}
+            <TouchableOpacity style={[styles.endBtn, { backgroundColor: colors.coral }]} onPress={onEnd} activeOpacity={0.85}>
+              <Text style={styles.endBtnText}>{t('endBroadcast')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.roomContainer, { backgroundColor: colors.ink }]}>
       {/* Self-camera preview */}
       <View style={styles.hostPreviewWrap}>
-        {myTrack ? (
-          <VideoTrack
-            trackRef={myTrack}
-            style={styles.hostPreview}
-            mirror
-            objectFit="cover"
-          />
-        ) : (
-          <View style={[styles.hostPreviewPlaceholder, { backgroundColor: colors.primaryDark }]}>
-            <Text style={styles.placeholderIcon}>📷</Text>
-          </View>
-        )}
-
-        {/* Participant count badge */}
+        {cameraEl}
         <View style={[styles.countBadge, { backgroundColor: colors.coral }]}>
-          <Text style={styles.countBadgeText}>
-            {t('host.watching', { count: remoteParticipants.length })}
-          </Text>
+          <Text style={styles.countBadgeText}>{t('host.watching', { count: remoteParticipants.length })}</Text>
         </View>
-
-        {/* LIVE badge */}
         <View style={styles.liveBadge}>
           <Text style={styles.liveBadgeText}>{t('live')}</Text>
         </View>
       </View>
-
-      {/* Questions list */}
       <View style={styles.chatSection}>
-        <Text style={[styles.chatEyebrow, { color: colors.inkSoft }]}>
-          {t('chat.eyebrow')}
-        </Text>
-        <FlatList
-          data={[...chatMessages].reverse()}
-          keyExtractor={(m) => m.id}
-          style={styles.messageList}
-          inverted
-          renderItem={({ item }) => (
-            <View style={[styles.messageRow, { borderBottomColor: colors.primaryDark }]}>
-              <View style={styles.messageBody}>
-                <Text style={[styles.messageSender, { color: colors.inkSoft }]}>
-                  {item.from?.name ?? item.from?.identity ?? '?'}
-                </Text>
-                <Text style={[styles.messageText, { color: '#fff' }]}>{item.message}</Text>
-              </View>
-              <TouchableOpacity
-                style={[styles.removeBtn, { borderColor: colors.coral }]}
-                onPress={() => handleRemove(item.from?.identity ?? '')}
-              >
-                <Text style={[styles.removeBtnText, { color: colors.coral }]}>
-                  {t('host.remove')}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        />
+        <Text style={[styles.chatEyebrow, { color: colors.inkSoft }]}>{t('chat.eyebrow')}</Text>
+        {questionList}
       </View>
-
-      {/* End broadcast */}
-      <TouchableOpacity
-        style={[styles.endBtn, { backgroundColor: colors.coral }]}
-        onPress={onEnd}
-        activeOpacity={0.85}
-      >
+      <TouchableOpacity style={[styles.endBtn, { backgroundColor: colors.coral }]} onPress={onEnd} activeOpacity={0.85}>
         <Text style={styles.endBtnText}>{t('endBroadcast')}</Text>
       </TouchableOpacity>
     </View>
@@ -183,6 +193,7 @@ function HostView({
 function ViewerView({ onLeave }: { onLeave: () => void }) {
   const { colors } = useTheme();
   const { t } = useTranslation('live');
+  const { isLandscape } = useResponsive();
   const tracks = useTracks([Track.Source.Camera]);
   const { chatMessages, send } = useChat();
   const [draft, setDraft] = useState('');
@@ -196,89 +207,94 @@ function ViewerView({ onLeave }: { onLeave: () => void }) {
     await send(text);
   }
 
-  return (
-    <View style={[styles.roomContainer, { backgroundColor: '#000' }]}>
-      {/* Host video full-bleed */}
-      {hostTrack ? (
-        <VideoTrack
-          trackRef={hostTrack}
-          style={styles.hostVideo}
-          objectFit="cover"
-        />
-      ) : (
-        <View style={[styles.hostVideo, styles.noHostPlaceholder]}>
-          <Text style={styles.noHostText}>{t('viewer.noHost')}</Text>
-        </View>
-      )}
+  const videoEl = hostTrack ? (
+    <VideoTrack trackRef={hostTrack} style={isLandscape ? styles.landscapeVideo : styles.hostVideo} objectFit="cover" />
+  ) : (
+    <View style={[isLandscape ? styles.landscapeVideo : styles.hostVideo, styles.noHostPlaceholder]}>
+      <Text style={styles.noHostText}>{t('viewer.noHost')}</Text>
+    </View>
+  );
 
-      {/* LIVE badge overlay */}
-      <View style={styles.liveBadgeOverlay}>
-        <View style={styles.liveBadge}>
-          <Text style={styles.liveBadgeText}>{t('live')}</Text>
+  const chatPanel = (
+    <>
+      <FlatList
+        data={[...chatMessages].reverse()}
+        keyExtractor={(m) => m.id}
+        style={styles.viewerMessageList}
+        inverted
+        renderItem={({ item }) => (
+          <View style={styles.viewerMessageRow}>
+            <Text style={styles.viewerSender}>{item.from?.name ?? '?'}</Text>
+            <Text style={styles.viewerMessageText}>{item.message}</Text>
+          </View>
+        )}
+      />
+      <View style={styles.chatInputRow}>
+        <TextInput
+          style={[styles.chatInput, { color: '#fff', borderColor: 'rgba(255,255,255,0.3)' }]}
+          placeholder={t('chat.placeholder')}
+          placeholderTextColor="rgba(255,255,255,0.4)"
+          value={draft}
+          onChangeText={setDraft}
+          returnKeyType="send"
+          onSubmitEditing={handleSend}
+        />
+        <TouchableOpacity
+          style={[styles.sendBtn, { backgroundColor: draft.trim() ? colors.primary : 'rgba(255,255,255,0.2)' }]}
+          disabled={!draft.trim()}
+          onPress={handleSend}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.sendBtnText}>{t('chat.send')}</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={styles.crisisRow}>
+        <TouchableOpacity onPress={() => Linking.openURL('tel:911')} style={styles.crisisBtn}>
+          <Text style={[styles.crisisBtnText, { color: colors.coral }]}>{t('crisis.line911')}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => Linking.openURL('tel:988')} style={styles.crisisBtn}>
+          <Text style={[styles.crisisBtnText, { color: colors.primary }]}>{t('crisis.line988')}</Text>
+        </TouchableOpacity>
+      </View>
+    </>
+  );
+
+  if (isLandscape) {
+    return (
+      <View style={[styles.roomContainer, { backgroundColor: '#000' }]}>
+        <View style={styles.landscapeRow}>
+          <View style={styles.landscapeVideoCol}>
+            {videoEl}
+            <View style={styles.liveBadgeOverlay}>
+              <View style={styles.liveBadge}><Text style={styles.liveBadgeText}>{t('live')}</Text></View>
+            </View>
+          </View>
+          <View style={[styles.landscapeSidePanel, { backgroundColor: 'rgba(0,0,0,0.92)' }]}>
+            <TouchableOpacity
+              style={[styles.leaveBtn, { backgroundColor: 'rgba(255,255,255,0.15)', position: 'relative', top: 0, right: 0, alignSelf: 'flex-end', marginBottom: 8 }]}
+              onPress={onLeave}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.leaveBtnText, { color: '#fff' }]}>{t('leave')}</Text>
+            </TouchableOpacity>
+            {chatPanel}
+          </View>
         </View>
       </View>
+    );
+  }
 
-      {/* Leave button overlay */}
-      <TouchableOpacity
-        style={[styles.leaveBtn, { backgroundColor: 'rgba(0,0,0,0.6)' }]}
-        onPress={onLeave}
-        activeOpacity={0.85}
-      >
+  return (
+    <View style={[styles.roomContainer, { backgroundColor: '#000' }]}>
+      {videoEl}
+      <View style={styles.liveBadgeOverlay}>
+        <View style={styles.liveBadge}><Text style={styles.liveBadgeText}>{t('live')}</Text></View>
+      </View>
+      <TouchableOpacity style={[styles.leaveBtn, { backgroundColor: 'rgba(0,0,0,0.6)' }]} onPress={onLeave} activeOpacity={0.85}>
         <Text style={[styles.leaveBtnText, { color: '#fff' }]}>{t('leave')}</Text>
       </TouchableOpacity>
-
-      {/* Questions + 911/988 pinned at bottom */}
       <View style={[styles.viewerBottom, { backgroundColor: 'rgba(0,0,0,0.75)' }]}>
-        {/* Scrollable questions */}
-        <FlatList
-          data={[...chatMessages].reverse()}
-          keyExtractor={(m) => m.id}
-          style={styles.viewerMessageList}
-          inverted
-          renderItem={({ item }) => (
-            <View style={styles.viewerMessageRow}>
-              <Text style={styles.viewerSender}>
-                {item.from?.name ?? '?'}
-              </Text>
-              <Text style={styles.viewerMessageText}>{item.message}</Text>
-            </View>
-          )}
-        />
-
-        {/* Chat input */}
-        <View style={styles.chatInputRow}>
-          <TextInput
-            style={[styles.chatInput, { color: '#fff', borderColor: 'rgba(255,255,255,0.3)' }]}
-            placeholder={t('chat.placeholder')}
-            placeholderTextColor="rgba(255,255,255,0.4)"
-            value={draft}
-            onChangeText={setDraft}
-            returnKeyType="send"
-            onSubmitEditing={handleSend}
-          />
-          <TouchableOpacity
-            style={[styles.sendBtn, { backgroundColor: draft.trim() ? colors.primary : 'rgba(255,255,255,0.2)' }]}
-            disabled={!draft.trim()}
-            onPress={handleSend}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.sendBtnText}>{t('chat.send')}</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* 911/988 safety line — always visible */}
-        <View style={styles.crisisRow}>
-          <TouchableOpacity onPress={() => Linking.openURL('tel:911')} style={styles.crisisBtn}>
-            <Text style={[styles.crisisBtnText, { color: colors.coral }]}>
-              {t('crisis.line911')}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => Linking.openURL('tel:988')} style={styles.crisisBtn}>
-            <Text style={[styles.crisisBtnText, { color: colors.primary }]}>
-              {t('crisis.line988')}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        {chatPanel}
       </View>
     </View>
   );
@@ -383,6 +399,12 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 15, textAlign: 'center' },
 
   roomContainer: { flex: 1 },
+
+  // Landscape two-column
+  landscapeRow: { flex: 1, flexDirection: 'row' },
+  landscapeVideoCol: { flex: 1, position: 'relative', backgroundColor: '#000' },
+  landscapeVideo: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  landscapeSidePanel: { width: 300, paddingTop: 8 },
 
   // Host
   hostPreviewWrap: {

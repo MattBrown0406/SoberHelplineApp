@@ -6,6 +6,7 @@ import {
   Modal,
   Linking,
   StyleSheet,
+  useWindowDimensions,
 } from 'react-native';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { useRouter } from 'expo-router';
@@ -53,6 +54,8 @@ function CrisisSheet({
   t: (key: string) => string;
   colors: ReturnType<typeof useTheme>['colors'];
 }) {
+  const { width: screenWidth } = useWindowDimensions();
+  const sheetOffset = Math.max(0, (screenWidth - 520) / 2);
   const roster = getMockOnCallRoster(isAttached ? 'attached' : 'direct');
   const primary = roster.primaryOnCall;
 
@@ -68,7 +71,7 @@ function CrisisSheet({
         activeOpacity={1}
         onPress={onClose}
       />
-      <View style={[styles.sheet, { backgroundColor: colors.white }]}>
+      <View style={[styles.sheet, { backgroundColor: colors.white, left: sheetOffset, right: sheetOffset }]}>
         <View style={[styles.sheetHandle, { backgroundColor: colors.line }]} />
 
         <Text style={[styles.sheetTitle, { color: colors.ink }]}>
