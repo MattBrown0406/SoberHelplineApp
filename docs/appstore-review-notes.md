@@ -20,22 +20,25 @@ educational content, conversation scripts, peer support groups, and access to
 coaches. It is a coaching, education, and peer-support product. It is NOT medical
 care, therapy, diagnosis, or a treatment service, and it makes no such claims.
 
-SIGN-IN IS REQUIRED — DEMO ACCOUNTS
-The app requires an account. Please use these demo logins to review every state:
+SIGN-IN IS REQUIRED — DEMO ACCOUNT
+The app requires an account. Please use this demo login:
 
-1) Direct (free / Essential) account
-   Email: [demo-direct@soberhelpline.com]
-   Password: [PASSWORD]
+   Email: appreview@soberhelpline.com
+   Password: APPREVIEW
 
-2) Direct Premium account (live coaching calls unlocked)
-   Email: [demo-premium@soberhelpline.com]
-   Password: [PASSWORD]
+This is a direct (App Store) member account. From here you can review the full
+app, the subscription paywall, and in-app purchases (testable in the sandbox).
 
-3) Provider-connected (attached) account
-   Email: [demo-family@soberhelpline.com]
-   Password: [PASSWORD]
-   (Or create a new account, choose "I'm working with a provider," and enter
-   invite code: FREEDOM2026)
+TO REVIEW THE PROVIDER-CONNECTED EXPERIENCE
+Some families use Sober Helpline through a provider organization (e.g., an
+intervention practice), which shows the provider's branding and an assigned
+care team. To see this flow: from the sign-in screen tap "Create account,"
+choose "I'm working with a provider," and enter invite code:
+
+   FREEDOM2026
+
+This attaches the new account to a demo provider organization so you can review
+the provider-connected experience.
 
 Sign in with Apple is also supported.
 
