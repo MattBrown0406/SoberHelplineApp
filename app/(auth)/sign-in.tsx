@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
+  Image,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -17,7 +18,7 @@ import * as Crypto from 'expo-crypto';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { supabase } from '../../src/lib/supabase';
-import { AppLogo } from '../../src/components/ui/AppLogo';
+const LOGO = require('../../assets/images/logo.png');
 
 export default function SignInScreen() {
   const { colors } = useTheme();
@@ -84,9 +85,7 @@ export default function SignInScreen() {
         >
           {/* Logo / brand */}
           <View style={styles.brand}>
-            <AppLogo size={72} />
-            <Text style={[styles.appName, { color: colors.primary }]}>Sober Helpline</Text>
-            <Text style={[styles.tagline, { color: colors.inkSoft }]}>{t('appTagline')}</Text>
+            <Image source={LOGO} style={styles.logoImg} resizeMode="contain" />
           </View>
 
           {/* Card */}
@@ -175,9 +174,8 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   kav: { flex: 1 },
   scroll: { flexGrow: 1, padding: 24, paddingBottom: 40 },
-  brand: { alignItems: 'center', marginTop: 32, marginBottom: 28 },
-  appName: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5 },
-  tagline: { fontSize: 13, marginTop: 4 },
+  brand: { alignItems: 'center', marginTop: 24, marginBottom: 20 },
+  logoImg: { width: 260, height: 120, borderRadius: 14 },
   card: {
     backgroundColor: '#fff',
     borderRadius: 20,
