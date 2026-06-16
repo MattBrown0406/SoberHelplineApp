@@ -78,16 +78,16 @@ export function useFamilySpace(accountId: string | null) {
 
   const create = useCallback(async (ownerFirstName: string): Promise<void> => {
     if (!accountId) return;
-    const { data, error } = await supabase
-      .from('family_spaces')
-      .insert({ name: `${ownerFirstName}'s Family`, created_by: accountId })
-      .select('id')
-      .single();
-    if (error || !data) return;
-    await supabase
-      .from('family_members')
-      .insert({ family_space_id: data.id, account_id: accountId, role: 'owner' });
-    await loadFull(data.id);
+    // Single atomic RPC: inserts family_spaces + family_members in one transaction
+    // as SECURITY DEFINER, avoiding the RLS chicken-and-egg problem.
+    const { data: spaceId, error } = await supabase.rpc('create_family_space', {
+      p_name: `${ownerFirstName}'s Family`,
+    });
+    if (error || !spaceId) {
+      console.error('[useFamilySpace] create_family_space rpc failed:', error);
+      throw error ?? new Error('no space id returned');
+    }
+    await loadFull(spaceId as string);
   }, [accountId]);
 
   const joinByCode = useCallback(async (code: string): Promise<boolean> => {

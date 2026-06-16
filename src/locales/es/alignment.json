@@ -2,7 +2,8 @@
   "sectionEyebrow": "Espacio familiar",
   "meterTitle": "Tu castillo",
   "meter": "{{held}} de {{total}} muros mantenidos",
-  "inviteCode": "Código de invitación",
+  "inviteCode": "Código de invitación — toca para copiar",
+  "inviteCodeCopied": "¡Copiado!",
   "inviteCodeDesc": "Comparte este código para que los miembros de la familia puedan unirse.",
   "inviteButton": "Invitar a un familiar",
   "joinWithCode": "Unirse con un código",
@@ -34,5 +35,7 @@
   "weeklyYes": "Sí — los mantuve",
   "weeklyMostly": "En su mayor parte",
   "weeklySlipped": "Fallé en uno",
-  "weeklyNote": "Esto es privado a menos que elijas compartirlo con tu familia."
+  "weeklyNote": "Esto es privado a menos que elijas compartirlo con tu familia.",
+  "createErrorTitle": "No se pudo crear el espacio familiar",
+  "createErrorMessage": "Por favor intenta de nuevo. Si el problema continúa, contacta con soporte."
 }

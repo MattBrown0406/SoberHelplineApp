@@ -6,6 +6,7 @@ import {
   Modal,
   Linking,
   StyleSheet,
+  Alert,
   useWindowDimensions,
 } from 'react-native';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
@@ -20,7 +21,9 @@ import {
 } from '../../src/api/mock';
 import { useSessions, type DbSession } from '../../src/hooks/useSessions';
 import { useGroupPresence } from '../../src/hooks/useGroupPresence';
-import { GROUPS_URL, SUBSCRIBE_URL, PROVIDERS_URL } from '../../src/config';
+import { useGroupRsvps } from '../../src/hooks/useGroupRsvps';
+import { GROUPS_URL, FEATURED_PROVIDER } from '../../src/config';
+import { useIAP } from '../../src/hooks/useIAP';
 import type { StaffMember, SupportGroup } from '../../src/api/types';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -148,6 +151,142 @@ function CrisisSheet({
   );
 }
 
+// ── Provider sheet ────────────────────────────────────────────────────────────
+
+function ProviderSheet({
+  visible,
+  onClose,
+  t,
+  colors,
+  sheetOffset,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  t: ReturnType<typeof useTranslation<'support'>>['t'];
+  colors: ReturnType<typeof useTheme>['colors'];
+  sheetOffset: number;
+}) {
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose} />
+      <View style={[styles.sheet, { backgroundColor: colors.white, left: sheetOffset, right: sheetOffset }]}>
+        <View style={[styles.sheetHandle, { backgroundColor: colors.line }]} />
+        <Text style={[styles.sheetTitle, { color: colors.ink }]}>
+          {t('providerSheet.title')}
+        </Text>
+
+        <View style={[styles.sheetRow, { borderBottomColor: colors.line }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.sheetRowName, { color: colors.ink }]}>
+              {FEATURED_PROVIDER.name} · {FEATURED_PROVIDER.org}
+            </Text>
+            <Text style={[styles.sheetRowSub, { color: colors.inkSoft }]}>
+              {t('providerSheet.credential', {
+                credential: FEATURED_PROVIDER.credential,
+                credentialFull: FEATURED_PROVIDER.credentialFull,
+              })}
+            </Text>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.sheetRow, { borderBottomColor: colors.line }]}
+          onPress={() => void Linking.openURL(`mailto:${FEATURED_PROVIDER.email}`)}
+        >
+          <Text style={[styles.sheetRowName, { color: colors.ink }]}>
+            {t('providerSheet.emailButton', { name: FEATURED_PROVIDER.name })}
+          </Text>
+          <Text style={[styles.sheetRowAction, { color: colors.primary }]}>→</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.sheetRow, styles.sheetRowLast, { borderBottomColor: colors.line }]}
+          onPress={() => void Linking.openURL(FEATURED_PROVIDER.web)}
+        >
+          <Text style={[styles.sheetRowName, { color: colors.ink }]}>
+            {t('providerSheet.webButton')}
+          </Text>
+          <Text style={[styles.sheetRowAction, { color: colors.primary }]}>→</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.sheetRow, styles.sheetRowLast]} onPress={onClose}>
+          <Text style={[styles.sheetRowName, { color: colors.inkSoft }]}>
+            {t('providerSheet.close')}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </Modal>
+  );
+}
+
+// ── Upgrade sheet ─────────────────────────────────────────────────────────────
+
+function UpgradeSheet({
+  visible,
+  onClose,
+  onPurchase,
+  purchasing,
+  t,
+  colors,
+  sheetOffset,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onPurchase: () => void;
+  purchasing: boolean;
+  t: ReturnType<typeof useTranslation<'support'>>['t'];
+  colors: ReturnType<typeof useTheme>['colors'];
+  sheetOffset: number;
+}) {
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose} />
+      <View style={[styles.sheet, { backgroundColor: colors.white, left: sheetOffset, right: sheetOffset }]}>
+        <View style={[styles.sheetHandle, { backgroundColor: colors.line }]} />
+        <Text style={[styles.sheetTitle, { color: colors.ink }]}>
+          {t('upgradeSheet.title')}
+        </Text>
+        <Text style={[styles.tierPrice, { color: colors.ink, marginBottom: 12 }]}>
+          {t('upgradeSheet.price')}
+        </Text>
+
+        <Text style={[styles.sheetSub, { color: colors.inkSoft, marginBottom: 6 }]}>
+          {t('upgradeSheet.featuresHeader')}
+        </Text>
+        {(['feature1', 'feature2', 'feature3'] as const).map((key) => (
+          <Text key={key} style={[styles.sheetSub, { color: colors.ink, marginBottom: 4 }]}>
+            {'• '}{t(`upgradeSheet.${key}`)}
+          </Text>
+        ))}
+
+        <Text style={[styles.sheetSub, { color: colors.inkSoft, marginTop: 12, marginBottom: 16 }]}>
+          {t('upgradeSheet.note')}
+        </Text>
+
+        <TouchableOpacity
+          style={[
+            styles.solidBtn,
+            { backgroundColor: purchasing ? colors.inkSoft : colors.primary },
+          ]}
+          activeOpacity={0.85}
+          disabled={purchasing}
+          onPress={onPurchase}
+        >
+          <Text style={styles.solidBtnText}>
+            {purchasing ? '...' : t('upgradeSheet.subscribeButton')}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.sheetRow, styles.sheetRowLast, { marginTop: 4 }]} onPress={onClose}>
+          <Text style={[styles.sheetRowName, { color: colors.inkSoft }]}>
+            {t('upgradeSheet.close')}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </Modal>
+  );
+}
+
 // ── Staff chip ────────────────────────────────────────────────────────────────
 
 function StaffChip({
@@ -183,17 +322,33 @@ function StaffChip({
 
 export default function SupportScreen() {
   const { colors } = useTheme();
-  const { user, isAttached, accountState } = useAccount();
+  const { user, isAttached, accountState, refreshAccount } = useAccount();
   const { t } = useTranslation('support');
   const { current, change, languages } = useLanguage();
   const router = useRouter();
+  const { width: screenWidth } = useWindowDimensions();
+  const sheetOffset = Math.max(0, (screenWidth - 520) / 2);
+  const { purchasePremium, purchasing } = useIAP();
 
   const [crisisOpen, setCrisisOpen] = useState(false);
+  const [providerOpen, setProviderOpen] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+
+  async function handlePurchase() {
+    const success = await purchasePremium();
+    if (success) {
+      await refreshAccount();
+      setUpgradeOpen(false);
+    } else {
+      Alert.alert(t('upgradeSheet.title'), t('upgradeSheet.iapError'));
+    }
+  }
 
   const roster = getMockOnCallRoster(isAttached ? 'attached' : 'direct');
   const { sessions, toggleRsvp } = useSessions(user?.id ?? null);
   const groups = getMockSupportGroups();
   const { myRooms, liveRooms } = useGroupPresence(user?.id ?? null);
+  const { rsvpedRooms, toggleRsvp: toggleGroupRsvp } = useGroupRsvps(user?.id ?? null);
 
   return (
     <ScreenContainer backgroundColor={colors.cream}>
@@ -204,6 +359,22 @@ export default function SupportScreen() {
         onMessage={() => router.push('/chat')}
         t={t}
         colors={colors}
+      />
+      <ProviderSheet
+        visible={providerOpen}
+        onClose={() => setProviderOpen(false)}
+        t={t}
+        colors={colors}
+        sheetOffset={sheetOffset}
+      />
+      <UpgradeSheet
+        visible={upgradeOpen}
+        onClose={() => setUpgradeOpen(false)}
+        onPurchase={() => void handlePurchase()}
+        purchasing={purchasing}
+        t={t}
+        colors={colors}
+        sheetOffset={sheetOffset}
       />
 
         {/* Header */}
@@ -376,7 +547,7 @@ export default function SupportScreen() {
                 <TouchableOpacity
                   style={[styles.solidBtn, { backgroundColor: colors.primary }]}
                   activeOpacity={0.85}
-                  onPress={() => void Linking.openURL(SUBSCRIBE_URL)}
+                  onPress={() => setUpgradeOpen(true)}
                 >
                   <Text style={styles.solidBtnText}>{t('tier.upgradeButton')}</Text>
                 </TouchableOpacity>
@@ -487,7 +658,7 @@ export default function SupportScreen() {
               <TouchableOpacity
                 style={[styles.outlineBtn, { borderColor: colors.secondary, marginTop: 12 }]}
                 activeOpacity={0.8}
-                onPress={() => void Linking.openURL(PROVIDERS_URL)}
+                onPress={() => setProviderOpen(true)}
               >
                 <Text style={[styles.outlineBtnText, { color: colors.secondary }]}>
                   {t('referral.button')}
@@ -502,69 +673,68 @@ export default function SupportScreen() {
           <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
             {t('groups.eyebrow')}
           </Text>
-          {groups.map((group: SupportGroup) => (
-            <View
-              key={group.id}
-              style={[styles.groupRow, { borderBottomColor: colors.line }]}
-            >
+          {groups.map((group: SupportGroup) => {
+            const room = group.liveRoomId;
+            const isMyRoom = !!(room && myRooms.includes(room));
+            const isLive = !!(room && liveRooms.includes(room));
+            const isRsvped = !!(room && rsvpedRooms.has(room));
+            return (
               <View
-                style={[styles.groupIcon, { backgroundColor: group.accentColor }]}
+                key={group.id}
+                style={[styles.groupRow, { borderBottomColor: colors.line }]}
               >
-                <Text style={styles.groupIconText}>{group.icon}</Text>
-              </View>
-              <View style={styles.groupInfo}>
-                <Text style={[styles.groupName, { color: colors.ink }]}>{group.name}</Text>
-                <Text style={[styles.groupMeta, { color: colors.inkSoft }]}>
-                  {group.scheduleLabel}
-                  {group.onlineCount > 0
-                    ? `  ·  ${group.onlineCount} online`
-                    : ''}
-                </Text>
-              </View>
-              {(() => {
-                const room = group.liveRoomId;
-                const isMyRoom = room && myRooms.includes(room);
-                const isLive = room && liveRooms.includes(room);
-                if (isMyRoom) {
-                  return (
+                <View style={[styles.groupIcon, { backgroundColor: group.accentColor }]}>
+                  <Text style={styles.groupIconText}>{group.icon}</Text>
+                </View>
+                <View style={styles.groupInfo}>
+                  <Text style={[styles.groupName, { color: colors.ink }]}>{group.name}</Text>
+                  <Text style={[styles.groupMeta, { color: colors.inkSoft }]}>
+                    {group.scheduleLabel}
+                    {group.onlineCount > 0 ? `  ·  ${group.onlineCount} online` : ''}
+                  </Text>
+                  {!isMyRoom && room ? (
                     <TouchableOpacity
-                      style={[styles.joinBtn, { borderColor: colors.coral, backgroundColor: colors.coral }]}
-                      activeOpacity={0.8}
-                      onPress={() => router.push({ pathname: '/live-room' as never, params: { room } })}
+                      style={[
+                        styles.rsvpInlineBtn,
+                        {
+                          borderColor: isRsvped ? colors.green : colors.primary,
+                          backgroundColor: isRsvped ? colors.greenLight : 'transparent',
+                        },
+                      ]}
+                      activeOpacity={0.7}
+                      onPress={() => void toggleGroupRsvp(room)}
                     >
-                      <Text style={[styles.joinBtnText, { color: '#fff' }]}>
-                        {t('groups.goLive')}
+                      <Text style={[styles.rsvpInlineBtnText, { color: isRsvped ? colors.green : colors.primary }]}>
+                        {isRsvped ? t('groups.rsvpDone') : t('groups.rsvpButton')}
                       </Text>
                     </TouchableOpacity>
-                  );
-                }
-                if (isLive) {
-                  return (
-                    <TouchableOpacity
-                      style={[styles.joinBtn, { borderColor: colors.coral }]}
-                      activeOpacity={0.8}
-                      onPress={() => router.push({ pathname: '/live-room' as never, params: { room } })}
-                    >
-                      <Text style={[styles.joinBtnText, { color: colors.coral }]}>
-                        {t('groups.joinLive')}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                }
-                return (
+                  ) : null}
+                </View>
+                {/* Status button */}
+                {isMyRoom ? (
                   <TouchableOpacity
-                    style={[styles.joinBtn, { borderColor: colors.primary }]}
+                    style={[styles.joinBtn, { borderColor: colors.coral, backgroundColor: colors.coral }]}
                     activeOpacity={0.8}
-                    onPress={() => Linking.openURL(group.joinUrl ?? GROUPS_URL)}
+                    onPress={() => router.push({ pathname: '/live-room' as never, params: { room } })}
                   >
-                    <Text style={[styles.joinBtnText, { color: colors.primary }]}>
-                      {t('groups.joinButton')}
-                    </Text>
+                    <Text style={[styles.joinBtnText, { color: '#fff' }]}>{t('groups.goLive')}</Text>
                   </TouchableOpacity>
-                );
-              })()}
-            </View>
-          ))}
+                ) : isLive ? (
+                  <TouchableOpacity
+                    style={[styles.joinBtn, { borderColor: colors.coral, backgroundColor: '#111111' }]}
+                    activeOpacity={0.8}
+                    onPress={() => router.push({ pathname: '/live-room' as never, params: { room } })}
+                  >
+                    <Text style={[styles.joinBtnText, { color: '#fff' }]}>{t('groups.joinLive')}</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <View style={[styles.joinBtn, { borderColor: colors.primary, backgroundColor: '#e0e0e0' }]}>
+                    <Text style={[styles.joinBtnText, { color: '#aaaaaa' }]}>{t('groups.joinButton')}</Text>
+                  </View>
+                )}
+              </View>
+            );
+          })}
           <TouchableOpacity
             style={styles.moreGroupsRow}
             activeOpacity={0.7}
@@ -741,6 +911,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   joinBtnText: { fontSize: 12, fontWeight: '600' },
+  rsvpInlineBtn: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    marginTop: 6,
+  },
+  rsvpInlineBtnText: { fontSize: 11, fontWeight: '700' },
   moreGroupsRow: { paddingTop: 12, alignItems: 'center' },
   moreGroupsText: { fontSize: 12.5, lineHeight: 18, textAlign: 'center' },
 

@@ -1,4 +1,5 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import * as Clipboard from 'expo-clipboard';
 import {
   ScrollView,
   View,
@@ -8,6 +9,8 @@ import {
   Alert,
   StyleSheet,
 } from 'react-native';
+import { useFocusEffect } from 'expo-router';
+import { supabase } from '../../src/lib/supabase';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -40,7 +43,47 @@ export default function BoundariesScreen() {
   const [prefill, setPrefill] = useState('');
   const [lastAnchorTag, setLastAnchorTag] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState('');
+  const [codeCopied, setCodeCopied] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
+
+  // ── Daily challenge + streak bar ──────────────────────────────────────────
+  const now = new Date();
+  const doy = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000);
+  const isMonday = now.getDay() === 1;
+  const challengeText = isMonday
+    ? content.challenge.monday
+    : content.challenge.daily[doy % content.challenge.daily.length];
+
+  const [checkinDates, setCheckinDates] = useState<Set<string>>(new Set());
+  useFocusEffect(
+    useCallback(() => {
+      if (!user?.id) return;
+      const since = new Date(Date.now() - 7 * 86400000).toISOString();
+      void supabase
+        .from('checkins')
+        .select('created_at')
+        .eq('account_id', user.id)
+        .gte('created_at', since)
+        .then(({ data }) => {
+          if (data) setCheckinDates(new Set(data.map((r) => r.created_at.slice(0, 10))));
+        });
+    }, [user?.id]),
+  );
+
+  const streakDots = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(Date.now() - (6 - i) * 86400000);
+    return {
+      label: ['S', 'M', 'T', 'W', 'T', 'F', 'S'][d.getDay()],
+      filled: checkinDates.has(d.toISOString().slice(0, 10)),
+      isToday: i === 6,
+    };
+  });
+
+  const copyInviteCode = useCallback(async (code: string) => {
+    await Clipboard.setStringAsync(code);
+    setCodeCopied(true);
+    setTimeout(() => setCodeCopied(false), 2000);
+  }, []);
 
   const handleSuggestionSelect = useCallback((wallText: string, pillId: string) => {
     setPrefill(wallText);
@@ -74,6 +117,37 @@ export default function BoundariesScreen() {
               </Text>
             </View>
           ) : null}
+        </View>
+
+        {/* ── Daily Challenge ──────────────────────────────────────── */}
+        <View style={[styles.card, styles.challengeCard, { borderColor: isMonday ? colors.secondary : colors.primary, backgroundColor: isMonday ? colors.secondaryLight : colors.primaryLight }]}>
+          <Text style={[styles.challengeEyebrow, { color: isMonday ? colors.secondary : colors.primary }]}>
+            {content.challenge.eyebrow}
+          </Text>
+          <Text style={[styles.challengeText, { color: colors.ink }]}>{challengeText}</Text>
+        </View>
+
+        {/* ── Check-in Streak Bar ──────────────────────────────────── */}
+        <View style={[styles.card, styles.streakCard, { borderColor: colors.line }]}>
+          <Text style={[styles.streakEyebrow, { color: colors.inkSoft }]}>
+            {content.challenge.streakEyebrow}
+          </Text>
+          <View style={styles.dotsRow}>
+            {streakDots.map((dot, i) => (
+              <View key={i} style={styles.dotCol}>
+                <View
+                  style={[
+                    styles.dot,
+                    dot.filled
+                      ? { backgroundColor: colors.green }
+                      : { backgroundColor: colors.line },
+                    dot.isToday && !dot.filled && { borderWidth: 2, borderColor: colors.primary },
+                  ]}
+                />
+                <Text style={[styles.dotLabel, { color: colors.inkSoft }]}>{dot.label}</Text>
+              </View>
+            ))}
+          </View>
         </View>
 
         {/* Castle Framework */}
@@ -211,14 +285,18 @@ export default function BoundariesScreen() {
               })}
 
               {/* Invite */}
-              <View style={[styles.inviteRow, { backgroundColor: colors.primaryLight }]}>
-                <Text style={[styles.inviteCode, { color: colors.primary }]}>
+              <TouchableOpacity
+                style={[styles.inviteRow, { backgroundColor: codeCopied ? colors.greenLight : colors.primaryLight }]}
+                activeOpacity={0.7}
+                onPress={() => void copyInviteCode(familySpace.inviteCode)}
+              >
+                <Text style={[styles.inviteCode, { color: codeCopied ? colors.green : colors.primary }]}>
                   {familySpace.inviteCode}
                 </Text>
                 <Text style={[styles.inviteLabel, { color: colors.inkSoft }]}>
-                  {tAlign('inviteCode')}
+                  {codeCopied ? tAlign('inviteCodeCopied') : tAlign('inviteCode')}
                 </Text>
-              </View>
+              </TouchableOpacity>
             </>
           ) : (
             <>
@@ -230,7 +308,12 @@ export default function BoundariesScreen() {
               </Text>
               <TouchableOpacity
                 style={[styles.solidBtn, { backgroundColor: colors.primary }]}
-                onPress={() => void createFamilySpace(firstName || 'My')}
+                onPress={() => {
+                  void createFamilySpace(firstName || 'My').catch((err: unknown) => {
+                    console.error('[BoundariesScreen] createFamilySpace failed:', err);
+                    Alert.alert(tAlign('createErrorTitle'), tAlign('createErrorMessage'));
+                  });
+                }}
                 activeOpacity={0.85}
               >
                 <Text style={styles.solidBtnText}>{tAlign('createButton')}</Text>
@@ -383,4 +466,17 @@ const styles = StyleSheet.create({
   },
   joinBtn: { borderRadius: 10, paddingHorizontal: 16, paddingVertical: 10, justifyContent: 'center' },
   joinBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+
+  // Daily challenge card
+  challengeCard: { borderWidth: 1.5 },
+  challengeEyebrow: { fontSize: 10, fontWeight: '800', letterSpacing: 1.4, marginBottom: 8 },
+  challengeText: { fontSize: 15, lineHeight: 22, fontWeight: '500' },
+
+  // Streak bar
+  streakCard: { paddingVertical: 14 },
+  streakEyebrow: { fontSize: 10, fontWeight: '700', letterSpacing: 1.2, marginBottom: 10 },
+  dotsRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  dotCol: { alignItems: 'center', gap: 4 },
+  dot: { width: 28, height: 28, borderRadius: 14 },
+  dotLabel: { fontSize: 10, fontWeight: '600' },
 });

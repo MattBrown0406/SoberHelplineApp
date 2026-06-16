@@ -84,8 +84,12 @@ export function useCheckIn(accountId: string | null): UseCheckInResult {
 
   const saveCheckIn = useCallback(async (moodScore: MoodScore, note?: string) => {
     const now = new Date();
+    const id = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+      ? crypto.randomUUID()
+      : `ci-${now.getTime()}-${Math.floor(Math.random() * 1_000_000)}`;
+
     const checkIn: CheckIn = {
-      id: crypto.randomUUID ? crypto.randomUUID() : `ci-${now.getTime()}`,
+      id,
       userId: accountId ?? 'local',
       moodScore,
       note: note ?? null,
@@ -93,7 +97,7 @@ export function useCheckIn(accountId: string | null): UseCheckInResult {
       synced: false,
     };
 
-    // 1. Optimistic local write
+    // 1. Optimistic local write — must succeed before anything else
     await persistLocal(checkIn);
     setTodayCheckIn(checkIn);
     const localDates = await getCheckedInDates();
@@ -109,7 +113,9 @@ export function useCheckIn(accountId: string | null): UseCheckInResult {
         created_at: checkIn.completedAt,
       });
 
-      if (!error) {
+      if (error) {
+        console.error('[useCheckIn] Supabase insert failed:', error);
+      } else {
         const synced = { ...checkIn, synced: true };
         await persistLocal(synced);
         setTodayCheckIn(synced);

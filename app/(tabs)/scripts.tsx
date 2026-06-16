@@ -10,7 +10,8 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { ScriptCard } from '../../src/components/scripts/ScriptCard';
-import { getMockScripts } from '../../src/api/mock';
+import { getMockScripts, getDailyScriptPair } from '../../src/api/mock';
+import { useTodayFeed } from '../../src/hooks/useTodayFeed';
 
 export default function ScriptsScreen() {
   const { colors } = useTheme();
@@ -19,7 +20,10 @@ export default function ScriptsScreen() {
   const { t: tCommon } = useTranslation('common');
   const [query, setQuery] = useState('');
 
+  const { scriptSlot } = useTodayFeed(user?.id ?? null, user?.joinedAt ?? null);
+
   const allScripts = useMemo(() => getMockScripts(), []);
+  const todayScripts = useMemo(() => getDailyScriptPair(scriptSlot), [scriptSlot]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -32,38 +36,40 @@ export default function ScriptsScreen() {
   }, [allScripts, query]);
 
   const firstName = user?.firstName ?? '';
+  const isSearching = query.trim().length > 0;
 
   return (
     <ScreenContainer backgroundColor={colors.cream}>
-        <View style={styles.headerRow}>
-          <Text style={[styles.heading, { color: colors.ink }]}>
-            {tCommon('nav.scripts')}
-          </Text>
-          {firstName ? (
-            <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-              <Text style={styles.avatarText}>
-                {firstName.charAt(0).toUpperCase()}
-              </Text>
-            </View>
-          ) : null}
-        </View>
+      <View style={styles.headerRow}>
+        <Text style={[styles.heading, { color: colors.ink }]}>
+          {tCommon('nav.scripts')}
+        </Text>
+        {firstName ? (
+          <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+            <Text style={styles.avatarText}>
+              {firstName.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        ) : null}
+      </View>
 
-        {/* Search */}
-        <View style={[styles.searchBar, { borderColor: colors.line }]}>
-          <Text style={styles.searchIcon}>🔍</Text>
-          <TextInput
-            style={[styles.searchInput, { color: colors.ink }]}
-            placeholder={t('searchPlaceholder')}
-            placeholderTextColor={colors.inkSoft}
-            value={query}
-            onChangeText={setQuery}
-            returnKeyType="search"
-            autoCorrect={false}
-          />
-        </View>
+      {/* Search */}
+      <View style={[styles.searchBar, { borderColor: colors.line }]}>
+        <Text style={styles.searchIcon}>🔍</Text>
+        <TextInput
+          style={[styles.searchInput, { color: colors.ink }]}
+          placeholder={t('searchPlaceholder')}
+          placeholderTextColor={colors.inkSoft}
+          value={query}
+          onChangeText={setQuery}
+          returnKeyType="search"
+          autoCorrect={false}
+        />
+      </View>
 
-        {/* Script cards */}
-        {filtered.length > 0 ? (
+      {isSearching ? (
+        /* Search results */
+        filtered.length > 0 ? (
           filtered.map((script) => (
             <ScriptCard key={script.id} script={script} />
           ))
@@ -71,7 +77,26 @@ export default function ScriptsScreen() {
           <Text style={[styles.empty, { color: colors.inkSoft }]}>
             {t('noResults')}
           </Text>
-        )}
+        )
+      ) : (
+        <>
+          {/* Today's 2 featured scripts */}
+          <Text style={[styles.sectionLabel, { color: colors.inkSoft }]}>
+            {t('todayEyebrow').toUpperCase()}
+          </Text>
+          {todayScripts.map((script) => (
+            <ScriptCard key={script.id} script={script} />
+          ))}
+
+          {/* Full library */}
+          <Text style={[styles.sectionLabel, { color: colors.inkSoft }]}>
+            {t('allEyebrow').toUpperCase()}
+          </Text>
+          {allScripts.map((script) => (
+            <ScriptCard key={script.id} script={script} />
+          ))}
+        </>
+      )}
     </ScreenContainer>
   );
 }
@@ -119,6 +144,13 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13.5,
     padding: 0,
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    marginBottom: 10,
+    marginTop: 4,
   },
   empty: {
     fontSize: 13.5,

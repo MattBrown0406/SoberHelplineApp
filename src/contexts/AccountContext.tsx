@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
 import type { AuthUser, AccountState, Entitlements } from '../api/types';
 import { supabase } from '../lib/supabase';
+import { configureRevenueCat, getIsActivePremium } from '../lib/revenueCat';
 
 const DEFAULT_ENTITLEMENTS: Entitlements = {
   canMessageOnCallCoach: false,
@@ -18,6 +19,7 @@ interface AccountContextValue {
   entitlements: Entitlements;
   isLoading: boolean;
   isAttached: boolean;
+  refreshAccount: () => Promise<void>;
 }
 
 const AccountContext = createContext<AccountContextValue>({
@@ -26,12 +28,9 @@ const AccountContext = createContext<AccountContextValue>({
   entitlements: DEFAULT_ENTITLEMENTS,
   isLoading: true,
   isAttached: false,
+  refreshAccount: async () => {},
 });
 
-// Terms+Privacy consent (#1) must be recorded under an authenticated session.
-// Recording it at sign-up fails silently when email confirmation is enabled
-// (no session yet → RLS blocks the write), so we ensure it here on every
-// authenticated load. Idempotent: skips if the row already exists.
 async function ensureTermsConsent(accountId: string) {
   const { data } = await supabase
     .from('consents')
@@ -58,13 +57,13 @@ async function fetchAccount(authUser: User): Promise<AuthUser | null> {
 
   if (error || !data) return null;
 
-  ensureTermsConsent(data.id); // fire-and-forget; see note above
+  ensureTermsConsent(data.id);
 
-  // Resolve accountState: attached accounts set by org; direct accounts check entitlements table
   let accountState: AccountState =
     data.type === 'attached' ? 'attached' : 'direct-essential';
 
   if (data.type === 'direct') {
+    // Check Supabase entitlements first
     const { data: ent } = await supabase
       .from('entitlements')
       .select('tier, expires_at')
@@ -76,6 +75,13 @@ async function fetchAccount(authUser: User): Promise<AuthUser | null> {
     if (ent) {
       const expired = ent.expires_at ? new Date(ent.expires_at) < new Date() : false;
       if (!expired && ent.tier === 'premium') accountState = 'direct-premium';
+    }
+
+    // Also check RevenueCat — source of truth for IAP purchases
+    if (accountState !== 'direct-premium') {
+      configureRevenueCat(data.id);
+      const rcPremium = await getIsActivePremium();
+      if (rcPremium) accountState = 'direct-premium';
     }
   }
 
@@ -105,10 +111,18 @@ async function fetchAccount(authUser: User): Promise<AuthUser | null> {
 export function AccountProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [authUser, setAuthUser] = useState<User | null>(null);
+
+  const refreshAccount = useCallback(async () => {
+    if (!authUser) return;
+    const account = await fetchAccount(authUser);
+    setUser(account);
+  }, [authUser]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
+        setAuthUser(session.user);
         fetchAccount(session.user).then((account) => {
           setUser(account);
           setIsLoading(false);
@@ -121,8 +135,10 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         if (session) {
+          setAuthUser(session.user);
           fetchAccount(session.user).then(setUser);
         } else {
+          setAuthUser(null);
           setUser(null);
         }
       },
@@ -142,6 +158,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         entitlements,
         isLoading,
         isAttached: accountState === 'attached',
+        refreshAccount,
       }}
     >
       {children}

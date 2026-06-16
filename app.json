@@ -2,7 +2,7 @@
   "expo": {
     "name": "Sober Helpline",
     "slug": "SoberHelplineApp",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "sober-helpline",
@@ -16,18 +16,35 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.soberhelplineapp",
+      "buildNumber": "13",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "Sober Helpline records practice sessions only when you tap record, and they stay on your device.",
         "NSCameraUsageDescription": "Sober Helpline uses your camera only during live group sessions that you choose to host.",
         "UISupportedInterfaceOrientations": [
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationPortrait",
           "UIInterfaceOrientationPortrait"
         ],
         "UISupportedInterfaceOrientations~ipad": [
           "UIInterfaceOrientationPortrait",
           "UIInterfaceOrientationPortraitUpsideDown",
           "UIInterfaceOrientationLandscapeLeft",
+          "UIInterfaceOrientationLandscapeRight",
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationPortraitUpsideDown",
+          "UIInterfaceOrientationLandscapeLeft",
+          "UIInterfaceOrientationLandscapeRight",
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationPortraitUpsideDown",
+          "UIInterfaceOrientationLandscapeLeft",
+          "UIInterfaceOrientationLandscapeRight",
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationPortraitUpsideDown",
+          "UIInterfaceOrientationLandscapeLeft",
           "UIInterfaceOrientationLandscapeRight"
-        ]
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -43,6 +60,13 @@
         "android.permission.INTERNET",
         "android.permission.ACCESS_NETWORK_STATE",
         "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.BLUETOOTH",
         "android.permission.BLUETOOTH_CONNECT"
       ]
     },
@@ -52,6 +76,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "./plugins/withPodfilePatch",
       "expo-router",
       [
         "expo-splash-screen",
@@ -83,6 +108,12 @@
         "projectId": "2858ea55-7e40-4b09-8928-fe9155c1772d"
       }
     },
-    "owner": "mattbrown0406s-organization"
+    "owner": "mattbrown0406s-organization",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/2858ea55-7e40-4b09-8928-fe9155c1772d"
+    }
   }
 }

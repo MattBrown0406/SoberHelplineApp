@@ -107,5 +107,41 @@
     "empty": "No walls anchored yet. Answer the two questions above to lay your first stone.",
     "shareAttached": "Review walls with my coach",
     "shareDirect": "Share walls with the on-call coach"
+  },
+  "challenge": {
+    "eyebrow": "TODAY'S CHALLENGE",
+    "streakEyebrow": "CHECK-IN STREAK",
+    "monday": "It's Monday — join The Family Squares Zoom meeting tonight at 7:00 PM Pacific. Be with people who understand what you're going through.",
+    "daily": [
+      "Practice saying \"no\" once today — and resist the urge to explain yourself afterward.",
+      "Write down one limit you've held this week, even if it was hard. Notice how it felt.",
+      "Take a 20-minute walk without your phone. Just you and your thoughts.",
+      "Tell someone who supports you \"I appreciate you\" today — a text counts.",
+      "Identify one responsibility you've been carrying that truly belongs to someone else.",
+      "Make a nourishing meal just for yourself today. Sit down and actually taste it.",
+      "Write a single sentence you can say the next time someone pressures you.",
+      "Do something for 30 minutes that has nothing to do with your loved one.",
+      "Check in with your body — are you running on empty? Do one thing to refuel.",
+      "Name one enabling behavior you want to change. Write it down, just for you.",
+      "Reach out to one person in your support network today, even just to say hello.",
+      "When you feel the urge to rescue someone today, pause and ask: \"Is this mine to carry?\"",
+      "Give yourself permission to rest today — no problem-solving, just rest.",
+      "Write down your three most important values. Are your actions reflecting them today?",
+      "Plan one small thing to look forward to this week. Put it in your calendar.",
+      "Tell yourself out loud: \"I am doing the best I can. That is enough.\"",
+      "Identify one situation where you said yes when you wanted to say no. What stopped you?",
+      "Set a technology-free hour this evening. Read, draw, or just sit.",
+      "Write two sentences about why you are doing this hard work.",
+      "Do a physical reset: stretch, take a bath, or breathe deeply for five minutes.",
+      "Reflect on one moment this week when a limit you held helped keep the peace.",
+      "Notice one thing today that you're grateful for that has nothing to do with recovery.",
+      "Write one sentence you would say to a close friend in your exact situation.",
+      "Identify a relationship in your life that genuinely energizes you. Invest in it today.",
+      "Celebrate one small win from this week — no matter how minor it seems.",
+      "Spend 10 minutes in complete silence. No phone. No background noise. Just you.",
+      "Write down three things you love about yourself that have nothing to do with caregiving.",
+      "Let yourself feel what you're feeling today without trying to fix or change it.",
+      "Choose one thing today that is purely for your own joy — and do not apologize for it."
+    ]
   }
 }

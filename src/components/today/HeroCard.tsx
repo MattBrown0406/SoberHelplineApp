@@ -75,15 +75,17 @@ const styles = StyleSheet.create({
   },
   streakRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
     marginTop: 4,
   },
   streakItem: {
+    flex: 1,
     backgroundColor: 'rgba(255,255,255,0.13)',
     borderRadius: 12,
     paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingHorizontal: 8,
     alignItems: 'center',
+    minWidth: 0,
   },
   streakNum: {
     fontSize: 20,

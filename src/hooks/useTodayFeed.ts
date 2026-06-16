@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
 const QUOTE_COUNT = 14;
-const FOCUS_POOL_COUNT = 3;
+const FOCUS_POOL_COUNT = 7;
 
 export interface TodayFeedData {
   dayCount: number;
@@ -10,6 +10,7 @@ export interface TodayFeedData {
   groupSessions: number;
   quoteIndex: number;
   focusSlot: number;
+  scriptSlot: number;
   loading: boolean;
 }
 
@@ -22,6 +23,7 @@ export function useTodayFeed(
   const [groupSessions, setGroupSessions] = useState(0);
   const [quoteIndex, setQuoteIndex] = useState(0);
   const [focusSlot, setFocusSlot] = useState(0);
+  const [scriptSlot, setScriptSlot] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -50,6 +52,7 @@ export function useTodayFeed(
     setGroupSessions(rsvpRes.count ?? 0);
     setQuoteIndex(doy % QUOTE_COUNT);
     setFocusSlot(doy % FOCUS_POOL_COUNT);
+    setScriptSlot(doy % 14);
     setDayCount(
       joinedAt
         ? Math.max(1, Math.floor((now.getTime() - new Date(joinedAt).getTime()) / 86400000) + 1)
@@ -58,7 +61,7 @@ export function useTodayFeed(
     setLoading(false);
   }
 
-  return { dayCount, boundariesHeld, groupSessions, quoteIndex, focusSlot, loading };
+  return { dayCount, boundariesHeld, groupSessions, quoteIndex, focusSlot, scriptSlot, loading };
 }
 
 function dayOfYear(d: Date): number {

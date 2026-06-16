@@ -22,7 +22,7 @@ interface Props {
   edges?: ReadonlyArray<Edge>;
   keyboardShouldPersistTaps?: 'always' | 'never' | 'handled';
   /** Forward a ref to the inner ScrollView (e.g. to call scrollToEnd). */
-  scrollRef?: React.RefObject<ScrollView>;
+  scrollRef?: React.RefObject<ScrollView | null>;
 }
 
 /**

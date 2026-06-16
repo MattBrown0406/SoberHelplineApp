@@ -19,7 +19,7 @@ import { useAccount } from '../src/contexts/AccountContext';
 import { useBoundaries } from '../src/hooks/useBoundaries';
 import { MAX_CONTENT_WIDTH } from '../src/components/ui/ScreenContainer';
 import { supabase } from '../src/lib/supabase';
-import { PROVIDERS_URL } from '../src/config';
+import { FEATURED_PROVIDER } from '../src/config';
 import type { LetterDraft, ExperienceBlock } from '../src/api/types';
 
 // ── Tone flag detection ───────────────────────────────────────────────────────
@@ -386,6 +386,7 @@ export default function LetterScreen() {
             {/* ── Paragraph 3 ─────────────────────────────────────── */}
             {step === 'p3' && (
               <View>
+                <CoachNote text={t('p3.coachNote')} colors={colors} />
                 <Text style={[styles.label, { color: colors.ink }]}>{t('p3.requestLabel')}</Text>
                 <TextInput
                   style={[styles.textInput, { borderColor: colors.line, color: colors.ink }]}
@@ -419,7 +420,7 @@ export default function LetterScreen() {
                 <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
                   {t('p3.boundariesEyebrow')}
                 </Text>
-                <Text style={[styles.sublabel, { color: colors.inkSoft }]}>
+                <Text style={[styles.sublabel, { color: colors.inkSoft, marginBottom: 12 }]}>
                   {t('p3.boundariesNote')}
                 </Text>
 
@@ -545,7 +546,26 @@ export default function LetterScreen() {
                     <Text style={[styles.referralText, { color: colors.ink }]}>
                       {t('preview.referralCard')}
                     </Text>
-                    <TouchableOpacity activeOpacity={0.8} onPress={() => void Linking.openURL(PROVIDERS_URL)}>
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      onPress={() =>
+                        Alert.alert(
+                          `${FEATURED_PROVIDER.name} · ${FEATURED_PROVIDER.org}`,
+                          `${FEATURED_PROVIDER.credential} — ${FEATURED_PROVIDER.credentialFull}`,
+                          [
+                            {
+                              text: `Email ${FEATURED_PROVIDER.name}`,
+                              onPress: () => void Linking.openURL(`mailto:${FEATURED_PROVIDER.email}`),
+                            },
+                            {
+                              text: 'Visit Website',
+                              onPress: () => void Linking.openURL(FEATURED_PROVIDER.web),
+                            },
+                            { text: 'Close', style: 'cancel' },
+                          ],
+                        )
+                      }
+                    >
                       <Text style={[styles.referralBtn, { color: colors.secondary }]}>
                         {t('preview.referralButton')} →
                       </Text>

@@ -21,6 +21,11 @@
     "privacyAttached": "Patterns are shared only with your {{orgName}} coach.",
     "privacyDirect": "Patterns stay private unless you choose to share them with a coach.",
     "completeButton": "Complete check-in",
+    "moodHint": "Tap an emoji above to select your mood",
+    "noMoodTitle": "Select a mood",
+    "noMoodMessage": "Tap one of the emojis above to record how you're feeling, then complete your check-in.",
+    "errorTitle": "Couldn't save check-in",
+    "errorMessage": "Something went wrong saving your check-in. Please try again.",
     "done": "✓ Check-in complete!",
     "doneStreak": "✓ Check-in complete — {{count}}-day streak!",
     "doneCoach": "{{orgFirst}} will see your update."
@@ -62,6 +67,26 @@
     "anchor": {
       "title": "Read your anchor statement",
       "subtitle": "\"I will not enable behaviors that harm my family\""
+    },
+    "supportNetwork": {
+      "title": "Reach out to someone who gets it",
+      "subtitle": "Text or call one person in your support network today"
+    },
+    "enabling": {
+      "title": "Spot one enabling pattern",
+      "subtitle": "Name one thing you do that protects the addiction, not the person"
+    },
+    "research": {
+      "title": "Look into treatment options",
+      "subtitle": "Know the options before the conversation — be ready"
+    },
+    "journal": {
+      "title": "Write for five minutes",
+      "subtitle": "What's weighing on you? Getting it out helps you let it go"
+    },
+    "openingLine": {
+      "title": "Practice your opening line",
+      "subtitle": "\"I'm here because I love you and I need you to hear me.\""
     }
   },
   "dailyQuote": {

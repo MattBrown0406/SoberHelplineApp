@@ -4,5 +4,7 @@
   "trySaying": "TRY SAYING",
   "avoid": "AVOID",
   "noResults": "No scripts match that search.",
-  "practice": "Practice this"
+  "practice": "Practice this",
+  "todayEyebrow": "Today's scripts",
+  "allEyebrow": "All scripts"
 }

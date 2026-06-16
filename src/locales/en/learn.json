@@ -1,0 +1,18 @@
+{
+  "header": "Learn",
+  "education": {
+    "title": "Family Education",
+    "body": "60+ exercises and assessments to help you understand addiction, set limits, and support recovery.",
+    "button": "Open"
+  },
+  "recordings": {
+    "title": "Past Recordings",
+    "body": "Watch recordings of previous Family Squares Zoom meetings you may have missed.",
+    "button": "Open"
+  },
+  "resources": {
+    "title": "Treatment Finder",
+    "body": "Search treatment centers, detox facilities, and recovery resources near you.",
+    "button": "Search"
+  }
+}

@@ -107,5 +107,41 @@
     "empty": "Ninguna muralla anclada todavía. Responde las dos preguntas para poner tu primera piedra.",
     "shareAttached": "Revisar murallas con mi coach",
     "shareDirect": "Compartir murallas con el coach disponible"
+  },
+  "challenge": {
+    "eyebrow": "DESAFÍO DE HOY",
+    "streakEyebrow": "RACHA DE CHECK-INS",
+    "monday": "Es lunes — únete a la reunión de Zoom de Family Squares esta noche a las 7:00 PM, hora del Pacífico. Acompáñate de personas que entienden lo que estás viviendo.",
+    "daily": [
+      "Practica decir \"no\" una vez hoy — y resiste el impulso de dar explicaciones.",
+      "Escribe un límite que hayas mantenido esta semana, aunque haya sido difícil. Observa cómo te sentiste.",
+      "Sal a caminar 20 minutos sin el teléfono. Solo tú y tus pensamientos.",
+      "Dile a alguien que te apoya \"te lo agradezco\" hoy — un mensaje cuenta.",
+      "Identifica una responsabilidad que hayas estado cargando y que realmente le pertenece a otra persona.",
+      "Prepárate una comida nutritiva hoy solo para ti. Siéntate y saboréala de verdad.",
+      "Escribe una sola frase que puedas decir la próxima vez que alguien te presione.",
+      "Dedica 30 minutos a algo que no tenga nada que ver con tu ser querido.",
+      "Escucha a tu cuerpo — ¿estás agotado? Haz una cosa para recargar energías.",
+      "Nombra un comportamiento facilitador que quieras cambiar. Escríbelo, solo para ti.",
+      "Comunícate con una persona de tu red de apoyo hoy, aunque sea solo para saludar.",
+      "Cuando sientas el impulso de rescatar a alguien hoy, detente y pregúntate: \"¿Me corresponde a mí llevar esto?\"",
+      "Date permiso para descansar hoy — sin resolver problemas, solo descansar.",
+      "Escribe tus tres valores más importantes. ¿Tus acciones los reflejan hoy?",
+      "Planifica una pequeña cosa que te ilusione esta semana. Ponla en tu agenda.",
+      "Dite en voz alta: \"Estoy haciendo lo mejor que puedo. Eso es suficiente.\"",
+      "Identifica una situación en la que dijiste sí cuando querías decir no. ¿Qué te detuvo?",
+      "Establece una hora sin tecnología esta tarde. Lee, dibuja o simplemente siéntate.",
+      "Escribe dos frases sobre por qué estás haciendo este trabajo tan difícil.",
+      "Haz un reinicio físico: estírate, toma un baño o respira profundamente durante cinco minutos.",
+      "Reflexiona sobre un momento de esta semana en que un límite que mantuviste ayudó a conservar la paz.",
+      "Observa una cosa hoy por la que estés agradecido y que no tenga nada que ver con la recuperación.",
+      "Escribe una frase que le dirías a un amigo cercano en tu misma situación.",
+      "Identifica una relación en tu vida que genuinamente te da energía. Inviértele tiempo hoy.",
+      "Celebra un pequeño logro de esta semana — no importa cuán pequeño sea.",
+      "Pasa 10 minutos en completo silencio. Sin teléfono. Sin ruido de fondo. Solo tú.",
+      "Escribe tres cosas que ames de ti mismo que no tengan nada que ver con el cuidado de otros.",
+      "Permítete sentir lo que sientes hoy sin intentar arreglarlo ni cambiarlo.",
+      "Elige una cosa hoy que sea puramente para tu propio disfrute — y no te disculpes por ello."
+    ]
   }
 }

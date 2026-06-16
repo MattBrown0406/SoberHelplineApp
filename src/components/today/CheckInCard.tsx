@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import type { MoodScore } from '../../api/types';
@@ -15,7 +15,7 @@ const MOODS: Array<{ score: MoodScore; emoji: string }> = [
 interface Props {
   completed: boolean;
   selectedMood: MoodScore | null;
-  onComplete: (mood: MoodScore) => void;
+  onComplete: (mood: MoodScore) => Promise<void>;
   newStreak: number;
   isAttached: boolean;
   orgName: string | null;
@@ -49,7 +49,14 @@ export function CheckInCard({
       : '';
 
   function handleComplete() {
-    if (pendingMood !== null) onComplete(pendingMood);
+    if (pendingMood === null) {
+      Alert.alert(t('checkIn.noMoodTitle'), t('checkIn.noMoodMessage'));
+      return;
+    }
+    void onComplete(pendingMood).catch((err: unknown) => {
+      console.error('[CheckInCard] saveCheckIn failed:', err);
+      Alert.alert(t('checkIn.errorTitle'), t('checkIn.errorMessage'));
+    });
   }
 
   return (
@@ -87,6 +94,11 @@ export function CheckInCard({
               </TouchableOpacity>
             ))}
           </View>
+          {pendingMood === null && (
+            <Text style={[styles.moodHint, { color: colors.inkSoft }]}>
+              {t('checkIn.moodHint')}
+            </Text>
+          )}
           <TouchableOpacity
             style={[
               styles.btn,
@@ -96,7 +108,6 @@ export function CheckInCard({
               },
             ]}
             onPress={handleComplete}
-            disabled={pendingMood === null}
             activeOpacity={0.8}
           >
             <Text style={styles.btnText}>{t('checkIn.completeButton')}</Text>
@@ -164,11 +175,16 @@ const styles = StyleSheet.create({
   moodEmoji: {
     fontSize: 25,
   },
+  moodHint: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 8,
+  },
   btn: {
     borderRadius: 14,
     padding: 14,
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 6,
   },
   btnText: {
     color: '#fff',

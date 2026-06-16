@@ -21,6 +21,11 @@
     "privacyAttached": "Los patrones se comparten únicamente con tu coach de {{orgName}}.",
     "privacyDirect": "Los patrones son privados a menos que elijas compartirlos con un coach.",
     "completeButton": "Completar registro",
+    "moodHint": "Toca un emoji arriba para seleccionar tu estado de ánimo",
+    "noMoodTitle": "Selecciona un estado de ánimo",
+    "noMoodMessage": "Toca uno de los emojis de arriba para registrar cómo te sientes y luego completa tu registro.",
+    "errorTitle": "No se pudo guardar el registro",
+    "errorMessage": "Algo salió mal al guardar tu registro. Por favor, inténtalo de nuevo.",
     "done": "✓ ¡Registro completo!",
     "doneStreak": "✓ Registro completo — ¡{{count}} días seguidos!",
     "doneCoach": "{{orgFirst}} verá tu actualización."
@@ -62,6 +67,26 @@
     "anchor": {
       "title": "Lee tu declaración de anclaje",
       "subtitle": "\"No voy a permitir conductas que dañen a mi familia\""
+    },
+    "supportNetwork": {
+      "title": "Comunícate con alguien que te entiende",
+      "subtitle": "Escribe o llama a una persona de tu red de apoyo hoy"
+    },
+    "enabling": {
+      "title": "Identifica un patrón de habilitación",
+      "subtitle": "Nombra algo que haces que protege la adicción, no a la persona"
+    },
+    "research": {
+      "title": "Investiga opciones de tratamiento",
+      "subtitle": "Conoce las opciones antes de la conversación — prepárate"
+    },
+    "journal": {
+      "title": "Escribe durante cinco minutos",
+      "subtitle": "¿Qué te pesa? Sacarlo ayuda a soltarlo"
+    },
+    "openingLine": {
+      "title": "Practica tu frase de apertura",
+      "subtitle": "\"Estoy aquí porque te amo y necesito que me escuches.\""
     }
   },
   "dailyQuote": {

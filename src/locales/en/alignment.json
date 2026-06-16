@@ -2,7 +2,8 @@
   "sectionEyebrow": "Family space",
   "meterTitle": "Your castle",
   "meter": "{{held}} of {{total}} walls fully held",
-  "inviteCode": "Invite code",
+  "inviteCode": "Invite code — tap to copy",
+  "inviteCodeCopied": "Copied!",
   "inviteCodeDesc": "Share this code so family members can join.",
   "inviteButton": "Invite family member",
   "joinWithCode": "Join with a code",
@@ -34,5 +35,7 @@
   "weeklyYes": "Yes — held them",
   "weeklyMostly": "Mostly",
   "weeklySlipped": "I slipped on one",
-  "weeklyNote": "This stays private unless you choose to share with your family."
+  "weeklyNote": "This stays private unless you choose to share with your family.",
+  "createErrorTitle": "Could not create family space",
+  "createErrorMessage": "Please try again. If the problem continues, contact support."
 }
