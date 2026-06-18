@@ -68,7 +68,9 @@
     "subscribeButton": "Suscribirse · $44.99/mes",
     "iapError": "Algo salió mal con la compra. Por favor inténtalo de nuevo.",
     "iapNoOfferings": "Las suscripciones no están disponibles ahora. Inténtalo más tarde.",
-    "close": "Ahora no"
+    "close": "Ahora no",
+    "privacyPolicy": "Política de privacidad",
+    "termsOfUse": "Términos de uso"
   },
   "groups": {
     "eyebrow": "Grupos moderados",

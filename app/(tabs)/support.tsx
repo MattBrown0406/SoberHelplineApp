@@ -277,6 +277,16 @@ function UpgradeSheet({
           </Text>
         </TouchableOpacity>
 
+        <View style={styles.legalRow}>
+          <TouchableOpacity onPress={() => void Linking.openURL('https://soberhelpline.com/privacy')}>
+            <Text style={[styles.legalLink, { color: colors.primary }]}>{t('upgradeSheet.privacyPolicy')}</Text>
+          </TouchableOpacity>
+          <Text style={[styles.legalSep, { color: colors.inkSoft }]}> · </Text>
+          <TouchableOpacity onPress={() => void Linking.openURL('https://soberhelpline.com/terms')}>
+            <Text style={[styles.legalLink, { color: colors.primary }]}>{t('upgradeSheet.termsOfUse')}</Text>
+          </TouchableOpacity>
+        </View>
+
         <TouchableOpacity style={[styles.sheetRow, styles.sheetRowLast, { marginTop: 4 }]} onPress={onClose}>
           <Text style={[styles.sheetRowName, { color: colors.inkSoft }]}>
             {t('upgradeSheet.close')}
@@ -989,6 +999,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   sheetRowLast: { borderBottomWidth: 0 },
+  legalRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 12, marginBottom: 4 },
+  legalLink: { fontSize: 12, fontWeight: '500' },
+  legalSep: { fontSize: 12 },
   sheetRowName: { fontSize: 14, fontWeight: '600', flex: 1 },
   sheetRowSub: { fontSize: 12, marginTop: 2 },
   sheetRowAction: { fontSize: 14, fontWeight: '700' },

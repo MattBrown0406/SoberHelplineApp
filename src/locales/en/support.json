@@ -68,7 +68,9 @@
     "subscribeButton": "Subscribe · $44.99/month",
     "iapError": "Something went wrong with the purchase. Please try again.",
     "iapNoOfferings": "Subscriptions are not available right now. Please try again later.",
-    "close": "Not Now"
+    "close": "Not Now",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfUse": "Terms of Use"
   },
   "groups": {
     "eyebrow": "Moderated groups",
