@@ -18,6 +18,7 @@ import { supabase } from '../src/lib/supabase';
 const ADMIN_EMAIL = 'matt@soberhelpline.com';
 
 type RsvpRow = { first_name: string; last_name: string; email: string; rsvped_at: string };
+type QuestionRow = { id: string; first_name: string; last_name: string; question: string; submitted_at: string };
 
 export default function AdminScreen() {
   const router = useRouter();
@@ -31,6 +32,8 @@ export default function AdminScreen() {
 
   const [rsvps, setRsvps] = useState<RsvpRow[]>([]);
   const [loadingRsvps, setLoadingRsvps] = useState(true);
+  const [questions, setQuestions] = useState<QuestionRow[]>([]);
+  const [loadingQuestions, setLoadingQuestions] = useState(true);
 
   // Guard: non-admin users should never reach this screen, but redirect just in case
   useEffect(() => {
@@ -50,9 +53,15 @@ export default function AdminScreen() {
 
     // Load RSVPs
     setLoadingRsvps(true);
-    const { data, error } = await supabase.rpc('admin_get_family_squares_rsvps');
-    if (!error && data) setRsvps(data as RsvpRow[]);
+    const { data: rsvpData, error: rsvpError } = await supabase.rpc('admin_get_family_squares_rsvps');
+    if (!rsvpError && rsvpData) setRsvps(rsvpData as RsvpRow[]);
     setLoadingRsvps(false);
+
+    // Load questions
+    setLoadingQuestions(true);
+    const { data: qData, error: qError } = await supabase.rpc('admin_get_session_questions');
+    if (!qError && qData) setQuestions(qData as QuestionRow[]);
+    setLoadingQuestions(false);
   }, []);
 
   useEffect(() => { void loadData(); }, [loadData]);
@@ -163,6 +172,36 @@ export default function AdminScreen() {
           <Text style={[styles.refreshText, { color: colors.primary }]}>Refresh</Text>
         </TouchableOpacity>
       </View>
+
+      {/* ── Member Questions ── */}
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.cardTitle, { color: colors.ink }]}>
+          Member Questions ({questions.length})
+        </Text>
+
+        {loadingQuestions ? (
+          <ActivityIndicator color={colors.primary} style={{ marginTop: 16 }} />
+        ) : questions.length === 0 ? (
+          <Text style={[styles.emptyText, { color: colors.inkSoft }]}>No questions submitted yet.</Text>
+        ) : (
+          <FlatList
+            data={questions}
+            keyExtractor={(item) => item.id}
+            scrollEnabled={false}
+            ItemSeparatorComponent={() => (
+              <View style={[styles.separator, { backgroundColor: colors.border }]} />
+            )}
+            renderItem={({ item }) => (
+              <View style={styles.questionRow}>
+                <Text style={[styles.questionText, { color: colors.ink }]}>"{item.question}"</Text>
+                <Text style={[styles.rsvpName, { color: colors.inkSoft, marginTop: 4 }]}>
+                  — {item.first_name} {item.last_name} · {new Date(item.submitted_at).toLocaleDateString()}
+                </Text>
+              </View>
+            )}
+          />
+        )}
+      </View>
     </ScreenContainer>
   );
 }
@@ -189,4 +228,6 @@ const styles = StyleSheet.create({
   rsvpEmail: { fontSize: 13, marginTop: 2 },
   separator: { height: 1 },
   refreshText: { fontSize: 14, fontWeight: '600' },
+  questionRow: { paddingVertical: 10 },
+  questionText: { fontSize: 14, lineHeight: 20, fontStyle: 'italic' },
 });

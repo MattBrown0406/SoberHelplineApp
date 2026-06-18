@@ -72,6 +72,15 @@
     "privacyPolicy": "Privacy Policy",
     "termsOfUse": "Terms of Use"
   },
+  "questionModal": {
+    "button": "Ask a question",
+    "title": "Submit a question",
+    "sub": "Your question will be reviewed before the meeting.",
+    "placeholder": "What would you like answered on the call?",
+    "submit": "Submit",
+    "submitted": "Question submitted!",
+    "cancel": "Cancel"
+  },
   "groups": {
     "eyebrow": "Moderated groups",
     "joinButton": "Join",

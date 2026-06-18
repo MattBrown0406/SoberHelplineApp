@@ -2,13 +2,16 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   Modal,
   Linking,
   StyleSheet,
   Alert,
+  ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
+import { supabase } from '../../src/lib/supabase';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -343,6 +346,27 @@ export default function SupportScreen() {
   const [crisisOpen, setCrisisOpen] = useState(false);
   const [providerOpen, setProviderOpen] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [questionSession, setQuestionSession] = useState<DbSession | null>(null);
+  const [questionText, setQuestionText] = useState('');
+  const [questionSubmitting, setQuestionSubmitting] = useState(false);
+  const [questionSubmitted, setQuestionSubmitted] = useState(false);
+
+  async function submitQuestion() {
+    if (!questionText.trim() || !questionSession || !user?.id) return;
+    setQuestionSubmitting(true);
+    await supabase.from('session_questions').insert({
+      account_id: user.id,
+      session_id: questionSession.id,
+      question: questionText.trim(),
+    });
+    setQuestionSubmitting(false);
+    setQuestionSubmitted(true);
+    setTimeout(() => {
+      setQuestionSession(null);
+      setQuestionText('');
+      setQuestionSubmitted(false);
+    }, 1500);
+  }
 
   async function handlePurchase() {
     const success = await purchasePremium();
@@ -435,52 +459,44 @@ export default function SupportScreen() {
                 {t('sessions.eyebrow')}
               </Text>
               {sessions.map((sess) => (
-                <View
-                  key={sess.id}
-                  style={[styles.sessionRow, { borderBottomColor: colors.line }]}
-                >
-                  <View style={styles.sessionInfo}>
-                    <Text style={[styles.sessionTitle, { color: colors.ink }]}>
-                      {sess.title}
-                    </Text>
-                    <Text style={[styles.sessionMeta, { color: colors.inkSoft }]}>
-                      {sessionTypeKey(sess.kind, t)} · {sess.schedule_label}
-                    </Text>
-                  </View>
-                  {sess.rsvped && sess.zoom_url ? (
+                <View key={sess.id} style={[styles.sessionOuter, { borderBottomColor: colors.line }]}>
+                  <View style={styles.sessionRow}>
+                    <View style={styles.sessionInfo}>
+                      <Text style={[styles.sessionTitle, { color: colors.ink }]}>{sess.title}</Text>
+                      <Text style={[styles.sessionMeta, { color: colors.inkSoft }]}>
+                        {sessionTypeKey(sess.kind, t)} · {sess.schedule_label}
+                      </Text>
+                    </View>
+                    {sess.rsvped && sess.zoom_url ? (
+                      <TouchableOpacity
+                        style={[styles.sessionBtn, { backgroundColor: colors.green, borderColor: colors.green }]}
+                        activeOpacity={0.8}
+                        onPress={() => Linking.openURL(sess.zoom_url!)}
+                      >
+                        <Text style={[styles.sessionBtnText, { color: '#fff' }]}>{t('sessions.joinZoom')}</Text>
+                      </TouchableOpacity>
+                    ) : null}
                     <TouchableOpacity
-                      style={[
-                        styles.sessionBtn,
-                        { backgroundColor: colors.green, borderColor: colors.green },
-                      ]}
+                      style={[styles.sessionBtn, { backgroundColor: sess.rsvped ? colors.greenLight : colors.primaryLight, borderColor: sess.rsvped ? colors.green : colors.primary }]}
                       activeOpacity={0.8}
-                      onPress={() => Linking.openURL(sess.zoom_url!)}
+                      onPress={() => toggleRsvp(sess)}
                     >
-                      <Text style={[styles.sessionBtnText, { color: '#fff' }]}>
-                        {t('sessions.joinZoom')}
+                      <Text style={[styles.sessionBtnText, { color: sess.rsvped ? colors.green : colors.primary }]}>
+                        {sess.rsvped ? t('sessions.confirmButton') : t('sessions.rsvpButton')}
                       </Text>
                     </TouchableOpacity>
-                  ) : null}
-                  <TouchableOpacity
-                    style={[
-                      styles.sessionBtn,
-                      {
-                        backgroundColor: sess.rsvped ? colors.greenLight : colors.primaryLight,
-                        borderColor: sess.rsvped ? colors.green : colors.primary,
-                      },
-                    ]}
-                    activeOpacity={0.8}
-                    onPress={() => toggleRsvp(sess)}
-                  >
-                    <Text
-                      style={[
-                        styles.sessionBtnText,
-                        { color: sess.rsvped ? colors.green : colors.primary },
-                      ]}
+                  </View>
+                  {sess.rsvped && (
+                    <TouchableOpacity
+                      style={[styles.questionBtn, { borderColor: colors.primary }]}
+                      activeOpacity={0.8}
+                      onPress={() => setQuestionSession(sess)}
                     >
-                      {sess.rsvped ? t('sessions.confirmButton') : t('sessions.rsvpButton')}
-                    </Text>
-                  </TouchableOpacity>
+                      <Text style={[styles.questionBtnText, { color: colors.primary }]}>
+                        {t('questionModal.button')}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               ))}
             </View>
@@ -605,52 +621,44 @@ export default function SupportScreen() {
                 {t('sessions.eyebrow')}
               </Text>
               {sessions.map((sess) => (
-                <View
-                  key={sess.id}
-                  style={[styles.sessionRow, { borderBottomColor: colors.line }]}
-                >
-                  <View style={styles.sessionInfo}>
-                    <Text style={[styles.sessionTitle, { color: colors.ink }]}>
-                      {sess.title}
-                    </Text>
-                    <Text style={[styles.sessionMeta, { color: colors.inkSoft }]}>
-                      {sessionTypeKey(sess.kind, t)} · {sess.schedule_label}
-                    </Text>
-                  </View>
-                  {sess.rsvped && sess.zoom_url ? (
+                <View key={sess.id} style={[styles.sessionOuter, { borderBottomColor: colors.line }]}>
+                  <View style={styles.sessionRow}>
+                    <View style={styles.sessionInfo}>
+                      <Text style={[styles.sessionTitle, { color: colors.ink }]}>{sess.title}</Text>
+                      <Text style={[styles.sessionMeta, { color: colors.inkSoft }]}>
+                        {sessionTypeKey(sess.kind, t)} · {sess.schedule_label}
+                      </Text>
+                    </View>
+                    {sess.rsvped && sess.zoom_url ? (
+                      <TouchableOpacity
+                        style={[styles.sessionBtn, { backgroundColor: colors.green, borderColor: colors.green }]}
+                        activeOpacity={0.8}
+                        onPress={() => Linking.openURL(sess.zoom_url!)}
+                      >
+                        <Text style={[styles.sessionBtnText, { color: '#fff' }]}>{t('sessions.joinZoom')}</Text>
+                      </TouchableOpacity>
+                    ) : null}
                     <TouchableOpacity
-                      style={[
-                        styles.sessionBtn,
-                        { backgroundColor: colors.green, borderColor: colors.green },
-                      ]}
+                      style={[styles.sessionBtn, { backgroundColor: sess.rsvped ? colors.greenLight : colors.primaryLight, borderColor: sess.rsvped ? colors.green : colors.primary }]}
                       activeOpacity={0.8}
-                      onPress={() => Linking.openURL(sess.zoom_url!)}
+                      onPress={() => toggleRsvp(sess)}
                     >
-                      <Text style={[styles.sessionBtnText, { color: '#fff' }]}>
-                        {t('sessions.joinZoom')}
+                      <Text style={[styles.sessionBtnText, { color: sess.rsvped ? colors.green : colors.primary }]}>
+                        {sess.rsvped ? t('sessions.confirmButton') : t('sessions.rsvpButton')}
                       </Text>
                     </TouchableOpacity>
-                  ) : null}
-                  <TouchableOpacity
-                    style={[
-                      styles.sessionBtn,
-                      {
-                        backgroundColor: sess.rsvped ? colors.greenLight : colors.primaryLight,
-                        borderColor: sess.rsvped ? colors.green : colors.primary,
-                      },
-                    ]}
-                    activeOpacity={0.8}
-                    onPress={() => toggleRsvp(sess)}
-                  >
-                    <Text
-                      style={[
-                        styles.sessionBtnText,
-                        { color: sess.rsvped ? colors.green : colors.primary },
-                      ]}
+                  </View>
+                  {sess.rsvped && (
+                    <TouchableOpacity
+                      style={[styles.questionBtn, { borderColor: colors.primary }]}
+                      activeOpacity={0.8}
+                      onPress={() => setQuestionSession(sess)}
                     >
-                      {sess.rsvped ? t('sessions.confirmButton') : t('sessions.rsvpButton')}
-                    </Text>
-                  </TouchableOpacity>
+                      <Text style={[styles.questionBtnText, { color: colors.primary }]}>
+                        {t('questionModal.button')}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               ))}
             </View>
@@ -793,6 +801,47 @@ export default function SupportScreen() {
             })}
           </View>
         </View>
+      {/* ── Question modal ── */}
+      <Modal visible={questionSession !== null} animationType="slide" transparent onRequestClose={() => setQuestionSession(null)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setQuestionSession(null)} />
+        <View style={[styles.sheet, { backgroundColor: colors.white, left: sheetOffset, right: sheetOffset }]}>
+          <View style={[styles.sheetHandle, { backgroundColor: colors.line }]} />
+          <Text style={[styles.sheetTitle, { color: colors.ink }]}>{t('questionModal.title')}</Text>
+          <Text style={[styles.sheetSub, { color: colors.inkSoft, marginBottom: 14 }]}>{t('questionModal.sub')}</Text>
+
+          {questionSubmitted ? (
+            <Text style={[styles.sheetTitle, { color: colors.green, fontSize: 16, textAlign: 'center', marginVertical: 24 }]}>
+              {t('questionModal.submitted')}
+            </Text>
+          ) : (
+            <>
+              <TextInput
+                style={[styles.questionInput, { borderColor: colors.line, color: colors.ink }]}
+                placeholder={t('questionModal.placeholder')}
+                placeholderTextColor={colors.inkSoft}
+                value={questionText}
+                onChangeText={setQuestionText}
+                multiline
+                maxLength={500}
+                autoFocus
+              />
+              <TouchableOpacity
+                style={[styles.solidBtn, { backgroundColor: questionText.trim() ? colors.primary : colors.line, marginTop: 12 }]}
+                disabled={!questionText.trim() || questionSubmitting}
+                onPress={submitQuestion}
+                activeOpacity={0.85}
+              >
+                {questionSubmitting
+                  ? <ActivityIndicator color="#fff" />
+                  : <Text style={styles.solidBtnText}>{t('questionModal.submit')}</Text>}
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.sheetRow, styles.sheetRowLast, { marginTop: 4 }]} onPress={() => setQuestionSession(null)}>
+                <Text style={[styles.sheetRowName, { color: colors.inkSoft }]}>{t('questionModal.cancel')}</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </Modal>
     </ScreenContainer>
   );
 }
@@ -854,11 +903,13 @@ const styles = StyleSheet.create({
   staffName: { fontSize: 14, fontWeight: '600' },
   staffRole: { fontSize: 12, marginTop: 1 },
 
+  sessionOuter: {
+    borderBottomWidth: 1,
+    paddingVertical: 10,
+  },
   sessionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
     gap: 8,
   },
   sessionInfo: { flex: 1 },
@@ -871,6 +922,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   sessionBtnText: { fontSize: 12, fontWeight: '600' },
+  questionBtn: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    alignSelf: 'flex-start',
+    marginTop: 8,
+  },
+  questionBtnText: { fontSize: 12, fontWeight: '600' },
+  questionInput: {
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 14,
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
 
   tierRow: {
     flexDirection: 'row',

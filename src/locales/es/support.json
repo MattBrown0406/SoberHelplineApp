@@ -72,6 +72,15 @@
     "privacyPolicy": "Política de privacidad",
     "termsOfUse": "Términos de uso"
   },
+  "questionModal": {
+    "button": "Hacer una pregunta",
+    "title": "Enviar una pregunta",
+    "sub": "Tu pregunta será revisada antes de la reunión.",
+    "placeholder": "¿Qué te gustaría que se respondiera en la llamada?",
+    "submit": "Enviar",
+    "submitted": "¡Pregunta enviada!",
+    "cancel": "Cancelar"
+  },
   "groups": {
     "eyebrow": "Grupos moderados",
     "joinButton": "Unirse",
