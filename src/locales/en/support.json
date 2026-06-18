@@ -134,5 +134,45 @@
     "statusConfirmed": "Confirmed",
     "statusCompleted": "Completed",
     "statusCancelled": "Cancelled"
+  },
+  "crisisProtocol": {
+    "eyebrow": "CRISIS PROTOCOL",
+    "heading": "Crisis guide",
+    "sub": "Step-by-step guidance for when it's happening right now.",
+    "tabs": ["Overdose", "Self-Harm", "Unsafe Behavior"],
+    "overdose": {
+      "title": "Suspected overdose",
+      "steps": [
+        "Call 911 immediately — do not wait.",
+        "If Narcan (naloxone) is available, administer it now.",
+        "Place them on their side (recovery position) to prevent choking.",
+        "Stay on the line with 911 and follow their instructions.",
+        "Do not leave them alone until help arrives.",
+        "Good Samaritan laws protect you — call 911."
+      ]
+    },
+    "selfHarm": {
+      "title": "Self-harm or suicidal crisis",
+      "steps": [
+        "Stay calm. Your presence matters.",
+        "Ask directly: \"Are you thinking about hurting yourself?\"",
+        "Remove or secure access to means if it is safe to do so.",
+        "Call or text 988 (Suicide & Crisis Lifeline) together if possible.",
+        "Do not leave them alone until the crisis passes or help arrives.",
+        "If you believe they are in immediate danger, call 911."
+      ]
+    },
+    "unsafe": {
+      "title": "Aggressive or unsafe behavior",
+      "steps": [
+        "Do not argue or try to reason with someone who is intoxicated or escalated.",
+        "Create physical distance — move to another room or leave the house.",
+        "If you feel threatened, leave immediately. Your safety comes first.",
+        "Call 911 if there is a threat of violence.",
+        "Do not attempt to physically restrain them.",
+        "Contact your coach or support network once you are safe."
+      ]
+    },
+    "close": "Close"
   }
 }

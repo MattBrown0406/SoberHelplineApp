@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import { HeroCard } from '../../src/components/today/HeroCard';
 import { CheckInCard } from '../../src/components/today/CheckInCard';
 import { FocusCard } from '../../src/components/today/FocusCard';
+import { MoodChart } from '../../src/components/today/MoodChart';
 import { useCheckIn } from '../../src/hooks/useCheckIn';
 import { useTodayFeed } from '../../src/hooks/useTodayFeed';
 import type { DailyFocusItem } from '../../src/api/types';
@@ -56,6 +57,8 @@ export default function TodayScreen() {
         isAttached={isAttached}
         orgName={user?.branding?.orgName ?? null}
       />
+
+      <MoodChart accountId={user?.id ?? null} />
 
       <FocusCard items={focusItems} />
 

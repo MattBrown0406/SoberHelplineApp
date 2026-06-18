@@ -134,5 +134,45 @@
     "statusConfirmed": "Confirmada",
     "statusCompleted": "Completada",
     "statusCancelled": "Cancelada"
+  },
+  "crisisProtocol": {
+    "eyebrow": "PROTOCOLO DE CRISIS",
+    "heading": "Guía de crisis",
+    "sub": "Pasos a seguir cuando está pasando ahora mismo.",
+    "tabs": ["Sobredosis", "Autolesión", "Conducta peligrosa"],
+    "overdose": {
+      "title": "Sobredosis sospechada",
+      "steps": [
+        "Llama al 911 de inmediato — no esperes.",
+        "Si tienes Narcan (naloxona) disponible, adminístralo ahora.",
+        "Colócalos de lado (posición de recuperación) para evitar asfixia.",
+        "Permanece en la línea con el 911 y sigue sus instrucciones.",
+        "No los dejes solos hasta que llegue la ayuda.",
+        "Las leyes del Buen Samaritano te protegen — llama al 911."
+      ]
+    },
+    "selfHarm": {
+      "title": "Crisis de autolesión o suicidio",
+      "steps": [
+        "Mantén la calma. Tu presencia importa.",
+        "Pregunta directamente: \"¿Estás pensando en hacerte daño?\"",
+        "Retira o asegura el acceso a medios si es seguro hacerlo.",
+        "Llama o envía un mensaje al 988 (Línea de Crisis) juntos si es posible.",
+        "No los dejes solos hasta que la crisis pase o llegue la ayuda.",
+        "Si crees que están en peligro inmediato, llama al 911."
+      ]
+    },
+    "unsafe": {
+      "title": "Conducta agresiva o peligrosa",
+      "steps": [
+        "No discutas ni intentes razonar con alguien que está bajo los efectos de sustancias o escalado.",
+        "Crea distancia física — ve a otra habitación o sal de la casa.",
+        "Si te sientes amenazado/a, sal de inmediato. Tu seguridad es lo primero.",
+        "Llama al 911 si hay una amenaza de violencia.",
+        "No intentes sujetarlos físicamente.",
+        "Contacta a tu coach o red de apoyo una vez que estés en un lugar seguro."
+      ]
+    },
+    "close": "Cerrar"
   }
 }

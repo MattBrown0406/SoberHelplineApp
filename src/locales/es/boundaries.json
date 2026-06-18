@@ -143,5 +143,53 @@
       "Permítete sentir lo que sientes hoy sin intentar arreglarlo ni cambiarlo.",
       "Elige una cosa hoy que sea puramente para tu propio disfrute — y no te disculpes por ello."
     ]
+  },
+  "enabling": {
+    "eyebrow": "REVISIÓN DE ESTA SEMANA",
+    "heading": "¿Estoy habilitando?",
+    "sub": "Reflexión honesta — sin juicios.",
+    "yes": "Sí",
+    "no": "No",
+    "done": "Vuelve la próxima semana para un nuevo conjunto.",
+    "retake": "Comenzar de nuevo",
+    "results": {
+      "r0": "Esta semana mantuviste límites firmes. Sigue siendo consistente.",
+      "low": "Un par de momentos que vale la pena notar — los patrones suelen comenzar pequeños.",
+      "mid": "Estos son comunes pero vale la pena abordarlos. Revisa tus murallas esta semana.",
+      "high": "Esta es información importante. Considera hablar con tu coach."
+    },
+    "sets": [
+      [
+        "¿Diste dinero que podría haber sido usado en sustancias?",
+        "¿Pusiste excusas o encubriste sus acciones ante otros?",
+        "¿Permitiste que se cruzara un límite que habías establecido sin una consecuencia?",
+        "¿Evitaste mencionar su consumo para mantener la paz?",
+        "¿Asumiste una responsabilidad que le corresponde a otra persona?",
+        "¿Minimizaste o racionalizaste su comportamiento para ti mismo/a o para otros?"
+      ],
+      [
+        "¿Tomaste una decisión por miedo a su reacción, en lugar de hacer lo que te parecía correcto?",
+        "¿Rescataste a alguien de una consecuencia que él/ella mismo/a causó?",
+        "¿Le diste otra oportunidad después de una promesa rota sin ningún cambio real?",
+        "¿Te quedaste en una situación que se sentía insegura en lugar de irte?",
+        "¿Pusiste las necesidades de otra persona completamente por encima de las tuyas toda la semana?",
+        "¿Planificaste los próximos pasos en nombre de otra persona sin que te lo pidieran?"
+      ],
+      [
+        "¿Aceptaste una excusa por un comportamiento que normalmente no tolerarías?",
+        "¿Te sentiste responsable del estado emocional de otra persona esta semana?",
+        "¿Cancelaste tus propios planes por el comportamiento de otra persona?",
+        "¿Evitaste buscar apoyo para ti mismo/a para no sentirte desleal?",
+        "¿Intentaste controlar el consumo de otra persona — escondiéndolo, tirándolo o contándolo?",
+        "¿Sentiste que sus decisiones eran de alguna manera tu culpa?"
+      ]
+    ]
+  },
+  "journal": {
+    "eyebrow": "DIARIO FAMILIAR",
+    "placeholder": "Deja una nota para tu familia…",
+    "post": "Publicar",
+    "empty": "Todavía no hay notas. Sé el/la primero/a en compartir algo.",
+    "you": "Tú"
   }
 }

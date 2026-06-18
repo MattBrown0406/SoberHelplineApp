@@ -104,5 +104,9 @@
     "11": "Every day you stay steady is a day you model recovery for someone who is watching.",
     "12": "Let go of what you cannot control. Hold on to what matters.",
     "13": "Boundaries create the space where healing can happen."
+  },
+  "moodChart": {
+    "eyebrow": "YOUR LAST 14 DAYS",
+    "noData": "Check in daily to see your emotional arc here."
   }
 }

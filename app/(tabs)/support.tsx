@@ -154,6 +154,97 @@ function CrisisSheet({
   );
 }
 
+// ── Crisis protocol sheet ─────────────────────────────────────────────────────
+
+type CrisisTab = 'overdose' | 'selfHarm' | 'unsafe';
+
+function CrisisProtocolSheet({
+  visible,
+  onClose,
+  t,
+  colors,
+  sheetOffset,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  t: ReturnType<typeof useTranslation<'support'>>['t'];
+  colors: ReturnType<typeof useTheme>['colors'];
+  sheetOffset: number;
+}) {
+  const [tab, setTab] = useState<CrisisTab>('overdose');
+  const tabs: { key: CrisisTab; label: string }[] = [
+    { key: 'overdose', label: t('crisisProtocol.tabs.0') },
+    { key: 'selfHarm', label: t('crisisProtocol.tabs.1') },
+    { key: 'unsafe', label: t('crisisProtocol.tabs.2') },
+  ];
+  const section = t(`crisisProtocol.${tab}.title`);
+  const steps = [
+    t(`crisisProtocol.${tab}.steps.0`),
+    t(`crisisProtocol.${tab}.steps.1`),
+    t(`crisisProtocol.${tab}.steps.2`),
+    t(`crisisProtocol.${tab}.steps.3`),
+    t(`crisisProtocol.${tab}.steps.4`),
+    t(`crisisProtocol.${tab}.steps.5`),
+  ];
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose} />
+      <View style={[styles.sheet, { backgroundColor: colors.white, left: sheetOffset, right: sheetOffset }]}>
+        <View style={[styles.sheetHandle, { backgroundColor: colors.line }]} />
+        <Text style={[styles.sheetTitle, { color: colors.ink }]}>
+          {t('crisisProtocol.heading')}
+        </Text>
+        <Text style={[styles.sheetSub, { color: colors.inkSoft, marginBottom: 14 }]}>
+          {t('crisisProtocol.sub')}
+        </Text>
+
+        {/* Tab bar */}
+        <View style={[styles.protocolTabBar, { borderBottomColor: colors.line }]}>
+          {tabs.map((tb) => (
+            <TouchableOpacity
+              key={tb.key}
+              style={[
+                styles.protocolTab,
+                tab === tb.key && { borderBottomColor: colors.primary, borderBottomWidth: 2 },
+              ]}
+              onPress={() => setTab(tb.key)}
+            >
+              <Text
+                style={[
+                  styles.protocolTabText,
+                  { color: tab === tb.key ? colors.primary : colors.inkSoft },
+                ]}
+              >
+                {tb.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Steps */}
+        <View style={styles.protocolSteps}>
+          <Text style={[styles.protocolSectionTitle, { color: colors.ink }]}>{section}</Text>
+          {steps.map((step, i) => (
+            <View key={i} style={styles.protocolStep}>
+              <View style={[styles.protocolStepNum, { backgroundColor: colors.primary }]}>
+                <Text style={styles.protocolStepNumText}>{i + 1}</Text>
+              </View>
+              <Text style={[styles.protocolStepText, { color: colors.ink }]}>{step}</Text>
+            </View>
+          ))}
+        </View>
+
+        <TouchableOpacity style={[styles.sheetRow, styles.sheetRowLast, { marginTop: 4 }]} onPress={onClose}>
+          <Text style={[styles.sheetRowName, { color: colors.inkSoft }]}>
+            {t('crisisProtocol.close')}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </Modal>
+  );
+}
+
 // ── Provider sheet ────────────────────────────────────────────────────────────
 
 function ProviderSheet({
@@ -344,6 +435,7 @@ export default function SupportScreen() {
   const { purchasePremium, purchasing } = useIAP();
 
   const [crisisOpen, setCrisisOpen] = useState(false);
+  const [crisisProtocolOpen, setCrisisProtocolOpen] = useState(false);
   const [providerOpen, setProviderOpen] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [questionSession, setQuestionSession] = useState<DbSession | null>(null);
@@ -394,6 +486,13 @@ export default function SupportScreen() {
         t={t}
         colors={colors}
       />
+      <CrisisProtocolSheet
+        visible={crisisProtocolOpen}
+        onClose={() => setCrisisProtocolOpen(false)}
+        t={t}
+        colors={colors}
+        sheetOffset={sheetOffset}
+      />
       <ProviderSheet
         visible={providerOpen}
         onClose={() => setProviderOpen(false)}
@@ -426,6 +525,27 @@ export default function SupportScreen() {
           activeOpacity={0.85}
         >
           <Text style={styles.sosText}>🆘  {t('crisis.button')}</Text>
+        </TouchableOpacity>
+
+        {/* Crisis protocol guide */}
+        <TouchableOpacity
+          style={[styles.protocolCard, { borderColor: colors.line, backgroundColor: colors.white }]}
+          onPress={() => setCrisisProtocolOpen(true)}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.protocolCardIcon}>📋</Text>
+          <View style={styles.protocolCardBody}>
+            <Text style={[styles.protocolCardEyebrow, { color: colors.inkSoft }]}>
+              {t('crisisProtocol.eyebrow')}
+            </Text>
+            <Text style={[styles.protocolCardTitle, { color: colors.ink }]}>
+              {t('crisisProtocol.heading')}
+            </Text>
+            <Text style={[styles.protocolCardSub, { color: colors.inkSoft }]}>
+              {t('crisisProtocol.sub')}
+            </Text>
+          </View>
+          <Text style={[styles.protocolCardArrow, { color: colors.inkSoft }]}>›</Text>
         </TouchableOpacity>
 
         {/* Attached: team + sessions */}
@@ -1085,4 +1205,51 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   dividerText: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
+
+  // Crisis protocol card (trigger)
+  protocolCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 12,
+    gap: 12,
+    backgroundColor: '#fff',
+  },
+  protocolCardIcon: { fontSize: 22 },
+  protocolCardBody: { flex: 1 },
+  protocolCardEyebrow: { fontSize: 10, fontWeight: '700', letterSpacing: 1.2, marginBottom: 2 },
+  protocolCardTitle: { fontSize: 14, fontWeight: '700' },
+  protocolCardSub: { fontSize: 12, marginTop: 2, lineHeight: 17 },
+  protocolCardArrow: { fontSize: 22, fontWeight: '300' },
+
+  // Crisis protocol sheet (modal)
+  protocolTabBar: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    marginBottom: 16,
+  },
+  protocolTab: {
+    flex: 1,
+    alignItems: 'center',
+    paddingBottom: 10,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  protocolTabText: { fontSize: 12, fontWeight: '700' },
+  protocolSteps: { marginBottom: 8 },
+  protocolSectionTitle: { fontSize: 15, fontWeight: '700', marginBottom: 14 },
+  protocolStep: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 12 },
+  protocolStepNum: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    marginTop: 1,
+  },
+  protocolStepNumText: { color: '#fff', fontWeight: '800', fontSize: 13 },
+  protocolStepText: { flex: 1, fontSize: 14, lineHeight: 21 },
 });

@@ -104,5 +104,9 @@
     "11": "Cada día que te mantienes firme es un día que modelas la recuperación para alguien que está mirando.",
     "12": "Suelta lo que no puedes controlar. Aférrate a lo que importa.",
     "13": "Los límites crean el espacio donde puede ocurrir la sanación."
+  },
+  "moodChart": {
+    "eyebrow": "TUS ÚLTIMOS 14 DÍAS",
+    "noData": "Regístrate cada día para ver tu arco emocional aquí."
   }
 }

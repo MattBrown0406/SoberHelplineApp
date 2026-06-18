@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ScrollView,
   View,
@@ -8,6 +9,7 @@ import {
   TouchableOpacity,
   Alert,
   StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { supabase } from '../../src/lib/supabase';
@@ -55,6 +57,82 @@ export default function BoundariesScreen() {
     : content.challenge.daily[doy % content.challenge.daily.length];
 
   const [checkinDates, setCheckinDates] = useState<Set<string>>(new Set());
+
+  // ── Enabling assessment ───────────────────────────────────────────────────
+  const isoWeek = (() => {
+    const d = new Date();
+    const jan4 = new Date(d.getFullYear(), 0, 4);
+    const wk = Math.ceil(((d.getTime() - jan4.getTime()) / 86400000 + jan4.getDay() + 1) / 7);
+    return `${d.getFullYear()}-W${wk}`;
+  })();
+  const enablingStorageKey = `enabling_${user?.id ?? 'anon'}_${isoWeek}`;
+  const enablingSetIndex = parseInt(isoWeek.split('W')[1] ?? '0') % 3;
+  const enablingQuestions = content.enabling.sets[enablingSetIndex] ?? content.enabling.sets[0];
+
+  const [enablingAnswers, setEnablingAnswers] = useState<(boolean | null)[]>(
+    () => Array(6).fill(null),
+  );
+  const [enablingLoaded, setEnablingLoaded] = useState(false);
+
+  useEffect(() => {
+    void AsyncStorage.getItem(enablingStorageKey).then((raw) => {
+      if (raw) setEnablingAnswers(JSON.parse(raw) as (boolean | null)[]);
+      setEnablingLoaded(true);
+    }).catch(() => setEnablingLoaded(true));
+  }, [enablingStorageKey]);
+
+  const handleEnablingAnswer = useCallback((idx: number, val: boolean) => {
+    setEnablingAnswers((prev) => {
+      const next = [...prev];
+      next[idx] = val;
+      void AsyncStorage.setItem(enablingStorageKey, JSON.stringify(next));
+      return next;
+    });
+  }, [enablingStorageKey]);
+
+  const resetEnabling = useCallback(() => {
+    const blank = Array(6).fill(null);
+    setEnablingAnswers(blank);
+    void AsyncStorage.removeItem(enablingStorageKey);
+  }, [enablingStorageKey]);
+
+  const enablingComplete = enablingAnswers.every((a) => a !== null);
+  const enablingYesCount = enablingAnswers.filter((a) => a === true).length;
+  const enablingResultKey =
+    enablingYesCount === 0 ? 'r0'
+    : enablingYesCount <= 2 ? 'low'
+    : enablingYesCount <= 4 ? 'mid'
+    : 'high';
+
+  // ── Family journal ────────────────────────────────────────────────────────
+  type JournalEntry = { id: string; note: string; created_at: string; account_id: string; accounts: { first_name: string } | null };
+  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
+  const [journalNote, setJournalNote] = useState('');
+  const [journalPosting, setJournalPosting] = useState(false);
+
+  const loadJournal = useCallback(async (spaceId: string) => {
+    const { data } = await supabase
+      .from('family_journal_entries')
+      .select('id, account_id, note, created_at, accounts(first_name)')
+      .eq('family_space_id', spaceId)
+      .order('created_at', { ascending: false })
+      .limit(5);
+    if (data) setJournalEntries(data as unknown as JournalEntry[]);
+  }, []);
+
+  const postJournalNote = useCallback(async () => {
+    if (!journalNote.trim() || !familySpace?.id || !user?.id) return;
+    setJournalPosting(true);
+    await supabase.from('family_journal_entries').insert({
+      family_space_id: familySpace.id,
+      account_id: user.id,
+      note: journalNote.trim(),
+    });
+    setJournalNote('');
+    await loadJournal(familySpace.id);
+    setJournalPosting(false);
+  }, [journalNote, familySpace?.id, user?.id, loadJournal]);
+
   useFocusEffect(
     useCallback(() => {
       if (!user?.id) return;
@@ -67,7 +145,8 @@ export default function BoundariesScreen() {
         .then(({ data }) => {
           if (data) setCheckinDates(new Set(data.map((r) => r.created_at.slice(0, 10))));
         });
-    }, [user?.id]),
+      if (familySpace?.id) void loadJournal(familySpace.id);
+    }, [user?.id, familySpace?.id, loadJournal]),
   );
 
   const streakDots = Array.from({ length: 7 }, (_, i) => {
@@ -149,6 +228,71 @@ export default function BoundariesScreen() {
             ))}
           </View>
         </View>
+
+        {/* ── Enabling Assessment ──────────────────────────────────── */}
+        {enablingLoaded && (
+          <View style={[styles.card, { borderColor: colors.line }]}>
+            <Text style={[styles.challengeEyebrow, { color: colors.inkSoft }]}>
+              {content.enabling.eyebrow}
+            </Text>
+            <Text style={[styles.challengeText, { color: colors.ink, marginBottom: 2 }]}>
+              {content.enabling.heading}
+            </Text>
+            <Text style={[styles.enablingSub, { color: colors.inkSoft }]}>
+              {content.enabling.sub}
+            </Text>
+
+            {!enablingComplete ? (
+              enablingQuestions.map((q, idx) => (
+                <View key={idx} style={styles.enablingRow}>
+                  <Text style={[styles.enablingQ, { color: colors.ink }]}>
+                    {`${idx + 1}. ${q}`}
+                  </Text>
+                  <View style={styles.enablingBtns}>
+                    <TouchableOpacity
+                      style={[
+                        styles.enablingBtn,
+                        enablingAnswers[idx] === true && { backgroundColor: colors.coral, borderColor: colors.coral },
+                        enablingAnswers[idx] !== true && { borderColor: colors.line },
+                      ]}
+                      onPress={() => handleEnablingAnswer(idx, true)}
+                    >
+                      <Text style={[styles.enablingBtnText, { color: enablingAnswers[idx] === true ? '#fff' : colors.inkSoft }]}>
+                        {content.enabling.yes}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.enablingBtn,
+                        enablingAnswers[idx] === false && { backgroundColor: colors.green, borderColor: colors.green },
+                        enablingAnswers[idx] !== false && { borderColor: colors.line },
+                      ]}
+                      onPress={() => handleEnablingAnswer(idx, false)}
+                    >
+                      <Text style={[styles.enablingBtnText, { color: enablingAnswers[idx] === false ? '#fff' : colors.inkSoft }]}>
+                        {content.enabling.no}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))
+            ) : (
+              <View style={[styles.enablingResult, { backgroundColor: colors.primaryLight, borderColor: colors.primary }]}>
+                <Text style={[styles.enablingResultText, { color: colors.ink }]}>
+                  {content.enabling.results[enablingResultKey as keyof typeof content.enabling.results]}
+                </Text>
+                <TouchableOpacity onPress={resetEnabling} style={styles.enablingRetake}>
+                  <Text style={[styles.enablingRetakeText, { color: colors.inkSoft }]}>
+                    {content.enabling.retake}
+                  </Text>
+                </TouchableOpacity>
+                <Text style={[styles.enablingDone, { color: colors.inkSoft }]}>
+                  {content.enabling.done}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Castle Framework */}
         <View style={[styles.card, { borderColor: colors.line }]}>
@@ -297,6 +441,57 @@ export default function BoundariesScreen() {
                   {codeCopied ? tAlign('inviteCodeCopied') : tAlign('inviteCode')}
                 </Text>
               </TouchableOpacity>
+
+              {/* Family Journal */}
+              <View style={[styles.journalSection, { borderTopColor: colors.line }]}>
+                <Text style={[styles.eyebrow, { color: colors.inkSoft, marginBottom: 10, marginTop: 4 }]}>
+                  {content.journal.eyebrow}
+                </Text>
+
+                {journalEntries.length === 0 ? (
+                  <Text style={[styles.enablingSub, { color: colors.inkSoft, marginBottom: 10 }]}>
+                    {content.journal.empty}
+                  </Text>
+                ) : (
+                  journalEntries.map((entry) => (
+                    <View key={entry.id} style={[styles.journalEntry, { borderColor: colors.line }]}>
+                      <Text style={[styles.journalAuthor, { color: colors.primary }]}>
+                        {entry.account_id === user?.id
+                          ? content.journal.you
+                          : (entry.accounts?.first_name ?? 'Family member')}
+                      </Text>
+                      <Text style={[styles.journalNote, { color: colors.ink }]}>{entry.note}</Text>
+                      <Text style={[styles.journalDate, { color: colors.inkSoft }]}>
+                        {new Date(entry.created_at).toLocaleDateString()}
+                      </Text>
+                    </View>
+                  ))
+                )}
+
+                <View style={[styles.journalInputRow, { borderColor: colors.line }]}>
+                  <TextInput
+                    style={[styles.journalInput, { color: colors.ink }]}
+                    placeholder={content.journal.placeholder}
+                    placeholderTextColor={colors.inkSoft}
+                    value={journalNote}
+                    onChangeText={setJournalNote}
+                    multiline
+                    maxLength={280}
+                  />
+                  <TouchableOpacity
+                    style={[
+                      styles.journalPostBtn,
+                      { backgroundColor: journalNote.trim() ? colors.primary : colors.line },
+                    ]}
+                    disabled={!journalNote.trim() || journalPosting}
+                    onPress={() => void postJournalNote()}
+                  >
+                    {journalPosting
+                      ? <ActivityIndicator color="#fff" size="small" />
+                      : <Text style={styles.journalPostText}>{content.journal.post}</Text>}
+                  </TouchableOpacity>
+                </View>
+              </View>
             </>
           ) : (
             <>
@@ -479,4 +674,58 @@ const styles = StyleSheet.create({
   dotCol: { alignItems: 'center', gap: 4 },
   dot: { width: 28, height: 28, borderRadius: 14 },
   dotLabel: { fontSize: 10, fontWeight: '600' },
+
+  // Enabling assessment
+  enablingSub: { fontSize: 13, lineHeight: 18, marginBottom: 14 },
+  enablingRow: { marginBottom: 14 },
+  enablingQ: { fontSize: 13.5, lineHeight: 20, marginBottom: 8 },
+  enablingBtns: { flexDirection: 'row', gap: 10 },
+  enablingBtn: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 7,
+    paddingHorizontal: 18,
+  },
+  enablingBtnText: { fontSize: 14, fontWeight: '600' },
+  enablingResult: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 4,
+  },
+  enablingResultText: { fontSize: 14, lineHeight: 21, marginBottom: 12 },
+  enablingRetake: { marginBottom: 8 },
+  enablingRetakeText: { fontSize: 13, textDecorationLine: 'underline' },
+  enablingDone: { fontSize: 12, fontStyle: 'italic' },
+
+  // Family journal
+  journalSection: { borderTopWidth: 1, paddingTop: 14, marginTop: 8 },
+  journalEntry: {
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 8,
+  },
+  journalAuthor: { fontSize: 12, fontWeight: '700', marginBottom: 3 },
+  journalNote: { fontSize: 13.5, lineHeight: 20 },
+  journalDate: { fontSize: 11, marginTop: 4 },
+  journalInputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 10,
+    gap: 8,
+    marginTop: 4,
+  },
+  journalInput: { flex: 1, fontSize: 14, minHeight: 38, maxHeight: 80 },
+  journalPostBtn: {
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 52,
+  },
+  journalPostText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 });

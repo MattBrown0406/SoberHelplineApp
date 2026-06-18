@@ -143,5 +143,53 @@
       "Let yourself feel what you're feeling today without trying to fix or change it.",
       "Choose one thing today that is purely for your own joy — and do not apologize for it."
     ]
+  },
+  "enabling": {
+    "eyebrow": "THIS WEEK'S CHECK-IN",
+    "heading": "Am I enabling?",
+    "sub": "Honest reflection — no judgment.",
+    "yes": "Yes",
+    "no": "No",
+    "done": "Come back next week for a new set.",
+    "retake": "Start over",
+    "results": {
+      "r0": "This week you held strong limits. Stay consistent.",
+      "low": "A couple of moments worth noticing — patterns often start small.",
+      "mid": "These are common but worth addressing. Review your walls this week.",
+      "high": "This is important information. Consider talking with your coach."
+    },
+    "sets": [
+      [
+        "Did you give money that might have been used on substances?",
+        "Did you make excuses or cover for them to others?",
+        "Did you allow a limit you had set to be crossed without a consequence?",
+        "Did you avoid bringing up their use to keep the peace?",
+        "Did you take on a responsibility that belongs to them?",
+        "Did you minimize or rationalize their behavior to yourself or others?"
+      ],
+      [
+        "Did you make a decision out of fear of their reaction, rather than what felt right?",
+        "Did you rescue them from a consequence of their own making?",
+        "Did you give them another chance after a broken promise without any real change?",
+        "Did you stay in a situation that felt unsafe rather than leave?",
+        "Did you put their needs entirely ahead of your own all week?",
+        "Did you plan next steps on their behalf without being asked?"
+      ],
+      [
+        "Did you accept an excuse for behavior you normally would not tolerate?",
+        "Did you feel responsible for their emotional state this week?",
+        "Did you cancel your own plans because of their behavior?",
+        "Did you avoid seeking support for yourself to avoid feeling disloyal?",
+        "Did you try to control their use — hiding it, pouring it out, or counting it?",
+        "Did you feel as though their choices were somehow your fault?"
+      ]
+    ]
+  },
+  "journal": {
+    "eyebrow": "FAMILY JOURNAL",
+    "placeholder": "Leave a note for your family…",
+    "post": "Post",
+    "empty": "No notes yet. Be the first to share something.",
+    "you": "You"
   }
 }
