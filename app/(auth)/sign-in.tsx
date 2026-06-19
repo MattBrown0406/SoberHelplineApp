@@ -72,10 +72,9 @@ export default function SignInScreen() {
         nonce: rawNonce,
       });
       if (err) setError(t('signIn.errorGeneric'));
-    } catch (e: unknown) {
-      if ((e as { code?: string }).code !== 'ERR_REQUEST_CANCELED') {
-        setError(t('signIn.errorGeneric'));
-      }
+    } catch {
+      // Apple auth errors are silently dropped — iOS already shows system-level
+      // feedback to the user. We only surface Supabase errors (handled above).
     }
   }
 

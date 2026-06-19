@@ -115,10 +115,9 @@ export default function SignUpScreen() {
         if (account) await recordTermsConsent(account.id);
       }
       // onAuthStateChange fires → InitialLayout redirects
-    } catch (e: unknown) {
-      if ((e as { code?: string }).code !== 'ERR_REQUEST_CANCELED') {
-        setError(t('signUp.errorGeneric'));
-      }
+    } catch {
+      // Apple auth errors are silently dropped — iOS already shows system-level
+      // feedback to the user. We only surface Supabase errors (handled above).
     }
   }
 
