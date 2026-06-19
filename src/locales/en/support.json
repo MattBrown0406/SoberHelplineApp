@@ -134,7 +134,8 @@
     "archiveTitle": "Archive this conversation?",
     "archiveBody": "This conversation will be saved and a new one will start. You can ask your coach to access past conversations.",
     "archiveConfirm": "Archive & start new",
-    "archiveCancel": "Cancel"
+    "archiveCancel": "Cancel",
+    "reactionDone": "Done"
   },
   "coaching": {
     "eyebrow": "1:1 coaching",

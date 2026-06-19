@@ -134,7 +134,8 @@
     "archiveTitle": "¿Archivar esta conversación?",
     "archiveBody": "Esta conversación se guardará y comenzará una nueva. Puedes pedirle a tu coach que acceda a conversaciones anteriores.",
     "archiveConfirm": "Archivar e iniciar nueva",
-    "archiveCancel": "Cancelar"
+    "archiveCancel": "Cancelar",
+    "reactionDone": "Listo"
   },
   "coaching": {
     "eyebrow": "Coaching 1 a 1",
