@@ -9,6 +9,8 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   useWindowDimensions,
 } from 'react-native';
 import { supabase } from '../../src/lib/supabase';
@@ -923,44 +925,53 @@ export default function SupportScreen() {
         </View>
       {/* ── Question modal ── */}
       <Modal visible={questionSession !== null} animationType="slide" transparent onRequestClose={() => setQuestionSession(null)}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setQuestionSession(null)} />
-        <View style={[styles.sheet, { backgroundColor: colors.white, left: sheetOffset, right: sheetOffset }]}>
-          <View style={[styles.sheetHandle, { backgroundColor: colors.line }]} />
-          <Text style={[styles.sheetTitle, { color: colors.ink }]}>{t('questionModal.title')}</Text>
-          <Text style={[styles.sheetSub, { color: colors.inkSoft, marginBottom: 14 }]}>{t('questionModal.sub')}</Text>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.questionModalKAV}
+        >
+          <TouchableOpacity
+            style={[StyleSheet.absoluteFill, styles.modalOverlay]}
+            activeOpacity={1}
+            onPress={() => setQuestionSession(null)}
+          />
+          <View style={[styles.questionSheet, { backgroundColor: colors.white, marginHorizontal: sheetOffset }]}>
+            <View style={[styles.sheetHandle, { backgroundColor: colors.line }]} />
+            <Text style={[styles.sheetTitle, { color: colors.ink }]}>{t('questionModal.title')}</Text>
+            <Text style={[styles.sheetSub, { color: colors.inkSoft, marginBottom: 14 }]}>{t('questionModal.sub')}</Text>
 
-          {questionSubmitted ? (
-            <Text style={[styles.sheetTitle, { color: colors.green, fontSize: 16, textAlign: 'center', marginVertical: 24 }]}>
-              {t('questionModal.submitted')}
-            </Text>
-          ) : (
-            <>
-              <TextInput
-                style={[styles.questionInput, { borderColor: colors.line, color: colors.ink }]}
-                placeholder={t('questionModal.placeholder')}
-                placeholderTextColor={colors.inkSoft}
-                value={questionText}
-                onChangeText={setQuestionText}
-                multiline
-                maxLength={500}
-                autoFocus
-              />
-              <TouchableOpacity
-                style={[styles.solidBtn, { backgroundColor: questionText.trim() ? colors.primary : colors.line, marginTop: 12 }]}
-                disabled={!questionText.trim() || questionSubmitting}
-                onPress={submitQuestion}
-                activeOpacity={0.85}
-              >
-                {questionSubmitting
-                  ? <ActivityIndicator color="#fff" />
-                  : <Text style={styles.solidBtnText}>{t('questionModal.submit')}</Text>}
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.sheetRow, styles.sheetRowLast, { marginTop: 4 }]} onPress={() => setQuestionSession(null)}>
-                <Text style={[styles.sheetRowName, { color: colors.inkSoft }]}>{t('questionModal.cancel')}</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
+            {questionSubmitted ? (
+              <Text style={[styles.sheetTitle, { color: colors.green, fontSize: 16, textAlign: 'center', marginVertical: 24 }]}>
+                {t('questionModal.submitted')}
+              </Text>
+            ) : (
+              <>
+                <TextInput
+                  style={[styles.questionInput, { borderColor: colors.line, color: colors.ink }]}
+                  placeholder={t('questionModal.placeholder')}
+                  placeholderTextColor={colors.inkSoft}
+                  value={questionText}
+                  onChangeText={setQuestionText}
+                  multiline
+                  maxLength={500}
+                  autoFocus
+                />
+                <TouchableOpacity
+                  style={[styles.solidBtn, { backgroundColor: questionText.trim() ? colors.primary : colors.line, marginTop: 12 }]}
+                  disabled={!questionText.trim() || questionSubmitting}
+                  onPress={submitQuestion}
+                  activeOpacity={0.85}
+                >
+                  {questionSubmitting
+                    ? <ActivityIndicator color="#fff" />
+                    : <Text style={styles.solidBtnText}>{t('questionModal.submit')}</Text>}
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.sheetRow, styles.sheetRowLast, { marginTop: 4 }]} onPress={() => setQuestionSession(null)}>
+                  <Text style={[styles.sheetRowName, { color: colors.inkSoft }]}>{t('questionModal.cancel')}</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
     </ScreenContainer>
   );
@@ -1058,6 +1069,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     minHeight: 100,
     textAlignVertical: 'top',
+  },
+  questionModalKAV: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  questionSheet: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 20,
   },
 
   tierRow: {
