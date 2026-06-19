@@ -434,7 +434,7 @@ export default function SupportScreen() {
   const router = useRouter();
   const { width: screenWidth } = useWindowDimensions();
   const sheetOffset = Math.max(0, (screenWidth - 520) / 2);
-  const { purchasePremium, purchasing } = useIAP();
+  const { purchasePremium, purchaseEssential, purchasing } = useIAP();
 
   const [crisisOpen, setCrisisOpen] = useState(false);
   const [crisisProtocolOpen, setCrisisProtocolOpen] = useState(false);
@@ -444,6 +444,10 @@ export default function SupportScreen() {
   const [questionText, setQuestionText] = useState('');
   const [questionSubmitting, setQuestionSubmitting] = useState(false);
   const [questionSubmitted, setQuestionSubmitted] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
+  const [couponApplying, setCouponApplying] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponSuccess, setCouponSuccess] = useState(false);
 
   async function submitQuestion() {
     if (!questionText.trim() || !questionSession || !user?.id) return;
@@ -469,6 +473,35 @@ export default function SupportScreen() {
       setUpgradeOpen(false);
     } else {
       Alert.alert(t('upgradeSheet.title'), t('upgradeSheet.iapError'));
+    }
+  }
+
+  async function handlePurchaseEssential() {
+    const success = await purchaseEssential();
+    if (success) {
+      await refreshAccount();
+    } else {
+      Alert.alert(t('upgradeSheet.title'), t('upgradeSheet.iapError'));
+    }
+  }
+
+  async function redeemCoupon() {
+    if (!couponCode.trim()) return;
+    setCouponApplying(true);
+    setCouponError(null);
+    const { error } = await supabase.rpc('redeem_coupon', { p_code: couponCode.trim() });
+    setCouponApplying(false);
+    if (error) {
+      if (error.message.includes('invalid_coupon')) {
+        setCouponError(t('coupon.invalid'));
+      } else if (error.message.includes('already_premium')) {
+        setCouponError(t('coupon.alreadySubscribed'));
+      } else {
+        setCouponError(error.message);
+      }
+    } else {
+      setCouponSuccess(true);
+      await refreshAccount();
     }
   }
 
@@ -641,57 +674,189 @@ export default function SupportScreen() {
           </>
         )}
 
-        {/* Direct: tier card + messages + referral */}
-        {!isAttached && (
+        {/* Free tier: Monday group + upgrade card with coupon */}
+        {!isAttached && accountState === 'direct-free' && (
           <>
             <View style={[styles.card, { borderColor: colors.line }]}>
               <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
-                {t('tier.eyebrow')}
+                {t('mondayGroup.eyebrow')}
+              </Text>
+              <Text style={[styles.referralTitle, { color: colors.ink }]}>
+                {t('mondayGroup.heading')}
+              </Text>
+              <Text style={[styles.referralBody, { color: colors.inkSoft }]}>
+                {t('mondayGroup.sub')}
+              </Text>
+              {sessions.filter((s) => s.kind === 'group').map((sess) => (
+                <View key={sess.id} style={[styles.sessionOuter, { borderBottomColor: colors.line }]}>
+                  <View style={styles.sessionRow}>
+                    <View style={styles.sessionInfo}>
+                      <Text style={[styles.sessionTitle, { color: colors.ink }]}>{sess.title}</Text>
+                      <Text style={[styles.sessionMeta, { color: colors.inkSoft }]}>
+                        {sess.schedule_label}
+                      </Text>
+                    </View>
+                    {sess.rsvped && sess.zoom_url ? (
+                      <TouchableOpacity
+                        style={[styles.sessionBtn, { backgroundColor: colors.green, borderColor: colors.green }]}
+                        activeOpacity={0.8}
+                        onPress={() => Linking.openURL(sess.zoom_url!)}
+                      >
+                        <Text style={[styles.sessionBtnText, { color: '#fff' }]}>{t('sessions.joinZoom')}</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                    <TouchableOpacity
+                      style={[styles.sessionBtn, { backgroundColor: sess.rsvped ? colors.greenLight : colors.primaryLight, borderColor: sess.rsvped ? colors.green : colors.primary }]}
+                      activeOpacity={0.8}
+                      onPress={() => toggleRsvp(sess)}
+                    >
+                      <Text style={[styles.sessionBtnText, { color: sess.rsvped ? colors.green : colors.primary }]}>
+                        {sess.rsvped ? t('sessions.confirmButton') : t('sessions.rsvpButton')}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </View>
+
+            <View style={[styles.card, { borderColor: colors.line }]}>
+              <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
+                {t('paywall.eyebrow')}
               </Text>
 
+              {/* Free row */}
+              <View style={[styles.tierRow, { borderColor: colors.line, backgroundColor: colors.cream }]}>
+                <View style={styles.tierInfo}>
+                  <Text style={[styles.tierName, { color: colors.inkSoft }]}>{t('tier.freeName')}</Text>
+                  <Text style={[styles.tierFeatures, { color: colors.inkSoft }]}>{t('tier.freeFeatures')}</Text>
+                </View>
+                <Text style={[styles.tierCurrent, { color: colors.inkSoft }]}>{t('tier.freeCurrent')}</Text>
+              </View>
+
+              {/* Essential row */}
               <View style={[styles.tierRow, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]}>
                 <View style={styles.tierInfo}>
-                  <Text style={[styles.tierName, { color: colors.primary }]}>
-                    {t('tier.essentialName')}
-                  </Text>
-                  <Text style={[styles.tierFeatures, { color: colors.inkSoft }]}>
-                    {t('tier.essentialFeatures')}
-                  </Text>
+                  <Text style={[styles.tierName, { color: colors.primary }]}>{t('tier.essentialName')}</Text>
+                  <Text style={[styles.tierFeatures, { color: colors.inkSoft }]}>{t('tier.essentialFeatures')}</Text>
                 </View>
-                <View style={styles.tierRight}>
-                  <Text style={[styles.tierPrice, { color: colors.primary }]}>
-                    {t('tier.essentialPrice')}
-                  </Text>
-                  {accountState === 'direct-essential' && (
-                    <Text style={[styles.tierCurrent, { color: colors.inkSoft }]}>
-                      {t('tier.current')}
-                    </Text>
-                  )}
-                </View>
+                <Text style={[styles.tierPrice, { color: colors.primary }]}>{t('tier.essentialPrice')}</Text>
               </View>
+              <TouchableOpacity
+                style={[styles.solidBtn, { backgroundColor: colors.primary }]}
+                activeOpacity={0.85}
+                disabled={purchasing}
+                onPress={() => void handlePurchaseEssential()}
+              >
+                <Text style={styles.solidBtnText}>
+                  {purchasing ? '...' : t('paywall.subscribeEssential')}
+                </Text>
+              </TouchableOpacity>
 
-              <View style={[styles.tierRow, { borderColor: colors.line, backgroundColor: '#fff' }]}>
+              {/* Premium row */}
+              <View style={[styles.tierRow, { borderColor: colors.line, backgroundColor: colors.white, marginTop: 12 }]}>
                 <View style={styles.tierInfo}>
-                  <Text style={[styles.tierName, { color: colors.ink }]}>
-                    {t('tier.premiumName')}
-                  </Text>
-                  <Text style={[styles.tierFeatures, { color: colors.inkSoft }]}>
-                    {t('tier.premiumFeatures')}
-                  </Text>
+                  <Text style={[styles.tierName, { color: colors.ink }]}>{t('tier.premiumName')}</Text>
+                  <Text style={[styles.tierFeatures, { color: colors.inkSoft }]}>{t('tier.premiumFeatures')}</Text>
                 </View>
-                <View style={styles.tierRight}>
-                  <Text style={[styles.tierPrice, { color: colors.ink }]}>
-                    {t('tier.premiumPrice')}
-                  </Text>
-                  {accountState === 'direct-premium' && (
-                    <Text style={[styles.tierCurrent, { color: colors.inkSoft }]}>
-                      {t('tier.current')}
-                    </Text>
-                  )}
-                </View>
+                <Text style={[styles.tierPrice, { color: colors.ink }]}>{t('tier.premiumPrice')}</Text>
               </View>
+              <TouchableOpacity
+                style={[styles.outlineBtn, { borderColor: colors.primary, marginTop: 8 }]}
+                activeOpacity={0.85}
+                disabled={purchasing}
+                onPress={() => setUpgradeOpen(true)}
+              >
+                <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
+                  {t('paywall.subscribePremium')}
+                </Text>
+              </TouchableOpacity>
 
-              {accountState !== 'direct-premium' && (
+              {/* Coupon code */}
+              <View style={[styles.couponSection, { borderTopColor: colors.line }]}>
+                <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
+                  {t('coupon.eyebrow')}
+                </Text>
+                <Text style={[styles.tierFeatures, { color: colors.inkSoft, marginBottom: 10 }]}>
+                  {t('coupon.label')}
+                </Text>
+                <View style={styles.couponRow}>
+                  <TextInput
+                    style={[styles.couponInput, { borderColor: colors.line, color: colors.ink }]}
+                    placeholder={t('coupon.placeholder')}
+                    placeholderTextColor={colors.inkSoft}
+                    value={couponCode}
+                    onChangeText={(v) => { setCouponCode(v); setCouponError(null); setCouponSuccess(false); }}
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                  />
+                  <TouchableOpacity
+                    style={[styles.couponBtn, { backgroundColor: couponCode.trim() ? colors.primary : colors.line }]}
+                    onPress={() => void redeemCoupon()}
+                    disabled={couponApplying || !couponCode.trim()}
+                    activeOpacity={0.85}
+                  >
+                    {couponApplying
+                      ? <ActivityIndicator size="small" color="#fff" />
+                      : <Text style={styles.couponBtnText}>{t('coupon.apply')}</Text>}
+                  </TouchableOpacity>
+                </View>
+                {couponError ? (
+                  <Text style={[styles.couponFeedback, { color: colors.coral }]}>{couponError}</Text>
+                ) : couponSuccess ? (
+                  <Text style={[styles.couponFeedback, { color: colors.green }]}>{t('coupon.success')}</Text>
+                ) : null}
+              </View>
+            </View>
+          </>
+        )}
+
+        {/* Essential / Premium: full content */}
+        {!isAttached && accountState !== 'direct-free' && (
+          <>
+            {/* Tier card — hidden for premium (it moves to Settings) */}
+            {accountState !== 'direct-premium' && (
+              <View style={[styles.card, { borderColor: colors.line }]}>
+                <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
+                  {t('tier.eyebrow')}
+                </Text>
+
+                <View style={[styles.tierRow, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]}>
+                  <View style={styles.tierInfo}>
+                    <Text style={[styles.tierName, { color: colors.primary }]}>
+                      {t('tier.essentialName')}
+                    </Text>
+                    <Text style={[styles.tierFeatures, { color: colors.inkSoft }]}>
+                      {t('tier.essentialFeatures')}
+                    </Text>
+                  </View>
+                  <View style={styles.tierRight}>
+                    <Text style={[styles.tierPrice, { color: colors.primary }]}>
+                      {t('tier.essentialPrice')}
+                    </Text>
+                    {accountState === 'direct-essential' && (
+                      <Text style={[styles.tierCurrent, { color: colors.inkSoft }]}>
+                        {t('tier.current')}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+
+                <View style={[styles.tierRow, { borderColor: colors.line, backgroundColor: '#fff' }]}>
+                  <View style={styles.tierInfo}>
+                    <Text style={[styles.tierName, { color: colors.ink }]}>
+                      {t('tier.premiumName')}
+                    </Text>
+                    <Text style={[styles.tierFeatures, { color: colors.inkSoft }]}>
+                      {t('tier.premiumFeatures')}
+                    </Text>
+                  </View>
+                  <View style={styles.tierRight}>
+                    <Text style={[styles.tierPrice, { color: colors.ink }]}>
+                      {t('tier.premiumPrice')}
+                    </Text>
+                  </View>
+                </View>
+
                 <TouchableOpacity
                   style={[styles.solidBtn, { backgroundColor: colors.primary }]}
                   activeOpacity={0.85}
@@ -699,8 +864,8 @@ export default function SupportScreen() {
                 >
                   <Text style={styles.solidBtnText}>{t('tier.upgradeButton')}</Text>
                 </TouchableOpacity>
-              )}
-            </View>
+              </View>
+            )}
 
             <View style={[styles.card, { borderColor: colors.line }]}>
               <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
@@ -1100,6 +1265,28 @@ const styles = StyleSheet.create({
   tierRight: { alignItems: 'flex-end' },
   tierPrice: { fontSize: 14, fontWeight: '700' },
   tierCurrent: { fontSize: 11, marginTop: 2 },
+
+  couponSection: { marginTop: 20, paddingTop: 16, borderTopWidth: 1 },
+  couponRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
+  couponInput: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    letterSpacing: 1,
+  },
+  couponBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 72,
+  },
+  couponBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  couponFeedback: { fontSize: 13, marginTop: 8, lineHeight: 18 },
 
   membershipRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   coveredChip: {

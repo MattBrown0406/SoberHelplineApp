@@ -5,6 +5,7 @@ import {
   Switch,
   TouchableOpacity,
   Alert,
+  Linking,
   StyleSheet,
 } from 'react-native';
 import { ScreenContainer } from '../src/components/ui/ScreenContainer';
@@ -20,7 +21,7 @@ const CONSENT_VERSION = '1.0';
 
 export default function SettingsScreen() {
   const { colors } = useTheme();
-  const { user, isAttached } = useAccount();
+  const { user, isAttached, accountState } = useAccount();
   const { t } = useTranslation('settings');
   const { current, change, languages } = useLanguage();
   const router = useRouter();
@@ -135,6 +136,33 @@ export default function SettingsScreen() {
                 thumbColor="#fff"
               />
             </View>
+          </View>
+        )}
+
+        {/* Membership — shown for paid direct subscribers */}
+        {!isAttached && accountState !== 'direct-free' && (
+          <View style={[styles.card, { borderColor: colors.line }]}>
+            <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
+              {t('membership.eyebrow')}
+            </Text>
+            <Text style={[styles.infoValue, { color: colors.ink, fontSize: 16, fontWeight: '700', marginBottom: 2 }]}>
+              {accountState === 'direct-premium'
+                ? t('membership.premiumPlan')
+                : t('membership.essentialPlan')}
+            </Text>
+            <Text style={[styles.infoLabel, { color: colors.inkSoft, marginBottom: 12 }]}>
+              {accountState === 'direct-premium'
+                ? t('membership.premiumFeatures')
+                : t('membership.essentialFeatures')}
+            </Text>
+            <TouchableOpacity
+              onPress={() => void Linking.openURL('https://apps.apple.com/account/subscriptions')}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.manageLink, { color: colors.primary }]}>
+                {t('membership.manage')}
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -254,6 +282,7 @@ const styles = StyleSheet.create({
   },
   infoLabel: { fontSize: 14 },
   infoValue: { fontSize: 14, fontWeight: '500' },
+  manageLink: { fontSize: 14, fontWeight: '600' },
 
   toggleRow: {
     flexDirection: 'row',

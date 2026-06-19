@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import type { User } from '@supabase/supabase-js';
 import type { AuthUser, AccountState, Entitlements } from '../api/types';
 import { supabase } from '../lib/supabase';
-import { configureRevenueCat, getIsActivePremium } from '../lib/revenueCat';
+import { configureRevenueCat, getIsActivePremium, getIsActiveEssential } from '../lib/revenueCat';
 
 const DEFAULT_ENTITLEMENTS: Entitlements = {
   canMessageOnCallCoach: false,
@@ -24,7 +24,7 @@ interface AccountContextValue {
 
 const AccountContext = createContext<AccountContextValue>({
   user: null,
-  accountState: 'direct-essential',
+  accountState: 'direct-free',
   entitlements: DEFAULT_ENTITLEMENTS,
   isLoading: true,
   isAttached: false,
@@ -60,10 +60,10 @@ async function fetchAccount(authUser: User): Promise<AuthUser | null> {
   ensureTermsConsent(data.id);
 
   let accountState: AccountState =
-    data.type === 'attached' ? 'attached' : 'direct-essential';
+    data.type === 'attached' ? 'attached' : 'direct-free';
 
   if (data.type === 'direct') {
-    // Check Supabase entitlements first
+    // Check Supabase entitlements first (coupons + manual grants take priority)
     const { data: ent } = await supabase
       .from('entitlements')
       .select('tier, expires_at')
@@ -74,22 +74,31 @@ async function fetchAccount(authUser: User): Promise<AuthUser | null> {
 
     if (ent) {
       const expired = ent.expires_at ? new Date(ent.expires_at) < new Date() : false;
-      if (!expired && ent.tier === 'premium') accountState = 'direct-premium';
+      if (!expired) {
+        if (ent.tier === 'premium') accountState = 'direct-premium';
+        else if (ent.tier === 'essential') accountState = 'direct-essential';
+      }
     }
 
-    // Also check RevenueCat — source of truth for IAP purchases
+    // Check RevenueCat — source of truth for IAP subscriptions
     if (accountState !== 'direct-premium') {
       configureRevenueCat(data.id);
       const rcPremium = await getIsActivePremium();
-      if (rcPremium) accountState = 'direct-premium';
+      if (rcPremium) {
+        accountState = 'direct-premium';
+      } else if (accountState === 'direct-free') {
+        const rcEssential = await getIsActiveEssential();
+        if (rcEssential) accountState = 'direct-essential';
+      }
     }
   }
 
+  const isPaid = accountState !== 'direct-free';
   const entitlements: Entitlements = {
-    canMessageOnCallCoach: true,
+    canMessageOnCallCoach: isPaid,
     canCallCoach: accountState === 'attached' || accountState === 'direct-premium',
     canCallAfterHours: accountState === 'attached',
-    canAccessGroups: true,
+    canAccessGroups: isPaid,
     canAccessLearningContent: true,
     hasAssignedCoach: accountState === 'attached',
   };

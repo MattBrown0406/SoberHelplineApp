@@ -29,6 +29,9 @@
   },
   "tier": {
     "eyebrow": "Tu plan",
+    "freeName": "Gratuito",
+    "freeFeatures": "Llamada grupal de apoyo familiar los lunes",
+    "freeCurrent": "Tu plan",
     "essentialName": "Esencial",
     "essentialFeatures": "Mensaje al coach de guardia · app completa · grupos",
     "essentialPrice": "$14.99/mes",
@@ -37,6 +40,28 @@
     "premiumPrice": "$44.99/mes",
     "upgradeButton": "Mejorar a Premium",
     "current": "Plan actual"
+  },
+  "paywall": {
+    "eyebrow": "DESBLOQUEA LA APP",
+    "heading": "Suscríbete para acceso completo",
+    "body": "Los miembros Esencial tienen registros diarios, seguimiento del estado de ánimo, límites, guiones, mensajería y grupos.",
+    "viewPlans": "Ver planes",
+    "subscribeEssential": "Suscribirse Esencial · $14.99/mes",
+    "subscribePremium": "Mejorar a Premium · $44.99/mes"
+  },
+  "coupon": {
+    "eyebrow": "¿MIEMBRO DE SOBER HELPLINE?",
+    "label": "Ingresa tu código de cupón de miembro para acceso Esencial gratuito.",
+    "placeholder": "Código de cupón",
+    "apply": "Aplicar",
+    "success": "¡Cupón aplicado — bienvenido/a a Esencial!",
+    "invalid": "Ese código no fue reconocido. Verifica el código e inténtalo de nuevo.",
+    "alreadySubscribed": "Ya estás en Premium."
+  },
+  "mondayGroup": {
+    "eyebrow": "ACCESO GRATUITO",
+    "heading": "Grupo de Apoyo Familiar — Lunes",
+    "sub": "Nuestra llamada grupal semanal gratuita — sin suscripción. Confirma tu asistencia para obtener el enlace de Zoom."
   },
   "messages": {
     "eyebrow": "Escríbele a tu coach",

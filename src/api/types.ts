@@ -34,8 +34,8 @@ export interface OrgBranding {
 
 // ─── Account & Entitlements ───────────────────────────────────────────────────
 
-/** The three possible account states. All commerce gating is driven by this. */
-export type AccountState = 'attached' | 'direct-essential' | 'direct-premium';
+/** The four possible account states. All commerce gating is driven by this. */
+export type AccountState = 'attached' | 'direct-free' | 'direct-essential' | 'direct-premium';
 
 /**
  * Feature gates returned from the API.

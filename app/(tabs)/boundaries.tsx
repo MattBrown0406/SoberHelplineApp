@@ -18,6 +18,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { useAccount } from '../../src/contexts/AccountContext';
+import { FreeTierPaywall } from '../../src/components/ui/FreeTierPaywall';
 import { useBoundaries } from '../../src/hooks/useBoundaries';
 import { CastleSection } from '../../src/components/boundaries/CastleSection';
 import { AnchorCard } from '../../src/components/boundaries/AnchorCard';
@@ -31,7 +32,7 @@ type BoundariesContent = typeof enContent;
 
 export default function BoundariesScreen() {
   const { colors } = useTheme();
-  const { user, isAttached } = useAccount();
+  const { user, isAttached, accountState } = useAccount();
   const { t: tCommon, i18n } = useTranslation('common');
   const { t: tAlign } = useTranslation('alignment');
   const router = useRouter();
@@ -182,6 +183,8 @@ export default function BoundariesScreen() {
   );
 
   const firstName = user?.firstName ?? '';
+
+  if (accountState === 'direct-free') return <FreeTierPaywall />;
 
   return (
     <ScreenContainer scrollRef={scrollRef} backgroundColor={colors.cream} keyboardShouldPersistTaps="handled">

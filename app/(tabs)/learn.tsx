@@ -3,6 +3,7 @@ import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { useAccount } from '../../src/contexts/AccountContext';
+import { FreeTierPaywall } from '../../src/components/ui/FreeTierPaywall';
 import { useWebSSO } from '../../src/hooks/useWebSSO';
 
 type ContentSection = { key: string; path: string; sso: boolean };
@@ -16,15 +17,17 @@ const SECTIONS: ContentSection[] = [
 export default function LearnScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation('learn');
-  const { user } = useAccount();
+  const { user, accountState } = useAccount();
   const { openWithSSO } = useWebSSO();
+
+  if (accountState === 'direct-free') return <FreeTierPaywall />;
 
   return (
     <ScreenContainer scroll contentContainerStyle={styles.inner}>
       <Text style={[styles.header, { color: colors.ink }]}>{t('header')}</Text>
 
       {SECTIONS.map(({ key, path, sso }) => (
-        <View key={key} style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View key={key} style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
           <Text style={[styles.cardTitle, { color: colors.ink }]}>{t(`${key}.title`)}</Text>
           <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t(`${key}.body`)}</Text>
           <TouchableOpacity

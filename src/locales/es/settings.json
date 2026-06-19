@@ -17,6 +17,14 @@
     "dailyNudgeTitle": "Sober Helpline",
     "dailyNudgeBody": "¿Cómo estás hoy? Tómate un momento para registrarte."
   },
+  "membership": {
+    "eyebrow": "Membresía",
+    "premiumPlan": "Premium",
+    "premiumFeatures": "Llamadas telefónicas y de video con un coach en horario laboral",
+    "essentialPlan": "Esencial",
+    "essentialFeatures": "Acceso completo · mensajería · grupos",
+    "manage": "Gestionar suscripción"
+  },
   "signOut": "Cerrar sesión",
   "deleteAccount": {
     "button": "Eliminar cuenta",

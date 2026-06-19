@@ -8,6 +8,7 @@ import {
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { useTranslation } from 'react-i18next';
 import { useAccount } from '../../src/contexts/AccountContext';
+import { FreeTierPaywall } from '../../src/components/ui/FreeTierPaywall';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { useTracker } from '../../src/hooks/useTracker';
 
@@ -86,7 +87,7 @@ function SignToggle({
 
 export default function TrackerScreen() {
   const { colors } = useTheme();
-  const { user, isAttached } = useAccount();
+  const { user, isAttached, accountState } = useAccount();
   const { t, i18n } = useTranslation('tracker');
 
   const { activeWarning, activeRecovery, toggleSign, warningLevel, recoveryMomentum } =
@@ -122,6 +123,8 @@ export default function TrackerScreen() {
 
   const privacyNote =
     t('privacyNote') + (isAttached ? t('privacyNoteCoach') : t('privacyNoteDirect'));
+
+  if (accountState === 'direct-free') return <FreeTierPaywall />;
 
   return (
     <ScreenContainer backgroundColor={colors.cream}>

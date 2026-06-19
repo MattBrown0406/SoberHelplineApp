@@ -27,3 +27,12 @@ export async function getIsActivePremium(): Promise<boolean> {
     return false;
   }
 }
+
+export async function getIsActiveEssential(): Promise<boolean> {
+  try {
+    const info = await Purchases.getCustomerInfo();
+    return !!info.entitlements.active['essential'];
+  } catch {
+    return false;
+  }
+}

@@ -17,6 +17,14 @@
     "dailyNudgeTitle": "Sober Helpline",
     "dailyNudgeBody": "How are you doing today? Take a moment to check in."
   },
+  "membership": {
+    "eyebrow": "Membership",
+    "premiumPlan": "Premium",
+    "premiumFeatures": "Phone & video calls with a coach, business hours",
+    "essentialPlan": "Essential",
+    "essentialFeatures": "Full app access · messaging · groups",
+    "manage": "Manage subscription"
+  },
   "signOut": "Sign out",
   "deleteAccount": {
     "button": "Delete account",

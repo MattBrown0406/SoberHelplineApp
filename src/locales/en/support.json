@@ -29,6 +29,9 @@
   },
   "tier": {
     "eyebrow": "Your plan",
+    "freeName": "Free",
+    "freeFeatures": "Monday family support group call",
+    "freeCurrent": "Your plan",
     "essentialName": "Essential",
     "essentialFeatures": "Message the on-call coach · full app · groups",
     "essentialPrice": "$14.99/mo",
@@ -37,6 +40,28 @@
     "premiumPrice": "$44.99/mo",
     "upgradeButton": "Upgrade to Premium",
     "current": "Current plan"
+  },
+  "paywall": {
+    "eyebrow": "UNLOCK THE APP",
+    "heading": "Subscribe for full access",
+    "body": "Essential members get daily check-ins, mood tracking, boundaries, scripts, messaging, and groups.",
+    "viewPlans": "View plans",
+    "subscribeEssential": "Subscribe Essential · $14.99/mo",
+    "subscribePremium": "Upgrade to Premium · $44.99/mo"
+  },
+  "coupon": {
+    "eyebrow": "SOBER HELPLINE MEMBER?",
+    "label": "Enter your member coupon code for free Essential access.",
+    "placeholder": "Coupon code",
+    "apply": "Apply",
+    "success": "Coupon applied — welcome to Essential!",
+    "invalid": "That code wasn't recognized. Check the code and try again.",
+    "alreadySubscribed": "You're already on Premium."
+  },
+  "mondayGroup": {
+    "eyebrow": "FREE ACCESS",
+    "heading": "Monday Family Support Group",
+    "sub": "Our free weekly group call — no subscription needed. RSVP to get the Zoom link."
   },
   "messages": {
     "eyebrow": "Message your coach",

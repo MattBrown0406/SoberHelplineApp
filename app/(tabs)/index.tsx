@@ -9,6 +9,7 @@ import { HeroCard } from '../../src/components/today/HeroCard';
 import { CheckInCard } from '../../src/components/today/CheckInCard';
 import { FocusCard } from '../../src/components/today/FocusCard';
 import { MoodChart } from '../../src/components/today/MoodChart';
+import { FreeTierPaywall } from '../../src/components/ui/FreeTierPaywall';
 import { useCheckIn } from '../../src/hooks/useCheckIn';
 import { useTodayFeed } from '../../src/hooks/useTodayFeed';
 import type { DailyFocusItem } from '../../src/api/types';
@@ -17,7 +18,7 @@ import type { TFunction } from 'i18next';
 const ADMIN_EMAIL = 'matt@soberhelpline.com';
 
 export default function TodayScreen() {
-  const { user, isAttached } = useAccount();
+  const { user, isAttached, accountState } = useAccount();
   const { colors } = useTheme();
   const { t } = useTranslation('today');
   const router = useRouter();
@@ -30,6 +31,8 @@ export default function TodayScreen() {
   const contextLabel = t(isAttached ? 'hero.contextAttached' : 'hero.contextDirect');
   const dailyQuote = t(`dailyQuote.${quoteIndex}`);
   const focusItems = buildFocusItems(t, focusSlot);
+
+  if (accountState === 'direct-free') return <FreeTierPaywall />;
 
   return (
     <ScreenContainer backgroundColor={colors.cream}>
