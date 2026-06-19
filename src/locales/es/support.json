@@ -103,9 +103,13 @@
   },
   "chat": {
     "headerSub": "Coach de guardia · responde en cuanto puede · no es para emergencias",
-    "emptyState": "Esta es tu línea directa con el coach de guardia. Saluda — una persona real lee esto.",
     "crisisNote": "En una emergencia, llama siempre al 911 o al 988.",
-    "openButton": "Abrir mi conversación"
+    "openButton": "Abrir mi conversación",
+    "archiveButton": "Archivar",
+    "archiveTitle": "¿Archivar esta conversación?",
+    "archiveBody": "Esta conversación se guardará y comenzará una nueva. Puedes pedirle a tu coach que acceda a conversaciones anteriores.",
+    "archiveConfirm": "Archivar e iniciar nueva",
+    "archiveCancel": "Cancelar"
   },
   "coaching": {
     "eyebrow": "Coaching 1 a 1",

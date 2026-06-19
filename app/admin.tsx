@@ -19,6 +19,7 @@ const ADMIN_EMAIL = 'matt@soberhelpline.com';
 
 type RsvpRow = { first_name: string; last_name: string; email: string; rsvped_at: string };
 type QuestionRow = { id: string; first_name: string; last_name: string; question: string; submitted_at: string };
+type ThreadRow = { thread_id: string; first_name: string; last_name: string; last_message: string | null; last_message_at: string | null; message_count: number };
 
 export default function AdminScreen() {
   const router = useRouter();
@@ -34,6 +35,9 @@ export default function AdminScreen() {
   const [loadingRsvps, setLoadingRsvps] = useState(true);
   const [questions, setQuestions] = useState<QuestionRow[]>([]);
   const [loadingQuestions, setLoadingQuestions] = useState(true);
+  const [threads, setThreads] = useState<ThreadRow[]>([]);
+  const [loadingThreads, setLoadingThreads] = useState(true);
+  const [archivingThread, setArchivingThread] = useState<string | null>(null);
 
   // Guard: non-admin users should never reach this screen, but redirect just in case
   useEffect(() => {
@@ -62,6 +66,12 @@ export default function AdminScreen() {
     const { data: qData, error: qError } = await supabase.rpc('admin_get_session_questions');
     if (!qError && qData) setQuestions(qData as QuestionRow[]);
     setLoadingQuestions(false);
+
+    // Load active member conversations
+    setLoadingThreads(true);
+    const { data: tData, error: tError } = await supabase.rpc('admin_get_active_threads');
+    if (!tError && tData) setThreads(tData as ThreadRow[]);
+    setLoadingThreads(false);
   }, []);
 
   useEffect(() => { void loadData(); }, [loadData]);
@@ -92,13 +102,13 @@ export default function AdminScreen() {
       <Text style={[styles.heading, { color: colors.ink }]}>Admin</Text>
 
       {/* ── Zoom Link ── */}
-      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
         <Text style={[styles.cardTitle, { color: colors.ink }]}>Family Squares — Weekly Zoom Link</Text>
 
         {isEditing ? (
           <>
             <TextInput
-              style={[styles.input, { color: colors.ink, borderColor: colors.border }]}
+              style={[styles.input, { color: colors.ink, borderColor: colors.line }]}
               value={editingUrl}
               onChangeText={setEditingUrl}
               autoCapitalize="none"
@@ -117,7 +127,7 @@ export default function AdminScreen() {
                   : <Text style={styles.btnText}>Save</Text>}
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.btn, styles.btnOutline, { borderColor: colors.border }]}
+                style={[styles.btn, styles.btnOutline, { borderColor: colors.line }]}
                 onPress={() => setIsEditing(false)}
               >
                 <Text style={[styles.btnText, { color: colors.ink }]}>Cancel</Text>
@@ -140,7 +150,7 @@ export default function AdminScreen() {
       </View>
 
       {/* ── RSVP List ── */}
-      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
         <Text style={[styles.cardTitle, { color: colors.ink }]}>
           RSVPs — This Week ({rsvps.length})
         </Text>
@@ -155,7 +165,7 @@ export default function AdminScreen() {
             keyExtractor={(item) => item.email}
             scrollEnabled={false}
             ItemSeparatorComponent={() => (
-              <View style={[styles.separator, { backgroundColor: colors.border }]} />
+              <View style={[styles.separator, { backgroundColor: colors.line }]} />
             )}
             renderItem={({ item }) => (
               <View style={styles.rsvpRow}>
@@ -174,7 +184,7 @@ export default function AdminScreen() {
       </View>
 
       {/* ── Member Questions ── */}
-      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
         <Text style={[styles.cardTitle, { color: colors.ink }]}>
           Member Questions ({questions.length})
         </Text>
@@ -189,7 +199,7 @@ export default function AdminScreen() {
             keyExtractor={(item) => item.id}
             scrollEnabled={false}
             ItemSeparatorComponent={() => (
-              <View style={[styles.separator, { backgroundColor: colors.border }]} />
+              <View style={[styles.separator, { backgroundColor: colors.line }]} />
             )}
             renderItem={({ item }) => (
               <View style={styles.questionRow}>
@@ -201,6 +211,77 @@ export default function AdminScreen() {
             )}
           />
         )}
+      </View>
+
+      {/* ── Member Conversations ── */}
+      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
+        <Text style={[styles.cardTitle, { color: colors.ink }]}>
+          Active Conversations ({threads.length})
+        </Text>
+
+        {loadingThreads ? (
+          <ActivityIndicator color={colors.primary} style={{ marginTop: 16 }} />
+        ) : threads.length === 0 ? (
+          <Text style={[styles.emptyText, { color: colors.inkSoft }]}>No active conversations.</Text>
+        ) : (
+          <FlatList
+            data={threads}
+            keyExtractor={(item) => item.thread_id}
+            scrollEnabled={false}
+            ItemSeparatorComponent={() => (
+              <View style={[styles.separator, { backgroundColor: colors.line }]} />
+            )}
+            renderItem={({ item }) => (
+              <View style={styles.threadRow}>
+                <View style={styles.threadInfo}>
+                  <Text style={[styles.rsvpName, { color: colors.ink }]}>
+                    {item.first_name} {item.last_name}
+                  </Text>
+                  {item.last_message ? (
+                    <Text style={[styles.threadPreview, { color: colors.inkSoft }]} numberOfLines={1}>
+                      {item.last_message}
+                    </Text>
+                  ) : null}
+                  <Text style={[styles.threadMeta, { color: colors.inkSoft }]}>
+                    {item.message_count} message{item.message_count !== 1 ? 's' : ''}
+                    {item.last_message_at ? ` · ${new Date(item.last_message_at).toLocaleDateString()}` : ''}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.archiveThreadBtn, { borderColor: colors.line }]}
+                  disabled={archivingThread === item.thread_id}
+                  onPress={() => {
+                    Alert.alert(
+                      'Archive conversation?',
+                      `This will archive ${item.first_name}'s current thread and start a fresh one for them.`,
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                          text: 'Archive',
+                          style: 'destructive',
+                          onPress: async () => {
+                            setArchivingThread(item.thread_id);
+                            await supabase.rpc('archive_thread', { p_thread_id: item.thread_id });
+                            setArchivingThread(null);
+                            void loadData();
+                          },
+                        },
+                      ],
+                    );
+                  }}
+                >
+                  {archivingThread === item.thread_id
+                    ? <ActivityIndicator size="small" color={colors.inkSoft} />
+                    : <Text style={[styles.archiveThreadBtnText, { color: colors.inkSoft }]}>Archive</Text>}
+                </TouchableOpacity>
+              </View>
+            )}
+          />
+        )}
+
+        <TouchableOpacity onPress={loadData} style={{ marginTop: 16 }}>
+          <Text style={[styles.refreshText, { color: colors.primary }]}>Refresh</Text>
+        </TouchableOpacity>
       </View>
     </ScreenContainer>
   );
@@ -230,4 +311,10 @@ const styles = StyleSheet.create({
   refreshText: { fontSize: 14, fontWeight: '600' },
   questionRow: { paddingVertical: 10 },
   questionText: { fontSize: 14, lineHeight: 20, fontStyle: 'italic' },
+  threadRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 12 },
+  threadInfo: { flex: 1 },
+  threadPreview: { fontSize: 13, marginTop: 2 },
+  threadMeta: { fontSize: 11, marginTop: 3 },
+  archiveThreadBtn: { borderWidth: 1, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12 },
+  archiveThreadBtnText: { fontSize: 12, fontWeight: '600' },
 });

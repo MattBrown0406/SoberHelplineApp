@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -23,15 +24,36 @@ export default function ChatScreen() {
   const { t } = useTranslation('support');
   const { user } = useAccount();
   const router = useRouter();
-  const { messages, send, loading } = useThread(user?.id ?? null);
+  const { messages, send, archive, loading } = useThread(user?.id ?? null);
   const [draft, setDraft] = useState('');
+  const [archiving, setArchiving] = useState(false);
   const listRef = useRef<FlatList<ChatMessage>>(null);
 
   async function handleSend() {
-    const body = draft;
+    const body = draft.trim();
+    if (!body) return;
     setDraft('');
     await send(body);
     listRef.current?.scrollToEnd({ animated: true });
+  }
+
+  function confirmArchive() {
+    Alert.alert(
+      t('chat.archiveTitle'),
+      t('chat.archiveBody'),
+      [
+        { text: t('chat.archiveCancel'), style: 'cancel' },
+        {
+          text: t('chat.archiveConfirm'),
+          style: 'destructive',
+          onPress: async () => {
+            setArchiving(true);
+            await archive();
+            setArchiving(false);
+          },
+        },
+      ],
+    );
   }
 
   return (
@@ -40,7 +62,7 @@ export default function ChatScreen() {
         <TouchableOpacity onPress={() => router.back()} hitSlop={12}>
           <Text style={[styles.back, { color: colors.primary }]}>‹</Text>
         </TouchableOpacity>
-        <View>
+        <View style={styles.headerCenter}>
           <Text style={[styles.headerTitle, { color: colors.ink }]}>
             {t('messages.eyebrow')}
           </Text>
@@ -48,6 +70,17 @@ export default function ChatScreen() {
             {t('chat.headerSub')}
           </Text>
         </View>
+        <TouchableOpacity
+          onPress={confirmArchive}
+          hitSlop={12}
+          disabled={archiving || loading}
+        >
+          {archiving
+            ? <ActivityIndicator size="small" color={colors.inkSoft} />
+            : <Text style={[styles.archiveBtn, { color: colors.inkSoft }]}>
+                {t('chat.archiveButton')}
+              </Text>}
+        </TouchableOpacity>
       </View>
 
       <KeyboardAvoidingView
@@ -55,66 +88,61 @@ export default function ChatScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.chatColumn}>
-        {loading ? (
-          <View style={styles.center}>
-            <ActivityIndicator color={colors.primary} />
-          </View>
-        ) : (
-          <FlatList
-            ref={listRef}
-            data={messages}
-            keyExtractor={(m) => m.id}
-            contentContainerStyle={styles.list}
-            onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
-            ListEmptyComponent={
-              <Text style={[styles.empty, { color: colors.inkSoft }]}>
-                {t('chat.emptyState')}
-              </Text>
-            }
-            renderItem={({ item }) => (
-              <View
-                style={[
-                  styles.bubble,
-                  item.sender_role === 'member'
-                    ? [styles.bubbleMe, { backgroundColor: colors.primary }]
-                    : [styles.bubbleCoach, { backgroundColor: colors.primaryLight }],
-                ]}
-              >
-                <Text
-                  style={{
-                    color: item.sender_role === 'member' ? '#fff' : colors.ink,
-                    fontSize: 14,
-                    lineHeight: 20,
-                  }}
+          {loading ? (
+            <View style={styles.center}>
+              <ActivityIndicator color={colors.primary} />
+            </View>
+          ) : (
+            <FlatList
+              ref={listRef}
+              data={messages}
+              keyExtractor={(m) => m.id}
+              contentContainerStyle={styles.list}
+              onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
+              renderItem={({ item }) => (
+                <View
+                  style={[
+                    styles.bubble,
+                    item.sender_role === 'member'
+                      ? [styles.bubbleMe, { backgroundColor: colors.primary }]
+                      : [styles.bubbleCoach, { backgroundColor: colors.primaryLight }],
+                  ]}
                 >
-                  {item.body}
-                </Text>
-              </View>
-            )}
-          />
-        )}
+                  <Text
+                    style={{
+                      color: item.sender_role === 'member' ? '#fff' : colors.ink,
+                      fontSize: 14,
+                      lineHeight: 20,
+                    }}
+                  >
+                    {item.body}
+                  </Text>
+                </View>
+              )}
+            />
+          )}
 
-        <View style={[styles.inputRow, { borderTopColor: colors.line }]}>
-          <TextInput
-            style={[styles.input, { borderColor: colors.line, color: colors.ink }]}
-            placeholder={t('messages.placeholder')}
-            placeholderTextColor={colors.inkSoft}
-            value={draft}
-            onChangeText={setDraft}
-            multiline
-          />
-          <TouchableOpacity
-            style={[styles.sendBtn, { backgroundColor: colors.primary }]}
-            onPress={handleSend}
-            disabled={!draft.trim()}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.sendText}>➤</Text>
-          </TouchableOpacity>
-        </View>
-        <Text style={[styles.crisisNote, { color: colors.inkSoft }]}>
-          {t('chat.crisisNote')}
-        </Text>
+          <View style={[styles.inputRow, { borderTopColor: colors.line }]}>
+            <TextInput
+              style={[styles.input, { borderColor: colors.line, color: colors.ink }]}
+              placeholder={t('messages.placeholder')}
+              placeholderTextColor={colors.inkSoft}
+              value={draft}
+              onChangeText={setDraft}
+              multiline
+            />
+            <TouchableOpacity
+              style={[styles.sendBtn, { backgroundColor: draft.trim() ? colors.primary : colors.line }]}
+              onPress={handleSend}
+              disabled={!draft.trim()}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.sendText}>➤</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={[styles.crisisNote, { color: colors.inkSoft }]}>
+            {t('chat.crisisNote')}
+          </Text>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -135,11 +163,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     backgroundColor: '#fff',
   },
+  headerCenter: { flex: 1 },
   back: { fontSize: 30, fontWeight: '600', marginTop: -4 },
   headerTitle: { fontSize: 16, fontWeight: '700' },
   headerSub: { fontSize: 11.5, marginTop: 1 },
+  archiveBtn: { fontSize: 12, fontWeight: '600' },
   list: { padding: 16, gap: 8, flexGrow: 1 },
-  empty: { textAlign: 'center', fontSize: 13.5, lineHeight: 20, marginTop: 30 },
   bubble: {
     maxWidth: '80%',
     borderRadius: 16,

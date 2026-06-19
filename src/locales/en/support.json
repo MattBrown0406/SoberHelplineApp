@@ -103,9 +103,13 @@
   },
   "chat": {
     "headerSub": "On-call coach · replies as soon as available · not for emergencies",
-    "emptyState": "This is your direct line to the on-call coach. Say hello — a real person reads this.",
     "crisisNote": "In an emergency, always call 911 or 988.",
-    "openButton": "Open my message thread"
+    "openButton": "Open my message thread",
+    "archiveButton": "Archive",
+    "archiveTitle": "Archive this conversation?",
+    "archiveBody": "This conversation will be saved and a new one will start. You can ask your coach to access past conversations.",
+    "archiveConfirm": "Archive & start new",
+    "archiveCancel": "Cancel"
   },
   "coaching": {
     "eyebrow": "1:1 coaching",
