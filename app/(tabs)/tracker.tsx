@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,10 @@ import { useAccount } from '../../src/contexts/AccountContext';
 import { FreeTierPaywall } from '../../src/components/ui/FreeTierPaywall';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { useTracker } from '../../src/hooks/useTracker';
+import { useSituation } from '../../src/hooks/useSituation';
+import { SituationOffRamp } from '../../src/components/situation/SituationOffRamp';
+import type { FunnelDoor } from '../../src/lib/situation';
+import { supabase } from '../../src/lib/supabase';
 
 const ALERT_THRESHOLD = 3;
 
@@ -92,6 +96,7 @@ export default function TrackerScreen() {
 
   const { activeWarning, activeRecovery, toggleSign, warningLevel, recoveryMomentum } =
     useTracker(user?.id ?? null);
+  const { situation, refresh: refreshSituation } = useSituation(user?.id ?? null);
 
   const warningSigns: Sign[] = useMemo(
     () => t('warning.signs', { returnObjects: true }) as Sign[],
@@ -106,6 +111,31 @@ export default function TrackerScreen() {
   const recovCount = activeRecovery.size;
   const showWarningAlert = warnCount >= ALERT_THRESHOLD;
   const showRecoveryAlert = recovCount >= ALERT_THRESHOLD;
+
+  // On a warning spike, escalate the loved-one status (never downgrading from
+  // crisis/escalating) so the situation reflects it, then re-read the band.
+  // Fires once per rising edge.
+  const spikeHandledRef = useRef(false);
+  useEffect(() => {
+    if (warnCount < ALERT_THRESHOLD) {
+      spikeHandledRef.current = false;
+      return;
+    }
+    if (spikeHandledRef.current) return;
+    spikeHandledRef.current = true;
+    const current = situation.drivers.loved_one_status;
+    if (current !== 'crisis' && current !== 'escalating') {
+      void supabase
+        .rpc('set_loved_one_status', { p_status: 'escalating' })
+        .then(() => refreshSituation());
+    } else {
+      void refreshSituation();
+    }
+  }, [warnCount, situation.drivers.loved_one_status, refreshSituation]);
+
+  // A spike always offers at least coaching; sustained crisis offers intervention.
+  const spikeDoor: FunnelDoor =
+    situation.band === 'crisis' && situation.sustained ? 'intervention' : 'coaching';
 
   const warningMeterLabel =
     warningLevel === 0
@@ -141,12 +171,19 @@ export default function TrackerScreen() {
           />
 
           {showWarningAlert && (
-            <View style={[styles.alertBanner, { backgroundColor: colors.coralLight, borderColor: colors.coral }]}>
-              <Text style={[styles.alertText, { color: colors.coral }]}>
-                {t('warning.alertText')}
-                {isAttached ? t('warning.alertCoachSuffix') : t('warning.alertDirectSuffix')}
-              </Text>
-            </View>
+            <>
+              <View style={[styles.alertBanner, { backgroundColor: colors.coralLight, borderColor: colors.coral }]}>
+                <Text style={[styles.alertText, { color: colors.coral }]}>
+                  {t('warning.alertText')}
+                  {isAttached ? t('warning.alertCoachSuffix') : t('warning.alertDirectSuffix')}
+                </Text>
+              </View>
+              {!isAttached && (
+                <View style={styles.offRampWrap}>
+                  <SituationOffRamp door={spikeDoor} />
+                </View>
+              )}
+            </>
           )}
 
           <View style={styles.signList}>
@@ -241,6 +278,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
   },
+  offRampWrap: { marginBottom: 12 },
   alertText: {
     fontSize: 13,
     fontWeight: '600',
