@@ -32,6 +32,7 @@ import { useIAP } from '../../src/hooks/useIAP';
 import { useSituation } from '../../src/hooks/useSituation';
 import { funnelDoor, type FunnelDoor } from '../../src/lib/situation';
 import { SituationOffRamp } from '../../src/components/situation/SituationOffRamp';
+import { logFunnelEvent } from '../../src/lib/funnel';
 import type { StaffMember, SupportGroup } from '../../src/api/types';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -644,7 +645,10 @@ export default function SupportScreen() {
                       <TouchableOpacity
                         style={[styles.sessionBtn, { backgroundColor: colors.green, borderColor: colors.green }]}
                         activeOpacity={0.8}
-                        onPress={() => Linking.openURL(sess.zoom_url!)}
+                        onPress={() => {
+                          if (sess.kind === 'group') logFunnelEvent('attended', { source: 'support' });
+                          Linking.openURL(sess.zoom_url!);
+                        }}
                       >
                         <Text style={[styles.sessionBtnText, { color: '#fff' }]}>{t('sessions.joinZoom')}</Text>
                       </TouchableOpacity>
@@ -718,7 +722,10 @@ export default function SupportScreen() {
                       <TouchableOpacity
                         style={[styles.sessionBtn, { backgroundColor: colors.green, borderColor: colors.green }]}
                         activeOpacity={0.8}
-                        onPress={() => Linking.openURL(sess.zoom_url!)}
+                        onPress={() => {
+                          if (sess.kind === 'group') logFunnelEvent('attended', { source: 'support' });
+                          Linking.openURL(sess.zoom_url!);
+                        }}
                       >
                         <Text style={[styles.sessionBtnText, { color: '#fff' }]}>{t('sessions.joinZoom')}</Text>
                       </TouchableOpacity>
@@ -938,7 +945,10 @@ export default function SupportScreen() {
                       <TouchableOpacity
                         style={[styles.sessionBtn, { backgroundColor: colors.green, borderColor: colors.green }]}
                         activeOpacity={0.8}
-                        onPress={() => Linking.openURL(sess.zoom_url!)}
+                        onPress={() => {
+                          if (sess.kind === 'group') logFunnelEvent('attended', { source: 'support' });
+                          Linking.openURL(sess.zoom_url!);
+                        }}
                       >
                         <Text style={[styles.sessionBtnText, { color: '#fff' }]}>{t('sessions.joinZoom')}</Text>
                       </TouchableOpacity>

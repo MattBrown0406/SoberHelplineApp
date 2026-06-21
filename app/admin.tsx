@@ -17,6 +17,17 @@ import { supabase } from '../src/lib/supabase';
 
 const ADMIN_EMAIL = 'matt@soberhelpline.com';
 
+type FunnelStats = {
+  members: number;
+  onboarded_loved_one: number;
+  free_rsvps: number;
+  attended: number;
+  coaching_requested: number;
+  coaching_confirmed: number;
+  intervention_viewed: number;
+  intervention_started: number;
+  bands: { calm: number; watch: number; elevated: number; crisis: number };
+};
 type RsvpRow = { first_name: string; last_name: string; email: string; rsvped_at: string };
 type QuestionRow = { id: string; first_name: string; last_name: string; question: string; submitted_at: string };
 type ThreadRow = { thread_id: string; first_name: string; last_name: string; last_message: string | null; last_message_at: string | null; message_count: number };
@@ -38,6 +49,7 @@ export default function AdminScreen() {
   const [threads, setThreads] = useState<ThreadRow[]>([]);
   const [loadingThreads, setLoadingThreads] = useState(true);
   const [archivingThread, setArchivingThread] = useState<string | null>(null);
+  const [funnel, setFunnel] = useState<FunnelStats | null>(null);
 
   // Guard: non-admin users should never reach this screen, but redirect just in case
   useEffect(() => {
@@ -47,6 +59,10 @@ export default function AdminScreen() {
   }, [user, router]);
 
   const loadData = useCallback(async () => {
+    // Funnel + family-health snapshot
+    const { data: funnelData } = await supabase.rpc('admin_funnel_stats');
+    if (funnelData) setFunnel(funnelData as FunnelStats);
+
     // Load current Zoom URL
     const { data: session } = await supabase
       .from('sessions')
@@ -100,6 +116,38 @@ export default function AdminScreen() {
       </TouchableOpacity>
 
       <Text style={[styles.heading, { color: colors.ink }]}>Admin</Text>
+
+      {/* ── Funnel & family health ── */}
+      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
+        <Text style={[styles.cardTitle, { color: colors.ink }]}>Funnel & family health</Text>
+        {!funnel ? (
+          <ActivityIndicator color={colors.primary} style={{ marginTop: 8 }} />
+        ) : (
+          <>
+            <View style={styles.funnelRow}>
+              <FunnelStat label="Members" value={funnel.members} colors={colors} />
+              <FunnelStat label="Loved one set" value={funnel.onboarded_loved_one} colors={colors} />
+            </View>
+            <Text style={[styles.funnelStage, { color: colors.inkSoft }]}>
+              Funnel: {funnel.free_rsvps} RSVP&apos;d → {funnel.attended} attended → {funnel.coaching_requested} requested coaching → {funnel.coaching_confirmed} confirmed → {funnel.intervention_started} planning intervention
+            </Text>
+            <Text style={[styles.funnelStage, { color: colors.inkSoft }]}>
+              ({funnel.intervention_viewed} viewed the intervention page)
+            </Text>
+
+            <Text style={[styles.funnelSubhead, { color: colors.ink }]}>Readiness bands</Text>
+            <View style={styles.bandsRow}>
+              <BandPill label="Calm" value={funnel.bands.calm} color={colors.green} colors={colors} />
+              <BandPill label="Watch" value={funnel.bands.watch} color="#e6c070" colors={colors} />
+              <BandPill label="Elevated" value={funnel.bands.elevated} color={colors.coral} colors={colors} />
+              <BandPill label="Crisis" value={funnel.bands.crisis} color={colors.coral} colors={colors} />
+            </View>
+            <Text style={[styles.funnelNote, { color: colors.inkSoft }]}>
+              Attended = tapped Join on a group call. Intervention = opened/started planning. RSVP from session RSVPs, coaching from bookings.
+            </Text>
+          </>
+        )}
+      </View>
 
       {/* ── Zoom Link ── */}
       <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
@@ -287,8 +335,39 @@ export default function AdminScreen() {
   );
 }
 
+type Colors = ReturnType<typeof useTheme>['colors'];
+
+function FunnelStat({ label, value, colors }: { label: string; value: number; colors: Colors }) {
+  return (
+    <View style={styles.funnelStat}>
+      <Text style={[styles.funnelStatValue, { color: colors.primary }]}>{value}</Text>
+      <Text style={[styles.funnelStatLabel, { color: colors.inkSoft }]}>{label}</Text>
+    </View>
+  );
+}
+
+function BandPill({ label, value, color, colors }: { label: string; value: number; color: string; colors: Colors }) {
+  return (
+    <View style={[styles.bandPill, { borderColor: colors.line }]}>
+      <View style={[styles.bandDot, { backgroundColor: color }]} />
+      <Text style={[styles.bandPillText, { color: colors.ink }]}>{label} {value}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   inner: { padding: 20, paddingBottom: 48 },
+  funnelRow: { flexDirection: 'row', gap: 24, marginBottom: 12 },
+  funnelStat: { alignItems: 'flex-start' },
+  funnelStatValue: { fontSize: 26, fontWeight: '800' },
+  funnelStatLabel: { fontSize: 12, marginTop: 2 },
+  funnelStage: { fontSize: 13, lineHeight: 19, marginBottom: 14 },
+  funnelSubhead: { fontSize: 13, fontWeight: '700', marginBottom: 8 },
+  bandsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+  bandPill: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 99, paddingVertical: 6, paddingHorizontal: 12 },
+  bandDot: { width: 9, height: 9, borderRadius: 5 },
+  bandPillText: { fontSize: 12.5, fontWeight: '600' },
+  funnelNote: { fontSize: 11.5, lineHeight: 17, fontStyle: 'italic' },
   backBtn: { marginBottom: 8 },
   backText: { fontSize: 15 },
   heading: { fontSize: 26, fontWeight: '700', marginBottom: 24 },

@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { DOOR_COPY_KEY, DOOR_ROUTE, type FunnelDoor } from '../../lib/situation';
+import { logFunnelEvent } from '../../lib/funnel';
 import type { FreeCall } from '../../hooks/useTodayFeed';
 
 interface Props {
@@ -36,7 +37,10 @@ export function SituationCard({ nextFreeCall, primaryDoor, onRsvp }: Props) {
       {canJoin ? (
         <TouchableOpacity
           style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
-          onPress={() => void Linking.openURL(nextFreeCall!.zoom_url!)}
+          onPress={() => {
+            logFunnelEvent('attended', { source: 'today' });
+            void Linking.openURL(nextFreeCall!.zoom_url!);
+          }}
           activeOpacity={0.85}
         >
           <Text style={styles.primaryBtnText}>{t('situationCta.join')}</Text>

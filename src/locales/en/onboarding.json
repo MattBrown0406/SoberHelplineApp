@@ -74,6 +74,8 @@
   "done": {
     "title": "Your castle starts today",
     "body": "Check in once a day. Anchor your first wall when you're ready. Help is one tap away — always.",
-    "button": "Enter Sober Helpline"
+    "button": "Enter Sober Helpline",
+    "rsvpButton": "Save my spot at Monday's free call",
+    "rsvpDone": "✓ You're in — see you Monday"
   }
 }
