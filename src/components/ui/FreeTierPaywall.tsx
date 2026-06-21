@@ -5,29 +5,36 @@ import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from './ScreenContainer';
 import { useTheme } from '../../contexts/ThemeContext';
 
-export function FreeTierPaywall() {
+export function FreeTierPaywall({ inline = false }: { inline?: boolean }) {
   const { colors } = useTheme();
   const { t } = useTranslation('support');
   const router = useRouter();
 
+  const card = (
+    <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
+      <Text style={styles.lock}>🔒</Text>
+      <Text style={[styles.heading, { color: colors.ink }]}>
+        {t('paywall.heading')}
+      </Text>
+      <Text style={[styles.body, { color: colors.inkSoft }]}>
+        {t('paywall.body')}
+      </Text>
+      <TouchableOpacity
+        style={[styles.btn, { backgroundColor: colors.primary }]}
+        onPress={() => router.push('/(tabs)/support')}
+        activeOpacity={0.85}
+      >
+        <Text style={styles.btnText}>{t('paywall.viewPlans')}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  // Inline: sit within an existing scroll (e.g. below the Today situation card).
+  if (inline) return card;
+
   return (
     <ScreenContainer backgroundColor={colors.cream} contentContainerStyle={styles.container}>
-      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
-        <Text style={styles.lock}>🔒</Text>
-        <Text style={[styles.heading, { color: colors.ink }]}>
-          {t('paywall.heading')}
-        </Text>
-        <Text style={[styles.body, { color: colors.inkSoft }]}>
-          {t('paywall.body')}
-        </Text>
-        <TouchableOpacity
-          style={[styles.btn, { backgroundColor: colors.primary }]}
-          onPress={() => router.push('/(tabs)/support')}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.btnText}>{t('paywall.viewPlans')}</Text>
-        </TouchableOpacity>
-      </View>
+      {card}
     </ScreenContainer>
   );
 }

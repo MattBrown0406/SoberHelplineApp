@@ -31,7 +31,7 @@ export default function ConsentScreen() {
       );
     }
     setSaving(false);
-    router.push('/(onboarding)/notifications');
+    router.push('/(onboarding)/loved-one');
   }
 
   return (

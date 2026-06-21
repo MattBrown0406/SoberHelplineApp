@@ -108,5 +108,18 @@
   "moodChart": {
     "eyebrow": "YOUR LAST 14 DAYS",
     "noData": "Check in daily to see your emotional arc here."
+  },
+  "situationCta": {
+    "eyebrow": "THIS WEEK",
+    "freeCallTitle": "Monday Family Support Call",
+    "scheduleFallback": "Mondays · live group call",
+    "join": "Join Zoom",
+    "rsvp": "Save my spot",
+    "going": "You're going ✓",
+    "freeCall": "Save my spot on the free call",
+    "coaching": "Talk 1:1 with a coach",
+    "intervention": "Plan an intervention with Matt",
+    "coachingSub": "Carrying a lot this week? A private hour to map your next move — $150.",
+    "interventionSub": "When it's time for more than an app, Matt will walk with you step by step."
   }
 }
