@@ -119,13 +119,16 @@ BEGIN
     ELSE 5
   END;
 
-  -- Weighted score: mood weighs heaviest, then net warning signs, then status.
-  v_score := (v_low_days * 8) + (greatest(v_net, 0) * 6) + v_status_weight;
+  -- Weighted score. Calibrated so a single real signal escalates the door:
+  --   3 low-mood days  → 30 → elevated → coaching
+  --   3 warning signs  → 30 → elevated → coaching
+  --   3 low AND 3 warn → 60 → crisis (+ sustained) → intervention
+  v_score := (v_low_days * 10) + (greatest(v_net, 0) * 10) + v_status_weight;
 
   v_band := CASE
     WHEN v_score >= 60 THEN 'crisis'
-    WHEN v_score >= 35 THEN 'elevated'
-    WHEN v_score >= 15 THEN 'watch'
+    WHEN v_score >= 30 THEN 'elevated'
+    WHEN v_score >= 10 THEN 'watch'
     ELSE 'calm'
   END;
 
