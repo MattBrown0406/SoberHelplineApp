@@ -21,8 +21,11 @@ type FunnelStats = {
   members: number;
   onboarded_loved_one: number;
   free_rsvps: number;
+  attended: number;
   coaching_requested: number;
   coaching_confirmed: number;
+  intervention_viewed: number;
+  intervention_started: number;
   bands: { calm: number; watch: number; elevated: number; crisis: number };
 };
 type RsvpRow = { first_name: string; last_name: string; email: string; rsvped_at: string };
@@ -126,7 +129,10 @@ export default function AdminScreen() {
               <FunnelStat label="Loved one set" value={funnel.onboarded_loved_one} colors={colors} />
             </View>
             <Text style={[styles.funnelStage, { color: colors.inkSoft }]}>
-              Funnel: {funnel.free_rsvps} RSVP&apos;d → {funnel.coaching_requested} requested coaching → {funnel.coaching_confirmed} confirmed
+              Funnel: {funnel.free_rsvps} RSVP&apos;d → {funnel.attended} attended → {funnel.coaching_requested} requested coaching → {funnel.coaching_confirmed} confirmed → {funnel.intervention_started} planning intervention
+            </Text>
+            <Text style={[styles.funnelStage, { color: colors.inkSoft }]}>
+              ({funnel.intervention_viewed} viewed the intervention page)
             </Text>
 
             <Text style={[styles.funnelSubhead, { color: colors.ink }]}>Readiness bands</Text>
@@ -137,7 +143,7 @@ export default function AdminScreen() {
               <BandPill label="Crisis" value={funnel.bands.crisis} color={colors.coral} colors={colors} />
             </View>
             <Text style={[styles.funnelNote, { color: colors.inkSoft }]}>
-              Attendance and intervention conversion aren&apos;t event-tracked yet — counts above use RSVP + coaching booking data.
+              Attended = tapped Join on a group call. Intervention = opened/started planning. RSVP from session RSVPs, coaching from bookings.
             </Text>
           </>
         )}

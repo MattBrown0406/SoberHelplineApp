@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { FEATURED_PROVIDER } from '../src/config';
+import { logFunnelEvent } from '../src/lib/funnel';
 import { MAX_CONTENT_WIDTH } from '../src/components/ui/ScreenContainer';
 
 /**
@@ -23,6 +24,10 @@ export default function PlanInterventionScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation('support');
   const router = useRouter();
+
+  useEffect(() => {
+    logFunnelEvent('intervention_viewed');
+  }, []);
 
   const steps = [
     t('intervention.step1'),
@@ -104,7 +109,10 @@ export default function PlanInterventionScreen() {
         {/* Primary CTA — low pressure */}
         <TouchableOpacity
           style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
-          onPress={() => router.push('/book-coaching')}
+          onPress={() => {
+            logFunnelEvent('intervention_started');
+            router.push('/book-coaching');
+          }}
           activeOpacity={0.85}
         >
           <Text style={styles.primaryBtnText}>{t('intervention.primaryCta')}</Text>
