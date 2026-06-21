@@ -12,13 +12,27 @@
 // shipped to clients.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { bandsForAccounts, type Band } from '../_shared/situation.ts';
 
 const NUDGE_HOUR_LOCAL = 9;
 
-const COPY: Record<string, { title: string; body: string }> = {
-  en: { title: 'Your 90 seconds', body: 'A quick check-in keeps the castle strong. How are you holding up today?' },
-  es: { title: 'Tus 90 segundos', body: 'Un registro rápido mantiene fuerte el castillo. ¿Cómo estás hoy?' },
+// State-aware copy: a gentler, support-forward nudge when the band is elevated
+// or in crisis; the standard streak nudge otherwise.
+const COPY: Record<string, { normal: { title: string; body: string }; support: { title: string; body: string } }> = {
+  en: {
+    normal: { title: 'Your 90 seconds', body: 'A quick check-in keeps the castle strong. How are you holding up today?' },
+    support: { title: 'Thinking of you', body: "The last few days have looked heavy. A 90-second check-in helps — and a coach is one tap away if you want one." },
+  },
+  es: {
+    normal: { title: 'Tus 90 segundos', body: 'Un registro rápido mantiene fuerte el castillo. ¿Cómo estás hoy?' },
+    support: { title: 'Pensando en ti', body: 'Los últimos días se han visto difíciles. Un registro de 90 segundos ayuda — y un coach está a un toque si lo deseas.' },
+  },
 };
+
+function copyFor(language: string, band: Band) {
+  const set = COPY[language] ?? COPY.en;
+  return band === 'elevated' || band === 'crisis' ? set.support : set.normal;
+}
 
 Deno.serve(async () => {
   const supabase = createClient(
@@ -51,14 +65,20 @@ Deno.serve(async () => {
     .gte('created_at', `${today}T00:00:00Z`);
   const done = new Set((checked ?? []).map((c) => c.account_id));
 
-  const messages = candidates
-    .filter((a) => !done.has(a.id))
-    .map((a) => ({
+  const recipients = candidates.filter((a) => !done.has(a.id));
+  const bands = await bandsForAccounts(supabase, recipients.map((a) => a.id));
+
+  const messages = recipients.map((a) => {
+    const band = bands.get(a.id) ?? 'calm';
+    const copy = copyFor(a.language, band);
+    return {
       to: a.push_token,
-      title: (COPY[a.language] ?? COPY.en).title,
-      body: (COPY[a.language] ?? COPY.en).body,
+      title: copy.title,
+      body: copy.body,
       sound: 'default',
-    }));
+      data: { screen: band === 'elevated' || band === 'crisis' ? 'support' : 'today' },
+    };
+  });
 
   // Expo push API accepts batches of 100
   for (let i = 0; i < messages.length; i += 100) {

@@ -1,12 +1,46 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { bandsForAccounts } from '../_shared/situation.ts';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
 );
 
-const MONDAY_CHALLENGE =
-  "It's Monday — join The Family Squares Zoom meeting tonight at 7:00 PM Pacific. Be with people who understand what you're going through.";
+// Bilingual copy for the Monday free-call reminder and the state-aware
+// supportive variant. The English daily-challenge pool below is used for calm/
+// watch English members; Spanish members get a localized generic morning line.
+const COPY: Record<
+  string,
+  {
+    mondayTitle: string;
+    mondayBody: string;
+    supportTitle: string;
+    supportBody: string;
+    morningTitle: string;
+    genericMorning: string;
+  }
+> = {
+  en: {
+    mondayTitle: 'Family call tonight',
+    mondayBody:
+      "It's Monday — join The Family Squares Zoom meeting tonight at 7:00 PM Pacific. Be with people who understand what you're going through.",
+    supportTitle: 'A gentle start',
+    supportBody:
+      'This stretch has looked heavy. Be kind to yourself today — and remember a coach is one tap away if you want one.',
+    morningTitle: 'Good morning',
+    genericMorning: 'A quiet moment for you this morning: take one breath before the day begins.',
+  },
+  es: {
+    mondayTitle: 'Llamada familiar hoy',
+    mondayBody:
+      'Es lunes — únete esta noche a la reunión de Zoom The Family Squares a las 7:00 PM (Pacífico). Acompáñate de quienes entienden lo que estás viviendo.',
+    supportTitle: 'Un comienzo suave',
+    supportBody:
+      'Esta etapa se ha visto difícil. Sé amable contigo hoy — y recuerda que un coach está a un toque si lo deseas.',
+    morningTitle: 'Buenos días',
+    genericMorning: 'Un momento de calma para ti esta mañana: respira una vez antes de empezar el día.',
+  },
+};
 
 const DAILY_CHALLENGES = [
   'Practice saying "no" once today — and resist the urge to explain yourself afterward.',
@@ -44,41 +78,54 @@ function dayOfYear(d: Date): number {
   return Math.floor((d.getTime() - new Date(d.getFullYear(), 0, 0).getTime()) / 86400000);
 }
 
-function getTodayChallenge(): string {
-  const now = new Date();
-  if (now.getUTCDay() === 1) return MONDAY_CHALLENGE;
-  return DAILY_CHALLENGES[dayOfYear(now) % DAILY_CHALLENGES.length];
+interface Acct {
+  id: string;
+  push_token: string;
+  language: string;
 }
 
 Deno.serve(async () => {
   const { data: accounts, error } = await supabase
     .from('accounts')
-    .select('push_token')
+    .select('id, push_token, language')
     .not('push_token', 'is', null);
 
   if (error || !accounts?.length) {
     return new Response(JSON.stringify({ sent: 0 }), { status: 200 });
   }
 
-  const challenge = getTodayChallenge();
-  const tokens = accounts.map((a: { push_token: string }) => a.push_token);
+  const now = new Date();
+  const isMonday = now.getUTCDay() === 1;
+  const challenge = DAILY_CHALLENGES[dayOfYear(now) % DAILY_CHALLENGES.length];
+  const bands = await bandsForAccounts(
+    supabase,
+    (accounts as Acct[]).map((a) => a.id),
+  );
+
+  // Monday: free-call reminder for everyone. Otherwise: a supportive nudge for
+  // an elevated/crisis band, else the daily challenge (en) / a gentle line (es).
+  const messages = (accounts as Acct[]).map((a) => {
+    const c = COPY[a.language] ?? COPY.en;
+    const band = bands.get(a.id) ?? 'calm';
+
+    if (isMonday) {
+      return { to: a.push_token, title: c.mondayTitle, body: c.mondayBody, sound: 'default', data: { screen: 'support' } };
+    }
+    if (band === 'elevated' || band === 'crisis') {
+      return { to: a.push_token, title: c.supportTitle, body: c.supportBody, sound: 'default', data: { screen: 'support' } };
+    }
+    const body = a.language === 'es' ? c.genericMorning : challenge;
+    return { to: a.push_token, title: c.morningTitle, body, sound: 'default', data: { screen: 'boundaries' } };
+  });
 
   // Expo push limit is 100 messages per request
-  for (let i = 0; i < tokens.length; i += 100) {
-    const chunk = tokens.slice(i, i + 100).map((token: string) => ({
-      to: token,
-      title: 'Good morning',
-      body: challenge,
-      sound: 'default',
-      data: { screen: 'boundaries' },
-    }));
-
+  for (let i = 0; i < messages.length; i += 100) {
     await fetch('https://exp.host/--/api/v2/push/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(chunk),
+      body: JSON.stringify(messages.slice(i, i + 100)),
     });
   }
 
-  return new Response(JSON.stringify({ sent: tokens.length }), { status: 200 });
+  return new Response(JSON.stringify({ sent: messages.length }), { status: 200 });
 });
