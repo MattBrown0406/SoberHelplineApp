@@ -135,13 +135,24 @@ function computeStreak(datesDesc: string[]): CheckInStreak {
   const yesterday = toDateStr(new Date(Date.now() - 86_400_000));
   const set = new Set(datesDesc);
 
+  // Current streak with a single grace day: one missed day anywhere in the run
+  // is forgiven so a busy day doesn't wipe out weeks of momentum. A second
+  // missed day ends the streak.
   let current = 0;
   const startDate = set.has(today) ? today : set.has(yesterday) ? yesterday : null;
   if (startDate) {
     const cursor = new Date(startDate + 'T12:00:00Z');
-    while (set.has(toDateStr(cursor))) {
-      current++;
-      cursor.setUTCDate(cursor.getUTCDate() - 1);
+    let graceUsed = false;
+    while (true) {
+      if (set.has(toDateStr(cursor))) {
+        current++;
+        cursor.setUTCDate(cursor.getUTCDate() - 1);
+      } else if (!graceUsed) {
+        graceUsed = true; // forgive one gap, then require the prior day to continue
+        cursor.setUTCDate(cursor.getUTCDate() - 1);
+      } else {
+        break;
+      }
     }
   }
 
