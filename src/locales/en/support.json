@@ -140,6 +140,22 @@
     "presenceBody": "Share what's going on — big or small. {{coach}} reads your messages between live sessions and replies as soon as they can.",
     "presenceNextSession": "Next live session · {{schedule}}"
   },
+  "intervention": {
+    "eyebrow": "PLANNING AHEAD",
+    "title": "When you're ready, you don't have to do it alone",
+    "intro": "An intervention isn't an ambush — it's a planned, loving conversation, and having a professional guide it changes everything. There's no pressure here and no timeline but your own.",
+    "whatTitle": "What planning with Matt looks like",
+    "step1": "A private conversation about your situation — no judgment, nothing to memorize.",
+    "step2": "A plan built around your family: who's in the room, what's said, and what comes after.",
+    "step3": "Matt stays with you through the conversation itself and the steps that follow.",
+    "providerEyebrow": "Your interventionist",
+    "emailButton": "Email {{name}}",
+    "webButton": "Visit website",
+    "primaryCta": "Start a conversation",
+    "primaryCtaSub": "We'll reach out to set up a time — no commitment.",
+    "reassure": "Not yet? That's completely okay. This will be here when you're ready.",
+    "crisisNote": "If someone is in immediate danger, call 911 or 988."
+  },
   "coaching": {
     "eyebrow": "1:1 coaching",
     "cardTitle": "Private Zoom session with a coach",

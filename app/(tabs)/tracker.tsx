@@ -6,6 +6,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { FreeTierPaywall } from '../../src/components/ui/FreeTierPaywall';
@@ -91,6 +92,7 @@ function SignToggle({
 
 export default function TrackerScreen() {
   const { colors } = useTheme();
+  const router = useRouter();
   const { user, isAttached, accountState } = useAccount();
   const { t, i18n } = useTranslation('tracker');
 
@@ -232,6 +234,18 @@ export default function TrackerScreen() {
           </View>
         </View>
 
+        {/* ── Trajectory entry ──────────────────────────────────── */}
+        <TouchableOpacity
+          style={[styles.trajectoryBtn, { backgroundColor: colors.white, borderColor: colors.line }]}
+          onPress={() => router.push('/trajectory')}
+          activeOpacity={0.85}
+        >
+          <Text style={[styles.trajectoryBtnText, { color: colors.ink }]}>
+            {t('trajectory.openButton')}
+          </Text>
+          <Text style={[styles.trajectoryChevron, { color: colors.primary }]}>›</Text>
+        </TouchableOpacity>
+
         {/* ── Privacy note ──────────────────────────────────────── */}
         <Text style={[styles.privacyNote, { color: colors.inkSoft }]}>{privacyNote}</Text>
     </ScreenContainer>
@@ -321,4 +335,16 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     paddingHorizontal: 4,
   },
+  trajectoryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingVertical: 15,
+    paddingHorizontal: 16,
+    marginBottom: 14,
+  },
+  trajectoryBtnText: { fontSize: 14.5, fontWeight: '700' },
+  trajectoryChevron: { fontSize: 22, fontWeight: '700' },
 });

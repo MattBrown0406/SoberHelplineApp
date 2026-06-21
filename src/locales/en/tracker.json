@@ -40,5 +40,33 @@
   },
   "privacyNote": "Tracking isn't surveillance — it turns anxiety into observation, and observation into a plan. Recovery signs matter as much as warning signs: they teach your eyes what healing looks like.",
   "privacyNoteCoach": " Your log is visible to you and your coach.",
-  "privacyNoteDirect": " Your log is visible only to you."
+  "privacyNoteDirect": " Your log is visible only to you.",
+  "trajectory": {
+    "openButton": "View your 6-week trajectory",
+    "title": "Your trajectory",
+    "subtitle": "Six weeks of warning and recovery signs, side by side. Patterns are easier to read across weeks than days.",
+    "trendWorsening": "Warning signs have been climbing lately.",
+    "trendImproving": "Recovery is gaining ground — keep going.",
+    "trendSteady": "Things have held fairly steady.",
+    "trendNone": "Log a few weeks to see your trend here.",
+    "legendWarning": "Warning signs",
+    "legendRecovery": "Recovery signs",
+    "selfCheckTitle": "Is it time for an intervention?",
+    "selfCheckSub": "There's no right answer — just notice what feels true. Nothing happens unless you choose it.",
+    "selfCheckItems": [
+      "The same problems keep coming back, even with boundaries in place.",
+      "Their use is putting someone's safety at risk.",
+      "I've tried talking with them on my own and it hasn't changed things.",
+      "I'm running out of next steps I can take alone.",
+      "Other people who love them are worried too."
+    ],
+    "selfCheckResult": "Several of these ring true. Planning ahead with a professional might help — and you don't have to decide anything today.",
+    "selfCheckCta": "Explore planning an intervention",
+    "shareTitle": "Share this with your coach",
+    "shareBody": "Send your coach a note so they can see how things are trending and reach out.",
+    "shareButton": "Share my trajectory",
+    "shareDone": "Shared — your coach will see this.",
+    "shareLocked": "Turn on coach sharing in Settings to share your trajectory.",
+    "shareMessage": "I'd like to talk about how things have been trending over the last several weeks. Can we connect?"
+  }
 }

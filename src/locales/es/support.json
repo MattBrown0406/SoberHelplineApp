@@ -140,6 +140,22 @@
     "presenceBody": "Cuéntale lo que está pasando — grande o pequeño. {{coach}} lee tus mensajes entre sesiones en vivo y responde en cuanto puede.",
     "presenceNextSession": "Próxima sesión en vivo · {{schedule}}"
   },
+  "intervention": {
+    "eyebrow": "PLANEANDO CON TIEMPO",
+    "title": "Cuando estés lista, no tienes que hacerlo sola",
+    "intro": "Una intervención no es una emboscada — es una conversación planificada y amorosa, y contar con un profesional que la guíe lo cambia todo. Aquí no hay presión ni más plazo que el tuyo.",
+    "whatTitle": "Cómo es planear con Matt",
+    "step1": "Una conversación privada sobre tu situación — sin juicios, sin nada que memorizar.",
+    "step2": "Un plan hecho a la medida de tu familia: quién está presente, qué se dice y qué viene después.",
+    "step3": "Matt te acompaña durante la conversación y en los pasos que siguen.",
+    "providerEyebrow": "Tu intervencionista",
+    "emailButton": "Enviar correo a {{name}}",
+    "webButton": "Visitar sitio web",
+    "primaryCta": "Iniciar una conversación",
+    "primaryCtaSub": "Nos comunicaremos para coordinar un horario — sin compromiso.",
+    "reassure": "¿Aún no? Está completamente bien. Esto estará aquí cuando estés lista.",
+    "crisisNote": "Si alguien está en peligro inmediato, llama al 911 o al 988."
+  },
   "coaching": {
     "eyebrow": "Coaching 1 a 1",
     "cardTitle": "Sesión privada por Zoom con un coach",

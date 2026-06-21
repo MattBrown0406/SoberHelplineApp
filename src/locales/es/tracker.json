@@ -40,5 +40,33 @@
   },
   "privacyNote": "Registrar no es vigilar — convierte la ansiedad en observación y la observación en un plan. Las señales de recuperación importan tanto como las de alerta: enseñan a tus ojos cómo se ve la sanación.",
   "privacyNoteCoach": " Tu registro es visible para ti y tu coach.",
-  "privacyNoteDirect": " Tu registro solo es visible para ti."
+  "privacyNoteDirect": " Tu registro solo es visible para ti.",
+  "trajectory": {
+    "openButton": "Ver tu trayectoria de 6 semanas",
+    "title": "Tu trayectoria",
+    "subtitle": "Seis semanas de señales de alerta y de recuperación, lado a lado. Los patrones se leen mejor entre semanas que entre días.",
+    "trendWorsening": "Las señales de alerta han ido aumentando últimamente.",
+    "trendImproving": "La recuperación va ganando terreno — sigue así.",
+    "trendSteady": "Las cosas se han mantenido bastante estables.",
+    "trendNone": "Registra algunas semanas para ver tu tendencia aquí.",
+    "legendWarning": "Señales de alerta",
+    "legendRecovery": "Señales de recuperación",
+    "selfCheckTitle": "¿Es momento de una intervención?",
+    "selfCheckSub": "No hay respuesta correcta — solo nota qué se siente verdadero. No pasa nada a menos que tú lo elijas.",
+    "selfCheckItems": [
+      "Los mismos problemas siguen volviendo, aun con límites establecidos.",
+      "Su consumo está poniendo en riesgo la seguridad de alguien.",
+      "He intentado hablar con él/ella por mi cuenta y no ha cambiado las cosas.",
+      "Se me están acabando los pasos que puedo dar sola.",
+      "Otras personas que lo/la quieren también están preocupadas."
+    ],
+    "selfCheckResult": "Varias de estas resuenan. Planear con anticipación junto a un profesional podría ayudar — y no tienes que decidir nada hoy.",
+    "selfCheckCta": "Explorar planear una intervención",
+    "shareTitle": "Compartir esto con tu coach",
+    "shareBody": "Envía una nota a tu coach para que vea cómo van las cosas y pueda acompañarte.",
+    "shareButton": "Compartir mi trayectoria",
+    "shareDone": "Compartido — tu coach lo verá.",
+    "shareLocked": "Activa el compartir con el coach en Configuración para compartir tu trayectoria.",
+    "shareMessage": "Me gustaría hablar sobre cómo han ido las cosas en las últimas semanas. ¿Podemos conectar?"
+  }
 }

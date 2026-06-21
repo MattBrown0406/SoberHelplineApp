@@ -68,7 +68,5 @@ export const DOOR_COPY_KEY: Record<FunnelDoor, string> = {
 export const DOOR_ROUTE: Record<FunnelDoor, string | null> = {
   free_call: null,
   coaching: '/book-coaching',
-  // P1.4 repoints this to '/plan-intervention'; until then the warm next step
-  // is the same 1:1 booking with Matt.
-  intervention: '/book-coaching',
+  intervention: '/plan-intervention',
 };
