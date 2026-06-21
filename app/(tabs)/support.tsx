@@ -29,6 +29,9 @@ import { useGroupPresence } from '../../src/hooks/useGroupPresence';
 import { useGroupRsvps } from '../../src/hooks/useGroupRsvps';
 import { GROUPS_URL, FEATURED_PROVIDER } from '../../src/config';
 import { useIAP } from '../../src/hooks/useIAP';
+import { useSituation } from '../../src/hooks/useSituation';
+import { funnelDoor, type FunnelDoor } from '../../src/lib/situation';
+import { SituationOffRamp } from '../../src/components/situation/SituationOffRamp';
 import type { StaffMember, SupportGroup } from '../../src/api/types';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -52,6 +55,7 @@ function CrisisSheet({
   onClose,
   isAttached,
   onMessage,
+  door,
   t,
   colors,
 }: {
@@ -59,6 +63,7 @@ function CrisisSheet({
   onClose: () => void;
   isAttached: boolean;
   onMessage: () => void;
+  door: FunnelDoor;
   t: (key: string) => string;
   colors: ReturnType<typeof useTheme>['colors'];
 }) {
@@ -151,6 +156,15 @@ function CrisisSheet({
           <Text style={[styles.sheetRowName, { color: colors.ink }]}>{t('crisis.line988')}</Text>
           <Text style={[styles.sheetRowAction, { color: colors.primary }]}>Call</Text>
         </TouchableOpacity>
+
+        {/* Situation-aware next step — only for an escalated band, and only for
+            self-guided members (attached families already have a provider).
+            Always below the safety lines and never in their place. */}
+        {door !== 'free_call' && !isAttached && (
+          <View style={styles.offRampWrap}>
+            <SituationOffRamp door={door} onBeforeNavigate={onClose} compact />
+          </View>
+        )}
       </View>
     </Modal>
   );
@@ -505,6 +519,9 @@ export default function SupportScreen() {
     }
   }
 
+  const { situation } = useSituation(user?.id ?? null);
+  const crisisDoor = funnelDoor(situation);
+
   const roster = getMockOnCallRoster(isAttached ? 'attached' : 'direct');
   const { sessions, toggleRsvp } = useSessions(user?.id ?? null);
   const groups = getMockSupportGroups();
@@ -518,6 +535,7 @@ export default function SupportScreen() {
         onClose={() => setCrisisOpen(false)}
         isAttached={isAttached}
         onMessage={() => router.push('/chat')}
+        door={crisisDoor}
         t={t}
         colors={colors}
       />
@@ -1400,6 +1418,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   sheetRowLast: { borderBottomWidth: 0 },
+  offRampWrap: { marginTop: 14 },
   legalRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 12, marginBottom: 4 },
   legalLink: { fontSize: 12, fontWeight: '500' },
   legalSep: { fontSize: 12 },

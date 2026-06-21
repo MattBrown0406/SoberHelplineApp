@@ -12,6 +12,8 @@ const MOODS: Array<{ score: MoodScore; emoji: string }> = [
   { score: 5, emoji: '😊' },
 ];
 
+const SUPPORT_THRESHOLD = 3; // low-mood days in the last week before we offer a coach
+
 interface Props {
   completed: boolean;
   selectedMood: MoodScore | null;
@@ -19,6 +21,10 @@ interface Props {
   newStreak: number;
   isAttached: boolean;
   orgName: string | null;
+  /** Low-mood days from my_situation() drivers; ≥3 triggers the coaching offer. */
+  lowMoodDays?: number;
+  /** Routes to 1:1 coaching. Only provided for self-guided members. */
+  onTalkToCoach?: () => void;
 }
 
 export function CheckInCard({
@@ -28,10 +34,14 @@ export function CheckInCard({
   newStreak,
   isAttached,
   orgName,
+  lowMoodDays = 0,
+  onTalkToCoach,
 }: Props) {
   const { colors } = useTheme();
   const { t } = useTranslation('today');
   const [pendingMood, setPendingMood] = useState<MoodScore | null>(selectedMood);
+
+  const showSupport = lowMoodDays >= SUPPORT_THRESHOLD && !!onTalkToCoach;
 
   const privacyNote =
     isAttached && orgName
@@ -125,6 +135,26 @@ export function CheckInCard({
           </Text>
         </View>
       )}
+
+      {showSupport && (
+        <View style={[styles.supportBlock, { backgroundColor: colors.primaryLight, borderColor: colors.primary }]}>
+          <Text style={[styles.supportTitle, { color: colors.ink }]}>
+            {t('checkIn.lowSupportTitle')}
+          </Text>
+          <Text style={[styles.supportBody, { color: colors.inkSoft }]}>
+            {t('checkIn.lowSupportBody', { count: lowMoodDays })}
+          </Text>
+          <TouchableOpacity
+            style={[styles.supportBtn, { borderColor: colors.primary }]}
+            onPress={onTalkToCoach}
+            activeOpacity={0.85}
+          >
+            <Text style={[styles.supportBtnText, { color: colors.primary }]}>
+              {t('checkIn.lowSupportButton')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -202,4 +232,21 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 20,
   },
+  supportBlock: {
+    borderRadius: 14,
+    borderWidth: 1.5,
+    padding: 14,
+    marginTop: 12,
+    gap: 6,
+  },
+  supportTitle: { fontSize: 14.5, fontWeight: '700' },
+  supportBody: { fontSize: 12.5, lineHeight: 18 },
+  supportBtn: {
+    borderRadius: 99,
+    borderWidth: 1.5,
+    paddingVertical: 11,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  supportBtnText: { fontSize: 14, fontWeight: '700' },
 });

@@ -19,6 +19,8 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
 import { useThread, type ChatMessage } from '../src/hooks/useThread';
+import { useSessions } from '../src/hooks/useSessions';
+import { getMockOnCallRoster } from '../src/api/mock';
 import { MAX_CONTENT_WIDTH } from '../src/components/ui/ScreenContainer';
 
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😢', '😮', '👎'] as const;
@@ -26,13 +28,18 @@ const REACTION_EMOJIS = ['👍', '❤️', '😂', '😢', '😮', '👎'] as co
 export default function ChatScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation('support');
-  const { user } = useAccount();
+  const { user, isAttached } = useAccount();
   const router = useRouter();
   const { messages, send, archive, toggleReaction, loading } = useThread(user?.id ?? null);
+  const { sessions } = useSessions(user?.id ?? null);
   const [draft, setDraft] = useState('');
   const [archiving, setArchiving] = useState(false);
   const [pickerMessageId, setPickerMessageId] = useState<string | null>(null);
   const listRef = useRef<FlatList<ChatMessage>>(null);
+
+  // Coach presence between sessions: the on-call coach and the next live session.
+  const coachName = getMockOnCallRoster(isAttached ? 'attached' : 'direct').primaryOnCall.firstName;
+  const nextSchedule = sessions.find((s) => s.kind === 'group')?.schedule_label ?? null;
 
   async function handleSend() {
     const body = draft.trim();
@@ -140,6 +147,24 @@ export default function ChatScreen() {
               keyExtractor={(m) => m.id}
               contentContainerStyle={styles.list}
               onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
+              ListEmptyComponent={
+                <View style={[styles.presenceCard, { backgroundColor: colors.primaryLight, borderColor: colors.line }]}>
+                  <View style={[styles.presenceAvatar, { backgroundColor: colors.primary }]}>
+                    <Text style={styles.presenceAvatarText}>{coachName.charAt(0).toUpperCase()}</Text>
+                  </View>
+                  <Text style={[styles.presenceTitle, { color: colors.ink }]}>
+                    {t('chat.presenceTitle', { coach: coachName })}
+                  </Text>
+                  <Text style={[styles.presenceBody, { color: colors.inkSoft }]}>
+                    {t('chat.presenceBody', { coach: coachName })}
+                  </Text>
+                  {nextSchedule && (
+                    <Text style={[styles.presenceNext, { color: colors.primary }]}>
+                      {t('chat.presenceNextSession', { schedule: nextSchedule })}
+                    </Text>
+                  )}
+                </View>
+              }
               renderItem={({ item }) => {
                 const isMe = item.sender_role === 'member';
                 return (
@@ -249,6 +274,27 @@ const styles = StyleSheet.create({
   archiveBtn: { fontSize: 12, fontWeight: '600' },
 
   list: { padding: 16, gap: 4, flexGrow: 1 },
+
+  presenceCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 20,
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 8,
+  },
+  presenceAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
+  },
+  presenceAvatarText: { color: '#fff', fontSize: 20, fontWeight: '700' },
+  presenceTitle: { fontSize: 16, fontWeight: '700', textAlign: 'center' },
+  presenceBody: { fontSize: 13, lineHeight: 19, textAlign: 'center' },
+  presenceNext: { fontSize: 12.5, fontWeight: '700', marginTop: 4, textAlign: 'center' },
 
   messageWrap: { marginBottom: 6 },
   messageWrapMe: { alignItems: 'flex-end' },

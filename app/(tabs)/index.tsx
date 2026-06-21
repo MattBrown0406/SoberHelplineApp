@@ -24,7 +24,7 @@ export default function TodayScreen() {
   const { t } = useTranslation('today');
   const router = useRouter();
   const { todayCheckIn, streak, saveCheckIn } = useCheckIn(user?.id ?? null);
-  const { dayCount, boundariesHeld, groupSessions, quoteIndex, focusSlot, primaryDoor, nextFreeCall, rsvpFreeCall } =
+  const { dayCount, boundariesHeld, groupSessions, quoteIndex, focusSlot, situation, primaryDoor, nextFreeCall, rsvpFreeCall } =
     useTodayFeed(user?.id ?? null, user?.joinedAt ?? null);
 
   const firstName = user?.firstName ?? 'there';
@@ -84,6 +84,8 @@ export default function TodayScreen() {
         newStreak={streak.currentStreak}
         isAttached={isAttached}
         orgName={user?.branding?.orgName ?? null}
+        lowMoodDays={situation.drivers.low_mood_days}
+        onTalkToCoach={isAttached ? undefined : () => router.push('/book-coaching')}
       />
 
       <MoodChart accountId={user?.id ?? null} />
