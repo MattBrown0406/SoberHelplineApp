@@ -1059,6 +1059,16 @@ export default function SupportScreen() {
             );
           })}
           <TouchableOpacity
+            style={[styles.communityRow, { borderColor: colors.line }]}
+            activeOpacity={0.8}
+            onPress={() => router.push('/community')}
+          >
+            <Text style={[styles.communityRowText, { color: colors.ink }]}>
+              {t('community.openLink')}
+            </Text>
+            <Text style={{ color: colors.primary, fontSize: 20, fontWeight: '700' }}>›</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={styles.moreGroupsRow}
             activeOpacity={0.7}
             onPress={() => Linking.openURL(GROUPS_URL)}
@@ -1351,6 +1361,15 @@ const styles = StyleSheet.create({
   rsvpInlineBtnText: { fontSize: 11, fontWeight: '700' },
   moreGroupsRow: { paddingTop: 12, alignItems: 'center' },
   moreGroupsText: { fontSize: 12.5, lineHeight: 18, textAlign: 'center' },
+  communityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    marginTop: 8,
+    paddingTop: 14,
+  },
+  communityRowText: { fontSize: 14, fontWeight: '700' },
 
   comingSoonText: { fontSize: 13, fontStyle: 'italic' },
   referralTitle: { fontSize: 15, fontWeight: '700', marginBottom: 6 },
