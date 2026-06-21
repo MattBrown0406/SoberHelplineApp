@@ -22,6 +22,49 @@
     "acceptButton": "Compartir con mi coach",
     "declineButton": "Ahora no"
   },
+  "lovedOne": {
+    "title": "¿Por quién estás aquí?",
+    "subtitle": "Algunos detalles sobre tu ser querido nos ayudan a personalizar tu apoyo diario. Esto es privado — solo tú puedes verlo.",
+    "relationshipLabel": "Es mi…",
+    "relationship": {
+      "son": "Hijo",
+      "daughter": "Hija",
+      "spouse": "Cónyuge",
+      "partner": "Pareja",
+      "parent": "Padre/madre",
+      "sibling": "Hermano/a",
+      "friend": "Amigo/a",
+      "other": "Otra persona"
+    },
+    "firstNameLabel": "Su nombre (opcional)",
+    "firstNamePlaceholder": "Nombre",
+    "substancesLabel": "¿Con qué está luchando?",
+    "substances": {
+      "alcohol": "Alcohol",
+      "opioids": "Opioides",
+      "stimulants": "Estimulantes",
+      "cannabis": "Cannabis",
+      "prescription": "Medicamentos recetados",
+      "other": "Otro"
+    },
+    "stageLabel": "¿Dónde está ahora mismo?",
+    "stage": {
+      "using": "Sigue consumiendo",
+      "seeking_help": "Buscando ayuda",
+      "in_treatment": "En tratamiento",
+      "recovery": "En recuperación",
+      "unsure": "No estoy seguro/a"
+    },
+    "statusLabel": "¿Cómo van las cosas esta semana?",
+    "status": {
+      "stable": "Se mantiene estable",
+      "using": "Consumiendo activamente",
+      "escalating": "Empeorando",
+      "crisis": "En crisis ahora mismo"
+    },
+    "saveButton": "Continuar",
+    "skipButton": "Omitir por ahora"
+  },
   "notifications": {
     "title": "Un pequeño recordatorio al día",
     "body": "Un recordatorio diario para tu registro de 90 segundos — y avisos de sesiones. Sin presión, sin spam.",

@@ -108,5 +108,18 @@
   "moodChart": {
     "eyebrow": "TUS ÚLTIMOS 14 DÍAS",
     "noData": "Regístrate cada día para ver tu arco emocional aquí."
+  },
+  "situationCta": {
+    "eyebrow": "ESTA SEMANA",
+    "freeCallTitle": "Llamada de Apoyo Familiar — Lunes",
+    "scheduleFallback": "Lunes · llamada grupal en vivo",
+    "join": "Unirse al Zoom",
+    "rsvp": "Reservar mi lugar",
+    "going": "Asistirás ✓",
+    "freeCall": "Reservar mi lugar en la llamada gratuita",
+    "coaching": "Habla 1 a 1 con un coach",
+    "intervention": "Planear una intervención con Matt",
+    "coachingSub": "¿Cargando mucho esta semana? Una hora privada para planear tu próximo paso — $150.",
+    "interventionSub": "Cuando es momento de más que una app, Matt te acompañará paso a paso."
   }
 }

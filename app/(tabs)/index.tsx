@@ -10,6 +10,7 @@ import { CheckInCard } from '../../src/components/today/CheckInCard';
 import { FocusCard } from '../../src/components/today/FocusCard';
 import { MoodChart } from '../../src/components/today/MoodChart';
 import { FreeTierPaywall } from '../../src/components/ui/FreeTierPaywall';
+import { SituationCard } from '../../src/components/today/SituationCard';
 import { useCheckIn } from '../../src/hooks/useCheckIn';
 import { useTodayFeed } from '../../src/hooks/useTodayFeed';
 import type { DailyFocusItem } from '../../src/api/types';
@@ -23,7 +24,7 @@ export default function TodayScreen() {
   const { t } = useTranslation('today');
   const router = useRouter();
   const { todayCheckIn, streak, saveCheckIn } = useCheckIn(user?.id ?? null);
-  const { dayCount, boundariesHeld, groupSessions, quoteIndex, focusSlot } =
+  const { dayCount, boundariesHeld, groupSessions, quoteIndex, focusSlot, primaryDoor, nextFreeCall, rsvpFreeCall } =
     useTodayFeed(user?.id ?? null, user?.joinedAt ?? null);
 
   const firstName = user?.firstName ?? 'there';
@@ -32,16 +33,40 @@ export default function TodayScreen() {
   const dailyQuote = t(`dailyQuote.${quoteIndex}`);
   const focusItems = buildFocusItems(t, focusSlot);
 
-  if (accountState === 'direct-free') return <FreeTierPaywall />;
+  const header = (
+    <View style={styles.headerRow}>
+      <Text style={[styles.greeting, { color: colors.ink }]}>{greeting}</Text>
+      <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+        <Text style={styles.avatarText}>{firstName.charAt(0).toUpperCase()}</Text>
+      </View>
+    </View>
+  );
+
+  // Free tier: lead with the free-call anchor + funnel door, then a slim upsell
+  // to unlock the rest of the app. The free call is never gated.
+  if (accountState === 'direct-free') {
+    return (
+      <ScreenContainer backgroundColor={colors.cream}>
+        {header}
+        <SituationCard
+          nextFreeCall={nextFreeCall}
+          primaryDoor={primaryDoor}
+          onRsvp={rsvpFreeCall}
+        />
+        <FreeTierPaywall inline />
+      </ScreenContainer>
+    );
+  }
 
   return (
     <ScreenContainer backgroundColor={colors.cream}>
-      <View style={styles.headerRow}>
-        <Text style={[styles.greeting, { color: colors.ink }]}>{greeting}</Text>
-        <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-          <Text style={styles.avatarText}>{firstName.charAt(0).toUpperCase()}</Text>
-        </View>
-      </View>
+      {header}
+
+      <SituationCard
+        nextFreeCall={nextFreeCall}
+        primaryDoor={primaryDoor}
+        onRsvp={rsvpFreeCall}
+      />
 
       <HeroCard
         dayCount={dayCount}
