@@ -28,7 +28,10 @@
     "errorMessage": "Algo salió mal al guardar tu registro. Por favor, inténtalo de nuevo.",
     "done": "✓ ¡Registro completo!",
     "doneStreak": "✓ Registro completo — ¡{{count}} días seguidos!",
-    "doneCoach": "{{orgFirst}} verá tu actualización."
+    "doneCoach": "{{orgFirst}} verá tu actualización.",
+    "lowSupportTitle": "Una etapa difícil",
+    "lowSupportBody": "Han sido {{count}} días difíciles últimamente — mucho para llevarlo sola. Un coach puede ayudarte a estabilizar las cosas en una hora privada, solo para ti.",
+    "lowSupportButton": "Hablar con un coach"
   },
   "focus": {
     "eyebrow": "Tu enfoque de hoy",

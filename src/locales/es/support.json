@@ -135,7 +135,10 @@
     "archiveBody": "Esta conversación se guardará y comenzará una nueva. Puedes pedirle a tu coach que acceda a conversaciones anteriores.",
     "archiveConfirm": "Archivar e iniciar nueva",
     "archiveCancel": "Cancelar",
-    "reactionDone": "Listo"
+    "reactionDone": "Listo",
+    "presenceTitle": "{{coach}} está aquí para ti",
+    "presenceBody": "Cuéntale lo que está pasando — grande o pequeño. {{coach}} lee tus mensajes entre sesiones en vivo y responde en cuanto puede.",
+    "presenceNextSession": "Próxima sesión en vivo · {{schedule}}"
   },
   "coaching": {
     "eyebrow": "Coaching 1 a 1",

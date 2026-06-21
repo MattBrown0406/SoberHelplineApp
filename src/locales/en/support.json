@@ -135,7 +135,10 @@
     "archiveBody": "This conversation will be saved and a new one will start. You can ask your coach to access past conversations.",
     "archiveConfirm": "Archive & start new",
     "archiveCancel": "Cancel",
-    "reactionDone": "Done"
+    "reactionDone": "Done",
+    "presenceTitle": "{{coach}} is here for you",
+    "presenceBody": "Share what's going on — big or small. {{coach}} reads your messages between live sessions and replies as soon as they can.",
+    "presenceNextSession": "Next live session · {{schedule}}"
   },
   "coaching": {
     "eyebrow": "1:1 coaching",

@@ -28,7 +28,10 @@
     "errorMessage": "Something went wrong saving your check-in. Please try again.",
     "done": "✓ Check-in complete!",
     "doneStreak": "✓ Check-in complete — {{count}}-day streak!",
-    "doneCoach": "{{orgFirst}} will see your update."
+    "doneCoach": "{{orgFirst}} will see your update.",
+    "lowSupportTitle": "A heavy stretch",
+    "lowSupportBody": "That's {{count}} hard days lately — a lot to carry alone. A coach can help you steady things in one private hour, just for you.",
+    "lowSupportButton": "Talk to a coach"
   },
   "focus": {
     "eyebrow": "Today's focus",
