@@ -23,7 +23,14 @@
     "premiumFeatures": "Llamadas telefónicas y de video con un coach en horario laboral",
     "essentialPlan": "Esencial",
     "essentialFeatures": "Acceso completo · mensajería · grupos",
-    "manage": "Gestionar suscripción"
+    "manage": "Gestionar suscripción",
+    "restore": "Restaurar compras",
+    "restoreSuccessTitle": "Compras restauradas",
+    "restoreSuccessBody": "Tu suscripción está activa de nuevo.",
+    "restoreNoneTitle": "Nada que restaurar",
+    "restoreNoneBody": "No encontramos compras previas para este Apple ID.",
+    "restoreErrorTitle": "No se pudo restaurar",
+    "restoreErrorBody": "Algo salió mal al restaurar tus compras. Inténtalo de nuevo."
   },
   "signOut": "Cerrar sesión",
   "deleteAccount": {

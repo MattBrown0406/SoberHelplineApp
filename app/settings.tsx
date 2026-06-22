@@ -4,6 +4,7 @@ import {
   Text,
   Switch,
   TouchableOpacity,
+  ActivityIndicator,
   Alert,
   Linking,
   StyleSheet,
@@ -15,19 +16,21 @@ import { useAccount } from '../src/contexts/AccountContext';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useLanguage } from '../src/hooks/useLanguage';
 import { supabase } from '../src/lib/supabase';
+import { restorePurchases } from '../src/lib/revenueCat';
 
 const CONSENT_SHARE_CHECKINS = '2';
 const CONSENT_VERSION = '1.0';
 
 export default function SettingsScreen() {
   const { colors } = useTheme();
-  const { user, isAttached, accountState } = useAccount();
+  const { user, isAttached, accountState, refreshAccount } = useAccount();
   const { t } = useTranslation('settings');
   const { current, change, languages } = useLanguage();
   const router = useRouter();
 
   const [shareCheckIns, setShareCheckIns] = useState(false);
   const [consentLoading, setConsentLoading] = useState(true);
+  const [restoring, setRestoring] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -70,6 +73,22 @@ export default function SettingsScreen() {
 
   async function handleSignOut() {
     await supabase.auth.signOut();
+  }
+
+  async function handleRestore() {
+    setRestoring(true);
+    try {
+      const hasEntitlement = await restorePurchases();
+      await refreshAccount();
+      Alert.alert(
+        hasEntitlement ? t('membership.restoreSuccessTitle') : t('membership.restoreNoneTitle'),
+        hasEntitlement ? t('membership.restoreSuccessBody') : t('membership.restoreNoneBody'),
+      );
+    } catch {
+      Alert.alert(t('membership.restoreErrorTitle'), t('membership.restoreErrorBody'));
+    } finally {
+      setRestoring(false);
+    }
   }
 
   function handleDeleteAccount() {
@@ -139,29 +158,56 @@ export default function SettingsScreen() {
           </View>
         )}
 
-        {/* Membership — shown for paid direct subscribers */}
-        {!isAttached && accountState !== 'direct-free' && (
+        {/* Subscription — for direct (non-org) accounts. Restore Purchases must
+            stay reachable even when no subscription is currently detected. */}
+        {!isAttached && (
           <View style={[styles.card, { borderColor: colors.line }]}>
             <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
               {t('membership.eyebrow')}
             </Text>
-            <Text style={[styles.infoValue, { color: colors.ink, fontSize: 16, fontWeight: '700', marginBottom: 2 }]}>
-              {accountState === 'direct-premium'
-                ? t('membership.premiumPlan')
-                : t('membership.essentialPlan')}
-            </Text>
-            <Text style={[styles.infoLabel, { color: colors.inkSoft, marginBottom: 12 }]}>
-              {accountState === 'direct-premium'
-                ? t('membership.premiumFeatures')
-                : t('membership.essentialFeatures')}
-            </Text>
+
+            {accountState !== 'direct-free' && (
+              <>
+                <Text style={[styles.infoValue, { color: colors.ink, fontSize: 16, fontWeight: '700', marginBottom: 2 }]}>
+                  {accountState === 'direct-premium'
+                    ? t('membership.premiumPlan')
+                    : t('membership.essentialPlan')}
+                </Text>
+                <Text style={[styles.infoLabel, { color: colors.inkSoft, marginBottom: 12 }]}>
+                  {accountState === 'direct-premium'
+                    ? t('membership.premiumFeatures')
+                    : t('membership.essentialFeatures')}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => void Linking.openURL('https://apps.apple.com/account/subscriptions')}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.manageLink, { color: colors.primary }]}>
+                    {t('membership.manage')}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+
             <TouchableOpacity
-              onPress={() => void Linking.openURL('https://apps.apple.com/account/subscriptions')}
+              style={[
+                styles.restoreBtn,
+                {
+                  borderColor: colors.line,
+                  marginTop: accountState !== 'direct-free' ? 14 : 0,
+                },
+              ]}
+              onPress={handleRestore}
+              disabled={restoring}
               activeOpacity={0.8}
             >
-              <Text style={[styles.manageLink, { color: colors.primary }]}>
-                {t('membership.manage')}
-              </Text>
+              {restoring ? (
+                <ActivityIndicator color={colors.primary} />
+              ) : (
+                <Text style={[styles.restoreText, { color: colors.primary }]}>
+                  {t('membership.restore')}
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
         )}
@@ -283,6 +329,13 @@ const styles = StyleSheet.create({
   infoLabel: { fontSize: 14 },
   infoValue: { fontSize: 14, fontWeight: '500' },
   manageLink: { fontSize: 14, fontWeight: '600' },
+  restoreBtn: {
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  restoreText: { fontSize: 14, fontWeight: '600' },
 
   toggleRow: {
     flexDirection: 'row',

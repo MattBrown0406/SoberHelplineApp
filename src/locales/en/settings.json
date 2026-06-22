@@ -23,7 +23,14 @@
     "premiumFeatures": "Phone & video calls with a coach, business hours",
     "essentialPlan": "Essential",
     "essentialFeatures": "Full app access · messaging · groups",
-    "manage": "Manage subscription"
+    "manage": "Manage subscription",
+    "restore": "Restore Purchases",
+    "restoreSuccessTitle": "Purchases restored",
+    "restoreSuccessBody": "Your subscription is active again.",
+    "restoreNoneTitle": "Nothing to restore",
+    "restoreNoneBody": "We couldn't find any previous purchases for this Apple ID.",
+    "restoreErrorTitle": "Couldn't restore",
+    "restoreErrorBody": "Something went wrong restoring your purchases. Please try again."
   },
   "signOut": "Sign out",
   "deleteAccount": {
