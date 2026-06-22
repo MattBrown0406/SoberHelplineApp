@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -13,8 +13,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link } from 'expo-router';
-import * as AppleAuthentication from 'expo-apple-authentication';
-import * as Crypto from 'expo-crypto';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { supabase } from '../../src/lib/supabase';
@@ -28,13 +26,6 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [appleAuthAvailable, setAppleAuthAvailable] = useState(false);
-
-  useEffect(() => {
-    if (Platform.OS === 'ios') {
-      AppleAuthentication.isAvailableAsync().then(setAppleAuthAvailable).catch(() => setAppleAuthAvailable(false));
-    }
-  }, []);
 
   async function handleEmailSignIn() {
     setError(null);
@@ -49,33 +40,6 @@ export default function SignInScreen() {
       );
     }
     // On success, AccountContext fires onAuthStateChange → InitialLayout redirects
-  }
-
-  async function handleAppleSignIn() {
-    try {
-      setError(null);
-      const rawNonce = Math.random().toString(36).slice(2);
-      const hashedNonce = await Crypto.digestStringAsync(
-        Crypto.CryptoDigestAlgorithm.SHA256,
-        rawNonce,
-      );
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-          AppleAuthentication.AppleAuthenticationScope.EMAIL,
-        ],
-        nonce: hashedNonce,
-      });
-      const { error: err } = await supabase.auth.signInWithIdToken({
-        provider: 'apple',
-        token: credential.identityToken!,
-        nonce: rawNonce,
-      });
-      if (err) setError(t('signIn.errorGeneric'));
-    } catch {
-      // Apple auth errors are silently dropped — iOS already shows system-level
-      // feedback to the user. We only surface Supabase errors (handled above).
-    }
   }
 
   return (
@@ -144,22 +108,6 @@ export default function SignInScreen() {
               )}
             </TouchableOpacity>
 
-            {appleAuthAvailable && (
-              <>
-                <View style={styles.dividerRow}>
-                  <View style={[styles.dividerLine, { backgroundColor: colors.line }]} />
-                  <Text style={[styles.dividerText, { color: colors.inkSoft }]}>{t('signIn.orDivider')}</Text>
-                  <View style={[styles.dividerLine, { backgroundColor: colors.line }]} />
-                </View>
-                <AppleAuthentication.AppleAuthenticationButton
-                  buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-                  buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-                  cornerRadius={99}
-                  style={styles.appleBtn}
-                  onPress={handleAppleSignIn}
-                />
-              </>
-            )}
           </View>
 
           <View style={styles.footer}>
