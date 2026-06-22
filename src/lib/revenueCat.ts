@@ -36,3 +36,15 @@ export async function getIsActiveEssential(): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Restores prior purchases (App Store guideline 3.1.1). Returns true if any
+ * entitlement is active afterward. Throws on failure so the caller can surface
+ * an error.
+ */
+export async function restorePurchases(): Promise<boolean> {
+  const info = await Purchases.restorePurchases();
+  return (
+    !!info.entitlements.active['premium'] || !!info.entitlements.active['essential']
+  );
+}
