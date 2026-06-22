@@ -12,8 +12,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link } from 'expo-router';
-import * as AppleAuthentication from 'expo-apple-authentication';
-import * as Crypto from 'expo-crypto';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { supabase } from '../../src/lib/supabase';
@@ -82,43 +80,6 @@ export default function SignUpScreen() {
       setCheckEmail(true);
     }
     // If email confirmation is disabled, onAuthStateChange fires → InitialLayout redirects
-  }
-
-  async function handleAppleSignUp() {
-    try {
-      setError(null);
-      const rawNonce = Math.random().toString(36).slice(2);
-      const hashedNonce = await Crypto.digestStringAsync(
-        Crypto.CryptoDigestAlgorithm.SHA256,
-        rawNonce,
-      );
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-          AppleAuthentication.AppleAuthenticationScope.EMAIL,
-        ],
-        nonce: hashedNonce,
-      });
-      const { data, error: err } = await supabase.auth.signInWithIdToken({
-        provider: 'apple',
-        token: credential.identityToken!,
-        nonce: rawNonce,
-      });
-      if (err) { setError(t('signUp.errorGeneric')); return; }
-
-      if (data.user) {
-        const { data: account } = await supabase
-          .from('accounts')
-          .select('id')
-          .eq('user_id', data.user.id)
-          .single();
-        if (account) await recordTermsConsent(account.id);
-      }
-      // onAuthStateChange fires → InitialLayout redirects
-    } catch {
-      // Apple auth errors are silently dropped — iOS already shows system-level
-      // feedback to the user. We only surface Supabase errors (handled above).
-    }
   }
 
   if (checkEmail) {
@@ -228,23 +189,6 @@ export default function SignUpScreen() {
                 <Text style={styles.primaryBtnText}>{t('signUp.submitButton')}</Text>
               )}
             </TouchableOpacity>
-
-            {Platform.OS === 'ios' && (
-              <>
-                <View style={styles.dividerRow}>
-                  <View style={[styles.dividerLine, { backgroundColor: colors.line }]} />
-                  <Text style={[styles.dividerText, { color: colors.inkSoft }]}>{t('signUp.orDivider')}</Text>
-                  <View style={[styles.dividerLine, { backgroundColor: colors.line }]} />
-                </View>
-                <AppleAuthentication.AppleAuthenticationButton
-                  buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP}
-                  buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-                  cornerRadius={99}
-                  style={styles.appleBtn}
-                  onPress={handleAppleSignUp}
-                />
-              </>
-            )}
 
             <Text style={[styles.termsNote, { color: colors.inkSoft }]}>
               {t('signUp.termsNote')}{' '}
