@@ -459,10 +459,6 @@ export default function SupportScreen() {
   const [questionText, setQuestionText] = useState('');
   const [questionSubmitting, setQuestionSubmitting] = useState(false);
   const [questionSubmitted, setQuestionSubmitted] = useState(false);
-  const [couponCode, setCouponCode] = useState('');
-  const [couponApplying, setCouponApplying] = useState(false);
-  const [couponError, setCouponError] = useState<string | null>(null);
-  const [couponSuccess, setCouponSuccess] = useState(false);
 
   async function submitQuestion() {
     if (!questionText.trim() || !questionSession || !user?.id) return;
@@ -497,26 +493,6 @@ export default function SupportScreen() {
       await refreshAccount();
     } else {
       Alert.alert(t('upgradeSheet.title'), t('upgradeSheet.iapError'));
-    }
-  }
-
-  async function redeemCoupon() {
-    if (!couponCode.trim()) return;
-    setCouponApplying(true);
-    setCouponError(null);
-    const { error } = await supabase.rpc('redeem_coupon', { p_code: couponCode.trim() });
-    setCouponApplying(false);
-    if (error) {
-      if (error.message.includes('invalid_coupon')) {
-        setCouponError(t('coupon.invalid'));
-      } else if (error.message.includes('already_premium')) {
-        setCouponError(t('coupon.alreadySubscribed'));
-      } else {
-        setCouponError(error.message);
-      }
-    } else {
-      setCouponSuccess(true);
-      await refreshAccount();
     }
   }
 
@@ -795,42 +771,6 @@ export default function SupportScreen() {
                   {t('paywall.subscribePremium')}
                 </Text>
               </TouchableOpacity>
-
-              {/* Coupon code */}
-              <View style={[styles.couponSection, { borderTopColor: colors.line }]}>
-                <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
-                  {t('coupon.eyebrow')}
-                </Text>
-                <Text style={[styles.tierFeatures, { color: colors.inkSoft, marginBottom: 10 }]}>
-                  {t('coupon.label')}
-                </Text>
-                <View style={styles.couponRow}>
-                  <TextInput
-                    style={[styles.couponInput, { borderColor: colors.line, color: colors.ink }]}
-                    placeholder={t('coupon.placeholder')}
-                    placeholderTextColor={colors.inkSoft}
-                    value={couponCode}
-                    onChangeText={(v) => { setCouponCode(v); setCouponError(null); setCouponSuccess(false); }}
-                    autoCapitalize="characters"
-                    autoCorrect={false}
-                  />
-                  <TouchableOpacity
-                    style={[styles.couponBtn, { backgroundColor: couponCode.trim() ? colors.primary : colors.line }]}
-                    onPress={() => void redeemCoupon()}
-                    disabled={couponApplying || !couponCode.trim()}
-                    activeOpacity={0.85}
-                  >
-                    {couponApplying
-                      ? <ActivityIndicator size="small" color="#fff" />
-                      : <Text style={styles.couponBtnText}>{t('coupon.apply')}</Text>}
-                  </TouchableOpacity>
-                </View>
-                {couponError ? (
-                  <Text style={[styles.couponFeedback, { color: colors.coral }]}>{couponError}</Text>
-                ) : couponSuccess ? (
-                  <Text style={[styles.couponFeedback, { color: colors.green }]}>{t('coupon.success')}</Text>
-                ) : null}
-              </View>
             </View>
           </>
         )}
@@ -1304,27 +1244,6 @@ const styles = StyleSheet.create({
   tierPrice: { fontSize: 14, fontWeight: '700' },
   tierCurrent: { fontSize: 11, marginTop: 2 },
 
-  couponSection: { marginTop: 20, paddingTop: 16, borderTopWidth: 1 },
-  couponRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  couponInput: {
-    flex: 1,
-    borderWidth: 1.5,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    letterSpacing: 1,
-  },
-  couponBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 72,
-  },
-  couponBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  couponFeedback: { fontSize: 13, marginTop: 8, lineHeight: 18 },
 
   membershipRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   coveredChip: {
