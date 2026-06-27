@@ -32,6 +32,11 @@
     "restoreErrorTitle": "Couldn't restore",
     "restoreErrorBody": "Something went wrong restoring your purchases. Please try again."
   },
+  "legal": {
+    "eyebrow": "Legal",
+    "terms": "Terms of Use (EULA)",
+    "privacy": "Privacy Policy"
+  },
   "signOut": "Sign out",
   "deleteAccount": {
     "button": "Delete account",

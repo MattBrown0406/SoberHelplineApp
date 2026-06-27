@@ -247,6 +247,29 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* Legal — Terms of Use (EULA) + Privacy Policy (App Store 3.1.2c) */}
+        <View style={[styles.card, { borderColor: colors.line }]}>
+          <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
+            {t('legal.eyebrow')}
+          </Text>
+          <TouchableOpacity
+            style={[styles.infoRow, { borderBottomColor: colors.line, borderBottomWidth: 1 }]}
+            onPress={() => void Linking.openURL('https://soberhelpline.com/terms')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.infoLabel, { color: colors.ink }]}>{t('legal.terms')}</Text>
+            <Text style={[styles.infoValue, { color: colors.primary }]}>↗</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.infoRow}
+            onPress={() => void Linking.openURL('https://soberhelpline.com/privacy')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.infoLabel, { color: colors.ink }]}>{t('legal.privacy')}</Text>
+            <Text style={[styles.infoValue, { color: colors.primary }]}>↗</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Sign out */}
         <TouchableOpacity
           style={[styles.signOutBtn, { borderColor: colors.line }]}

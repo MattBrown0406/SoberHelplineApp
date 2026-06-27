@@ -32,6 +32,11 @@
     "restoreErrorTitle": "No se pudo restaurar",
     "restoreErrorBody": "Algo salió mal al restaurar tus compras. Inténtalo de nuevo."
   },
+  "legal": {
+    "eyebrow": "Legal",
+    "terms": "Términos de uso (EULA)",
+    "privacy": "Política de privacidad"
+  },
   "signOut": "Cerrar sesión",
   "deleteAccount": {
     "button": "Eliminar cuenta",

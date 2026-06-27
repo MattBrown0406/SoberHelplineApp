@@ -47,16 +47,8 @@
     "body": "Los miembros Esencial tienen registros diarios, seguimiento del estado de ánimo, límites, guiones, mensajería y grupos.",
     "viewPlans": "Ver planes",
     "subscribeEssential": "Suscribirse Esencial · $14.99/mes",
-    "subscribePremium": "Mejorar a Premium · $44.99/mes"
-  },
-  "coupon": {
-    "eyebrow": "¿MIEMBRO DE SOBER HELPLINE?",
-    "label": "Ingresa tu código de cupón de miembro para acceso Esencial gratuito.",
-    "placeholder": "Código de cupón",
-    "apply": "Aplicar",
-    "success": "¡Cupón aplicado — bienvenido/a a Esencial!",
-    "invalid": "Ese código no fue reconocido. Verifica el código e inténtalo de nuevo.",
-    "alreadySubscribed": "Ya estás en Premium."
+    "subscribePremium": "Mejorar a Premium · $44.99/mes",
+    "autoRenewDisclosure": "Esencial cuesta $14.99/mes y Premium $44.99/mes, cobrados a tu Cuenta de Apple. Las suscripciones se renuevan automáticamente a menos que las desactives al menos 24 horas antes del final del período actual. Administra o cancela cuando quieras en los ajustes de tu Cuenta de Apple."
   },
   "mondayGroup": {
     "eyebrow": "ACCESO GRATUITO",
@@ -89,7 +81,7 @@
     "feature1": "Llamadas telefónicas con el coach de guardia",
     "feature2": "Sesiones de video con un coach",
     "feature3": "Respuesta prioritaria en horario laboral",
-    "note": "Cancela cuando quieras. Suscripción gestionada por Apple.",
+    "note": "$44.99/mes, cobrados a tu Cuenta de Apple. Se renueva automáticamente a menos que lo desactives al menos 24 horas antes de que termine el período. Administra o cancela cuando quieras en los ajustes de tu Cuenta de Apple.",
     "subscribeButton": "Suscribirse · $44.99/mes",
     "iapError": "Algo salió mal con la compra. Por favor inténtalo de nuevo.",
     "iapNoOfferings": "Las suscripciones no están disponibles ahora. Inténtalo más tarde.",
