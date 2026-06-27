@@ -47,16 +47,8 @@
     "body": "Essential members get daily check-ins, mood tracking, boundaries, scripts, messaging, and groups.",
     "viewPlans": "View plans",
     "subscribeEssential": "Subscribe Essential · $14.99/mo",
-    "subscribePremium": "Upgrade to Premium · $44.99/mo"
-  },
-  "coupon": {
-    "eyebrow": "SOBER HELPLINE MEMBER?",
-    "label": "Enter your member coupon code for free Essential access.",
-    "placeholder": "Coupon code",
-    "apply": "Apply",
-    "success": "Coupon applied — welcome to Essential!",
-    "invalid": "That code wasn't recognized. Check the code and try again.",
-    "alreadySubscribed": "You're already on Premium."
+    "subscribePremium": "Upgrade to Premium · $44.99/mo",
+    "autoRenewDisclosure": "Essential is $14.99/month and Premium is $44.99/month, billed to your Apple Account. Subscriptions renew automatically unless turned off at least 24 hours before the end of the current period. Manage or cancel anytime in your Apple Account settings."
   },
   "mondayGroup": {
     "eyebrow": "FREE ACCESS",
@@ -89,7 +81,7 @@
     "feature1": "Phone calls with the on-call coach",
     "feature2": "Video sessions with a coach",
     "feature3": "Priority response during business hours",
-    "note": "Cancel anytime. Subscription managed through Apple.",
+    "note": "$44.99/month, billed to your Apple Account. Renews automatically unless turned off at least 24 hours before the period ends. Manage or cancel anytime in your Apple Account settings.",
     "subscribeButton": "Subscribe · $44.99/month",
     "iapError": "Something went wrong with the purchase. Please try again.",
     "iapNoOfferings": "Subscriptions are not available right now. Please try again later.",

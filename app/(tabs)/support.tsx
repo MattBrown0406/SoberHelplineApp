@@ -672,7 +672,7 @@ export default function SupportScreen() {
           </>
         )}
 
-        {/* Free tier: Monday group + upgrade card with coupon */}
+        {/* Free tier: Monday group + upgrade card */}
         {!isAttached && accountState === 'direct-free' && (
           <>
             <View style={[styles.card, { borderColor: colors.line }]}>
@@ -771,6 +771,20 @@ export default function SupportScreen() {
                   {t('paywall.subscribePremium')}
                 </Text>
               </TouchableOpacity>
+
+              {/* Auto-renewable subscription disclosure + legal links (App Store 3.1.2c) */}
+              <Text style={[styles.disclosure, { color: colors.inkSoft }]}>
+                {t('paywall.autoRenewDisclosure')}
+              </Text>
+              <View style={styles.legalRow}>
+                <TouchableOpacity onPress={() => void Linking.openURL('https://soberhelpline.com/terms')}>
+                  <Text style={[styles.legalLink, { color: colors.primary }]}>{t('upgradeSheet.termsOfUse')}</Text>
+                </TouchableOpacity>
+                <Text style={[styles.legalSep, { color: colors.inkSoft }]}> · </Text>
+                <TouchableOpacity onPress={() => void Linking.openURL('https://soberhelpline.com/privacy')}>
+                  <Text style={[styles.legalLink, { color: colors.primary }]}>{t('upgradeSheet.privacyPolicy')}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </>
         )}
@@ -1368,8 +1382,9 @@ const styles = StyleSheet.create({
   sheetRowLast: { borderBottomWidth: 0 },
   offRampWrap: { marginTop: 14 },
   legalRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 12, marginBottom: 4 },
-  legalLink: { fontSize: 12, fontWeight: '500' },
+  legalLink: { fontSize: 12, fontWeight: '500', textDecorationLine: 'underline' },
   legalSep: { fontSize: 12 },
+  disclosure: { fontSize: 11.5, lineHeight: 16, textAlign: 'center', marginTop: 14 },
   sheetRowName: { fontSize: 14, fontWeight: '600', flex: 1 },
   sheetRowSub: { fontSize: 12, marginTop: 2 },
   sheetRowAction: { fontSize: 14, fontWeight: '700' },
