@@ -17,7 +17,17 @@ const GENDERS = ['Co-ed', 'Male', 'Female', 'Non-binary affirming'];
 const CONDITIONS = ['Depression', 'Anxiety', 'Trauma / PTSD', 'Bipolar', 'BPD', 'ADHD', 'Eating disorders'];
 const MODALITIES = ['CBT', 'DBT', 'EMDR', 'MAT-friendly', '12-step', 'Non-12-step', 'Holistic', 'Faith-based', 'Equine', 'Somatic'];
 const POPULATIONS = ['LGBTQ+ affirming', 'Veterans', 'Professionals', 'First responders', 'Pregnant women'];
-const STATES = ['Any state', 'California', 'Florida', 'Texas', 'New York', 'Arizona', 'Colorado'];
+const STATES = [
+  'Any state',
+  'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut',
+  'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa',
+  'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan',
+  'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire',
+  'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio',
+  'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota',
+  'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia',
+  'Wisconsin', 'Wyoming',
+];
 
 const CATS: { type: ProviderType; emoji: string; title: string; sub: string }[] = [
   { type: 'center', emoji: '🏥', title: 'Treatment centers', sub: 'Detox, residential, PHP, IOP, outpatient, sober living' },

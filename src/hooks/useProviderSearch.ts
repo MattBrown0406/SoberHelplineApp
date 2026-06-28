@@ -49,8 +49,9 @@ export function useProviderSearch() {
     setError(null);
 
     async function load() {
+      const stateFilter = filters.state && filters.state !== 'Any state' ? filters.state : undefined;
       const opts = {
-        state: filters.state || undefined,
+        state: stateFilter,
         insurance: filters.insurance.length ? filters.insurance : undefined,
       };
 
