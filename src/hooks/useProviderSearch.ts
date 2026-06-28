@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
-  PROVIDERS,
+  fetchProviders,
   sortByAvailability,
   type Provider,
   type ProviderType,
@@ -10,7 +10,7 @@ export interface FinderFilters {
   path: ProviderType;
   state: string;
   zip: string;
-  loc: string | null; // selected level-of-care / urgency key
+  loc: string | null;
   insurance: string[];
   age: string;
   gender: string;
@@ -21,14 +21,14 @@ export interface FinderFilters {
 
 const INITIAL: FinderFilters = {
   path: 'center',
-  state: 'Florida',
-  zip: '33301',
+  state: '',
+  zip: '',
   loc: null,
-  insurance: ['BCBS'],
+  insurance: [],
   age: 'Adult',
   gender: 'Co-ed',
-  conditions: ['Anxiety', 'Trauma / PTSD'],
-  modalities: ['DBT', 'EMDR'],
+  conditions: [],
+  modalities: [],
   populations: [],
 };
 
@@ -36,14 +36,49 @@ function toggle(list: string[], value: string): string[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
 }
 
-/**
- * Holds the Treatment Finder filter state and derives the result list.
- * v1 filters by provider type and sorts available-first; richer filtering
- * (insurance/condition/modality intersection) drops in here when PROVIDERS
- * becomes a real query — the screens don't change.
- */
 export function useProviderSearch() {
   const [filters, setFilters] = useState<FinderFilters>(INITIAL);
+  const [results, setResults] = useState<Provider[]>([]);
+  const [alsoRecommended, setAlsoRecommended] = useState<Provider[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    async function load() {
+      const opts = {
+        state: filters.state || undefined,
+        insurance: filters.insurance.length ? filters.insurance : undefined,
+      };
+
+      const main = await fetchProviders(filters.path, opts);
+      if (cancelled) return;
+      setResults(sortByAvailability(main));
+
+      if (filters.path === 'center') {
+        const [ints, coaches] = await Promise.all([
+          fetchProviders('interventionist'),
+          fetchProviders('coach'),
+        ]);
+        if (cancelled) return;
+        const also: Provider[] = [];
+        if (ints[0]) also.push(ints[0]);
+        if (coaches[0]) also.push(coaches[0]);
+        setAlsoRecommended(also);
+      } else {
+        setAlsoRecommended([]);
+      }
+    }
+
+    load()
+      .catch((e) => { if (!cancelled) setError(String(e)); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [filters.path, filters.state, filters.insurance]);
 
   function setPath(path: ProviderType) {
     setFilters((f) => ({ ...f, path }));
@@ -55,17 +90,6 @@ export function useProviderSearch() {
     setFilters((f) => ({ ...f, [key]: toggle(f[key], value) }));
   }
 
-  const results = useMemo<Provider[]>(() => {
-    const base = PROVIDERS.filter((p) => p.type === filters.path);
-    return sortByAvailability(base);
-  }, [filters.path]);
-
-  // For the treatment-center path, surface a complementary interventionist + coach.
-  const alsoRecommended = useMemo<Provider[]>(() => {
-    if (filters.path !== 'center') return [];
-    return PROVIDERS.filter((p) => p.id === 'mbrown' || p.id === 'coleman');
-  }, [filters.path]);
-
   return {
     filters,
     setPath,
@@ -74,5 +98,7 @@ export function useProviderSearch() {
     results,
     alsoRecommended,
     resultCount: results.length,
+    loading,
+    error,
   };
 }

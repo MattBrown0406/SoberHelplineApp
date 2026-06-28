@@ -4,16 +4,13 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { Button } from '../../src/components/ui/Button';
 import { useTheme } from '../../src/contexts/ThemeContext';
-import { getProvider } from '../../src/api/providers';
-
 const RELATIONSHIPS = ['Parent', 'Spouse / partner', 'Sibling', 'Adult child', 'Friend', 'Other'];
 const TIMES = ['Anytime', 'Morning', 'Afternoon', 'Evening'];
 
 export default function InquiryScreen() {
   const { colors } = useTheme();
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const provider = getProvider(id);
+  const { name: providerName } = useLocalSearchParams<{ id: string; name: string }>();
 
   const [name, setName] = useState('');
   const [relationship, setRelationship] = useState(RELATIONSHIPS[0]);
@@ -39,7 +36,7 @@ export default function InquiryScreen() {
           </View>
           <Text style={[styles.h1, { color: colors.primary, textAlign: 'center' }]}>Your request is in.</Text>
           <Text style={[styles.lede, { color: colors.inkSoft, textAlign: 'center' }]}>
-            {first ? `${first}, you're` : "You're"} not doing this alone. We've sent your inquiry{provider ? ` about ${provider.name}` : ''}.
+            {first ? `${first}, you're` : "You're"} not doing this alone. We've sent your inquiry{providerName ? ` about ${providerName}` : ''}.
           </Text>
           <View style={[styles.nextbox, { borderColor: colors.line }]}>
             {[
@@ -74,7 +71,7 @@ export default function InquiryScreen() {
       </View>
 
       <Text style={[styles.h1, { color: colors.primary }]}>
-        {provider ? `Request a consult — ${provider.name}` : 'Request information'}
+        {providerName ? `Request a consult — ${providerName}` : 'Request information'}
       </Text>
       <Text style={[styles.lede, { color: colors.inkSoft }]}>
         A Sober Helpline navigator will reach out — usually within a few hours — to help you take the next step. No cost, no pressure.

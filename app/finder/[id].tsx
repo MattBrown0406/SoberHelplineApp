@@ -1,10 +1,10 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { Button } from '../../src/components/ui/Button';
 import { useTheme } from '../../src/contexts/ThemeContext';
-import { getProvider, typeLabel } from '../../src/api/providers';
+import { fetchProviderById, typeLabel, type Provider } from '../../src/api/providers';
 import { TypeBadge } from '../../src/components/finder/TypeBadge';
 import { AvailabilityPill } from '../../src/components/finder/AvailabilityPill';
 
@@ -35,7 +35,22 @@ export default function ProviderDetailScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const provider = getProvider(id);
+  const [provider, setProvider] = useState<Provider | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchProviderById(id)
+      .then(setProvider)
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  if (loading) {
+    return (
+      <ScreenContainer backgroundColor={colors.cream}>
+        <ActivityIndicator color={colors.primary} style={{ marginTop: 60 }} />
+      </ScreenContainer>
+    );
+  }
 
   if (!provider) {
     return (
@@ -122,7 +137,7 @@ export default function ProviderDetailScreen() {
 
       <Button
         label={ctaLabel}
-        onPress={() => router.push({ pathname: '/finder/inquiry', params: { id: provider.id } })}
+        onPress={() => router.push({ pathname: '/finder/inquiry', params: { id: provider.id, name: provider.name } })}
         style={{ marginTop: 22 }}
       />
       <Text style={[styles.disc, { color: colors.inkSoft }]}>

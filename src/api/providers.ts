@@ -1,10 +1,9 @@
-/**
- * Treatment Finder — provider data + helpers.
- *
- * v1 ships static sample data so the UI is fully navigable. Swap PROVIDERS for a
- * Supabase-backed query (a `providers` table + filter RPC) without touching the
- * screens — keep the Provider shape and helpers stable.
- */
+import { createClient } from '@supabase/supabase-js';
+
+const shl = createClient(
+  process.env.EXPO_PUBLIC_SHL_SUPABASE_URL ?? '',
+  process.env.EXPO_PUBLIC_SHL_SUPABASE_ANON_KEY ?? '',
+);
 
 export type ProviderType = 'center' | 'interventionist' | 'coach';
 export type Availability = 'now' | 'lim' | 'wait';
@@ -29,109 +28,11 @@ export interface Provider {
   cases?: string;
   approach?: string;
   serves?: string;
+  // Contact (shown on detail screen)
+  phone?: string;
+  email?: string;
+  website?: string;
 }
-
-export const PROVIDERS: Provider[] = [
-  {
-    id: 'oceanside', type: 'center', name: 'Oceanside Recovery',
-    location: 'Fort Lauderdale, FL', distance: '4 mi', availability: 'now',
-    insurance: ['BCBS', 'Aetna', 'Cigna'],
-    tags: ['Residential 30/60', 'DBT', 'EMDR', 'MAT-friendly'],
-    price: 'In-network · BCBS',
-    about: 'Beachside residential and PHP program with a strong trauma track. Small cohorts, individualized clinical care, and family programming every week.',
-    levels: ['Detox', 'Residential', 'PHP', 'IOP'],
-    conditions: ['Trauma / PTSD', 'Anxiety', 'Depression'],
-    populations: ['Professionals', 'LGBTQ+ affirming'],
-  },
-  {
-    id: 'cypress', type: 'center', name: 'Cypress Trail Wellness',
-    location: 'Delray Beach, FL', distance: '12 mi', availability: 'lim',
-    insurance: ['BCBS', 'UnitedHealthcare', 'Self-pay'],
-    tags: ['PHP', 'IOP', 'CBT', 'Holistic'],
-    price: 'In-network · BCBS',
-    about: 'Dual-diagnosis PHP/IOP with holistic add-ons (yoga, acupuncture, nutrition) alongside evidence-based clinical care.',
-    levels: ['PHP', 'IOP', 'Outpatient'],
-    conditions: ['Anxiety', 'Bipolar', 'ADHD'],
-    populations: ['Young adult'],
-  },
-  {
-    id: 'harbor', type: 'center', name: 'Harbor House Detox',
-    location: 'Boca Raton, FL', distance: '15 mi', availability: 'now',
-    insurance: ['Aetna', 'Cigna', 'Humana', 'Self-pay'],
-    tags: ['Detox', 'Residential', 'MAT-friendly'],
-    price: 'In-network · Aetna',
-    about: 'Medically supervised detox with 24/7 nursing and a smooth step-down into residential or PHP.',
-    levels: ['Detox', 'Residential'],
-    conditions: ['Depression', 'Anxiety'],
-    populations: ['Veterans'],
-  },
-  {
-    id: 'willow', type: 'center', name: 'Willow Springs (Women)',
-    location: 'Naples, FL', distance: '2 hr', availability: 'wait',
-    insurance: ['BCBS', 'Cigna', 'Self-pay'],
-    tags: ['Residential 60/90', 'EMDR', 'Trauma'],
-    price: 'Waitlist · ~2 wks',
-    about: 'Women-only residential with a specialized trauma and eating-disorder track and on-site family weekends.',
-    levels: ['Residential', 'PHP'],
-    conditions: ['Trauma / PTSD', 'Eating disorders', 'BPD'],
-    populations: ['Pregnant women', 'Female'],
-  },
-  {
-    id: 'newleaf', type: 'center', name: 'New Leaf Sober Living',
-    location: 'Fort Lauderdale, FL', distance: '5 mi', availability: 'now',
-    insurance: ['Self-pay'],
-    tags: ['Sober Living', '12-step', 'Outpatient-friendly'],
-    price: 'Self-pay · $1,200/mo',
-    about: 'Structured, supportive sober-living homes with house managers, drug testing, and IOP coordination.',
-    levels: ['Sober Living'],
-    conditions: [],
-    populations: ['Professionals', 'Male'],
-  },
-  {
-    id: 'mbrown', type: 'interventionist', name: 'Matt Brown, CIP',
-    location: 'Serves nationwide · based in FL', availability: 'now',
-    insurance: ['Self-pay'],
-    tags: ['ARISE model', 'Family-first', '24–48 hr mobilization'],
-    price: 'Flat fee · free consult',
-    years: '20+', cases: '1,500+',
-    about: 'Certified Intervention Professional specializing in compassionate, family-systems interventions. Travels nationwide and stays engaged through admission and the first weeks of treatment.',
-    approach: 'A non-confrontational, invitational model. We prepare the family together, rehearse, and lead the conversation — then coordinate transport and a warm handoff to the right program.',
-    serves: 'Nationwide (travels)',
-  },
-  {
-    id: 'rivera', type: 'interventionist', name: 'Dana Rivera, CIP-II',
-    location: 'Serves Southeast US', availability: 'lim',
-    insurance: ['Self-pay'],
-    tags: ['Adolescent', 'Co-occurring', 'Trauma-informed'],
-    price: 'Flat fee',
-    years: '12', cases: '600+',
-    about: 'Interventionist focused on adolescents and young adults with co-occurring mental-health conditions.',
-    approach: 'Trauma-informed and developmentally aware. Heavy emphasis on coaching parents and aligning siblings before the conversation.',
-    serves: 'FL, GA, SC, NC, AL',
-  },
-  {
-    id: 'coleman', type: 'coach', name: 'Terrence Coleman',
-    location: 'Fort Lauderdale, FL + remote', availability: 'now',
-    insurance: ['Self-pay'],
-    tags: ['Recovery companion', 'Travel-ready', '12-step'],
-    price: '$85/hr · packages',
-    years: '9',
-    about: 'Sober companion and recovery coach. Available for daily check-ins, transport, accountability, and travel companionship during high-risk windows.',
-    approach: 'Boots-on-the-ground support: I meet people where they are, build routine, and bridge the gap between treatment and real life.',
-    serves: 'In-person (South FL) + remote',
-  },
-  {
-    id: 'park', type: 'coach', name: 'Jamie Park',
-    location: 'Remote (nationwide)', availability: 'lim',
-    insurance: ['Self-pay'],
-    tags: ['Family coaching', 'Non-12-step', 'Professionals'],
-    price: '$95/hr',
-    years: '7',
-    about: 'Recovery coach for professionals and their families, with a non-12-step, harm-reduction-friendly approach.',
-    approach: 'Structured weekly coaching for the person in recovery, plus optional parallel coaching for the family so everyone moves together.',
-    serves: 'Remote, all US time zones',
-  },
-];
 
 export interface LocOption {
   key: string;
@@ -162,6 +63,170 @@ export const LOC_OPTIONS: Record<ProviderType, LocOption[]> = {
   ],
 };
 
+// Website category strings → app ProviderType
+function mapCategory(cat: string): ProviderType {
+  if (cat === 'Interventionists') return 'interventionist';
+  if (cat === 'Sober Coaches/Companions') return 'coach';
+  return 'center';
+}
+
+// App ProviderType → website category strings to query
+function categoryFilters(type: ProviderType): string[] {
+  switch (type) {
+    case 'interventionist': return ['Interventionists'];
+    case 'coach': return ['Sober Coaches/Companions'];
+    case 'center': return ['Inpatient Treatment', 'Outpatient Treatment', 'Sober Living', 'Therapists', 'Psychiatrists'];
+  }
+}
+
+function buildLevels(row: Record<string, unknown>): string[] {
+  const cat = (row.category as string) ?? '';
+  const levels: string[] = [];
+  if (cat === 'Inpatient Treatment') {
+    if (row.detox_available) levels.push('Detox');
+    levels.push('Residential');
+    if (row.detox_only_services) return ['Detox'];
+  }
+  if (cat === 'Outpatient Treatment') {
+    levels.push('PHP', 'IOP', 'Outpatient');
+    if (row.telehealth_available) levels.push('Telehealth');
+  }
+  if (cat === 'Sober Living') levels.push('Sober Living');
+  if (cat === 'Therapists') {
+    levels.push('Individual Therapy', 'Group Therapy');
+    if (row.telehealth_available) levels.push('Telehealth');
+  }
+  if (cat === 'Psychiatrists') {
+    levels.push('Psychiatric Services');
+    if (row.telehealth_available) levels.push('Telehealth');
+  }
+  return levels;
+}
+
+function buildPopulations(row: Record<string, unknown>): string[] {
+  const pops: string[] = [];
+  if (row.lgbt_supportive) pops.push('LGBTQ+ affirming');
+  if (row.adolescent_services) pops.push('Adolescent (under 18)');
+  const genders = (row.gender_specific_treatment as string[] | null) ?? [];
+  genders.forEach((g) => pops.push(`${g}-specific`));
+  return pops;
+}
+
+function buildTags(row: Record<string, unknown>, type: ProviderType): string[] {
+  const tags: string[] = [];
+  if (type === 'interventionist') {
+    const modalities = (row.intervention_modalities as string[] | null) ?? [];
+    tags.push(...modalities);
+    if (row.cip_certified) tags.push('CIP Certified');
+    if (row.works_nationally) tags.push('Travels nationally');
+    if (row.works_internationally) tags.push('Travels internationally');
+    if (row.adolescent_services) tags.push('Adolescent');
+  } else if (type === 'coach') {
+    const modalities = (row.therapeutic_modalities as string[] | null) ?? [];
+    tags.push(...modalities);
+    if (row.in_person_companion_work) tags.push('In-person available');
+    if (row.has_valid_passport) tags.push('Travel-ready');
+    if (row.hourly_coaching_sessions) tags.push('Hourly sessions');
+  } else {
+    const modalities = (row.therapeutic_modalities as string[] | null) ?? [];
+    tags.push(...modalities);
+    const fellowships = (row.recovery_fellowships as string[] | null) ?? [];
+    fellowships.forEach((f) => tags.push(f.split('(')[0].trim()));
+    if (row.detox_available) tags.push('Detox available');
+    if (row.telehealth_available) tags.push('Telehealth');
+    if (row.sliding_scale_available) tags.push('Sliding scale');
+  }
+  return [...new Set(tags)].slice(0, 6);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapRow(row: any): Provider {
+  const type = mapCategory(row.category ?? '');
+  const location = [row.city, row.state].filter(Boolean).join(', ');
+
+  const years = row.year_started
+    ? `${new Date().getFullYear() - (row.year_started as number)}+`
+    : undefined;
+
+  const serves =
+    type === 'interventionist'
+      ? row.works_internationally
+        ? 'International'
+        : row.works_nationally
+          ? 'Nationwide'
+          : location
+      : type === 'coach'
+        ? row.in_person_companion_work
+          ? `In-person (${location}) + remote`
+          : 'Remote (nationwide)'
+        : undefined;
+
+  const approach =
+    type === 'interventionist' && (row.intervention_modalities as string[] | null)?.length
+      ? (row.intervention_modalities as string[]).join(', ')
+      : type === 'coach' && (row.therapeutic_modalities as string[] | null)?.length
+        ? (row.therapeutic_modalities as string[]).join(', ')
+        : undefined;
+
+  const price =
+    row.cost
+      ? String(row.cost)
+      : type === 'coach' && row.daily_companion_fee
+        ? `${row.daily_companion_fee}/day`
+        : type === 'coach' && row.hourly_coaching_rate
+          ? `${row.hourly_coaching_rate}/hr`
+          : 'Contact for pricing';
+
+  return {
+    id: row.id as string,
+    type,
+    name: (row.provider_name as string) ?? '',
+    location,
+    availability: 'lim',
+    insurance: (row.insurances_accepted as string[] | null) ?? [],
+    tags: buildTags(row, type),
+    price,
+    about: (row.description_of_services as string) ?? '',
+    levels: type === 'center' ? buildLevels(row) : undefined,
+    conditions: (row.co_occurring_diagnoses as string[] | null) ?? [],
+    populations: buildPopulations(row),
+    years,
+    approach,
+    serves,
+    phone: (row.phone_number as string | null) ?? undefined,
+    email: (row.email as string | null) ?? undefined,
+    website: (row.website as string | null) ?? undefined,
+  };
+}
+
+export async function fetchProviders(
+  type: ProviderType,
+  opts: { state?: string; insurance?: string[] } = {},
+): Promise<Provider[]> {
+  let q = shl
+    .from('provider_submissions_public')
+    .select('*')
+    .eq('status', 'approved')
+    .in('category', categoryFilters(type));
+
+  if (opts.state) q = q.eq('state', opts.state);
+  if (opts.insurance?.length) q = q.overlaps('insurances_accepted', opts.insurance);
+
+  const { data, error } = await q.order('provider_name').limit(50);
+  if (error) throw error;
+  return (data ?? []).map(mapRow);
+}
+
+export async function fetchProviderById(id: string): Promise<Provider | undefined> {
+  const { data, error } = await shl
+    .from('provider_submissions_public')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+  if (error || !data) return undefined;
+  return mapRow(data);
+}
+
 const AVAIL_RANK: Record<Availability, number> = { now: 0, lim: 1, wait: 2 };
 
 export function sortByAvailability(list: Provider[]): Provider[] {
@@ -174,8 +239,4 @@ export function availabilityLabel(a: Availability): string {
 
 export function typeLabel(t: ProviderType): string {
   return t === 'center' ? 'Treatment center' : t === 'interventionist' ? 'Interventionist' : 'Sober coach';
-}
-
-export function getProvider(id: string): Provider | undefined {
-  return PROVIDERS.find((p) => p.id === id);
 }

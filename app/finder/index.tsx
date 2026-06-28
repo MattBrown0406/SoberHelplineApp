@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { Button } from '../../src/components/ui/Button';
@@ -35,7 +35,7 @@ export default function FinderScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const search = useProviderSearch();
-  const { filters, setPath, setField, toggleField, results, alsoRecommended } = search;
+  const { filters, setPath, setField, toggleField, results, alsoRecommended, loading } = search;
 
   const [step, setStep] = useState<Step>('intro');
 
@@ -202,9 +202,17 @@ export default function FinderScreen() {
             </Text>
           )}
 
-          {results.map((p) => (
-            <ProviderCard key={p.id} provider={p} onPress={() => router.push(`/finder/${p.id}`)} />
-          ))}
+          {loading ? (
+            <ActivityIndicator color={colors.primary} style={{ marginTop: 32 }} />
+          ) : results.length === 0 ? (
+            <Text style={[styles.sum, { color: colors.inkSoft, marginTop: 16 }]}>
+              No providers found. Try broadening your filters or choosing a different state.
+            </Text>
+          ) : (
+            results.map((p) => (
+              <ProviderCard key={p.id} provider={p} onPress={() => router.push(`/finder/${p.id}`)} />
+            ))
+          )}
 
           {alsoRecommended.length > 0 && (
             <>
