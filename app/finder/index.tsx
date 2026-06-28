@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import {
+  View, Text, TextInput, TouchableOpacity, StyleSheet,
+  ActivityIndicator, Modal, ScrollView, SafeAreaView,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { Button } from '../../src/components/ui/Button';
@@ -17,6 +20,7 @@ const GENDERS = ['Co-ed', 'Male', 'Female', 'Non-binary affirming'];
 const CONDITIONS = ['Depression', 'Anxiety', 'Trauma / PTSD', 'Bipolar', 'BPD', 'ADHD', 'Eating disorders'];
 const MODALITIES = ['CBT', 'DBT', 'EMDR', 'MAT-friendly', '12-step', 'Non-12-step', 'Holistic', 'Faith-based', 'Equine', 'Somatic'];
 const POPULATIONS = ['LGBTQ+ affirming', 'Veterans', 'Professionals', 'First responders', 'Pregnant women'];
+const BUDGETS = ['Any budget', 'Under $5,000/mo', 'Under $10,000/mo', 'Under $20,000/mo', 'Under $30,000/mo'];
 const STATES = [
   'Any state',
   'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut',
@@ -48,6 +52,8 @@ export default function FinderScreen() {
   const { filters, setPath, setField, toggleField, results, alsoRecommended, loading } = search;
 
   const [step, setStep] = useState<Step>('intro');
+  const [stateOpen, setStateOpen] = useState(false);
+  const [budget, setBudget] = useState('Any budget');
 
   function goBack() {
     if (step === 'intro') return router.back();
@@ -62,6 +68,8 @@ export default function FinderScreen() {
   }
 
   const stepIndex = step === 'loc' ? 1 : step === 'details' ? 2 : step === 'results' ? 3 : 0;
+  const isCenter = filters.path === 'center';
+  const selectedState = filters.state && filters.state !== 'Any state' ? filters.state : null;
 
   return (
     <ScreenContainer backgroundColor={colors.cream}>
@@ -139,58 +147,76 @@ export default function FinderScreen() {
         <>
           <Text style={[styles.h1, { color: colors.primary }]}>A few details</Text>
           <Text style={[styles.lede, { color: colors.inkSoft }]}>
-            This helps us show only providers that actually fit. Everything is optional.
+            {isCenter
+              ? 'This helps us show only centers that actually fit. Everything is optional.'
+              : 'Tell us where you are and what matters most. Everything is optional.'}
           </Text>
 
+          {/* Location — shown for all paths */}
           <Text style={[styles.h2, { color: colors.inkSoft }]}>LOCATION</Text>
-          <View style={styles.chips}>
-            {STATES.map((s) => (
-              <FilterChip key={s} label={s} selected={filters.state === s} onPress={() => setField('state', s)} />
-            ))}
-          </View>
+          <TouchableOpacity
+            onPress={() => setStateOpen(true)}
+            style={[styles.dropdown, { borderColor: colors.line }]}
+          >
+            <Text style={[styles.dropdownText, { color: selectedState ? colors.ink : colors.inkSoft }]}>
+              {selectedState ?? 'Select state'}
+            </Text>
+            <Text style={[styles.dropdownArrow, { color: colors.inkSoft }]}>▾</Text>
+          </TouchableOpacity>
           <TextInput
             value={filters.zip}
             onChangeText={(v) => setField('zip', v)}
-            placeholder="ZIP code"
+            placeholder="ZIP code (optional)"
             keyboardType="number-pad"
             style={[styles.input, { borderColor: colors.line, color: colors.ink }]}
             placeholderTextColor={colors.inkSoft}
           />
 
-          <Section label="INSURANCE">
-            {INSURANCE.map((i) => (
-              <FilterChip key={i} label={i} selected={filters.insurance.includes(i)} onPress={() => toggleField('insurance', i)} />
-            ))}
-          </Section>
+          {/* Center-only filters */}
+          {isCenter && (
+            <>
+              <Section label="BUDGET">
+                {BUDGETS.map((b) => (
+                  <FilterChip key={b} label={b} selected={budget === b} onPress={() => setBudget(b)} />
+                ))}
+              </Section>
 
-          <Section label="WHO IS IT FOR?">
-            {AGES.map((a) => (
-              <FilterChip key={a} label={a} selected={filters.age === a} onPress={() => setField('age', a)} />
-            ))}
-          </Section>
-          <View style={[styles.chips, { marginTop: 8 }]}>
-            {GENDERS.map((g) => (
-              <FilterChip key={g} label={g} selected={filters.gender === g} onPress={() => setField('gender', g)} />
-            ))}
-          </View>
+              <Section label="INSURANCE">
+                {INSURANCE.map((i) => (
+                  <FilterChip key={i} label={i} selected={filters.insurance.includes(i)} onPress={() => toggleField('insurance', i)} />
+                ))}
+              </Section>
 
-          <Section label="MENTAL HEALTH / DUAL DIAGNOSIS">
-            {CONDITIONS.map((c) => (
-              <FilterChip key={c} label={c} selected={filters.conditions.includes(c)} onPress={() => toggleField('conditions', c)} />
-            ))}
-          </Section>
+              <Section label="WHO IS IT FOR?">
+                {AGES.map((a) => (
+                  <FilterChip key={a} label={a} selected={filters.age === a} onPress={() => setField('age', a)} />
+                ))}
+              </Section>
+              <View style={[styles.chips, { marginTop: 8 }]}>
+                {GENDERS.map((g) => (
+                  <FilterChip key={g} label={g} selected={filters.gender === g} onPress={() => setField('gender', g)} />
+                ))}
+              </View>
 
-          <Section label="APPROACH & MODALITIES">
-            {MODALITIES.map((m) => (
-              <FilterChip key={m} label={m} selected={filters.modalities.includes(m)} onPress={() => toggleField('modalities', m)} />
-            ))}
-          </Section>
+              <Section label="MENTAL HEALTH / DUAL DIAGNOSIS">
+                {CONDITIONS.map((c) => (
+                  <FilterChip key={c} label={c} selected={filters.conditions.includes(c)} onPress={() => toggleField('conditions', c)} />
+                ))}
+              </Section>
 
-          <Section label="SPECIALTY POPULATIONS">
-            {POPULATIONS.map((p) => (
-              <FilterChip key={p} label={p} selected={filters.populations.includes(p)} onPress={() => toggleField('populations', p)} />
-            ))}
-          </Section>
+              <Section label="APPROACH & MODALITIES">
+                {MODALITIES.map((m) => (
+                  <FilterChip key={m} label={m} selected={filters.modalities.includes(m)} onPress={() => toggleField('modalities', m)} />
+                ))}
+              </Section>
+
+              <Section label="SPECIALTY POPULATIONS">
+                {POPULATIONS.map((p) => (
+                  <FilterChip key={p} label={p} selected={filters.populations.includes(p)} onPress={() => toggleField('populations', p)} />
+                ))}
+              </Section>
+            </>
+          )}
 
           <Button label="Show matches" onPress={() => setStep('results')} style={{ marginTop: 18 }} />
         </>
@@ -200,7 +226,8 @@ export default function FinderScreen() {
         <>
           <View style={styles.resHead}>
             <Text style={[styles.resN, { color: colors.primary }]}>
-              {results.length} {filters.path === 'center' ? 'centers' : filters.path === 'interventionist' ? 'interventionists' : 'coaches'} near {filters.state === 'Any state' ? filters.zip : filters.state}
+              {results.length} {filters.path === 'center' ? 'centers' : filters.path === 'interventionist' ? 'interventionists' : 'coaches'}
+              {selectedState ? ` in ${selectedState}` : ''}
             </Text>
             <TouchableOpacity onPress={() => setStep('details')}>
               <Text style={[styles.edit, { color: colors.primary }]}>Edit</Text>
@@ -216,7 +243,7 @@ export default function FinderScreen() {
             <ActivityIndicator color={colors.primary} style={{ marginTop: 32 }} />
           ) : results.length === 0 ? (
             <Text style={[styles.sum, { color: colors.inkSoft, marginTop: 16 }]}>
-              No providers found. Try broadening your filters or choosing a different state.
+              No providers found. Try selecting "Any state" or removing filters.
             </Text>
           ) : (
             results.map((p) => (
@@ -234,6 +261,34 @@ export default function FinderScreen() {
           )}
         </>
       )}
+
+      {/* State picker modal */}
+      <Modal visible={stateOpen} transparent animationType="slide" onRequestClose={() => setStateOpen(false)}>
+        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setStateOpen(false)} />
+        <SafeAreaView style={[styles.sheet, { backgroundColor: colors.white }]}>
+          <View style={[styles.sheetHeader, { borderBottomColor: colors.line }]}>
+            <Text style={[styles.sheetTitle, { color: colors.ink }]}>Select state</Text>
+            <TouchableOpacity onPress={() => setStateOpen(false)}>
+              <Text style={[styles.sheetDone, { color: colors.primary }]}>Done</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView>
+            {STATES.map((s) => {
+              const sel = (filters.state || 'Any state') === s;
+              return (
+                <TouchableOpacity
+                  key={s}
+                  onPress={() => { setField('state', s); setStateOpen(false); }}
+                  style={[styles.sheetRow, { borderBottomColor: colors.line, backgroundColor: sel ? colors.primaryLight : 'transparent' }]}
+                >
+                  <Text style={[styles.sheetRowText, { color: sel ? colors.primary : colors.ink, fontWeight: sel ? '600' : '400' }]}>{s}</Text>
+                  {sel && <Text style={[styles.sheetCheck, { color: colors.primary }]}>✓</Text>}
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </ScreenContainer>
   );
 }
@@ -269,9 +324,20 @@ const styles = StyleSheet.create({
   optTitle: { fontSize: 15, fontWeight: '600', marginBottom: 2 },
   optSub: { fontSize: 12.5 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  dropdown: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderRadius: 11, paddingVertical: 13, paddingHorizontal: 13, backgroundColor: '#fff' },
+  dropdownText: { fontSize: 15 },
+  dropdownArrow: { fontSize: 13 },
   input: { borderWidth: 1, borderRadius: 11, paddingVertical: 12, paddingHorizontal: 13, fontSize: 15, backgroundColor: '#fff', marginTop: 10 },
   resHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, marginBottom: 6 },
   resN: { fontSize: 15, fontWeight: '700', flex: 1 },
   edit: { fontSize: 13, fontWeight: '600' },
   sum: { fontSize: 12.5, marginBottom: 16, lineHeight: 18 },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
+  sheet: { maxHeight: '70%', borderTopLeftRadius: 20, borderTopRightRadius: 20, overflow: 'hidden' },
+  sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1 },
+  sheetTitle: { fontSize: 16, fontWeight: '600' },
+  sheetDone: { fontSize: 15, fontWeight: '600' },
+  sheetRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
+  sheetRowText: { fontSize: 16 },
+  sheetCheck: { fontSize: 16 },
 });
