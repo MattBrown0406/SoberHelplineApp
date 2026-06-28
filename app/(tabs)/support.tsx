@@ -670,17 +670,6 @@ export default function SupportScreen() {
               </View>
             </View>
 
-            {/* Treatment Finder — also available to attached/paid users */}
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={() => router.push('/finder')}
-              style={[styles.finderCard, { backgroundColor: colors.primary }]}
-            >
-              <Text style={styles.finderTitle}>Find treatment & support</Text>
-              <Text style={styles.finderSub}>
-                Search vetted treatment centers, interventionists, and sober coaches — with real availability.
-              </Text>
-            </TouchableOpacity>
           </>
         )}
 
@@ -731,18 +720,6 @@ export default function SupportScreen() {
                 </View>
               ))}
             </View>
-
-            {/* Treatment Finder — free, no subscription needed */}
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={() => router.push('/finder')}
-              style={[styles.finderCard, { backgroundColor: colors.primary }]}
-            >
-              <Text style={styles.finderTitle}>Find treatment & support</Text>
-              <Text style={styles.finderSub}>
-                Search vetted treatment centers, interventionists, and sober coaches — with real availability.
-              </Text>
-            </TouchableOpacity>
 
             <View style={[styles.card, { borderColor: colors.line }]}>
               <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
@@ -978,6 +955,18 @@ export default function SupportScreen() {
             </View>
           </>
         )}
+
+        {/* Treatment Finder — all account types */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => router.push('/finder')}
+          style={[styles.finderCard, { backgroundColor: colors.primary }]}
+        >
+          <Text style={styles.finderTitle}>Find treatment & support</Text>
+          <Text style={styles.finderSub}>
+            Search vetted treatment centers, interventionists, and sober coaches — with real availability.
+          </Text>
+        </TouchableOpacity>
 
         {/* Groups — both account types */}
         <View style={[styles.card, { borderColor: colors.line }]}>
