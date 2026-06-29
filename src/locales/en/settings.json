@@ -15,7 +15,22 @@
   },
   "notifications": {
     "dailyNudgeTitle": "Sober Helpline",
-    "dailyNudgeBody": "How are you doing today? Take a moment to check in."
+    "dailyNudgeBody": "How are you doing today? Take a moment to check in.",
+    "dailyNudgeBodies": [
+      "How are you doing today? Take a moment to check in.",
+      "A quick check-in keeps your streak — and your clarity — going.",
+      "90 seconds for yourself. How's your heart today?",
+      "You showed up yesterday. Show up for you again today.",
+      "Notice how you're feeling before the day takes over.",
+      "One small moment of honesty with yourself. Ready?",
+      "Your check-in is waiting whenever you are."
+    ],
+    "reminderEyebrow": "Daily reminder",
+    "reminderDesc": "When should we nudge you to check in? We'll skip days you've already checked in.",
+    "reminderMorning": "Morning",
+    "reminderMidday": "Midday",
+    "reminderEvening": "Evening",
+    "reminderNight": "Night"
   },
   "membership": {
     "eyebrow": "Membership",

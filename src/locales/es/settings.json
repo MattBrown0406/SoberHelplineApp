@@ -15,7 +15,22 @@
   },
   "notifications": {
     "dailyNudgeTitle": "Sober Helpline",
-    "dailyNudgeBody": "¿Cómo estás hoy? Tómate un momento para registrarte."
+    "dailyNudgeBody": "¿Cómo estás hoy? Tómate un momento para registrarte.",
+    "dailyNudgeBodies": [
+      "¿Cómo estás hoy? Tómate un momento para registrarte.",
+      "Un registro rápido mantiene tu racha — y tu claridad.",
+      "90 segundos para ti. ¿Cómo está tu corazón hoy?",
+      "Ayer diste el paso. Hazlo de nuevo hoy, por ti.",
+      "Nota cómo te sientes antes de que el día te absorba.",
+      "Un pequeño momento de honestidad contigo. ¿List@?",
+      "Tu registro te espera cuando estés list@."
+    ],
+    "reminderEyebrow": "Recordatorio diario",
+    "reminderDesc": "¿Cuándo quieres que te recordemos registrarte? Omitiremos los días en que ya lo hiciste.",
+    "reminderMorning": "Mañana",
+    "reminderMidday": "Mediodía",
+    "reminderEvening": "Tarde",
+    "reminderNight": "Noche"
   },
   "membership": {
     "eyebrow": "Membresía",

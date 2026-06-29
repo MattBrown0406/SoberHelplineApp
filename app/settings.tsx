@@ -17,9 +17,17 @@ import { useTheme } from '../src/contexts/ThemeContext';
 import { useLanguage } from '../src/hooks/useLanguage';
 import { supabase } from '../src/lib/supabase';
 import { restorePurchases } from '../src/lib/revenueCat';
+import { getReminderHour, setReminderHour, DEFAULT_REMINDER_HOUR } from '../src/hooks/usePushNotifications';
 
 const CONSENT_SHARE_CHECKINS = '2';
 const CONSENT_VERSION = '1.0';
+
+const REMINDER_PRESETS = [
+  { hour: 8, labelKey: 'notifications.reminderMorning' },
+  { hour: 12, labelKey: 'notifications.reminderMidday' },
+  { hour: 18, labelKey: 'notifications.reminderEvening' },
+  { hour: 21, labelKey: 'notifications.reminderNight' },
+] as const;
 
 export default function SettingsScreen() {
   const { colors } = useTheme();
@@ -31,6 +39,16 @@ export default function SettingsScreen() {
   const [shareCheckIns, setShareCheckIns] = useState(false);
   const [consentLoading, setConsentLoading] = useState(true);
   const [restoring, setRestoring] = useState(false);
+  const [reminderHour, setReminderHourState] = useState(DEFAULT_REMINDER_HOUR);
+
+  useEffect(() => {
+    void getReminderHour().then(setReminderHourState);
+  }, []);
+
+  function chooseReminderHour(hour: number) {
+    setReminderHourState(hour);
+    void setReminderHour(hour);
+  }
 
   useEffect(() => {
     if (!user) return;
@@ -240,6 +258,39 @@ export default function SettingsScreen() {
                     ]}
                   >
                     {lang.nativeLabel}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Daily reminder time */}
+        <View style={[styles.card, { borderColor: colors.line }]}>
+          <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
+            {t('notifications.reminderEyebrow')}
+          </Text>
+          <Text style={[styles.toggleDesc, { color: colors.inkSoft, marginBottom: 12 }]}>
+            {t('notifications.reminderDesc')}
+          </Text>
+          <View style={styles.pillRow}>
+            {REMINDER_PRESETS.map((preset) => {
+              const active = reminderHour === preset.hour;
+              return (
+                <TouchableOpacity
+                  key={preset.hour}
+                  style={[
+                    styles.pill,
+                    {
+                      borderColor: active ? colors.primary : colors.line,
+                      backgroundColor: active ? colors.primaryLight : '#fff',
+                    },
+                  ]}
+                  onPress={() => chooseReminderHour(preset.hour)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.pillText, { color: active ? colors.primary : colors.inkSoft }]}>
+                    {t(preset.labelKey)}
                   </Text>
                 </TouchableOpacity>
               );
