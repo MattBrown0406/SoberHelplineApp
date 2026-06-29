@@ -53,6 +53,7 @@ export function useProviderSearch() {
       const opts = {
         state: stateFilter,
         insurance: filters.insurance.length ? filters.insurance : undefined,
+        loc: filters.loc,
       };
 
       const main = await fetchProviders(filters.path, opts);
@@ -60,9 +61,11 @@ export function useProviderSearch() {
       setResults(sortByAvailability(main));
 
       if (filters.path === 'center') {
+        // Cross-sell only providers in the same state, so we don't surface an
+        // interventionist three states away from the centers being viewed.
         const [ints, coaches] = await Promise.all([
-          fetchProviders('interventionist'),
-          fetchProviders('coach'),
+          fetchProviders('interventionist', { state: stateFilter }),
+          fetchProviders('coach', { state: stateFilter }),
         ]);
         if (cancelled) return;
         const also: Provider[] = [];
@@ -79,7 +82,7 @@ export function useProviderSearch() {
       .finally(() => { if (!cancelled) setLoading(false); });
 
     return () => { cancelled = true; };
-  }, [filters.path, filters.state, filters.insurance]);
+  }, [filters.path, filters.state, filters.insurance, filters.loc]);
 
   function setPath(path: ProviderType) {
     setFilters((f) => ({ ...f, path }));

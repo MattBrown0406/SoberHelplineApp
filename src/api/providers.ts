@@ -73,13 +73,45 @@ function mapCategory(cat: string): ProviderType {
   return 'center';
 }
 
-// App ProviderType → website category strings to query
-function categoryFilters(type: ProviderType): string[] {
+// Level-of-care selection (loc step) → website category strings to query.
+// Lets "Inpatient" exclude detox/outpatient/sober-living rows, etc.
+const CENTER_LOC_CATEGORIES: Record<string, string[]> = {
+  detox: ['Medical Detox'],
+  residential: ['Inpatient Treatment'],
+  php: ['Outpatient Treatment'],
+  iop: ['Outpatient Treatment'],
+  op: ['Outpatient Treatment'],
+  sober: ['Sober Living'],
+  // 'decide' (Help me decide) → all center categories
+};
+
+const ALL_CENTER_CATEGORIES = ['Inpatient Treatment', 'Outpatient Treatment', 'Medical Detox', 'Sober Living', 'Therapists', 'Psychiatrists'];
+
+// App ProviderType (+ optional level of care) → website category strings to query
+function categoryFilters(type: ProviderType, loc?: string | null): string[] {
   switch (type) {
     case 'interventionist': return ['Interventionists'];
     case 'coach': return ['Sober Coaches/Companions'];
-    case 'center': return ['Inpatient Treatment', 'Outpatient Treatment', 'Medical Detox', 'Sober Living', 'Therapists', 'Psychiatrists'];
+    case 'center':
+      if (loc && CENTER_LOC_CATEGORIES[loc]) return CENTER_LOC_CATEGORIES[loc];
+      return ALL_CENTER_CATEGORIES;
   }
+}
+
+// A provider often submits one row per level of care (e.g. Crestview has separate
+// Inpatient / Outpatient / Sober Living rows). Collapse to one card per provider,
+// preferring the primary (parent) submission.
+function dedupeByProvider<T extends { provider_name?: string | null; parent_submission_id?: string | null }>(rows: T[]): T[] {
+  const seen = new Map<string, T>();
+  for (const row of rows) {
+    const key = String(row.provider_name ?? '').trim().toLowerCase();
+    if (!key) continue;
+    const existing = seen.get(key);
+    if (!existing) { seen.set(key, row); continue; }
+    // Prefer the parent row (one with no parent_submission_id)
+    if (existing.parent_submission_id && !row.parent_submission_id) seen.set(key, row);
+  }
+  return [...seen.values()];
 }
 
 function buildLevels(row: Record<string, unknown>): string[] {
@@ -204,20 +236,20 @@ function mapRow(row: any): Provider {
 
 export async function fetchProviders(
   type: ProviderType,
-  opts: { state?: string; insurance?: string[] } = {},
+  opts: { state?: string; insurance?: string[]; loc?: string | null } = {},
 ): Promise<Provider[]> {
   let q = shl
     .from('provider_submissions_public')
     .select('*')
     .eq('status', 'approved')
-    .in('category', categoryFilters(type));
+    .in('category', categoryFilters(type, opts.loc));
 
   if (opts.state) q = q.eq('state', opts.state);
   if (opts.insurance?.length) q = q.overlaps('insurances_accepted', opts.insurance);
 
   const { data, error } = await q.order('provider_name').limit(50);
   if (error) throw error;
-  return (data ?? []).map(mapRow);
+  return dedupeByProvider(data ?? []).map(mapRow);
 }
 
 export async function fetchProviderById(id: string): Promise<Provider | undefined> {
