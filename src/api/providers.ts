@@ -75,7 +75,7 @@ function categoryFilters(type: ProviderType): string[] {
   switch (type) {
     case 'interventionist': return ['Interventionists'];
     case 'coach': return ['Sober Coaches/Companions'];
-    case 'center': return ['Inpatient Treatment', 'Outpatient Treatment', 'Sober Living', 'Therapists', 'Psychiatrists'];
+    case 'center': return ['Inpatient Treatment', 'Outpatient Treatment', 'Medical Detox', 'Sober Living', 'Therapists', 'Psychiatrists'];
   }
 }
 

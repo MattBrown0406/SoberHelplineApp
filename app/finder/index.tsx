@@ -15,7 +15,7 @@ import { FilterChip } from '../../src/components/finder/FilterChip';
 type Step = 'intro' | 'loc' | 'details' | 'results';
 
 const INSURANCE = ['Aetna', 'BCBS', 'Cigna', 'UnitedHealthcare', 'Humana', 'Tricare', 'Medicaid', 'Medicare', 'Self-pay'];
-const AGES = ['Adult', 'Young adult (18–25)', 'Adolescent'];
+const AGES = ['Adult', 'Young adult (18–28)', 'Adolescent'];
 const GENDERS = ['Co-ed', 'Male', 'Female', 'Non-binary affirming'];
 const CONDITIONS = ['Depression', 'Anxiety', 'Trauma / PTSD', 'Bipolar', 'BPD', 'ADHD', 'Eating disorders'];
 const MODALITIES = ['CBT', 'DBT', 'EMDR', 'MAT-friendly', '12-step', 'Non-12-step', 'Holistic', 'Faith-based', 'Equine', 'Somatic'];
@@ -175,17 +175,20 @@ export default function FinderScreen() {
           {/* Center-only filters */}
           {isCenter && (
             <>
-              <Section label="BUDGET">
-                {BUDGETS.map((b) => (
-                  <FilterChip key={b} label={b} selected={budget === b} onPress={() => setBudget(b)} />
-                ))}
-              </Section>
-
               <Section label="INSURANCE">
                 {INSURANCE.map((i) => (
                   <FilterChip key={i} label={i} selected={filters.insurance.includes(i)} onPress={() => toggleField('insurance', i)} />
                 ))}
               </Section>
+
+              {/* Budget only matters for cash/self-pay families */}
+              {filters.insurance.includes('Self-pay') && (
+                <Section label="BUDGET (SELF-PAY)">
+                  {BUDGETS.map((b) => (
+                    <FilterChip key={b} label={b} selected={budget === b} onPress={() => setBudget(b)} />
+                  ))}
+                </Section>
+              )}
 
               <Section label="WHO IS IT FOR?">
                 {AGES.map((a) => (
