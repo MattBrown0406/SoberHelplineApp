@@ -1,8 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Public anon key — safe to embed; soberhelpline.com provider directory is read-only public data
-const SHL_URL = process.env.EXPO_PUBLIC_SHL_SUPABASE_URL ?? 'https://anwqprmpzmcqbkttmxos.supabase.co';
-const SHL_KEY = process.env.EXPO_PUBLIC_SHL_SUPABASE_ANON_KEY ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFud3Fwcm1wem1jcWJrdHRteG9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQwMDE1MTcsImV4cCI6MjA3OTU3NzUxN30.zvikfr-0JzQwwqMgOcoZFMuU-w0VyGL28pxB3AXVj2k';
+// Public anon key for soberhelpline.com — read-only public provider directory.
+// Hardcoded deliberately (NOT read from env): a misconfigured EAS secret named
+// EXPO_PUBLIC_SHL_SUPABASE_* would otherwise override this and point the app at
+// the wrong database. These are public values, safe to embed in the client.
+const SHL_URL = 'https://anwqprmpzmcqbkttmxos.supabase.co';
+const SHL_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFud3Fwcm1wem1jcWJrdHRteG9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQwMDE1MTcsImV4cCI6MjA3OTU3NzUxN30.zvikfr-0JzQwwqMgOcoZFMuU-w0VyGL28pxB3AXVj2k';
 const shl = createClient(SHL_URL, SHL_KEY);
 
 export type ProviderType = 'center' | 'interventionist' | 'coach';
