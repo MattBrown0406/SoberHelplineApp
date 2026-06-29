@@ -262,6 +262,28 @@ export async function fetchProviderById(id: string): Promise<Provider | undefine
   return mapRow(data);
 }
 
+export interface ProviderInquiry {
+  providerId?: string;
+  providerName?: string;
+  requesterName: string;
+  relationship: string;
+  phone?: string;
+  email?: string;
+  bestTime: string;
+  note?: string;
+}
+
+/**
+ * Submits a provider contact request. Delivery happens server-side on
+ * soberhelpline.com: the `submit-provider-inquiry` Edge Function records the
+ * request and emails the Sober Helpline navigator via SendGrid. The app never
+ * handles email credentials. Throws if the request could not be delivered.
+ */
+export async function submitProviderInquiry(input: ProviderInquiry): Promise<void> {
+  const { error } = await shl.functions.invoke('submit-provider-inquiry', { body: input });
+  if (error) throw error;
+}
+
 const AVAIL_RANK: Record<Availability, number> = { now: 0, lim: 1, wait: 2 };
 
 export function sortByAvailability(list: Provider[]): Provider[] {

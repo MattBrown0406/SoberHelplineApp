@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { Button } from '../../src/components/ui/Button';
 import { useTheme } from '../../src/contexts/ThemeContext';
+import { submitProviderInquiry } from '../../src/api/providers';
 const RELATIONSHIPS = ['Parent', 'Spouse / partner', 'Sibling', 'Adult child', 'Friend', 'Other'];
 const TIMES = ['Anytime', 'Morning', 'Afternoon', 'Evening'];
 
 export default function InquiryScreen() {
   const { colors } = useTheme();
   const router = useRouter();
-  const { name: providerName } = useLocalSearchParams<{ id: string; name: string }>();
+  const { id: providerId, name: providerName } = useLocalSearchParams<{ id: string; name: string }>();
 
   const [name, setName] = useState('');
   const [relationship, setRelationship] = useState(RELATIONSHIPS[0]);
@@ -19,11 +20,30 @@ export default function InquiryScreen() {
   const [email, setEmail] = useState('');
   const [note, setNote] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [sending, setSending] = useState(false);
 
-  function submit() {
-    // v1: local confirmation. Wire to a Supabase `referral_requests` insert
-    // (provider_id, account_id, contact, note) + navigator notification in P1.
-    setSubmitted(true);
+  async function submit() {
+    setSending(true);
+    try {
+      await submitProviderInquiry({
+        providerId,
+        providerName,
+        requesterName: name.trim(),
+        relationship,
+        phone: phone.trim() || undefined,
+        email: email.trim() || undefined,
+        bestTime,
+        note: note.trim() || undefined,
+      });
+      setSubmitted(true);
+    } catch {
+      Alert.alert(
+        "Couldn't send your request",
+        'Something went wrong reaching our team. Please check your connection and try again — or call 988 anytime for immediate support.',
+      );
+    } finally {
+      setSending(false);
+    }
   }
 
   if (submitted) {
@@ -112,7 +132,12 @@ export default function InquiryScreen() {
         />
       </Field>
 
-      <Button label="Send request" onPress={submit} disabled={!name.trim() || (!phone.trim() && !email.trim())} style={{ marginTop: 12 }} />
+      <Button
+        label={sending ? 'Sending…' : 'Send request'}
+        onPress={submit}
+        disabled={sending || !name.trim() || (!phone.trim() && !email.trim())}
+        style={{ marginTop: 12 }}
+      />
     </ScreenContainer>
   );
 }
