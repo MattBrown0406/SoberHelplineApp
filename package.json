@@ -15,7 +15,6 @@
     "@react-native-async-storage/async-storage": "2.2.0",
     "@supabase/supabase-js": "^2.108.1",
     "expo": "~54.0.0",
-    "expo-apple-authentication": "~8.0.8",
     "expo-asset": "~12.0.13",
     "expo-av": "~16.0.8",
     "expo-clipboard": "~8.0.8",

@@ -1327,7 +1327,6 @@ const styles = StyleSheet.create({
   },
   communityRowText: { fontSize: 14, fontWeight: '700' },
 
-  comingSoonText: { fontSize: 13, fontStyle: 'italic' },
   referralTitle: { fontSize: 15, fontWeight: '700', marginBottom: 6 },
   referralBody: { fontSize: 13, lineHeight: 19 },
 
