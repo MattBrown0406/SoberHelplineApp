@@ -11,7 +11,6 @@ type ContentSection = { key: string; path: string; sso: boolean };
 const SECTIONS: ContentSection[] = [
   { key: 'education', path: '/family-education', sso: true },
   { key: 'recordings', path: '/zoom-recordings', sso: true },
-  { key: 'resources', path: 'https://soberhelpline.com/recovery-resources', sso: false },
 ];
 
 export default function LearnScreen() {
