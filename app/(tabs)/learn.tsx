@@ -5,6 +5,7 @@ import { useTheme } from '../../src/contexts/ThemeContext';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { FreeTierPaywall } from '../../src/components/ui/FreeTierPaywall';
 import { useWebSSO } from '../../src/hooks/useWebSSO';
+import { isAdminEmail } from '../../src/lib/admin';
 
 type ContentSection = { key: string; path: string; sso: boolean };
 
@@ -20,7 +21,7 @@ export default function LearnScreen() {
   const { user, accountState } = useAccount();
   const { openWithSSO } = useWebSSO();
 
-  if (accountState === 'direct-free') return <FreeTierPaywall />;
+  if (accountState === 'direct-free' && !isAdminEmail(user?.email)) return <FreeTierPaywall />;
 
   return (
     <ScreenContainer scroll contentContainerStyle={styles.inner}>

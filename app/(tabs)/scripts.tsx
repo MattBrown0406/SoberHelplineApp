@@ -13,6 +13,7 @@ import { FreeTierPaywall } from '../../src/components/ui/FreeTierPaywall';
 import { ScriptCard } from '../../src/components/scripts/ScriptCard';
 import { getMockScripts, getDailyScriptPair } from '../../src/api/mock';
 import { useTodayFeed } from '../../src/hooks/useTodayFeed';
+import { isAdminEmail } from '../../src/lib/admin';
 
 export default function ScriptsScreen() {
   const { colors } = useTheme();
@@ -39,7 +40,7 @@ export default function ScriptsScreen() {
   const firstName = user?.firstName ?? '';
   const isSearching = query.trim().length > 0;
 
-  if (accountState === 'direct-free') return <FreeTierPaywall />;
+  if (accountState === 'direct-free' && !isAdminEmail(user?.email)) return <FreeTierPaywall />;
 
   return (
     <ScreenContainer backgroundColor={colors.cream}>

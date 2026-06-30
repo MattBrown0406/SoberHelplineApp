@@ -13,9 +13,8 @@ import { useRouter } from 'expo-router';
 import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import { useAccount } from '../src/contexts/AccountContext';
 import { useTheme } from '../src/contexts/ThemeContext';
+import { isAdminEmail } from '../src/lib/admin';
 import { supabase } from '../src/lib/supabase';
-
-const ADMIN_EMAIL = 'matt@soberhelpline.com';
 
 type FunnelStats = {
   members: number;
@@ -36,6 +35,7 @@ export default function AdminScreen() {
   const router = useRouter();
   const { user } = useAccount();
   const { colors } = useTheme();
+  const isAdmin = isAdminEmail(user?.email);
 
   const [zoomUrl, setZoomUrl] = useState('');
   const [editingUrl, setEditingUrl] = useState('');
@@ -53,10 +53,10 @@ export default function AdminScreen() {
 
   // Guard: non-admin users should never reach this screen, but redirect just in case
   useEffect(() => {
-    if (user && user.email !== ADMIN_EMAIL) {
+    if (user && !isAdmin) {
       router.replace('/');
     }
-  }, [user, router]);
+  }, [user, isAdmin, router]);
 
   const loadData = useCallback(async () => {
     // Funnel + family-health snapshot
@@ -107,7 +107,7 @@ export default function AdminScreen() {
     }
   }, [editingUrl]);
 
-  if (!user || user.email !== ADMIN_EMAIL) return null;
+  if (!user || !isAdmin) return null;
 
   return (
     <ScreenContainer scroll contentContainerStyle={styles.inner}>

@@ -13,10 +13,9 @@ import { FreeTierPaywall } from '../../src/components/ui/FreeTierPaywall';
 import { SituationCard } from '../../src/components/today/SituationCard';
 import { useCheckIn } from '../../src/hooks/useCheckIn';
 import { useTodayFeed } from '../../src/hooks/useTodayFeed';
+import { isAdminEmail } from '../../src/lib/admin';
 import type { DailyFocusItem } from '../../src/api/types';
 import type { TFunction } from 'i18next';
-
-const ADMIN_EMAIL = 'matt@soberhelpline.com';
 
 export default function TodayScreen() {
   const { user, isAttached, accountState } = useAccount();
@@ -26,6 +25,7 @@ export default function TodayScreen() {
   const { todayCheckIn, streak, saveCheckIn } = useCheckIn(user?.id ?? null);
   const { dayCount, boundariesHeld, groupSessions, quoteIndex, focusSlot, situation, primaryDoor, nextFreeCall, rsvpFreeCall } =
     useTodayFeed(user?.id ?? null, user?.joinedAt ?? null);
+  const isAdmin = isAdminEmail(user?.email);
 
   const firstName = user?.firstName ?? 'there';
   const greeting = timeGreeting(t, firstName);
@@ -44,7 +44,7 @@ export default function TodayScreen() {
 
   // Free tier: lead with the free-call anchor + funnel door, then a slim upsell
   // to unlock the rest of the app. The free call is never gated.
-  if (accountState === 'direct-free') {
+  if (accountState === 'direct-free' && !isAdmin) {
     return (
       <ScreenContainer backgroundColor={colors.cream}>
         {header}
@@ -92,7 +92,7 @@ export default function TodayScreen() {
 
       <FocusCard items={focusItems} />
 
-      {user?.email === ADMIN_EMAIL && (
+      {isAdmin && (
         <TouchableOpacity onPress={() => router.push('/admin')} style={styles.adminLink}>
           <Text style={[styles.adminLinkText, { color: colors.inkSoft }]}>Admin</Text>
         </TouchableOpacity>

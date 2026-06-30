@@ -27,6 +27,7 @@ import { WallsList } from '../../src/components/boundaries/WallsList';
 import enContent from '../../src/locales/en/boundaries.json';
 import esContent from '../../src/locales/es/boundaries.json';
 import { useFamilySpace } from '../../src/hooks/useFamilySpace';
+import { isAdminEmail } from '../../src/lib/admin';
 
 type BoundariesContent = typeof enContent;
 
@@ -184,7 +185,7 @@ export default function BoundariesScreen() {
 
   const firstName = user?.firstName ?? '';
 
-  if (accountState === 'direct-free') return <FreeTierPaywall />;
+  if (accountState === 'direct-free' && !isAdminEmail(user?.email)) return <FreeTierPaywall />;
 
   return (
     <ScreenContainer scrollRef={scrollRef} backgroundColor={colors.cream} keyboardShouldPersistTaps="handled">

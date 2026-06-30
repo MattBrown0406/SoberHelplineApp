@@ -16,6 +16,7 @@ import { useSituation } from '../../src/hooks/useSituation';
 import { SituationOffRamp } from '../../src/components/situation/SituationOffRamp';
 import type { FunnelDoor } from '../../src/lib/situation';
 import { supabase } from '../../src/lib/supabase';
+import { isAdminEmail } from '../../src/lib/admin';
 
 const ALERT_THRESHOLD = 3;
 
@@ -156,7 +157,7 @@ export default function TrackerScreen() {
   const privacyNote =
     t('privacyNote') + (isAttached ? t('privacyNoteCoach') : t('privacyNoteDirect'));
 
-  if (accountState === 'direct-free') return <FreeTierPaywall />;
+  if (accountState === 'direct-free' && !isAdminEmail(user?.email)) return <FreeTierPaywall />;
 
   return (
     <ScreenContainer backgroundColor={colors.cream}>
