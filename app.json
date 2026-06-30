@@ -2,7 +2,7 @@
   "expo": {
     "name": "Sober Helpline",
     "slug": "SoberHelplineApp",
-    "version": "1.0.1",
+    "version": "2.0",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "sober-helpline",
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.soberhelplineapp",
-      "buildNumber": "23",
+      "buildNumber": "2",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "Sober Helpline records practice sessions only when you tap record, and they stay on your device.",
         "NSCameraUsageDescription": "Sober Helpline uses your camera only during live group sessions that you choose to host.",
@@ -53,6 +53,7 @@
         "backgroundColor": "#142a47"
       },
       "package": "com.soberhelplineapp",
+      "versionCode": 2,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
