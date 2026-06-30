@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import type { User } from '@supabase/supabase-js';
 import type { AuthUser, AccountState, Entitlements } from '../api/types';
 import { supabase } from '../lib/supabase';
+import { isAdminEmail } from '../lib/admin';
 import { configureRevenueCat, getIsActivePremium, getIsActiveEssential } from '../lib/revenueCat';
 
 const DEFAULT_ENTITLEMENTS: Entitlements = {
@@ -49,13 +50,26 @@ async function ensureTermsConsent(accountId: string) {
 }
 
 async function fetchAccount(authUser: User): Promise<AuthUser | null> {
+  const isAdmin = isAdminEmail(authUser.email);
   const { data, error } = await supabase
     .from('accounts')
     .select('id, type, org_id, first_name, last_name, language, timezone, created_at')
     .eq('user_id', authUser.id)
     .single();
 
-  if (error || !data) return null;
+  if (error || !data) {
+    if (!isAdmin) return null;
+
+    return buildAuthUser({
+      id: authUser.id,
+      firstName: 'Matt',
+      lastName: '',
+      email: authUser.email ?? '',
+      accountState: 'direct-premium',
+      orgId: null,
+      joinedAt: new Date().toISOString(),
+    });
+  }
 
   ensureTermsConsent(data.id);
 
@@ -63,8 +77,12 @@ async function fetchAccount(authUser: User): Promise<AuthUser | null> {
     data.type === 'attached' ? 'attached' : 'direct-free';
 
   if (data.type === 'direct') {
+    if (isAdmin) {
+      accountState = 'direct-premium';
+    }
+
     // Check Supabase entitlements first (coupons + manual grants take priority)
-    const { data: ent } = await supabase
+    const { data: ent } = isAdmin ? { data: null } : await supabase
       .from('entitlements')
       .select('tier, expires_at')
       .eq('account_id', data.id)
@@ -81,7 +99,7 @@ async function fetchAccount(authUser: User): Promise<AuthUser | null> {
     }
 
     // Check RevenueCat — source of truth for IAP subscriptions
-    if (accountState !== 'direct-premium') {
+    if (!isAdmin && accountState !== 'direct-premium') {
       configureRevenueCat(data.id);
       const rcPremium = await getIsActivePremium();
       if (rcPremium) {
@@ -93,6 +111,34 @@ async function fetchAccount(authUser: User): Promise<AuthUser | null> {
     }
   }
 
+  return buildAuthUser({
+    id: data.id,
+    firstName: data.first_name ?? '',
+    lastName: data.last_name ?? '',
+    email: authUser.email ?? '',
+    accountState,
+    orgId: data.org_id ?? null,
+    joinedAt: data.created_at,
+  });
+}
+
+function buildAuthUser({
+  id,
+  firstName,
+  lastName,
+  email,
+  accountState,
+  orgId,
+  joinedAt,
+}: {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  accountState: AccountState;
+  orgId: string | null;
+  joinedAt: string;
+}): AuthUser {
   const isPaid = accountState !== 'direct-free';
   const entitlements: Entitlements = {
     canMessageOnCallCoach: isPaid,
@@ -104,16 +150,16 @@ async function fetchAccount(authUser: User): Promise<AuthUser | null> {
   };
 
   return {
-    id: data.id,
-    firstName: data.first_name ?? '',
-    lastName: data.last_name ?? '',
-    email: authUser.email ?? '',
+    id,
+    firstName,
+    lastName,
+    email,
     avatarUrl: null,
     accountState,
     entitlements,
-    orgId: data.org_id ?? null,
+    orgId,
     branding: null,
-    joinedAt: data.created_at,
+    joinedAt,
   };
 }
 

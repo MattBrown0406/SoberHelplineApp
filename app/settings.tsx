@@ -16,6 +16,7 @@ import { useAccount } from '../src/contexts/AccountContext';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useLanguage } from '../src/hooks/useLanguage';
 import { supabase } from '../src/lib/supabase';
+import { isAdminEmail } from '../src/lib/admin';
 import { restorePurchases } from '../src/lib/revenueCat';
 
 const CONSENT_SHARE_CHECKINS = '2';
@@ -31,6 +32,7 @@ export default function SettingsScreen() {
   const [shareCheckIns, setShareCheckIns] = useState(false);
   const [consentLoading, setConsentLoading] = useState(true);
   const [restoring, setRestoring] = useState(false);
+  const isAdmin = isAdminEmail(user?.email);
 
   useEffect(() => {
     if (!user) return;
@@ -130,6 +132,15 @@ export default function SettingsScreen() {
           </Text>
           <Row label={t('account.nameLabel')} value={fullName} colors={colors} />
           <Row label={t('account.emailLabel')} value={user?.email ?? '—'} colors={colors} last />
+          {isAdmin && (
+            <TouchableOpacity
+              style={[styles.adminBtn, { backgroundColor: colors.primary }]}
+              onPress={() => router.push('/admin')}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.adminBtnText}>Open Admin</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Privacy — only meaningful for attached accounts with a coach */}
@@ -359,6 +370,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   restoreText: { fontSize: 14, fontWeight: '600' },
+  adminBtn: {
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  adminBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 
   toggleRow: {
     flexDirection: 'row',
