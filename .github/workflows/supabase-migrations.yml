@@ -19,6 +19,6 @@ jobs:
       - name: Apply migrations
         run: |
           supabase link --project-ref ${{ vars.SUPABASE_PROJECT_REF }}
-          supabase db push --linked
+          supabase db push --linked --yes
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
