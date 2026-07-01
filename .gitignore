@@ -29,3 +29,6 @@ yarn-error.*
 .env
 .env.local
 .env.*.local
+
+# Contains ASC API key identifiers — keep local only
+eas.json
