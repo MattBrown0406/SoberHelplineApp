@@ -33,6 +33,7 @@ import { useSituation } from '../../src/hooks/useSituation';
 import { funnelDoor, type FunnelDoor } from '../../src/lib/situation';
 import { SituationOffRamp } from '../../src/components/situation/SituationOffRamp';
 import { logFunnelEvent } from '../../src/lib/funnel';
+import { isAdminEmail } from '../../src/lib/admin';
 import type { StaffMember, SupportGroup } from '../../src/api/types';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -504,6 +505,7 @@ export default function SupportScreen() {
   const groups = getMockSupportGroups();
   const { myRooms, liveRooms } = useGroupPresence(user?.id ?? null);
   const { rsvpedRooms, toggleRsvp: toggleGroupRsvp } = useGroupRsvps(user?.id ?? null);
+  const isAdmin = isAdminEmail(user?.email);
 
   return (
     <ScreenContainer backgroundColor={colors.cream}>
@@ -962,7 +964,7 @@ export default function SupportScreen() {
           </Text>
           {groups.map((group: SupportGroup) => {
             const room = group.liveRoomId;
-            const isMyRoom = !!(room && myRooms.includes(room));
+            const isMyRoom = !!(isAdmin && room && myRooms.includes(room));
             const isLive = !!(room && liveRooms.includes(room));
             const isRsvped = !!(room && rsvpedRooms.has(room));
             return (
@@ -979,30 +981,13 @@ export default function SupportScreen() {
                     {group.scheduleLabel}
                     {group.onlineCount > 0 ? `  ·  ${group.onlineCount} online` : ''}
                   </Text>
-                  {!isMyRoom && room ? (
-                    <TouchableOpacity
-                      style={[
-                        styles.rsvpInlineBtn,
-                        {
-                          borderColor: isRsvped ? colors.green : colors.primary,
-                          backgroundColor: isRsvped ? colors.greenLight : 'transparent',
-                        },
-                      ]}
-                      activeOpacity={0.7}
-                      onPress={() => void toggleGroupRsvp(room)}
-                    >
-                      <Text style={[styles.rsvpInlineBtnText, { color: isRsvped ? colors.green : colors.primary }]}>
-                        {isRsvped ? t('groups.rsvpDone') : t('groups.rsvpButton')}
-                      </Text>
-                    </TouchableOpacity>
-                  ) : null}
                 </View>
                 {/* Status button */}
                 {isMyRoom ? (
                   <TouchableOpacity
                     style={[styles.joinBtn, { borderColor: colors.coral, backgroundColor: colors.coral }]}
                     activeOpacity={0.8}
-                    onPress={() => router.push({ pathname: '/live-room' as never, params: { room } })}
+                    onPress={() => router.push({ pathname: '/live-room' as never, params: { room: room ?? '' } })}
                   >
                     <Text style={[styles.joinBtnText, { color: '#fff' }]}>{t('groups.goLive')}</Text>
                   </TouchableOpacity>
@@ -1010,9 +995,25 @@ export default function SupportScreen() {
                   <TouchableOpacity
                     style={[styles.joinBtn, { borderColor: colors.coral, backgroundColor: '#111111' }]}
                     activeOpacity={0.8}
-                    onPress={() => router.push({ pathname: '/live-room' as never, params: { room } })}
+                    onPress={() => router.push({ pathname: '/live-room' as never, params: { room: room ?? '' } })}
                   >
                     <Text style={[styles.joinBtnText, { color: '#fff' }]}>{t('groups.joinLive')}</Text>
+                  </TouchableOpacity>
+                ) : room ? (
+                  <TouchableOpacity
+                    style={[
+                      styles.joinBtn,
+                      {
+                        borderColor: isRsvped ? colors.green : colors.primary,
+                        backgroundColor: isRsvped ? colors.greenLight : colors.primaryLight,
+                      },
+                    ]}
+                    activeOpacity={0.8}
+                    onPress={() => void toggleGroupRsvp(room)}
+                  >
+                    <Text style={[styles.joinBtnText, { color: isRsvped ? colors.green : colors.primary }]}>
+                      {isRsvped ? t('groups.rsvpDone') : t('groups.rsvpButton')}
+                    </Text>
                   </TouchableOpacity>
                 ) : (
                   <View style={[styles.joinBtn, { borderColor: colors.primary, backgroundColor: '#e0e0e0' }]}>

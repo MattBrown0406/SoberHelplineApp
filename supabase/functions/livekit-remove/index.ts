@@ -36,13 +36,14 @@ Deno.serve(async (req) => {
       .single();
     if (!account) return json({ error: 'no account' }, 403);
 
+    const isAdmin = user.email?.trim().toLowerCase() === 'matt@soberhelpline.com';
     const { data: hostRow } = await supabase
       .from('group_hosts')
       .select('account_id')
       .eq('room_name', room)
       .eq('account_id', account.id)
       .maybeSingle();
-    if (!hostRow) return json({ error: 'not a host for this room' }, 403);
+    if (!isAdmin || !hostRow) return json({ error: 'not an admin host for this room' }, 403);
 
     const svc = new RoomServiceClient(
       Deno.env.get('LIVEKIT_URL')!,

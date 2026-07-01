@@ -44,14 +44,16 @@ Deno.serve(async (req) => {
       .single();
     if (!account) return json({ error: 'no account' }, 403);
 
-    // Host check: is this account a host for this room?
+    // Host check: only the owner admin account may broadcast.
+    // A stale/accidental group_hosts row is not enough to receive publish grants.
+    const isAdmin = user.email?.trim().toLowerCase() === 'matt@soberhelpline.com';
     const { data: hostRow } = await supabase
       .from('group_hosts')
       .select('account_id')
       .eq('room_name', room)
       .eq('account_id', account.id)
       .maybeSingle();
-    const isHost = !!hostRow;
+    const isHost = isAdmin && !!hostRow;
 
     const at = new AccessToken(
       Deno.env.get('LIVEKIT_API_KEY')!,
