@@ -1,5 +1,5 @@
 -- =============================================================================
--- Admin-only live group hosting.
+-- Admin-only live group hosting. Retry marker for CI summary capture.
 -- Only the owner admin account may start/stop live group broadcasts.
 -- Viewers may still read live room status and RSVP for notifications.
 -- =============================================================================
