@@ -12,6 +12,7 @@
   ],
   "exclude": [
     "supabase/functions",
-    "dist"
+    "dist",
+    "treatment-finder-v2"
   ]
 }

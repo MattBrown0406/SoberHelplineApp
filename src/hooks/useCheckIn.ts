@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { CheckIn, CheckInStreak, MoodScore } from '../api/types';
 import { getCheckIn, saveCheckIn as persistLocal, getCheckedInDates, toDateStr, localDayRangeUtc } from '../storage/checkIn';
 import { supabase } from '../lib/supabase';
+import { rearmDailyNudge } from './usePushNotifications';
 
 export interface UseCheckInResult {
   todayCheckIn: CheckIn | null;
@@ -102,6 +103,9 @@ export function useCheckIn(accountId: string | null): UseCheckInResult {
     setTodayCheckIn(checkIn);
     const localDates = await getCheckedInDates();
     setStreak(computeStreak(localDates));
+
+    // Drop today's check-in reminder now that it's done (no nagging).
+    void rearmDailyNudge();
 
     // 2. Sync to Supabase if authenticated
     if (accountId) {

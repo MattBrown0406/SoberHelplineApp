@@ -671,6 +671,7 @@ export default function SupportScreen() {
                 </Text>
               </View>
             </View>
+
           </>
         )}
 
@@ -956,6 +957,18 @@ export default function SupportScreen() {
             </View>
           </>
         )}
+
+        {/* Treatment Finder — all account types */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => router.push('/finder')}
+          style={[styles.finderCard, { backgroundColor: colors.primary }]}
+        >
+          <Text style={styles.finderTitle}>Find treatment & support</Text>
+          <Text style={styles.finderSub}>
+            Search vetted treatment centers, interventionists, and sober coaches — with real availability.
+          </Text>
+        </TouchableOpacity>
 
         {/* Groups — both account types */}
         <View style={[styles.card, { borderColor: colors.line }]}>
@@ -1315,7 +1328,6 @@ const styles = StyleSheet.create({
   },
   communityRowText: { fontSize: 14, fontWeight: '700' },
 
-  comingSoonText: { fontSize: 13, fontStyle: 'italic' },
   referralTitle: { fontSize: 15, fontWeight: '700', marginBottom: 6 },
   referralBody: { fontSize: 13, lineHeight: 19 },
 
@@ -1419,6 +1431,10 @@ const styles = StyleSheet.create({
   protocolCardTitle: { fontSize: 14, fontWeight: '700' },
   protocolCardSub: { fontSize: 12, marginTop: 2, lineHeight: 17 },
   protocolCardArrow: { fontSize: 22, fontWeight: '300' },
+
+  finderCard: { borderRadius: 16, padding: 18, marginBottom: 16 },
+  finderTitle: { color: '#fff', fontSize: 17, fontWeight: '700', marginBottom: 4 },
+  finderSub: { color: '#c9d6e6', fontSize: 13.5, lineHeight: 19 },
 
   // Crisis protocol sheet (modal)
   protocolTabBar: {

@@ -13,8 +13,10 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "matt@freedominterventions.com",
-        "ascAppId": "6780034996"
+        "ascAppId": "6780034996",
+        "ascApiKeyPath": "/Users/mattbrown/asc-keys/AuthKey_9WDLYYHHN7.p8",
+        "ascApiKeyId": "9WDLYYHHN7",
+        "ascApiKeyIssuerId": "40cd280a-3ef6-4312-a70b-0ee2d01fce4a"
       }
     }
   }

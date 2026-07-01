@@ -7,7 +7,6 @@ import { initI18n } from '../src/i18n';
 import { usePushNotifications } from '../src/hooks/usePushNotifications';
 import { isOnboarded, subscribeOnboarded } from '../src/onboarding/state';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
-import i18n from '../src/i18n';
 
 // Handles redirect between (auth) and (tabs) based on session state.
 // Must be a child of AccountProvider so it can read useAccount().
@@ -17,9 +16,7 @@ function InitialLayout() {
   const segments = useSegments();
   const [onboarded, setOnboarded] = useState<boolean | null>(null);
 
-  const nudgeTitle = i18n.t('settings:notifications.dailyNudgeTitle');
-  const nudgeBody = i18n.t('settings:notifications.dailyNudgeBody');
-  usePushNotifications(user?.id ?? null, nudgeTitle, nudgeBody);
+  usePushNotifications(user?.id ?? null);
 
   useEffect(() => {
     isOnboarded().then(setOnboarded);
