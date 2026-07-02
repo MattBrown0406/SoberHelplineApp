@@ -94,19 +94,27 @@ serve(async (req) => {
 
   // ── session_reminder: RSVP'd members, 1h before the Monday group ───────────
   if (job === "session_reminder") {
-    const { data, error } = await supabase.rpc("get_session_rsvp_push_tokens", {
+    const { data, error } = await supabase.rpc("get_session_reminder_targets", {
       p_session_title: SESSION_TITLE,
     });
     if (error) return json({ error: error.message }, 500);
-    const tokens = [...new Set((data ?? []).map((r: { push_token: string }) => r.push_token))];
-    const sent = await sendExpoPush(
-      tokens.map((to) => ({
-        to,
-        title: "Monday Night Family Support",
-        body: "Your group starts in about an hour. Your seat is saved — come as you are.",
-        sound: "default" as const,
-      })),
-    );
+    const targets = (data ?? []) as { push_token: string; locale: string | null }[];
+    const seen = new Set<string>();
+    const messages: PushMessage[] = [];
+    for (const target of targets) {
+      if (seen.has(target.push_token)) continue;
+      seen.add(target.push_token);
+      const es = (target.locale ?? "en").startsWith("es");
+      messages.push({
+        to: target.push_token,
+        title: es ? "Grupo de Apoyo Familiar — Lunes" : "Monday Night Family Support",
+        body: es
+          ? "Tu grupo comienza en aproximadamente una hora. Tu lugar está guardado — ven tal como estás."
+          : "Your group starts in about an hour. Your seat is saved — come as you are.",
+        sound: "default",
+      });
+    }
+    const sent = await sendExpoPush(messages);
     return json({ success: true, job, sent });
   }
 
@@ -114,18 +122,26 @@ serve(async (req) => {
   if (job === "winback") {
     const { data, error } = await supabase.rpc("get_winback_push_targets");
     if (error) return json({ error: error.message }, 500);
-    const targets = (data ?? []) as { account_id: string; first_name: string | null; push_token: string }[];
+    const targets = (data ?? []) as {
+      account_id: string;
+      first_name: string | null;
+      push_token: string;
+      locale: string | null;
+    }[];
     if (!targets.length) return json({ success: true, job, sent: 0 });
 
     const sent = await sendExpoPush(
-      targets.map((t) => ({
-        to: t.push_token,
-        title: "Sober Helpline",
-        body: t.first_name
-          ? `${t.first_name}, we're still here. 90 seconds for yourself whenever you're ready — no catching up required.`
-          : "We're still here. 90 seconds for yourself whenever you're ready — no catching up required.",
-        sound: "default" as const,
-      })),
+      targets.map((t) => {
+        const es = (t.locale ?? "en").startsWith("es");
+        const body = es
+          ? t.first_name
+            ? `${t.first_name}, seguimos aquí. 90 segundos para ti cuando estés lista — sin tener que ponerte al día.`
+            : "Seguimos aquí. 90 segundos para ti cuando estés lista — sin tener que ponerte al día."
+          : t.first_name
+            ? `${t.first_name}, we're still here. 90 seconds for yourself whenever you're ready — no catching up required.`
+            : "We're still here. 90 seconds for yourself whenever you're ready — no catching up required.";
+        return { to: t.push_token, title: "Sober Helpline", body, sound: "default" as const };
+      }),
     );
     await supabase.rpc("mark_winback_sent", {
       p_account_ids: targets.map((t) => t.account_id),

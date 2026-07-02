@@ -105,7 +105,12 @@ export async function registerForPushNotifications(accountId: string): Promise<v
   try {
     const token = (await Notifications.getExpoPushTokenAsync()).data;
     if (token) {
-      await supabase.from('accounts').update({ push_token: token }).eq('id', accountId);
+      // locale drives the language of server-sent pushes (session reminders,
+      // win-back, community support) — kept in sync with the app language.
+      await supabase
+        .from('accounts')
+        .update({ push_token: token, locale: i18n.language ?? 'en' })
+        .eq('id', accountId);
     }
   } catch {
     // Simulator or no EAS project ID — skip token storage, still schedule local nudge
