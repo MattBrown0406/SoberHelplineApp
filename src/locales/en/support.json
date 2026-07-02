@@ -252,5 +252,9 @@
       ]
     },
     "close": "Close"
+  },
+  "finderCard": {
+    "title": "Find treatment & support",
+    "sub": "Search vetted treatment centers, interventionists, and sober coaches — with real availability."
   }
 }

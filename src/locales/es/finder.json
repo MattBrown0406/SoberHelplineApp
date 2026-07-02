@@ -1,0 +1,275 @@
+{
+  "title": "Buscador de tratamientos",
+  "intro": {
+    "h1": "Encontremos la ayuda adecuada para esa persona que amas.",
+    "lede": "Responde unas preguntas rápidas y te conectaremos con centros de tratamiento, intervencionistas y coaches de sobriedad verificados — con disponibilidad real.",
+    "whatEyebrow": "¿Qué estás buscando?"
+  },
+  "cats": {
+    "center": {
+      "title": "Centros de tratamiento",
+      "sub": "Desintoxicación, residencial, PHP, IOP, ambulatorio, vivienda sobria"
+    },
+    "interventionist": {
+      "title": "Intervencionistas",
+      "sub": "Ayuda para que tu ser querido acepte el tratamiento"
+    },
+    "coach": {
+      "title": "Coaches y acompañantes de sobriedad",
+      "sub": "Apoyo uno a uno durante la recuperación temprana"
+    }
+  },
+  "locHead": {
+    "center": {
+      "title": "¿Qué nivel de atención?",
+      "lede": "Elige lo que mejor encaje — puedes cambiarlo después. ¿No estás segura? Elige “Ayúdame a decidir”."
+    },
+    "interventionist": {
+      "title": "¿Qué tan pronto necesitas ayuda?",
+      "lede": "Esto nos ayuda a conectarte con un intervencionista que pueda movilizarse a tu ritmo."
+    },
+    "coach": {
+      "title": "¿Qué tipo de apoyo?",
+      "lede": "Cuéntanos en qué punto está tu ser querido para encontrar el coach adecuado."
+    }
+  },
+  "loc": {
+    "center": {
+      "decide": {
+        "title": "Ayúdame a decidir",
+        "sub": "¿No sabes qué nivel? Te guiamos"
+      },
+      "detox": {
+        "title": "Desintoxicación",
+        "sub": "Abstinencia con supervisión médica"
+      },
+      "residential": {
+        "title": "Residencial — 30/60/90 días",
+        "sub": "Tratamiento estructurado con alojamiento"
+      },
+      "php": {
+        "title": "PHP",
+        "sub": "Tratamiento de día, ~6 hrs/día"
+      },
+      "iop": {
+        "title": "IOP",
+        "sub": "Ambulatorio intensivo, tardes disponibles"
+      },
+      "op": {
+        "title": "Ambulatorio",
+        "sub": "Sesiones semanales, menor intensidad"
+      },
+      "sober": {
+        "title": "Vivienda sobria",
+        "sub": "Alojamiento de apoyo en recuperación"
+      }
+    },
+    "interventionist": {
+      "asap": {
+        "title": "Lo antes posible",
+        "sub": "La situación se siente urgente ahora"
+      },
+      "week": {
+        "title": "Dentro de una semana",
+        "sub": "Planeando la conversación pronto"
+      },
+      "explore": {
+        "title": "Solo explorando",
+        "sub": "Aprendiendo qué implica una intervención"
+      }
+    },
+    "coach": {
+      "home": {
+        "title": "Volviendo a casa del tratamiento",
+        "sub": "Apoyo en la transición de regreso"
+      },
+      "early": {
+        "title": "En recuperación temprana",
+        "sub": "Acompañamiento día a día"
+      },
+      "risk": {
+        "title": "Momento de alto riesgo / viaje",
+        "sub": "Acompañante para una etapa difícil"
+      },
+      "explore": {
+        "title": "Solo explorando",
+        "sub": "Aprendiendo cómo funciona el coaching"
+      }
+    }
+  },
+  "details": {
+    "h1": "Unos cuantos detalles",
+    "ledeCenter": "Esto nos ayuda a mostrar solo centros que realmente encajan. Todo es opcional.",
+    "ledeOther": "Cuéntanos dónde estás y qué es lo más importante. Todo es opcional.",
+    "location": "Ubicación",
+    "selectState": "Selecciona estado",
+    "anyState": "Cualquier estado",
+    "zipPlaceholder": "Código postal (opcional)",
+    "budget": "Presupuesto (pago directo)",
+    "insurance": "Seguro médico",
+    "whoFor": "¿Para quién es?",
+    "conditions": "Salud mental / diagnóstico dual",
+    "approach": "Enfoque y modalidades",
+    "populations": "Poblaciones especiales",
+    "showMatches": "Ver resultados",
+    "continue": "Continuar",
+    "stateModalTitle": "Selecciona estado",
+    "stateModalDone": "Listo",
+    "ages": [
+      "Adulto",
+      "Adulto joven (18–28)",
+      "Adolescente"
+    ],
+    "genders": [
+      "Mixto",
+      "Hombres",
+      "Mujeres",
+      "Afirmativo no binario"
+    ],
+    "conditionsList": [
+      "Depresión",
+      "Ansiedad",
+      "Trauma / TEPT",
+      "Bipolaridad",
+      "TLP",
+      "TDAH",
+      "Trastornos alimentarios"
+    ],
+    "modalities": [
+      "TCC",
+      "DBT",
+      "EMDR",
+      "Compatible con MAT",
+      "12 pasos",
+      "No 12 pasos",
+      "Holístico",
+      "Basado en la fe",
+      "Equinoterapia",
+      "Somático"
+    ],
+    "populationsList": [
+      "Afirmativo LGBTQ+",
+      "Veteranos",
+      "Profesionales",
+      "Primeros respondientes",
+      "Mujeres embarazadas"
+    ],
+    "budgets": [
+      "Cualquier presupuesto",
+      "Menos de $5,000/mes",
+      "Menos de $10,000/mes",
+      "Menos de $20,000/mes",
+      "Menos de $30,000/mes"
+    ],
+    "selfPay": "Pago directo"
+  },
+  "results": {
+    "count_center": "{{count}} centros",
+    "count_interventionist": "{{count}} intervencionistas",
+    "count_coach": "{{count}} coaches",
+    "inState": " en {{state}}",
+    "edit": "Editar",
+    "filters": "Filtros: {{list}}",
+    "empty": "No se encontraron proveedores. Prueba con \"Cualquier estado\" o quita filtros.",
+    "also": "También recomendado para tu situación"
+  },
+  "detail": {
+    "notFound": "Proveedor no encontrado.",
+    "back": "Volver",
+    "about": "Acerca de",
+    "levels": "Niveles de atención",
+    "insurance": "Seguros aceptados",
+    "treatmentApproach": "Enfoque de tratamiento",
+    "conditions": "Condiciones co-ocurrentes tratadas",
+    "populations": "Poblaciones especiales",
+    "approach": "Enfoque",
+    "specialties": "Especialidades",
+    "serves": "Zona de servicio",
+    "statYears": "años de experiencia",
+    "statFamilies": "familias ayudadas",
+    "statServiceArea": "zona de servicio",
+    "statAvailability": "disponibilidad",
+    "ctaCenter": "Solicitar información y disponibilidad",
+    "ctaOther": "Solicitar una consulta gratuita",
+    "disclaimer": "{{type}} · Un navegador de Sober Helpline atiende cada solicitud — sin costo, sin presión."
+  },
+  "inquiry": {
+    "barTitle": "Solicitar información",
+    "h1Named": "Solicitar una consulta — {{name}}",
+    "h1": "Solicitar información",
+    "lede": "Un navegador de Sober Helpline te contactará — normalmente en unas horas — para ayudarte con el siguiente paso. Sin costo, sin presión.",
+    "nameLabel": "Tu nombre",
+    "namePlaceholder": "Nombre y apellido",
+    "relationshipLabel": "Tu relación con tu ser querido",
+    "phoneLabel": "Teléfono",
+    "phonePlaceholder": "(555) 555-5555",
+    "bestTimeLabel": "Mejor hora para contactarte",
+    "emailLabel": "Correo electrónico",
+    "emailPlaceholder": "tu@correo.com",
+    "noteLabel": "En pocas palabras, ¿qué está pasando? (opcional)",
+    "notePlaceholder": "Una o dos frases nos ayudan a conectarte más rápido — sustancia, urgencia, lo que quieras que sepamos.",
+    "send": "Enviar solicitud",
+    "sending": "Enviando…",
+    "errorTitle": "No se pudo enviar tu solicitud",
+    "errorBody": "Algo salió mal al contactar a nuestro equipo. Revisa tu conexión e inténtalo de nuevo — o llama al 988 en cualquier momento para apoyo inmediato.",
+    "relationships": [
+      "Madre/Padre",
+      "Cónyuge / pareja",
+      "Hermano/a",
+      "Hijo/a adulto/a",
+      "Amistad",
+      "Otro"
+    ],
+    "times": [
+      "Cualquier hora",
+      "Mañana",
+      "Tarde",
+      "Noche"
+    ],
+    "confirmTitle": "Tu solicitud está en camino.",
+    "confirmLedeNamed": "{{first}}, no estás sola en esto. Enviamos tu solicitud sobre {{provider}}.",
+    "confirmLede": "No estás sola en esto. Enviamos tu solicitud.",
+    "steps": [
+      "Un navegador de Sober Helpline revisa tu solicitud y la disponibilidad actual del proveedor.",
+      "Te llama o escribe (tú eliges) para confirmar encaje, seguro y próximos pasos.",
+      "Si encaja, te presenta directamente con el proveedor — y sigue a tu lado."
+    ],
+    "backToResults": "Volver a resultados",
+    "crisisNote": "¿Peligro inmediato? Llama al 911. Para la Línea de Crisis y Suicidio 24/7, llama o envía mensaje al 988."
+  },
+  "type": {
+    "center": "Centro de tratamiento",
+    "interventionist": "Intervencionista",
+    "coach": "Coach de sobriedad"
+  },
+  "availability": {
+    "now": "Disponible ahora",
+    "lim": "Disponibilidad limitada",
+    "wait": "Lista de espera"
+  },
+  "view": "Ver ›",
+  "tags": {
+    "Travels nationally": "Viaja a nivel nacional",
+    "Travels internationally": "Viaja internacionalmente",
+    "In-person available": "Disponible en persona",
+    "Travel-ready": "Listo para viajar",
+    "Hourly sessions": "Sesiones por hora",
+    "Detox available": "Desintoxicación disponible",
+    "Telehealth": "Telesalud",
+    "Sliding scale": "Tarifa escalonada",
+    "CIP Certified": "Certificado CIP",
+    "Adolescent": "Adolescentes",
+    "Detox": "Desintoxicación",
+    "Residential": "Residencial",
+    "PHP": "PHP",
+    "IOP": "IOP",
+    "Outpatient": "Ambulatorio",
+    "Sober Living": "Vivienda sobria",
+    "Individual Therapy": "Terapia individual",
+    "Group Therapy": "Terapia grupal",
+    "Psychiatric Services": "Servicios psiquiátricos",
+    "LGBTQ+ affirming": "Afirmativo LGBTQ+",
+    "Adolescent (under 18)": "Adolescentes (menores de 18)",
+    "Contact for pricing": "Precio a consultar"
+  }
+}

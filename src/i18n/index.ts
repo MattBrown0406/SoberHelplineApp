@@ -17,6 +17,7 @@ import enRehearsal from '../locales/en/rehearsal.json';
 import enOnboarding from '../locales/en/onboarding.json';
 import enLive from '../locales/en/live.json';
 import enLearn from '../locales/en/learn.json';
+import enFinder from '../locales/en/finder.json';
 import esCommon from '../locales/es/common.json';
 import esToday from '../locales/es/today.json';
 import esScripts from '../locales/es/scripts.json';
@@ -31,6 +32,7 @@ import esRehearsal from '../locales/es/rehearsal.json';
 import esOnboarding from '../locales/es/onboarding.json';
 import esLive from '../locales/es/live.json';
 import esLearn from '../locales/es/learn.json';
+import esFinder from '../locales/es/finder.json';
 
 export type SupportedLanguage = 'en' | 'es';
 
@@ -54,8 +56,8 @@ export async function initI18n(): Promise<void> {
 
   await i18n.use(initReactI18next).init({
     resources: {
-      en: { common: enCommon, today: enToday, scripts: enScripts, boundaries: enBoundaries, auth: enAuth, tracker: enTracker, support: enSupport, settings: enSettings, alignment: enAlignment, letter: enLetter, rehearsal: enRehearsal, onboarding: enOnboarding, live: enLive, learn: enLearn },
-      es: { common: esCommon, today: esToday, scripts: esScripts, boundaries: esBoundaries, auth: esAuth, tracker: esTracker, support: esSupport, settings: esSettings, alignment: esAlignment, letter: esLetter, rehearsal: esRehearsal, onboarding: esOnboarding, live: esLive, learn: esLearn },
+      en: { common: enCommon, today: enToday, scripts: enScripts, boundaries: enBoundaries, auth: enAuth, tracker: enTracker, support: enSupport, settings: enSettings, alignment: enAlignment, letter: enLetter, rehearsal: enRehearsal, onboarding: enOnboarding, live: enLive, learn: enLearn, finder: enFinder },
+      es: { common: esCommon, today: esToday, scripts: esScripts, boundaries: esBoundaries, auth: esAuth, tracker: esTracker, support: esSupport, settings: esSettings, alignment: esAlignment, letter: esLetter, rehearsal: esRehearsal, onboarding: esOnboarding, live: esLive, learn: esLearn, finder: esFinder },
     },
     lng,
     fallbackLng: 'en',

@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
-import type { Provider } from '../../api/providers';
+import { translateTag, type Provider } from '../../api/providers';
 import { TypeBadge } from './TypeBadge';
 import { AvailabilityPill } from './AvailabilityPill';
 
@@ -29,6 +30,7 @@ export function ProviderCard({
   onPress: () => void;
 }) {
   const { colors } = useTheme();
+  const { t } = useTranslation('finder');
   return (
     <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={[styles.card, { borderColor: colors.line }]}>
       <View style={styles.top}>
@@ -49,14 +51,14 @@ export function ProviderCard({
           <Tag key={i} text={i} insurance />
         ))}
         {provider.tags.slice(0, 3).map((tg) => (
-          <Tag key={tg} text={tg} />
+          <Tag key={tg} text={translateTag(tg, t)} />
         ))}
       </View>
 
       <View style={[styles.foot, { borderTopColor: colors.line }]}>
-        <Text style={[styles.price, { color: colors.inkSoft }]}>{provider.price}</Text>
+        <Text style={[styles.price, { color: colors.inkSoft }]}>{translateTag(provider.price, t)}</Text>
         <View style={[styles.go, { backgroundColor: colors.primary }]}>
-          <Text style={styles.goText}>View ›</Text>
+          <Text style={styles.goText}>{t('view')}</Text>
         </View>
       </View>
     </TouchableOpacity>

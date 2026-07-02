@@ -1,22 +1,31 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { Button } from '../../src/components/ui/Button';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { submitProviderInquiry } from '../../src/api/providers';
-const RELATIONSHIPS = ['Parent', 'Spouse / partner', 'Sibling', 'Adult child', 'Friend', 'Other'];
-const TIMES = ['Anytime', 'Morning', 'Afternoon', 'Evening'];
+
+// Canonical values sent to the navigator team (always English); display labels
+// come from the finder namespace by index.
+const RELATIONSHIP_VALUES = ['Parent', 'Spouse / partner', 'Sibling', 'Adult child', 'Friend', 'Other'];
+const TIME_VALUES = ['Anytime', 'Morning', 'Afternoon', 'Evening'];
 
 export default function InquiryScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation('finder');
   const router = useRouter();
   const { id: providerId, name: providerName } = useLocalSearchParams<{ id: string; name: string }>();
 
+  const relationshipLabels = t('inquiry.relationships', { returnObjects: true }) as string[];
+  const timeLabels = t('inquiry.times', { returnObjects: true }) as string[];
+  const steps = t('inquiry.steps', { returnObjects: true }) as string[];
+
   const [name, setName] = useState('');
-  const [relationship, setRelationship] = useState(RELATIONSHIPS[0]);
+  const [relationship, setRelationship] = useState(RELATIONSHIP_VALUES[0]);
   const [phone, setPhone] = useState('');
-  const [bestTime, setBestTime] = useState(TIMES[0]);
+  const [bestTime, setBestTime] = useState(TIME_VALUES[0]);
   const [email, setEmail] = useState('');
   const [note, setNote] = useState('');
   const [submitted, setSubmitted] = useState(false);
@@ -37,10 +46,7 @@ export default function InquiryScreen() {
       });
       setSubmitted(true);
     } catch {
-      Alert.alert(
-        "Couldn't send your request",
-        'Something went wrong reaching our team. Please check your connection and try again — or call 988 anytime for immediate support.',
-      );
+      Alert.alert(t('inquiry.errorTitle'), t('inquiry.errorBody'));
     } finally {
       setSending(false);
     }
@@ -54,16 +60,14 @@ export default function InquiryScreen() {
           <View style={[styles.ring, { backgroundColor: colors.greenLight }]}>
             <Text style={[styles.ringMark, { color: colors.green }]}>✓</Text>
           </View>
-          <Text style={[styles.h1, { color: colors.primary, textAlign: 'center' }]}>Your request is in.</Text>
+          <Text style={[styles.h1, { color: colors.primary, textAlign: 'center' }]}>{t('inquiry.confirmTitle')}</Text>
           <Text style={[styles.lede, { color: colors.inkSoft, textAlign: 'center' }]}>
-            {first ? `${first}, you're` : "You're"} not doing this alone. We've sent your inquiry{providerName ? ` about ${providerName}` : ''}.
+            {first && providerName
+              ? t('inquiry.confirmLedeNamed', { first, provider: providerName })
+              : t('inquiry.confirmLede')}
           </Text>
           <View style={[styles.nextbox, { borderColor: colors.line }]}>
-            {[
-              'A Sober Helpline navigator reviews your request and the provider\'s current availability.',
-              'They call or text you (your choice) to confirm fit, insurance, and next steps.',
-              'If it\'s a fit, they warm-introduce you directly to the provider — and stay with you.',
-            ].map((s, i) => (
+            {steps.map((s, i) => (
               <View key={i} style={styles.stepRow}>
                 <View style={[styles.num, { backgroundColor: colors.primary }]}>
                   <Text style={styles.numText}>{i + 1}</Text>
@@ -72,10 +76,8 @@ export default function InquiryScreen() {
               </View>
             ))}
           </View>
-          <Button label="Back to results" variant="ghost" onPress={() => router.dismissAll?.() ?? router.replace('/finder')} />
-          <Text style={[styles.disc, { color: colors.inkSoft }]}>
-            In immediate danger? Call 911. For the 24/7 Suicide & Crisis Lifeline, call or text 988.
-          </Text>
+          <Button label={t('inquiry.backToResults')} variant="ghost" onPress={() => router.dismissAll?.() ?? router.replace('/finder')} />
+          <Text style={[styles.disc, { color: colors.inkSoft }]}>{t('inquiry.crisisNote')}</Text>
         </View>
       </ScreenContainer>
     );
@@ -87,45 +89,43 @@ export default function InquiryScreen() {
         <TouchableOpacity onPress={() => router.back()} style={[styles.back, { borderColor: colors.line }]}>
           <Text style={[styles.backIcon, { color: colors.primary }]}>‹</Text>
         </TouchableOpacity>
-        <Text style={[styles.barTitle, { color: colors.primary }]}>Request information</Text>
+        <Text style={[styles.barTitle, { color: colors.primary }]}>{t('inquiry.barTitle')}</Text>
       </View>
 
       <Text style={[styles.h1, { color: colors.primary }]}>
-        {providerName ? `Request a consult — ${providerName}` : 'Request information'}
+        {providerName ? t('inquiry.h1Named', { name: providerName }) : t('inquiry.h1')}
       </Text>
-      <Text style={[styles.lede, { color: colors.inkSoft }]}>
-        A Sober Helpline navigator will reach out — usually within a few hours — to help you take the next step. No cost, no pressure.
-      </Text>
+      <Text style={[styles.lede, { color: colors.inkSoft }]}>{t('inquiry.lede')}</Text>
 
-      <Field label="Your name">
-        <TextInput value={name} onChangeText={setName} placeholder="First and last name" placeholderTextColor={colors.inkSoft} style={inputStyle(colors)} />
+      <Field label={t('inquiry.nameLabel')}>
+        <TextInput value={name} onChangeText={setName} placeholder={t('inquiry.namePlaceholder')} placeholderTextColor={colors.inkSoft} style={inputStyle(colors)} />
       </Field>
 
-      <Field label="Your relationship to your loved one">
-        <Pills options={RELATIONSHIPS} value={relationship} onChange={setRelationship} />
+      <Field label={t('inquiry.relationshipLabel')}>
+        <Pills values={RELATIONSHIP_VALUES} labels={relationshipLabels} value={relationship} onChange={setRelationship} />
       </Field>
 
       <View style={styles.row2}>
         <View style={{ flex: 1 }}>
-          <Field label="Phone">
-            <TextInput value={phone} onChangeText={setPhone} placeholder="(555) 555-5555" keyboardType="phone-pad" placeholderTextColor={colors.inkSoft} style={inputStyle(colors)} />
+          <Field label={t('inquiry.phoneLabel')}>
+            <TextInput value={phone} onChangeText={setPhone} placeholder={t('inquiry.phonePlaceholder')} keyboardType="phone-pad" placeholderTextColor={colors.inkSoft} style={inputStyle(colors)} />
           </Field>
         </View>
       </View>
 
-      <Field label="Best time to reach you">
-        <Pills options={TIMES} value={bestTime} onChange={setBestTime} />
+      <Field label={t('inquiry.bestTimeLabel')}>
+        <Pills values={TIME_VALUES} labels={timeLabels} value={bestTime} onChange={setBestTime} />
       </Field>
 
-      <Field label="Email">
-        <TextInput value={email} onChangeText={setEmail} placeholder="you@email.com" keyboardType="email-address" autoCapitalize="none" placeholderTextColor={colors.inkSoft} style={inputStyle(colors)} />
+      <Field label={t('inquiry.emailLabel')}>
+        <TextInput value={email} onChangeText={setEmail} placeholder={t('inquiry.emailPlaceholder')} keyboardType="email-address" autoCapitalize="none" placeholderTextColor={colors.inkSoft} style={inputStyle(colors)} />
       </Field>
 
-      <Field label="Briefly, what's going on? (optional)">
+      <Field label={t('inquiry.noteLabel')}>
         <TextInput
           value={note}
           onChangeText={setNote}
-          placeholder="A sentence or two helps us match you faster — substance, urgency, anything you'd want us to know."
+          placeholder={t('inquiry.notePlaceholder')}
           placeholderTextColor={colors.inkSoft}
           multiline
           style={[inputStyle(colors), { minHeight: 90, textAlignVertical: 'top' }]}
@@ -133,7 +133,7 @@ export default function InquiryScreen() {
       </Field>
 
       <Button
-        label={sending ? 'Sending…' : 'Send request'}
+        label={sending ? t('inquiry.sending') : t('inquiry.send')}
         onPress={submit}
         disabled={sending || !name.trim() || (!phone.trim() && !email.trim())}
         style={{ marginTop: 12 }}
@@ -152,20 +152,30 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function Pills({ options, value, onChange }: { options: string[]; value: string; onChange: (v: string) => void }) {
+function Pills({
+  values,
+  labels,
+  value,
+  onChange,
+}: {
+  values: string[];
+  labels: string[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
   const { colors } = useTheme();
   return (
     <View style={styles.pills}>
-      {options.map((o) => {
-        const sel = value === o;
+      {values.map((v, i) => {
+        const sel = value === v;
         return (
           <TouchableOpacity
-            key={o}
-            onPress={() => onChange(o)}
+            key={v}
+            onPress={() => onChange(v)}
             activeOpacity={0.8}
             style={[styles.pill, { borderColor: sel ? colors.primary : colors.line, backgroundColor: sel ? colors.primary : '#fff' }]}
           >
-            <Text style={{ fontSize: 13.5, color: sel ? '#fff' : colors.ink }}>{o}</Text>
+            <Text style={{ fontSize: 13.5, color: sel ? '#fff' : colors.ink }}>{labels[i] ?? v}</Text>
           </TouchableOpacity>
         );
       })}

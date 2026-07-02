@@ -1,0 +1,275 @@
+{
+  "title": "Treatment Finder",
+  "intro": {
+    "h1": "Let's find the right help for someone you love.",
+    "lede": "Answer a few quick questions and we'll match you with vetted treatment centers, interventionists, and sober coaches — with real availability.",
+    "whatEyebrow": "What are you looking for?"
+  },
+  "cats": {
+    "center": {
+      "title": "Treatment centers",
+      "sub": "Detox, residential, PHP, IOP, outpatient, sober living"
+    },
+    "interventionist": {
+      "title": "Interventionists",
+      "sub": "Help getting a loved one to accept treatment"
+    },
+    "coach": {
+      "title": "Sober coaches & companions",
+      "sub": "One-on-one support through early recovery"
+    }
+  },
+  "locHead": {
+    "center": {
+      "title": "What level of care?",
+      "lede": "Pick what fits best — you can change this later. Not sure? Choose “Help me decide.”"
+    },
+    "interventionist": {
+      "title": "How soon do you need help?",
+      "lede": "This helps us match you with an interventionist who can mobilize on your timeline."
+    },
+    "coach": {
+      "title": "What kind of support?",
+      "lede": "Tell us where your loved one is right now so we match the right coach."
+    }
+  },
+  "loc": {
+    "center": {
+      "decide": {
+        "title": "Help me decide",
+        "sub": "Not sure what level — we'll guide you"
+      },
+      "detox": {
+        "title": "Detox",
+        "sub": "Medically supervised withdrawal"
+      },
+      "residential": {
+        "title": "Residential — 30/60/90 day",
+        "sub": "Live-in, structured treatment"
+      },
+      "php": {
+        "title": "PHP",
+        "sub": "Day treatment, ~6 hrs/day"
+      },
+      "iop": {
+        "title": "IOP",
+        "sub": "Intensive outpatient, evenings ok"
+      },
+      "op": {
+        "title": "Outpatient",
+        "sub": "Weekly sessions, lowest intensity"
+      },
+      "sober": {
+        "title": "Sober Living",
+        "sub": "Supportive housing in recovery"
+      }
+    },
+    "interventionist": {
+      "asap": {
+        "title": "As soon as possible",
+        "sub": "Things feel urgent right now"
+      },
+      "week": {
+        "title": "Within a week",
+        "sub": "Planning the conversation soon"
+      },
+      "explore": {
+        "title": "Just exploring",
+        "sub": "Learning what an intervention involves"
+      }
+    },
+    "coach": {
+      "home": {
+        "title": "Coming home from treatment",
+        "sub": "Support the transition back"
+      },
+      "early": {
+        "title": "Currently in early recovery",
+        "sub": "Day-to-day accountability"
+      },
+      "risk": {
+        "title": "High-risk moment / travel",
+        "sub": "Companion for a tough stretch"
+      },
+      "explore": {
+        "title": "Just exploring",
+        "sub": "Learning how coaching works"
+      }
+    }
+  },
+  "details": {
+    "h1": "A few details",
+    "ledeCenter": "This helps us show only centers that actually fit. Everything is optional.",
+    "ledeOther": "Tell us where you are and what matters most. Everything is optional.",
+    "location": "Location",
+    "selectState": "Select state",
+    "anyState": "Any state",
+    "zipPlaceholder": "ZIP code (optional)",
+    "budget": "Budget (self-pay)",
+    "insurance": "Insurance",
+    "whoFor": "Who is it for?",
+    "conditions": "Mental health / dual diagnosis",
+    "approach": "Approach & modalities",
+    "populations": "Specialty populations",
+    "showMatches": "Show matches",
+    "continue": "Continue",
+    "stateModalTitle": "Select state",
+    "stateModalDone": "Done",
+    "ages": [
+      "Adult",
+      "Young adult (18–28)",
+      "Adolescent"
+    ],
+    "genders": [
+      "Co-ed",
+      "Male",
+      "Female",
+      "Non-binary affirming"
+    ],
+    "conditionsList": [
+      "Depression",
+      "Anxiety",
+      "Trauma / PTSD",
+      "Bipolar",
+      "BPD",
+      "ADHD",
+      "Eating disorders"
+    ],
+    "modalities": [
+      "CBT",
+      "DBT",
+      "EMDR",
+      "MAT-friendly",
+      "12-step",
+      "Non-12-step",
+      "Holistic",
+      "Faith-based",
+      "Equine",
+      "Somatic"
+    ],
+    "populationsList": [
+      "LGBTQ+ affirming",
+      "Veterans",
+      "Professionals",
+      "First responders",
+      "Pregnant women"
+    ],
+    "budgets": [
+      "Any budget",
+      "Under $5,000/mo",
+      "Under $10,000/mo",
+      "Under $20,000/mo",
+      "Under $30,000/mo"
+    ],
+    "selfPay": "Self-pay"
+  },
+  "results": {
+    "count_center": "{{count}} centers",
+    "count_interventionist": "{{count}} interventionists",
+    "count_coach": "{{count}} coaches",
+    "inState": " in {{state}}",
+    "edit": "Edit",
+    "filters": "Filters: {{list}}",
+    "empty": "No providers found. Try selecting \"Any state\" or removing filters.",
+    "also": "Also recommended for your situation"
+  },
+  "detail": {
+    "notFound": "Provider not found.",
+    "back": "Back",
+    "about": "About",
+    "levels": "Levels of care",
+    "insurance": "Accepted insurance",
+    "treatmentApproach": "Treatment approach",
+    "conditions": "Co-occurring conditions treated",
+    "populations": "Specialty populations",
+    "approach": "Approach",
+    "specialties": "Specialties",
+    "serves": "Serves",
+    "statYears": "years experience",
+    "statFamilies": "families helped",
+    "statServiceArea": "service area",
+    "statAvailability": "availability",
+    "ctaCenter": "Request info & availability",
+    "ctaOther": "Request a free consult",
+    "disclaimer": "{{type}} · A Sober Helpline navigator handles every inquiry — no cost, no pressure."
+  },
+  "inquiry": {
+    "barTitle": "Request information",
+    "h1Named": "Request a consult — {{name}}",
+    "h1": "Request information",
+    "lede": "A Sober Helpline navigator will reach out — usually within a few hours — to help you take the next step. No cost, no pressure.",
+    "nameLabel": "Your name",
+    "namePlaceholder": "First and last name",
+    "relationshipLabel": "Your relationship to your loved one",
+    "phoneLabel": "Phone",
+    "phonePlaceholder": "(555) 555-5555",
+    "bestTimeLabel": "Best time to reach you",
+    "emailLabel": "Email",
+    "emailPlaceholder": "you@email.com",
+    "noteLabel": "Briefly, what's going on? (optional)",
+    "notePlaceholder": "A sentence or two helps us match you faster — substance, urgency, anything you'd want us to know.",
+    "send": "Send request",
+    "sending": "Sending…",
+    "errorTitle": "Couldn't send your request",
+    "errorBody": "Something went wrong reaching our team. Please check your connection and try again — or call 988 anytime for immediate support.",
+    "relationships": [
+      "Parent",
+      "Spouse / partner",
+      "Sibling",
+      "Adult child",
+      "Friend",
+      "Other"
+    ],
+    "times": [
+      "Anytime",
+      "Morning",
+      "Afternoon",
+      "Evening"
+    ],
+    "confirmTitle": "Your request is in.",
+    "confirmLedeNamed": "{{first}}, you're not doing this alone. We've sent your inquiry about {{provider}}.",
+    "confirmLede": "You're not doing this alone. We've sent your inquiry.",
+    "steps": [
+      "A Sober Helpline navigator reviews your request and the provider's current availability.",
+      "They call or text you (your choice) to confirm fit, insurance, and next steps.",
+      "If it's a fit, they warm-introduce you directly to the provider — and stay with you."
+    ],
+    "backToResults": "Back to results",
+    "crisisNote": "In immediate danger? Call 911. For the 24/7 Suicide & Crisis Lifeline, call or text 988."
+  },
+  "type": {
+    "center": "Treatment center",
+    "interventionist": "Interventionist",
+    "coach": "Sober coach"
+  },
+  "availability": {
+    "now": "Available now",
+    "lim": "Limited availability",
+    "wait": "Waitlist"
+  },
+  "view": "View ›",
+  "tags": {
+    "Travels nationally": "Travels nationally",
+    "Travels internationally": "Travels internationally",
+    "In-person available": "In-person available",
+    "Travel-ready": "Travel-ready",
+    "Hourly sessions": "Hourly sessions",
+    "Detox available": "Detox available",
+    "Telehealth": "Telehealth",
+    "Sliding scale": "Sliding scale",
+    "CIP Certified": "CIP Certified",
+    "Adolescent": "Adolescent",
+    "Detox": "Detox",
+    "Residential": "Residential",
+    "PHP": "PHP",
+    "IOP": "IOP",
+    "Outpatient": "Outpatient",
+    "Sober Living": "Sober Living",
+    "Individual Therapy": "Individual Therapy",
+    "Group Therapy": "Group Therapy",
+    "Psychiatric Services": "Psychiatric Services",
+    "LGBTQ+ affirming": "LGBTQ+ affirming",
+    "Adolescent (under 18)": "Adolescent (under 18)",
+    "Contact for pricing": "Contact for pricing"
+  }
+}

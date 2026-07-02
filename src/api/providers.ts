@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import type { TFunction } from 'i18next';
 
 // Public anon key for soberhelpline.com — read-only public provider directory.
 // Hardcoded deliberately (NOT read from env): a misconfigured EAS secret named
@@ -37,33 +38,12 @@ export interface Provider {
   website?: string;
 }
 
-export interface LocOption {
-  key: string;
-  title: string;
-  subtitle: string;
-}
-
-export const LOC_OPTIONS: Record<ProviderType, LocOption[]> = {
-  center: [
-    { key: 'decide', title: 'Help me decide', subtitle: "Not sure what level — we'll guide you" },
-    { key: 'detox', title: 'Detox', subtitle: 'Medically supervised withdrawal' },
-    { key: 'residential', title: 'Residential — 30/60/90 day', subtitle: 'Live-in, structured treatment' },
-    { key: 'php', title: 'PHP', subtitle: 'Day treatment, ~6 hrs/day' },
-    { key: 'iop', title: 'IOP', subtitle: 'Intensive outpatient, evenings ok' },
-    { key: 'op', title: 'Outpatient', subtitle: 'Weekly sessions, lowest intensity' },
-    { key: 'sober', title: 'Sober Living', subtitle: 'Supportive housing in recovery' },
-  ],
-  interventionist: [
-    { key: 'asap', title: 'As soon as possible', subtitle: 'Things feel urgent right now' },
-    { key: 'week', title: 'Within a week', subtitle: 'Planning the conversation soon' },
-    { key: 'explore', title: 'Just exploring', subtitle: 'Learning what an intervention involves' },
-  ],
-  coach: [
-    { key: 'home', title: 'Coming home from treatment', subtitle: 'Support the transition back' },
-    { key: 'early', title: 'Currently in early recovery', subtitle: 'Day-to-day accountability' },
-    { key: 'risk', title: 'High-risk moment / travel', subtitle: 'Companion for a tough stretch' },
-    { key: 'explore', title: 'Just exploring', subtitle: 'Learning how coaching works' },
-  ],
+// Level-of-care option keys per path. Display strings live in the `finder`
+// i18n namespace under loc.<path>.<key>.{title,sub}.
+export const LOC_OPTIONS: Record<ProviderType, string[]> = {
+  center: ['decide', 'detox', 'residential', 'php', 'iop', 'op', 'sober'],
+  interventionist: ['asap', 'week', 'explore'],
+  coach: ['home', 'early', 'risk', 'explore'],
 };
 
 // Website category strings → app ProviderType
@@ -290,10 +270,11 @@ export function sortByAvailability(list: Provider[]): Provider[] {
   return [...list].sort((a, b) => AVAIL_RANK[a.availability] - AVAIL_RANK[b.availability]);
 }
 
-export function availabilityLabel(a: Availability): string {
-  return a === 'now' ? 'Available now' : a === 'lim' ? 'Limited availability' : 'Waitlist';
-}
-
-export function typeLabel(t: ProviderType): string {
-  return t === 'center' ? 'Treatment center' : t === 'interventionist' ? 'Interventionist' : 'Sober coach';
+/**
+ * Translates a provider tag at render time. Tags mix our generated literals
+ * ("Detox available") with free-form DB content (modality names); known ones
+ * come back localized via the finder namespace, unknown ones pass through.
+ */
+export function translateTag(tag: string, t: TFunction<'finder'>): string {
+  return t(`tags.${tag}` as never, { defaultValue: tag });
 }

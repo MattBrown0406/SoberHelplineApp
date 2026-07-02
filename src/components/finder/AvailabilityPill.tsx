@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { availabilityLabel, type Availability } from '../../api/providers';
+import { useTranslation } from 'react-i18next';
+import type { Availability } from '../../api/providers';
 import { useAvailabilityColor } from './finderColors';
 
 export function AvailabilityPill({
@@ -11,6 +12,7 @@ export function AvailabilityPill({
   onDark?: boolean;
 }) {
   const c = useAvailabilityColor(availability);
+  const { t } = useTranslation('finder');
   return (
     <View
       style={[
@@ -20,7 +22,7 @@ export function AvailabilityPill({
     >
       <View style={[styles.dot, { backgroundColor: c.dot }]} />
       <Text style={[styles.label, { color: onDark ? '#fff' : c.fg }]}>
-        {availabilityLabel(availability)}
+        {t(`availability.${availability}`)}
       </Text>
     </View>
   );

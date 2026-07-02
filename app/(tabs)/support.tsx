@@ -964,10 +964,8 @@ export default function SupportScreen() {
           onPress={() => router.push('/finder')}
           style={[styles.finderCard, { backgroundColor: colors.primary }]}
         >
-          <Text style={styles.finderTitle}>Find treatment & support</Text>
-          <Text style={styles.finderSub}>
-            Search vetted treatment centers, interventionists, and sober coaches — with real availability.
-          </Text>
+          <Text style={styles.finderTitle}>{t('finderCard.title')}</Text>
+          <Text style={styles.finderSub}>{t('finderCard.sub')}</Text>
         </TouchableOpacity>
 
         {/* Groups — both account types */}

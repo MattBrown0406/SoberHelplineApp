@@ -1,20 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { Button } from '../../src/components/ui/Button';
 import { useTheme } from '../../src/contexts/ThemeContext';
-import { fetchProviderById, typeLabel, type Provider } from '../../src/api/providers';
+import { fetchProviderById, translateTag, type Provider } from '../../src/api/providers';
 import { TypeBadge } from '../../src/components/finder/TypeBadge';
 import { AvailabilityPill } from '../../src/components/finder/AvailabilityPill';
 
 function Tags({ items }: { items: string[] }) {
   const { colors } = useTheme();
+  const { t } = useTranslation('finder');
   return (
     <View style={styles.tags}>
-      {items.map((t) => (
-        <View key={t} style={[styles.tag, { backgroundColor: '#f3f1ea' }]}>
-          <Text style={[styles.tagText, { color: colors.inkSoft }]}>{t}</Text>
+      {items.map((item) => (
+        <View key={item} style={[styles.tag, { backgroundColor: '#f3f1ea' }]}>
+          <Text style={[styles.tagText, { color: colors.inkSoft }]}>{translateTag(item, t)}</Text>
         </View>
       ))}
     </View>
@@ -33,6 +35,7 @@ function Section({ label, children }: { label: string; children: React.ReactNode
 
 export default function ProviderDetailScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation('finder');
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [provider, setProvider] = useState<Provider | undefined>(undefined);
@@ -55,14 +58,14 @@ export default function ProviderDetailScreen() {
   if (!provider) {
     return (
       <ScreenContainer backgroundColor={colors.cream}>
-        <Text style={{ color: colors.ink, marginTop: 40 }}>Provider not found.</Text>
-        <Button label="Back" onPress={() => router.back()} variant="ghost" style={{ marginTop: 16 }} />
+        <Text style={{ color: colors.ink, marginTop: 40 }}>{t('detail.notFound')}</Text>
+        <Button label={t('detail.back')} onPress={() => router.back()} variant="ghost" style={{ marginTop: 16 }} />
       </ScreenContainer>
     );
   }
 
   const isCenter = provider.type === 'center';
-  const ctaLabel = isCenter ? 'Request info & availability' : 'Request a free consult';
+  const ctaLabel = isCenter ? t('detail.ctaCenter') : t('detail.ctaOther');
 
   return (
     <ScreenContainer backgroundColor={colors.cream} contentContainerStyle={{ paddingTop: 0 }}>
@@ -78,18 +81,18 @@ export default function ProviderDetailScreen() {
         <AvailabilityPill availability={provider.availability} onDark />
       </View>
 
-      <Section label="ABOUT">
+      <Section label={t('detail.about').toUpperCase()}>
         <Text style={[styles.body, { color: colors.ink }]}>{provider.about}</Text>
       </Section>
 
       {isCenter ? (
         <>
           {provider.levels && (
-            <Section label="LEVELS OF CARE">
+            <Section label={t('detail.levels').toUpperCase()}>
               <Tags items={provider.levels} />
             </Section>
           )}
-          <Section label="ACCEPTED INSURANCE">
+          <Section label={t('detail.insurance').toUpperCase()}>
             <View style={styles.tags}>
               {provider.insurance.map((i) => (
                 <View key={i} style={[styles.tag, { backgroundColor: colors.primaryLight }]}>
@@ -98,16 +101,16 @@ export default function ProviderDetailScreen() {
               ))}
             </View>
           </Section>
-          <Section label="TREATMENT APPROACH">
+          <Section label={t('detail.treatmentApproach').toUpperCase()}>
             <Tags items={provider.tags} />
           </Section>
           {provider.conditions && provider.conditions.length > 0 && (
-            <Section label="CO-OCCURRING CONDITIONS TREATED">
+            <Section label={t('detail.conditions').toUpperCase()}>
               <Tags items={provider.conditions} />
             </Section>
           )}
           {provider.populations && provider.populations.length > 0 && (
-            <Section label="SPECIALTY POPULATIONS">
+            <Section label={t('detail.populations').toUpperCase()}>
               <Tags items={provider.populations} />
             </Section>
           )}
@@ -115,20 +118,23 @@ export default function ProviderDetailScreen() {
       ) : (
         <>
           <View style={styles.statline}>
-            <Stat value={provider.years ?? '—'} label="years experience" />
-            {provider.cases && <Stat value={provider.cases} label="families helped" />}
-            <Stat value={(provider.serves ?? '').split(' ')[0] || '—'} label={provider.type === 'interventionist' ? 'service area' : 'availability'} />
+            <Stat value={provider.years ?? '—'} label={t('detail.statYears')} />
+            {provider.cases && <Stat value={provider.cases} label={t('detail.statFamilies')} />}
+            <Stat
+              value={(provider.serves ?? '').split(' ')[0] || '—'}
+              label={provider.type === 'interventionist' ? t('detail.statServiceArea') : t('detail.statAvailability')}
+            />
           </View>
           {provider.approach && (
-            <Section label="APPROACH">
+            <Section label={t('detail.approach').toUpperCase()}>
               <Text style={[styles.body, { color: colors.ink }]}>{provider.approach}</Text>
             </Section>
           )}
-          <Section label="SPECIALTIES">
+          <Section label={t('detail.specialties').toUpperCase()}>
             <Tags items={provider.tags} />
           </Section>
           {provider.serves && (
-            <Section label="SERVES">
+            <Section label={t('detail.serves').toUpperCase()}>
               <Text style={[styles.body, { color: colors.ink }]}>{provider.serves}</Text>
             </Section>
           )}
@@ -141,7 +147,7 @@ export default function ProviderDetailScreen() {
         style={{ marginTop: 22 }}
       />
       <Text style={[styles.disc, { color: colors.inkSoft }]}>
-        {typeLabel(provider.type)} · A Sober Helpline navigator handles every inquiry — no cost, no pressure.
+        {t('detail.disclaimer', { type: t(`type.${provider.type}`) })}
       </Text>
     </ScreenContainer>
   );

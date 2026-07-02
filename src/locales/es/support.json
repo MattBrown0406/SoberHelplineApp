@@ -252,5 +252,9 @@
       ]
     },
     "close": "Cerrar"
+  },
+  "finderCard": {
+    "title": "Encuentra tratamiento y apoyo",
+    "sub": "Busca centros de tratamiento, intervencionistas y coaches de sobriedad verificados — con disponibilidad real."
   }
 }
