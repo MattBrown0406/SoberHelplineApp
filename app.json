@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.soberhelplineapp",
-      "buildNumber": "3",
+      "buildNumber": "4",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "Sober Helpline records practice sessions only when you tap record, and they stay on your device.",
         "NSCameraUsageDescription": "Sober Helpline uses your camera only during live group sessions that you choose to host.",
