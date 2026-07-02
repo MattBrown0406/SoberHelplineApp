@@ -81,6 +81,20 @@ async function fetchAccount(authUser: User): Promise<AuthUser | null> {
       accountState = 'direct-premium';
     }
 
+    // Sync website ($14.99 family) membership → 'web' entitlement before we
+    // read entitlements, so web subscribers unlock Essential on first sign-in.
+    // Best-effort: a slow/unreachable bridge never blocks login.
+    if (!isAdmin) {
+      try {
+        await Promise.race([
+          supabase.functions.invoke('sync-web-membership'),
+          new Promise((resolve) => setTimeout(resolve, 4000)),
+        ]);
+      } catch {
+        // Offline or bridge down — fall through to existing entitlements/IAP.
+      }
+    }
+
     // Check Supabase entitlements first (coupons + manual grants take priority)
     const { data: ent } = isAdmin ? { data: null } : await supabase
       .from('entitlements')
