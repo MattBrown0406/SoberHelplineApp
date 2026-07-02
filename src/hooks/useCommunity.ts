@@ -7,7 +7,10 @@ export interface CommunityPost {
   author_display: string;
   body: string;
   created_at: string;
+  support_count: number;
   mine: boolean;
+  /** True when the current member already sent support on this post. */
+  supported: boolean;
 }
 
 export interface BelongingCount {
@@ -30,20 +33,26 @@ export function useCommunity(accountId: string | null) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [postsRes, belongingRes] = await Promise.all([
+    const [postsRes, belongingRes, supportsRes] = await Promise.all([
       supabase
         .from('community_posts')
-        .select('id, account_id, author_display, body, created_at')
+        .select('id, account_id, author_display, body, created_at, support_count')
         .eq('status', 'visible')
         .order('created_at', { ascending: false })
         .limit(100),
       supabase.rpc('upcoming_call_rsvp_count'),
+      // RLS limits this to the member's own hearts.
+      supabase.from('community_supports').select('post_id'),
     ]);
 
+    const mySupports = new Set(
+      ((supportsRes.data ?? []) as { post_id: string }[]).map((r) => r.post_id),
+    );
     setPosts(
-      ((postsRes.data ?? []) as Omit<CommunityPost, 'mine'>[]).map((p) => ({
+      ((postsRes.data ?? []) as Omit<CommunityPost, 'mine' | 'supported'>[]).map((p) => ({
         ...p,
         mine: p.account_id === accountId,
+        supported: mySupports.has(p.id),
       })),
     );
     if (belongingRes.data) setBelonging(belongingRes.data as BelongingCount);
@@ -62,8 +71,13 @@ export function useCommunity(accountId: string | null) {
         throw error;
       }
       if (data) {
-        const row = data as Omit<CommunityPost, 'mine'>;
-        setPosts((prev) => [{ ...row, mine: true }, ...prev]);
+        const row = data as Omit<CommunityPost, 'mine' | 'supported' | 'support_count'> & {
+          support_count?: number;
+        };
+        setPosts((prev) => [
+          { support_count: 0, ...row, mine: true, supported: false },
+          ...prev,
+        ]);
       }
     },
     [],
@@ -80,5 +94,17 @@ export function useCommunity(accountId: string | null) {
     await supabase.from('community_posts').delete().eq('id', postId);
   }, []);
 
-  return { posts, belonging, loading, createPost, reportPost, deletePost, refresh: load };
+  /** Send a ❤️ on someone's post. Optimistic; server enforces one per member. */
+  const supportPost = useCallback(async (postId: string): Promise<void> => {
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId && !p.supported
+          ? { ...p, supported: true, support_count: p.support_count + 1 }
+          : p,
+      ),
+    );
+    await supabase.rpc('support_community_post', { p_post_id: postId });
+  }, []);
+
+  return { posts, belonging, loading, createPost, reportPost, deletePost, supportPost, refresh: load };
 }

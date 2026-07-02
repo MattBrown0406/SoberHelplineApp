@@ -6,6 +6,7 @@ on:
     paths:
       - 'supabase/functions/livekit-token/**'
       - 'supabase/functions/livekit-remove/**'
+      - 'supabase/functions/send-engagement-push/**'
       - '.github/workflows/supabase-functions.yml'
 
 jobs:
@@ -18,10 +19,11 @@ jobs:
         with:
           version: latest
 
-      - name: Deploy LiveKit functions
+      - name: Deploy functions
         run: |
           supabase link --project-ref ${{ vars.SUPABASE_PROJECT_REF }}
           supabase functions deploy livekit-token
           supabase functions deploy livekit-remove
+          supabase functions deploy send-engagement-push
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

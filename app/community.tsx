@@ -37,7 +37,7 @@ export default function CommunityScreen() {
   const { t } = useTranslation('support');
   const { user, accountState } = useAccount();
   const router = useRouter();
-  const { posts, belonging, loading, createPost, reportPost, deletePost } = useCommunity(user?.id ?? null);
+  const { posts, belonging, loading, createPost, reportPost, deletePost, supportPost } = useCommunity(user?.id ?? null);
 
   const [draft, setDraft] = useState('');
   const [posting, setPosting] = useState(false);
@@ -158,15 +158,37 @@ export default function CommunityScreen() {
                     </Text>
                   </View>
                   <Text style={[styles.postBody, { color: colors.ink }]}>{item.body}</Text>
-                  <TouchableOpacity
-                    style={styles.postAction}
-                    onPress={() => (item.mine ? confirmDelete(item) : confirmReport(item))}
-                    hitSlop={8}
-                  >
-                    <Text style={[styles.postActionText, { color: colors.inkSoft }]}>
-                      {item.mine ? t('community.delete') : t('community.report')}
-                    </Text>
-                  </TouchableOpacity>
+                  <View style={styles.postFooter}>
+                    {!item.mine ? (
+                      <TouchableOpacity
+                        style={styles.supportBtn}
+                        onPress={() => void supportPost(item.id)}
+                        disabled={item.supported}
+                        hitSlop={8}
+                      >
+                        <Text style={styles.supportHeart}>{item.supported ? '💙' : '🤍'}</Text>
+                        <Text style={[styles.supportText, { color: item.supported ? colors.primary : colors.inkSoft }]}>
+                          {item.supported ? t('community.supported') : t('community.support')}
+                          {item.support_count > 0 ? ` · ${item.support_count}` : ''}
+                        </Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <Text style={[styles.supportText, { color: colors.inkSoft }]}>
+                        {item.support_count > 0
+                          ? `💙 ${t('community.supportReceived', { count: item.support_count })}`
+                          : ''}
+                      </Text>
+                    )}
+                    <TouchableOpacity
+                      style={styles.postAction}
+                      onPress={() => (item.mine ? confirmDelete(item) : confirmReport(item))}
+                      hitSlop={8}
+                    >
+                      <Text style={[styles.postActionText, { color: colors.inkSoft }]}>
+                        {item.mine ? t('community.delete') : t('community.report')}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               )}
             />
@@ -228,7 +250,11 @@ const styles = StyleSheet.create({
   postAuthor: { fontSize: 13.5, fontWeight: '700' },
   postTime: { fontSize: 11.5 },
   postBody: { fontSize: 14.5, lineHeight: 21 },
-  postAction: { alignSelf: 'flex-end', marginTop: 8 },
+  postFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
+  supportBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  supportHeart: { fontSize: 13 },
+  supportText: { fontSize: 12, fontWeight: '600' },
+  postAction: {},
   postActionText: { fontSize: 12, fontWeight: '600' },
   composer: {
     flexDirection: 'row',
