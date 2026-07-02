@@ -9,5 +9,59 @@
     "title": "Past Recordings",
     "body": "Watch recordings of previous Family Squares Zoom meetings you may have missed.",
     "button": "Open"
+  },
+  "faq": {
+    "eyebrow": "Common questions",
+    "sub": "The questions almost every family asks — answered straight.",
+    "items": [
+      {
+        "q": "Is it addiction, or just a phase?",
+        "a": "Look at consequences, not quantity. When someone keeps using despite mounting damage — job trouble, broken trust, health scares, money disappearing — that pattern is the signal. You don't need to be certain it's \"addiction\" to take it seriously; if their use is hurting your family, that alone justifies getting support."
+      },
+      {
+        "q": "What do detox, residential, PHP, IOP, and outpatient actually mean?",
+        "a": "They're levels of care, from most to least intensive. Detox is medically supervised withdrawal (days). Residential means living at a facility (usually 30–90 days). PHP is full days of treatment while sleeping at home; IOP is a few hours several days a week; outpatient is weekly sessions. Most people step down through levels as they stabilize — the right starting point depends on safety, substance, and history."
+      },
+      {
+        "q": "Will insurance pay for treatment?",
+        "a": "Often yes, at least partially — mental health parity laws require most plans to cover addiction treatment like any other medical care. Call the number on the insurance card and ask about \"substance use disorder benefits,\" or let a treatment center run a verification (they do this daily and it's free). Ask about deductibles, in-network facilities, and prior authorization before committing."
+      },
+      {
+        "q": "What if they refuse treatment?",
+        "a": "Refusal is a stage, not a verdict — most people who enter treatment said no first. Your leverage is consistency: clear boundaries, consequences you actually keep, and repeated calm invitations. A professionally guided intervention exists exactly for this moment. And your own support shouldn't wait for their yes — families recover in parallel, not after."
+      },
+      {
+        "q": "Am I helping or enabling?",
+        "a": "A useful test: does this action protect the person, or protect the addiction from consequences? Rides to a meeting, food, treatment costs — help. Paying the debts, calling in sick for them, covering up incidents — those cushion the addiction. Enabling usually comes from love and fear; naming it isn't blame, it's the first boundary."
+      },
+      {
+        "q": "Should I give them money?",
+        "a": "Cash to someone in active addiction almost always becomes the substance, whatever the stated reason. You can say no to money and yes to the need behind it: pay the pharmacy directly, bring groceries, cover a treatment fee paid to the provider. \"I love you, and I don't give cash\" is a complete sentence."
+      },
+      {
+        "q": "What actually happens in an intervention?",
+        "a": "Not an ambush — a planned, rehearsed, loving conversation. Family members read prepared letters describing what they've seen, what they feel, and what they're asking, with treatment arranged and ready before the conversation starts. A professional interventionist manages the room, the objections, and the follow-through. Most well-planned interventions end with the person accepting help."
+      },
+      {
+        "q": "They relapsed after treatment. Did it fail?",
+        "a": "Relapse is common in recovery from addiction, as it is in other chronic conditions — it means the plan needs adjusting, not that treatment was wasted or your loved one is hopeless. What matters most is how fast they reconnect to support. Hold your boundaries, skip the shame, and treat it as information: what was missing, and what needs to change this time?"
+      },
+      {
+        "q": "What do we tell the kids?",
+        "a": "More than you think, in age-sized pieces. Kids already sense something is wrong; silence teaches them not to trust their own perception. Use the \"Seven Cs\": they didn't Cause it, can't Control it, can't Cure it — but they can learn to Cope, Communicate, make good Choices, and Celebrate themselves. Keep routines steady and let them ask anything."
+      },
+      {
+        "q": "Do we have to wait for rock bottom?",
+        "a": "No — that's one of the most damaging myths in addiction. \"Rock bottom\" is just the moment consequences finally outweigh denial, and you can raise the bottom by ending the cushioning that delays it. People enter treatment because of court dates, ultimatums, and interventions all the time, and their outcomes are as good as anyone's. Waiting risks the one bottom you can't come back from."
+      },
+      {
+        "q": "Why do I need support? I'm not the one using.",
+        "a": "Because addiction is a family illness: living alongside it rewires you toward vigilance, crisis management, and self-neglect. Your steadiness is also the single most powerful influence on your loved one — a regulated, boundaried family changes the equation. Groups, coaching, and your daily check-in here aren't extras; they're your treatment."
+      },
+      {
+        "q": "When is it an emergency?",
+        "a": "Call 911 for overdose signs — unresponsive, blue lips, slow or stopped breathing, gurgling. Call or text 988 for any talk of suicide or self-harm. Don't wait to be sure; being wrong and safe beats being right and late. Save both numbers in your phone now, and if opioids are involved, keep naloxone (Narcan) at home — no prescription needed in most states."
+      }
+    ]
   }
 }

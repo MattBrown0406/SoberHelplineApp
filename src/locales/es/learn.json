@@ -9,5 +9,59 @@
     "title": "Grabaciones anteriores",
     "body": "Mira las grabaciones de las reuniones anteriores de Family Squares en Zoom que te hayas perdido.",
     "button": "Abrir"
+  },
+  "faq": {
+    "eyebrow": "Preguntas frecuentes",
+    "sub": "Las preguntas que casi toda familia se hace — respondidas sin rodeos.",
+    "items": [
+      {
+        "q": "¿Es adicción o solo una etapa?",
+        "a": "Fíjate en las consecuencias, no en la cantidad. Cuando alguien sigue consumiendo a pesar del daño creciente — problemas de trabajo, confianza rota, sustos de salud, dinero que desaparece — ese patrón es la señal. No necesitas estar segura de que es \"adicción\" para tomarlo en serio; si su consumo está dañando a tu familia, eso ya justifica buscar apoyo."
+      },
+      {
+        "q": "¿Qué significan desintoxicación, residencial, PHP, IOP y ambulatorio?",
+        "a": "Son niveles de atención, del más al menos intensivo. La desintoxicación es la abstinencia con supervisión médica (días). Residencial significa vivir en un centro (normalmente 30–90 días). PHP son días completos de tratamiento durmiendo en casa; IOP son varias horas algunos días a la semana; ambulatorio son sesiones semanales. La mayoría va bajando de nivel al estabilizarse — el punto de partida depende de la seguridad, la sustancia y el historial."
+      },
+      {
+        "q": "¿El seguro pagará el tratamiento?",
+        "a": "Muchas veces sí, al menos en parte — las leyes de paridad exigen que la mayoría de los planes cubran el tratamiento de adicciones como cualquier otra atención médica. Llama al número de la tarjeta del seguro y pregunta por los \"beneficios para trastornos por uso de sustancias\", o deja que un centro verifique la cobertura (lo hacen a diario y es gratis). Pregunta por deducibles, centros dentro de la red y autorización previa antes de comprometerte."
+      },
+      {
+        "q": "¿Y si se niega a ir a tratamiento?",
+        "a": "El rechazo es una etapa, no un veredicto — la mayoría de quienes entran a tratamiento primero dijeron que no. Tu palanca es la constancia: límites claros, consecuencias que sí cumples e invitaciones tranquilas repetidas. La intervención guiada por un profesional existe exactamente para este momento. Y tu propio apoyo no debe esperar su sí — las familias se recuperan en paralelo, no después."
+      },
+      {
+        "q": "¿Estoy ayudando o facilitando?",
+        "a": "Una prueba útil: ¿esta acción protege a la persona o protege a la adicción de sus consecuencias? Llevarle a una reunión, comida, costear tratamiento — ayuda. Pagar sus deudas, llamar al trabajo por él o ella, tapar incidentes — eso amortigua la adicción. Facilitar casi siempre nace del amor y del miedo; nombrarlo no es culpa, es el primer límite."
+      },
+      {
+        "q": "¿Debería darle dinero?",
+        "a": "El efectivo en la adicción activa casi siempre termina en la sustancia, sea cual sea la razón declarada. Puedes decir no al dinero y sí a la necesidad detrás: paga directamente en la farmacia, lleva comida, cubre una cuota pagada al centro. \"Te quiero, y no doy efectivo\" es una frase completa."
+      },
+      {
+        "q": "¿Qué pasa realmente en una intervención?",
+        "a": "No es una emboscada — es una conversación planeada, ensayada y amorosa. La familia lee cartas preparadas que describen lo que ha visto, lo que siente y lo que pide, con el tratamiento ya organizado antes de empezar la conversación. Un intervencionista profesional maneja la sala, las objeciones y el seguimiento. La mayoría de las intervenciones bien planeadas terminan con la persona aceptando ayuda."
+      },
+      {
+        "q": "Recayó después del tratamiento. ¿Falló?",
+        "a": "La recaída es común en la recuperación de una adicción, como en otras condiciones crónicas — significa que el plan necesita ajustes, no que el tratamiento fue en vano ni que tu ser querido no tiene remedio. Lo que más importa es qué tan rápido se reconecta con el apoyo. Mantén tus límites, deja fuera la vergüenza y trátalo como información: ¿qué faltó y qué debe cambiar esta vez?"
+      },
+      {
+        "q": "¿Qué les decimos a los niños?",
+        "a": "Más de lo que crees, en porciones para su edad. Los niños ya sienten que algo anda mal; el silencio les enseña a desconfiar de su propia percepción. Usa las \"Siete C\": no lo Causaron, no lo pueden Controlar, no lo pueden Curar — pero sí pueden aprender a Cuidarse, Comunicarse, tomar buenas deCisiones y Celebrarse. Mantén las rutinas estables y deja que pregunten lo que sea."
+      },
+      {
+        "q": "¿Hay que esperar a que toque fondo?",
+        "a": "No — ese es uno de los mitos más dañinos de la adicción. \"Tocar fondo\" es solo el momento en que las consecuencias pesan más que la negación, y puedes subir ese fondo dejando de amortiguar lo que lo retrasa. La gente entra a tratamiento por citas en la corte, ultimátums e intervenciones todo el tiempo, y sus resultados son tan buenos como los de cualquiera. Esperar arriesga el único fondo del que no se vuelve."
+      },
+      {
+        "q": "¿Por qué necesito apoyo yo? No soy quien consume.",
+        "a": "Porque la adicción es una enfermedad familiar: vivir a su lado te reconfigura hacia la vigilancia, la gestión de crisis y el descuido propio. Tu estabilidad es además la influencia más poderosa sobre tu ser querido — una familia regulada y con límites cambia la ecuación. Los grupos, el coaching y tu registro diario aquí no son extras; son tu tratamiento."
+      },
+      {
+        "q": "¿Cuándo es una emergencia?",
+        "a": "Llama al 911 ante señales de sobredosis — no responde, labios azules, respiración lenta o detenida, gorgoteo. Llama o envía un mensaje al 988 ante cualquier mención de suicidio o autolesión. No esperes a estar segura; equivocarse y estar a salvo es mejor que tener razón y llegar tarde. Guarda ambos números en tu teléfono ahora, y si hay opioides, ten naloxona (Narcan) en casa — en la mayoría de los estados no requiere receta."
+      }
+    ]
   }
 }
