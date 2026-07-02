@@ -31,7 +31,38 @@
     "doneCoach": "{{orgFirst}} verá tu actualización.",
     "lowSupportTitle": "Una etapa difícil",
     "lowSupportBody": "Han sido {{count}} días difíciles últimamente — mucho para llevarlo sola. Un coach puede ayudarte a estabilizar las cosas en una hora privada, solo para ti.",
-    "lowSupportButton": "Hablar con un coach"
+    "lowSupportButton": "Hablar con un coach",
+    "milestone7": "🌱 Siete días cuidando de ti. Esa constancia es la forma en que las familias sanan.",
+    "milestone30": "🌿 Treinta días. Un mes de estabilidad — estás construyendo algo real.",
+    "milestone90": "🌳 Noventa días. Esto ya es parte de quién eres. Es un honor acompañarte.",
+    "graceUsed": "La vida se interpuso un día esta semana — te guardamos la racha. 💙"
+  },
+  "needs": {
+    "eyebrow": "¿Qué necesitas ahora mismo?",
+    "money": "Me pidió dinero",
+    "using": "Creo que está consumiendo otra vez",
+    "treatmentTalk": "¿Cómo hablo del tratamiento?",
+    "findTreatment": "Necesitamos encontrar tratamiento",
+    "boundary": "Necesito poner un límite",
+    "crisis": "Esto parece una emergencia"
+  },
+  "freeDaily": {
+    "eyebrow": "Guion gratuito de hoy",
+    "note": "Cada día se desbloquea aquí un nuevo guion de conversación."
+  },
+  "continueLetter": {
+    "eyebrow": "Retoma donde lo dejaste",
+    "title": "Tu carta para {{name}} te espera",
+    "titleNoName": "Tu borrador de carta te espera",
+    "cta": "Seguir escribiendo →"
+  },
+  "weekReview": {
+    "eyebrow": "Tu semana",
+    "title": "Mira lo que lograste esta semana",
+    "checkins": "{{count}} registros",
+    "avgMood": "ánimo promedio {{avg}}/5",
+    "boundaries": "{{count}} límites sostenidos",
+    "encourage": "Esta constancia es la recuperación vista desde la familia. Sigue así."
   },
   "focus": {
     "eyebrow": "Tu enfoque de hoy",
@@ -123,6 +154,7 @@
     "coaching": "Habla 1 a 1 con un coach",
     "intervention": "Planear una intervención con Matt",
     "coachingSub": "¿Cargando mucho esta semana? Una hora privada para planear tu próximo paso — $150.",
-    "interventionSub": "Cuando es momento de más que una app, Matt te acompañará paso a paso."
+    "interventionSub": "Cuando es momento de más que una app, Matt te acompañará paso a paso.",
+    "finderLink": "Encuentra tratamiento y apoyo cerca de ti →"
   }
 }

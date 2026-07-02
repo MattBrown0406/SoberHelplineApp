@@ -6,7 +6,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import type { MoodScore } from '../../api/types';
 
-type Row = { created_at: string; mood_score: MoodScore };
+type Row = { created_at: string; mood: MoodScore };
 
 const BAR_H = 56;
 
@@ -27,7 +27,7 @@ export function MoodChart({ accountId }: { accountId: string | null }) {
       const since = new Date(Date.now() - 14 * 86400000).toISOString();
       void supabase
         .from('checkins')
-        .select('created_at, mood_score')
+        .select('created_at, mood')
         .eq('account_id', accountId)
         .gte('created_at', since)
         .order('created_at', { ascending: true })
@@ -43,7 +43,7 @@ export function MoodChart({ accountId }: { accountId: string | null }) {
   });
 
   const byDate = new Map<string, MoodScore>();
-  rows.forEach((r) => byDate.set(r.created_at.slice(0, 10), r.mood_score));
+  rows.forEach((r) => byDate.set(r.created_at.slice(0, 10), r.mood));
 
   return (
     <View style={[styles.card, { borderColor: colors.line }]}>

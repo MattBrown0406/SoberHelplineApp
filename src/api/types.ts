@@ -167,6 +167,8 @@ export interface CheckInStreak {
   currentStreak: number;
   longestStreak: number;
   lastCompletedDate: string | null; // YYYY-MM-DD
+  /** True when the one-day grace forgave a gap in the current run. */
+  graceUsed?: boolean;
 }
 
 // ─── Boundaries ───────────────────────────────────────────────────────────────
@@ -240,6 +242,8 @@ export interface DailyFocusItem {
   accentColor: string;    // hex background for icon box
   actionType: 'script' | 'exercise' | 'reminder' | null;
   actionId: string | null;
+  /** Expo Router path the card opens; null renders a non-tappable row. */
+  route?: string | null;
 }
 
 /**

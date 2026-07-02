@@ -14,11 +14,15 @@ const MOODS: Array<{ score: MoodScore; emoji: string }> = [
 
 const SUPPORT_THRESHOLD = 3; // low-mood days in the last week before we offer a coach
 
+const MILESTONES = [7, 30, 90];
+
 interface Props {
   completed: boolean;
   selectedMood: MoodScore | null;
   onComplete: (mood: MoodScore) => Promise<void>;
   newStreak: number;
+  /** True when the streak's one-day grace forgave a missed day this run. */
+  graceUsed?: boolean;
   isAttached: boolean;
   orgName: string | null;
   /** Low-mood days from my_situation() drivers; ≥3 triggers the coaching offer. */
@@ -32,6 +36,7 @@ export function CheckInCard({
   selectedMood,
   onComplete,
   newStreak,
+  graceUsed = false,
   isAttached,
   orgName,
   lowMoodDays = 0,
@@ -133,6 +138,16 @@ export function CheckInCard({
           <Text style={[styles.doneText, { color: colors.green }]}>
             {doneText}{doneCoach}
           </Text>
+          {MILESTONES.includes(newStreak) && (
+            <Text style={[styles.milestoneText, { color: colors.green }]}>
+              {t(`checkIn.milestone${newStreak}`)}
+            </Text>
+          )}
+          {graceUsed && !MILESTONES.includes(newStreak) && (
+            <Text style={[styles.milestoneText, { color: colors.green }]}>
+              {t('checkIn.graceUsed')}
+            </Text>
+          )}
         </View>
       )}
 
@@ -231,6 +246,12 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     fontWeight: '600',
     lineHeight: 20,
+  },
+  milestoneText: {
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 19,
+    marginTop: 8,
   },
   supportBlock: {
     borderRadius: 14,

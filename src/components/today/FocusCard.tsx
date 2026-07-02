@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import type { DailyFocusItem } from '../../api/types';
@@ -11,34 +12,52 @@ interface Props {
 export function FocusCard({ items }: Props) {
   const { colors } = useTheme();
   const { t } = useTranslation('today');
+  const router = useRouter();
 
   return (
     <View style={[styles.card, { borderColor: colors.line }]}>
       <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
         {t('focus.eyebrow')}
       </Text>
-      {items.map((item, idx) => (
-        <View
-          key={item.id}
-          style={[
-            styles.item,
-            idx < items.length - 1 && {
-              borderBottomWidth: 1,
-              borderBottomColor: colors.line,
-            },
-          ]}
-        >
-          <View style={[styles.iconBox, { backgroundColor: item.accentColor }]}>
-            <Text style={styles.icon}>{item.icon}</Text>
+      {items.map((item, idx) => {
+        const rowStyle = [
+          styles.item,
+          idx < items.length - 1 && {
+            borderBottomWidth: 1,
+            borderBottomColor: colors.line,
+          },
+        ];
+        const inner = (
+          <>
+            <View style={[styles.iconBox, { backgroundColor: item.accentColor }]}>
+              <Text style={styles.icon}>{item.icon}</Text>
+            </View>
+            <View style={styles.text}>
+              <Text style={[styles.title, { color: colors.ink }]}>{item.title}</Text>
+              <Text style={[styles.subtitle, { color: colors.inkSoft }]}>
+                {item.subtitle}
+              </Text>
+            </View>
+            {item.route ? (
+              <Text style={[styles.chevron, { color: colors.inkSoft }]}>›</Text>
+            ) : null}
+          </>
+        );
+        return item.route ? (
+          <TouchableOpacity
+            key={item.id}
+            style={rowStyle}
+            activeOpacity={0.75}
+            onPress={() => router.push(item.route as never)}
+          >
+            {inner}
+          </TouchableOpacity>
+        ) : (
+          <View key={item.id} style={rowStyle}>
+            {inner}
           </View>
-          <View style={styles.text}>
-            <Text style={[styles.title, { color: colors.ink }]}>{item.title}</Text>
-            <Text style={[styles.subtitle, { color: colors.inkSoft }]}>
-              {item.subtitle}
-            </Text>
-          </View>
-        </View>
-      ))}
+        );
+      })}
     </View>
   );
 }
@@ -66,7 +85,7 @@ const styles = StyleSheet.create({
   item: {
     flexDirection: 'row',
     gap: 12,
-    alignItems: 'flex-start',
+    alignItems: 'center',
     paddingVertical: 11,
   },
   iconBox: {
@@ -89,4 +108,5 @@ const styles = StyleSheet.create({
     marginTop: 2,
     lineHeight: 16,
   },
+  chevron: { fontSize: 20, marginLeft: 2 },
 });

@@ -143,22 +143,26 @@ function computeStreak(datesDesc: string[]): CheckInStreak {
   // is forgiven so a busy day doesn't wipe out weeks of momentum. A second
   // missed day ends the streak.
   let current = 0;
+  let graceConsumed = false;
+  let countAtGrace = 0;
   const startDate = set.has(today) ? today : set.has(yesterday) ? yesterday : null;
   if (startDate) {
     const cursor = new Date(startDate + 'T12:00:00Z');
-    let graceUsed = false;
     while (true) {
       if (set.has(toDateStr(cursor))) {
         current++;
         cursor.setUTCDate(cursor.getUTCDate() - 1);
-      } else if (!graceUsed) {
-        graceUsed = true; // forgive one gap, then require the prior day to continue
+      } else if (!graceConsumed) {
+        graceConsumed = true; // forgive one gap, then require the prior day to continue
+        countAtGrace = current;
         cursor.setUTCDate(cursor.getUTCDate() - 1);
       } else {
         break;
       }
     }
   }
+  // Grace only "held" the streak if days were counted on the far side of the gap.
+  const graceUsed = graceConsumed && current > countAtGrace;
 
   const sorted = [...datesDesc].reverse();
   let longest = 0;
@@ -179,5 +183,6 @@ function computeStreak(datesDesc: string[]): CheckInStreak {
     currentStreak: current,
     longestStreak: Math.max(longest, current),
     lastCompletedDate: datesDesc[0] ?? null,
+    graceUsed,
   };
 }

@@ -83,6 +83,17 @@ export function SituationCard({ nextFreeCall, primaryDoor, onRsvp }: Props) {
               {t(DOOR_COPY_KEY[primaryDoor])}
             </Text>
           </TouchableOpacity>
+          {/* An escalated situation is exactly when "where do we get help" is
+              the live question — the finder is the answer, so offer it here. */}
+          <TouchableOpacity
+            onPress={() => router.push('/finder')}
+            activeOpacity={0.75}
+            style={styles.finderLink}
+          >
+            <Text style={[styles.finderLinkText, { color: colors.primary }]}>
+              {t('situationCta.finderLink')}
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
     </View>
@@ -114,4 +125,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   doorBtnText: { fontSize: 14.5, fontWeight: '700' },
+  finderLink: { alignItems: 'center', marginTop: 12 },
+  finderLinkText: { fontSize: 13, fontWeight: '600' },
 });

@@ -31,7 +31,38 @@
     "doneCoach": "{{orgFirst}} will see your update.",
     "lowSupportTitle": "A heavy stretch",
     "lowSupportBody": "That's {{count}} hard days lately — a lot to carry alone. A coach can help you steady things in one private hour, just for you.",
-    "lowSupportButton": "Talk to a coach"
+    "lowSupportButton": "Talk to a coach",
+    "milestone7": "🌱 Seven days of showing up for yourself. That consistency is how families heal.",
+    "milestone30": "🌿 Thirty days. A month of steadiness — you are building something real.",
+    "milestone90": "🌳 Ninety days. This is who you are now. We're honored to walk with you.",
+    "graceUsed": "Life happened one day this week — we held your streak for you. 💙"
+  },
+  "needs": {
+    "eyebrow": "What do you need right now?",
+    "money": "They asked me for money",
+    "using": "I think they're using again",
+    "treatmentTalk": "How do I bring up treatment?",
+    "findTreatment": "We need to find treatment",
+    "boundary": "I need to set a boundary",
+    "crisis": "This feels like an emergency"
+  },
+  "freeDaily": {
+    "eyebrow": "Today's free script",
+    "note": "A new conversation script unlocks here every day."
+  },
+  "continueLetter": {
+    "eyebrow": "Pick up where you left off",
+    "title": "Your letter to {{name}} is waiting",
+    "titleNoName": "Your letter draft is waiting",
+    "cta": "Continue writing →"
+  },
+  "weekReview": {
+    "eyebrow": "Your week",
+    "title": "Look at what you did this week",
+    "checkins": "{{count}} check-ins",
+    "avgMood": "average mood {{avg}}/5",
+    "boundaries": "{{count}} boundaries held",
+    "encourage": "Steadiness like this is what recovery looks like from the family side. Keep going."
   },
   "focus": {
     "eyebrow": "Today's focus",
@@ -123,6 +154,7 @@
     "coaching": "Talk 1:1 with a coach",
     "intervention": "Plan an intervention with Matt",
     "coachingSub": "Carrying a lot this week? A private hour to map your next move — $150.",
-    "interventionSub": "When it's time for more than an app, Matt will walk with you step by step."
+    "interventionSub": "When it's time for more than an app, Matt will walk with you step by step.",
+    "finderLink": "Find treatment & support near you →"
   }
 }

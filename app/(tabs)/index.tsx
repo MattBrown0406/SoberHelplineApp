@@ -11,8 +11,13 @@ import { FocusCard } from '../../src/components/today/FocusCard';
 import { MoodChart } from '../../src/components/today/MoodChart';
 import { FreeTierPaywall } from '../../src/components/ui/FreeTierPaywall';
 import { SituationCard } from '../../src/components/today/SituationCard';
+import { NeedsRouter } from '../../src/components/today/NeedsRouter';
+import { ContinueLetterCard } from '../../src/components/today/ContinueLetterCard';
+import { WeekReviewCard } from '../../src/components/today/WeekReviewCard';
+import { ScriptCard } from '../../src/components/scripts/ScriptCard';
 import { useCheckIn } from '../../src/hooks/useCheckIn';
 import { useTodayFeed } from '../../src/hooks/useTodayFeed';
+import { getDailyScriptPair } from '../../src/api/mock';
 import { isAdminEmail } from '../../src/lib/admin';
 import type { DailyFocusItem } from '../../src/api/types';
 import type { TFunction } from 'i18next';
@@ -23,7 +28,7 @@ export default function TodayScreen() {
   const { t } = useTranslation('today');
   const router = useRouter();
   const { todayCheckIn, streak, saveCheckIn } = useCheckIn(user?.id ?? null);
-  const { dayCount, boundariesHeld, groupSessions, quoteIndex, focusSlot, situation, primaryDoor, nextFreeCall, rsvpFreeCall } =
+  const { dayCount, boundariesHeld, groupSessions, quoteIndex, focusSlot, scriptSlot, situation, primaryDoor, nextFreeCall, rsvpFreeCall } =
     useTodayFeed(user?.id ?? null, user?.joinedAt ?? null);
   const isAdmin = isAdminEmail(user?.email);
 
@@ -42,9 +47,25 @@ export default function TodayScreen() {
     </View>
   );
 
-  // Free tier: lead with the free-call anchor + funnel door, then a slim upsell
-  // to unlock the rest of the app. The free call is never gated.
+  const checkInCard = (
+    <CheckInCard
+      completed={todayCheckIn !== null}
+      selectedMood={todayCheckIn?.moodScore ?? null}
+      onComplete={saveCheckIn}
+      newStreak={streak.currentStreak}
+      graceUsed={streak.graceUsed ?? false}
+      isAttached={isAttached}
+      orgName={user?.branding?.orgName ?? null}
+      lowMoodDays={situation.drivers.low_mood_days}
+      onTalkToCoach={isAttached ? undefined : () => router.push('/book-coaching')}
+    />
+  );
+
+  // Free tier: the free call stays the anchor, but the daily loop — check-in,
+  // streak, one free script, and the mood arc — is never gated. A habit that
+  // exists converts; a paywall in place of a habit does not.
   if (accountState === 'direct-free' && !isAdmin) {
+    const freeScript = getDailyScriptPair(scriptSlot)[0];
     return (
       <ScreenContainer backgroundColor={colors.cream}>
         {header}
@@ -53,6 +74,20 @@ export default function TodayScreen() {
           primaryDoor={primaryDoor}
           onRsvp={rsvpFreeCall}
         />
+        <NeedsRouter />
+        {checkInCard}
+        {freeScript && (
+          <>
+            <Text style={[styles.sectionLabel, { color: colors.inkSoft }]}>
+              {t('freeDaily.eyebrow').toUpperCase()}
+            </Text>
+            <ScriptCard script={freeScript} />
+            <Text style={[styles.freeNote, { color: colors.inkSoft }]}>
+              {t('freeDaily.note')}
+            </Text>
+          </>
+        )}
+        <MoodChart accountId={user?.id ?? null} />
         <FreeTierPaywall inline />
       </ScreenContainer>
     );
@@ -68,6 +103,8 @@ export default function TodayScreen() {
         onRsvp={rsvpFreeCall}
       />
 
+      <NeedsRouter />
+
       <HeroCard
         dayCount={dayCount}
         contextLabel={contextLabel}
@@ -77,16 +114,11 @@ export default function TodayScreen() {
         groupSessions={groupSessions}
       />
 
-      <CheckInCard
-        completed={todayCheckIn !== null}
-        selectedMood={todayCheckIn?.moodScore ?? null}
-        onComplete={saveCheckIn}
-        newStreak={streak.currentStreak}
-        isAttached={isAttached}
-        orgName={user?.branding?.orgName ?? null}
-        lowMoodDays={situation.drivers.low_mood_days}
-        onTalkToCoach={isAttached ? undefined : () => router.push('/book-coaching')}
-      />
+      {checkInCard}
+
+      <ContinueLetterCard accountId={user?.id ?? null} />
+
+      <WeekReviewCard accountId={user?.id ?? null} boundariesHeld={boundariesHeld} />
 
       <MoodChart accountId={user?.id ?? null} />
 
@@ -105,38 +137,38 @@ function buildFocusItems(t: TFunction<'today'>, slot: number): DailyFocusItem[] 
   const pools: DailyFocusItem[][] = [
     // Day 0 — conversation + boundaries
     [
-      { id: 'f-script', icon: '💬', title: t('focus.scriptPractice.title'), subtitle: t('focus.scriptPractice.subtitle'), accentColor: '#e8eef6', actionType: 'script', actionId: null },
-      { id: 'f-boundary', icon: '🛡️', title: t('focus.boundaryReview.title'), subtitle: t('focus.boundaryReview.subtitle'), accentColor: '#fdf3e3', actionType: 'exercise', actionId: null },
+      { id: 'f-script', icon: '💬', title: t('focus.scriptPractice.title'), subtitle: t('focus.scriptPractice.subtitle'), accentColor: '#e8eef6', actionType: 'script', actionId: null, route: '/(tabs)/scripts' },
+      { id: 'f-boundary', icon: '🛡️', title: t('focus.boundaryReview.title'), subtitle: t('focus.boundaryReview.subtitle'), accentColor: '#fdf3e3', actionType: 'exercise', actionId: null, route: '/(tabs)/boundaries' },
     ],
     // Day 1 — letter + breathe
     [
-      { id: 'f-letter', icon: '✉️', title: t('focus.letter.title'), subtitle: t('focus.letter.subtitle'), accentColor: '#e8eef6', actionType: 'exercise', actionId: null },
-      { id: 'f-breathe', icon: '🧘', title: t('focus.breathe.title'), subtitle: t('focus.breathe.subtitle'), accentColor: '#e9f2ec', actionType: null, actionId: null },
+      { id: 'f-letter', icon: '✉️', title: t('focus.letter.title'), subtitle: t('focus.letter.subtitle'), accentColor: '#e8eef6', actionType: 'exercise', actionId: null, route: '/letter' },
+      { id: 'f-breathe', icon: '🧘', title: t('focus.breathe.title'), subtitle: t('focus.breathe.subtitle'), accentColor: '#e9f2ec', actionType: null, actionId: null, route: '/rehearsal' },
     ],
     // Day 2 — group + tracker
     [
-      { id: 'f-group', icon: '🤝', title: t('focus.group.title'), subtitle: t('focus.group.subtitle'), accentColor: '#e8eef6', actionType: 'reminder', actionId: null },
-      { id: 'f-track', icon: '📊', title: t('focus.tracker.title'), subtitle: t('focus.tracker.subtitle'), accentColor: '#fdf3e3', actionType: 'exercise', actionId: null },
+      { id: 'f-group', icon: '🤝', title: t('focus.group.title'), subtitle: t('focus.group.subtitle'), accentColor: '#e8eef6', actionType: 'reminder', actionId: null, route: '/(tabs)/support' },
+      { id: 'f-track', icon: '📊', title: t('focus.tracker.title'), subtitle: t('focus.tracker.subtitle'), accentColor: '#fdf3e3', actionType: 'exercise', actionId: null, route: '/(tabs)/tracker' },
     ],
     // Day 3 — anchor + self care
     [
-      { id: 'f-anchor', icon: '⚓', title: t('focus.anchor.title'), subtitle: t('focus.anchor.subtitle'), accentColor: '#e8eef6', actionType: null, actionId: null },
-      { id: 'f-self', icon: '🌿', title: t('focus.selfCare.title'), subtitle: t('focus.selfCare.subtitle'), accentColor: '#e9f2ec', actionType: null, actionId: null },
+      { id: 'f-anchor', icon: '⚓', title: t('focus.anchor.title'), subtitle: t('focus.anchor.subtitle'), accentColor: '#e8eef6', actionType: null, actionId: null, route: '/(tabs)/boundaries' },
+      { id: 'f-self', icon: '🌿', title: t('focus.selfCare.title'), subtitle: t('focus.selfCare.subtitle'), accentColor: '#e9f2ec', actionType: null, actionId: null, route: null },
     ],
     // Day 4 — support network + enabling check
     [
-      { id: 'f-network', icon: '📞', title: t('focus.supportNetwork.title'), subtitle: t('focus.supportNetwork.subtitle'), accentColor: '#e8eef6', actionType: null, actionId: null },
-      { id: 'f-enabling', icon: '🔍', title: t('focus.enabling.title'), subtitle: t('focus.enabling.subtitle'), accentColor: '#fdf3e3', actionType: null, actionId: null },
+      { id: 'f-network', icon: '📞', title: t('focus.supportNetwork.title'), subtitle: t('focus.supportNetwork.subtitle'), accentColor: '#e8eef6', actionType: null, actionId: null, route: '/(tabs)/support' },
+      { id: 'f-enabling', icon: '🔍', title: t('focus.enabling.title'), subtitle: t('focus.enabling.subtitle'), accentColor: '#fdf3e3', actionType: null, actionId: null, route: '/(tabs)/boundaries' },
     ],
     // Day 5 — research + journal
     [
-      { id: 'f-research', icon: '📖', title: t('focus.research.title'), subtitle: t('focus.research.subtitle'), accentColor: '#e8eef6', actionType: null, actionId: null },
-      { id: 'f-journal', icon: '✏️', title: t('focus.journal.title'), subtitle: t('focus.journal.subtitle'), accentColor: '#e9f2ec', actionType: null, actionId: null },
+      { id: 'f-research', icon: '📖', title: t('focus.research.title'), subtitle: t('focus.research.subtitle'), accentColor: '#e8eef6', actionType: null, actionId: null, route: '/(tabs)/learn' },
+      { id: 'f-journal', icon: '✏️', title: t('focus.journal.title'), subtitle: t('focus.journal.subtitle'), accentColor: '#e9f2ec', actionType: null, actionId: null, route: '/(tabs)/tracker' },
     ],
     // Day 6 — opening line + check-in
     [
-      { id: 'f-opening', icon: '🎯', title: t('focus.openingLine.title'), subtitle: t('focus.openingLine.subtitle'), accentColor: '#e8eef6', actionType: null, actionId: null },
-      { id: 'f-checkin', icon: '📋', title: t('focus.dailyCheckIn.title'), subtitle: t('focus.dailyCheckIn.subtitle'), accentColor: '#fdf3e3', actionType: 'reminder', actionId: null },
+      { id: 'f-opening', icon: '🎯', title: t('focus.openingLine.title'), subtitle: t('focus.openingLine.subtitle'), accentColor: '#e8eef6', actionType: null, actionId: null, route: '/(tabs)/scripts' },
+      { id: 'f-checkin', icon: '📋', title: t('focus.dailyCheckIn.title'), subtitle: t('focus.dailyCheckIn.subtitle'), accentColor: '#fdf3e3', actionType: 'reminder', actionId: null, route: null },
     ],
   ];
   return pools[slot] ?? pools[0];
@@ -173,6 +205,19 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
     fontSize: 15,
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    marginBottom: 10,
+    marginTop: 4,
+  },
+  freeNote: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginBottom: 12,
   },
   adminLink: { alignSelf: 'center', marginTop: 32, paddingVertical: 8, paddingHorizontal: 16 },
   adminLinkText: { fontSize: 12 },
