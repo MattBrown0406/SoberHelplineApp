@@ -70,6 +70,20 @@ export async function rearmDailyNudge(): Promise<void> {
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: fire },
     });
   }
+
+  // Sunday 6pm week-in-review — the weekly payoff that pairs with the
+  // WeekReviewCard on Today. One-shot; re-armed on every foreground.
+  const sunday = new Date();
+  sunday.setHours(18, 0, 0, 0);
+  sunday.setDate(sunday.getDate() + ((7 - sunday.getDay()) % 7));
+  if (sunday <= now) sunday.setDate(sunday.getDate() + 7);
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: i18n.t('settings:notifications.weekReviewTitle'),
+      body: i18n.t('settings:notifications.weekReviewBody'),
+    },
+    trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: sunday },
+  });
 }
 
 export async function registerForPushNotifications(accountId: string): Promise<void> {

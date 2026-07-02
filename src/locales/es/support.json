@@ -146,7 +146,10 @@
     "timeNow": "ahora mismo",
     "timeMinutes": "hace {{count}}m",
     "timeHours": "hace {{count}}h",
-    "timeDays": "hace {{count}}d"
+    "timeDays": "hace {{count}}d",
+    "support": "Enviar apoyo",
+    "supported": "Apoyo enviado",
+    "supportReceived": "{{count}} familias te enviaron apoyo"
   },
   "chat": {
     "headerSub": "Coach de guardia · responde en cuanto puede · no es para emergencias",
@@ -158,8 +161,8 @@
     "archiveConfirm": "Archivar e iniciar nueva",
     "archiveCancel": "Cancelar",
     "reactionDone": "Listo",
-    "presenceTitle": "{{coach}} está aquí para ti",
-    "presenceBody": "Cuéntale lo que está pasando — grande o pequeño. {{coach}} lee tus mensajes entre sesiones en vivo y responde en cuanto puede.",
+    "presenceTitle": "Pregúntale lo que sea a {{coach}}",
+    "presenceBody": "Ninguna pregunta es demasiado pequeña ni demasiado complicada — el seguro, una conversación difícil, algo que viste anoche. {{coach}} lee cada mensaje y un coach de verdad responde en unas horas dentro del horario laboral.",
     "presenceNextSession": "Próxima sesión en vivo · {{schedule}}"
   },
   "intervention": {
@@ -210,7 +213,11 @@
     "eyebrow": "PROTOCOLO DE CRISIS",
     "heading": "Guía de crisis",
     "sub": "Pasos a seguir cuando está pasando ahora mismo.",
-    "tabs": ["Sobredosis", "Autolesión", "Conducta peligrosa"],
+    "tabs": [
+      "Sobredosis",
+      "Autolesión",
+      "Conducta peligrosa"
+    ],
     "overdose": {
       "title": "Sobredosis sospechada",
       "steps": [

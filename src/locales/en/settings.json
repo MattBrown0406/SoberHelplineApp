@@ -30,7 +30,9 @@
     "reminderMorning": "Morning",
     "reminderMidday": "Midday",
     "reminderEvening": "Evening",
-    "reminderNight": "Night"
+    "reminderNight": "Night",
+    "weekReviewTitle": "Your week, at a glance",
+    "weekReviewBody": "You showed up this week. Open the app to see your check-ins, mood arc, and boundaries held."
   },
   "membership": {
     "eyebrow": "Membership",

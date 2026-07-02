@@ -30,7 +30,9 @@
     "reminderMorning": "Mañana",
     "reminderMidday": "Mediodía",
     "reminderEvening": "Tarde",
-    "reminderNight": "Noche"
+    "reminderNight": "Noche",
+    "weekReviewTitle": "Tu semana, de un vistazo",
+    "weekReviewBody": "Esta semana diste el paso. Abre la app para ver tus registros, tu ánimo y los límites que sostuviste."
   },
   "membership": {
     "eyebrow": "Membresía",
