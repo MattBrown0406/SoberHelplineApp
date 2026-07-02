@@ -63,13 +63,16 @@ export default function AdminScreen() {
     const { data: funnelData } = await supabase.rpc('admin_funnel_stats');
     if (funnelData) setFunnel(funnelData as FunnelStats);
 
-    // Load current Zoom URL
+    // Load current Zoom URL. Tolerant title match: the prod row is titled
+    // 'The Family Squares' (older seeds used 'Monday Night Family Support').
     const { data: session } = await supabase
       .from('sessions')
       .select('zoom_url')
-      .eq('title', 'Monday Night Family Support')
-      .single();
-    if (session?.zoom_url) setZoomUrl(session.zoom_url);
+      .in('title', ['The Family Squares', 'Monday Night Family Support'])
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    setZoomUrl(session?.zoom_url ?? '');
 
     // Load RSVPs
     setLoadingRsvps(true);

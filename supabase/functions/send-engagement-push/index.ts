@@ -13,7 +13,6 @@ const corsHeaders = {
 };
 
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
-const SESSION_TITLE = "Monday Night Family Support";
 const CHUNK = 100; // Expo push API max messages per request
 
 type PushMessage = { to: string; title: string; body: string; sound: "default" };
@@ -94,9 +93,9 @@ serve(async (req) => {
 
   // ── session_reminder: RSVP'd members, 1h before the Monday group ───────────
   if (job === "session_reminder") {
-    const { data, error } = await supabase.rpc("get_session_reminder_targets", {
-      p_session_title: SESSION_TITLE,
-    });
+    // No title arg: the RPC resolves the Family Squares session itself
+    // (tolerant to the title mismatch that silently broke earlier queries).
+    const { data, error } = await supabase.rpc("get_session_reminder_targets");
     if (error) return json({ error: error.message }, 500);
     const targets = (data ?? []) as { push_token: string; locale: string | null }[];
     const seen = new Set<string>();
@@ -107,7 +106,7 @@ serve(async (req) => {
       const es = (target.locale ?? "en").startsWith("es");
       messages.push({
         to: target.push_token,
-        title: es ? "Grupo de Apoyo Familiar — Lunes" : "Monday Night Family Support",
+        title: "The Family Squares",
         body: es
           ? "Tu grupo comienza en aproximadamente una hora. Tu lugar está guardado — ven tal como estás."
           : "Your group starts in about an hour. Your seat is saved — come as you are.",

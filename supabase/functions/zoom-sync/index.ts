@@ -18,7 +18,10 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const MEETING_TOPIC_MATCH = Deno.env.get('ZOOM_TOPIC_MATCH') ?? 'Family Squares';
-const SESSION_TITLE = 'Monday Night Family Support';
+// Tolerant match: the prod row is titled 'The Family Squares'; older seeds used
+// 'Monday Night Family Support'. Matching only the old title silently updated
+// zero rows.
+const SESSION_TITLES = ['The Family Squares', 'Monday Night Family Support'];
 
 async function zoomToken(): Promise<string> {
   const id = Deno.env.get('ZOOM_CLIENT_ID')!;
@@ -54,13 +57,17 @@ Deno.serve(async () => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from('sessions')
       .update({ zoom_url: next.join_url, next_at: next.start_time })
-      .eq('title', SESSION_TITLE);
+      .in('title', SESSION_TITLES)
+      .select('id');
     if (error) return new Response(error.message, { status: 500 });
+    if (!updated?.length) {
+      return new Response('no session row matched — zoom link NOT saved', { status: 500 });
+    }
 
-    return new Response(`updated → ${next.start_time}`);
+    return new Response(`updated ${updated.length} row(s) → ${next.start_time}`);
   } catch (e) {
     return new Response(String(e), { status: 500 });
   }
