@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import {
   DEFAULT_SITUATION,
@@ -99,6 +100,14 @@ export function useTodayFeed(
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Refetch when the screen regains focus so an admin-updated Zoom link (or
+  // fresh RSVP counts) reach members whose app was already open.
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   const rsvpFreeCall = useCallback(async () => {
     if (!accountId || !nextFreeCall) return;

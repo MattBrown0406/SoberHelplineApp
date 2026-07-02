@@ -619,7 +619,7 @@ export default function SupportScreen() {
                         {sessionTypeKey(sess.kind, t)} · {sess.schedule_label}
                       </Text>
                     </View>
-                    {sess.rsvped && sess.zoom_url ? (
+                    {sess.zoom_url ? (
                       <TouchableOpacity
                         style={[styles.sessionBtn, { backgroundColor: colors.green, borderColor: colors.green }]}
                         activeOpacity={0.8}
@@ -697,7 +697,7 @@ export default function SupportScreen() {
                         {sess.schedule_label}
                       </Text>
                     </View>
-                    {sess.rsvped && sess.zoom_url ? (
+                    {sess.zoom_url ? (
                       <TouchableOpacity
                         style={[styles.sessionBtn, { backgroundColor: colors.green, borderColor: colors.green }]}
                         activeOpacity={0.8}
@@ -898,7 +898,7 @@ export default function SupportScreen() {
                         {sessionTypeKey(sess.kind, t)} · {sess.schedule_label}
                       </Text>
                     </View>
-                    {sess.rsvped && sess.zoom_url ? (
+                    {sess.zoom_url ? (
                       <TouchableOpacity
                         style={[styles.sessionBtn, { backgroundColor: colors.green, borderColor: colors.green }]}
                         activeOpacity={0.8}

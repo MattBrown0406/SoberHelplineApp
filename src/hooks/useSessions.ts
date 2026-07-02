@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { supabase } from '../lib/supabase';
 
 export interface DbSession {
@@ -36,6 +37,13 @@ export function useSessions(accountId: string | null) {
   useEffect(() => {
     if (accountId) load();
   }, [accountId, load]);
+
+  // Refetch on focus so an admin-updated Zoom link reaches already-open apps.
+  useFocusEffect(
+    useCallback(() => {
+      if (accountId) void load();
+    }, [accountId, load]),
+  );
 
   const toggleRsvp = useCallback(
     async (session: DbSession) => {

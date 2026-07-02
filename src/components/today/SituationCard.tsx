@@ -25,7 +25,9 @@ export function SituationCard({ nextFreeCall, primaryDoor, onRsvp }: Props) {
 
   const title = nextFreeCall?.title ?? t('situationCta.freeCallTitle');
   const schedule = nextFreeCall?.schedule_label ?? t('situationCta.scheduleFallback');
-  const canJoin = nextFreeCall?.rsvped && nextFreeCall?.zoom_url;
+  // Anyone can join once the admin has set the link — RSVP is encouraged for
+  // headcount but never a gate ("push of a button", no link required).
+  const canJoin = !!nextFreeCall?.zoom_url;
   const doorRoute = DOOR_ROUTE[primaryDoor];
 
   return (
@@ -35,16 +37,25 @@ export function SituationCard({ nextFreeCall, primaryDoor, onRsvp }: Props) {
       <Text style={[styles.schedule, { color: colors.inkSoft }]}>{schedule}</Text>
 
       {canJoin ? (
-        <TouchableOpacity
-          style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
-          onPress={() => {
-            logFunnelEvent('attended', { source: 'today' });
-            void Linking.openURL(nextFreeCall!.zoom_url!);
-          }}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.primaryBtnText}>{t('situationCta.join')}</Text>
-        </TouchableOpacity>
+        <>
+          <TouchableOpacity
+            style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
+            onPress={() => {
+              logFunnelEvent('attended', { source: 'today' });
+              void Linking.openURL(nextFreeCall!.zoom_url!);
+            }}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.primaryBtnText}>{t('situationCta.join')}</Text>
+          </TouchableOpacity>
+          {!nextFreeCall?.rsvped && (
+            <TouchableOpacity onPress={onRsvp} activeOpacity={0.75} style={styles.rsvpLink}>
+              <Text style={[styles.rsvpLinkText, { color: colors.primary }]}>
+                {t('situationCta.rsvp')}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </>
       ) : (
         <TouchableOpacity
           style={[
@@ -127,4 +138,6 @@ const styles = StyleSheet.create({
   doorBtnText: { fontSize: 14.5, fontWeight: '700' },
   finderLink: { alignItems: 'center', marginTop: 12 },
   finderLinkText: { fontSize: 13, fontWeight: '600' },
+  rsvpLink: { alignItems: 'center', marginTop: 10 },
+  rsvpLinkText: { fontSize: 13, fontWeight: '600' },
 });
