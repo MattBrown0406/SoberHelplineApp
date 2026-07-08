@@ -46,6 +46,7 @@ export type AccountState = 'attached' | 'direct-free' | 'direct-essential' | 'di
 export interface Entitlements {
   canMessageOnCallCoach: boolean;    // Essential + Premium + attached
   canCallCoach: boolean;             // Premium + attached (during coach biz hours)
+  canAccessPrivateVideo: boolean;    // Premium + attached private in-app video sessions
   canCallAfterHours: boolean;        // add-on (TBD mechanics) + some attached tiers
   canAccessGroups: boolean;          // Essential + Premium + attached
   canAccessLearningContent: boolean; // all tiers including free/unauthenticated

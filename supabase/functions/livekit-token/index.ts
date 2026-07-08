@@ -1,16 +1,13 @@
 // LiveKit access-token minting — Supabase Edge Function
 //
 // The app NEVER holds the LiveKit API secret. It calls this function, which
-// verifies the user's Supabase session, decides their role (host vs viewer),
-// and returns a short-lived LiveKit JWT scoped to one room.
+// verifies the user's Supabase session, decides their role, and returns a
+// short-lived LiveKit JWT scoped to one room.
 //
-// Setup:
-//   supabase secrets set LIVEKIT_API_KEY=... LIVEKIT_API_SECRET=...
-//   supabase functions deploy livekit-token
-//
-// Host rights (publish camera/mic + moderate) are granted only to accounts
-// listed as a host for the group. Everyone else is view-only (canPublish=false),
-// which is what keeps attendees anonymous — no attendee video, ever.
+// Room models:
+//   1) Group/live rooms: Matt/admin can publish; members can watch/chat.
+//   2) Premium private video rooms: Matt/admin and the session owner can both
+//      publish camera/mic; everyone else is denied.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { AccessToken } from 'npm:livekit-server-sdk@2';
@@ -20,6 +17,18 @@ const cors = {
   'Access-Control-Allow-Headers': 'authorization, content-type',
 };
 
+type Account = {
+  id: string;
+  first_name: string | null;
+};
+
+type PrivateVideoSession = {
+  id: string;
+  account_id: string;
+  room_name: string;
+  status: 'requested' | 'scheduled' | 'live' | 'completed' | 'cancelled';
+};
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
 
@@ -27,13 +36,13 @@ Deno.serve(async (req) => {
     const { room } = await req.json();
     if (!room) return json({ error: 'room required' }, 400);
 
-    // Verify caller via their Supabase JWT
     const authHeader = req.headers.get('Authorization') ?? '';
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')!,
       { global: { headers: { Authorization: authHeader } } },
     );
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return json({ error: 'unauthorized' }, 401);
 
@@ -41,43 +50,130 @@ Deno.serve(async (req) => {
       .from('accounts')
       .select('id, first_name')
       .eq('user_id', user.id)
-      .single();
+      .single<Account>();
     if (!account) return json({ error: 'no account' }, 403);
 
-    // Host check: only the owner admin account may broadcast.
-    // A stale/accidental group_hosts row is not enough to receive publish grants.
     const isAdmin = user.email?.trim().toLowerCase() === 'matt@soberhelpline.com';
-    const { data: hostRow } = await supabase
-      .from('group_hosts')
-      .select('account_id')
-      .eq('room_name', room)
-      .eq('account_id', account.id)
-      .maybeSingle();
-    const isHost = isAdmin && !!hostRow;
+    const privateSession = await getPrivateVideoSession(supabase, room);
 
-    const at = new AccessToken(
-      Deno.env.get('LIVEKIT_API_KEY')!,
-      Deno.env.get('LIVEKIT_API_SECRET')!,
-      {
-        identity: account.id,
-        name: account.first_name ?? 'Member',
-        ttl: '2h',
-      },
-    );
-    at.addGrant({
-      room,
-      roomJoin: true,
-      canPublish: isHost,            // only hosts broadcast video/audio
-      canPublishData: true,          // everyone can post chat/questions
-      canSubscribe: true,
-      roomAdmin: isHost,             // hosts can remove participants
-    });
+    if (privateSession) {
+      return privateVideoToken(room, account, privateSession, isAdmin);
+    }
 
-    return json({ token: await at.toJwt(), isHost, identity: account.id });
+    return groupRoomToken(supabase, room, account, isAdmin);
   } catch (e) {
     return json({ error: String(e) }, 500);
   }
 });
+
+async function getPrivateVideoSession(supabase: ReturnType<typeof createClient>, room: string) {
+  const { data, error } = await supabase
+    .from('video_sessions')
+    .select('id, account_id, room_name, status')
+    .eq('room_name', room)
+    .maybeSingle<PrivateVideoSession>();
+
+  if (error) throw error;
+  return data;
+}
+
+async function privateVideoToken(
+  room: string,
+  account: Account,
+  session: PrivateVideoSession,
+  isAdmin: boolean,
+) {
+  if (session.status === 'completed' || session.status === 'cancelled') {
+    return json({ error: 'session closed' }, 403);
+  }
+
+  const isOwner = session.account_id === account.id;
+  if (!isAdmin && !isOwner) {
+    return json({ error: 'not authorized for this private video session' }, 403);
+  }
+
+  const token = await buildToken({
+    room,
+    account,
+    canPublish: true,
+    roomAdmin: isAdmin,
+    ttl: '2h',
+  });
+
+  return json({
+    token,
+    isHost: isAdmin,
+    isPrivateVideo: true,
+    canPublish: true,
+    identity: account.id,
+  });
+}
+
+async function groupRoomToken(
+  supabase: ReturnType<typeof createClient>,
+  room: string,
+  account: Account,
+  isAdmin: boolean,
+) {
+  const { data: hostRow } = await supabase
+    .from('group_hosts')
+    .select('account_id')
+    .eq('room_name', room)
+    .eq('account_id', account.id)
+    .maybeSingle();
+  const isHost = isAdmin && !!hostRow;
+
+  const token = await buildToken({
+    room,
+    account,
+    canPublish: isHost,
+    roomAdmin: isHost,
+    ttl: '2h',
+  });
+
+  return json({
+    token,
+    isHost,
+    isPrivateVideo: false,
+    canPublish: isHost,
+    identity: account.id,
+  });
+}
+
+async function buildToken({
+  room,
+  account,
+  canPublish,
+  roomAdmin,
+  ttl,
+}: {
+  room: string;
+  account: Account;
+  canPublish: boolean;
+  roomAdmin: boolean;
+  ttl: string;
+}) {
+  const at = new AccessToken(
+    Deno.env.get('LIVEKIT_API_KEY')!,
+    Deno.env.get('LIVEKIT_API_SECRET')!,
+    {
+      identity: account.id,
+      name: account.first_name ?? 'Member',
+      ttl,
+    },
+  );
+
+  at.addGrant({
+    room,
+    roomJoin: true,
+    canPublish,
+    canPublishData: true,
+    canSubscribe: true,
+    roomAdmin,
+  });
+
+  return at.toJwt();
+}
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {

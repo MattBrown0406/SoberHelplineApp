@@ -87,6 +87,7 @@ const SAM: StaffMember = {
 const ATTACHED_ENTITLEMENTS: Entitlements = {
   canMessageOnCallCoach: true,
   canCallCoach: true,
+  canAccessPrivateVideo: true,
   canCallAfterHours: true,
   canAccessGroups: true,
   canAccessLearningContent: true,
@@ -96,6 +97,7 @@ const ATTACHED_ENTITLEMENTS: Entitlements = {
 const ESSENTIAL_ENTITLEMENTS: Entitlements = {
   canMessageOnCallCoach: true,
   canCallCoach: false,
+  canAccessPrivateVideo: false,
   canCallAfterHours: false,
   canAccessGroups: true,
   canAccessLearningContent: true,
@@ -105,6 +107,7 @@ const ESSENTIAL_ENTITLEMENTS: Entitlements = {
 const PREMIUM_ENTITLEMENTS: Entitlements = {
   canMessageOnCallCoach: true,
   canCallCoach: true,
+  canAccessPrivateVideo: true,
   canCallAfterHours: false,
   canAccessGroups: true,
   canAccessLearningContent: true,

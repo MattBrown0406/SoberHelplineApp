@@ -18,8 +18,8 @@
       "bundleIdentifier": "com.soberhelplineapp",
       "buildNumber": "5",
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "Sober Helpline records practice sessions only when you tap record, and they stay on your device.",
-        "NSCameraUsageDescription": "Sober Helpline uses your camera only during live group sessions that you choose to host.",
+        "NSMicrophoneUsageDescription": "Sober Helpline uses your microphone only during practice recording, live group sessions, and private video support sessions you choose to join.",
+        "NSCameraUsageDescription": "Sober Helpline uses your camera only during live group sessions and private video support sessions you choose to join.",
         "NSPhotoLibraryUsageDescription": "Sober Helpline lets you attach screenshots to your private in-app support thread when you choose to share them.",
         "UISupportedInterfaceOrientations": [
           "UIInterfaceOrientationPortrait",

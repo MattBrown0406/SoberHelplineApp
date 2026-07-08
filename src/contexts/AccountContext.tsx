@@ -8,6 +8,7 @@ import { configureRevenueCat, getIsActivePremium, getIsActiveEssential } from '.
 const DEFAULT_ENTITLEMENTS: Entitlements = {
   canMessageOnCallCoach: false,
   canCallCoach: false,
+  canAccessPrivateVideo: false,
   canCallAfterHours: false,
   canAccessGroups: false,
   canAccessLearningContent: true,
@@ -157,6 +158,7 @@ function buildAuthUser({
   const entitlements: Entitlements = {
     canMessageOnCallCoach: isPaid,
     canCallCoach: accountState === 'attached' || accountState === 'direct-premium',
+    canAccessPrivateVideo: accountState === 'attached' || accountState === 'direct-premium',
     canCallAfterHours: accountState === 'attached',
     canAccessGroups: isPaid,
     canAccessLearningContent: true,

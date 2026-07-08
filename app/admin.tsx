@@ -40,6 +40,20 @@ type ThreadRow = {
   risk_level: string | null;
   status: string | null;
 };
+type VideoSessionRow = {
+  id: string;
+  account_id: string;
+  room_name: string;
+  status: 'requested' | 'scheduled' | 'live' | 'completed' | 'cancelled';
+  scheduled_for: string | null;
+  started_at: string | null;
+  ended_at: string | null;
+  created_at: string;
+  updated_at: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+};
 
 export default function AdminScreen() {
   const router = useRouter();
@@ -59,6 +73,9 @@ export default function AdminScreen() {
   const [threads, setThreads] = useState<ThreadRow[]>([]);
   const [loadingThreads, setLoadingThreads] = useState(true);
   const [archivingThread, setArchivingThread] = useState<string | null>(null);
+  const [videoSessions, setVideoSessions] = useState<VideoSessionRow[]>([]);
+  const [loadingVideoSessions, setLoadingVideoSessions] = useState(true);
+  const [updatingVideoSession, setUpdatingVideoSession] = useState<string | null>(null);
   const [funnel, setFunnel] = useState<FunnelStats | null>(null);
 
   // Guard: non-admin users should never reach this screen, but redirect just in case
@@ -96,6 +113,12 @@ export default function AdminScreen() {
     if (!qError && qData) setQuestions(qData as QuestionRow[]);
     setLoadingQuestions(false);
 
+    // Load private premium video requests
+    setLoadingVideoSessions(true);
+    const { data: vData, error: vError } = await supabase.rpc('admin_get_video_sessions');
+    if (!vError && vData) setVideoSessions(vData as VideoSessionRow[]);
+    setLoadingVideoSessions(false);
+
     // Load active member conversations
     setLoadingThreads(true);
     const { data: tData, error: tError } = await supabase.rpc('admin_get_active_threads');
@@ -119,6 +142,17 @@ export default function AdminScreen() {
       setIsEditing(false);
     }
   }, [editingUrl]);
+
+  const updateVideoSession = useCallback(async (sessionId: string, status: VideoSessionRow['status']) => {
+    setUpdatingVideoSession(sessionId);
+    const { error } = await supabase.rpc('admin_update_video_session', {
+      p_session_id: sessionId,
+      p_status: status,
+    });
+    setUpdatingVideoSession(null);
+    if (error) Alert.alert('Video session error', error.message);
+    else void loadData();
+  }, [loadData]);
 
   if (!user || !isAdmin) return null;
 
@@ -274,6 +308,68 @@ export default function AdminScreen() {
         )}
       </View>
 
+      {/* ── Private Video Sessions ── */}
+      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
+        <Text style={[styles.cardTitle, { color: colors.ink }]}>Premium Video Sessions ({videoSessions.length})</Text>
+        {loadingVideoSessions ? (
+          <ActivityIndicator color={colors.primary} style={{ marginTop: 16 }} />
+        ) : videoSessions.length === 0 ? (
+          <Text style={[styles.emptyText, { color: colors.inkSoft }]}>No private video requests yet.</Text>
+        ) : (
+          <FlatList
+            data={videoSessions}
+            keyExtractor={(item) => item.id}
+            scrollEnabled={false}
+            ItemSeparatorComponent={() => <View style={[styles.separator, { backgroundColor: colors.line }]} />}
+            renderItem={({ item }) => (
+              <View style={styles.videoSessionRow}>
+                <View style={styles.threadInfo}>
+                  <View style={styles.threadNameRow}>
+                    <Text style={[styles.rsvpName, { color: colors.ink }]}>
+                      {item.first_name ?? 'Member'} {item.last_name ?? ''}
+                    </Text>
+                    <View style={[styles.statusPill, { backgroundColor: item.status === 'live' ? colors.greenLight : colors.primaryLight }]}>
+                      <Text style={[styles.statusPillText, { color: item.status === 'live' ? colors.green : colors.primary }]}>{item.status}</Text>
+                    </View>
+                  </View>
+                  <Text style={[styles.threadPreview, { color: colors.inkSoft }]} numberOfLines={1}>{item.email ?? item.account_id}</Text>
+                  <Text style={[styles.threadMeta, { color: colors.inkSoft }]}>Requested {new Date(item.created_at).toLocaleDateString()}</Text>
+                </View>
+                <View style={styles.videoSessionActions}>
+                  <TouchableOpacity
+                    style={[styles.smallBtn, { borderColor: colors.primary }]}
+                    onPress={() => router.push({ pathname: '/video-session', params: { room: item.room_name } })}
+                  >
+                    <Text style={[styles.smallBtnText, { color: colors.primary }]}>Join</Text>
+                  </TouchableOpacity>
+                  {item.status !== 'live' && item.status !== 'completed' && item.status !== 'cancelled' && (
+                    <TouchableOpacity
+                      style={[styles.smallBtn, { borderColor: colors.green }]}
+                      disabled={updatingVideoSession === item.id}
+                      onPress={() => void updateVideoSession(item.id, 'live')}
+                    >
+                      <Text style={[styles.smallBtnText, { color: colors.green }]}>Start</Text>
+                    </TouchableOpacity>
+                  )}
+                  {item.status !== 'completed' && item.status !== 'cancelled' && (
+                    <TouchableOpacity
+                      style={[styles.smallBtn, { borderColor: colors.line }]}
+                      disabled={updatingVideoSession === item.id}
+                      onPress={() => void updateVideoSession(item.id, 'completed')}
+                    >
+                      <Text style={[styles.smallBtnText, { color: colors.inkSoft }]}>Done</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            )}
+          />
+        )}
+        <TouchableOpacity onPress={loadData} style={{ marginTop: 16 }}>
+          <Text style={[styles.refreshText, { color: colors.primary }]}>Refresh</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* ── Member Conversations ── */}
       <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
         <Text style={[styles.cardTitle, { color: colors.ink }]}>
@@ -426,6 +522,12 @@ const styles = StyleSheet.create({
   unreadBadgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
   threadPreview: { fontSize: 13, marginTop: 2 },
   threadMeta: { fontSize: 11, marginTop: 3 },
+  videoSessionRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 12 },
+  videoSessionActions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 6, maxWidth: 180 },
+  statusPill: { borderRadius: 99, paddingVertical: 3, paddingHorizontal: 8 },
+  statusPillText: { fontSize: 10.5, fontWeight: '800', textTransform: 'uppercase' },
+  smallBtn: { borderWidth: 1, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 10 },
+  smallBtnText: { fontSize: 12, fontWeight: '800' },
   threadActions: { alignItems: 'flex-end', gap: 8 },
   openThreadText: { fontSize: 12, fontWeight: '800' },
   archiveThreadBtn: { borderWidth: 1, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12 },

@@ -27,6 +27,7 @@ import {
 import { useSessions, type DbSession } from '../../src/hooks/useSessions';
 import { useGroupPresence } from '../../src/hooks/useGroupPresence';
 import { useGroupRsvps } from '../../src/hooks/useGroupRsvps';
+import { usePrivateVideoSessions } from '../../src/hooks/usePrivateVideoSessions';
 import { GROUPS_URL, FEATURED_PROVIDER } from '../../src/config';
 import { useIAP } from '../../src/hooks/useIAP';
 import { useSituation } from '../../src/hooks/useSituation';
@@ -444,7 +445,7 @@ function StaffChip({
 
 export default function SupportScreen() {
   const { colors } = useTheme();
-  const { user, isAttached, accountState, refreshAccount } = useAccount();
+  const { user, isAttached, accountState, entitlements, refreshAccount } = useAccount();
   const { t } = useTranslation('support');
   const { current, change, languages } = useLanguage();
   const router = useRouter();
@@ -505,7 +506,26 @@ export default function SupportScreen() {
   const groups = getMockSupportGroups();
   const { myRooms, liveRooms } = useGroupPresence(user?.id ?? null);
   const { rsvpedRooms, toggleRsvp: toggleGroupRsvp } = useGroupRsvps(user?.id ?? null);
+  const canAccessPrivateVideo = !!user && entitlements.canAccessPrivateVideo;
+  const {
+    activeSession: privateVideoSession,
+    loading: loadingPrivateVideo,
+    requesting: requestingPrivateVideo,
+    error: privateVideoError,
+    requestSession: requestPrivateVideoSession,
+  } = usePrivateVideoSessions(user?.id ?? null, canAccessPrivateVideo);
   const isAdmin = isAdminEmail(user?.email);
+
+  async function handlePrivateVideoRequest() {
+    if (!canAccessPrivateVideo) {
+      setUpgradeOpen(true);
+      return;
+    }
+    const session = privateVideoSession ?? await requestPrivateVideoSession();
+    if (session?.status === 'live') {
+      router.push({ pathname: '/video-session' as never, params: { room: session.room_name } });
+    }
+  }
 
   return (
     <ScreenContainer backgroundColor={colors.cream}>
@@ -861,6 +881,34 @@ export default function SupportScreen() {
                 <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
                   {t('chat.openButton')}
                 </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={[styles.card, { borderColor: colors.line }]}>
+              <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>PRIVATE VIDEO SUPPORT</Text>
+              <Text style={[styles.referralTitle, { color: colors.ink }]}>Premium private video session</Text>
+              <Text style={[styles.referralBody, { color: colors.inkSoft }]}>Included for Premium members. Request a private in-app video support session; this is not an emergency service.</Text>
+              {privateVideoSession ? (
+                <View style={[styles.videoStatusBox, { backgroundColor: colors.primaryLight, borderColor: colors.primary }]}>
+                  <Text style={[styles.videoStatusTitle, { color: colors.primary }]}>Session {privateVideoSession.status}</Text>
+                  <Text style={[styles.videoStatusBody, { color: colors.inkSoft }]}>Requested {new Date(privateVideoSession.created_at).toLocaleDateString()}</Text>
+                </View>
+              ) : privateVideoError ? (
+                <Text style={[styles.errorInline, { color: colors.coral }]}>{privateVideoError}</Text>
+              ) : null}
+              <TouchableOpacity
+                style={[styles.outlineBtn, { borderColor: colors.primary, marginTop: 12 }]}
+                activeOpacity={0.8}
+                disabled={loadingPrivateVideo || requestingPrivateVideo}
+                onPress={() => void handlePrivateVideoRequest()}
+              >
+                {loadingPrivateVideo || requestingPrivateVideo ? (
+                  <ActivityIndicator color={colors.primary} />
+                ) : (
+                  <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
+                    {privateVideoSession?.status === 'live' ? 'Join private video' : privateVideoSession ? 'Request received' : 'Request private video'}
+                  </Text>
+                )}
               </TouchableOpacity>
             </View>
 
@@ -1328,6 +1376,10 @@ const styles = StyleSheet.create({
 
   referralTitle: { fontSize: 15, fontWeight: '700', marginBottom: 6 },
   referralBody: { fontSize: 13, lineHeight: 19 },
+  videoStatusBox: { borderWidth: 1, borderRadius: 12, padding: 12, marginTop: 12 },
+  videoStatusTitle: { fontSize: 14, fontWeight: '800', textTransform: 'capitalize' },
+  videoStatusBody: { fontSize: 12.5, marginTop: 3 },
+  errorInline: { fontSize: 13, lineHeight: 18, marginTop: 10 },
 
   solidBtn: {
     borderRadius: 10,
