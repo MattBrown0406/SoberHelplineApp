@@ -12,13 +12,15 @@ import {
   Alert,
   Modal,
   Pressable,
+  Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
-import { useThread, type ChatMessage } from '../src/hooks/useThread';
+import { useThread, type ChatMessage, type PendingAttachment } from '../src/hooks/useThread';
 import { useSessions } from '../src/hooks/useSessions';
 import { getMockOnCallRoster } from '../src/api/mock';
 import { MAX_CONTENT_WIDTH } from '../src/components/ui/ScreenContainer';
@@ -28,11 +30,13 @@ const REACTION_EMOJIS = ['👍', '❤️', '😂', '😢', '😮', '👎'] as co
 export default function ChatScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation('support');
-  const { user, isAttached } = useAccount();
+  const { user, isAttached, entitlements } = useAccount();
   const router = useRouter();
-  const { messages, send, archive, toggleReaction, loading } = useThread(user?.id ?? null);
+  const canUseTextLine = !!user && entitlements.canMessageOnCallCoach;
+  const { messages, send, archive, toggleReaction, loading, sending } = useThread(user?.id ?? null, canUseTextLine);
   const { sessions } = useSessions(user?.id ?? null);
   const [draft, setDraft] = useState('');
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
   const [archiving, setArchiving] = useState(false);
   const [pickerMessageId, setPickerMessageId] = useState<string | null>(null);
   const listRef = useRef<FlatList<ChatMessage>>(null);
@@ -43,10 +47,48 @@ export default function ChatScreen() {
 
   async function handleSend() {
     const body = draft.trim();
-    if (!body) return;
+    if (!body && pendingAttachments.length === 0) return;
     setDraft('');
-    await send(body);
-    listRef.current?.scrollToEnd({ animated: true });
+    const toSend = pendingAttachments;
+    setPendingAttachments([]);
+    try {
+      await send(body, toSend);
+      listRef.current?.scrollToEnd({ animated: true });
+    } catch (err) {
+      setDraft(body);
+      setPendingAttachments(toSend);
+      Alert.alert('Message not sent', err instanceof Error ? err.message : 'Please try again.');
+    }
+  }
+
+  async function pickAttachment() {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Photos permission needed', 'Allow photo access to attach screenshots to this private support thread.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.82,
+      allowsMultipleSelection: true,
+      selectionLimit: 3,
+    });
+
+    if (result.canceled) return;
+    const picked = result.assets.slice(0, 3).map((asset, idx) => ({
+      uri: asset.uri,
+      mimeType: asset.mimeType ?? 'image/jpeg',
+      fileName: asset.fileName ?? `screenshot-${Date.now()}-${idx}.jpg`,
+      width: asset.width,
+      height: asset.height,
+      sizeBytes: asset.fileSize ?? null,
+    }));
+    setPendingAttachments((prev) => [...prev, ...picked].slice(0, 3));
+  }
+
+  function removePendingAttachment(uri: string) {
+    setPendingAttachments((prev) => prev.filter((att) => att.uri !== uri));
   }
 
   function confirmArchive() {
@@ -73,6 +115,22 @@ export default function ChatScreen() {
     setPickerMessageId(null);
     await toggleReaction(pickerMessageId, emoji);
   }
+
+  if (!canUseTextLine) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
+        <View style={styles.gatedWrap}>
+          <Text style={[styles.gatedTitle, { color: colors.ink }]}>Emergency Text Line</Text>
+          <Text style={[styles.gatedBody, { color: colors.inkSoft }]}>Text support is included with Essential and Premium. Upgrade to send private support messages and screenshots from inside the app.</Text>
+          <TouchableOpacity style={[styles.gatedButton, { backgroundColor: colors.primary }]} onPress={() => router.push('/(tabs)/support')}>
+            <Text style={styles.gatedButtonText}>View plans</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const canSend = !!draft.trim() || pendingAttachments.length > 0;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
@@ -191,6 +249,19 @@ export default function ChatScreen() {
                         >
                           {item.body}
                         </Text>
+                        {item.attachments.length > 0 && (
+                          <View style={styles.attachmentGrid}>
+                            {item.attachments.map((att) => {
+                              const uri = att.localUri ?? att.signedUrl;
+                              if (!uri) return null;
+                              return (
+                                <TouchableOpacity key={att.id} activeOpacity={0.85}>
+                                  <Image source={{ uri }} style={styles.attachmentImage} />
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </View>
+                        )}
                       </View>
                     </TouchableOpacity>
 
@@ -225,7 +296,28 @@ export default function ChatScreen() {
             />
           )}
 
+          {pendingAttachments.length > 0 && (
+            <View style={[styles.pendingRow, { borderTopColor: colors.line }]}>
+              {pendingAttachments.map((att) => (
+                <View key={att.uri} style={styles.pendingThumbWrap}>
+                  <Image source={{ uri: att.uri }} style={styles.pendingThumb} />
+                  <TouchableOpacity style={styles.removeAttachmentBtn} onPress={() => removePendingAttachment(att.uri)}>
+                    <Text style={styles.removeAttachmentText}>×</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+
           <View style={[styles.inputRow, { borderTopColor: colors.line }]}>
+            <TouchableOpacity
+              style={[styles.attachBtn, { borderColor: colors.line }]}
+              onPress={() => void pickAttachment()}
+              disabled={sending || pendingAttachments.length >= 3}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.attachText, { color: colors.primary }]}>＋</Text>
+            </TouchableOpacity>
             <TextInput
               style={[styles.input, { borderColor: colors.line, color: colors.ink }]}
               placeholder={t('messages.placeholder')}
@@ -235,12 +327,12 @@ export default function ChatScreen() {
               multiline
             />
             <TouchableOpacity
-              style={[styles.sendBtn, { backgroundColor: draft.trim() ? colors.primary : colors.line }]}
+              style={[styles.sendBtn, { backgroundColor: canSend && !sending ? colors.primary : colors.line }]}
               onPress={() => void handleSend()}
-              disabled={!draft.trim()}
+              disabled={!canSend || sending}
               activeOpacity={0.85}
             >
-              <Text style={styles.sendText}>➤</Text>
+              {sending ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.sendText}>➤</Text>}
             </TouchableOpacity>
           </View>
           <Text style={[styles.crisisNote, { color: colors.inkSoft }]}>
@@ -257,6 +349,11 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   chatColumn: { flex: 1, alignSelf: 'center', width: '100%', maxWidth: MAX_CONTENT_WIDTH },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  gatedWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28 },
+  gatedTitle: { fontSize: 24, fontWeight: '800', textAlign: 'center', marginBottom: 10 },
+  gatedBody: { fontSize: 15, lineHeight: 22, textAlign: 'center', marginBottom: 18 },
+  gatedButton: { borderRadius: 12, paddingVertical: 12, paddingHorizontal: 22 },
+  gatedButtonText: { color: '#fff', fontSize: 15, fontWeight: '800' },
 
   header: {
     flexDirection: 'row',
@@ -312,6 +409,8 @@ const styles = StyleSheet.create({
   reactionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
   reactionsRowMe: { justifyContent: 'flex-end' },
   reactionsRowCoach: { justifyContent: 'flex-start' },
+  attachmentGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
+  attachmentImage: { width: 150, height: 150, borderRadius: 10, backgroundColor: '#ddd' },
 
   reactionPill: {
     flexDirection: 'row',
@@ -363,6 +462,13 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     backgroundColor: '#fff',
   },
+  pendingRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 12, paddingVertical: 10, borderTopWidth: 1, backgroundColor: '#fff' },
+  pendingThumbWrap: { position: 'relative' },
+  pendingThumb: { width: 58, height: 58, borderRadius: 10, backgroundColor: '#ddd' },
+  removeAttachmentBtn: { position: 'absolute', top: -7, right: -7, width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: '#142a47' },
+  removeAttachmentText: { color: '#fff', fontSize: 17, lineHeight: 20, fontWeight: '800' },
+  attachBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  attachText: { fontSize: 24, lineHeight: 26, fontWeight: '600' },
   input: {
     flex: 1,
     borderWidth: 1.5,

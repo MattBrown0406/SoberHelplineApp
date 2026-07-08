@@ -29,7 +29,17 @@ type FunnelStats = {
 };
 type RsvpRow = { first_name: string; last_name: string; email: string; rsvped_at: string };
 type QuestionRow = { id: string; first_name: string; last_name: string; question: string; submitted_at: string };
-type ThreadRow = { thread_id: string; first_name: string; last_name: string; last_message: string | null; last_message_at: string | null; message_count: number };
+type ThreadRow = {
+  thread_id: string;
+  first_name: string;
+  last_name: string;
+  last_message: string | null;
+  last_message_at: string | null;
+  message_count: number;
+  unread_count: number;
+  risk_level: string | null;
+  status: string | null;
+};
 
 export default function AdminScreen() {
   const router = useRouter();
@@ -283,11 +293,22 @@ export default function AdminScreen() {
               <View style={[styles.separator, { backgroundColor: colors.line }]} />
             )}
             renderItem={({ item }) => (
-              <View style={styles.threadRow}>
+              <TouchableOpacity
+                style={styles.threadRow}
+                activeOpacity={0.82}
+                onPress={() => router.push({ pathname: '/admin-thread', params: { threadId: item.thread_id } })}
+              >
                 <View style={styles.threadInfo}>
-                  <Text style={[styles.rsvpName, { color: colors.ink }]}>
-                    {item.first_name} {item.last_name}
-                  </Text>
+                  <View style={styles.threadNameRow}>
+                    <Text style={[styles.rsvpName, { color: colors.ink }]}>
+                      {item.first_name} {item.last_name}
+                    </Text>
+                    {item.unread_count > 0 && (
+                      <View style={[styles.unreadBadge, { backgroundColor: colors.coral }]}>
+                        <Text style={styles.unreadBadgeText}>{item.unread_count}</Text>
+                      </View>
+                    )}
+                  </View>
                   {item.last_message ? (
                     <Text style={[styles.threadPreview, { color: colors.inkSoft }]} numberOfLines={1}>
                       {item.last_message}
@@ -296,36 +317,41 @@ export default function AdminScreen() {
                   <Text style={[styles.threadMeta, { color: colors.inkSoft }]}>
                     {item.message_count} message{item.message_count !== 1 ? 's' : ''}
                     {item.last_message_at ? ` · ${new Date(item.last_message_at).toLocaleDateString()}` : ''}
+                    {` · ${item.risk_level ?? 'normal'} · ${item.status ?? 'active'}`}
                   </Text>
                 </View>
-                <TouchableOpacity
-                  style={[styles.archiveThreadBtn, { borderColor: colors.line }]}
-                  disabled={archivingThread === item.thread_id}
-                  onPress={() => {
-                    Alert.alert(
-                      'Archive conversation?',
-                      `This will archive ${item.first_name}'s current thread and start a fresh one for them.`,
-                      [
-                        { text: 'Cancel', style: 'cancel' },
-                        {
-                          text: 'Archive',
-                          style: 'destructive',
-                          onPress: async () => {
-                            setArchivingThread(item.thread_id);
-                            await supabase.rpc('archive_thread', { p_thread_id: item.thread_id });
-                            setArchivingThread(null);
-                            void loadData();
+                <View style={styles.threadActions}>
+                  <Text style={[styles.openThreadText, { color: colors.primary }]}>Open</Text>
+                  <TouchableOpacity
+                    style={[styles.archiveThreadBtn, { borderColor: colors.line }]}
+                    disabled={archivingThread === item.thread_id}
+                    onPress={(event) => {
+                      event.stopPropagation();
+                      Alert.alert(
+                        'Archive conversation?',
+                        `This will archive ${item.first_name}'s current thread and start a fresh one for them.`,
+                        [
+                          { text: 'Cancel', style: 'cancel' },
+                          {
+                            text: 'Archive',
+                            style: 'destructive',
+                            onPress: async () => {
+                              setArchivingThread(item.thread_id);
+                              await supabase.rpc('archive_thread', { p_thread_id: item.thread_id });
+                              setArchivingThread(null);
+                              void loadData();
+                            },
                           },
-                        },
-                      ],
-                    );
-                  }}
-                >
-                  {archivingThread === item.thread_id
-                    ? <ActivityIndicator size="small" color={colors.inkSoft} />
-                    : <Text style={[styles.archiveThreadBtnText, { color: colors.inkSoft }]}>Archive</Text>}
-                </TouchableOpacity>
-              </View>
+                        ],
+                      );
+                    }}
+                  >
+                    {archivingThread === item.thread_id
+                      ? <ActivityIndicator size="small" color={colors.inkSoft} />
+                      : <Text style={[styles.archiveThreadBtnText, { color: colors.inkSoft }]}>Archive</Text>}
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
             )}
           />
         )}
@@ -395,8 +421,13 @@ const styles = StyleSheet.create({
   questionText: { fontSize: 14, lineHeight: 20, fontStyle: 'italic' },
   threadRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 12 },
   threadInfo: { flex: 1 },
+  threadNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  unreadBadge: { minWidth: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  unreadBadgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
   threadPreview: { fontSize: 13, marginTop: 2 },
   threadMeta: { fontSize: 11, marginTop: 3 },
+  threadActions: { alignItems: 'flex-end', gap: 8 },
+  openThreadText: { fontSize: 12, fontWeight: '800' },
   archiveThreadBtn: { borderWidth: 1, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12 },
   archiveThreadBtnText: { fontSize: 12, fontWeight: '600' },
 });
