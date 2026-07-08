@@ -32,8 +32,10 @@ export function usePrivateVideoSessions(accountId: string | null, canAccess: boo
       .eq('account_id', accountId)
       .order('created_at', { ascending: false })
       .limit(10);
-    if (loadError) setError(loadError.message);
-    else setSessions((data ?? []) as PrivateVideoSession[]);
+    if (loadError) {
+      const missingVideoSchema = loadError.message.includes('video_sessions') || loadError.code === 'PGRST205';
+      setError(missingVideoSchema ? 'Private video setup is being finalized. Please try again shortly.' : loadError.message);
+    } else setSessions((data ?? []) as PrivateVideoSession[]);
     setLoading(false);
   }, [accountId, canAccess]);
 
