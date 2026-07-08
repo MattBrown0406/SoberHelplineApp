@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import {
   AudioSession,
   LiveKitRoom,
@@ -53,9 +54,10 @@ function PrivateVideoCall({ onLeave }: { onLeave: () => void }) {
   const [micOn, setMicOn] = useState(true);
   const [cameraOn, setCameraOn] = useState(true);
 
+  const { t } = useTranslation('crisis');
   const localTrack = tracks.find((tr) => tr.participant.isLocal);
   const remoteTrack = tracks.find((tr) => !tr.participant.isLocal);
-  const remoteName = remoteParticipants[0]?.name ?? remoteParticipants[0]?.identity ?? 'Waiting for the other person';
+  const remoteName = remoteParticipants[0]?.name ?? remoteParticipants[0]?.identity ?? t('video.waiting');
 
   const toggleMic = useCallback(async () => {
     const next = !micOn;
@@ -74,9 +76,9 @@ function PrivateVideoCall({ onLeave }: { onLeave: () => void }) {
   ) : (
     <View style={[styles.remotePlaceholder, { backgroundColor: colors.ink }]}>
       <Text style={styles.waitingIcon}>🎥</Text>
-      <Text style={styles.waitingTitle}>Private Video Support</Text>
+      <Text style={styles.waitingTitle}>{t('video.waitingTitle')}</Text>
       <Text style={styles.waitingBody}>{remoteName}</Text>
-      <Text style={styles.waitingNote}>This is not an emergency service. Call 911 or 988 for immediate danger.</Text>
+      <Text style={styles.waitingNote}>{t('video.waitingNote')}</Text>
     </View>
   );
 
@@ -87,21 +89,21 @@ function PrivateVideoCall({ onLeave }: { onLeave: () => void }) {
         <VideoTrack trackRef={localTrack} style={styles.selfPreview} mirror objectFit="cover" />
       ) : (
         <View style={[styles.selfPreview, styles.selfPreviewOff]}>
-          <Text style={styles.selfPreviewOffText}>Camera off</Text>
+          <Text style={styles.selfPreviewOffText}>{t('video.cameraOffPreview')}</Text>
         </View>
       )}
       <View style={styles.topBadge}>
-        <Text style={styles.topBadgeText}>{remoteParticipants.length > 0 ? 'Connected' : 'Waiting'}</Text>
+        <Text style={styles.topBadgeText}>{remoteParticipants.length > 0 ? t('video.connected') : t('video.waiting')}</Text>
       </View>
       <View style={styles.controls}>
         <TouchableOpacity style={[styles.controlBtn, { backgroundColor: micOn ? '#ffffff' : colors.coral }]} onPress={toggleMic}>
-          <Text style={[styles.controlText, { color: micOn ? colors.ink : '#fff' }]}>{micOn ? 'Mute' : 'Unmute'}</Text>
+          <Text style={[styles.controlText, { color: micOn ? colors.ink : '#fff' }]}>{micOn ? t('video.mute') : t('video.unmute')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.controlBtn, { backgroundColor: cameraOn ? '#ffffff' : colors.coral }]} onPress={toggleCamera}>
-          <Text style={[styles.controlText, { color: cameraOn ? colors.ink : '#fff' }]}>{cameraOn ? 'Camera Off' : 'Camera On'}</Text>
+          <Text style={[styles.controlText, { color: cameraOn ? colors.ink : '#fff' }]}>{cameraOn ? t('video.cameraOff') : t('video.cameraOn')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.controlBtn, styles.leaveBtn]} onPress={onLeave}>
-          <Text style={[styles.controlText, { color: '#fff' }]}>Leave</Text>
+          <Text style={[styles.controlText, { color: '#fff' }]}>{t('video.leave')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -110,6 +112,7 @@ function PrivateVideoCall({ onLeave }: { onLeave: () => void }) {
 
 export default function VideoSessionScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation('crisis');
   const router = useRouter();
   const params = useLocalSearchParams<{ room: string }>();
   const roomName = useMemo(() => String(params.room ?? ''), [params.room]);
@@ -142,7 +145,7 @@ export default function VideoSessionScreen() {
       <SafeAreaView style={[styles.center, { backgroundColor: colors.ink }]}>
         <Text style={[styles.errorText, { color: colors.coral }]}>{error}</Text>
         <TouchableOpacity onPress={leave} style={[styles.errorBtn, { backgroundColor: colors.primary }]}>
-          <Text style={styles.errorBtnText}>Back</Text>
+          <Text style={styles.errorBtnText}>{t('video.back')}</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -152,7 +155,7 @@ export default function VideoSessionScreen() {
     return (
       <SafeAreaView style={[styles.center, { backgroundColor: colors.ink }]}>
         <ActivityIndicator color="#fff" />
-        <Text style={styles.connectingText}>Connecting private video session…</Text>
+        <Text style={styles.connectingText}>{t('video.connecting')}</Text>
       </SafeAreaView>
     );
   }
@@ -165,7 +168,7 @@ export default function VideoSessionScreen() {
       audio
       video
       onDisconnected={leave}
-      onError={(e) => Alert.alert('Video session error', String(e))}
+      onError={(e) => Alert.alert(t('video.errorTitle'), String(e))}
     >
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <PrivateVideoCall onLeave={leave} />

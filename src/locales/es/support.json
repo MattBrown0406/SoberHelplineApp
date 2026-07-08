@@ -256,5 +256,30 @@
   "finderCard": {
     "title": "Encuentra tratamiento y apoyo",
     "sub": "Busca centros de tratamiento, intervencionistas y coaches de sobriedad verificados — con disponibilidad real."
+  },
+  "textline": {
+    "gatedTitle": "Línea de Texto de Emergencia",
+    "gatedBody": "El apoyo por texto está incluido con Esencial y Premium. Mejora tu plan para enviar mensajes privados de apoyo y capturas de pantalla desde la app.",
+    "viewPlans": "Ver planes",
+    "sendErrorTitle": "Mensaje no enviado",
+    "sendErrorBody": "Por favor inténtalo de nuevo.",
+    "photosPermTitle": "Se necesita permiso de Fotos",
+    "photosPermBody": "Permite el acceso a fotos para adjuntar capturas de pantalla a este hilo privado de apoyo."
+  },
+  "privateVideo": {
+    "eyebrow": "Apoyo por video privado",
+    "title": "Sesión privada de video Premium",
+    "body": "Incluida para miembros Premium. Solicita una sesión privada de apoyo por video en la app; este no es un servicio de emergencia.",
+    "requestedOn": "Solicitada el {{date}}",
+    "join": "Unirse al video privado",
+    "received": "Solicitud recibida",
+    "request": "Solicitar video privado",
+    "statuses": {
+      "requested": "Sesión solicitada",
+      "scheduled": "Sesión programada",
+      "live": "Sesión en vivo",
+      "completed": "Sesión completada",
+      "cancelled": "Sesión cancelada"
+    }
   }
 }

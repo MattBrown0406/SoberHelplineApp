@@ -57,14 +57,14 @@ export default function ChatScreen() {
     } catch (err) {
       setDraft(body);
       setPendingAttachments(toSend);
-      Alert.alert('Message not sent', err instanceof Error ? err.message : 'Please try again.');
+      Alert.alert(t('textline.sendErrorTitle'), err instanceof Error ? err.message : t('textline.sendErrorBody'));
     }
   }
 
   async function pickAttachment() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('Photos permission needed', 'Allow photo access to attach screenshots to this private support thread.');
+      Alert.alert(t('textline.photosPermTitle'), t('textline.photosPermBody'));
       return;
     }
 
@@ -120,10 +120,10 @@ export default function ChatScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
         <View style={styles.gatedWrap}>
-          <Text style={[styles.gatedTitle, { color: colors.ink }]}>Emergency Text Line</Text>
-          <Text style={[styles.gatedBody, { color: colors.inkSoft }]}>Text support is included with Essential and Premium. Upgrade to send private support messages and screenshots from inside the app.</Text>
+          <Text style={[styles.gatedTitle, { color: colors.ink }]}>{t('textline.gatedTitle')}</Text>
+          <Text style={[styles.gatedBody, { color: colors.inkSoft }]}>{t('textline.gatedBody')}</Text>
           <TouchableOpacity style={[styles.gatedButton, { backgroundColor: colors.primary }]} onPress={() => router.push('/(tabs)/support')}>
-            <Text style={styles.gatedButtonText}>View plans</Text>
+            <Text style={styles.gatedButtonText}>{t('textline.viewPlans')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

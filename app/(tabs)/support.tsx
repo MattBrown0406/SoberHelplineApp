@@ -885,13 +885,13 @@ export default function SupportScreen() {
             </View>
 
             <View style={[styles.card, { borderColor: colors.line }]}>
-              <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>PRIVATE VIDEO SUPPORT</Text>
-              <Text style={[styles.referralTitle, { color: colors.ink }]}>Premium private video session</Text>
-              <Text style={[styles.referralBody, { color: colors.inkSoft }]}>Included for Premium members. Request a private in-app video support session; this is not an emergency service.</Text>
+              <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>{t('privateVideo.eyebrow').toUpperCase()}</Text>
+              <Text style={[styles.referralTitle, { color: colors.ink }]}>{t('privateVideo.title')}</Text>
+              <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{t('privateVideo.body')}</Text>
               {privateVideoSession ? (
                 <View style={[styles.videoStatusBox, { backgroundColor: colors.primaryLight, borderColor: colors.primary }]}>
-                  <Text style={[styles.videoStatusTitle, { color: colors.primary }]}>Session {privateVideoSession.status}</Text>
-                  <Text style={[styles.videoStatusBody, { color: colors.inkSoft }]}>Requested {new Date(privateVideoSession.created_at).toLocaleDateString()}</Text>
+                  <Text style={[styles.videoStatusTitle, { color: colors.primary }]}>{t(`privateVideo.statuses.${privateVideoSession.status}`)}</Text>
+                  <Text style={[styles.videoStatusBody, { color: colors.inkSoft }]}>{t('privateVideo.requestedOn', { date: new Date(privateVideoSession.created_at).toLocaleDateString() })}</Text>
                 </View>
               ) : privateVideoError ? (
                 <Text style={[styles.errorInline, { color: colors.coral }]}>{privateVideoError}</Text>
@@ -906,7 +906,7 @@ export default function SupportScreen() {
                   <ActivityIndicator color={colors.primary} />
                 ) : (
                   <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
-                    {privateVideoSession?.status === 'live' ? 'Join private video' : privateVideoSession ? 'Request received' : 'Request private video'}
+                    {privateVideoSession?.status === 'live' ? t('privateVideo.join') : privateVideoSession ? t('privateVideo.received') : t('privateVideo.request')}
                   </Text>
                 )}
               </TouchableOpacity>

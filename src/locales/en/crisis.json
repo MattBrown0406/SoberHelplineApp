@@ -1,0 +1,199 @@
+{
+  "back": "‹ Back",
+  "kicker": "Crisis Mode",
+  "title": "Help me know what to do right now",
+  "intro": "Answer what is true. This does not replace 911, 988, poison control, medical care, or law enforcement.",
+  "triage": {
+    "title": "1. Triage the situation",
+    "items": {
+      "notBreathing": "They are not breathing, unconscious, blue/gray, or cannot be woken up.",
+      "overdose": "I suspect overdose or poisoning.",
+      "suicide": "They are threatening suicide or serious self-harm.",
+      "violence": "They are threatening violence or someone may get hurt.",
+      "weapons": "Weapons are involved or weapon access is a concern.",
+      "drivingIntoxicated": "They are trying to drive while intoxicated.",
+      "childrenPresent": "Children are present or may be exposed to the crisis.",
+      "missing": "They are missing or no one knows where they are.",
+      "intoxicated": "They are intoxicated right now.",
+      "aggressive": "They are verbally aggressive, escalating, or impossible to reason with.",
+      "askingMoney": "They are pressuring the family for money, housing, keys, or a rescue.",
+      "willingTalk": "They are sober enough and willing to talk calmly."
+    }
+  },
+  "risk": {
+    "kicker": "Current risk level",
+    "RED": {
+      "title": "Immediate safety risk",
+      "body": "This is not a coaching conversation. Move toward safety and contact emergency services now.",
+      "action": "Call 911 or 988 now if there is immediate medical danger, violence, or suicide risk."
+    },
+    "ORANGE": {
+      "title": "Active crisis risk",
+      "body": "Do not argue, debate treatment, or try to control the situation alone. Focus on safety, children, keys, distance, and calm next steps.",
+      "action": "Use the checklist below, then use Emergency Text Line or request Premium video support when safe."
+    },
+    "YELLOW": {
+      "title": "Escalating concern",
+      "body": "The pattern needs a clear family response. This is a good time to set a boundary, document what happened, and plan before the next escalation.",
+      "action": "Build a boundary and update the incident log/safety plan."
+    },
+    "GREEN": {
+      "title": "Stable concern",
+      "body": "There may not be immediate danger, but the family should still plan, align, and stop enabling patterns early.",
+      "action": "Use education, readiness, and boundary tools before things escalate."
+    }
+  },
+  "checklist": {
+    "title": "2. Checklist",
+    "redOverdose": [
+      "Call 911 now. Say overdose/poisoning is suspected if that is true.",
+      "Give naloxone if available. Repeat per package instructions if needed.",
+      "Start rescue breathing/CPR if trained and safe to do so.",
+      "Put them in recovery position if breathing but unconscious.",
+      "Stay until responders arrive. Tell responders what substances may be involved."
+    ],
+    "redSuicide": [
+      "Call or text 988 now. Call 911 if there is immediate danger or means are present.",
+      "Do not leave them alone if it is safe for you to stay nearby.",
+      "Remove access to weapons, pills, or keys only if you can do it safely.",
+      "Use short, calm statements. Do not debate, shame, or threaten.",
+      "Bring in another safe adult immediately if possible."
+    ],
+    "redDefault": [
+      "Leave the area if violence/weapons are possible. Physical safety comes first.",
+      "Call 911 from a safe place.",
+      "Move children away from the scene immediately if you can do so safely.",
+      "Do not physically block, restrain, or chase an intoxicated person.",
+      "Document threats after everyone is safe."
+    ],
+    "orange": [
+      "Stop arguing. No treatment debate while they are intoxicated or escalated.",
+      "Move children, keys, cash, and medications to safety if you can do so calmly.",
+      "Do not give money, rides to unsafe places, or access to the car.",
+      "Use one short script. Repeat it. Do not over-explain.",
+      "Log the incident once the immediate situation settles."
+    ],
+    "default": [
+      "Name the pattern in writing without exaggerating or minimizing.",
+      "Choose one boundary the family can actually keep.",
+      "Decide who communicates. Too many voices creates chaos.",
+      "Prepare treatment/support options before making big threats.",
+      "Ask: am I helping recovery or reducing my own anxiety?"
+    ]
+  },
+  "say": {
+    "title": "3. What to say right now",
+    "red": "“I love you. Right now this is about safety. I’m calling for emergency help.”",
+    "money": "“I love you too much to give money while addiction is active. I will help you get real support, but I will not fund the addiction.”",
+    "escalated": "“I’m not going to argue while you’re intoxicated or escalated. I’ll talk when we can both stay safe and respectful.”",
+    "willing": "“I love you. I’m willing to talk about real help and next steps. I’m not willing to keep pretending this is working.”",
+    "default": "“I love you, and I’m changing how I respond. I will support recovery. I will not support the addiction.”"
+  },
+  "plan": {
+    "title": "4. Family safety plan",
+    "lovedOneName": "Loved one name",
+    "substances": "Substances involved",
+    "overdoseHistory": "Overdose history",
+    "suicideHistory": "Suicide/self-harm history",
+    "weaponsAccess": "Weapons access",
+    "childrenInHome": "Children in home",
+    "emergencyContacts": "Emergency contacts",
+    "preferredHospital": "Preferred hospital / detox",
+    "insurance": "Insurance / policy notes",
+    "currentBoundaries": "Current family boundaries",
+    "decisionMakers": "Family decision-makers"
+  },
+  "incident": {
+    "title": "5. Incident log",
+    "what": "What happened?",
+    "substances": "Substances suspected",
+    "threats": "Threats / safety concerns",
+    "childrenPresent": "Children were present",
+    "policeOrEms": "Police or EMS involved",
+    "boundaryCrossed": "A family boundary was crossed",
+    "save": "Save incident",
+    "alertTitle": "Incident log",
+    "alertBody": "Add a short summary before saving."
+  },
+  "builder": {
+    "title": "6. Boundary builder",
+    "behavior": "Behavior that needs to stop",
+    "support": "Support you are willing to offer",
+    "noLongerDo": "What you will no longer do",
+    "consequence": "What happens if crossed",
+    "defaults": {
+      "behavior": "this pattern continues",
+      "support": "getting real recovery support",
+      "noLongerDo": "give money, cover up consequences, or argue with addiction",
+      "consequence": "I will step back, protect my peace, and contact help if safety becomes a concern"
+    },
+    "template": "I love you and I want you healthy. When {{behavior}}, I am not going to keep responding the old way. I will support {{support}}. I will no longer {{noLongerDo}}. If the boundary is crossed, {{consequence}}."
+  },
+  "readiness": {
+    "title": "7. Intervention readiness",
+    "ready": "{{score}}% ready",
+    "familyAligned": "Family is aligned",
+    "moneyStopped": "Money/rescue patterns have stopped",
+    "treatmentReady": "Treatment option is ready",
+    "transportPlanned": "Transportation is planned",
+    "consequencesClear": "Consequences are clear and realistic",
+    "refusalPlan": "Refusal plan is ready",
+    "yesPlan": "Yes plan is ready"
+  },
+  "support": {
+    "title": "8. Get support",
+    "openTextline": "Open Emergency Text Line",
+    "requestVideo": "Request Premium Video Support",
+    "requesting": "Requesting…",
+    "share": "Share / Export family crisis summary",
+    "call911": "Call 911",
+    "call988": "Call/Text 988"
+  },
+  "videoAlerts": {
+    "gateTitle": "Premium video support",
+    "gateBody": "Private video support is included with Premium. Upgrade from the Support tab.",
+    "queuedTitle": "Request received",
+    "queuedBody": "Your private video support request is in the admin queue. This is not an emergency service."
+  },
+  "share": {
+    "title": "Sober Helpline Crisis Summary",
+    "heading": "Sober Helpline Family Crisis Summary",
+    "riskLevel": "Risk level",
+    "lovedOne": "Loved one",
+    "substances": "Substances",
+    "overdoseHistory": "Overdose history",
+    "suicideHistory": "Suicide/self-harm history",
+    "weaponsAccess": "Weapons access",
+    "childrenInHome": "Children in home",
+    "emergencyContacts": "Emergency contacts",
+    "preferredHospital": "Preferred hospital",
+    "insurance": "Insurance",
+    "decisionMakers": "Decision makers",
+    "script": "Recommended script:",
+    "boundary": "Current boundary:",
+    "readiness": "Intervention readiness: {{score}}%",
+    "recent": "Recent incidents:",
+    "notEntered": "Not entered",
+    "noIncidents": "- No incidents logged yet.",
+    "note": "Note: This is family guidance, not medical, legal, or emergency-service replacement. Call 911/988 for immediate danger."
+  },
+  "field": {
+    "placeholder": "Tap to enter"
+  },
+  "video": {
+    "waitingTitle": "Private Video Support",
+    "waitingNote": "This is not an emergency service. Call 911 or 988 for immediate danger.",
+    "cameraOffPreview": "Camera off",
+    "connected": "Connected",
+    "waiting": "Waiting",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "cameraOff": "Camera Off",
+    "cameraOn": "Camera On",
+    "leave": "Leave",
+    "back": "Back",
+    "connecting": "Connecting private video session…",
+    "errorTitle": "Video session error",
+    "webOnly": "Private video sessions are available in the iOS app."
+  }
+}

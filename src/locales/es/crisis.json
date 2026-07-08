@@ -1,0 +1,199 @@
+{
+  "back": "‹ Volver",
+  "kicker": "Modo Crisis",
+  "title": "Ayúdame a saber qué hacer ahora mismo",
+  "intro": "Marca lo que sea cierto. Esto no reemplaza al 911, al 988, al control de envenenamiento, a la atención médica ni a la policía.",
+  "triage": {
+    "title": "1. Evalúa la situación",
+    "items": {
+      "notBreathing": "No respira, está inconsciente, azul/gris, o no despierta.",
+      "overdose": "Sospecho una sobredosis o envenenamiento.",
+      "suicide": "Amenaza con suicidarse o con autolesionarse gravemente.",
+      "violence": "Amenaza con violencia o alguien podría salir herido.",
+      "weapons": "Hay armas involucradas o preocupa el acceso a armas.",
+      "drivingIntoxicated": "Intenta manejar bajo los efectos.",
+      "childrenPresent": "Hay niños presentes o expuestos a la crisis.",
+      "missing": "Está desaparecido/a o nadie sabe dónde está.",
+      "intoxicated": "Está intoxicado/a en este momento.",
+      "aggressive": "Está verbalmente agresivo/a, escalando, o es imposible razonar.",
+      "askingMoney": "Está presionando a la familia por dinero, vivienda, llaves o un rescate.",
+      "willingTalk": "Está lo bastante sobrio/a y dispuesto/a a hablar con calma."
+    }
+  },
+  "risk": {
+    "kicker": "Nivel de riesgo actual",
+    "RED": {
+      "title": "Riesgo inmediato de seguridad",
+      "body": "Esto no es una conversación de coaching. Muévete hacia la seguridad y contacta a los servicios de emergencia ahora.",
+      "action": "Llama al 911 o al 988 ahora si hay peligro médico inmediato, violencia o riesgo de suicidio."
+    },
+    "ORANGE": {
+      "title": "Riesgo de crisis activa",
+      "body": "No discutas, no debatas el tratamiento ni intentes controlar la situación sola. Enfócate en la seguridad, los niños, las llaves, la distancia y pasos tranquilos.",
+      "action": "Usa la lista de abajo y luego la Línea de Texto de Emergencia, o solicita apoyo por video Premium cuando sea seguro."
+    },
+    "YELLOW": {
+      "title": "Preocupación en aumento",
+      "body": "El patrón necesita una respuesta familiar clara. Es buen momento para poner un límite, documentar lo ocurrido y planear antes de la próxima escalada.",
+      "action": "Construye un límite y actualiza el registro de incidentes y el plan de seguridad."
+    },
+    "GREEN": {
+      "title": "Preocupación estable",
+      "body": "Quizá no haya peligro inmediato, pero la familia igual debe planear, alinearse y frenar los patrones de facilitación temprano.",
+      "action": "Usa las herramientas de educación, preparación y límites antes de que las cosas escalen."
+    }
+  },
+  "checklist": {
+    "title": "2. Lista de pasos",
+    "redOverdose": [
+      "Llama al 911 ahora. Di que sospechas sobredosis/envenenamiento si es cierto.",
+      "Administra naloxona si la tienes. Repite según las instrucciones del empaque si hace falta.",
+      "Inicia respiración de rescate/RCP si sabes hacerlo y es seguro.",
+      "Ponlo/a en posición de recuperación si respira pero está inconsciente.",
+      "Quédate hasta que lleguen los servicios. Diles qué sustancias podrían estar involucradas."
+    ],
+    "redSuicide": [
+      "Llama o envía mensaje al 988 ahora. Llama al 911 si hay peligro inmediato o medios presentes.",
+      "No lo/la dejes solo/a si es seguro que te quedes cerca.",
+      "Retira el acceso a armas, pastillas o llaves solo si puedes hacerlo con seguridad.",
+      "Usa frases cortas y calmadas. No debatas, no avergüences, no amenaces.",
+      "Trae de inmediato a otro adulto de confianza si es posible."
+    ],
+    "redDefault": [
+      "Sal del lugar si la violencia o las armas son posibles. La seguridad física va primero.",
+      "Llama al 911 desde un lugar seguro.",
+      "Aleja a los niños de la escena de inmediato si puedes hacerlo con seguridad.",
+      "No bloquees, sujetes ni persigas físicamente a una persona intoxicada.",
+      "Documenta las amenazas cuando todos estén a salvo."
+    ],
+    "orange": [
+      "Deja de discutir. Nada de debatir el tratamiento mientras esté intoxicado/a o escalado/a.",
+      "Pon a salvo a los niños, las llaves, el efectivo y los medicamentos si puedes hacerlo con calma.",
+      "No des dinero, ni llevadas a lugares inseguros, ni acceso al auto.",
+      "Usa un solo guion corto. Repítelo. No des explicaciones de más.",
+      "Registra el incidente cuando la situación inmediata se calme."
+    ],
+    "default": [
+      "Nombra el patrón por escrito sin exagerar ni minimizar.",
+      "Elige un límite que la familia realmente pueda sostener.",
+      "Decidan quién comunica. Demasiadas voces crean caos.",
+      "Prepara opciones de tratamiento/apoyo antes de hacer grandes advertencias.",
+      "Pregúntate: ¿estoy ayudando a la recuperación o calmando mi propia ansiedad?"
+    ]
+  },
+  "say": {
+    "title": "3. Qué decir ahora mismo",
+    "red": "“Te amo. Ahora mismo esto es cuestión de seguridad. Voy a llamar a ayuda de emergencia.”",
+    "money": "“Te amo demasiado para darte dinero mientras la adicción está activa. Te ayudaré a conseguir apoyo real, pero no voy a financiar la adicción.”",
+    "escalated": "“No voy a discutir mientras estés intoxicado/a o alterado/a. Hablaré cuando ambos podamos mantenernos seguros y respetuosos.”",
+    "willing": "“Te amo. Estoy dispuesta a hablar de ayuda real y de los próximos pasos. No estoy dispuesta a seguir fingiendo que esto funciona.”",
+    "default": "“Te amo, y estoy cambiando mi forma de responder. Voy a apoyar la recuperación. No voy a apoyar la adicción.”"
+  },
+  "plan": {
+    "title": "4. Plan de seguridad familiar",
+    "lovedOneName": "Nombre de tu ser querido",
+    "substances": "Sustancias involucradas",
+    "overdoseHistory": "Historial de sobredosis",
+    "suicideHistory": "Historial de suicidio/autolesión",
+    "weaponsAccess": "Acceso a armas",
+    "childrenInHome": "Niños en casa",
+    "emergencyContacts": "Contactos de emergencia",
+    "preferredHospital": "Hospital / desintoxicación preferida",
+    "insurance": "Seguro / notas de póliza",
+    "currentBoundaries": "Límites familiares actuales",
+    "decisionMakers": "Quiénes toman decisiones en la familia"
+  },
+  "incident": {
+    "title": "5. Registro de incidentes",
+    "what": "¿Qué pasó?",
+    "substances": "Sustancias sospechadas",
+    "threats": "Amenazas / riesgos de seguridad",
+    "childrenPresent": "Había niños presentes",
+    "policeOrEms": "Intervino la policía o emergencias",
+    "boundaryCrossed": "Se cruzó un límite familiar",
+    "save": "Guardar incidente",
+    "alertTitle": "Registro de incidentes",
+    "alertBody": "Agrega un resumen corto antes de guardar."
+  },
+  "builder": {
+    "title": "6. Constructor de límites",
+    "behavior": "Conducta que debe parar",
+    "support": "Apoyo que estás dispuesta a ofrecer",
+    "noLongerDo": "Lo que ya no harás",
+    "consequence": "Qué pasa si se cruza",
+    "defaults": {
+      "behavior": "este patrón continúa",
+      "support": "buscar apoyo real de recuperación",
+      "noLongerDo": "dar dinero, tapar consecuencias o discutir con la adicción",
+      "consequence": "voy a dar un paso atrás, proteger mi paz y contactar ayuda si la seguridad se ve en riesgo"
+    },
+    "template": "Te amo y te quiero sano/a. Cuando {{behavior}}, no voy a seguir respondiendo como antes. Voy a apoyar {{support}}. Ya no voy a {{noLongerDo}}. Si se cruza el límite, {{consequence}}."
+  },
+  "readiness": {
+    "title": "7. Preparación para la intervención",
+    "ready": "{{score}}% de preparación",
+    "familyAligned": "La familia está alineada",
+    "moneyStopped": "Los patrones de dinero/rescate se detuvieron",
+    "treatmentReady": "La opción de tratamiento está lista",
+    "transportPlanned": "El transporte está planeado",
+    "consequencesClear": "Las consecuencias son claras y realistas",
+    "refusalPlan": "El plan ante un 'no' está listo",
+    "yesPlan": "El plan ante un 'sí' está listo"
+  },
+  "support": {
+    "title": "8. Recibe apoyo",
+    "openTextline": "Abrir Línea de Texto de Emergencia",
+    "requestVideo": "Solicitar apoyo por video Premium",
+    "requesting": "Solicitando…",
+    "share": "Compartir / Exportar resumen de crisis familiar",
+    "call911": "Llamar al 911",
+    "call988": "Llamar/Enviar mensaje al 988"
+  },
+  "videoAlerts": {
+    "gateTitle": "Apoyo por video Premium",
+    "gateBody": "El apoyo por video privado está incluido con Premium. Mejora tu plan desde la pestaña Apoyo.",
+    "queuedTitle": "Solicitud recibida",
+    "queuedBody": "Tu solicitud de apoyo por video privado está en la cola del administrador. Este no es un servicio de emergencia."
+  },
+  "share": {
+    "title": "Resumen de Crisis de Sober Helpline",
+    "heading": "Resumen de Crisis Familiar de Sober Helpline",
+    "riskLevel": "Nivel de riesgo",
+    "lovedOne": "Ser querido",
+    "substances": "Sustancias",
+    "overdoseHistory": "Historial de sobredosis",
+    "suicideHistory": "Historial de suicidio/autolesión",
+    "weaponsAccess": "Acceso a armas",
+    "childrenInHome": "Niños en casa",
+    "emergencyContacts": "Contactos de emergencia",
+    "preferredHospital": "Hospital preferido",
+    "insurance": "Seguro",
+    "decisionMakers": "Quiénes deciden",
+    "script": "Guion recomendado:",
+    "boundary": "Límite actual:",
+    "readiness": "Preparación para la intervención: {{score}}%",
+    "recent": "Incidentes recientes:",
+    "notEntered": "Sin registrar",
+    "noIncidents": "- Aún no hay incidentes registrados.",
+    "note": "Nota: Esta es una guía familiar; no reemplaza atención médica, legal ni servicios de emergencia. Llama al 911/988 ante peligro inmediato."
+  },
+  "field": {
+    "placeholder": "Toca para escribir"
+  },
+  "video": {
+    "waitingTitle": "Apoyo por Video Privado",
+    "waitingNote": "Este no es un servicio de emergencia. Llama al 911 o al 988 ante peligro inmediato.",
+    "cameraOffPreview": "Cámara apagada",
+    "connected": "Conectado",
+    "waiting": "En espera",
+    "mute": "Silenciar",
+    "unmute": "Activar audio",
+    "cameraOff": "Apagar cámara",
+    "cameraOn": "Encender cámara",
+    "leave": "Salir",
+    "back": "Volver",
+    "connecting": "Conectando la sesión de video privada…",
+    "errorTitle": "Error de la sesión de video",
+    "webOnly": "Las sesiones de video privadas están disponibles en la app de iOS."
+  }
+}

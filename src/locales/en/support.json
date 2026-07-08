@@ -256,5 +256,30 @@
   "finderCard": {
     "title": "Find treatment & support",
     "sub": "Search vetted treatment centers, interventionists, and sober coaches — with real availability."
+  },
+  "textline": {
+    "gatedTitle": "Emergency Text Line",
+    "gatedBody": "Text support is included with Essential and Premium. Upgrade to send private support messages and screenshots from inside the app.",
+    "viewPlans": "View plans",
+    "sendErrorTitle": "Message not sent",
+    "sendErrorBody": "Please try again.",
+    "photosPermTitle": "Photos permission needed",
+    "photosPermBody": "Allow photo access to attach screenshots to this private support thread."
+  },
+  "privateVideo": {
+    "eyebrow": "Private video support",
+    "title": "Premium private video session",
+    "body": "Included for Premium members. Request a private in-app video support session; this is not an emergency service.",
+    "requestedOn": "Requested {{date}}",
+    "join": "Join private video",
+    "received": "Request received",
+    "request": "Request private video",
+    "statuses": {
+      "requested": "Session requested",
+      "scheduled": "Session scheduled",
+      "live": "Session live",
+      "completed": "Session completed",
+      "cancelled": "Session cancelled"
+    }
   }
 }
