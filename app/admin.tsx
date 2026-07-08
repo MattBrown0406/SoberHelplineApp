@@ -338,7 +338,7 @@ export default function AdminScreen() {
                 <View style={styles.videoSessionActions}>
                   <TouchableOpacity
                     style={[styles.smallBtn, { borderColor: colors.primary }]}
-                    onPress={() => router.push({ pathname: '/video-session', params: { room: item.room_name } })}
+                    onPress={() => router.push({ pathname: '/video-session' as never, params: { room: item.room_name } })}
                   >
                     <Text style={[styles.smallBtnText, { color: colors.primary }]}>Join</Text>
                   </TouchableOpacity>
@@ -392,7 +392,7 @@ export default function AdminScreen() {
               <TouchableOpacity
                 style={styles.threadRow}
                 activeOpacity={0.82}
-                onPress={() => router.push({ pathname: '/admin-thread', params: { threadId: item.thread_id } })}
+                onPress={() => router.push({ pathname: '/admin-thread' as never, params: { threadId: item.thread_id } })}
               >
                 <View style={styles.threadInfo}>
                   <View style={styles.threadNameRow}>

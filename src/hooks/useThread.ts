@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import * as FileSystem from 'expo-file-system/legacy';
 import { supabase } from '../lib/supabase';
 
 const ATTACHMENT_BUCKET = 'chat-attachments';
@@ -79,12 +80,19 @@ async function uploadAttachment(
 ): Promise<ChatAttachment | null> {
   const fileName = sanitizeFileName(attachment.fileName);
   const storagePath = `${accountId}/${threadId}/${messageId}/${Date.now()}-${fileName}`;
-  const response = await fetch(attachment.uri);
-  const blob = await response.blob();
+
+  // Read as base64 and upload raw bytes. React Native's fetch(file://).blob()
+  // is the classic zero-byte-upload trap with supabase-js — never use it here.
+  const base64 = await FileSystem.readAsStringAsync(attachment.uri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+  const binary = globalThis.atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
 
   const { error: uploadError } = await supabase.storage
     .from(ATTACHMENT_BUCKET)
-    .upload(storagePath, blob, {
+    .upload(storagePath, bytes.buffer as ArrayBuffer, {
       contentType: attachment.mimeType,
       upsert: false,
     });
@@ -106,7 +114,7 @@ async function uploadAttachment(
     .select('id, message_id, thread_id, storage_path, mime_type, file_name, width, height, size_bytes, created_at')
     .single();
 
-  if (error || !data) throw error;
+  if (error || !data) throw error ?? new Error('attachment insert failed');
   return signedAttachment(data as RawAttachment, attachment.uri);
 }
 

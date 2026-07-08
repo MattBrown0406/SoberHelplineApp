@@ -60,6 +60,15 @@ Deno.serve(async (req) => {
       return privateVideoToken(room, account, privateSession, isAdmin);
     }
 
+    // Private-room namespace guard: if the caller asks for a premium-video-*
+    // room but RLS shows them no session row, they are neither the owner nor
+    // admin. Never fall through to a group viewer token for a private room —
+    // that would let anyone holding a leaked room name silently watch a
+    // private session.
+    if (room.startsWith('premium-video-')) {
+      return json({ error: 'not authorized for this private video session' }, 403);
+    }
+
     return groupRoomToken(supabase, room, account, isAdmin);
   } catch (e) {
     return json({ error: String(e) }, 500);

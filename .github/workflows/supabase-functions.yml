@@ -9,6 +9,7 @@ on:
       - 'supabase/functions/send-engagement-push/**'
       - 'supabase/functions/zoom-sync/**'
       - 'supabase/functions/sync-web-membership/**'
+      - 'supabase/functions/sync-iap-entitlements/**'
       - '.github/workflows/supabase-functions.yml'
 
 jobs:
@@ -29,5 +30,6 @@ jobs:
           supabase functions deploy send-engagement-push
           supabase functions deploy zoom-sync
           supabase functions deploy sync-web-membership
+          supabase functions deploy sync-iap-entitlements
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

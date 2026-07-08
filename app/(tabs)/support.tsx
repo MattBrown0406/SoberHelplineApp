@@ -573,7 +573,7 @@ export default function SupportScreen() {
         {/* Crisis button — always visible */}
         <TouchableOpacity
           style={[styles.sosButton, { backgroundColor: colors.coral }]}
-          onPress={() => router.push('/crisis-mode')}
+          onPress={() => router.push('/crisis-mode' as never)}
           activeOpacity={0.85}
         >
           <Text style={styles.sosText}>🆘  {t('crisis.button')}</Text>

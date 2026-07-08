@@ -82,13 +82,19 @@ async function fetchAccount(authUser: User): Promise<AuthUser | null> {
       accountState = 'direct-premium';
     }
 
-    // Sync website ($14.99 family) membership → 'web' entitlement before we
-    // read entitlements, so web subscribers unlock Essential on first sign-in.
-    // Best-effort: a slow/unreachable bridge never blocks login.
+    // Sync external subscriptions → entitlements rows before reading them:
+    //  - sync-web-membership: soberhelpline.com $14.99 family members
+    //  - sync-iap-entitlements: App Store subscribers (server-verified via the
+    //    RevenueCat REST API) — required because DB RLS gates (textline,
+    //    private video) can only see the entitlements table, not RevenueCat.
+    // Best-effort with a cap: a slow/unreachable bridge never blocks login.
     if (!isAdmin) {
       try {
         await Promise.race([
-          supabase.functions.invoke('sync-web-membership'),
+          Promise.allSettled([
+            supabase.functions.invoke('sync-web-membership'),
+            supabase.functions.invoke('sync-iap-entitlements'),
+          ]),
           new Promise((resolve) => setTimeout(resolve, 4000)),
         ]);
       } catch {
