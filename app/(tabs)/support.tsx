@@ -891,7 +891,11 @@ export default function SupportScreen() {
               {privateVideoSession ? (
                 <View style={[styles.videoStatusBox, { backgroundColor: colors.primaryLight, borderColor: colors.primary }]}>
                   <Text style={[styles.videoStatusTitle, { color: colors.primary }]}>{t(`privateVideo.statuses.${privateVideoSession.status}`)}</Text>
-                  <Text style={[styles.videoStatusBody, { color: colors.inkSoft }]}>{t('privateVideo.requestedOn', { date: new Date(privateVideoSession.created_at).toLocaleDateString() })}</Text>
+                  <Text style={[styles.videoStatusBody, { color: colors.inkSoft }]}>
+                    {privateVideoSession.status === 'scheduled' && privateVideoSession.scheduled_for
+                      ? t('privateVideo.scheduledFor', { date: new Date(privateVideoSession.scheduled_for).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) })
+                      : t('privateVideo.requestedOn', { date: new Date(privateVideoSession.created_at).toLocaleDateString() })}
+                  </Text>
                 </View>
               ) : privateVideoError ? (
                 <Text style={[styles.errorInline, { color: colors.coral }]}>{privateVideoError}</Text>

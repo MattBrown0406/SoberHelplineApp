@@ -10,6 +10,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import { useAccount } from '../src/contexts/AccountContext';
 import { useTheme } from '../src/contexts/ThemeContext';
@@ -76,6 +77,8 @@ export default function AdminScreen() {
   const [videoSessions, setVideoSessions] = useState<VideoSessionRow[]>([]);
   const [loadingVideoSessions, setLoadingVideoSessions] = useState(true);
   const [updatingVideoSession, setUpdatingVideoSession] = useState<string | null>(null);
+  const [schedulingSession, setSchedulingSession] = useState<string | null>(null);
+  const [scheduleDate, setScheduleDate] = useState<Date>(new Date());
   const [funnel, setFunnel] = useState<FunnelStats | null>(null);
 
   // Guard: non-admin users should never reach this screen, but redirect just in case
@@ -143,16 +146,28 @@ export default function AdminScreen() {
     }
   }, [editingUrl]);
 
-  const updateVideoSession = useCallback(async (sessionId: string, status: VideoSessionRow['status']) => {
+  const updateVideoSession = useCallback(async (sessionId: string, status: VideoSessionRow['status'], scheduledFor?: Date) => {
     setUpdatingVideoSession(sessionId);
     const { error } = await supabase.rpc('admin_update_video_session', {
       p_session_id: sessionId,
       p_status: status,
+      ...(scheduledFor ? { p_scheduled_for: scheduledFor.toISOString() } : {}),
     });
     setUpdatingVideoSession(null);
     if (error) Alert.alert('Video session error', error.message);
-    else void loadData();
+    else {
+      setSchedulingSession(null);
+      void loadData();
+    }
   }, [loadData]);
+
+  function openScheduler(sessionId: string, current: string | null) {
+    // Default: existing schedule, else the next full hour.
+    const base = current ? new Date(current) : new Date(Date.now() + 60 * 60000);
+    base.setMinutes(0, 0, 0);
+    setScheduleDate(base);
+    setSchedulingSession(sessionId);
+  }
 
   if (!user || !isAdmin) return null;
 
@@ -321,48 +336,95 @@ export default function AdminScreen() {
             keyExtractor={(item) => item.id}
             scrollEnabled={false}
             ItemSeparatorComponent={() => <View style={[styles.separator, { backgroundColor: colors.line }]} />}
-            renderItem={({ item }) => (
-              <View style={styles.videoSessionRow}>
-                <View style={styles.threadInfo}>
-                  <View style={styles.threadNameRow}>
-                    <Text style={[styles.rsvpName, { color: colors.ink }]}>
-                      {item.first_name ?? 'Member'} {item.last_name ?? ''}
-                    </Text>
-                    <View style={[styles.statusPill, { backgroundColor: item.status === 'live' ? colors.greenLight : colors.primaryLight }]}>
-                      <Text style={[styles.statusPillText, { color: item.status === 'live' ? colors.green : colors.primary }]}>{item.status}</Text>
+            renderItem={({ item }) => {
+              const actionable = item.status !== 'completed' && item.status !== 'cancelled';
+              return (
+                <View>
+                  <View style={styles.videoSessionRow}>
+                    <View style={styles.threadInfo}>
+                      <View style={styles.threadNameRow}>
+                        <Text style={[styles.rsvpName, { color: colors.ink }]}>
+                          {item.first_name ?? 'Member'} {item.last_name ?? ''}
+                        </Text>
+                        <View style={[styles.statusPill, { backgroundColor: item.status === 'live' ? colors.greenLight : colors.primaryLight }]}>
+                          <Text style={[styles.statusPillText, { color: item.status === 'live' ? colors.green : colors.primary }]}>{item.status}</Text>
+                        </View>
+                      </View>
+                      <Text style={[styles.threadPreview, { color: colors.inkSoft }]} numberOfLines={1}>{item.email ?? item.account_id}</Text>
+                      <Text style={[styles.threadMeta, { color: colors.inkSoft }]}>
+                        Requested {new Date(item.created_at).toLocaleDateString()}
+                        {item.scheduled_for ? ` · Scheduled ${new Date(item.scheduled_for).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}` : ''}
+                      </Text>
+                    </View>
+                    <View style={styles.videoSessionActions}>
+                      <TouchableOpacity
+                        style={[styles.smallBtn, { borderColor: colors.primary }]}
+                        onPress={() => router.push({ pathname: '/video-session' as never, params: { room: item.room_name } })}
+                      >
+                        <Text style={[styles.smallBtnText, { color: colors.primary }]}>Join</Text>
+                      </TouchableOpacity>
+                      {item.status !== 'live' && actionable && (
+                        <TouchableOpacity
+                          style={[styles.smallBtn, { borderColor: colors.primary }]}
+                          disabled={updatingVideoSession === item.id}
+                          onPress={() => openScheduler(item.id, item.scheduled_for)}
+                        >
+                          <Text style={[styles.smallBtnText, { color: colors.primary }]}>Schedule</Text>
+                        </TouchableOpacity>
+                      )}
+                      {item.status !== 'live' && actionable && (
+                        <TouchableOpacity
+                          style={[styles.smallBtn, { borderColor: colors.green }]}
+                          disabled={updatingVideoSession === item.id}
+                          onPress={() => void updateVideoSession(item.id, 'live')}
+                        >
+                          <Text style={[styles.smallBtnText, { color: colors.green }]}>Start</Text>
+                        </TouchableOpacity>
+                      )}
+                      {actionable && (
+                        <TouchableOpacity
+                          style={[styles.smallBtn, { borderColor: colors.line }]}
+                          disabled={updatingVideoSession === item.id}
+                          onPress={() => void updateVideoSession(item.id, item.status === 'live' ? 'completed' : 'cancelled')}
+                        >
+                          <Text style={[styles.smallBtnText, { color: colors.inkSoft }]}>{item.status === 'live' ? 'Done' : 'Cancel'}</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   </View>
-                  <Text style={[styles.threadPreview, { color: colors.inkSoft }]} numberOfLines={1}>{item.email ?? item.account_id}</Text>
-                  <Text style={[styles.threadMeta, { color: colors.inkSoft }]}>Requested {new Date(item.created_at).toLocaleDateString()}</Text>
-                </View>
-                <View style={styles.videoSessionActions}>
-                  <TouchableOpacity
-                    style={[styles.smallBtn, { borderColor: colors.primary }]}
-                    onPress={() => router.push({ pathname: '/video-session' as never, params: { room: item.room_name } })}
-                  >
-                    <Text style={[styles.smallBtnText, { color: colors.primary }]}>Join</Text>
-                  </TouchableOpacity>
-                  {item.status !== 'live' && item.status !== 'completed' && item.status !== 'cancelled' && (
-                    <TouchableOpacity
-                      style={[styles.smallBtn, { borderColor: colors.green }]}
-                      disabled={updatingVideoSession === item.id}
-                      onPress={() => void updateVideoSession(item.id, 'live')}
-                    >
-                      <Text style={[styles.smallBtnText, { color: colors.green }]}>Start</Text>
-                    </TouchableOpacity>
+                  {schedulingSession === item.id && (
+                    <View style={[styles.schedulerBox, { borderColor: colors.line }]}>
+                      <Text style={[styles.threadMeta, { color: colors.inkSoft, marginBottom: 4 }]}>
+                        Pick a date & time — the member gets a push with it in their timezone.
+                      </Text>
+                      <DateTimePicker
+                        value={scheduleDate}
+                        mode="datetime"
+                        minimumDate={new Date()}
+                        onChange={(_event, date) => { if (date) setScheduleDate(date); }}
+                      />
+                      <View style={styles.row}>
+                        <TouchableOpacity
+                          style={[styles.btn, { backgroundColor: colors.primary }]}
+                          disabled={updatingVideoSession === item.id}
+                          onPress={() => void updateVideoSession(item.id, 'scheduled', scheduleDate)}
+                        >
+                          {updatingVideoSession === item.id
+                            ? <ActivityIndicator color="#fff" />
+                            : <Text style={styles.btnText}>Confirm time</Text>}
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.btn, styles.btnOutline, { borderColor: colors.line }]}
+                          onPress={() => setSchedulingSession(null)}
+                        >
+                          <Text style={[styles.btnText, { color: colors.ink }]}>Close</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
                   )}
-                  {item.status !== 'completed' && item.status !== 'cancelled' && (
-                    <TouchableOpacity
-                      style={[styles.smallBtn, { borderColor: colors.line }]}
-                      disabled={updatingVideoSession === item.id}
-                      onPress={() => void updateVideoSession(item.id, 'completed')}
-                    >
-                      <Text style={[styles.smallBtnText, { color: colors.inkSoft }]}>Done</Text>
-                    </TouchableOpacity>
-                  )}
                 </View>
-              </View>
-            )}
+              );
+            }}
           />
         )}
         <TouchableOpacity onPress={loadData} style={{ marginTop: 16 }}>
@@ -522,6 +584,7 @@ const styles = StyleSheet.create({
   unreadBadgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
   threadPreview: { fontSize: 13, marginTop: 2 },
   threadMeta: { fontSize: 11, marginTop: 3 },
+  schedulerBox: { borderWidth: 1, borderRadius: 10, padding: 12, marginBottom: 10, gap: 8 },
   videoSessionRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 12 },
   videoSessionActions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 6, maxWidth: 180 },
   statusPill: { borderRadius: 99, paddingVertical: 3, paddingHorizontal: 8 },

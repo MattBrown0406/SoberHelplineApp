@@ -280,6 +280,7 @@
       "live": "Sesión en vivo",
       "completed": "Sesión completada",
       "cancelled": "Sesión cancelada"
-    }
+    },
+    "scheduledFor": "Programada para {{date}}"
   }
 }

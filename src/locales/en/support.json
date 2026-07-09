@@ -280,6 +280,7 @@
       "live": "Session live",
       "completed": "Session completed",
       "cancelled": "Session cancelled"
-    }
+    },
+    "scheduledFor": "Scheduled for {{date}}"
   }
 }
