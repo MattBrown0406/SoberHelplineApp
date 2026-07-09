@@ -30,7 +30,7 @@
     "ORANGE": {
       "title": "Active crisis risk",
       "body": "Do not argue, debate treatment, or try to control the situation alone. Focus on safety, children, keys, distance, and calm next steps.",
-      "action": "Use the checklist below, then use Emergency Text Line or request Premium video support when safe."
+      "action": "Use the checklist below, then use Urgent Text Line or request Premium video support when safe."
     },
     "YELLOW": {
       "title": "Escalating concern",
@@ -142,7 +142,7 @@
   },
   "support": {
     "title": "8. Get support",
-    "openTextline": "Open Emergency Text Line",
+    "openTextline": "Open Urgent Text Line",
     "requestVideo": "Request Premium Video Support",
     "requesting": "Requesting…",
     "share": "Share / Export family crisis summary",

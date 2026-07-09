@@ -2,7 +2,7 @@
 //
 // This function is intentionally NOT wired to a Database Webhook, trigger, or
 // client call. It exists so the future FamilyBridge-style AI layer has a safe
-// starting point without changing current Emergency Text Line behavior.
+// starting point without changing current Urgent Text Line behavior.
 //
 // Future activation requirements:
 // 1. Add an explicit admin/product toggle for threads.ai_enabled.

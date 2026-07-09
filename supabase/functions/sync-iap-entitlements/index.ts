@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 // Mirrors App Store (RevenueCat) subscriptions into the entitlements table so
-// database RLS gates (Emergency Text Line, private video) recognize paying IAP
+// database RLS gates (Urgent Text Line, private video) recognize paying IAP
 // subscribers — the client-side RevenueCat check can't be seen by Postgres.
 //
 // Flow: app invokes this with the signed-in user's JWT; we resolve their

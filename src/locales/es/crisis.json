@@ -30,7 +30,7 @@
     "ORANGE": {
       "title": "Riesgo de crisis activa",
       "body": "No discutas, no debatas el tratamiento ni intentes controlar la situación sola. Enfócate en la seguridad, los niños, las llaves, la distancia y pasos tranquilos.",
-      "action": "Usa la lista de abajo y luego la Línea de Texto de Emergencia, o solicita apoyo por video Premium cuando sea seguro."
+      "action": "Usa la lista de abajo y luego la Línea de Texto Urgente, o solicita apoyo por video Premium cuando sea seguro."
     },
     "YELLOW": {
       "title": "Preocupación en aumento",
@@ -142,7 +142,7 @@
   },
   "support": {
     "title": "8. Recibe apoyo",
-    "openTextline": "Abrir Línea de Texto de Emergencia",
+    "openTextline": "Abrir Línea de Texto Urgente",
     "requestVideo": "Solicitar apoyo por video Premium",
     "requesting": "Solicitando…",
     "share": "Compartir / Exportar resumen de crisis familiar",

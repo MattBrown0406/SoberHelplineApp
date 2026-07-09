@@ -190,7 +190,7 @@ export default function AdminThreadScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={[styles.title, { color: colors.ink }]}>{memberName}</Text>
-          <Text style={[styles.sub, { color: colors.inkSoft }]}>Emergency Text Line · {thread?.risk_level ?? 'normal'} · {thread?.status ?? 'active'}</Text>
+          <Text style={[styles.sub, { color: colors.inkSoft }]}>Urgent Text Line · {thread?.risk_level ?? 'normal'} · {thread?.status ?? 'active'}</Text>
         </View>
         <TouchableOpacity onPress={() => void archiveThread()} hitSlop={12}>
           <Text style={[styles.archive, { color: colors.inkSoft }]}>Archive</Text>
