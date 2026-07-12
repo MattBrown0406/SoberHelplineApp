@@ -1,15 +1,14 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { captureAppError } from '../lib/monitoring';
 
-/**
- * Root error boundary — last line of defense so a render crash never shows
- * families a red screen. Reports to Sentry when EXPO_PUBLIC_SENTRY_DSN is set
- * (P2: swap reportError for @sentry/react-native captureException).
- */
-function reportError(error: Error, info: React.ErrorInfo) {
-  // eslint-disable-next-line no-console
-  console.error('[ErrorBoundary]', error, info.componentStack);
-  // TODO(P2): Sentry.captureException(error) once DSN + SDK are configured.
+/** Root error boundary — last line of defense for render failures. */
+function reportError(error: Error) {
+  captureAppError(error);
+  if (__DEV__) {
+    // eslint-disable-next-line no-console
+    console.error('[ErrorBoundary]', error);
+  }
 }
 
 interface State {
@@ -26,8 +25,8 @@ export class ErrorBoundary extends React.Component<
     return { hasError: true };
   }
 
-  componentDidCatch(error: Error, info: React.ErrorInfo) {
-    reportError(error, info);
+  componentDidCatch(error: Error) {
+    reportError(error);
   }
 
   render() {

@@ -22,7 +22,7 @@ import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
 import { useThread, type ChatMessage, type PendingAttachment } from '../src/hooks/useThread';
 import { useSessions } from '../src/hooks/useSessions';
-import { getMockOnCallRoster } from '../src/api/mock';
+import { PRIMARY_ON_CALL } from '../src/content/onCall';
 import { MAX_CONTENT_WIDTH } from '../src/components/ui/ScreenContainer';
 
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😢', '😮', '👎'] as const;
@@ -42,7 +42,7 @@ export default function ChatScreen() {
   const listRef = useRef<FlatList<ChatMessage>>(null);
 
   // Coach presence between sessions: the on-call coach and the next live session.
-  const coachName = getMockOnCallRoster(isAttached ? 'attached' : 'direct').primaryOnCall.firstName;
+  const coachName = PRIMARY_ON_CALL.firstName;
   const nextSchedule = sessions.find((s) => s.kind === 'group')?.schedule_label ?? null;
 
   async function handleSend() {

@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { AppState, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
+import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import i18n from '../i18n';
 import { supabase } from '../lib/supabase';
@@ -103,31 +105,70 @@ export async function registerForPushNotifications(accountId: string): Promise<v
   if (finalStatus !== 'granted') return;
 
   try {
-    const token = (await Notifications.getExpoPushTokenAsync()).data;
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+    if (!projectId) throw new Error('EAS project ID is not configured');
+    const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
     if (token) {
       // locale drives the language of server-sent pushes (session reminders,
       // win-back, community support) — kept in sync with the app language.
-      await supabase
+      const { error } = await supabase
         .from('accounts')
         .update({ push_token: token, locale: i18n.language ?? 'en' })
         .eq('id', accountId);
+      if (error) throw error;
     }
-  } catch {
-    // Simulator or no EAS project ID — skip token storage, still schedule local nudge
+  } catch (error) {
+    // Push failures must be observable: a coach missing a scheduling request is
+    // operationally significant. Simulators commonly cannot obtain a token.
+    console.warn('[push] registration failed', error);
   }
 
   await rearmDailyNudge();
 }
 
 export function usePushNotifications(accountId: string | null): void {
+  const router = useRouter();
+
   useEffect(() => {
     if (!accountId) return;
     void registerForPushNotifications(accountId);
+
+    const openSchedulingNotification = (response: Notifications.NotificationResponse) => {
+      const data = response.notification.request.content.data ?? {};
+      const kind = typeof data.kind === 'string' ? data.kind : '';
+      const sessionId = typeof data.session_id === 'string' ? data.session_id : '';
+
+      const sessionKinds = new Set([
+        'admin_video_request', 'coach_video_accepted', 'coach_video_reschedule',
+        'coach_video_cancelled', 'coach_video_reminder', 'member_video_scheduled',
+        'member_video_counteroffer', 'member_video_cancelled', 'member_video_live',
+        'member_video_completed', 'member_video_no_show', 'premier_video_reminder',
+      ]);
+      const validSessionId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sessionId);
+      // Route only an explicit allowlist and never consume an unvalidated identifier.
+      if (!sessionKinds.has(kind) || !validSessionId) return;
+      if (kind === 'member_video_live') {
+        router.push({ pathname: '/video-session' as never, params: { sessionId } });
+      } else if (kind.startsWith('admin_') || kind.startsWith('coach_')) {
+        router.push('/admin' as never);
+      } else {
+        router.push('/support' as never);
+      }
+    };
+
+    const responseSub = Notifications.addNotificationResponseReceivedListener(openSchedulingNotification);
+    void Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (response) openSchedulingNotification(response);
+    });
+
     // Re-arm on foreground so the rolling week stays topped up and today's
     // nudge drops the moment the user checks in within the session.
-    const sub = AppState.addEventListener('change', (state) => {
+    const appStateSub = AppState.addEventListener('change', (state) => {
       if (state === 'active') void rearmDailyNudge();
     });
-    return () => sub.remove();
-  }, [accountId]);
+    return () => {
+      responseSub.remove();
+      appStateSub.remove();
+    };
+  }, [accountId, router]);
 }

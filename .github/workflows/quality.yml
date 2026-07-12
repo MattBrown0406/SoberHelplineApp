@@ -1,0 +1,58 @@
+name: Quality Gates
+
+on:
+  workflow_call:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Block high or critical dependency advisories
+        run: npm audit --audit-level=high
+      - name: Prevent production mock modules
+        run: |
+          test ! -e src/api/mock.ts
+          ! grep -R "api/mock" app src --include='*.ts' --include='*.tsx'
+      - run: npm run typecheck
+      - run: npm run doctor
+      - run: npm run export:web
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.3.7
+      - name: Type-check Edge Functions
+        run: |
+          for file in supabase/functions/*/index.ts; do
+            deno check --node-modules-dir=auto "$file"
+          done
+      - name: Run Edge Function contract tests
+        run: deno test --node-modules-dir=auto supabase/functions/_shared/*_test.ts
+
+  database:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.109.1
+      - name: Start local Supabase
+        run: supabase start -x vector,logflare
+      - name: Rebuild all migrations
+        run: supabase db reset
+      - name: Run database tests
+        run: supabase test db

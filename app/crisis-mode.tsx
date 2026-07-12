@@ -18,6 +18,7 @@ import type { TFunction } from 'i18next';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
 import { usePrivateVideoSessions } from '../src/hooks/usePrivateVideoSessions';
+import { PremierVideoSchedulingCard } from '../src/components/video/PremierVideoSchedulingCard';
 
 type RiskLevel = 'GREEN' | 'YELLOW' | 'ORANGE' | 'RED';
 type TriageKey =
@@ -184,7 +185,7 @@ export default function CrisisModeScreen() {
   const { t } = useTranslation('crisis');
   const { user, entitlements } = useAccount();
   const canAccessPrivateVideo = !!user && entitlements.canAccessPrivateVideo;
-  const { activeSession, requestSession, requesting } = usePrivateVideoSessions(user?.id ?? null, canAccessPrivateVideo);
+  const privateVideo = usePrivateVideoSessions(user?.id ?? null, canAccessPrivateVideo);
 
   const [selected, setSelected] = useState<Record<TriageKey, boolean>>(() =>
     TRIAGE.reduce((acc, q) => ({ ...acc, [q.key]: false }), {} as Record<TriageKey, boolean>)
@@ -266,18 +267,6 @@ export default function CrisisModeScreen() {
     setIncidentDraft({ summary: '', substances: '', threats: '', childrenPresent: false, policeOrEms: false, boundaryCrossed: false });
   }
 
-  async function handleVideo() {
-    if (!canAccessPrivateVideo) {
-      Alert.alert(t('videoAlerts.gateTitle'), t('videoAlerts.gateBody'));
-      return;
-    }
-    const session = activeSession ?? await requestSession();
-    if (session?.status === 'live') {
-      router.push({ pathname: '/video-session' as never, params: { room: session.room_name } });
-    } else {
-      Alert.alert(t('videoAlerts.queuedTitle'), t('videoAlerts.queuedBody'));
-    }
-  }
 
   async function shareSummary() {
     const notEntered = t('share.notEntered');
@@ -428,9 +417,13 @@ export default function CrisisModeScreen() {
           <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: colors.primary }]} onPress={() => router.push('/chat')}>
             <Text style={styles.primaryBtnText}>{t('support.openTextline')}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.outlineBtn, { borderColor: colors.primary }]} onPress={() => void handleVideo()} disabled={requesting}>
-            <Text style={[styles.outlineBtnText, { color: colors.primary }]}>{requesting ? t('support.requesting') : t('support.requestVideo')}</Text>
-          </TouchableOpacity>
+          {canAccessPrivateVideo ? (
+            <PremierVideoSchedulingCard controller={privateVideo} t={t} translationRoot="premierVideo" compact onJoin={(session) => router.push({ pathname: '/video-session' as never, params: { sessionId: session.id, room: session.room_name } })} />
+          ) : (
+            <TouchableOpacity style={[styles.outlineBtn, { borderColor: colors.primary }]} onPress={() => Alert.alert(t('videoAlerts.gateTitle'), t('videoAlerts.gateBody'))}>
+              <Text style={[styles.outlineBtnText, { color: colors.primary }]}>{t('support.requestVideo')}</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={[styles.outlineBtn, { borderColor: colors.secondary }]} onPress={() => void shareSummary()}>
             <Text style={[styles.outlineBtnText, { color: colors.secondary }]}>{t('support.share')}</Text>
           </TouchableOpacity>

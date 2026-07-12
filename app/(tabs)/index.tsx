@@ -17,7 +17,7 @@ import { WeekReviewCard } from '../../src/components/today/WeekReviewCard';
 import { ScriptCard } from '../../src/components/scripts/ScriptCard';
 import { useCheckIn } from '../../src/hooks/useCheckIn';
 import { useTodayFeed } from '../../src/hooks/useTodayFeed';
-import { getDailyScriptPair } from '../../src/api/mock';
+import { getDailyScriptPair } from '../../src/content/scripts';
 import { isAdminEmail } from '../../src/lib/admin';
 import type { DailyFocusItem } from '../../src/api/types';
 import type { TFunction } from 'i18next';

@@ -20,14 +20,13 @@ import { useTranslation } from 'react-i18next';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { useLanguage } from '../../src/hooks/useLanguage';
-import {
-  getMockOnCallRoster,
-  getMockSupportGroups,
-} from '../../src/api/mock';
+import { getSupportGroups } from '../../src/content/supportGroups';
+import { PRIMARY_ON_CALL } from '../../src/content/onCall';
 import { useSessions, type DbSession } from '../../src/hooks/useSessions';
 import { useGroupPresence } from '../../src/hooks/useGroupPresence';
 import { useGroupRsvps } from '../../src/hooks/useGroupRsvps';
 import { usePrivateVideoSessions } from '../../src/hooks/usePrivateVideoSessions';
+import { PremierVideoSchedulingCard } from '../../src/components/video/PremierVideoSchedulingCard';
 import { GROUPS_URL, FEATURED_PROVIDER } from '../../src/config';
 import { useIAP } from '../../src/hooks/useIAP';
 import { useSituation } from '../../src/hooks/useSituation';
@@ -72,8 +71,7 @@ function CrisisSheet({
 }) {
   const { width: screenWidth } = useWindowDimensions();
   const sheetOffset = Math.max(0, (screenWidth - 520) / 2);
-  const roster = getMockOnCallRoster(isAttached ? 'attached' : 'direct');
-  const primary = roster.primaryOnCall;
+  const primary = PRIMARY_ON_CALL;
 
   return (
     <Modal
@@ -501,31 +499,15 @@ export default function SupportScreen() {
   const { situation } = useSituation(user?.id ?? null);
   const crisisDoor = funnelDoor(situation);
 
-  const roster = getMockOnCallRoster(isAttached ? 'attached' : 'direct');
+  const roster = { primaryOnCall: PRIMARY_ON_CALL, available: [] as StaffMember[] };
   const { sessions, toggleRsvp } = useSessions(user?.id ?? null);
-  const groups = getMockSupportGroups();
+  const groups = getSupportGroups();
   const { myRooms, liveRooms } = useGroupPresence(user?.id ?? null);
   const { rsvpedRooms, toggleRsvp: toggleGroupRsvp } = useGroupRsvps(user?.id ?? null);
   const canAccessPrivateVideo = !!user && entitlements.canAccessPrivateVideo;
-  const {
-    activeSession: privateVideoSession,
-    loading: loadingPrivateVideo,
-    requesting: requestingPrivateVideo,
-    error: privateVideoError,
-    requestSession: requestPrivateVideoSession,
-  } = usePrivateVideoSessions(user?.id ?? null, canAccessPrivateVideo);
+  const privateVideo = usePrivateVideoSessions(user?.id ?? null, canAccessPrivateVideo);
   const isAdmin = isAdminEmail(user?.email);
 
-  async function handlePrivateVideoRequest() {
-    if (!canAccessPrivateVideo) {
-      setUpgradeOpen(true);
-      return;
-    }
-    const session = privateVideoSession ?? await requestPrivateVideoSession();
-    if (session?.status === 'live') {
-      router.push({ pathname: '/video-session' as never, params: { room: session.room_name } });
-    }
-  }
 
   return (
     <ScreenContainer backgroundColor={colors.cream}>
@@ -888,32 +870,12 @@ export default function SupportScreen() {
               <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>{t('privateVideo.eyebrow').toUpperCase()}</Text>
               <Text style={[styles.referralTitle, { color: colors.ink }]}>{t('privateVideo.title')}</Text>
               <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{t('privateVideo.body')}</Text>
-              {privateVideoSession ? (
-                <View style={[styles.videoStatusBox, { backgroundColor: colors.primaryLight, borderColor: colors.primary }]}>
-                  <Text style={[styles.videoStatusTitle, { color: colors.primary }]}>{t(`privateVideo.statuses.${privateVideoSession.status}`)}</Text>
-                  <Text style={[styles.videoStatusBody, { color: colors.inkSoft }]}>
-                    {privateVideoSession.status === 'scheduled' && privateVideoSession.scheduled_for
-                      ? t('privateVideo.scheduledFor', { date: new Date(privateVideoSession.scheduled_for).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) })
-                      : t('privateVideo.requestedOn', { date: new Date(privateVideoSession.created_at).toLocaleDateString() })}
-                  </Text>
-                </View>
-              ) : privateVideoError ? (
-                <Text style={[styles.errorInline, { color: colors.coral }]}>{privateVideoError}</Text>
-              ) : null}
-              <TouchableOpacity
-                style={[styles.outlineBtn, { borderColor: colors.primary, marginTop: 12 }]}
-                activeOpacity={0.8}
-                disabled={loadingPrivateVideo || requestingPrivateVideo}
-                onPress={() => void handlePrivateVideoRequest()}
-              >
-                {loadingPrivateVideo || requestingPrivateVideo ? (
-                  <ActivityIndicator color={colors.primary} />
-                ) : (
-                  <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
-                    {privateVideoSession?.status === 'live' ? t('privateVideo.join') : privateVideoSession ? t('privateVideo.received') : t('privateVideo.request')}
-                  </Text>
-                )}
-              </TouchableOpacity>
+              <PremierVideoSchedulingCard
+                controller={privateVideo}
+                t={t}
+                translationRoot="privateVideo.scheduling"
+                onJoin={(session) => router.push({ pathname: '/video-session' as never, params: { sessionId: session.id, room: session.room_name } })}
+              />
             </View>
 
             <View style={[styles.card, { borderColor: colors.line }]}>
