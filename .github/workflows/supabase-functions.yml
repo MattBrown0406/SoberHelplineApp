@@ -52,6 +52,19 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.109.1
+      - name: Configure calendar function secrets
+        run: |
+          supabase secrets set --project-ref "${{ vars.SUPABASE_PROJECT_REF }}" \
+            GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID" \
+            GOOGLE_CLIENT_SECRET="$GOOGLE_CLIENT_SECRET" \
+            GOOGLE_REFRESH_TOKEN="$GOOGLE_REFRESH_TOKEN" \
+            GOOGLE_CALENDAR_ID="$GOOGLE_CALENDAR_ID"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          GOOGLE_CALENDAR_ID: ${{ secrets.GOOGLE_CALENDAR_ID }}
       - name: Deploy all checked-in functions
         run: |
           supabase link --project-ref ${{ vars.SUPABASE_PROJECT_REF }}
