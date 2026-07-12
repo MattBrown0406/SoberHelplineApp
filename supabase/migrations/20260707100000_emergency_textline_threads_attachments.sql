@@ -227,6 +227,10 @@ END;
 $$;
 
 -- Upgrade existing admin inbox RPC with unread/status fields.
+-- PostgreSQL cannot CREATE OR REPLACE a function when its OUT/RETURNS TABLE
+-- shape changes, so drop the prior signature first. This keeps clean database
+-- resets reproducible while preserving the same callable RPC name.
+DROP FUNCTION IF EXISTS admin_get_active_threads();
 CREATE OR REPLACE FUNCTION admin_get_active_threads()
 RETURNS TABLE(
   thread_id        uuid,

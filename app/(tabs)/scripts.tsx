@@ -12,7 +12,7 @@ import { useTheme } from '../../src/contexts/ThemeContext';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { FreeTierPaywall } from '../../src/components/ui/FreeTierPaywall';
 import { ScriptCard } from '../../src/components/scripts/ScriptCard';
-import { getMockScripts, getDailyScriptPair } from '../../src/api/mock';
+import { getScripts, getDailyScriptPair } from '../../src/content/scripts';
 import { useTodayFeed } from '../../src/hooks/useTodayFeed';
 import { useLovedOne } from '../../src/hooks/useLovedOne';
 import { isAdminEmail } from '../../src/lib/admin';
@@ -65,7 +65,7 @@ export default function ScriptsScreen() {
   const { lovedOne } = useLovedOne(user?.id ?? null);
 
   const allScripts = useMemo(
-    () => personalize(getMockScripts(), lovedOne?.relationship ?? null, lovedOne?.substances ?? []),
+    () => personalize(getScripts(), lovedOne?.relationship ?? null, lovedOne?.substances ?? []),
     [lovedOne?.relationship, lovedOne?.substances],
   );
   const todayScripts = useMemo(() => getDailyScriptPair(scriptSlot), [scriptSlot]);

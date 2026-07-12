@@ -180,6 +180,14 @@
   "field": {
     "placeholder": "Tap to enter"
   },
+  "premierVideo": {
+    "timezone": "Times use your detected timezone: {{timezone}}", "loading": "Loading video session", "retry": "Refresh", "request": "Choose a day and time", "minutes": "minutes",
+    "statuses": { "coach_proposal": "Your coach proposed a new time", "requested": "Your time request is pending", "scheduled": "Confirmed", "live": "Your session is live", "completed": "Completed", "cancelled": "Cancelled", "no_show": "No show" },
+    "coachProposalBody": "Accept this time or request a different one.", "memberProposalBody": "Your coach will confirm this exact time or suggest another.", "confirmedRequestedZone": "{{date}} ({{timezone}})", "deviceTime": "On this device: {{date}} ({{timezone}})",
+    "accept": "Accept coach's time", "join": "Join video session", "addCalendar": "Add to Google Calendar", "reschedule": "Request a new time", "newTime": "Change requested time", "cancel": "Cancel session", "cancelTitle": "Cancel this video session?", "cancelBody": "Your coach will be notified.", "keep": "Keep session",
+    "dateTimeLabel": "Exact day and time", "durationAndZone": "60 minutes · {{timezone}}", "noteLabel": "Note for your coach (optional)", "notePlaceholder": "What would be helpful for your coach to know?", "submit": "Send time request", "submitNewTime": "Request this new time", "history": "Past sessions", "rebook": "Book again",
+    "errors": { "invalidTitle": "Choose another time", "future": "Select a day and time in the future.", "version_conflict": "This session changed elsewhere. We refreshed it; review and try again.", "active_session_exists": "You already have an active video request.", "invalid_request": "Check the date, time, and note, then try again.", "invalid_timezone": "Your device timezone could not be used.", "proposal_not_found": "That proposal is no longer available. Refresh for the latest time.", "session_not_found": "This session is no longer available.", "premium_video_access_required": "Premium video access is required.", "invalid_transition": "That action is no longer available.", "unknown": "We couldn't update your session. Refresh and try again." }
+  },
   "video": {
     "waitingTitle": "Private Video Support",
     "waitingNote": "This is not an emergency service. Call 911 or 988 for immediate danger.",

@@ -1,35 +1,56 @@
-name: Supabase Functions
+name: Supabase Deploy
 
 on:
   push:
     branches: [main]
     paths:
-      - 'supabase/functions/livekit-token/**'
-      - 'supabase/functions/livekit-remove/**'
-      - 'supabase/functions/send-engagement-push/**'
-      - 'supabase/functions/zoom-sync/**'
-      - 'supabase/functions/sync-web-membership/**'
-      - 'supabase/functions/sync-iap-entitlements/**'
+      - 'supabase/migrations/**'
+      - 'supabase/functions/**'
       - '.github/workflows/supabase-functions.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: supabase-production
+  cancel-in-progress: false
 
 jobs:
-  deploy-functions:
+  quality:
+    uses: ./.github/workflows/quality.yml
+
+  migrate:
+    needs: quality
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
-
-      - name: Deploy functions
+          version: 2.109.1
+      - name: Apply all pending migrations
         run: |
           supabase link --project-ref ${{ vars.SUPABASE_PROJECT_REF }}
-          supabase functions deploy livekit-token
-          supabase functions deploy livekit-remove
-          supabase functions deploy send-engagement-push
-          supabase functions deploy zoom-sync
-          supabase functions deploy sync-web-membership
-          supabase functions deploy sync-iap-entitlements
+          supabase db push --linked --yes
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+  deploy-functions:
+    needs: migrate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.109.1
+      - name: Deploy all checked-in functions
+        run: |
+          supabase link --project-ref ${{ vars.SUPABASE_PROJECT_REF }}
+          supabase functions deploy --jobs 4
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      - name: Retire removed placeholder AI function
+        run: |
+          if supabase functions list --project-ref "${{ vars.SUPABASE_PROJECT_REF }}" --output json \
+            | jq -e '.[] | select((.slug // .name) == "draft-ai-response")' >/dev/null; then
+            supabase functions delete draft-ai-response --project-ref "${{ vars.SUPABASE_PROJECT_REF }}" --yes
+          fi
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

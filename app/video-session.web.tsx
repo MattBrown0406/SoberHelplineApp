@@ -13,7 +13,7 @@ export default function VideoSessionWeb() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
       <View style={styles.inner}>
         <Text style={styles.icon}>📱</Text>
-        <Text style={[styles.message, { color: colors.ink }]}>{t('video.webOnly')}</Text>
+        <Text style={[styles.message, { color: colors.ink }]}>Private video sessions are available only in the secure Sober Helpline mobile app.</Text>
         <TouchableOpacity onPress={() => router.back()} style={[styles.btn, { backgroundColor: colors.primary }]}>
           <Text style={styles.btnText}>{t('video.back')}</Text>
         </TouchableOpacity>

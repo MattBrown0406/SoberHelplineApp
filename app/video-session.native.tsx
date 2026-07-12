@@ -22,13 +22,15 @@ registerGlobals();
 
 type TokenResult = {
   token: string;
+  sessionId: string;
+  room: string;
   identity: string;
   isHost: boolean;
   isPrivateVideo?: boolean;
   canPublish?: boolean;
 };
 
-async function fetchPrivateVideoToken(room: string): Promise<TokenResult> {
+async function fetchPrivateVideoToken(sessionId: string): Promise<TokenResult> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Not authenticated');
 
@@ -38,7 +40,7 @@ async function fetchPrivateVideoToken(room: string): Promise<TokenResult> {
       Authorization: `Bearer ${session.access_token}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ room }),
+    body: JSON.stringify({ sessionId }),
   });
   const payload = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(payload?.error ?? `Token fetch failed: ${res.status}`);
@@ -114,8 +116,8 @@ export default function VideoSessionScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation('crisis');
   const router = useRouter();
-  const params = useLocalSearchParams<{ room: string }>();
-  const roomName = useMemo(() => String(params.room ?? ''), [params.room]);
+  const params = useLocalSearchParams<{ sessionId: string }>();
+  const sessionId = useMemo(() => String(params.sessionId ?? ''), [params.sessionId]);
   const [tokenResult, setTokenResult] = useState<TokenResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -123,9 +125,9 @@ export default function VideoSessionScreen() {
     let active = true;
     async function init() {
       try {
-        if (!roomName) throw new Error('Missing video room.');
+        if (!sessionId) throw new Error('Missing video session.');
         await AudioSession.startAudioSession();
-        const result = await fetchPrivateVideoToken(roomName);
+        const result = await fetchPrivateVideoToken(sessionId);
         if (active) setTokenResult(result);
       } catch (e) {
         if (active) setError(String(e));
@@ -136,7 +138,7 @@ export default function VideoSessionScreen() {
       active = false;
       void AudioSession.stopAudioSession();
     };
-  }, [roomName]);
+  }, [sessionId]);
 
   const leave = useCallback(() => router.back(), [router]);
 

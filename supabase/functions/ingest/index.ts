@@ -362,7 +362,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
     person = data;
   }
 
-  const personId = person.id as string;
+  if (!person || typeof person.id !== 'string') {
+    return err('people upsert returned no record', 500);
+  }
+  const personId = person.id;
 
   // ── 2. Upsert identity (if local_id provided) ────────────────────────────────
 
