@@ -68,7 +68,7 @@ jobs:
       - name: Deploy all checked-in functions
         run: |
           supabase link --project-ref ${{ vars.SUPABASE_PROJECT_REF }}
-          supabase functions deploy --jobs 4
+          supabase functions deploy
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       - name: Retire removed placeholder AI function
