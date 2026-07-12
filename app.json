@@ -2,7 +2,7 @@
   "expo": {
     "name": "Sober Helpline",
     "slug": "SoberHelplineApp",
-    "version": "3.1",
+    "version": "3.2",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "sober-helpline",
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.soberhelplineapp",
-      "buildNumber": "13",
+      "buildNumber": "14",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "Sober Helpline uses your microphone only during practice recording, live group sessions, and private video support sessions you choose to join.",
         "NSCameraUsageDescription": "Sober Helpline uses your camera only during live group sessions and private video support sessions you choose to join.",
