@@ -303,61 +303,123 @@ function ViewerView({ onLeave }: { onLeave: () => void }) {
 // ── Main screen ───────────────────────────────────────────────────────────────
 
 export default function LiveRoomScreen() {
+  const params = useLocalSearchParams<{ room: string }>();
+  const roomName = params.room ?? '';
+  return <LiveRoomSession key={roomName} roomName={roomName} />;
+}
+
+function LiveRoomSession({ roomName }: { roomName: string }) {
   const { colors } = useTheme();
   const { t } = useTranslation('live');
   const router = useRouter();
   const { user } = useAccount();
-  const params = useLocalSearchParams<{ room: string }>();
-  const roomName = params.room ?? '';
 
   const [tokenResult, setTokenResult] = useState<TokenResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [connected, setConnected] = useState(false);
+  const liveMarkedRef = useRef(false);
+  const hostStartAttemptedRef = useRef(false);
+  const isHostRef = useRef(false);
+  const liveTransitionRef = useRef<Promise<boolean> | null>(null);
+  const navigatedBackRef = useRef(false);
+  const mountedRef = useRef(true);
+  const tearingDownRef = useRef(false);
+  const startErrorRef = useRef(false);
 
   useEffect(() => {
     async function init() {
       try {
         await AudioSession.startAudioSession();
         const result = await fetchLiveKitToken(roomName);
+        if (!mountedRef.current) return;
+        isHostRef.current = result.isHost;
         setTokenResult(result);
-
-        if (result.isHost) {
-          const { error: liveError } = await supabase.rpc('set_host_live', {
-            p_room_name: roomName,
-            p_is_live: true,
-          });
-          if (liveError) throw new Error(t('host.startError'));
-        }
       } catch (e) {
-        setError(String(e));
+        if (mountedRef.current) setError(String(e));
       }
     }
-    init();
+    void init();
 
     return () => {
+      mountedRef.current = false;
+      tearingDownRef.current = true;
       AudioSession.stopAudioSession();
+      if (isHostRef.current && hostStartAttemptedRef.current) {
+        void transitionHostLive(false);
+      }
     };
   }, [roomName]);
 
-  async function handleLeaveOrEnd() {
-    if (tokenResult?.isHost) {
-      const { error: liveError } = await supabase.rpc('set_host_live', {
-        p_room_name: roomName,
-        p_is_live: false,
-      });
-      if (liveError) {
-        Alert.alert(t('host.endErrorTitle'), t('host.endErrorBody'));
-        return;
-      }
-    }
+  function navigateBackOnce() {
+    if (!mountedRef.current || tearingDownRef.current || navigatedBackRef.current) return;
+    navigatedBackRef.current = true;
     router.back();
+  }
+
+  function transitionHostLive(nextLive: boolean): Promise<boolean> {
+    if (!isHostRef.current) return Promise.resolve(true);
+    if (nextLive) hostStartAttemptedRef.current = true;
+
+    const previous = liveTransitionRef.current ?? Promise.resolve(true);
+    const transition = previous.catch(() => false).then(async () => {
+      // A lost response to the start RPC may still have committed server-side,
+      // so every teardown after a start attempt issues an idempotent false RPC.
+      if (nextLive && liveMarkedRef.current) return true;
+      if (!nextLive && !hostStartAttemptedRef.current && !liveMarkedRef.current) return true;
+
+      try {
+        const { error: liveError } = await supabase.rpc('set_host_live', {
+          p_room_name: roomName,
+          p_is_live: nextLive,
+        });
+        if (liveError) {
+          console.warn('[LiveRoom] set_host_live failed:', liveError);
+          return false;
+        }
+        liveMarkedRef.current = nextLive;
+        if (!nextLive) hostStartAttemptedRef.current = false;
+        return true;
+      } catch (rpcError) {
+        console.warn('[LiveRoom] set_host_live threw:', rpcError);
+        return false;
+      }
+    });
+
+    liveTransitionRef.current = transition;
+    void transition.then(() => {
+      if (liveTransitionRef.current === transition) liveTransitionRef.current = null;
+    });
+    return transition;
+  }
+
+  async function handleConnected() {
+    if (!isHostRef.current || liveMarkedRef.current) return;
+    if (!await transitionHostLive(true)) {
+      startErrorRef.current = true;
+      await transitionHostLive(false);
+      if (mountedRef.current) setError(t('host.startError'));
+    }
+  }
+
+  async function handleLeaveOrEnd() {
+    if (!await transitionHostLive(false)) {
+      if (mountedRef.current && !tearingDownRef.current) {
+        Alert.alert(t('host.endErrorTitle'), t('host.endErrorBody'));
+      }
+      return;
+    }
+    navigateBackOnce();
+  }
+
+  async function handleDisconnected() {
+    await transitionHostLive(false);
+    if (!startErrorRef.current) navigateBackOnce();
   }
 
   if (error) {
     return (
       <SafeAreaView style={[styles.center, { backgroundColor: colors.ink }]}>
         <Text style={[styles.errorText, { color: colors.coral }]}>{error}</Text>
-        <TouchableOpacity onPress={() => router.back()} style={[styles.endBtn, { backgroundColor: colors.primary, marginTop: 20 }]}>
+        <TouchableOpacity onPress={() => void handleLeaveOrEnd()} style={[styles.endBtn, { backgroundColor: colors.primary, marginTop: 20 }]}>
           <Text style={styles.endBtnText}>{t('leave')}</Text>
         </TouchableOpacity>
       </SafeAreaView>
@@ -381,8 +443,8 @@ export default function LiveRoomScreen() {
       connect
       audio={tokenResult.isHost}
       video={tokenResult.isHost}
-      onConnected={() => setConnected(true)}
-      onDisconnected={handleLeaveOrEnd}
+      onConnected={() => void handleConnected()}
+      onDisconnected={() => void handleDisconnected()}
     >
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         {tokenResult.isHost ? (

@@ -28,7 +28,7 @@ import { useGroupRsvps } from '../../src/hooks/useGroupRsvps';
 import { usePrivateVideoSessions } from '../../src/hooks/usePrivateVideoSessions';
 import { PremierVideoSchedulingCard } from '../../src/components/video/PremierVideoSchedulingCard';
 import { GROUPS_URL, FEATURED_PROVIDER } from '../../src/config';
-import { useIAP } from '../../src/hooks/useIAP';
+import { useIAP, type SubscriptionTier } from '../../src/hooks/useIAP';
 import { useSituation } from '../../src/hooks/useSituation';
 import { funnelDoor, type FunnelDoor } from '../../src/lib/situation';
 import { SituationOffRamp } from '../../src/components/situation/SituationOffRamp';
@@ -334,6 +334,8 @@ function ProviderSheet({
 
 function UpgradeSheet({
   visible,
+  tier,
+  priceLabel,
   onClose,
   onPurchase,
   purchasing,
@@ -342,6 +344,8 @@ function UpgradeSheet({
   sheetOffset,
 }: {
   visible: boolean;
+  tier: SubscriptionTier;
+  priceLabel: string;
   onClose: () => void;
   onPurchase: () => void;
   purchasing: boolean;
@@ -355,23 +359,21 @@ function UpgradeSheet({
       <View style={[styles.sheet, { backgroundColor: colors.white, left: sheetOffset, right: sheetOffset }]}>
         <View style={[styles.sheetHandle, { backgroundColor: colors.line }]} />
         <Text style={[styles.sheetTitle, { color: colors.ink }]}>
-          {t('upgradeSheet.title')}
+          {t(`tier.${tier}Name`)}
         </Text>
         <Text style={[styles.tierPrice, { color: colors.ink, marginBottom: 12 }]}>
-          {t('upgradeSheet.price')}
+          {priceLabel}
         </Text>
 
         <Text style={[styles.sheetSub, { color: colors.inkSoft, marginBottom: 6 }]}>
-          {t('upgradeSheet.featuresHeader')}
+          {t('upgradeSheet.featuresHeaderGeneric')}
         </Text>
-        {(['feature1', 'feature2', 'feature3'] as const).map((key) => (
-          <Text key={key} style={[styles.sheetSub, { color: colors.ink, marginBottom: 4 }]}>
-            {'• '}{t(`upgradeSheet.${key}`)}
-          </Text>
-        ))}
+        <Text style={[styles.sheetSub, { color: colors.ink, marginBottom: 4 }]}>
+          {t(`tier.${tier}Features`)}
+        </Text>
 
         <Text style={[styles.sheetSub, { color: colors.inkSoft, marginTop: 12, marginBottom: 16 }]}>
-          {t('upgradeSheet.note')}
+          {t('upgradeSheet.renewalNote', { price: priceLabel })}
         </Text>
 
         <TouchableOpacity
@@ -384,7 +386,7 @@ function UpgradeSheet({
           onPress={onPurchase}
         >
           <Text style={styles.solidBtnText}>
-            {purchasing ? '...' : t('upgradeSheet.subscribeButton')}
+            {purchasing ? '...' : t(tier === 'essential' ? 'paywall.subscribeEssential' : 'paywall.subscribePremium')}
           </Text>
         </TouchableOpacity>
 
@@ -449,12 +451,13 @@ export default function SupportScreen() {
   const router = useRouter();
   const { width: screenWidth } = useWindowDimensions();
   const sheetOffset = Math.max(0, (screenWidth - 520) / 2);
-  const { purchasePremium, purchaseEssential, purchasing } = useIAP();
+  const { purchasePremium, purchaseEssential, purchasing, prices: subscriptionPrices } = useIAP();
 
   const [crisisOpen, setCrisisOpen] = useState(false);
   const [crisisProtocolOpen, setCrisisProtocolOpen] = useState(false);
   const [providerOpen, setProviderOpen] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [upgradeTier, setUpgradeTier] = useState<SubscriptionTier>('premium');
   const [questionSession, setQuestionSession] = useState<DbSession | null>(null);
   const [questionText, setQuestionText] = useState('');
   const [questionSubmitting, setQuestionSubmitting] = useState(false);
@@ -478,19 +481,12 @@ export default function SupportScreen() {
   }
 
   async function handlePurchase() {
-    const success = await purchasePremium();
+    const success = upgradeTier === 'essential'
+      ? await purchaseEssential()
+      : await purchasePremium();
     if (success) {
       await refreshAccount();
       setUpgradeOpen(false);
-    } else {
-      Alert.alert(t('upgradeSheet.title'), t('upgradeSheet.iapError'));
-    }
-  }
-
-  async function handlePurchaseEssential() {
-    const success = await purchaseEssential();
-    if (success) {
-      await refreshAccount();
     } else {
       Alert.alert(t('upgradeSheet.title'), t('upgradeSheet.iapError'));
     }
@@ -507,6 +503,11 @@ export default function SupportScreen() {
   const canAccessPrivateVideo = !!user && entitlements.canAccessPrivateVideo;
   const privateVideo = usePrivateVideoSessions(user?.id ?? null, canAccessPrivateVideo);
   const isAdmin = isAdminEmail(user?.email);
+
+  function openUpgrade(tier: SubscriptionTier) {
+    setUpgradeTier(tier);
+    setUpgradeOpen(true);
+  }
 
 
   return (
@@ -536,6 +537,8 @@ export default function SupportScreen() {
       />
       <UpgradeSheet
         visible={upgradeOpen}
+        tier={upgradeTier}
+        priceLabel={subscriptionPrices[upgradeTier] ?? t(`tier.${upgradeTier}Amount`)}
         onClose={() => setUpgradeOpen(false)}
         onPurchase={() => void handlePurchase()}
         purchasing={purchasing}
@@ -745,13 +748,13 @@ export default function SupportScreen() {
                   <Text style={[styles.tierName, { color: colors.primary }]}>{t('tier.essentialName')}</Text>
                   <Text style={[styles.tierFeatures, { color: colors.inkSoft }]}>{t('tier.essentialFeatures')}</Text>
                 </View>
-                <Text style={[styles.tierPrice, { color: colors.primary }]}>{t('tier.essentialPrice')}</Text>
+                <Text style={[styles.tierPrice, { color: colors.primary }]}>{subscriptionPrices.essential ?? t('tier.essentialPrice')}</Text>
               </View>
               <TouchableOpacity
                 style={[styles.solidBtn, { backgroundColor: colors.primary }]}
                 activeOpacity={0.85}
                 disabled={purchasing}
-                onPress={() => void handlePurchaseEssential()}
+                onPress={() => openUpgrade('essential')}
               >
                 <Text style={styles.solidBtnText}>
                   {purchasing ? '...' : t('paywall.subscribeEssential')}
@@ -764,13 +767,13 @@ export default function SupportScreen() {
                   <Text style={[styles.tierName, { color: colors.ink }]}>{t('tier.premiumName')}</Text>
                   <Text style={[styles.tierFeatures, { color: colors.inkSoft }]}>{t('tier.premiumFeatures')}</Text>
                 </View>
-                <Text style={[styles.tierPrice, { color: colors.ink }]}>{t('tier.premiumPrice')}</Text>
+                <Text style={[styles.tierPrice, { color: colors.ink }]}>{subscriptionPrices.premium ?? t('tier.premiumPrice')}</Text>
               </View>
               <TouchableOpacity
                 style={[styles.outlineBtn, { borderColor: colors.primary, marginTop: 8 }]}
                 activeOpacity={0.85}
                 disabled={purchasing}
-                onPress={() => setUpgradeOpen(true)}
+                onPress={() => openUpgrade('premium')}
               >
                 <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
                   {t('paywall.subscribePremium')}
@@ -815,7 +818,7 @@ export default function SupportScreen() {
                   </View>
                   <View style={styles.tierRight}>
                     <Text style={[styles.tierPrice, { color: colors.primary }]}>
-                      {t('tier.essentialPrice')}
+                      {subscriptionPrices.essential ?? t('tier.essentialPrice')}
                     </Text>
                     {accountState === 'direct-essential' && (
                       <Text style={[styles.tierCurrent, { color: colors.inkSoft }]}>
@@ -836,7 +839,7 @@ export default function SupportScreen() {
                   </View>
                   <View style={styles.tierRight}>
                     <Text style={[styles.tierPrice, { color: colors.ink }]}>
-                      {t('tier.premiumPrice')}
+                      {subscriptionPrices.premium ?? t('tier.premiumPrice')}
                     </Text>
                   </View>
                 </View>
@@ -844,7 +847,7 @@ export default function SupportScreen() {
                 <TouchableOpacity
                   style={[styles.solidBtn, { backgroundColor: colors.primary }]}
                   activeOpacity={0.85}
-                  onPress={() => setUpgradeOpen(true)}
+                  onPress={() => openUpgrade('premium')}
                 >
                   <Text style={styles.solidBtnText}>{t('tier.upgradeButton')}</Text>
                 </TouchableOpacity>

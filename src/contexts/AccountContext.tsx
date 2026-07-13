@@ -1,9 +1,9 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
 import type { AuthUser, AccountState, Entitlements } from '../api/types';
 import { supabase } from '../lib/supabase';
 import { isAdminEmail } from '../lib/admin';
-import { configureRevenueCat, getIsActivePremium, getIsActiveEssential } from '../lib/revenueCat';
+import { configureRevenueCat, getActiveRevenueCatTier, resetRevenueCatUser } from '../lib/revenueCat';
 
 const DEFAULT_ENTITLEMENTS: Entitlements = {
   canMessageOnCallCoach: false,
@@ -33,23 +33,6 @@ const AccountContext = createContext<AccountContextValue>({
   refreshAccount: async () => {},
 });
 
-async function ensureTermsConsent(accountId: string) {
-  const { data } = await supabase
-    .from('consents')
-    .select('id')
-    .eq('account_id', accountId)
-    .eq('consent_key', '1')
-    .maybeSingle();
-  if (!data) {
-    await supabase.from('consents').insert({
-      account_id: accountId,
-      consent_key: '1',
-      version: '1.0',
-      granted_at: new Date().toISOString(),
-    });
-  }
-}
-
 async function fetchAccount(authUser: User): Promise<AuthUser | null> {
   const isAdmin = isAdminEmail(authUser.email);
   const { data, error } = await supabase
@@ -72,12 +55,16 @@ async function fetchAccount(authUser: User): Promise<AuthUser | null> {
     });
   }
 
-  ensureTermsConsent(data.id);
+  // Records only affirmative signup metadata; existing users without that evidence
+  // are not backfilled or silently treated as having consented.
+  await supabase.rpc('record_signup_terms_consent');
 
   let accountState: AccountState =
     data.type === 'attached' ? 'attached' : 'direct-free';
 
   if (data.type === 'direct') {
+    const rcReady = await configureRevenueCat(data.id);
+
     if (isAdmin) {
       accountState = 'direct-premium';
     }
@@ -102,32 +89,26 @@ async function fetchAccount(authUser: User): Promise<AuthUser | null> {
       }
     }
 
-    // Check Supabase entitlements first (coupons + manual grants take priority)
-    const { data: ent } = isAdmin ? { data: null } : await supabase
+    // Resolve all active grants explicitly; Premium always wins over Essential.
+    const { data: entitlementRows } = isAdmin ? { data: null } : await supabase
       .from('entitlements')
       .select('tier, expires_at')
-      .eq('account_id', data.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .eq('account_id', data.id);
 
-    if (ent) {
-      const expired = ent.expires_at ? new Date(ent.expires_at) < new Date() : false;
-      if (!expired) {
-        if (ent.tier === 'premium') accountState = 'direct-premium';
-        else if (ent.tier === 'essential') accountState = 'direct-essential';
-      }
-    }
+    const activeTiers = (entitlementRows ?? [])
+      .filter((ent) => !ent.expires_at || new Date(ent.expires_at) >= new Date())
+      .map((ent) => ent.tier);
+    if (activeTiers.includes('premium')) accountState = 'direct-premium';
+    else if (activeTiers.includes('essential')) accountState = 'direct-essential';
 
-    // Check RevenueCat — source of truth for IAP subscriptions
-    if (!isAdmin && accountState !== 'direct-premium') {
-      configureRevenueCat(data.id);
-      const rcPremium = await getIsActivePremium();
-      if (rcPremium) {
+    // Check RevenueCat — source of truth for IAP subscriptions.
+    // Identity was established before server synchronization above.
+    if (!isAdmin && rcReady) {
+      const rcTier = await getActiveRevenueCatTier();
+      if (rcTier === 'premium') {
         accountState = 'direct-premium';
-      } else if (accountState === 'direct-free') {
-        const rcEssential = await getIsActiveEssential();
-        if (rcEssential) accountState = 'direct-essential';
+      } else if (accountState === 'direct-free' && rcTier === 'essential') {
+        accountState = 'direct-essential';
       }
     }
   }
@@ -189,21 +170,31 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [authUser, setAuthUser] = useState<User | null>(null);
+  const authGenerationRef = useRef(0);
 
   const refreshAccount = useCallback(async () => {
     if (!authUser) return;
+    const generation = authGenerationRef.current;
     const account = await fetchAccount(authUser);
-    setUser(account);
+    if (authGenerationRef.current === generation) setUser(account);
   }, [authUser]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    function loadSessionUser(sessionUser: User) {
+      const generation = ++authGenerationRef.current;
+      setAuthUser(sessionUser);
+      void fetchAccount(sessionUser).then((account) => {
+        if (authGenerationRef.current !== generation) return;
+        setUser(account);
+        setIsLoading(false);
+      });
+    }
+
+    const initialGeneration = authGenerationRef.current;
+    void supabase.auth.getSession().then(({ data: { session } }) => {
+      if (authGenerationRef.current !== initialGeneration) return;
       if (session) {
-        setAuthUser(session.user);
-        fetchAccount(session.user).then((account) => {
-          setUser(account);
-          setIsLoading(false);
-        });
+        loadSessionUser(session.user);
       } else {
         setIsLoading(false);
       }
@@ -212,11 +203,12 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         if (session) {
-          setAuthUser(session.user);
-          fetchAccount(session.user).then(setUser);
+          loadSessionUser(session.user);
         } else {
+          ++authGenerationRef.current;
           setAuthUser(null);
           setUser(null);
+          void resetRevenueCatUser();
         }
       },
     );
@@ -224,7 +216,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const accountState = user?.accountState ?? 'direct-essential';
+  const accountState = user?.accountState ?? 'direct-free';
   const entitlements = user?.entitlements ?? DEFAULT_ENTITLEMENTS;
 
   return (

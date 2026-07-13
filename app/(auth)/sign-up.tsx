@@ -9,6 +9,7 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link } from 'expo-router';
@@ -30,6 +31,7 @@ export default function SignUpScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checkEmail, setCheckEmail] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   async function recordTermsConsent(accountId: string) {
     await supabase.from('consents').upsert({
@@ -42,6 +44,10 @@ export default function SignUpScreen() {
 
   async function handleEmailSignUp() {
     setError(null);
+    if (!acceptedTerms) {
+      setError(t('signUp.errorTermsRequired'));
+      return;
+    }
     if (password.length < 8) {
       setError(t('signUp.errorWeakPassword'));
       return;
@@ -51,7 +57,12 @@ export default function SignUpScreen() {
       email: email.trim(),
       password,
       options: {
-        data: { first_name: firstName.trim(), last_name: lastName.trim() },
+        data: {
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+          terms_version: TERMS_VERSION,
+          terms_accepted_at: new Date().toISOString(),
+        },
       },
     });
     setLoading(false);
@@ -180,7 +191,7 @@ export default function SignUpScreen() {
             <TouchableOpacity
               style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
               onPress={handleEmailSignUp}
-              disabled={loading || !email || !password || !firstName}
+              disabled={loading || !email || !password || !firstName || !acceptedTerms}
               activeOpacity={0.85}
             >
               {loading ? (
@@ -190,12 +201,26 @@ export default function SignUpScreen() {
               )}
             </TouchableOpacity>
 
-            <Text style={[styles.termsNote, { color: colors.inkSoft }]}>
-              {t('signUp.termsNote')}{' '}
-              <Text style={{ color: colors.primary }}>{t('signUp.termsLink')}</Text>
-              {' '}{t('signUp.andText')}{' '}
-              <Text style={{ color: colors.primary }}>{t('signUp.privacyLink')}</Text>.
-            </Text>
+            <TouchableOpacity
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: acceptedTerms }}
+              style={styles.termsRow}
+              onPress={() => setAcceptedTerms((value) => !value)}
+            >
+              <View style={[styles.termsCheckbox, { borderColor: colors.primary, backgroundColor: acceptedTerms ? colors.primary : colors.white }]}>
+                <Text style={styles.termsCheckmark}>{acceptedTerms ? '✓' : ''}</Text>
+              </View>
+              <Text style={[styles.termsNote, { color: colors.inkSoft }]}>
+                {t('signUp.termsNote')}{' '}
+                <Text style={{ color: colors.primary, textDecorationLine: 'underline' }} onPress={(event) => { event.stopPropagation(); void Linking.openURL('https://soberhelpline.com/terms'); }}>
+                  {t('signUp.termsLink')}
+                </Text>
+                {' '}{t('signUp.andText')}{' '}
+                <Text style={{ color: colors.primary, textDecorationLine: 'underline' }} onPress={(event) => { event.stopPropagation(); void Linking.openURL('https://soberhelpline.com/privacy'); }}>
+                  {t('signUp.privacyLink')}
+                </Text>.
+              </Text>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.footer}>
@@ -264,7 +289,10 @@ const styles = StyleSheet.create({
   dividerLine: { flex: 1, height: 1 },
   dividerText: { fontSize: 12 },
   appleBtn: { width: '100%', height: 50 },
-  termsNote: { fontSize: 11.5, lineHeight: 17, textAlign: 'center', marginTop: 2 },
+  termsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  termsCheckbox: { width: 22, height: 22, borderWidth: 1.5, borderRadius: 5, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
+  termsCheckmark: { color: '#fff', fontWeight: '900' },
+  termsNote: { flex: 1, fontSize: 11.5, lineHeight: 17 },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
