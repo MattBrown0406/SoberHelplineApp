@@ -9,7 +9,10 @@
   "host": {
     "eyebrow": "BROADCAST",
     "watching": "{{count}} watching",
-    "remove": "Remove"
+    "remove": "Remove",
+    "startError": "The broadcast could not be marked live. No notifications were sent. Please leave and try again.",
+    "endErrorTitle": "Couldn't end broadcast",
+    "endErrorBody": "The live status could not be cleared. Check your connection and try again."
   },
   "viewer": {
     "noHost": "Waiting for host to start…",

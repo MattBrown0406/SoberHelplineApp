@@ -322,10 +322,11 @@ export default function LiveRoomScreen() {
         setTokenResult(result);
 
         if (result.isHost) {
-          await supabase.rpc('set_host_live', {
+          const { error: liveError } = await supabase.rpc('set_host_live', {
             p_room_name: roomName,
             p_is_live: true,
           });
+          if (liveError) throw new Error(t('host.startError'));
         }
       } catch (e) {
         setError(String(e));
@@ -340,10 +341,14 @@ export default function LiveRoomScreen() {
 
   async function handleLeaveOrEnd() {
     if (tokenResult?.isHost) {
-      await supabase.rpc('set_host_live', {
+      const { error: liveError } = await supabase.rpc('set_host_live', {
         p_room_name: roomName,
         p_is_live: false,
       });
+      if (liveError) {
+        Alert.alert(t('host.endErrorTitle'), t('host.endErrorBody'));
+        return;
+      }
     }
     router.back();
   }
