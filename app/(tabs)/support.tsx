@@ -816,7 +816,7 @@ export default function SupportScreen() {
         {/* Essential / Premier: full content */}
         {!isAttached && accountState !== 'direct-free' && (
           <>
-            {/* Explain the Crisis Guide plan-review choices built into Crisis Copilot. */}
+            {/* Show one unambiguous current plan. Upgrade and review are explicit actions. */}
             <View style={[styles.card, { borderColor: colors.line }]}>
                 <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
                   {t('tier.eyebrow')}
@@ -828,36 +828,16 @@ export default function SupportScreen() {
                 <View style={[styles.tierRow, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]}>
                   <View style={styles.tierInfo}>
                     <Text style={[styles.tierName, { color: colors.primary }]}>
-                      {t('tier.essentialName')}
+                      {t(accountState === 'direct-premium' ? 'tier.premiumName' : 'tier.essentialName')}
                     </Text>
                     <Text style={[styles.tierFeatures, { color: colors.inkSoft }]}>
-                      {t('tier.essentialFeatures')}
+                      {t(accountState === 'direct-premium' ? 'tier.premiumFeatures' : 'tier.essentialFeatures')}
                     </Text>
                   </View>
                   <View style={styles.tierRight}>
-                    {accountState === 'direct-essential' && (
-                      <Text style={[styles.tierCurrent, { color: colors.inkSoft }]}>
-                        {t('tier.current')}
-                      </Text>
-                    )}
-                  </View>
-                </View>
-
-                <View style={[styles.tierRow, { borderColor: colors.line, backgroundColor: '#fff' }]}>
-                  <View style={styles.tierInfo}>
-                    <Text style={[styles.tierName, { color: colors.ink }]}>
-                      {t('tier.premiumName')}
+                    <Text style={[styles.tierCurrent, { color: colors.primary }]}>
+                      {t('tier.current')}
                     </Text>
-                    <Text style={[styles.tierFeatures, { color: colors.inkSoft }]}>
-                      {t('tier.premiumFeatures')}
-                    </Text>
-                  </View>
-                  <View style={styles.tierRight}>
-                    {accountState === 'direct-premium' && (
-                      <Text style={[styles.tierCurrent, { color: colors.inkSoft }]}>
-                        {t('tier.current')}
-                      </Text>
-                    )}
                   </View>
                 </View>
 
@@ -866,8 +846,22 @@ export default function SupportScreen() {
                   activeOpacity={0.85}
                   onPress={() => router.push('/crisis-mode')}
                 >
-                  <Text style={styles.solidBtnText}>{t('tier.openPlanReview')}</Text>
+                  <Text style={styles.solidBtnText}>
+                    {t(accountState === 'direct-premium' ? 'tier.openPremierPlanReview' : 'tier.openEssentialPlanReview')}
+                  </Text>
                 </TouchableOpacity>
+
+                {accountState === 'direct-essential' && (
+                  <TouchableOpacity
+                    style={[styles.outlineBtn, { borderColor: colors.primary }]}
+                    activeOpacity={0.85}
+                    onPress={() => openUpgrade('premium')}
+                  >
+                    <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
+                      {t('tier.upgradeButton')}
+                    </Text>
+                  </TouchableOpacity>
+                )}
             </View>
 
             <View style={[styles.card, { borderColor: colors.line }]}>

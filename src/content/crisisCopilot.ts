@@ -140,6 +140,6 @@ export function assessSituationRisk(
 
 export const CRISIS_SITUATION_ORDER: CrisisSituationKey[] = ['overdose', 'selfHarm', 'violence', 'driving', 'missing', 'demands', 'treatment', 'relapseHome', 'familyConflict', 'unsure'];
 
-export function getCrisisSituations(language: string): Record<CrisisSituationKey, CrisisSituation> {
-  return language.toLowerCase().startsWith('es') ? ES : EN;
+export function getCrisisSituations(language?: string | null): Record<CrisisSituationKey, CrisisSituation> {
+  return (language ?? 'en').toLowerCase().startsWith('es') ? ES : EN;
 }

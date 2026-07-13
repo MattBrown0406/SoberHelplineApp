@@ -45,7 +45,8 @@
     "premiumPrice": "$44.99/mes",
     "premiumAmount": "$44.99",
     "upgradeButton": "Mejorar a Premier",
-    "openPlanReview": "Abrir guía de crisis y revisión del plan",
+    "openEssentialPlanReview": "Abrir guía de crisis y revisión por $150",
+    "openPremierPlanReview": "Abrir guía de crisis y revisión incluida",
     "current": "Plan actual"
   },
   "paywall": {

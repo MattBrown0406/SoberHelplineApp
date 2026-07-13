@@ -147,8 +147,9 @@ export default function CrisisModeScreen() {
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('crisis');
   const { user, accountState, entitlements } = useAccount();
-  const isSpanish = i18n.language.toLowerCase().startsWith('es');
-  const situations = useMemo(() => getCrisisSituations(i18n.language), [i18n.language]);
+  const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
+  const isSpanish = language.toLowerCase().startsWith('es');
+  const situations = useMemo(() => getCrisisSituations(language), [language]);
   const hasEssential = !!user && accountState !== 'direct-free';
   const hasPremier = accountState === 'direct-premium' || accountState === 'attached';
   const canAccessPrivateVideo = !!user && entitlements.canAccessPrivateVideo;
