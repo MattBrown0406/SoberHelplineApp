@@ -105,6 +105,8 @@
     "joinLive": "Join Live",
     "rsvpButton": "Get notified",
     "rsvpDone": "Notifying",
+    "rsvpErrorTitle": "Couldn't save notification",
+    "rsvpErrorBody": "Your notification request wasn't saved. Allow notifications in Settings, check your connection, and try again.",
     "online_one": "{{count}} online",
     "online_other": "{{count}} online",
     "moreIntro": "More groups and topics at",

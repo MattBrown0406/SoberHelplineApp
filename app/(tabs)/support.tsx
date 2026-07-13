@@ -503,7 +503,7 @@ export default function SupportScreen() {
   const { sessions, toggleRsvp } = useSessions(user?.id ?? null);
   const groups = getSupportGroups();
   const { myRooms, liveRooms } = useGroupPresence(user?.id ?? null);
-  const { rsvpedRooms, toggleRsvp: toggleGroupRsvp } = useGroupRsvps(user?.id ?? null);
+  const { rsvpedRooms, pendingRooms, toggleRsvp: toggleGroupRsvp } = useGroupRsvps(user?.id ?? null);
   const canAccessPrivateVideo = !!user && entitlements.canAccessPrivateVideo;
   const privateVideo = usePrivateVideoSessions(user?.id ?? null, canAccessPrivateVideo);
   const isAdmin = isAdminEmail(user?.email);
@@ -992,6 +992,7 @@ export default function SupportScreen() {
             const isMyRoom = !!(isAdmin && room && myRooms.includes(room));
             const isLive = !!(room && liveRooms.includes(room));
             const isRsvped = !!(room && rsvpedRooms.has(room));
+            const isRsvpPending = !!(room && pendingRooms.has(room));
             return (
               <View
                 key={group.id}
@@ -1034,11 +1035,23 @@ export default function SupportScreen() {
                       },
                     ]}
                     activeOpacity={0.8}
-                    onPress={() => void toggleGroupRsvp(room)}
+                    disabled={isRsvpPending}
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled: isRsvpPending, selected: isRsvped, busy: isRsvpPending }}
+                    onPress={async () => {
+                      const saved = await toggleGroupRsvp(room);
+                      if (!saved) {
+                        Alert.alert(t('groups.rsvpErrorTitle'), t('groups.rsvpErrorBody'));
+                      }
+                    }}
                   >
-                    <Text style={[styles.joinBtnText, { color: isRsvped ? colors.green : colors.primary }]}>
-                      {isRsvped ? t('groups.rsvpDone') : t('groups.rsvpButton')}
-                    </Text>
+                    {isRsvpPending ? (
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    ) : (
+                      <Text style={[styles.joinBtnText, { color: isRsvped ? colors.green : colors.primary }]}>
+                        {isRsvped ? t('groups.rsvpDone') : t('groups.rsvpButton')}
+                      </Text>
+                    )}
                   </TouchableOpacity>
                 ) : (
                   <View style={[styles.joinBtn, { borderColor: colors.primary, backgroundColor: '#e0e0e0' }]}>

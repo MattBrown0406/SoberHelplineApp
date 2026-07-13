@@ -105,6 +105,8 @@
     "joinLive": "Unirse en vivo",
     "rsvpButton": "Recibir aviso",
     "rsvpDone": "Notificando",
+    "rsvpErrorTitle": "No se pudo guardar la notificación",
+    "rsvpErrorBody": "Tu solicitud no se guardó. Permite las notificaciones en Configuración, revisa tu conexión e inténtalo de nuevo.",
     "online_one": "{{count}} en línea",
     "online_other": "{{count}} en línea",
     "moreIntro": "Más grupos y temas en",

@@ -88,7 +88,7 @@ export async function rearmDailyNudge(): Promise<void> {
   });
 }
 
-export async function registerForPushNotifications(accountId: string): Promise<void> {
+export async function registerForPushNotifications(accountId: string): Promise<boolean> {
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
       name: 'default',
@@ -102,28 +102,29 @@ export async function registerForPushNotifications(accountId: string): Promise<v
     const { status } = await Notifications.requestPermissionsAsync();
     finalStatus = status;
   }
-  if (finalStatus !== 'granted') return;
+  if (finalStatus !== 'granted') return false;
 
   try {
     const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
     if (!projectId) throw new Error('EAS project ID is not configured');
     const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-    if (token) {
-      // locale drives the language of server-sent pushes (session reminders,
-      // win-back, community support) — kept in sync with the app language.
-      const { error } = await supabase
-        .from('accounts')
-        .update({ push_token: token, locale: i18n.language ?? 'en' })
-        .eq('id', accountId);
-      if (error) throw error;
-    }
+    if (!token) return false;
+    // locale drives the language of server-sent pushes (session reminders,
+    // win-back, community support) — kept in sync with the app language.
+    const { error } = await supabase
+      .from('accounts')
+      .update({ push_token: token, locale: i18n.language ?? 'en' })
+      .eq('id', accountId);
+    if (error) throw error;
   } catch (error) {
     // Push failures must be observable: a coach missing a scheduling request is
     // operationally significant. Simulators commonly cannot obtain a token.
     console.warn('[push] registration failed', error);
+    return false;
   }
 
   await rearmDailyNudge();
+  return true;
 }
 
 export function usePushNotifications(accountId: string | null): void {
@@ -136,6 +137,18 @@ export function usePushNotifications(accountId: string | null): void {
     const openSchedulingNotification = (response: Notifications.NotificationResponse) => {
       const data = response.notification.request.content.data ?? {};
       const kind = typeof data.kind === 'string' ? data.kind : '';
+
+      if (kind === 'group_live') {
+        const roomName = typeof data.room_name === 'string' ? data.room_name : '';
+        const allowedRooms = new Set([
+          'shp-parents', 'shp-spouses', 'shp-boundaries', 'shp-treatment',
+        ]);
+        if (allowedRooms.has(roomName)) {
+          router.push({ pathname: '/live-room' as never, params: { room: roomName } });
+        }
+        return;
+      }
+
       const sessionId = typeof data.session_id === 'string' ? data.session_id : '';
 
       const sessionKinds = new Set([
