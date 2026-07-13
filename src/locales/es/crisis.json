@@ -180,6 +180,28 @@
   "field": {
     "placeholder": "Toca para escribir"
   },
+  "planReview": {
+    "title": "Reservar una revisión del plan",
+    "premierBody": "Incluida con Premier sin costo adicional. Los miembros Premier pueden solicitar sesiones de video ilimitadas, sujetas a disponibilidad.",
+    "essentialBody": "Elige Premier para sesiones y revisiones de video ilimitadas, o solicita una llamada única de coaching de $150 que incluye la revisión de este plan.",
+    "upgrade": "Mejorar a Premier",
+    "purpose": "Propósito de la reunión",
+    "purposes": { "completeReview": "Revisión completa del plan", "boundaries": "Límites", "safety": "Plan de seguridad y crisis", "family": "Alineación familiar" },
+    "share": "Elige exactamente qué puede ver Matt",
+    "sections": { "situation": "Situación actual", "risk": "Respuestas de riesgo y seguridad", "safetyPlan": "Plan del ser querido y de crisis/acción", "boundaries": "Límites", "incidents": "Historial de incidentes", "familyRoles": "Roles familiares" },
+    "preview": "Previsualizar información compartida", "hidePreview": "Ocultar vista previa", "remove": "Quitar esta sección", "date": "Fecha y hora solicitadas",
+    "focus": "¿En qué debe enfocarse la revisión?", "questions": "Preguntas para Matt (una por línea)",
+    "consent": "Elijo compartir solo las secciones mostradas arriba con el personal de Sober Helpline para preparar la reunión. Entiendo que este no es un servicio de emergencia.",
+    "pendingPayment": "La solicitud quedará pendiente de pago. El horario no se puede confirmar hasta que el registro de pago de coaching sea verificado como pagado.",
+    "payNow": "Pagar $150 de forma segura",
+    "paymentInstructions": "La plataforma de pago aún debe configurarse. Sober Helpline se comunicará contigo antes de confirmar la sesión.",
+    "submit": "Enviar copia y solicitar revisión", "checkTitle": "Revisa tus opciones", "checkBody": "Elige al menos una sección, previsualiza la información final, selecciona una hora futura y da tu consentimiento explícito antes de enviar.",
+    "selectBeforePreview": "Elige al menos una sección antes de previsualizar.", "previewBeforeConsent": "Primero previsualiza la información final. El consentimiento se borra cuando cambia la información seleccionada.",
+    "submittedTitle": "Revisión del plan solicitada", "includedStatus": "Beneficio Premier · sin costo adicional", "snapshotTime": "Copia inmutable guardada {{date}}", "updateRequested": "Matt solicitó un plan actualizado. La copia original de la reserva no cambia.",
+    "previewUpdate": "Previsualizar plan actualizado", "submitUpdate": "Enviar plan actualizado", "updateCheckBody": "Elige al menos una sección, previsualiza la actualización final y da tu consentimiento explícito antes de enviarla.",
+    "errors": { "invalid_plan_review_request": "Revisa las secciones seleccionadas e inténtalo de nuevo.", "invalid_plan_review_revision": "Revisa las secciones actualizadas e inténtalo de nuevo.", "active_session_exists": "Ya tienes una solicitud de sesión activa.", "premier_upgrade_or_payment_required": "Elige mejorar a Premier o la sesión única de $150.", "essential_or_premier_required": "Se requiere acceso Essential o Premier.", "payment_not_verified": "El pago aún no ha sido verificado.", "plan_update_not_requested": "Ya no se solicita un plan actualizado.", "session_not_found": "Esta sesión ya no está disponible.", "unknown": "No pudimos enviar esta solicitud. Actualiza e inténtalo de nuevo." },
+    "payment": { "pending_payment": "Pago de $150 pendiente — aún no confirmada", "paid": "Pago de $150 verificado", "refunded": "Pago reembolsado", "included": "Incluida" }
+  },
   "premierVideo": {
     "timezone": "Los horarios usan tu zona horaria detectada: {{timezone}}", "loading": "Cargando sesión de video", "retry": "Actualizar", "request": "Elegir día y hora", "minutes": "minutos",
     "statuses": { "coach_proposal": "Tu coach propuso otra hora", "requested": "Tu horario solicitado está pendiente", "scheduled": "Confirmada", "live": "Tu sesión está en vivo", "completed": "Completada", "cancelled": "Cancelada", "no_show": "No se presentó" },

@@ -11,6 +11,7 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../contexts/ThemeContext';
+import { supabase } from '../../lib/supabase';
 import {
   AdminVideoSession,
   AdminVideoSessionsState,
@@ -45,7 +46,7 @@ export function VideoSessionManager({ sessions }: { sessions: AdminVideoSessions
     <View style={[styles.container, { backgroundColor: colors.white, borderColor: colors.line }]}>
       <View style={styles.titleRow}>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.title, { color: colors.ink }]}>Premier Video Scheduling</Text>
+          <Text style={[styles.title, { color: colors.ink }]}>Video & Plan-Review Scheduling</Text>
           <Text style={[styles.subtitle, { color: colors.inkSoft }]}>Active sessions only; archived sessions are in History.</Text>
         </View>
         <ActionButton label="Refresh" onPress={retry} color={colors.primary} />
@@ -93,6 +94,7 @@ export function VideoSessionManager({ sessions }: { sessions: AdminVideoSessions
           })}
           onJoin={() => router.push({ pathname: '/video-session' as never, params: { sessionId: session.id } })}
           runAction={sessions.runAction}
+          refreshActive={sessions.refreshActive}
         />
       ))}
 
@@ -109,7 +111,7 @@ export function VideoSessionManager({ sessions }: { sessions: AdminVideoSessions
   );
 }
 
-function SessionCard({ session, staff, busy, history, expanded, onToggle, onJoin, runAction }: {
+function SessionCard({ session, staff, busy, history, expanded, onToggle, onJoin, runAction, refreshActive }: {
   session: AdminVideoSession;
   staff: VideoStaff[];
   busy: boolean;
@@ -118,13 +120,21 @@ function SessionCard({ session, staff, busy, history, expanded, onToggle, onJoin
   onToggle: () => void;
   onJoin: () => void;
   runAction: (session: AdminVideoSession, rpc: string, params?: Record<string, unknown>) => Promise<boolean>;
+  refreshActive: () => Promise<void>;
 }) {
   const { colors } = useTheme();
   const [editor, setEditor] = useState<EditorMode>(null);
   const [date, setDate] = useState(() => new Date(session.scheduled_for ?? session.requested_start));
   const [note, setNote] = useState('');
+  const [prepNotes, setPrepNotes] = useState(session.admin_prep_notes ?? '');
+  const [prepBusy, setPrepBusy] = useState(false);
+  const [prepMessage, setPrepMessage] = useState<string | null>(null);
   const [coachId, setCoachId] = useState(session.assigned_coach_id ?? staff[0]?.account_id ?? '');
   const coach = staff.find((item) => item.account_id === session.assigned_coach_id);
+
+  useEffect(() => {
+    setPrepNotes(session.admin_prep_notes ?? '');
+  }, [session.admin_prep_notes]);
 
   useEffect(() => {
     if (!coachId && staff[0]) setCoachId(staff[0].account_id);
@@ -162,6 +172,14 @@ function SessionCard({ session, staff, busy, history, expanded, onToggle, onJoin
     if (ok) setEditor(null);
   };
 
+  const runPrepAction = async (rpc: string, args: Record<string, unknown>, success: string) => {
+    setPrepBusy(true); setPrepMessage(null);
+    const { error } = await supabase.rpc(rpc, args);
+    if (error) setPrepMessage(error.message.replace(/_/g, ' '));
+    else { setPrepMessage(success); await refreshActive(); }
+    setPrepBusy(false);
+  };
+
   return (
     <View style={[styles.session, { borderColor: colors.line }]}>
       <View style={styles.titleRow}>
@@ -179,6 +197,30 @@ function SessionCard({ session, staff, busy, history, expanded, onToggle, onJoin
       {scheduledLocal ? <Text style={[styles.scheduled, { color: colors.primary }]}>Scheduled (coach local): {scheduledLocal}</Text> : null}
       {coach ? <Text style={[styles.meta, { color: colors.inkSoft }]}>Assigned: {coach.name}</Text> : session.assigned_coach_id ? <Text style={[styles.meta, { color: colors.inkSoft }]}>Assigned coach: {session.assigned_coach_id}</Text> : null}
       {session.member_note ? <Text style={[styles.note, { color: colors.ink }]}>Member note: {session.member_note}</Text> : null}
+      {session.booking_purpose === 'plan_review' ? (
+        <View style={[styles.prep, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]}>
+          <Text style={[styles.editorTitle, { color: colors.ink }]}>Plan-review prep</Text>
+          <Text style={[styles.meta, { color: colors.ink }]}>Tier: {session.member_tier_at_booking} · Appointment: {session.appointment_type.replace(/_/g, ' ')} · Payment: {session.payment_status.replace(/_/g, ' ')}</Text>
+          <Text style={[styles.meta, { color: colors.ink }]}>Purpose/focus: {session.focus_reason || 'Not provided'}</Text>
+          <Text style={[styles.meta, { color: colors.ink }]}>Snapshot: {session.snapshot_created_at ? new Date(session.snapshot_created_at).toLocaleString() : '—'} · Consent: {session.consented_at ? new Date(session.consented_at).toLocaleString() : '—'}</Text>
+          <Text style={[styles.meta, { color: colors.ink }]}>Shared sections: {session.selected_plan_sections.join(', ')}</Text>
+          {session.member_questions?.length ? <Text style={[styles.note, { color: colors.ink }]}>Questions: {session.member_questions.join(' · ')}</Text> : null}
+          {Object.entries(session.plan_snapshot?.sections ?? {}).map(([key, value]) => <View key={key} style={styles.snapshotSection}><Text style={[styles.timeLabel, { color: colors.ink }]}>{key.replace(/([A-Z])/g, ' $1')}</Text><Text selectable style={[styles.snapshotText, { color: colors.ink }]}>{JSON.stringify(value, null, 2)}</Text></View>)}
+          {session.latestPlanRevision ? <View style={[styles.prep, { borderColor: colors.green, backgroundColor: colors.greenLight }]}>
+            <Text style={[styles.editorTitle, { color: colors.ink }]}>Updated plan · revision {session.latestPlanRevision.revision_number}</Text>
+            <Text style={[styles.meta, { color: colors.ink }]}>Submitted {new Date(session.latestPlanRevision.created_at).toLocaleString()} · Original snapshot preserved above</Text>
+            {Object.entries(session.latestPlanRevision.plan_snapshot.sections).map(([key, value]) => <View key={key} style={styles.snapshotSection}><Text style={[styles.timeLabel, { color: colors.ink }]}>{key.replace(/([A-Z])/g, ' $1')}</Text><Text selectable style={[styles.snapshotText, { color: colors.ink }]}>{JSON.stringify(value, null, 2)}</Text></View>)}
+          </View> : null}
+          <TextInput value={prepNotes} onChangeText={setPrepNotes} multiline placeholder="Private admin prep notes" placeholderTextColor={colors.inkSoft} style={[styles.input, { borderColor: colors.line, color: colors.ink }]} />
+          <View style={styles.actions}>
+            <ActionButton label="Save private prep notes" disabled={busy || prepBusy} color={colors.primary} onPress={() => void runPrepAction('admin_update_plan_review_prep', { p_session_id: session.id, p_notes: prepNotes }, 'Private prep notes saved.')} />
+            <ActionButton label="Request updated plan" disabled={busy || prepBusy} color={colors.primary} onPress={() => void runPrepAction('admin_request_plan_review_update', { p_session_id: session.id, p_note: 'Please review your local plan before the meeting. The original submitted snapshot remains unchanged.' }, 'Member notified to review their plan.')} />
+            {session.appointment_type === 'one_off_150' && session.payment_status === 'pending_payment' ? <ActionButton label="Refresh verified payment" disabled={busy || prepBusy} color={colors.coral} onPress={() => void runPrepAction('sync_plan_review_payment', { p_session_id: session.id }, 'Payment verified.')} /> : null}
+          </View>
+          {prepMessage ? <Text accessibilityRole="alert" style={[styles.meta, { color: prepMessage.includes('saved') || prepMessage.includes('verified') || prepMessage.includes('notified') ? colors.green : colors.coral }]}>{prepMessage}</Text> : null}
+          {session.update_requested_at ? <Text style={[styles.meta, { color: colors.coral }]}>Update requested {new Date(session.update_requested_at).toLocaleString()}</Text> : null}
+        </View>
+      ) : null}
       {session.pendingProposal ? (
         <View style={[styles.proposal, { backgroundColor: colors.secondaryLight }]}>
           <Text style={[styles.proposalTitle, { color: colors.ink }]}>Pending {session.pendingProposal.proposed_by_role} proposal</Text>
@@ -195,7 +237,7 @@ function SessionCard({ session, staff, busy, history, expanded, onToggle, onJoin
       ) : (
         <>
           <View style={styles.actions}>
-            {session.status === 'requested' ? <ActionButton label="Confirm requested time" disabled={busy || !coachId} onPress={() => void runAction(session, 'coach_confirm_video_session', { p_coach_id: coachId || null })} color={colors.green} filled /> : null}
+            {session.status === 'requested' ? <ActionButton label="Confirm requested time" disabled={busy || !coachId || session.payment_status === 'pending_payment'} onPress={() => void runAction(session, 'coach_confirm_video_session', { p_coach_id: coachId || null })} color={colors.green} filled /> : null}
             {session.status === 'requested' ? <ActionButton label="Counteroffer" disabled={busy} onPress={() => setEditor('counteroffer')} color={colors.primary} /> : null}
             {session.status === 'scheduled' ? <ActionButton label="Reschedule" disabled={busy} onPress={() => {
               setCoachId(session.assigned_coach_id ?? '');
@@ -360,6 +402,9 @@ const styles = StyleSheet.create({
   assignmentNotice: { fontSize: 13, lineHeight: 18, fontWeight: '700', marginBottom: 8 },
   pickers: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   input: { minHeight: 44, borderWidth: 1, borderRadius: 8, padding: 10, marginTop: 8, textAlignVertical: 'top' },
+  prep: { borderWidth: 1, borderRadius: 10, padding: 10, marginTop: 8 },
+  snapshotSection: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#9fb7b2', paddingTop: 6, marginTop: 6 },
+  snapshotText: { fontSize: 11, lineHeight: 16 },
   error: { borderRadius: 8, padding: 10, marginBottom: 10 },
   errorText: { fontSize: 13, lineHeight: 18, fontWeight: '600' },
 });

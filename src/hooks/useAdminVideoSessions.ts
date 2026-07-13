@@ -25,6 +25,27 @@ export type AdminVideoSession = {
   updated_at: string;
   memberName?: string;
   pendingProposal?: VideoSessionProposal;
+  booking_purpose: string;
+  member_tier_at_booking: 'essential' | 'premier' | 'organization';
+  appointment_type: 'membership_included' | 'one_off_150';
+  payment_status: 'included' | 'pending_payment' | 'paid' | 'refunded';
+  focus_reason: string | null;
+  member_questions: string[];
+  selected_plan_sections: string[];
+  plan_snapshot: { schemaVersion: number; sections: Record<string, unknown> } | null;
+  plan_snapshot_hash: string | null;
+  snapshot_created_at: string | null;
+  consented_at: string | null;
+  admin_prep_notes: string | null;
+  update_requested_at: string | null;
+  update_request_note: string | null;
+  latestPlanRevision?: PlanReviewRevision;
+};
+
+export type PlanReviewRevision = {
+  id: string; session_id: string; revision_number: number; selected_plan_sections: string[];
+  plan_snapshot: { schemaVersion: number; sections: Record<string, unknown> };
+  consented_at: string; created_at: string;
 };
 
 export type VideoSessionProposal = {
@@ -47,6 +68,8 @@ export type VideoStaff = {
   name: string;
   timezone?: string;
 };
+
+type PlanReviewPrep = { session_id: string; notes: string | null; updated_at: string };
 
 type VideoPerson = {
   account_id: string;
@@ -113,17 +136,26 @@ export function useAdminVideoSessions() {
     if (!rows.length) return rows;
     const sessionIds = rows.map((row) => row.id);
     const accountIds = [...new Set(rows.map((row) => row.account_id))];
-    const [{ data: proposals }, { data: people, error: peopleError }] = await Promise.all([
+    const [{ data: proposals }, { data: people, error: peopleError }, { data: prepRows, error: prepError }, { data: revisionRows, error: revisionError }] = await Promise.all([
       supabase.from('video_session_proposals').select('id,session_id,proposed_by_role,coach_id,starts_at,timezone,duration_minutes,note,status,created_at').in('session_id', sessionIds).eq('status', 'pending'),
       supabase.rpc('admin_get_video_people', { p_account_ids: accountIds }),
+      supabase.rpc('admin_get_plan_review_prep', { p_session_ids: sessionIds }),
+      supabase.rpc('admin_get_plan_review_revisions', { p_session_ids: sessionIds }),
     ]);
     if (peopleError) throw peopleError;
+    if (prepError) throw prepError;
+    if (revisionError) throw revisionError;
     const proposalBySession = new Map((proposals ?? []).map((proposal) => [proposal.session_id, proposal as VideoSessionProposal]));
+    const prepBySession = new Map(((prepRows ?? []) as PlanReviewPrep[]).map((prep) => [prep.session_id, prep.notes]));
+    const latestRevisionBySession = new Map<string, PlanReviewRevision>();
+    for (const revision of (revisionRows ?? []) as PlanReviewRevision[]) if (!latestRevisionBySession.has(revision.session_id)) latestRevisionBySession.set(revision.session_id, revision);
     const nameByAccount = new Map(((people ?? []) as VideoPerson[]).map((person) => [person.account_id, `${person.first_name ?? ''} ${person.last_name ?? ''}`.trim()]));
     return rows.map((row) => ({
       ...row,
       memberName: nameByAccount.get(row.account_id) || undefined,
       pendingProposal: proposalBySession.get(row.id),
+      admin_prep_notes: prepBySession.get(row.id) ?? null,
+      latestPlanRevision: latestRevisionBySession.get(row.id),
     }));
   }, []);
 

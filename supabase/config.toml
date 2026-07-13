@@ -364,6 +364,13 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# Functions used by the website/app payment bridge.
+[functions.create-plan-review-checkout]
+verify_jwt = true
+
+[functions.receive-plan-review-payment]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

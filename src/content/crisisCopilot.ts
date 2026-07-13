@@ -128,6 +128,16 @@ export function assessCrisisRisk(immediateDanger: boolean, activeConcernCount: n
   return 'GREEN';
 }
 
+export const ALWAYS_RED_SITUATIONS: CrisisSituationKey[] = ['overdose', 'selfHarm', 'violence', 'driving'];
+
+export function assessSituationRisk(
+  situation: CrisisSituationKey | null,
+  immediateDanger: boolean,
+  activeConcernCount: number,
+): CrisisRiskLevel {
+  return assessCrisisRisk(Boolean(situation && ALWAYS_RED_SITUATIONS.includes(situation)) || immediateDanger, activeConcernCount);
+}
+
 export const CRISIS_SITUATION_ORDER: CrisisSituationKey[] = ['overdose', 'selfHarm', 'violence', 'driving', 'missing', 'demands', 'treatment', 'relapseHome', 'familyConflict', 'unsure'];
 
 export function getCrisisSituations(language: string): Record<CrisisSituationKey, CrisisSituation> {

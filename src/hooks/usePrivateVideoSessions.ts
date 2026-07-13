@@ -21,6 +21,16 @@ export type PrivateVideoSession = {
   cancelled_at: string | null;
   created_at: string;
   updated_at: string;
+  booking_purpose: 'general_support' | 'plan_review' | 'boundaries' | 'treatment_options' | 'family_alignment' | 'crisis_follow_up';
+  member_tier_at_booking: 'essential' | 'premier' | 'organization';
+  appointment_type: 'membership_included' | 'one_off_150';
+  payment_status: 'included' | 'pending_payment' | 'paid' | 'refunded';
+  focus_reason: string | null;
+  member_questions: string[];
+  selected_plan_sections: string[];
+  plan_snapshot_hash: string | null;
+  snapshot_created_at: string | null;
+  update_requested_at: string | null;
 };
 
 export type VideoSessionProposal = {
@@ -44,7 +54,7 @@ export type SessionRequestInput = {
 
 function errorCode(error: { message: string; code?: string } | null): string | null {
   if (!error) return null;
-  const known = ['version_conflict', 'active_session_exists', 'invalid_request', 'invalid_timezone', 'proposal_not_found', 'session_not_found', 'premium_video_access_required', 'invalid_transition'];
+  const known = ['version_conflict', 'active_session_exists', 'invalid_request', 'invalid_plan_review_request', 'invalid_plan_review_revision', 'plan_update_not_requested', 'invalid_timezone', 'proposal_not_found', 'session_not_found', 'premium_video_access_required', 'premier_upgrade_or_payment_required', 'essential_or_premier_required', 'payment_not_verified', 'invalid_transition'];
   return known.find((code) => error.message.includes(code)) ?? error.code ?? 'unknown';
 }
 
@@ -119,6 +129,40 @@ export function usePrivateVideoSessions(accountId: string | null, canAccess: boo
     p_duration_minutes: input.durationMinutes ?? 60, p_note: input.note?.trim() || null,
   }), [runMutation]);
 
+  const requestPlanReview = useCallback((input: SessionRequestInput & {
+    purpose: 'plan_review'; focusReason?: string; questions: string[]; selectedSections: string[];
+    snapshot: Record<string, unknown>; consentText: string; consentLocale: 'en' | 'es'; paymentChoice: 'membership_included' | 'one_off_150';
+  }) => runMutation('request_plan_review_video_session', {
+    p_starts_at: input.startsAt.toISOString(), p_timezone: input.timezone,
+    p_duration_minutes: input.durationMinutes ?? 60, p_purpose: input.purpose,
+    p_focus_reason: input.focusReason?.trim() || null,
+    p_questions: input.questions.map((question) => question.trim()).filter(Boolean),
+    p_selected_sections: input.selectedSections, p_snapshot: input.snapshot,
+    p_consent_text: input.consentText, p_consent_locale: input.consentLocale,
+    p_payment_choice: input.paymentChoice,
+  }), [runMutation]);
+
+  const submitPlanReviewRevision = useCallback((session: PrivateVideoSession, input: {
+    selectedSections: string[]; snapshot: Record<string, unknown>; consentText: string; consentLocale: 'en' | 'es';
+  }) => runMutation('member_submit_plan_review_revision', {
+    p_session_id: session.id, p_selected_sections: input.selectedSections, p_snapshot: input.snapshot,
+    p_consent_text: input.consentText, p_consent_locale: input.consentLocale,
+  }), [runMutation]);
+
+  const beginPlanReviewCheckout = useCallback(async (session: PrivateVideoSession): Promise<string | null> => {
+    if (!accountId || !canAccess) return null;
+    setMutating(true); clearError();
+    const { data, error: functionError } = await supabase.functions.invoke('create-plan-review-checkout', {
+      body: { session_id: session.id },
+    });
+    setMutating(false);
+    if (functionError || !data?.ok || typeof data?.checkout_url !== 'string') {
+      const message = functionError?.message ?? data?.code ?? 'checkout_unavailable';
+      setError(message); setErrorKey(data?.code ?? 'checkout_unavailable'); return null;
+    }
+    return data.checkout_url;
+  }, [accountId, canAccess, clearError]);
+
   const rescheduleSession = useCallback((session: PrivateVideoSession, input: SessionRequestInput) => runMutation('member_reschedule_video_session', {
     p_session_id: session.id, p_expected_version: session.version, p_starts_at: input.startsAt.toISOString(),
     p_timezone: input.timezone, p_duration_minutes: input.durationMinutes ?? 60, p_note: input.note?.trim() || null,
@@ -133,6 +177,6 @@ export function usePrivateVideoSessions(accountId: string | null, canAccess: boo
   return {
     sessions: [...(activeSession ? [activeSession] : []), ...history], activeSession, history, pendingProposal,
     loading, requesting: mutating, mutating, error, errorKey, clearError, load,
-    requestSession, rescheduleSession, acceptProposal, cancelSession,
+    requestSession, requestPlanReview, submitPlanReviewRevision, beginPlanReviewCheckout, rescheduleSession, acceptProposal, cancelSession,
   };
 }

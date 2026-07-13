@@ -19,9 +19,10 @@ import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
 import { usePrivateVideoSessions } from '../src/hooks/usePrivateVideoSessions';
 import { PremierVideoSchedulingCard } from '../src/components/video/PremierVideoSchedulingCard';
+import { PlanReviewBookingCard } from '../src/components/video/PlanReviewBookingCard';
 import {
   CRISIS_SITUATION_ORDER,
-  assessCrisisRisk,
+  assessSituationRisk,
   getCrisisSituations,
   type CrisisSituationKey,
 } from '../src/content/crisisCopilot';
@@ -120,15 +121,15 @@ function levelColor(level: RiskLevel) {
   return '#4d7c5f';
 }
 
-function riskLevel(selected: Record<TriageKey, boolean>): RiskLevel {
+function riskLevel(situation: CrisisSituationKey | null, selected: Record<TriageKey, boolean>): RiskLevel {
   const immediateDanger = TRIAGE.some((q) => q.red && selected[q.key]);
   const activeConcernCount = TRIAGE.filter((q) => q.orange && selected[q.key]).length;
-  return assessCrisisRisk(immediateDanger, activeConcernCount);
+  return assessSituationRisk(situation, immediateDanger, activeConcernCount);
 }
 
-function emergencyChecklistKey(selected: Record<TriageKey, boolean>) {
-  if (selected.notBreathing || selected.overdose) return 'redOverdose';
-  if (selected.suicide) return 'redSuicide';
+function emergencyChecklistKey(situation: CrisisSituationKey | null, selected: Record<TriageKey, boolean>) {
+  if (situation === 'overdose' || selected.notBreathing || selected.overdose) return 'redOverdose';
+  if (situation === 'selfHarm' || selected.suicide) return 'redSuicide';
   return 'redDefault';
 }
 
@@ -151,7 +152,7 @@ export default function CrisisModeScreen() {
   const hasEssential = !!user && accountState !== 'direct-free';
   const hasPremium = accountState === 'direct-premium' || accountState === 'attached';
   const canAccessPrivateVideo = !!user && entitlements.canAccessPrivateVideo;
-  const privateVideo = usePrivateVideoSessions(user?.id ?? null, canAccessPrivateVideo);
+  const privateVideo = usePrivateVideoSessions(user?.id ?? null, hasEssential);
 
   const [stage, setStage] = useState<Stage>('situation');
   const [situationKey, setSituationKey] = useState<CrisisSituationKey | null>(null);
@@ -165,15 +166,23 @@ export default function CrisisModeScreen() {
   const [command, setCommand] = useState<CommandPlan>(DEFAULT_COMMAND);
   const [hydratedUserId, setHydratedUserId] = useState<string | null>(null);
 
-  const level = useMemo(() => riskLevel(selected), [selected]);
+  const level = useMemo(() => riskLevel(situationKey, selected), [selected, situationKey]);
   const situation = situationKey ? situations[situationKey] : null;
   const immediateActions = level === 'RED'
-    ? t(`checklist.${emergencyChecklistKey(selected)}`, { returnObjects: true }) as string[]
+    ? t(`checklist.${emergencyChecklistKey(situationKey, selected)}`, { returnObjects: true }) as string[]
     : situation?.action ?? [];
   const sayThis = level === 'RED' ? t('say.red') : situation?.say ?? t('say.default');
   const dontDo = situation?.dont ?? [];
   const boundaryText = buildBoundary(boundary, t);
   const fieldPlaceholder = t('field.placeholder');
+  const planReviewSource = useMemo(() => ({
+    situation: { key: situationKey, label: situation?.label ?? null },
+    risk: { level, selected },
+    safetyPlan: plan,
+    boundaries: { ...boundary, rendered: boundaryText },
+    incidents,
+    familyRoles: command,
+  }), [boundary, boundaryText, command, incidents, level, plan, selected, situation?.label, situationKey]);
 
   useEffect(() => {
     setHydratedUserId(null);
@@ -430,7 +439,8 @@ export default function CrisisModeScreen() {
             <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
               <Text style={[styles.sectionTitle, { color: colors.ink }]}>{t('support.title')}</Text>
               {entitlements.canMessageOnCallCoach ? <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: colors.primary }]} onPress={() => router.push('/chat')}><Text style={styles.primaryBtnText}>{t('support.openTextline')}</Text></TouchableOpacity> : <Text style={[styles.body, { color: colors.inkSoft }]}>{isSpanish ? 'El apoyo por texto está disponible con Essential y Premium. Para peligro inmediato, usa 911 o 988.' : 'Text support is available with Essential and Premium. For immediate danger, use 911 or 988.'}</Text>}
-              {canAccessPrivateVideo ? <PremierVideoSchedulingCard controller={privateVideo} t={t} translationRoot="premierVideo" compact onJoin={(session) => router.push({ pathname: '/video-session' as never, params: { sessionId: session.id, room: session.room_name } })} /> : null}
+              {(canAccessPrivateVideo || privateVideo.activeSession?.appointment_type === 'one_off_150') ? <PremierVideoSchedulingCard controller={privateVideo} t={t} translationRoot="premierVideo" compact onJoin={(session) => router.push({ pathname: '/video-session' as never, params: { sessionId: session.id, room: session.room_name } })} /> : null}
+              {hasEssential ? <PlanReviewBookingCard controller={privateVideo} accountState={accountState} source={planReviewSource} t={t} consentLocale={isSpanish ? 'es' : 'en'} onUpgrade={() => router.push('/(tabs)/support' as never)} /> : null}
             </View>
           </>
         )}

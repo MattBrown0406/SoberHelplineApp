@@ -180,6 +180,28 @@
   "field": {
     "placeholder": "Tap to enter"
   },
+  "planReview": {
+    "title": "Book a plan review",
+    "premierBody": "Included with Premier at no extra charge. Premier members may request unlimited video sessions, subject to scheduling.",
+    "essentialBody": "Choose Premier for unlimited video sessions and reviews, or request a one-time $150 coaching call that includes review of this submitted plan.",
+    "upgrade": "Upgrade to Premier",
+    "purpose": "Meeting purpose",
+    "purposes": { "completeReview": "Complete plan review", "boundaries": "Boundaries", "safety": "Safety and crisis plan", "family": "Family alignment" },
+    "share": "Choose exactly what Matt may see",
+    "sections": { "situation": "Current situation", "risk": "Risk and safety answers", "safetyPlan": "Loved-one and crisis/action plan", "boundaries": "Boundaries", "incidents": "Incident history", "familyRoles": "Family roles" },
+    "preview": "Preview shared information", "hidePreview": "Hide preview", "remove": "Remove this section", "date": "Requested meeting date and time",
+    "focus": "What should the review focus on?", "questions": "Questions for Matt (one per line)",
+    "consent": "I choose to share only the sections previewed above with Sober Helpline staff for meeting preparation. I understand this is not an emergency service.",
+    "pendingPayment": "The request will remain pending payment. Scheduling cannot be confirmed until the existing coaching payment record is verified as paid.",
+    "payNow": "Pay $150 securely",
+    "paymentInstructions": "Payment checkout still needs to be configured. Sober Helpline will contact you before the session can be confirmed.",
+    "submit": "Submit snapshot and request review", "checkTitle": "Review your choices", "checkBody": "Choose at least one section, preview the final information, select a future time, and explicitly consent before submitting.",
+    "selectBeforePreview": "Choose at least one section before previewing.", "previewBeforeConsent": "Preview the final information first. Consent is cleared whenever the selected information changes.",
+    "submittedTitle": "Plan review requested", "includedStatus": "Premier benefit · no extra charge", "snapshotTime": "Immutable snapshot saved {{date}}", "updateRequested": "Matt requested an updated plan. Your original booking snapshot remains unchanged.",
+    "previewUpdate": "Preview updated plan", "submitUpdate": "Submit updated plan", "updateCheckBody": "Choose at least one section, preview the final update, and explicitly consent before submitting.",
+    "errors": { "invalid_plan_review_request": "Review the selected sections and try again.", "invalid_plan_review_revision": "Review the updated sections and try again.", "active_session_exists": "You already have an active session request.", "premier_upgrade_or_payment_required": "Choose the Premier upgrade or the one-time $150 session.", "essential_or_premier_required": "Essential or Premier access is required.", "payment_not_verified": "Payment has not been verified yet.", "plan_update_not_requested": "An updated plan is no longer requested.", "session_not_found": "This session is no longer available.", "unknown": "We couldn't submit this request. Refresh and try again." },
+    "payment": { "pending_payment": "$150 payment pending — not yet confirmed", "paid": "$150 payment verified", "refunded": "Payment refunded", "included": "Included" }
+  },
   "premierVideo": {
     "timezone": "Times use your detected timezone: {{timezone}}", "loading": "Loading video session", "retry": "Refresh", "request": "Choose a day and time", "minutes": "minutes",
     "statuses": { "coach_proposal": "Your coach proposed a new time", "requested": "Your time request is pending", "scheduled": "Confirmed", "live": "Your session is live", "completed": "Completed", "cancelled": "Cancelled", "no_show": "No show" },
