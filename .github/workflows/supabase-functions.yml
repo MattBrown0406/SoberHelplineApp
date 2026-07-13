@@ -71,11 +71,13 @@ jobs:
           supabase functions deploy
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      - name: Retire removed placeholder AI function
+      - name: Retire removed Edge Functions
         run: |
-          if supabase functions list --project-ref "${{ vars.SUPABASE_PROJECT_REF }}" --output json \
-            | jq -e '.[] | select((.slug // .name) == "draft-ai-response")' >/dev/null; then
-            supabase functions delete draft-ai-response --project-ref "${{ vars.SUPABASE_PROJECT_REF }}" --yes
-          fi
+          for function_name in draft-ai-response notify-group-live; do
+            if supabase functions list --project-ref "${{ vars.SUPABASE_PROJECT_REF }}" --output json \
+              | jq -e --arg name "$function_name" '.[] | select((.slug // .name) == $name)' >/dev/null; then
+              supabase functions delete "$function_name" --project-ref "${{ vars.SUPABASE_PROJECT_REF }}" --yes
+            fi
+          done
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
