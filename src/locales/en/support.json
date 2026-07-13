@@ -3,6 +3,9 @@
   "settings": "Settings",
   "crisis": {
     "button": "Talk to someone now",
+    "copilotTitle": "Need help deciding what to do?",
+    "copilotBody": "Get calm, step-by-step family guidance for the situation happening right now.",
+    "copilotButton": "Open Crisis Copilot",
     "sheetTitle": "You're not alone right now",
     "attachedSub": "is on call for your family tonight.",
     "directSub": "is on call and will respond first.",

@@ -3,6 +3,9 @@
   "settings": "Configuración",
   "crisis": {
     "button": "Hablar con alguien ahora",
+    "copilotTitle": "¿Necesitas ayuda para decidir qué hacer?",
+    "copilotBody": "Recibe orientación familiar tranquila, paso a paso, para la situación que está ocurriendo ahora.",
+    "copilotButton": "Abrir Copiloto de Crisis",
     "sheetTitle": "No estás solo/a en este momento",
     "attachedSub": "está de guardia para tu familia esta noche.",
     "directSub": "está de guardia y responderá primero.",

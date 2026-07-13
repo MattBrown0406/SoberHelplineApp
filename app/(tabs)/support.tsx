@@ -57,6 +57,7 @@ function CrisisSheet({
   onClose,
   isAttached,
   onMessage,
+  onCopilot,
   door,
   t,
   colors,
@@ -65,6 +66,7 @@ function CrisisSheet({
   onClose: () => void;
   isAttached: boolean;
   onMessage: () => void;
+  onCopilot: () => void;
   door: FunnelDoor;
   t: (key: string) => string;
   colors: ReturnType<typeof useTheme>['colors'];
@@ -94,6 +96,19 @@ function CrisisSheet({
         <Text style={[styles.sheetSub, { color: colors.inkSoft }]}>
           {primary.firstName} {isAttached ? t('crisis.attachedSub') : t('crisis.directSub')}
         </Text>
+
+        <View style={[styles.copilotCard, { backgroundColor: colors.primaryLight, borderColor: colors.primary }]}>
+          <View style={styles.copilotCopy}>
+            <Text style={[styles.copilotTitle, { color: colors.ink }]}>{t('crisis.copilotTitle')}</Text>
+            <Text style={[styles.copilotBody, { color: colors.inkSoft }]}>{t('crisis.copilotBody')}</Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.copilotButton, { backgroundColor: colors.primary }]}
+            onPress={() => { onClose(); onCopilot(); }}
+          >
+            <Text style={styles.copilotButtonText}>{t('crisis.copilotButton')}</Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={[styles.sheetRow, { borderBottomColor: colors.line }]}>
           <View>
@@ -517,6 +532,7 @@ export default function SupportScreen() {
         onClose={() => setCrisisOpen(false)}
         isAttached={isAttached}
         onMessage={() => router.push('/chat')}
+        onCopilot={() => router.push('/crisis-mode')}
         door={crisisDoor}
         t={t}
         colors={colors}
@@ -1417,6 +1433,12 @@ const styles = StyleSheet.create({
   },
   sheetTitle: { fontSize: 20, fontWeight: '700', marginBottom: 4 },
   sheetSub: { fontSize: 14, marginBottom: 20 },
+  copilotCard: { borderWidth: 1, borderRadius: 16, padding: 14, marginBottom: 10 },
+  copilotCopy: { marginBottom: 10 },
+  copilotTitle: { fontSize: 16, fontWeight: '800', marginBottom: 4 },
+  copilotBody: { fontSize: 13, lineHeight: 18 },
+  copilotButton: { borderRadius: 12, paddingVertical: 11, paddingHorizontal: 14, alignItems: 'center' },
+  copilotButtonText: { color: '#fff', fontSize: 14, fontWeight: '800' },
   sheetRow: {
     flexDirection: 'row',
     alignItems: 'center',
