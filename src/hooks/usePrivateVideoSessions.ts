@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AppState } from 'react-native';
 import { supabase } from '../lib/supabase';
+import { privateVideoChannelTopic } from '../lib/realtimeTopics';
 
 export type PrivateVideoStatus = 'requested' | 'scheduled' | 'live' | 'completed' | 'cancelled' | 'no_show';
 
@@ -59,6 +60,9 @@ function errorCode(error: { message: string; code?: string } | null): string | n
 }
 
 export function usePrivateVideoSessions(accountId: string | null, canAccess: boolean) {
+  // Support remains mounted underneath pushed screens. A unique topic prevents
+  // Supabase/Phoenix from evicting the existing subscription as a duplicate.
+  const [channelInstanceId] = useState(() => Math.random().toString(36).slice(2));
   const [activeSession, setActiveSession] = useState<PrivateVideoSession | null>(null);
   const [history, setHistory] = useState<PrivateVideoSession[]>([]);
   const [pendingProposal, setPendingProposal] = useState<VideoSessionProposal | null>(null);
@@ -104,11 +108,11 @@ export function usePrivateVideoSessions(accountId: string | null, canAccess: boo
   useEffect(() => {
     if (!accountId || !canAccess) return;
     const appState = AppState.addEventListener('change', (state) => { if (state === 'active') void load(); });
-    const channel = supabase.channel(`member-video-${accountId}`)
+    const channel = supabase.channel(privateVideoChannelTopic(accountId, channelInstanceId))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'video_sessions', filter: `account_id=eq.${accountId}` }, () => void load())
       .subscribe();
     return () => { appState.remove(); void supabase.removeChannel(channel); };
-  }, [accountId, canAccess, load]);
+  }, [accountId, canAccess, channelInstanceId, load]);
 
   const runMutation = useCallback(async (rpc: string, args: Record<string, unknown>) => {
     if (!accountId || !canAccess) return null;

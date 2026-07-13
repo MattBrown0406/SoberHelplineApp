@@ -846,9 +846,7 @@ export default function SupportScreen() {
                   activeOpacity={0.85}
                   onPress={() => router.push('/crisis-mode')}
                 >
-                  <Text style={styles.solidBtnText}>
-                    {t(accountState === 'direct-premium' ? 'tier.openPremierPlanReview' : 'tier.openEssentialPlanReview')}
-                  </Text>
+                  <Text style={styles.solidBtnText}>{t('tier.openPlanReview')}</Text>
                 </TouchableOpacity>
 
                 {accountState === 'direct-essential' && (
@@ -1376,10 +1374,12 @@ const styles = StyleSheet.create({
   solidBtn: {
     borderRadius: 10,
     paddingVertical: 12,
+    paddingHorizontal: 16,
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 4,
   },
-  solidBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  solidBtnText: { color: '#fff', fontWeight: '700', fontSize: 14, lineHeight: 20, textAlign: 'center', flexShrink: 1 },
   outlineBtn: {
     borderRadius: 10,
     borderWidth: 1.5,

@@ -45,8 +45,7 @@
     "premiumPrice": "$44.99/mo",
     "premiumAmount": "$44.99",
     "upgradeButton": "Upgrade to Premier",
-    "openEssentialPlanReview": "Open Crisis Guide & $150 plan review",
-    "openPremierPlanReview": "Open Crisis Guide & included plan review",
+    "openPlanReview": "Open Crisis Guide & Plan Review",
     "current": "Current plan"
   },
   "paywall": {
