@@ -9,7 +9,10 @@
   "host": {
     "eyebrow": "TRANSMISIÓN",
     "watching": "{{count}} viendo",
-    "remove": "Eliminar"
+    "remove": "Eliminar",
+    "startError": "La transmisión no pudo marcarse como activa. No se enviaron notificaciones. Sal e inténtalo de nuevo.",
+    "endErrorTitle": "No se pudo finalizar la transmisión",
+    "endErrorBody": "No se pudo borrar el estado en vivo. Revisa tu conexión e inténtalo de nuevo."
   },
   "viewer": {
     "noHost": "Esperando que el anfitrión comience…",

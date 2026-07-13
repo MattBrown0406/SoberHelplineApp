@@ -3,7 +3,7 @@ BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SET search_path = public, extensions;
 
-SELECT plan(27);
+SELECT plan(28);
 
 INSERT INTO auth.users (id, email, raw_app_meta_data, raw_user_meta_data, aud, role)
 VALUES
@@ -21,6 +21,7 @@ SELECT ok(has_table_privilege('authenticated', 'public.group_rsvps', 'INSERT'), 
 SELECT ok(has_table_privilege('authenticated', 'public.group_rsvps', 'DELETE'), 'installed clients retain own RSVP removal');
 SELECT is((SELECT count(*)::integer FROM pg_policies WHERE schemaname='public' AND tablename='group_rsvps' AND cmd IN ('INSERT','UPDATE','DELETE')), 3, 'compatibility writes have explicit RLS policies');
 SELECT ok(NOT EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname='get_group_rsvp_push_tokens'), 'legacy push-token RPC is removed');
+SELECT ok(position('LOCK TABLE public.group_rsvps IN SHARE MODE' in pg_get_functiondef('public.set_host_live(text,boolean)'::regprocedure)) > 0, 'Go Live serializes against concurrent legacy and RPC RSVP writes');
 
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claims','{"sub":"51000000-0000-0000-0000-000000000002","email":"group-member-a@example.com","role":"authenticated"}',true);
@@ -45,7 +46,7 @@ SELECT lives_ok($$SELECT public.set_host_live('shp-parents',true)$$, 'authorized
 RESET ROLE;
 SELECT is((SELECT count(*)::integer FROM push_outbox WHERE kind='group_live' AND metadata->>'room_name'='shp-parents'), 2, 'first broadcast queues one push per subscriber');
 SELECT is((SELECT count(DISTINCT account_id)::integer FROM push_outbox WHERE kind='group_live' AND metadata->>'room_name'='shp-parents'), 2, 'first broadcast targets two distinct subscriber accounts');
-SELECT ok((SELECT bool_and(metadata->>'kind'='group_live' AND metadata->>'screen'='live-room' AND metadata ? 'event_id') FROM push_outbox WHERE kind='group_live'), 'group push metadata has validated routing and event identity');
+SELECT ok((SELECT bool_and(metadata->>'kind'='group_live' AND metadata->>'screen'='live-room' AND metadata->>'deep_link'='sober-helpline://live-room?room=shp-parents' AND metadata ? 'event_id') FROM push_outbox WHERE kind='group_live'), 'group push metadata has validated routing, registered scheme, and event identity');
 SELECT is((SELECT count(DISTINCT idempotency_key)::integer FROM push_outbox WHERE kind='group_live'), 2, 'first broadcast idempotency keys are unique per recipient');
 SELECT ok((SELECT is_live AND live_event_id IS NOT NULL AND live_started_at IS NOT NULL FROM group_hosts WHERE room_name='shp-parents'), 'host row records active broadcast identity and start time');
 
