@@ -30,7 +30,7 @@
     "ORANGE": {
       "title": "Active crisis risk",
       "body": "Do not argue, debate treatment, or try to control the situation alone. Focus on safety, children, keys, distance, and calm next steps.",
-      "action": "Use the checklist below, then use Urgent Text Line or request Premium video support when safe."
+      "action": "Use the checklist below, then use Urgent Text Line or request Premier video support when safe."
     },
     "YELLOW": {
       "title": "Escalating concern",
@@ -143,15 +143,15 @@
   "support": {
     "title": "8. Get support",
     "openTextline": "Open Urgent Text Line",
-    "requestVideo": "Request Premium Video Support",
+    "requestVideo": "Request Premier Video Support",
     "requesting": "Requesting…",
     "share": "Share / Export family crisis summary",
     "call911": "Call 911",
     "call988": "Call/Text 988"
   },
   "videoAlerts": {
-    "gateTitle": "Premium video support",
-    "gateBody": "Private video support is included with Premium. Upgrade from the Support tab.",
+    "gateTitle": "Premier video support",
+    "gateBody": "Private video support is included with Premier. Upgrade from the Support tab.",
     "queuedTitle": "Request received",
     "queuedBody": "Your private video support request is in the admin queue. This is not an emergency service."
   },
@@ -208,7 +208,7 @@
     "coachProposalBody": "Accept this time or request a different one.", "memberProposalBody": "Your coach will confirm this exact time or suggest another.", "confirmedRequestedZone": "{{date}} ({{timezone}})", "deviceTime": "On this device: {{date}} ({{timezone}})",
     "accept": "Accept coach's time", "join": "Join video session", "addCalendar": "Add to Google Calendar", "reschedule": "Request a new time", "newTime": "Change requested time", "cancel": "Cancel session", "cancelTitle": "Cancel this video session?", "cancelBody": "Your coach will be notified.", "keep": "Keep session",
     "dateTimeLabel": "Exact day and time", "durationAndZone": "60 minutes · {{timezone}}", "noteLabel": "Note for your coach (optional)", "notePlaceholder": "What would be helpful for your coach to know?", "submit": "Send time request", "submitNewTime": "Request this new time", "history": "Past sessions", "rebook": "Book again",
-    "errors": { "invalidTitle": "Choose another time", "future": "Select a day and time in the future.", "version_conflict": "This session changed elsewhere. We refreshed it; review and try again.", "active_session_exists": "You already have an active video request.", "invalid_request": "Check the date, time, and note, then try again.", "invalid_timezone": "Your device timezone could not be used.", "proposal_not_found": "That proposal is no longer available. Refresh for the latest time.", "session_not_found": "This session is no longer available.", "premium_video_access_required": "Premium video access is required.", "invalid_transition": "That action is no longer available.", "unknown": "We couldn't update your session. Refresh and try again." }
+    "errors": { "invalidTitle": "Choose another time", "future": "Select a day and time in the future.", "version_conflict": "This session changed elsewhere. We refreshed it; review and try again.", "active_session_exists": "You already have an active video request.", "invalid_request": "Check the date, time, and note, then try again.", "invalid_timezone": "Your device timezone could not be used.", "proposal_not_found": "That proposal is no longer available. Refresh for the latest time.", "session_not_found": "This session is no longer available.", "premium_video_access_required": "Premier video access is required.", "invalid_transition": "That action is no longer available.", "unknown": "We couldn't update your session. Refresh and try again." }
   },
   "video": {
     "waitingTitle": "Private Video Support",

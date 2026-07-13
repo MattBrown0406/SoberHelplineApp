@@ -39,11 +39,11 @@
     "essentialFeatures": "Mensaje al coach de guardia · app completa · grupos",
     "essentialPrice": "$14.99/mes",
     "essentialAmount": "$14.99",
-    "premiumName": "Premium",
+    "premiumName": "Premier",
     "premiumFeatures": "Llamadas telefónicas y de video con un coach en horario laboral",
     "premiumPrice": "$44.99/mes",
     "premiumAmount": "$44.99",
-    "upgradeButton": "Mejorar a Premium",
+    "upgradeButton": "Mejorar a Premier",
     "current": "Plan actual"
   },
   "paywall": {
@@ -52,8 +52,8 @@
     "body": "Los miembros Esencial tienen registros diarios, seguimiento del estado de ánimo, límites, guiones, mensajería y grupos.",
     "viewPlans": "Ver planes",
     "subscribeEssential": "Suscribirse Esencial · $14.99/mes",
-    "subscribePremium": "Mejorar a Premium · $44.99/mes",
-    "autoRenewDisclosure": "Esencial cuesta $14.99/mes y Premium $44.99/mes, cobrados a tu Cuenta de Apple. Las suscripciones se renuevan automáticamente a menos que las desactives al menos 24 horas antes del final del período actual. Administra o cancela cuando quieras en los ajustes de tu Cuenta de Apple."
+    "subscribePremium": "Mejorar a Premier · $44.99/mes",
+    "autoRenewDisclosure": "Esencial cuesta $14.99/mes y Premier $44.99/mes, cobrados a tu Cuenta de Apple. Las suscripciones se renuevan automáticamente a menos que las desactives al menos 24 horas antes del final del período actual. Administra o cancela cuando quieras en los ajustes de tu Cuenta de Apple."
   },
   "mondayGroup": {
     "eyebrow": "ACCESO GRATUITO",
@@ -80,9 +80,9 @@
     "close": "Cerrar"
   },
   "upgradeSheet": {
-    "title": "Actualizar a Premium",
+    "title": "Actualizar a Premier",
     "price": "$44.99 / mes",
-    "featuresHeader": "Premium incluye:",
+    "featuresHeader": "Premier incluye:",
     "featuresHeaderGeneric": "Incluye:",
     "renewalNote": "{{price}} al mes, cobrado a tu Cuenta de Apple. Se renueva automáticamente a menos que lo desactives al menos 24 horas antes de que termine el período. Administra o cancela cuando quieras en los ajustes de tu Cuenta de Apple.",
     "feature1": "Llamadas telefónicas con el coach de guardia",
@@ -268,7 +268,7 @@
   },
   "textline": {
     "gatedTitle": "Línea de Texto Urgente",
-    "gatedBody": "El apoyo por texto está incluido con Esencial y Premium. Mejora tu plan para enviar mensajes privados de apoyo y capturas de pantalla desde la app.",
+    "gatedBody": "El apoyo por texto está incluido con Esencial y Premier. Mejora tu plan para enviar mensajes privados de apoyo y capturas de pantalla desde la app.",
     "viewPlans": "Ver planes",
     "sendErrorTitle": "Mensaje no enviado",
     "sendErrorBody": "Por favor inténtalo de nuevo.",
@@ -277,8 +277,8 @@
   },
   "privateVideo": {
     "eyebrow": "Apoyo por video privado",
-    "title": "Sesión privada de video Premium",
-    "body": "Incluida para miembros Premium. Solicita una sesión privada de apoyo por video en la app; este no es un servicio de emergencia.",
+    "title": "Sesión privada de video Premier",
+    "body": "Incluida para miembros Premier. Solicita una sesión privada de apoyo por video en la app; este no es un servicio de emergencia.",
     "requestedOn": "Solicitada el {{date}}",
     "join": "Unirse al video privado",
     "received": "Solicitud recibida",
@@ -300,7 +300,7 @@
       "accept": "Aceptar horario del coach", "join": "Unirse a la sesión", "addCalendar": "Agregar a Google Calendar", "reschedule": "Solicitar otro horario", "newTime": "Cambiar horario solicitado", "cancel": "Cancelar sesión",
       "cancelTitle": "¿Cancelar esta sesión de video?", "cancelBody": "Se notificará a tu coach.", "keep": "Conservar sesión",
       "dateTimeLabel": "Día y hora exactos", "durationAndZone": "60 minutos · {{timezone}}", "noteLabel": "Nota para tu coach (opcional)", "notePlaceholder": "¿Qué sería útil que supiera tu coach?", "submit": "Enviar solicitud", "submitNewTime": "Solicitar este nuevo horario", "history": "Sesiones anteriores", "rebook": "Reservar de nuevo",
-      "errors": { "invalidTitle": "Elige otro horario", "future": "Selecciona un día y una hora futuros.", "version_conflict": "Esta sesión cambió en otro dispositivo. La actualizamos; revísala e inténtalo de nuevo.", "active_session_exists": "Ya tienes una solicitud de video activa.", "invalid_request": "Revisa la fecha, hora y nota e inténtalo de nuevo.", "invalid_timezone": "No se pudo usar la zona horaria del dispositivo. Actualiza e inténtalo de nuevo.", "proposal_not_found": "Esa propuesta ya no está disponible. Actualiza para ver el horario más reciente.", "session_not_found": "Esta sesión ya no está disponible.", "premium_video_access_required": "Se requiere acceso Premium a video.", "invalid_transition": "Esa acción ya no está disponible para esta sesión.", "unknown": "No pudimos actualizar la sesión. Actualiza e inténtalo de nuevo." }
+      "errors": { "invalidTitle": "Elige otro horario", "future": "Selecciona un día y una hora futuros.", "version_conflict": "Esta sesión cambió en otro dispositivo. La actualizamos; revísala e inténtalo de nuevo.", "active_session_exists": "Ya tienes una solicitud de video activa.", "invalid_request": "Revisa la fecha, hora y nota e inténtalo de nuevo.", "invalid_timezone": "No se pudo usar la zona horaria del dispositivo. Actualiza e inténtalo de nuevo.", "proposal_not_found": "Esa propuesta ya no está disponible. Actualiza para ver el horario más reciente.", "session_not_found": "Esta sesión ya no está disponible.", "premium_video_access_required": "Se requiere acceso Premier a video.", "invalid_transition": "Esa acción ya no está disponible para esta sesión.", "unknown": "No pudimos actualizar la sesión. Actualiza e inténtalo de nuevo." }
     }
   }
 }

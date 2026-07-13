@@ -30,7 +30,7 @@
     "ORANGE": {
       "title": "Riesgo de crisis activa",
       "body": "No discutas, no debatas el tratamiento ni intentes controlar la situación sola. Enfócate en la seguridad, los niños, las llaves, la distancia y pasos tranquilos.",
-      "action": "Usa la lista de abajo y luego la Línea de Texto Urgente, o solicita apoyo por video Premium cuando sea seguro."
+      "action": "Usa la lista de abajo y luego la Línea de Texto Urgente, o solicita apoyo por video Premier cuando sea seguro."
     },
     "YELLOW": {
       "title": "Preocupación en aumento",
@@ -143,15 +143,15 @@
   "support": {
     "title": "8. Recibe apoyo",
     "openTextline": "Abrir Línea de Texto Urgente",
-    "requestVideo": "Solicitar apoyo por video Premium",
+    "requestVideo": "Solicitar apoyo por video Premier",
     "requesting": "Solicitando…",
     "share": "Compartir / Exportar resumen de crisis familiar",
     "call911": "Llamar al 911",
     "call988": "Llamar/Enviar mensaje al 988"
   },
   "videoAlerts": {
-    "gateTitle": "Apoyo por video Premium",
-    "gateBody": "El apoyo por video privado está incluido con Premium. Mejora tu plan desde la pestaña Apoyo.",
+    "gateTitle": "Apoyo por video Premier",
+    "gateBody": "El apoyo por video privado está incluido con Premier. Mejora tu plan desde la pestaña Apoyo.",
     "queuedTitle": "Solicitud recibida",
     "queuedBody": "Tu solicitud de apoyo por video privado está en la cola del administrador. Este no es un servicio de emergencia."
   },
@@ -208,7 +208,7 @@
     "coachProposalBody": "Acepta este horario o solicita otro.", "memberProposalBody": "Tu coach confirmará este horario exacto o sugerirá otro.", "confirmedRequestedZone": "{{date}} ({{timezone}})", "deviceTime": "En este dispositivo: {{date}} ({{timezone}})",
     "accept": "Aceptar horario del coach", "join": "Unirse a la sesión", "addCalendar": "Agregar a Google Calendar", "reschedule": "Solicitar otro horario", "newTime": "Cambiar horario solicitado", "cancel": "Cancelar sesión", "cancelTitle": "¿Cancelar esta sesión de video?", "cancelBody": "Se notificará a tu coach.", "keep": "Conservar sesión",
     "dateTimeLabel": "Día y hora exactos", "durationAndZone": "60 minutos · {{timezone}}", "noteLabel": "Nota para tu coach (opcional)", "notePlaceholder": "¿Qué sería útil que supiera tu coach?", "submit": "Enviar solicitud", "submitNewTime": "Solicitar este nuevo horario", "history": "Sesiones anteriores", "rebook": "Reservar de nuevo",
-    "errors": { "invalidTitle": "Elige otro horario", "future": "Selecciona un día y una hora futuros.", "version_conflict": "Esta sesión cambió en otro dispositivo. La actualizamos; revísala e inténtalo de nuevo.", "active_session_exists": "Ya tienes una solicitud de video activa.", "invalid_request": "Revisa la fecha, hora y nota e inténtalo de nuevo.", "invalid_timezone": "No se pudo usar la zona horaria del dispositivo.", "proposal_not_found": "Esa propuesta ya no está disponible. Actualiza para ver el horario más reciente.", "session_not_found": "Esta sesión ya no está disponible.", "premium_video_access_required": "Se requiere acceso Premium a video.", "invalid_transition": "Esa acción ya no está disponible.", "unknown": "No pudimos actualizar la sesión. Actualiza e inténtalo de nuevo." }
+    "errors": { "invalidTitle": "Elige otro horario", "future": "Selecciona un día y una hora futuros.", "version_conflict": "Esta sesión cambió en otro dispositivo. La actualizamos; revísala e inténtalo de nuevo.", "active_session_exists": "Ya tienes una solicitud de video activa.", "invalid_request": "Revisa la fecha, hora y nota e inténtalo de nuevo.", "invalid_timezone": "No se pudo usar la zona horaria del dispositivo.", "proposal_not_found": "Esa propuesta ya no está disponible. Actualiza para ver el horario más reciente.", "session_not_found": "Esta sesión ya no está disponible.", "premium_video_access_required": "Se requiere acceso Premier a video.", "invalid_transition": "Esa acción ya no está disponible.", "unknown": "No pudimos actualizar la sesión. Actualiza e inténtalo de nuevo." }
   },
   "video": {
     "waitingTitle": "Apoyo por Video Privado",

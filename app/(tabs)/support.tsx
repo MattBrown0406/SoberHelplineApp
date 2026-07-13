@@ -813,12 +813,11 @@ export default function SupportScreen() {
           </>
         )}
 
-        {/* Essential / Premium: full content */}
+        {/* Essential / Premier: full content */}
         {!isAttached && accountState !== 'direct-free' && (
           <>
-            {/* Tier card — hidden for premium (it moves to Settings) */}
-            {accountState !== 'direct-premium' && (
-              <View style={[styles.card, { borderColor: colors.line }]}>
+            {/* Keep the plan layers visible even for current Premier members. */}
+            <View style={[styles.card, { borderColor: colors.line }]}>
                 <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
                   {t('tier.eyebrow')}
                 </Text>
@@ -857,18 +856,24 @@ export default function SupportScreen() {
                     <Text style={[styles.tierPrice, { color: colors.ink }]}>
                       {subscriptionPrices.premium ?? t('tier.premiumPrice')}
                     </Text>
+                    {accountState === 'direct-premium' && (
+                      <Text style={[styles.tierCurrent, { color: colors.inkSoft }]}>
+                        {t('tier.current')}
+                      </Text>
+                    )}
                   </View>
                 </View>
 
-                <TouchableOpacity
-                  style={[styles.solidBtn, { backgroundColor: colors.primary }]}
-                  activeOpacity={0.85}
-                  onPress={() => openUpgrade('premium')}
-                >
-                  <Text style={styles.solidBtnText}>{t('tier.upgradeButton')}</Text>
-                </TouchableOpacity>
-              </View>
-            )}
+                {accountState !== 'direct-premium' && (
+                  <TouchableOpacity
+                    style={[styles.solidBtn, { backgroundColor: colors.primary }]}
+                    activeOpacity={0.85}
+                    onPress={() => openUpgrade('premium')}
+                  >
+                    <Text style={styles.solidBtnText}>{t('tier.upgradeButton')}</Text>
+                  </TouchableOpacity>
+                )}
+            </View>
 
             <View style={[styles.card, { borderColor: colors.line }]}>
               <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>

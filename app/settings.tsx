@@ -438,12 +438,15 @@ const styles = StyleSheet.create({
   toggleLabel: { fontSize: 14, fontWeight: '600' },
   toggleDesc: { fontSize: 12, marginTop: 3, lineHeight: 17 },
 
-  pillRow: { flexDirection: 'row', gap: 8 },
+  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pill: {
     borderWidth: 1.5,
     borderRadius: 99,
     paddingVertical: 8,
-    paddingHorizontal: 18,
+    paddingHorizontal: 12,
+    minWidth: '46%',
+    flexGrow: 1,
+    alignItems: 'center',
   },
   pillText: { fontSize: 13, fontWeight: '600' },
 

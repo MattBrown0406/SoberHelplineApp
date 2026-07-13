@@ -39,11 +39,11 @@
     "essentialFeatures": "Message the on-call coach · full app · groups",
     "essentialPrice": "$14.99/mo",
     "essentialAmount": "$14.99",
-    "premiumName": "Premium",
+    "premiumName": "Premier",
     "premiumFeatures": "Phone & video calls with a coach, business hours",
     "premiumPrice": "$44.99/mo",
     "premiumAmount": "$44.99",
-    "upgradeButton": "Upgrade to Premium",
+    "upgradeButton": "Upgrade to Premier",
     "current": "Current plan"
   },
   "paywall": {
@@ -52,8 +52,8 @@
     "body": "Essential members get daily check-ins, mood tracking, boundaries, scripts, messaging, and groups.",
     "viewPlans": "View plans",
     "subscribeEssential": "Subscribe Essential · $14.99/mo",
-    "subscribePremium": "Upgrade to Premium · $44.99/mo",
-    "autoRenewDisclosure": "Essential is $14.99/month and Premium is $44.99/month, billed to your Apple Account. Subscriptions renew automatically unless turned off at least 24 hours before the end of the current period. Manage or cancel anytime in your Apple Account settings."
+    "subscribePremium": "Upgrade to Premier · $44.99/mo",
+    "autoRenewDisclosure": "Essential is $14.99/month and Premier is $44.99/month, billed to your Apple Account. Subscriptions renew automatically unless turned off at least 24 hours before the end of the current period. Manage or cancel anytime in your Apple Account settings."
   },
   "mondayGroup": {
     "eyebrow": "FREE ACCESS",
@@ -80,9 +80,9 @@
     "close": "Close"
   },
   "upgradeSheet": {
-    "title": "Upgrade to Premium",
+    "title": "Upgrade to Premier",
     "price": "$44.99 / month",
-    "featuresHeader": "Premium includes:",
+    "featuresHeader": "Premier includes:",
     "featuresHeaderGeneric": "Included:",
     "renewalNote": "{{price}} per month, billed to your Apple Account. Renews automatically unless turned off at least 24 hours before the period ends. Manage or cancel anytime in your Apple Account settings.",
     "feature1": "Phone calls with the on-call coach",
@@ -268,7 +268,7 @@
   },
   "textline": {
     "gatedTitle": "Urgent Text Line",
-    "gatedBody": "Text support is included with Essential and Premium. Upgrade to send private support messages and screenshots from inside the app.",
+    "gatedBody": "Text support is included with Essential and Premier. Upgrade to send private support messages and screenshots from inside the app.",
     "viewPlans": "View plans",
     "sendErrorTitle": "Message not sent",
     "sendErrorBody": "Please try again.",
@@ -277,8 +277,8 @@
   },
   "privateVideo": {
     "eyebrow": "Private video support",
-    "title": "Premium private video session",
-    "body": "Included for Premium members. Request a private in-app video support session; this is not an emergency service.",
+    "title": "Premier private video session",
+    "body": "Included for Premier members. Request a private in-app video support session; this is not an emergency service.",
     "requestedOn": "Requested {{date}}",
     "join": "Join private video",
     "received": "Request received",
@@ -319,7 +319,7 @@
       "submitNewTime": "Request this new time",
       "history": "Past sessions",
       "rebook": "Book again",
-      "errors": { "invalidTitle": "Choose another time", "future": "Select a day and time in the future.", "version_conflict": "This session changed on another device. We refreshed it; please review and try again.", "active_session_exists": "You already have an active video request.", "invalid_request": "Check the date, time, and note, then try again.", "invalid_timezone": "Your device timezone could not be used. Refresh and try again.", "proposal_not_found": "That proposal is no longer available. Refresh to see the latest time.", "session_not_found": "This session is no longer available.", "premium_video_access_required": "Premium video access is required.", "invalid_transition": "That action is no longer available for this session.", "unknown": "We couldn't update your session. Please refresh and try again." }
+      "errors": { "invalidTitle": "Choose another time", "future": "Select a day and time in the future.", "version_conflict": "This session changed on another device. We refreshed it; please review and try again.", "active_session_exists": "You already have an active video request.", "invalid_request": "Check the date, time, and note, then try again.", "invalid_timezone": "Your device timezone could not be used. Refresh and try again.", "proposal_not_found": "That proposal is no longer available. Refresh to see the latest time.", "session_not_found": "This session is no longer available.", "premium_video_access_required": "Premier video access is required.", "invalid_transition": "That action is no longer available for this session.", "unknown": "We couldn't update your session. Please refresh and try again." }
     }
   }
 }

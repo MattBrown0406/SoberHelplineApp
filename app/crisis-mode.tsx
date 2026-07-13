@@ -150,7 +150,7 @@ export default function CrisisModeScreen() {
   const isSpanish = i18n.language.toLowerCase().startsWith('es');
   const situations = useMemo(() => getCrisisSituations(i18n.language), [i18n.language]);
   const hasEssential = !!user && accountState !== 'direct-free';
-  const hasPremium = accountState === 'direct-premium' || accountState === 'attached';
+  const hasPremier = accountState === 'direct-premium' || accountState === 'attached';
   const canAccessPrivateVideo = !!user && entitlements.canAccessPrivateVideo;
   const privateVideo = usePrivateVideoSessions(user?.id ?? null, hasEssential);
 
@@ -220,8 +220,8 @@ export default function CrisisModeScreen() {
     if (hasEssential && user && hydratedUserId === user.id) void AsyncStorage.setItem(crisisStorageKey(user.id, 'boundary'), JSON.stringify(boundary));
   }, [boundary, hasEssential, hydratedUserId, user]);
   useEffect(() => {
-    if (hasPremium && user && hydratedUserId === user.id) void AsyncStorage.setItem(crisisStorageKey(user.id, 'command'), JSON.stringify(command));
-  }, [command, hasPremium, hydratedUserId, user]);
+    if (hasPremier && user && hydratedUserId === user.id) void AsyncStorage.setItem(crisisStorageKey(user.id, 'command'), JSON.stringify(command));
+  }, [command, hasPremier, hydratedUserId, user]);
 
   function chooseSituation(key: CrisisSituationKey) {
     setSituationKey(key);
@@ -262,12 +262,12 @@ export default function CrisisModeScreen() {
     setIncidentDraft({ summary: '', substances: '', threats: '', childrenPresent: false, policeOrEms: false, boundaryCrossed: false });
   }
 
-  function showUpgrade(tier: 'Essential' | 'Premium') {
+  function showUpgrade(tier: 'Essential' | 'Premier') {
     Alert.alert(
       isSpanish ? `${tier} requerido` : `${tier} required`,
       tier === 'Essential'
         ? (isSpanish ? 'Guarda planes, incidentes y seguimiento de 24/72 horas con Essential.' : 'Save plans, incidents, and 24/72-hour follow-up with Essential.')
-        : (isSpanish ? 'El Plan de Comando Familiar está incluido con Premium.' : 'The Family Command Plan is included with Premium.'),
+        : (isSpanish ? 'El Plan de Comando Familiar está incluido con Premier.' : 'The Family Command Plan is included with Premier.'),
       [
         { text: isSpanish ? 'Ahora no' : 'Not now', style: 'cancel' },
         { text: isSpanish ? 'Ver planes' : 'View plans', onPress: () => router.push('/(tabs)/support' as never) },
@@ -286,7 +286,7 @@ export default function CrisisModeScreen() {
       isSpanish ? 'PRÓXIMAS 24 HORAS' : 'NEXT 24 HOURS', ...situation.next24.map((item) => `• ${item}`), '',
       isSpanish ? 'PRÓXIMAS 72 HORAS' : 'NEXT 72 HOURS', ...situation.next72.map((item) => `• ${item}`), '',
       t('share.boundary'), boundaryText, '', t('share.recent'), recent,
-      ...(includeCommand && hasPremium ? ['', isSpanish ? 'PLAN DE COMANDO FAMILIAR' : 'FAMILY COMMAND PLAN',
+      ...(includeCommand && hasPremier ? ['', isSpanish ? 'PLAN DE COMANDO FAMILIAR' : 'FAMILY COMMAND PLAN',
         `${isSpanish ? 'Coordinador' : 'Coordinator'}: ${command.coordinator || '—'}`,
         `${isSpanish ? 'Comunicador' : 'Communicator'}: ${command.communicator || '—'}`,
         `${isSpanish ? 'Responsable de seguridad' : 'Safety lead'}: ${command.safetyLead || '—'}`,
@@ -421,9 +421,9 @@ export default function CrisisModeScreen() {
               <LockedCard tier="Essential" cta={isSpanish ? 'Ver Essential' : 'View Essential'} title={isSpanish ? 'Guarda el plan y continúa después' : 'Save the plan and continue later'} body={isSpanish ? 'Essential incluye planes de 24/72 horas, registro de incidentes, límites y resumen compartible.' : 'Essential includes 24/72-hour plans, incident history, boundaries, and a shareable summary.'} colors={colors} onPress={() => showUpgrade('Essential')} />
             )}
 
-            {hasPremium ? (
+            {hasPremier ? (
               <View style={[styles.card, styles.premiumCard, { backgroundColor: colors.ink, borderColor: colors.primary }]}>
-                <Text style={styles.premiumEyebrow}>PREMIUM</Text>
+                <Text style={styles.premiumEyebrow}>PREMIER</Text>
                 <Text style={styles.premiumTitle}>{isSpanish ? 'Plan de Comando Familiar' : 'Family Command Plan'}</Text>
                 <Text style={styles.premiumBody}>{isSpanish ? 'Asigna roles y comparte una sola posición familiar. Esta versión crea un plan privado; la sala multiusuario en vivo llegará después.' : 'Assign roles and share one unified family position. This version creates a private command plan; a live multi-user room comes later.'}</Text>
                 <Field dark label={isSpanish ? 'Coordinador de la crisis' : 'Crisis coordinator'} placeholder={fieldPlaceholder} value={command.coordinator} onChangeText={(value) => setCommand((prev) => ({ ...prev, coordinator: value }))} />
@@ -433,12 +433,12 @@ export default function CrisisModeScreen() {
                 <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: colors.primary }]} onPress={() => void shareSummary(true)}><Text style={styles.primaryBtnText}>{isSpanish ? 'Compartir plan de comando' : 'Share command plan'}</Text></TouchableOpacity>
               </View>
             ) : (
-              <LockedCard tier="Premium" cta={isSpanish ? 'Ver Premium' : 'View Premium'} title={isSpanish ? 'Mantén a la familia alineada' : 'Keep the family aligned'} body={isSpanish ? 'Premium agrega roles, una posición unificada y apoyo por video privado.' : 'Premium adds role assignments, a unified family position, and private video support.'} colors={colors} onPress={() => showUpgrade('Premium')} />
+              <LockedCard tier="Premier" cta={isSpanish ? 'Ver Premier' : 'View Premier'} title={isSpanish ? 'Mantén a la familia alineada' : 'Keep the family aligned'} body={isSpanish ? 'Premier agrega roles, una posición unificada y apoyo por video privado.' : 'Premier adds role assignments, a unified family position, and private video support.'} colors={colors} onPress={() => showUpgrade('Premier')} />
             )}
 
             <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
               <Text style={[styles.sectionTitle, { color: colors.ink }]}>{t('support.title')}</Text>
-              {entitlements.canMessageOnCallCoach ? <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: colors.primary }]} onPress={() => router.push('/chat')}><Text style={styles.primaryBtnText}>{t('support.openTextline')}</Text></TouchableOpacity> : <Text style={[styles.body, { color: colors.inkSoft }]}>{isSpanish ? 'El apoyo por texto está disponible con Essential y Premium. Para peligro inmediato, usa 911 o 988.' : 'Text support is available with Essential and Premium. For immediate danger, use 911 or 988.'}</Text>}
+              {entitlements.canMessageOnCallCoach ? <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: colors.primary }]} onPress={() => router.push('/chat')}><Text style={styles.primaryBtnText}>{t('support.openTextline')}</Text></TouchableOpacity> : <Text style={[styles.body, { color: colors.inkSoft }]}>{isSpanish ? 'El apoyo por texto está disponible con Essential y Premier. Para peligro inmediato, usa 911 o 988.' : 'Text support is available with Essential and Premier. For immediate danger, use 911 or 988.'}</Text>}
               {(canAccessPrivateVideo || privateVideo.activeSession?.appointment_type === 'one_off_150') ? <PremierVideoSchedulingCard controller={privateVideo} t={t} translationRoot="premierVideo" compact onJoin={(session) => router.push({ pathname: '/video-session' as never, params: { sessionId: session.id, room: session.room_name } })} /> : null}
               {hasEssential ? <PlanReviewBookingCard controller={privateVideo} accountState={accountState} source={planReviewSource} t={t} consentLocale={isSpanish ? 'es' : 'en'} onUpgrade={() => router.push('/(tabs)/support' as never)} /> : null}
             </View>
