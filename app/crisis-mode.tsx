@@ -140,6 +140,34 @@ function crisisStorageKey(userId: string | null | undefined, suffix: string) {
   return `soberhelpline:crisis:${userId ?? 'guest'}:${suffix}`;
 }
 
+function parseStoredRecord<T extends object>(raw: string | null, fallback: T): T {
+  if (!raw) return fallback;
+  try {
+    const value: unknown = JSON.parse(raw);
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return fallback;
+    const safe = { ...fallback } as Record<string, unknown>;
+    const candidate = value as Record<string, unknown>;
+    for (const [key, defaultValue] of Object.entries(fallback)) {
+      if (typeof candidate[key] === typeof defaultValue) safe[key] = candidate[key];
+    }
+    return safe as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function parseStoredIncidents(raw: string | null): Incident[] {
+  if (!raw) return [];
+  try {
+    const value: unknown = JSON.parse(raw);
+    return Array.isArray(value)
+      ? value.filter((item): item is Incident => !!item && typeof item === 'object' && typeof item.summary === 'string' && typeof item.createdAt === 'string')
+      : [];
+  } catch {
+    return [];
+  }
+}
+
 function levelColor(level: RiskLevel) {
   if (level === 'RED') return '#b42318';
   if (level === 'ORANGE') return '#c4604f';
@@ -225,10 +253,10 @@ export default function CrisisModeScreen() {
         AsyncStorage.getItem(crisisStorageKey(user?.id, 'readiness')),
         AsyncStorage.getItem(crisisStorageKey(user?.id, 'boundary')),
       ]);
-      if (planRaw) setPlan({ ...DEFAULT_PLAN, ...JSON.parse(planRaw) });
-      if (incidentsRaw) setIncidents(JSON.parse(incidentsRaw));
-      if (readinessRaw) setReadiness({ ...DEFAULT_READINESS, ...JSON.parse(readinessRaw) });
-      if (boundaryRaw) setBoundary({ ...DEFAULT_BOUNDARY, ...JSON.parse(boundaryRaw) });
+      setPlan(parseStoredRecord(planRaw, DEFAULT_PLAN));
+      setIncidents(parseStoredIncidents(incidentsRaw));
+      setReadiness(parseStoredRecord(readinessRaw, DEFAULT_READINESS));
+      setBoundary(parseStoredRecord(boundaryRaw, DEFAULT_BOUNDARY));
     }
     void load();
   }, [user?.id]);
