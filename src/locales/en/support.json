@@ -31,19 +31,21 @@
     "joinZoom": "Join Zoom"
   },
   "tier": {
-    "eyebrow": "Your plan",
+    "eyebrow": "Crisis guide & plan review",
+    "reviewIntro": "Build the crisis plan first. Then choose how you want Matt to review it.",
     "freeName": "Free",
-    "freeFeatures": "Monday family support group call",
+    "freeFeatures": "Immediate Crisis Guide and safety steps",
     "freeCurrent": "Your plan",
     "essentialName": "Essential",
-    "essentialFeatures": "Message the on-call coach · full app · groups",
+    "essentialFeatures": "Build and save your crisis plan · upgrade to Premier or choose one $150 plan-review call",
     "essentialPrice": "$14.99/mo",
     "essentialAmount": "$14.99",
     "premiumName": "Premier",
-    "premiumFeatures": "Phone & video calls with a coach, business hours",
+    "premiumFeatures": "Plan review included · unlimited private video-session requests, subject to availability",
     "premiumPrice": "$44.99/mo",
     "premiumAmount": "$44.99",
     "upgradeButton": "Upgrade to Premier",
+    "openPlanReview": "Open Crisis Guide & plan review",
     "current": "Current plan"
   },
   "paywall": {

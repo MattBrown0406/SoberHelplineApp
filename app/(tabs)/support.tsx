@@ -816,10 +816,13 @@ export default function SupportScreen() {
         {/* Essential / Premier: full content */}
         {!isAttached && accountState !== 'direct-free' && (
           <>
-            {/* Keep the plan layers visible even for current Premier members. */}
+            {/* Explain the Crisis Guide plan-review choices built into Crisis Copilot. */}
             <View style={[styles.card, { borderColor: colors.line }]}>
                 <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
                   {t('tier.eyebrow')}
+                </Text>
+                <Text style={[styles.referralBody, { color: colors.inkSoft, marginBottom: 12 }]}>
+                  {t('tier.reviewIntro')}
                 </Text>
 
                 <View style={[styles.tierRow, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]}>
@@ -832,9 +835,6 @@ export default function SupportScreen() {
                     </Text>
                   </View>
                   <View style={styles.tierRight}>
-                    <Text style={[styles.tierPrice, { color: colors.primary }]}>
-                      {subscriptionPrices.essential ?? t('tier.essentialPrice')}
-                    </Text>
                     {accountState === 'direct-essential' && (
                       <Text style={[styles.tierCurrent, { color: colors.inkSoft }]}>
                         {t('tier.current')}
@@ -853,9 +853,6 @@ export default function SupportScreen() {
                     </Text>
                   </View>
                   <View style={styles.tierRight}>
-                    <Text style={[styles.tierPrice, { color: colors.ink }]}>
-                      {subscriptionPrices.premium ?? t('tier.premiumPrice')}
-                    </Text>
                     {accountState === 'direct-premium' && (
                       <Text style={[styles.tierCurrent, { color: colors.inkSoft }]}>
                         {t('tier.current')}
@@ -864,15 +861,13 @@ export default function SupportScreen() {
                   </View>
                 </View>
 
-                {accountState !== 'direct-premium' && (
-                  <TouchableOpacity
-                    style={[styles.solidBtn, { backgroundColor: colors.primary }]}
-                    activeOpacity={0.85}
-                    onPress={() => openUpgrade('premium')}
-                  >
-                    <Text style={styles.solidBtnText}>{t('tier.upgradeButton')}</Text>
-                  </TouchableOpacity>
-                )}
+                <TouchableOpacity
+                  style={[styles.solidBtn, { backgroundColor: colors.primary }]}
+                  activeOpacity={0.85}
+                  onPress={() => router.push('/crisis-mode')}
+                >
+                  <Text style={styles.solidBtnText}>{t('tier.openPlanReview')}</Text>
+                </TouchableOpacity>
             </View>
 
             <View style={[styles.card, { borderColor: colors.line }]}>

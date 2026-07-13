@@ -31,19 +31,21 @@
     "joinZoom": "Unirse al Zoom"
   },
   "tier": {
-    "eyebrow": "Tu plan",
+    "eyebrow": "Guía de crisis y revisión del plan",
+    "reviewIntro": "Primero crea el plan de crisis. Después elige cómo quieres que Matt lo revise.",
     "freeName": "Gratuito",
-    "freeFeatures": "Llamada grupal de apoyo familiar los lunes",
+    "freeFeatures": "Guía de crisis inmediata y pasos de seguridad",
     "freeCurrent": "Tu plan",
     "essentialName": "Esencial",
-    "essentialFeatures": "Mensaje al coach de guardia · app completa · grupos",
+    "essentialFeatures": "Crea y guarda tu plan de crisis · mejora a Premier o elige una llamada única de revisión por $150",
     "essentialPrice": "$14.99/mes",
     "essentialAmount": "$14.99",
     "premiumName": "Premier",
-    "premiumFeatures": "Llamadas telefónicas y de video con un coach en horario laboral",
+    "premiumFeatures": "Revisión del plan incluida · solicitudes ilimitadas de sesiones privadas por video, sujetas a disponibilidad",
     "premiumPrice": "$44.99/mes",
     "premiumAmount": "$44.99",
     "upgradeButton": "Mejorar a Premier",
+    "openPlanReview": "Abrir guía de crisis y revisión del plan",
     "current": "Plan actual"
   },
   "paywall": {
