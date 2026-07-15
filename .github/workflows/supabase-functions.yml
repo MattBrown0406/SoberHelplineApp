@@ -32,7 +32,8 @@ jobs:
             20260712020906 \
             20260712021820 \
             20260712120000 \
-            20260712130000; do
+            20260712130000 \
+            20260713040553; do
             supabase migration repair --linked --status applied "$version"
           done
         env:
