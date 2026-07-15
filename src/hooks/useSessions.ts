@@ -46,24 +46,30 @@ export function useSessions(accountId: string | null) {
   );
 
   const toggleRsvp = useCallback(
-    async (session: DbSession) => {
-      if (!accountId) return;
-      // optimistic
+    async (session: DbSession): Promise<boolean> => {
+      if (!accountId) return false;
       setSessions((prev) =>
         prev.map((s) => (s.id === session.id ? { ...s, rsvped: !s.rsvped } : s)),
       );
-      if (session.rsvped) {
-        await supabase
-          .from('session_rsvps')
-          .delete()
-          .eq('session_id', session.id)
-          .eq('account_id', accountId);
-      } else {
-        await supabase.from('session_rsvps').upsert({
-          session_id: session.id,
-          account_id: accountId,
-          status: 'going',
-        });
+      try {
+        const result = session.rsvped
+          ? await supabase
+              .from('session_rsvps')
+              .delete()
+              .eq('session_id', session.id)
+              .eq('account_id', accountId)
+          : await supabase.from('session_rsvps').upsert({
+              session_id: session.id,
+              account_id: accountId,
+              status: 'going',
+            });
+        if (result.error) throw result.error;
+        return true;
+      } catch {
+        setSessions((prev) =>
+          prev.map((s) => (s.id === session.id ? { ...s, rsvped: session.rsvped } : s)),
+        );
+        return false;
       }
     },
     [accountId],

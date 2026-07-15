@@ -1,22 +1,26 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SET search_path=public,extensions;
-SELECT plan(26);
+SELECT plan(29);
 
 INSERT INTO auth.users(id,email,raw_app_meta_data,raw_user_meta_data,aud,role) VALUES
  ('11000000-0000-0000-0000-000000000001','plan-owner@example.com','{}','{}','authenticated','authenticated'),
  ('11000000-0000-0000-0000-000000000002','plan-premier@example.com','{}','{}','authenticated','authenticated'),
- ('11000000-0000-0000-0000-000000000003','plan-essential@example.com','{}','{}','authenticated','authenticated');
+ ('11000000-0000-0000-0000-000000000003','plan-essential@example.com','{}','{}','authenticated','authenticated'),
+ ('11000000-0000-0000-0000-000000000004','plan-duration@example.com','{}','{}','authenticated','authenticated');
 UPDATE accounts SET id=('21000000-0000-0000-0000-'||right(user_id::text,12))::uuid,type='direct'
  WHERE user_id::text LIKE '11000000-0000-0000-0000-00000000000%';
 INSERT INTO entitlements(account_id,source,tier,expires_at) VALUES
  ('21000000-0000-0000-0000-000000000002','scholarship','premium',now()+interval '30 days'),
- ('21000000-0000-0000-0000-000000000003','scholarship','essential',now()+interval '30 days');
+ ('21000000-0000-0000-0000-000000000003','scholarship','essential',now()+interval '30 days'),
+ ('21000000-0000-0000-0000-000000000004','scholarship','premium',now()+interval '30 days');
 INSERT INTO video_staff_roles(account_id,role,active) VALUES ('21000000-0000-0000-0000-000000000001','owner',true);
 GRANT SELECT ON coaching_bookings, video_sessions TO authenticated;
 GRANT EXECUTE ON FUNCTION is_video_staff(uuid), is_video_owner(uuid) TO authenticated;
 
 SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims','{"sub":"11000000-0000-0000-0000-000000000004","email":"plan-duration@example.com","role":"authenticated"}',true);
+SELECT throws_ok($$SELECT request_plan_review_video_session(now()+interval '2 days','America/Los_Angeles',90,'plan_review','Review boundaries','[]','{safetyPlan}'::text[],'{"schemaVersion":"1","sections":{"safetyPlan":{}}}'::jsonb,'I choose to share this plan. This is not an emergency service.','en','membership_included')$$,'23514','new row for relation "video_sessions" violates check constraint "video_plan_review_duration"','plan review duration is fixed at 60 minutes');
 SELECT set_config('request.jwt.claims','{"sub":"11000000-0000-0000-0000-000000000002","email":"plan-premier@example.com","role":"authenticated"}',true);
 SELECT lives_ok($$SELECT request_plan_review_video_session(now()+interval '2 days','America/Los_Angeles',60,'plan_review','Review boundaries','["What first?"]','{safetyPlan,boundaries}'::text[],'{"schemaVersion":"1","sections":{"safetyPlan":{"hospital":"Example"},"boundaries":{"support":"Treatment"}}}'::jsonb,'I choose to share these sections. This is not an emergency service.','en','membership_included')$$,'Premier can request included plan review');
 SELECT is((SELECT appointment_type FROM member_get_active_video_session()),'membership_included','Premier session is membership included');
@@ -61,10 +65,12 @@ SET LOCAL ROLE service_role;
 SELECT set_config('request.jwt.claims','{"role":"service_role"}',true);
 SELECT lives_ok($$SELECT apply_plan_review_payment_event('refund.event.001',(SELECT id FROM video_sessions WHERE account_id='21000000-0000-0000-0000-000000000003'),'ORDER-001','CAPTURE-001','refunded',15000,'USD',now())$$,'verified refund propagates to app payment truth');
 SELECT is((SELECT payment_status FROM video_sessions WHERE account_id='21000000-0000-0000-0000-000000000003'),'refunded','refund marks linked video session refunded');
+SELECT is((SELECT status FROM video_sessions WHERE account_id='21000000-0000-0000-0000-000000000003'),'cancelled','refund cancels an active plan-review session');
+SELECT is((SELECT calendar_sync_status FROM video_sessions WHERE account_id='21000000-0000-0000-0000-000000000003'),'cancelled','refund leaves no unsynchronised calendar event when none exists');
 RESET ROLE;
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claims','{"sub":"11000000-0000-0000-0000-000000000001","email":"plan-owner@example.com","role":"authenticated"}',true);
-SELECT throws_ok($$SELECT coach_start_video_session((SELECT id FROM video_sessions WHERE account_id='21000000-0000-0000-0000-000000000003'),6)$$,'P0001','payment_not_verified','refunded session cannot transition live');
+SELECT throws_ok($$SELECT coach_start_video_session((SELECT id FROM video_sessions WHERE account_id='21000000-0000-0000-0000-000000000003'),6)$$,'P0001','invalid_transition','cancelled refunded session cannot transition live');
 
 SELECT * FROM finish();
 ROLLBACK;

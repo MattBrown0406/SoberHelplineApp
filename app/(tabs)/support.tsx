@@ -27,7 +27,7 @@ import { useGroupPresence } from '../../src/hooks/useGroupPresence';
 import { useGroupRsvps } from '../../src/hooks/useGroupRsvps';
 import { usePrivateVideoSessions } from '../../src/hooks/usePrivateVideoSessions';
 import { PremierVideoSchedulingCard } from '../../src/components/video/PremierVideoSchedulingCard';
-import { GROUPS_URL, FEATURED_PROVIDER } from '../../src/config';
+import { GROUPS_URL, FEATURED_PROVIDER, PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '../../src/config';
 import { useIAP, type SubscriptionTier } from '../../src/hooks/useIAP';
 import { useSituation } from '../../src/hooks/useSituation';
 import { funnelDoor, type FunnelDoor } from '../../src/lib/situation';
@@ -56,6 +56,7 @@ function CrisisSheet({
   visible,
   onClose,
   isAttached,
+  canMessage,
   onMessage,
   onCopilot,
   door,
@@ -65,6 +66,7 @@ function CrisisSheet({
   visible: boolean;
   onClose: () => void;
   isAttached: boolean;
+  canMessage: boolean;
   onMessage: () => void;
   onCopilot: () => void;
   door: FunnelDoor;
@@ -94,7 +96,7 @@ function CrisisSheet({
           {t('crisis.sheetTitle')}
         </Text>
         <Text style={[styles.sheetSub, { color: colors.inkSoft }]}>
-          {primary.firstName} {isAttached ? t('crisis.attachedSub') : t('crisis.directSub')}
+          {primary.firstName} {isAttached ? t('crisis.attachedSub') : canMessage ? t('crisis.directSub') : t('crisis.freeSub')}
         </Text>
 
         <View style={[styles.copilotCard, { backgroundColor: colors.primaryLight, borderColor: colors.primary }]}>
@@ -131,14 +133,17 @@ function CrisisSheet({
             onPress={() => {
               if (isAttached) {
                 Linking.openURL(CRISIS_LINE_TEL);
-              } else {
+              } else if (canMessage) {
                 onClose();
                 onMessage();
+              } else {
+                onClose();
+                onCopilot();
               }
             }}
           >
             <Text style={styles.sheetActionBtnText}>
-              {isAttached ? t('crisis.callButton') : t('crisis.messageButton')}
+              {isAttached ? t('crisis.callButton') : canMessage ? t('crisis.messageButton') : t('crisis.copilotButton')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -401,16 +406,16 @@ function UpgradeSheet({
           onPress={onPurchase}
         >
           <Text style={styles.solidBtnText}>
-            {purchasing ? '...' : t(tier === 'essential' ? 'paywall.subscribeEssential' : 'paywall.subscribePremium')}
+            {purchasing ? '...' : t(tier === 'essential' ? 'paywall.subscribeEssential' : 'paywall.subscribePremium', { price: priceLabel })}
           </Text>
         </TouchableOpacity>
 
         <View style={styles.legalRow}>
-          <TouchableOpacity onPress={() => void Linking.openURL('https://soberhelpline.com/privacy')}>
+          <TouchableOpacity onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}>
             <Text style={[styles.legalLink, { color: colors.primary }]}>{t('upgradeSheet.privacyPolicy')}</Text>
           </TouchableOpacity>
           <Text style={[styles.legalSep, { color: colors.inkSoft }]}> · </Text>
-          <TouchableOpacity onPress={() => void Linking.openURL('https://soberhelpline.com/terms')}>
+          <TouchableOpacity onPress={() => void Linking.openURL(TERMS_OF_USE_URL)}>
             <Text style={[styles.legalLink, { color: colors.primary }]}>{t('upgradeSheet.termsOfUse')}</Text>
           </TouchableOpacity>
         </View>
@@ -481,28 +486,34 @@ export default function SupportScreen() {
   async function submitQuestion() {
     if (!questionText.trim() || !questionSession || !user?.id) return;
     setQuestionSubmitting(true);
-    await supabase.from('session_questions').insert({
-      account_id: user.id,
-      session_id: questionSession.id,
-      question: questionText.trim(),
-    });
-    setQuestionSubmitting(false);
-    setQuestionSubmitted(true);
-    setTimeout(() => {
-      setQuestionSession(null);
-      setQuestionText('');
-      setQuestionSubmitted(false);
-    }, 1500);
+    try {
+      const { error } = await supabase.from('session_questions').insert({
+        account_id: user.id,
+        session_id: questionSession.id,
+        question: questionText.trim(),
+      });
+      if (error) throw error;
+      setQuestionSubmitted(true);
+      setTimeout(() => {
+        setQuestionSession(null);
+        setQuestionText('');
+        setQuestionSubmitted(false);
+      }, 1500);
+    } catch {
+      Alert.alert(t('questionModal.errorTitle'), t('questionModal.errorBody'));
+    } finally {
+      setQuestionSubmitting(false);
+    }
   }
 
   async function handlePurchase() {
-    const success = upgradeTier === 'essential'
+    const result = upgradeTier === 'essential'
       ? await purchaseEssential()
       : await purchasePremium();
-    if (success) {
+    if (result === 'success') {
       await refreshAccount();
       setUpgradeOpen(false);
-    } else {
+    } else if (result === 'failed') {
       Alert.alert(t('upgradeSheet.title'), t('upgradeSheet.iapError'));
     }
   }
@@ -512,6 +523,10 @@ export default function SupportScreen() {
 
   const roster = { primaryOnCall: PRIMARY_ON_CALL, available: [] as StaffMember[] };
   const { sessions, toggleRsvp } = useSessions(user?.id ?? null);
+  const handleSessionRsvp = async (session: DbSession) => {
+    const saved = await toggleRsvp(session);
+    if (!saved) Alert.alert(t('sessions.rsvpErrorTitle'), t('sessions.rsvpErrorBody'));
+  };
   const groups = getSupportGroups();
   const { myRooms, liveRooms } = useGroupPresence(user?.id ?? null);
   const { rsvpedRooms, pendingRooms, toggleRsvp: toggleGroupRsvp } = useGroupRsvps(user?.id ?? null);
@@ -531,6 +546,7 @@ export default function SupportScreen() {
         visible={crisisOpen}
         onClose={() => setCrisisOpen(false)}
         isAttached={isAttached}
+        canMessage={entitlements.canMessageOnCallCoach}
         onMessage={() => router.push('/chat')}
         onCopilot={() => router.push('/crisis-mode')}
         door={crisisDoor}
@@ -655,7 +671,7 @@ export default function SupportScreen() {
                     <TouchableOpacity
                       style={[styles.sessionBtn, { backgroundColor: sess.rsvped ? colors.greenLight : colors.primaryLight, borderColor: sess.rsvped ? colors.green : colors.primary }]}
                       activeOpacity={0.8}
-                      onPress={() => toggleRsvp(sess)}
+                      onPress={() => void handleSessionRsvp(sess)}
                     >
                       <Text style={[styles.sessionBtnText, { color: sess.rsvped ? colors.green : colors.primary }]}>
                         {sess.rsvped ? t('sessions.confirmButton') : t('sessions.rsvpButton')}
@@ -733,7 +749,7 @@ export default function SupportScreen() {
                     <TouchableOpacity
                       style={[styles.sessionBtn, { backgroundColor: sess.rsvped ? colors.greenLight : colors.primaryLight, borderColor: sess.rsvped ? colors.green : colors.primary }]}
                       activeOpacity={0.8}
-                      onPress={() => toggleRsvp(sess)}
+                      onPress={() => void handleSessionRsvp(sess)}
                     >
                       <Text style={[styles.sessionBtnText, { color: sess.rsvped ? colors.green : colors.primary }]}>
                         {sess.rsvped ? t('sessions.confirmButton') : t('sessions.rsvpButton')}
@@ -773,7 +789,7 @@ export default function SupportScreen() {
                 onPress={() => openUpgrade('essential')}
               >
                 <Text style={styles.solidBtnText}>
-                  {purchasing ? '...' : t('paywall.subscribeEssential')}
+                  {purchasing ? '...' : t('paywall.subscribeEssential', { price: subscriptionPrices.essential ?? t('tier.essentialAmount') })}
                 </Text>
               </TouchableOpacity>
 
@@ -792,20 +808,23 @@ export default function SupportScreen() {
                 onPress={() => openUpgrade('premium')}
               >
                 <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
-                  {t('paywall.subscribePremium')}
+                  {t('paywall.subscribePremium', { price: subscriptionPrices.premium ?? t('tier.premiumAmount') })}
                 </Text>
               </TouchableOpacity>
 
               {/* Auto-renewable subscription disclosure + legal links (App Store 3.1.2c) */}
               <Text style={[styles.disclosure, { color: colors.inkSoft }]}>
-                {t('paywall.autoRenewDisclosure')}
+                {t('paywall.autoRenewDisclosure', {
+                  essentialPrice: subscriptionPrices.essential ?? t('tier.essentialAmount'),
+                  premiumPrice: subscriptionPrices.premium ?? t('tier.premiumAmount'),
+                })}
               </Text>
               <View style={styles.legalRow}>
-                <TouchableOpacity onPress={() => void Linking.openURL('https://soberhelpline.com/terms')}>
+                <TouchableOpacity onPress={() => void Linking.openURL(TERMS_OF_USE_URL)}>
                   <Text style={[styles.legalLink, { color: colors.primary }]}>{t('upgradeSheet.termsOfUse')}</Text>
                 </TouchableOpacity>
                 <Text style={[styles.legalSep, { color: colors.inkSoft }]}> · </Text>
-                <TouchableOpacity onPress={() => void Linking.openURL('https://soberhelpline.com/privacy')}>
+                <TouchableOpacity onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}>
                   <Text style={[styles.legalLink, { color: colors.primary }]}>{t('upgradeSheet.privacyPolicy')}</Text>
                 </TouchableOpacity>
               </View>
@@ -877,17 +896,19 @@ export default function SupportScreen() {
               </TouchableOpacity>
             </View>
 
-            <View style={[styles.card, { borderColor: colors.line }]}>
-              <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>{t('privateVideo.eyebrow').toUpperCase()}</Text>
-              <Text style={[styles.referralTitle, { color: colors.ink }]}>{t('privateVideo.title')}</Text>
-              <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{t('privateVideo.body')}</Text>
-              <PremierVideoSchedulingCard
-                controller={privateVideo}
-                t={t}
-                translationRoot="privateVideo.scheduling"
-                onJoin={(session) => router.push({ pathname: '/video-session' as never, params: { sessionId: session.id, room: session.room_name } })}
-              />
-            </View>
+            {canAccessPrivateVideo ? (
+              <View style={[styles.card, { borderColor: colors.line }]}>
+                <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>{t('privateVideo.eyebrow').toUpperCase()}</Text>
+                <Text style={[styles.referralTitle, { color: colors.ink }]}>{t('privateVideo.title')}</Text>
+                <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{t('privateVideo.body')}</Text>
+                <PremierVideoSchedulingCard
+                  controller={privateVideo}
+                  t={t}
+                  translationRoot="privateVideo.scheduling"
+                  onJoin={(session) => router.push({ pathname: '/video-session' as never, params: { sessionId: session.id, room: session.room_name } })}
+                />
+              </View>
+            ) : null}
 
             <View style={[styles.card, { borderColor: colors.line }]}>
               <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
@@ -938,7 +959,7 @@ export default function SupportScreen() {
                     <TouchableOpacity
                       style={[styles.sessionBtn, { backgroundColor: sess.rsvped ? colors.greenLight : colors.primaryLight, borderColor: sess.rsvped ? colors.green : colors.primary }]}
                       activeOpacity={0.8}
-                      onPress={() => toggleRsvp(sess)}
+                      onPress={() => void handleSessionRsvp(sess)}
                     >
                       <Text style={[styles.sessionBtnText, { color: sess.rsvped ? colors.green : colors.primary }]}>
                         {sess.rsvped ? t('sessions.confirmButton') : t('sessions.rsvpButton')}

@@ -7,6 +7,12 @@ export type PlanReviewSnapshot = {
   sections: Partial<PlanReviewSource>;
 };
 
+export function planReviewSectionKeysForTier(isPremier: boolean): readonly PlanReviewSectionKey[] {
+  return isPremier
+    ? PLAN_REVIEW_SECTION_KEYS
+    : PLAN_REVIEW_SECTION_KEYS.filter((key) => key !== 'familyRoles');
+}
+
 function clean(value: unknown): unknown {
   if (typeof value === 'string') return value.trim().slice(0, 5000);
   if (typeof value === 'boolean' || typeof value === 'number' || value === null) return value;

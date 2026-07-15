@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { supabase } from '../../src/lib/supabase';
 import { AppLogo } from '../../src/components/ui/AppLogo';
+import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '../../src/config';
 
 const TERMS_VERSION = '1.0';
 
@@ -212,11 +213,11 @@ export default function SignUpScreen() {
               </View>
               <Text style={[styles.termsNote, { color: colors.inkSoft }]}>
                 {t('signUp.termsNote')}{' '}
-                <Text style={{ color: colors.primary, textDecorationLine: 'underline' }} onPress={(event) => { event.stopPropagation(); void Linking.openURL('https://soberhelpline.com/terms'); }}>
+                <Text style={{ color: colors.primary, textDecorationLine: 'underline' }} onPress={(event) => { event.stopPropagation(); void Linking.openURL(TERMS_OF_USE_URL); }}>
                   {t('signUp.termsLink')}
                 </Text>
                 {' '}{t('signUp.andText')}{' '}
-                <Text style={{ color: colors.primary, textDecorationLine: 'underline' }} onPress={(event) => { event.stopPropagation(); void Linking.openURL('https://soberhelpline.com/privacy'); }}>
+                <Text style={{ color: colors.primary, textDecorationLine: 'underline' }} onPress={(event) => { event.stopPropagation(); void Linking.openURL(PRIVACY_POLICY_URL); }}>
                   {t('signUp.privacyLink')}
                 </Text>.
               </Text>

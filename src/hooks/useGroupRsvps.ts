@@ -37,10 +37,6 @@ export function useGroupRsvps(accountId: string | null) {
       const nextEnabled = !rsvpedRooms.has(roomName);
       setPendingRooms((prev) => new Set(prev).add(roomName));
       try {
-        if (nextEnabled) {
-          const pushReady = await registerForPushNotifications(accountId);
-          if (!pushReady) return false;
-        }
         const { data, error } = await supabase.rpc('set_group_rsvp', {
           p_room_name: roomName,
           p_enabled: nextEnabled,
@@ -53,6 +49,11 @@ export function useGroupRsvps(accountId: string | null) {
           else next.delete(roomName);
           return next;
         });
+        if (nextEnabled) {
+          // Reminder delivery is optional; declining notifications must not undo
+          // or block the reservation itself.
+          void registerForPushNotifications(accountId).catch(() => false);
+        }
         return true;
       } catch (error) {
         console.warn('[group-rsvp] update failed', error instanceof Error ? error.message : 'unknown');

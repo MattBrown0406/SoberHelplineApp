@@ -82,30 +82,21 @@ serve(async (req) => {
     return json({ error: `revenuecat unreachable: ${String(err).slice(0, 200)}` }, 502);
   }
 
-  // Reconcile: one row per active tier, delete-then-insert keeps created_at
-  // fresh (AccountContext reads the newest row).
-  await admin
-    .from("entitlements")
-    .delete()
-    .eq("account_id", account.id)
-    .eq("source", "revenuecat");
-
-  const granted: string[] = [];
+  // Reconcile in one database transaction. If validation or insertion fails,
+  // Postgres rolls the entire change back and preserves the prior access rows.
+  const mirrored: Record<string, string> = {};
   for (const tier of TIERS) {
     const ent = entitlementsActive[tier];
     if (!ent) continue;
-    const expires = ent.expires_date
+    mirrored[tier] = ent.expires_date
       ?? new Date(Date.now() + FALLBACK_DAYS * 86400000).toISOString();
-    const { error: insErr } = await admin.from("entitlements").insert({
-      account_id: account.id,
-      source: "revenuecat",
-      tier,
-      expires_at: expires,
-      raw: { checked_at: new Date().toISOString(), rc_expires: ent.expires_date },
-    });
-    if (insErr) return json({ error: insErr.message }, 500);
-    granted.push(tier);
   }
 
-  return json({ success: true, tiers: granted });
+  const { data: granted, error: reconcileError } = await admin.rpc(
+    "reconcile_revenuecat_entitlements",
+    { p_account_id: account.id, p_entitlements: mirrored },
+  );
+  if (reconcileError) return json({ error: reconcileError.message }, 500);
+
+  return json({ success: true, tiers: granted ?? [] });
 });

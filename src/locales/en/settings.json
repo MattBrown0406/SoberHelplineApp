@@ -8,7 +8,9 @@
   "privacy": {
     "eyebrow": "Privacy",
     "shareCheckIns": "Share check-ins with my coach",
-    "shareCheckInsDesc": "Your assigned coach can see your daily check-ins and tracker entries. You can turn this off at any time."
+    "shareCheckInsDesc": "Your assigned coach can see your daily check-ins and tracker entries. You can turn this off at any time.",
+    "updateErrorTitle": "Privacy setting not changed",
+    "updateErrorBody": "We couldn't save that privacy change. Your previous setting is still active. Please try again."
   },
   "language": {
     "eyebrow": "Language"
@@ -60,6 +62,10 @@
     "confirmTitle": "Delete your account?",
     "confirmMessage": "Your data will be permanently deleted within 30 days. This cannot be undone.",
     "confirmButton": "Yes, delete my account",
-    "cancelButton": "Cancel"
+    "cancelButton": "Cancel",
+    "errorTitle": "Account not deleted",
+    "errorMessage": "We couldn't delete your account. You are still signed in and no deletion was completed. Please try again.",
+    "cleanupErrorTitle": "Account deleted",
+    "cleanupErrorMessage": "Your account was deleted, but this device couldn't finish signing out. Close and reopen the app to clear the old session."
   }
 }

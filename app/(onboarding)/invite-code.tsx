@@ -12,11 +12,13 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { supabase } from '../../src/lib/supabase';
+import { useAccount } from '../../src/contexts/AccountContext';
 
 export default function InviteCodeScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation('onboarding');
   const router = useRouter();
+  const { refreshAccount } = useAccount();
 
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -26,16 +28,22 @@ export default function InviteCodeScreen() {
   async function handleRedeem() {
     setError(null);
     setLoading(true);
-    const { data, error: err } = await supabase.rpc('redeem_invite_code', {
-      invite_code: code,
-    });
-    setLoading(false);
-    if (err || !data) {
+    try {
+      const { data, error: err } = await supabase.rpc('redeem_invite_code', {
+        invite_code: code,
+      });
+      if (err || !data) {
+        setError(t('invite.errorInvalid'));
+        return;
+      }
+      await refreshAccount();
+      setOrgName(data as string);
+      setTimeout(() => router.push('/(onboarding)/consent'), 1200);
+    } catch {
       setError(t('invite.errorInvalid'));
-      return;
+    } finally {
+      setLoading(false);
     }
-    setOrgName(data as string);
-    setTimeout(() => router.push('/(onboarding)/consent'), 1200);
   }
 
   return (

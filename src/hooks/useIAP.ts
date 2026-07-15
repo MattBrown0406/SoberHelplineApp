@@ -3,6 +3,7 @@ import Purchases, { type PurchasesOfferings, type PurchasesPackage } from 'react
 import { purchaseRevenueCatPackage } from '../lib/revenueCat';
 
 export type SubscriptionTier = 'essential' | 'premium';
+export type PurchaseResult = 'success' | 'cancelled' | 'failed';
 
 const PRODUCT_IDS: Record<SubscriptionTier, string> = {
   essential: 'sh_essential_monthly',
@@ -44,7 +45,7 @@ export function useIAP() {
     return () => { active = false; };
   }, []);
 
-  async function purchaseTier(tier: SubscriptionTier): Promise<boolean> {
+  async function purchaseTier(tier: SubscriptionTier): Promise<PurchaseResult> {
     setPurchasing(true);
     setIapError(null);
     try {
@@ -52,22 +53,21 @@ export function useIAP() {
       const pkg = findPackage(offerings, tier);
       if (!pkg) {
         setIapError('tier_not_configured');
-        return false;
+        return 'failed';
       }
 
       const result = await purchaseRevenueCatPackage(pkg);
       if (!result.customerInfo.entitlements.active[tier]) {
         setIapError('entitlement_not_granted');
-        return false;
+        return 'failed';
       }
-      return true;
+      return 'success';
     } catch (err: unknown) {
       const rcErr = err as { userCancelled?: boolean; message?: string };
-      if (!rcErr.userCancelled) {
-        console.error(`[useIAP] ${tier} purchase failed:`, err);
-        setIapError(rcErr.message ?? 'purchase_failed');
-      }
-      return false;
+      if (rcErr.userCancelled) return 'cancelled';
+      console.error(`[useIAP] ${tier} purchase failed:`, err);
+      setIapError(rcErr.message ?? 'purchase_failed');
+      return 'failed';
     } finally {
       setPurchasing(false);
     }

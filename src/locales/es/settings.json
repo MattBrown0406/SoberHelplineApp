@@ -8,7 +8,9 @@
   "privacy": {
     "eyebrow": "Privacidad",
     "shareCheckIns": "Compartir registros diarios con mi coach",
-    "shareCheckInsDesc": "Tu coach asignado/a puede ver tus registros diarios y las entradas del monitor. Puedes desactivarlo en cualquier momento."
+    "shareCheckInsDesc": "Tu coach asignado/a puede ver tus registros diarios y las entradas del monitor. Puedes desactivarlo en cualquier momento.",
+    "updateErrorTitle": "La configuración de privacidad no cambió",
+    "updateErrorBody": "No pudimos guardar ese cambio de privacidad. Tu configuración anterior sigue activa. Inténtalo de nuevo."
   },
   "language": {
     "eyebrow": "Idioma"
@@ -60,6 +62,10 @@
     "confirmTitle": "¿Eliminar tu cuenta?",
     "confirmMessage": "Tus datos se eliminarán de forma permanente en un plazo de 30 días. Esta acción no se puede deshacer.",
     "confirmButton": "Sí, eliminar mi cuenta",
-    "cancelButton": "Cancelar"
+    "cancelButton": "Cancelar",
+    "errorTitle": "La cuenta no se eliminó",
+    "errorMessage": "No pudimos eliminar tu cuenta. Aún tienes la sesión iniciada y no se completó ninguna eliminación. Inténtalo de nuevo.",
+    "cleanupErrorTitle": "Cuenta eliminada",
+    "cleanupErrorMessage": "Tu cuenta se eliminó, pero este dispositivo no pudo cerrar la sesión. Cierra y vuelve a abrir la aplicación para borrar la sesión anterior."
   }
 }

@@ -22,5 +22,10 @@
     "english": "English",
     "spanish": "Español"
   },
+  "accountLoad": {
+    "title": "We couldn't load your account",
+    "body": "You're still signed in. Check your connection and try again—there's no need to enter your password again.",
+    "retry": "Try again"
+  },
   "comingSoon": "Coming soon"
 }

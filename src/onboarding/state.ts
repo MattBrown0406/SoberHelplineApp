@@ -1,36 +1,56 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const KEY = '@sh:onboarded';
+const LEGACY_KEY = '@sh:onboarded';
+const keyFor = (accountId: string) => `${LEGACY_KEY}:${accountId}`;
 
-// In-memory cache + subscribers so the root layout's route guard updates the
-// instant onboarding completes (AsyncStorage alone is async and went stale,
-// which caused an onboarding redirect loop).
-let cached: boolean | null = null;
-const listeners = new Set<() => void>();
+// Per-account cache prevents one member's completion from skipping onboarding for
+// another account on the same device.
+const cached = new Map<string, boolean>();
+const listeners = new Map<string, Set<() => void>>();
 
-export async function isOnboarded(): Promise<boolean> {
-  if (cached !== null) return cached;
+export async function isOnboarded(accountId: string): Promise<boolean> {
+  if (cached.has(accountId)) return cached.get(accountId) ?? false;
   try {
-    cached = (await AsyncStorage.getItem(KEY)) === '1';
+    const accountValue = await AsyncStorage.getItem(keyFor(accountId));
+    if (accountValue === '1') {
+      cached.set(accountId, true);
+      return true;
+    }
+
+    // One-time migration for devices that completed onboarding before the key
+    // became account-scoped. Remove it after assigning it to the active account.
+    const legacyValue = await AsyncStorage.getItem(LEGACY_KEY);
+    if (legacyValue === '1') {
+      await AsyncStorage.setItem(keyFor(accountId), '1');
+      await AsyncStorage.removeItem(LEGACY_KEY);
+      cached.set(accountId, true);
+      return true;
+    }
+
+    cached.set(accountId, false);
+    return false;
   } catch {
-    cached = true; // fail open: never trap a user in onboarding
+    cached.set(accountId, true); // fail open: never trap a member in onboarding
+    return true;
   }
-  return cached;
 }
 
-export async function markOnboarded(): Promise<void> {
-  cached = true;
-  listeners.forEach((fn) => fn());
+export async function markOnboarded(accountId: string): Promise<void> {
+  cached.set(accountId, true);
+  listeners.get(accountId)?.forEach((fn) => fn());
   try {
-    await AsyncStorage.setItem(KEY, '1');
+    await AsyncStorage.setItem(keyFor(accountId), '1');
   } catch {
-    // in-memory flag still unblocks this session
+    // In-memory state still unblocks this session.
   }
 }
 
-export function subscribeOnboarded(fn: () => void): () => void {
-  listeners.add(fn);
+export function subscribeOnboarded(accountId: string, fn: () => void): () => void {
+  const accountListeners = listeners.get(accountId) ?? new Set<() => void>();
+  accountListeners.add(fn);
+  listeners.set(accountId, accountListeners);
   return () => {
-    listeners.delete(fn);
+    accountListeners.delete(fn);
+    if (accountListeners.size === 0) listeners.delete(accountId);
   };
 }

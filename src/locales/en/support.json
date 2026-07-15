@@ -2,13 +2,14 @@
   "header": "Support",
   "settings": "Settings",
   "crisis": {
-    "button": "Talk to someone now",
+    "button": "Get help right now",
     "copilotTitle": "Need help deciding what to do?",
     "copilotBody": "Get calm, step-by-step family guidance for the situation happening right now.",
     "copilotButton": "Open Crisis Copilot",
     "sheetTitle": "You're not alone right now",
     "attachedSub": "is on call for your family tonight.",
     "directSub": "is on call and will respond first.",
+    "freeSub": "can help through the free Crisis Copilot; messaging is available with Essential and Premier.",
     "callButton": "Call",
     "messageButton": "Message",
     "divider": "Emergency lines — always available",
@@ -25,6 +26,8 @@
     "eyebrow": "Upcoming sessions",
     "rsvpButton": "RSVP",
     "confirmButton": "Confirmed",
+    "rsvpErrorTitle": "RSVP not saved",
+    "rsvpErrorBody": "Your RSVP wasn't saved. Check your connection and try again.",
     "typeGroup": "Group",
     "typeOneOnOne": "1-on-1",
     "typeFamily": "Family",
@@ -41,7 +44,7 @@
     "essentialPrice": "$14.99/mo",
     "essentialAmount": "$14.99",
     "premiumName": "Premier",
-    "premiumFeatures": "Plan review included · unlimited private video-session requests, subject to availability",
+    "premiumFeatures": "Plan review included · private video requests subject to scheduling and staff availability",
     "premiumPrice": "$44.99/mo",
     "premiumAmount": "$44.99",
     "upgradeButton": "Upgrade to Premier",
@@ -53,9 +56,9 @@
     "heading": "Subscribe for full access",
     "body": "Essential members get daily check-ins, mood tracking, boundaries, scripts, messaging, and groups.",
     "viewPlans": "View plans",
-    "subscribeEssential": "Subscribe Essential · $14.99/mo",
-    "subscribePremium": "Upgrade to Premier · $44.99/mo",
-    "autoRenewDisclosure": "Essential is $14.99/month and Premier is $44.99/month, billed to your Apple Account. Subscriptions renew automatically unless turned off at least 24 hours before the end of the current period. Manage or cancel anytime in your Apple Account settings."
+    "subscribeEssential": "Subscribe to Essential · {{price}}/month",
+    "subscribePremium": "Upgrade to Premier · {{price}}/month",
+    "autoRenewDisclosure": "Essential is {{essentialPrice}} per month and Premier is {{premiumPrice}} per month, billed to your Apple Account. Subscriptions renew automatically unless turned off at least 24 hours before the end of the current period. Manage or cancel anytime in your Apple Account settings."
   },
   "mondayGroup": {
     "eyebrow": "FREE ACCESS",
@@ -105,6 +108,8 @@
     "placeholder": "What would you like answered on the call?",
     "submit": "Submit",
     "submitted": "Question submitted!",
+    "errorTitle": "Question not submitted",
+    "errorBody": "Your question wasn't saved. Check your connection and try again.",
     "cancel": "Cancel"
   },
   "groups": {

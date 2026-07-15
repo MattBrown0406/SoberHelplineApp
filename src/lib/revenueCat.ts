@@ -1,12 +1,15 @@
 import Purchases, { type PurchasesPackage } from 'react-native-purchases';
-import { RC_API_KEY } from '../config';
+import { RC_API_KEY as revenueCatPublicKey } from '../config';
 
 let configured = false;
 let identityQueue: Promise<void> = Promise.resolve();
 
 function ensureConfigured() {
   if (configured) return;
-  Purchases.configure({ apiKey: RC_API_KEY });
+  if (!revenueCatPublicKey) {
+    throw new Error('RevenueCat is not configured for this platform');
+  }
+  Purchases.configure({ apiKey: revenueCatPublicKey });
   configured = true;
 }
 

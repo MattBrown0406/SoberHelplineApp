@@ -170,8 +170,13 @@ export function usePushNotifications(accountId: string | null): void {
     };
 
     const responseSub = Notifications.addNotificationResponseReceivedListener(openSchedulingNotification);
-    void Notifications.getLastNotificationResponseAsync().then((response) => {
-      if (response) openSchedulingNotification(response);
+    void Notifications.getLastNotificationResponseAsync().then(async (response) => {
+      if (!response) return;
+      try {
+        openSchedulingNotification(response);
+      } finally {
+        await Notifications.clearLastNotificationResponseAsync();
+      }
     });
 
     // Re-arm on foreground so the rolling week stays topped up and today's

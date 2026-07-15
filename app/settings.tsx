@@ -19,6 +19,7 @@ import { supabase } from '../src/lib/supabase';
 import { isAdminEmail } from '../src/lib/admin';
 import { restorePurchases } from '../src/lib/revenueCat';
 import { getReminderHour, setReminderHour, DEFAULT_REMINDER_HOUR } from '../src/hooks/usePushNotifications';
+import { PRIVACY_POLICY_URL, SUBSCRIPTION_MANAGEMENT_URL, TERMS_OF_USE_URL } from '../src/config';
 
 const CONSENT_SHARE_CHECKINS = '2';
 const CONSENT_VERSION = '1.0';
@@ -40,6 +41,7 @@ export default function SettingsScreen() {
   const [shareCheckIns, setShareCheckIns] = useState(false);
   const [consentLoading, setConsentLoading] = useState(true);
   const [restoring, setRestoring] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const isAdmin = isAdminEmail(user?.email);
   const [reminderHour, setReminderHourState] = useState(DEFAULT_REMINDER_HOUR);
 
@@ -70,24 +72,32 @@ export default function SettingsScreen() {
 
   async function handleShareCheckInsToggle(value: boolean) {
     if (!user) return;
+    const previous = shareCheckIns;
     setShareCheckIns(value);
-    if (value) {
-      await supabase.from('consents').upsert(
-        {
-          account_id: user.id,
-          consent_key: CONSENT_SHARE_CHECKINS,
-          version: CONSENT_VERSION,
-          granted_at: new Date().toISOString(),
-          revoked_at: null,
-        },
-        { onConflict: 'account_id,consent_key' },
-      );
-    } else {
-      await supabase
-        .from('consents')
-        .update({ revoked_at: new Date().toISOString() })
-        .eq('account_id', user.id)
-        .eq('consent_key', CONSENT_SHARE_CHECKINS);
+    setConsentLoading(true);
+    try {
+      const result = value
+        ? await supabase.from('consents').upsert(
+          {
+            account_id: user.id,
+            consent_key: CONSENT_SHARE_CHECKINS,
+            version: CONSENT_VERSION,
+            granted_at: new Date().toISOString(),
+            revoked_at: null,
+          },
+          { onConflict: 'account_id,consent_key' },
+        )
+        : await supabase
+          .from('consents')
+          .update({ revoked_at: new Date().toISOString() })
+          .eq('account_id', user.id)
+          .eq('consent_key', CONSENT_SHARE_CHECKINS);
+      if (result.error) throw result.error;
+    } catch {
+      setShareCheckIns(previous);
+      Alert.alert(t('privacy.updateErrorTitle'), t('privacy.updateErrorBody'));
+    } finally {
+      setConsentLoading(false);
     }
   }
 
@@ -121,8 +131,28 @@ export default function SettingsScreen() {
           text: t('deleteAccount.confirmButton'),
           style: 'destructive',
           onPress: async () => {
-            await supabase.rpc('delete_own_account');
-            await supabase.auth.signOut();
+            setDeletingAccount(true);
+            let deletionCompleted = false;
+            try {
+              const { error: deletionError } = await supabase.rpc('delete_own_account');
+              if (deletionError) {
+                Alert.alert(t('deleteAccount.errorTitle'), t('deleteAccount.errorMessage'));
+                return;
+              }
+
+              deletionCompleted = true;
+              const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
+              if (signOutError) {
+                Alert.alert(t('deleteAccount.cleanupErrorTitle'), t('deleteAccount.cleanupErrorMessage'));
+              }
+            } catch {
+              Alert.alert(
+                t(deletionCompleted ? 'deleteAccount.cleanupErrorTitle' : 'deleteAccount.errorTitle'),
+                t(deletionCompleted ? 'deleteAccount.cleanupErrorMessage' : 'deleteAccount.errorMessage'),
+              );
+            } finally {
+              setDeletingAccount(false);
+            }
           },
         },
       ],
@@ -208,7 +238,7 @@ export default function SettingsScreen() {
                     : t('membership.essentialFeatures')}
                 </Text>
                 <TouchableOpacity
-                  onPress={() => void Linking.openURL('https://apps.apple.com/account/subscriptions')}
+                  onPress={() => void Linking.openURL(SUBSCRIPTION_MANAGEMENT_URL)}
                   activeOpacity={0.8}
                 >
                   <Text style={[styles.manageLink, { color: colors.primary }]}>
@@ -316,7 +346,7 @@ export default function SettingsScreen() {
           </Text>
           <TouchableOpacity
             style={[styles.infoRow, { borderBottomColor: colors.line, borderBottomWidth: 1 }]}
-            onPress={() => void Linking.openURL('https://soberhelpline.com/terms')}
+            onPress={() => void Linking.openURL(TERMS_OF_USE_URL)}
             activeOpacity={0.7}
           >
             <Text style={[styles.infoLabel, { color: colors.ink }]}>{t('legal.terms')}</Text>
@@ -324,7 +354,7 @@ export default function SettingsScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.infoRow}
-            onPress={() => void Linking.openURL('https://soberhelpline.com/privacy')}
+            onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}
             activeOpacity={0.7}
           >
             <Text style={[styles.infoLabel, { color: colors.ink }]}>{t('legal.privacy')}</Text>
@@ -345,11 +375,12 @@ export default function SettingsScreen() {
         <TouchableOpacity
           style={styles.deleteBtn}
           onPress={handleDeleteAccount}
+          disabled={deletingAccount}
           activeOpacity={0.8}
         >
-          <Text style={[styles.deleteText, { color: colors.coral }]}>
-            {t('deleteAccount.button')}
-          </Text>
+          {deletingAccount
+            ? <ActivityIndicator color={colors.coral} />
+            : <Text style={[styles.deleteText, { color: colors.coral }]}>{t('deleteAccount.button')}</Text>}
         </TouchableOpacity>
     </ScreenContainer>
   );

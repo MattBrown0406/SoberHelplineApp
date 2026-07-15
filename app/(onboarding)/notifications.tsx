@@ -52,7 +52,8 @@ export default function NotificationsScreen() {
         // user can enable later in Settings
       }
     }
-    await markOnboarded();
+    if (!user?.id) return;
+    await markOnboarded(user.id);
     setDone(true);
   }
 

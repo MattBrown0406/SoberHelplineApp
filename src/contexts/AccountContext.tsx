@@ -20,6 +20,8 @@ interface AccountContextValue {
   accountState: AccountState;
   entitlements: Entitlements;
   isLoading: boolean;
+  isAuthenticated: boolean;
+  accountError: string | null;
   isAttached: boolean;
   refreshAccount: () => Promise<void>;
 }
@@ -29,6 +31,8 @@ const AccountContext = createContext<AccountContextValue>({
   accountState: 'direct-free',
   entitlements: DEFAULT_ENTITLEMENTS,
   isLoading: true,
+  isAuthenticated: false,
+  accountError: null,
   isAttached: false,
   refreshAccount: async () => {},
 });
@@ -42,7 +46,9 @@ async function fetchAccount(authUser: User): Promise<AuthUser | null> {
     .single();
 
   if (error || !data) {
-    if (!isAdmin) return null;
+    if (!isAdmin || (error && error.code !== 'PGRST116')) {
+      throw error ?? new Error('account_not_found');
+    }
 
     return buildAuthUser({
       id: authUser.id,
@@ -170,24 +176,42 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [authUser, setAuthUser] = useState<User | null>(null);
+  const [accountError, setAccountError] = useState<string | null>(null);
   const authGenerationRef = useRef(0);
 
   const refreshAccount = useCallback(async () => {
     if (!authUser) return;
     const generation = authGenerationRef.current;
-    const account = await fetchAccount(authUser);
-    if (authGenerationRef.current === generation) setUser(account);
+    setAccountError(null);
+    try {
+      const account = await fetchAccount(authUser);
+      if (authGenerationRef.current === generation) setUser(account);
+    } catch (error) {
+      if (authGenerationRef.current === generation) {
+        setAccountError(error instanceof Error ? error.message : 'account_load_failed');
+      }
+      throw error;
+    }
   }, [authUser]);
 
   useEffect(() => {
     function loadSessionUser(sessionUser: User) {
       const generation = ++authGenerationRef.current;
       setAuthUser(sessionUser);
-      void fetchAccount(sessionUser).then((account) => {
-        if (authGenerationRef.current !== generation) return;
-        setUser(account);
-        setIsLoading(false);
-      });
+      setIsLoading(true);
+      setAccountError(null);
+      void fetchAccount(sessionUser)
+        .then((account) => {
+          if (authGenerationRef.current !== generation) return;
+          setUser(account);
+        })
+        .catch((error) => {
+          if (authGenerationRef.current !== generation) return;
+          setAccountError(error instanceof Error ? error.message : 'account_load_failed');
+        })
+        .finally(() => {
+          if (authGenerationRef.current === generation) setIsLoading(false);
+        });
     }
 
     const initialGeneration = authGenerationRef.current;
@@ -208,6 +232,8 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
           ++authGenerationRef.current;
           setAuthUser(null);
           setUser(null);
+          setAccountError(null);
+          setIsLoading(false);
           void resetRevenueCatUser();
         }
       },
@@ -226,6 +252,8 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         accountState,
         entitlements,
         isLoading,
+        isAuthenticated: authUser !== null,
+        accountError,
         isAttached: accountState === 'attached',
         refreshAccount,
       }}

@@ -2,13 +2,14 @@
   "header": "Apoyo",
   "settings": "Configuración",
   "crisis": {
-    "button": "Hablar con alguien ahora",
+    "button": "Recibir ayuda ahora",
     "copilotTitle": "¿Necesitas ayuda para decidir qué hacer?",
     "copilotBody": "Recibe orientación familiar tranquila, paso a paso, para la situación que está ocurriendo ahora.",
     "copilotButton": "Abrir Copiloto de Crisis",
     "sheetTitle": "No estás solo/a en este momento",
     "attachedSub": "está de guardia para tu familia esta noche.",
     "directSub": "está de guardia y responderá primero.",
+    "freeSub": "puede ayudarte mediante el Copiloto de Crisis gratuito; los mensajes están disponibles con Essential y Premier.",
     "callButton": "Llamar",
     "messageButton": "Mensaje",
     "divider": "Líneas de emergencia — siempre disponibles",
@@ -25,6 +26,8 @@
     "eyebrow": "Próximas sesiones",
     "rsvpButton": "Confirmar asistencia",
     "confirmButton": "Confirmado",
+    "rsvpErrorTitle": "La reserva no se guardó",
+    "rsvpErrorBody": "Tu reserva no se guardó. Revisa tu conexión e inténtalo de nuevo.",
     "typeGroup": "Grupo",
     "typeOneOnOne": "Individual",
     "typeFamily": "Familiar",
@@ -41,7 +44,7 @@
     "essentialPrice": "$14.99/mes",
     "essentialAmount": "$14.99",
     "premiumName": "Premier",
-    "premiumFeatures": "Revisión del plan incluida · solicitudes ilimitadas de sesiones privadas por video, sujetas a disponibilidad",
+    "premiumFeatures": "Revisión del plan incluida · solicitudes de video privado sujetas a programación y disponibilidad del personal",
     "premiumPrice": "$44.99/mes",
     "premiumAmount": "$44.99",
     "upgradeButton": "Mejorar a Premier",
@@ -53,9 +56,9 @@
     "heading": "Suscríbete para acceso completo",
     "body": "Los miembros Esencial tienen registros diarios, seguimiento del estado de ánimo, límites, guiones, mensajería y grupos.",
     "viewPlans": "Ver planes",
-    "subscribeEssential": "Suscribirse Esencial · $14.99/mes",
-    "subscribePremium": "Mejorar a Premier · $44.99/mes",
-    "autoRenewDisclosure": "Esencial cuesta $14.99/mes y Premier $44.99/mes, cobrados a tu Cuenta de Apple. Las suscripciones se renuevan automáticamente a menos que las desactives al menos 24 horas antes del final del período actual. Administra o cancela cuando quieras en los ajustes de tu Cuenta de Apple."
+    "subscribeEssential": "Suscribirse a Essential · {{price}}/mes",
+    "subscribePremium": "Mejorar a Premier · {{price}}/mes",
+    "autoRenewDisclosure": "Essential cuesta {{essentialPrice}} al mes y Premier cuesta {{premiumPrice}} al mes, facturados a tu cuenta de Apple. Las suscripciones se renuevan automáticamente a menos que se desactiven al menos 24 horas antes del final del período actual. Administra o cancela en cualquier momento en la configuración de tu cuenta de Apple."
   },
   "mondayGroup": {
     "eyebrow": "ACCESO GRATUITO",
@@ -105,6 +108,8 @@
     "placeholder": "¿Qué te gustaría que se respondiera en la llamada?",
     "submit": "Enviar",
     "submitted": "¡Pregunta enviada!",
+    "errorTitle": "La pregunta no se envió",
+    "errorBody": "Tu pregunta no se guardó. Revisa tu conexión e inténtalo de nuevo.",
     "cancel": "Cancelar"
   },
   "groups": {
