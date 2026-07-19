@@ -1,0 +1,56 @@
+{
+  "title": "Compañero de práctica",
+  "defaultName": "tu ser querido",
+  "privacyNote": "Esta es una herramienta de práctica, no una predicción. La persona real puede responder distinto — las habilidades que construyes aquí te sirven igual.",
+  "setup": {
+    "heading": "Practica con {{name}}",
+    "body": "Tendrás la conversación con una IA que interpreta a tu ser querido — se resistirá como lo hacen las personas reales, para que las frases difíciles no sean nuevas el día que importa.",
+    "temperamentLabel": "¿Cómo suele reaccionar?",
+    "reassurance": "Aquí no puedes lastimar a nadie, y nada de lo que digas sale de la sesión. Si se siente demasiado real, detente cuando quieras.",
+    "startButton": "Empezar a practicar"
+  },
+  "temperaments": {
+    "guarded": {
+      "title": "Evasivo",
+      "desc": "Minimiza y esquiva — \"no es para tanto, lo tengo bajo control.\""
+    },
+    "defensive": {
+      "title": "Defensivo",
+      "desc": "Te lo devuelve — \"tú también tomas\", viejos reproches, \"me están atacando entre todos.\""
+    },
+    "volatile": {
+      "title": "Explosivo",
+      "desc": "Culpas, sarcasmo, amenaza con irse — intenta arrastrarte a una pelea vieja."
+    },
+    "tearful": {
+      "title": "Lloroso",
+      "desc": "Se hunde en la vergüenza y el llanto — te lleva a consolarlo en lugar de pedir."
+    }
+  },
+  "chat": {
+    "intro": "Di tu primera frase a {{name}} — como realmente lo harías. Habla primero.",
+    "placeholder": "Dilo como lo dirías…",
+    "send": "Decirlo",
+    "turnsLeft_one": "Queda {{count}} intercambio en esta sesión",
+    "turnsLeft_other": "Quedan {{count}} intercambios en esta sesión",
+    "turnsDone": "Sesión completa — recibe tu retroalimentación abajo",
+    "finishButton": "Terminar y recibir retroalimentación",
+    "error": "No pudimos conectar con tu compañero de práctica. Revisa tu conexión e inténtalo de nuevo.",
+    "safetyTitle": "Pausemos la práctica",
+    "safetyBody": "Parece que estás cargando algo real en este momento. Toca aquí para ver opciones de apoyo inmediato — esto importa más que el ensayo."
+  },
+  "debrief": {
+    "heading": "Retroalimentación del coach",
+    "scores": {
+      "love": "Amor primero",
+      "iStatements": "Frases con \"yo\"",
+      "calm": "Mantuvo la calma",
+      "ask": "Sostuvo la petición"
+    },
+    "wentWell": "Lo que funcionó",
+    "workOn": "Lo que puedes afinar",
+    "drillLabel": "Tu próximo ejercicio",
+    "againButton": "Practicar de nuevo",
+    "doneButton": "Terminar por ahora"
+  }
+}

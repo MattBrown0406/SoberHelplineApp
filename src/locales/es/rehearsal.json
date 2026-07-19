@@ -20,5 +20,7 @@
     "done": "Listo — excelente trabajo"
   },
   "wallSource": "De tu límite",
-  "scriptSource": "De tus guiones"
+  "scriptSource": "De tus guiones",
+  "liveButton": "Practica con un compañero",
+  "liveButtonSub": "Una IA interpreta a tu ser querido y te responde"
 }

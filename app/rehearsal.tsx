@@ -216,6 +216,23 @@ export default function RehearsalScreen() {
           </View>
         )}
 
+        {/* Live practice partner — available before recording and after finishing */}
+        {(phase === 'prompt' || phase === 'done') && (
+          <TouchableOpacity
+            style={[styles.liveBtn, { borderColor: colors.coral }]}
+            onPress={() =>
+              router.push({
+                pathname: '/rehearsal-live',
+                params: { text, sourceId },
+              })
+            }
+            activeOpacity={0.85}
+          >
+            <Text style={[styles.liveBtnText, { color: colors.coral }]}>{t('liveButton')}</Text>
+            <Text style={[styles.liveBtnSub, { color: colors.inkSoft }]}>{t('liveButtonSub')}</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Re-record option during playback */}
         {phase === 'playback' && (
           <TouchableOpacity style={styles.rerecordBtn} onPress={resetForAnother}>
@@ -295,4 +312,13 @@ const styles = StyleSheet.create({
   },
   rerecordBtn: { alignItems: 'center', paddingVertical: 8 },
   rerecordText: { fontSize: 13 },
+  liveBtn: {
+    borderRadius: 16,
+    borderWidth: 1.5,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  liveBtnText: { fontWeight: '700', fontSize: 15 },
+  liveBtnSub: { fontSize: 11, marginTop: 3 },
 });

@@ -14,6 +14,7 @@ import enSettings from '../locales/en/settings.json';
 import enAlignment from '../locales/en/alignment.json';
 import enLetter from '../locales/en/letter.json';
 import enRehearsal from '../locales/en/rehearsal.json';
+import enRehearsalLive from '../locales/en/rehearsalLive.json';
 import enOnboarding from '../locales/en/onboarding.json';
 import enLive from '../locales/en/live.json';
 import enLearn from '../locales/en/learn.json';
@@ -30,6 +31,7 @@ import esSettings from '../locales/es/settings.json';
 import esAlignment from '../locales/es/alignment.json';
 import esLetter from '../locales/es/letter.json';
 import esRehearsal from '../locales/es/rehearsal.json';
+import esRehearsalLive from '../locales/es/rehearsalLive.json';
 import esOnboarding from '../locales/es/onboarding.json';
 import esLive from '../locales/es/live.json';
 import esLearn from '../locales/es/learn.json';
@@ -58,12 +60,12 @@ export async function initI18n(): Promise<void> {
 
   await i18n.use(initReactI18next).init({
     resources: {
-      en: { common: enCommon, today: enToday, scripts: enScripts, boundaries: enBoundaries, auth: enAuth, tracker: enTracker, support: enSupport, settings: enSettings, alignment: enAlignment, letter: enLetter, rehearsal: enRehearsal, onboarding: enOnboarding, live: enLive, learn: enLearn, finder: enFinder, crisis: enCrisis },
-      es: { common: esCommon, today: esToday, scripts: esScripts, boundaries: esBoundaries, auth: esAuth, tracker: esTracker, support: esSupport, settings: esSettings, alignment: esAlignment, letter: esLetter, rehearsal: esRehearsal, onboarding: esOnboarding, live: esLive, learn: esLearn, finder: esFinder, crisis: esCrisis },
+      en: { common: enCommon, today: enToday, scripts: enScripts, boundaries: enBoundaries, auth: enAuth, tracker: enTracker, support: enSupport, settings: enSettings, alignment: enAlignment, letter: enLetter, rehearsal: enRehearsal, rehearsalLive: enRehearsalLive, onboarding: enOnboarding, live: enLive, learn: enLearn, finder: enFinder, crisis: enCrisis },
+      es: { common: esCommon, today: esToday, scripts: esScripts, boundaries: esBoundaries, auth: esAuth, tracker: esTracker, support: esSupport, settings: esSettings, alignment: esAlignment, letter: esLetter, rehearsal: esRehearsal, rehearsalLive: esRehearsalLive, onboarding: esOnboarding, live: esLive, learn: esLearn, finder: esFinder, crisis: esCrisis },
     },
     lng,
     fallbackLng: 'en',
-    ns: ['common', 'today', 'scripts', 'boundaries', 'auth', 'tracker', 'support', 'settings', 'alignment', 'letter', 'rehearsal', 'onboarding', 'live', 'learn'],
+    ns: ['common', 'today', 'scripts', 'boundaries', 'auth', 'tracker', 'support', 'settings', 'alignment', 'letter', 'rehearsal', 'rehearsalLive', 'onboarding', 'live', 'learn'],
     defaultNS: 'common',
     interpolation: { escapeValue: false },
   });

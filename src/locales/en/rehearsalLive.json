@@ -1,0 +1,56 @@
+{
+  "title": "Practice partner",
+  "defaultName": "your loved one",
+  "privacyNote": "This is a practice tool, not a prediction. The real person may respond differently — the skills you build here carry either way.",
+  "setup": {
+    "heading": "Practice with {{name}}",
+    "body": "You'll have the conversation with an AI playing your loved one — it will push back the way real people do, so the hard sentences aren't new on the day that matters.",
+    "temperamentLabel": "How do they usually react?",
+    "reassurance": "You can't hurt anyone here, and nothing you say leaves the session. If it gets too real, stop anytime.",
+    "startButton": "Start practicing"
+  },
+  "temperaments": {
+    "guarded": {
+      "title": "Guarded",
+      "desc": "Minimizes and deflects — \"it's not that bad, I've got it under control.\""
+    },
+    "defensive": {
+      "title": "Defensive",
+      "desc": "Turns it around on you — \"you drink too,\" old grievances, \"you're ganging up on me.\""
+    },
+    "volatile": {
+      "title": "Heated",
+      "desc": "Guilt-trips, sarcasm, threatens to walk out — tries to bait you into an old argument."
+    },
+    "tearful": {
+      "title": "Tearful",
+      "desc": "Collapses into shame and tears — pulls you into comforting them instead of asking."
+    }
+  },
+  "chat": {
+    "intro": "Say your opening line to {{name}} — the way you actually would. Speak first.",
+    "placeholder": "Say it the way you would say it…",
+    "send": "Say it",
+    "turnsLeft_one": "{{count}} exchange left in this session",
+    "turnsLeft_other": "{{count}} exchanges left in this session",
+    "turnsDone": "Session complete — get your feedback below",
+    "finishButton": "End practice & get coaching feedback",
+    "error": "Couldn't reach your practice partner. Check your connection and try again.",
+    "safetyTitle": "Let's pause the practice",
+    "safetyBody": "It sounds like you might be carrying something real right now. Tap here for immediate support options — this matters more than rehearsal."
+  },
+  "debrief": {
+    "heading": "Coach's feedback",
+    "scores": {
+      "love": "Led with love",
+      "iStatements": "\"I\" statements",
+      "calm": "Stayed calm",
+      "ask": "Held the ask"
+    },
+    "wentWell": "What worked",
+    "workOn": "What to tighten",
+    "drillLabel": "Your next drill",
+    "againButton": "Practice again",
+    "doneButton": "Done for now"
+  }
+}

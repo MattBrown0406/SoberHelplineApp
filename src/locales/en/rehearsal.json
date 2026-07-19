@@ -20,5 +20,7 @@
     "done": "Done — great work"
   },
   "wallSource": "From your boundary",
-  "scriptSource": "From your scripts"
+  "scriptSource": "From your scripts",
+  "liveButton": "Practice with a partner",
+  "liveButtonSub": "An AI plays your loved one and talks back"
 }
