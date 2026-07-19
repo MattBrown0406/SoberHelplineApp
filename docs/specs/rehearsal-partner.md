@@ -25,10 +25,21 @@ under bait, return to the ask).
 
 ## Backend
 
-`supabase/functions/rehearsal-partner` — one function, two modes:
+`supabase/functions/rehearsal-partner` — one function, four modes:
 
-- `reply`: returns the character's next line. Short, in-character, temperament-driven.
+- `reply`: returns the character's next line (short, in-character, temperament-driven)
+  plus base64 MP3 audio when the scenario includes a `voice` choice.
 - `debrief`: returns strict JSON `{ wentWell[], workOn[], drill, scores{} }`.
+- `stt`: transcribes a recorded clip (OpenAI Whisper) so users can speak their lines.
+- `tts`: re-synthesizes a line on demand (bubble replay).
+
+Voice casting: the setup screen collects relationship (spouse / partner / son /
+daughter / sibling / parent / friend), voice gender, and age band. Gender+age map
+to an ElevenLabs voice (defaults in `DEFAULT_VOICE_MAP`; override any slot with
+the `REHEARSAL_VOICE_MAP` secret using IDs from your Voice Library). Relationship
+and age also feed the character prompt, so a tearful mother in her 60s and a
+defensive son in his 20s perform differently. ElevenLabs failures degrade
+gracefully to text-only — voice is a layer, never a blocker.
 
 Auth required (user JWT via `supabase.functions.invoke` — anonymous calls are
 rejected). Input caps: 30 messages/request, 600 chars/message, 1,200 chars of
@@ -39,16 +50,23 @@ app language).
 
 ```
 supabase functions deploy rehearsal-partner
-supabase secrets set ANTHROPIC_API_KEY=sk-ant-...        # required
-supabase secrets set REHEARSAL_MODEL=claude-sonnet-4-5   # optional override
+supabase secrets set OPENAI_API_KEY=sk-proj-...          # LLM (gpt-4o-mini) + Whisper STT
+supabase secrets set ELEVENLABS_API_KEY=...              # voices
+# Optional:
+# supabase secrets set REHEARSAL_MODEL=gpt-4o            # if the character feels flat
+# supabase secrets set REHEARSAL_VOICE_MAP='{"male":{"older":"yourVoiceId"}}'
 ```
+
+Cost profile per 12-turn session (order of magnitude): gpt-4o-mini ≈ a fraction
+of a cent; Whisper ≈ a cent or two; ElevenLabs (~60–90s of speech) is the main
+cost — pennies to low dimes depending on plan. Keys live only in Supabase
+secrets: never in the repo, never in the app bundle.
 
 ## Follow-ups (not in this change)
 
 - Per-user daily session caps / entitlement gating (RevenueCat tier) once pricing
   is decided — the hook and function are structured so a cap check drops into the
   edge function cleanly.
-- Voice mode: the LiveKit stack already in the app could carry a spoken version
-  of the same loop.
+- Full-duplex voice (LiveKit real-time streaming instead of turn-based clips).
 - Session history: transcripts are intentionally not persisted anywhere in v1
   (privacy-first, matching the recorder's on-device-only stance).

@@ -4,10 +4,32 @@
   "privacyNote": "This is a practice tool, not a prediction. The real person may respond differently — the skills you build here carry either way.",
   "setup": {
     "heading": "Practice with {{name}}",
-    "body": "You'll have the conversation with an AI playing your loved one — it will push back the way real people do, so the hard sentences aren't new on the day that matters.",
+    "body": "You'll have the conversation with an AI playing your loved one — it talks back with a real voice and pushes back the way real people do, so the hard sentences aren't new on the day that matters.",
+    "relationshipLabel": "Who are you talking to?",
+    "voiceLabel": "Their voice",
+    "voiceOn": "🔊  Voice replies on — tap to practice in text only",
+    "voiceOff": "🔇  Voice replies off — tap to hear them talk back",
     "temperamentLabel": "How do they usually react?",
     "reassurance": "You can't hurt anyone here, and nothing you say leaves the session. If it gets too real, stop anytime.",
     "startButton": "Start practicing"
+  },
+  "relationships": {
+    "spouse": "Spouse",
+    "partner": "Partner",
+    "son": "Son",
+    "daughter": "Daughter",
+    "sibling": "Sibling",
+    "parent": "Parent",
+    "friend": "Friend"
+  },
+  "genders": {
+    "male": "Male voice",
+    "female": "Female voice"
+  },
+  "ages": {
+    "young": "20s–30s",
+    "middle": "40s–50s",
+    "older": "60+"
   },
   "temperaments": {
     "guarded": {
@@ -28,9 +50,14 @@
     }
   },
   "chat": {
-    "intro": "Say your opening line to {{name}} — the way you actually would. Speak first.",
+    "intro": "Say your opening line to {{name}} — the way you actually would. Hold the mic to speak, or type. You go first.",
     "placeholder": "Say it the way you would say it…",
+    "listening": "Listening…",
     "send": "Say it",
+    "replay": "▶ Replay",
+    "micHint": "Hold the mic to speak — your words appear as text you can review before sending",
+    "micPermissionTitle": "Microphone access needed",
+    "micPermissionBody": "To practice out loud, allow microphone access. You can also practice by typing.",
     "turnsLeft_one": "{{count}} exchange left in this session",
     "turnsLeft_other": "{{count}} exchanges left in this session",
     "turnsDone": "Session complete — get your feedback below",

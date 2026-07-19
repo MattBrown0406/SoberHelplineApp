@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system/legacy';
 import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
@@ -20,13 +23,31 @@ import { useRehearsalCount } from '../src/hooks/useRehearsalCount';
 import {
   useRehearsalPartner,
   type PartnerTemperament,
+  type PartnerGender,
+  type PartnerAge,
+  type PartnerRelationship,
 } from '../src/hooks/useRehearsalPartner';
 
 type Stage = 'setup' | 'chat' | 'debrief';
 
 const TEMPERAMENTS: PartnerTemperament[] = ['guarded', 'defensive', 'volatile', 'tearful'];
+const RELATIONSHIPS: PartnerRelationship[] = ['spouse', 'partner', 'son', 'daughter', 'sibling', 'parent', 'friend'];
+const GENDERS: PartnerGender[] = ['male', 'female'];
+const AGES: PartnerAge[] = ['young', 'middle', 'older'];
 
 const SCORE_KEYS = ['love', 'iStatements', 'calm', 'ask'] as const;
+
+/** Map the loved-one profile relationship onto the picker's options. */
+function defaultRelationship(profile: string | null | undefined): PartnerRelationship {
+  if (profile && (RELATIONSHIPS as string[]).includes(profile)) return profile as PartnerRelationship;
+  return 'son';
+}
+
+/** Genders are guessed from nothing — default by relationship where implied. */
+function defaultGender(relationship: PartnerRelationship): PartnerGender {
+  if (relationship === 'daughter') return 'female';
+  return 'male';
+}
 
 export default function RehearsalLiveScreen() {
   const { colors } = useTheme();
@@ -39,8 +60,25 @@ export default function RehearsalLiveScreen() {
 
   const [stage, setStage] = useState<Stage>('setup');
   const [temperament, setTemperament] = useState<PartnerTemperament>('guarded');
+  const [relationship, setRelationship] = useState<PartnerRelationship>(
+    defaultRelationship(lovedOne?.relationship),
+  );
+  const [gender, setGender] = useState<PartnerGender>(defaultGender(defaultRelationship(lovedOne?.relationship)));
+  const [age, setAge] = useState<PartnerAge>('middle');
+  const [voiceOn, setVoiceOn] = useState(true);
   const [draft, setDraft] = useState('');
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const scrollRef = useRef<ScrollView>(null);
+  const soundRef = useRef<Audio.Sound | null>(null);
+
+  // Follow the profile once it loads (the hooks load async).
+  useEffect(() => {
+    if (lovedOne?.relationship) {
+      const rel = defaultRelationship(lovedOne.relationship);
+      setRelationship(rel);
+      setGender(defaultGender(rel));
+    }
+  }, [lovedOne?.relationship]);
 
   const language = i18n.language?.startsWith('es') ? 'es' : 'en';
   const partnerName = lovedOne?.first_name?.trim() || t('defaultName');
@@ -48,25 +86,27 @@ export default function RehearsalLiveScreen() {
   const {
     messages,
     sending,
+    transcribing,
     error,
     safetyBreak,
     debrief,
     debriefLoading,
     turnsLeft,
     send,
+    transcribeClip,
     requestDebrief,
     reset,
   } = useRehearsalPartner({
-    relationship: lovedOne?.relationship ?? undefined,
+    relationship,
     name: lovedOne?.first_name ?? undefined,
     substances: lovedOne?.substances ?? undefined,
     temperament,
     scriptText: typeof params.text === 'string' ? params.text : undefined,
     language,
+    voice: voiceOn ? { gender, age } : undefined,
   });
 
   useEffect(() => {
-    // Keep the newest message in view.
     const id = setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
     return () => clearTimeout(id);
   }, [messages.length, sending]);
@@ -78,10 +118,69 @@ export default function RehearsalLiveScreen() {
     }
   }, [debrief, increment]);
 
-  function handleSend() {
-    const text = draft;
+  useEffect(() => {
+    return () => {
+      soundRef.current?.unloadAsync();
+    };
+  }, []);
+
+  const playAudio = useCallback(async (audioB64: string) => {
+    try {
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+      const path = `${FileSystem.cacheDirectory}rehearsal-reply.mp3`;
+      await FileSystem.writeAsStringAsync(path, audioB64, { encoding: FileSystem.EncodingType.Base64 });
+      if (soundRef.current) await soundRef.current.unloadAsync();
+      const { sound } = await Audio.Sound.createAsync({ uri: path });
+      soundRef.current = sound;
+      await sound.playAsync();
+    } catch {
+      // Voice is a layer, never a blocker — the text is already on screen.
+    }
+  }, []);
+
+  async function handleSend(text?: string) {
+    const outgoing = (text ?? draft).trim();
+    if (!outgoing) return;
     setDraft('');
-    void send(text);
+    const audio = await send(outgoing);
+    if (audio && voiceOn) void playAudio(audio);
+  }
+
+  async function startTalking() {
+    try {
+      const { status } = await Audio.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(t('chat.micPermissionTitle'), t('chat.micPermissionBody'));
+        return;
+      }
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      const { recording: rec } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY,
+      );
+      setRecording(rec);
+    } catch {
+      // no mic (simulator) — typing still works
+    }
+  }
+
+  async function stopTalking() {
+    if (!recording) return;
+    let uri: string | null = null;
+    try {
+      await recording.stopAndUnloadAsync();
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+      uri = recording.getURI();
+    } catch {}
+    setRecording(null);
+    if (!uri) return;
+    try {
+      const b64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+      const format = uri.split('.').pop() ?? 'm4a';
+      const text = await transcribeClip(b64, format);
+      if (text) setDraft((prev) => (prev ? `${prev} ${text}` : text));
+    } catch {
+      // transcription failed — the error state from the hook shows the message
+    }
   }
 
   function handleFinish() {
@@ -92,6 +191,8 @@ export default function RehearsalLiveScreen() {
     reset();
     setStage('setup');
   }
+
+  const inputLocked = sending || turnsLeft === 0 || safetyBreak;
 
   return (
     <ScreenContainer backgroundColor={colors.ink}>
@@ -111,9 +212,80 @@ export default function RehearsalLiveScreen() {
             <Text style={styles.heading}>{t('setup.heading', { name: partnerName })}</Text>
             <Text style={[styles.subheading, { color: colors.inkSoft }]}>{t('setup.body')}</Text>
 
-            <Text style={[styles.sectionLabel, { color: colors.inkSoft }]}>
-              {t('setup.temperamentLabel')}
-            </Text>
+            {/* Relationship */}
+            <Text style={[styles.sectionLabel, { color: colors.inkSoft }]}>{t('setup.relationshipLabel')}</Text>
+            <View style={styles.chipWrap}>
+              {RELATIONSHIPS.map((key) => (
+                <TouchableOpacity
+                  key={key}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: relationship === key ? colors.primary : colors.primaryDark,
+                      borderColor: relationship === key ? colors.coral : 'transparent',
+                    },
+                  ]}
+                  onPress={() => {
+                    setRelationship(key);
+                    setGender(defaultGender(key));
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.chipText}>{t(`relationships.${key}`)}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Voice: gender + age */}
+            <Text style={[styles.sectionLabel, { color: colors.inkSoft }]}>{t('setup.voiceLabel')}</Text>
+            <View style={styles.chipWrap}>
+              {GENDERS.map((key) => (
+                <TouchableOpacity
+                  key={key}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: gender === key ? colors.primary : colors.primaryDark,
+                      borderColor: gender === key ? colors.coral : 'transparent',
+                    },
+                  ]}
+                  onPress={() => setGender(key)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.chipText}>{t(`genders.${key}`)}</Text>
+                </TouchableOpacity>
+              ))}
+              {AGES.map((key) => (
+                <TouchableOpacity
+                  key={key}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: age === key ? colors.primary : colors.primaryDark,
+                      borderColor: age === key ? colors.coral : 'transparent',
+                    },
+                  ]}
+                  onPress={() => setAge(key)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.chipText}>{t(`ages.${key}`)}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Voice on/off */}
+            <TouchableOpacity
+              style={[styles.voiceToggle, { backgroundColor: colors.primaryDark }]}
+              onPress={() => setVoiceOn((v) => !v)}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.voiceToggleText, { color: colors.white }]}>
+                {voiceOn ? t('setup.voiceOn') : t('setup.voiceOff')}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Temperament */}
+            <Text style={[styles.sectionLabel, { color: colors.inkSoft }]}>{t('setup.temperamentLabel')}</Text>
             {TEMPERAMENTS.map((key) => (
               <TouchableOpacity
                 key={key}
@@ -170,6 +342,11 @@ export default function RehearsalLiveScreen() {
                   ]}
                 >
                   <Text style={styles.bubbleText}>{m.text}</Text>
+                  {m.role === 'partner' && m.audio && (
+                    <TouchableOpacity onPress={() => void playAudio(m.audio!)} hitSlop={8}>
+                      <Text style={[styles.replayText, { color: colors.inkSoft }]}>{t('chat.replay')}</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               ))}
 
@@ -200,31 +377,50 @@ export default function RehearsalLiveScreen() {
             </Text>
 
             <View style={styles.inputRow}>
+              {/* Hold to talk */}
+              <TouchableOpacity
+                style={[
+                  styles.micBtn,
+                  {
+                    backgroundColor: recording ? colors.coral : colors.primaryDark,
+                    opacity: inputLocked || transcribing ? 0.4 : 1,
+                  },
+                ]}
+                onPressIn={startTalking}
+                onPressOut={stopTalking}
+                disabled={inputLocked || transcribing}
+                activeOpacity={0.85}
+              >
+                {transcribing ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.micBtnText}>{recording ? '●' : '🎤'}</Text>
+                )}
+              </TouchableOpacity>
+
               <TextInput
                 style={[styles.input, { backgroundColor: colors.primaryDark, color: colors.white }]}
-                placeholder={t('chat.placeholder')}
+                placeholder={recording ? t('chat.listening') : t('chat.placeholder')}
                 placeholderTextColor={colors.inkSoft}
                 value={draft}
                 onChangeText={setDraft}
                 multiline
                 maxLength={600}
-                editable={!sending && turnsLeft > 0 && !safetyBreak}
+                editable={!inputLocked}
               />
               <TouchableOpacity
                 style={[
                   styles.sendBtn,
-                  {
-                    backgroundColor: colors.coral,
-                    opacity: draft.trim() && !sending && turnsLeft > 0 && !safetyBreak ? 1 : 0.4,
-                  },
+                  { backgroundColor: colors.coral, opacity: draft.trim() && !inputLocked ? 1 : 0.4 },
                 ]}
-                onPress={handleSend}
-                disabled={!draft.trim() || sending || turnsLeft === 0 || safetyBreak}
+                onPress={() => void handleSend()}
+                disabled={!draft.trim() || inputLocked}
                 activeOpacity={0.85}
               >
                 <Text style={styles.sendBtnText}>{t('chat.send')}</Text>
               </TouchableOpacity>
             </View>
+            <Text style={[styles.micHint, { color: colors.inkSoft }]}>{t('chat.micHint')}</Text>
 
             <TouchableOpacity
               style={[
@@ -312,14 +508,25 @@ const styles = StyleSheet.create({
   backRow: { marginBottom: 16 },
   backText: { fontSize: 15 },
   heading: { fontSize: 24, fontWeight: '700', color: '#fff', marginBottom: 8, lineHeight: 31 },
-  subheading: { fontSize: 15, lineHeight: 22, marginBottom: 24 },
+  subheading: { fontSize: 15, lineHeight: 22, marginBottom: 20 },
   sectionLabel: {
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
     marginBottom: 10,
+    marginTop: 6,
   },
+  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
+  chip: {
+    borderRadius: 20,
+    borderWidth: 1.5,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  chipText: { color: '#fff', fontWeight: '600', fontSize: 13 },
+  voiceToggle: { borderRadius: 12, paddingVertical: 10, alignItems: 'center', marginBottom: 14 },
+  voiceToggleText: { fontSize: 13, fontWeight: '600' },
   temperamentCard: {
     borderRadius: 14,
     borderWidth: 1.5,
@@ -337,12 +544,22 @@ const styles = StyleSheet.create({
   bubbleUser: { alignSelf: 'flex-end', borderBottomRightRadius: 4 },
   bubblePartner: { alignSelf: 'flex-start', borderBottomLeftRadius: 4 },
   bubbleText: { color: '#fff', fontSize: 15, lineHeight: 21 },
+  replayText: { fontSize: 11, marginTop: 6 },
   safetyCard: { borderRadius: 14, padding: 16, marginTop: 8, marginBottom: 8 },
   safetyTitle: { fontWeight: '700', fontSize: 14, marginBottom: 4 },
   safetyBody: { fontSize: 13, lineHeight: 19 },
   errorText: { fontSize: 12, textAlign: 'center', marginTop: 6 },
   turnsNote: { fontSize: 11, textAlign: 'center', marginBottom: 6 },
-  inputRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-end', marginBottom: 8 },
+  inputRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-end', marginBottom: 4 },
+  micBtn: {
+    borderRadius: 14,
+    width: 46,
+    height: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  micBtnText: { fontSize: 18, color: '#fff' },
+  micHint: { fontSize: 10, textAlign: 'center', marginBottom: 8 },
   input: {
     flex: 1,
     borderRadius: 14,

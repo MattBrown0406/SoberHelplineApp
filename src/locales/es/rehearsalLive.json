@@ -4,10 +4,32 @@
   "privacyNote": "Esta es una herramienta de práctica, no una predicción. La persona real puede responder distinto — las habilidades que construyes aquí te sirven igual.",
   "setup": {
     "heading": "Practica con {{name}}",
-    "body": "Tendrás la conversación con una IA que interpreta a tu ser querido — se resistirá como lo hacen las personas reales, para que las frases difíciles no sean nuevas el día que importa.",
+    "body": "Tendrás la conversación con una IA que interpreta a tu ser querido — responde con una voz real y se resiste como lo hacen las personas reales, para que las frases difíciles no sean nuevas el día que importa.",
+    "relationshipLabel": "¿Con quién vas a hablar?",
+    "voiceLabel": "Su voz",
+    "voiceOn": "🔊  Respuestas con voz — toca para practicar solo con texto",
+    "voiceOff": "🔇  Voz apagada — toca para escuchar sus respuestas",
     "temperamentLabel": "¿Cómo suele reaccionar?",
     "reassurance": "Aquí no puedes lastimar a nadie, y nada de lo que digas sale de la sesión. Si se siente demasiado real, detente cuando quieras.",
     "startButton": "Empezar a practicar"
+  },
+  "relationships": {
+    "spouse": "Esposo/a",
+    "partner": "Pareja",
+    "son": "Hijo",
+    "daughter": "Hija",
+    "sibling": "Hermano/a",
+    "parent": "Padre/Madre",
+    "friend": "Amigo/a"
+  },
+  "genders": {
+    "male": "Voz masculina",
+    "female": "Voz femenina"
+  },
+  "ages": {
+    "young": "20–30 años",
+    "middle": "40–50 años",
+    "older": "60+"
   },
   "temperaments": {
     "guarded": {
@@ -28,9 +50,14 @@
     }
   },
   "chat": {
-    "intro": "Di tu primera frase a {{name}} — como realmente lo harías. Habla primero.",
+    "intro": "Di tu primera frase a {{name}} — como realmente lo harías. Mantén presionado el micrófono para hablar, o escribe. Tú empiezas.",
     "placeholder": "Dilo como lo dirías…",
+    "listening": "Escuchando…",
     "send": "Decirlo",
+    "replay": "▶ Repetir",
+    "micHint": "Mantén presionado el micrófono para hablar — tus palabras aparecen como texto que puedes revisar antes de enviar",
+    "micPermissionTitle": "Se necesita acceso al micrófono",
+    "micPermissionBody": "Para practicar en voz alta, permite el acceso al micrófono. También puedes practicar escribiendo.",
     "turnsLeft_one": "Queda {{count}} intercambio en esta sesión",
     "turnsLeft_other": "Quedan {{count}} intercambios en esta sesión",
     "turnsDone": "Sesión completa — recibe tu retroalimentación abajo",
