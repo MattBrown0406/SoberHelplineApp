@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { requireSavedData } from '../lib/appFlowGuards';
 
 export type LovedOneStatus =
   | 'stable'
@@ -59,8 +60,8 @@ export function useLovedOne(accountId: string | null) {
   }, [load]);
 
   const save = useCallback(
-    async (input: LovedOneInput): Promise<LovedOne | null> => {
-      if (!accountId) return null;
+    async (input: LovedOneInput): Promise<LovedOne> => {
+      if (!accountId) throw new Error('Cannot save a loved one without an account');
       const { data, error } = await supabase
         .from('loved_ones')
         .upsert(
@@ -69,9 +70,9 @@ export function useLovedOne(accountId: string | null) {
         )
         .select('*')
         .single();
-      if (error || !data) return null;
-      setLovedOne(data as LovedOne);
-      return data as LovedOne;
+      const saved = requireSavedData(data as LovedOne | null, error, 'Loved-one save returned no data');
+      setLovedOne(saved);
+      return saved;
     },
     [accountId],
   );

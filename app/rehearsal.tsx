@@ -14,6 +14,7 @@ import { useTheme } from '../src/contexts/ThemeContext';
 import { useRehearsalCount } from '../src/hooks/useRehearsalCount';
 import { useAccount } from '../src/contexts/AccountContext';
 import { isAdminEmail } from '../src/lib/admin';
+import { finalizeRecording } from '../src/lib/appFlowGuards';
 
 type Phase = 'prompt' | 'recording' | 'playback' | 'selfcheck' | 'done';
 
@@ -76,17 +77,25 @@ export default function RehearsalScreen() {
   async function stopRecording() {
     const active = recordingRef.current ?? recording;
     if (!active) return;
+    let result;
     try {
-      await active.stopAndUnloadAsync();
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
-      const uri = active.getURI();
-      setSoundUri(uri ?? null);
+      result = await finalizeRecording(
+        () => active.stopAndUnloadAsync(),
+        () => active.getURI(),
+        () => Audio.setAudioModeAsync({ allowsRecordingIOS: false }),
+      );
     } catch {
       Alert.alert('Recording error', 'We could not finish that recording. Please try again.');
       return;
     }
     recordingRef.current = null;
     setRecording(null);
+    if (result.restoreError) {
+      // The recording is already safely unloaded. Do not strand the UI in the
+      // recording phase just because restoring the shared audio mode failed.
+      Alert.alert('Recording error', 'The recording finished, but audio could not be reset.');
+    }
+    setSoundUri(result.uri);
     setPhase('playback');
   }
 

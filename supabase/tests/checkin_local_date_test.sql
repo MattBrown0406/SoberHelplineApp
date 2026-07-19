@@ -1,7 +1,7 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SET search_path=public,extensions;
-SELECT plan(4);
+SELECT plan(8);
 
 INSERT INTO auth.users (id, email) VALUES
   ('77777777-7777-4777-8777-777777777777', 'local-day@example.com');
@@ -48,6 +48,33 @@ SELECT is(
   ),
   DATE '2026-07-22',
   'server derives the account-local date for older clients'
+);
+
+SELECT lives_ok(
+  $$
+    INSERT INTO public.checkins (account_id, mood, created_at, checkin_date)
+    VALUES (public.my_account_id(), 2, '2026-07-23T07:00:00Z', '2000-01-01')
+  $$,
+  'a mismatched client-supplied date is replaced rather than trusted'
+);
+SELECT is(
+  (SELECT checkin_date FROM public.checkins WHERE created_at = '2026-07-23T07:00:00Z'),
+  DATE '2026-07-23',
+  'client-supplied check-in dates cannot disagree with the account-local date'
+);
+
+UPDATE public.accounts SET timezone = 'Not/A_Timezone' WHERE user_id = auth.uid();
+SELECT lives_ok(
+  $$
+    INSERT INTO public.checkins (account_id, mood, created_at)
+    VALUES (public.my_account_id(), 3, '2026-07-24T01:00:00Z')
+  $$,
+  'a malformed stored timezone falls back safely instead of aborting writes'
+);
+SELECT is(
+  (SELECT checkin_date FROM public.checkins WHERE created_at = '2026-07-24T01:00:00Z'),
+  DATE '2026-07-24',
+  'malformed timezones use UTC as a safe fallback'
 );
 
 ROLLBACK;

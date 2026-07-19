@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import i18n from '../i18n';
 import { supabase } from '../lib/supabase';
 import { getCheckIn } from '../storage/checkIn';
+import { AsyncWriteBarrier } from '../lib/appFlowGuards';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -20,6 +21,12 @@ Notifications.setNotificationHandler({
 const REMINDER_HOUR_KEY = 'reminderHour';
 export const DEFAULT_REMINDER_HOUR = 9;
 const NUDGE_DAYS = 7; // schedule a week of nudges ahead so non-openers still get pinged
+const pushWriteBarrier = new AsyncWriteBarrier();
+
+/** Invalidate token acquisition and wait for an already-started write to settle. */
+export async function cancelPushRegistration(accountId: string): Promise<void> {
+  await pushWriteBarrier.cancelAndWait(accountId);
+}
 
 export async function getReminderHour(): Promise<number> {
   const raw = await AsyncStorage.getItem(REMINDER_HOUR_KEY);
@@ -103,6 +110,7 @@ export async function rearmDailyNudge(): Promise<void> {
 }
 
 export async function registerForPushNotifications(accountId: string): Promise<boolean> {
+  const generation = pushWriteBarrier.begin(accountId);
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
       name: 'default',
@@ -123,12 +131,14 @@ export async function registerForPushNotifications(accountId: string): Promise<b
     if (!projectId) throw new Error('EAS project ID is not configured');
     const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
     if (!token) return false;
+    if (!pushWriteBarrier.isCurrent(accountId, generation)) return false;
     // locale drives the language of server-sent pushes (session reminders,
     // win-back, community support) — kept in sync with the app language.
-    const { error } = await supabase
+    const tokenWrite = pushWriteBarrier.track(accountId, Promise.resolve(supabase
       .from('accounts')
       .update({ push_token: token, locale: i18n.language ?? 'en' })
-      .eq('id', accountId);
+      .eq('id', accountId)));
+    const { error } = await tokenWrite;
     if (error) throw error;
   } catch (error) {
     // Push failures must be observable: a coach missing a scheduling request is

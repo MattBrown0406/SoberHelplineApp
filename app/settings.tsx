@@ -18,7 +18,12 @@ import { useLanguage } from '../src/hooks/useLanguage';
 import { supabase } from '../src/lib/supabase';
 import { isAdminEmail } from '../src/lib/admin';
 import { restorePurchases } from '../src/lib/revenueCat';
-import { getReminderHour, setReminderHour, DEFAULT_REMINDER_HOUR } from '../src/hooks/usePushNotifications';
+import {
+  cancelPushRegistration,
+  getReminderHour,
+  setReminderHour,
+  DEFAULT_REMINDER_HOUR,
+} from '../src/hooks/usePushNotifications';
 import { PRIVACY_POLICY_URL, SUBSCRIPTION_MANAGEMENT_URL, TERMS_OF_USE_URL } from '../src/config';
 
 const CONSENT_SHARE_CHECKINS = '2';
@@ -103,6 +108,9 @@ export default function SettingsScreen() {
 
   async function handleSignOut() {
     if (user) {
+      // Prevent a token acquisition already in flight from writing the token
+      // back after this account has been cleared from the device.
+      await cancelPushRegistration(user.id);
       const { error } = await supabase
         .from('accounts')
         .update({ push_token: null })

@@ -6,7 +6,12 @@ ALTER TABLE public.checkins
   ADD COLUMN IF NOT EXISTS checkin_date date;
 
 UPDATE public.checkins c
-SET checkin_date = (c.created_at AT TIME ZONE COALESCE(NULLIF(a.timezone, ''), 'UTC'))::date
+SET checkin_date = (
+  c.created_at AT TIME ZONE COALESCE(
+    (SELECT tz.name FROM pg_timezone_names tz WHERE tz.name = NULLIF(a.timezone, '') LIMIT 1),
+    'UTC'
+  )
+)::date
 FROM public.accounts a
 WHERE a.id = c.account_id
   AND c.checkin_date IS NULL;
@@ -23,15 +28,16 @@ AS $$
 DECLARE
   v_timezone text;
 BEGIN
-  IF NEW.checkin_date IS NOT NULL THEN
-    RETURN NEW;
-  END IF;
-
-  SELECT COALESCE(NULLIF(a.timezone, ''), 'UTC')
+  SELECT COALESCE(
+    (SELECT tz.name FROM pg_timezone_names tz WHERE tz.name = NULLIF(a.timezone, '') LIMIT 1),
+    'UTC'
+  )
   INTO v_timezone
   FROM public.accounts a
   WHERE a.id = NEW.account_id;
 
+  -- Never trust a client-supplied calendar date. The database owns this value
+  -- so uniqueness, streaks, and server notifications all use the same day.
   NEW.checkin_date := (COALESCE(NEW.created_at, now()) AT TIME ZONE COALESCE(v_timezone, 'UTC'))::date;
   RETURN NEW;
 END;

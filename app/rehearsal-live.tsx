@@ -23,6 +23,7 @@ import { isAdminEmail } from '../src/lib/admin';
 import { useLovedOne } from '../src/hooks/useLovedOne';
 import { useRehearsalCount } from '../src/hooks/useRehearsalCount';
 import { supabase } from '../src/lib/supabase';
+import { finalizeRecording } from '../src/lib/appFlowGuards';
 import {
   useRehearsalPartner,
   type PartnerTemperament,
@@ -220,28 +221,35 @@ export default function RehearsalLiveScreen() {
   async function stopTalking() {
     const active = recordingRef.current ?? recording;
     if (!active) return;
-    let uri: string | null = null;
+    let result;
     let durationMillis = 0;
     try {
       const status = await active.getStatusAsync();
       durationMillis = status.durationMillis ?? 0;
-      await active.stopAndUnloadAsync();
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
-      uri = active.getURI();
+      result = await finalizeRecording(
+        () => active.stopAndUnloadAsync(),
+        () => active.getURI(),
+        () => Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true }),
+      );
     } catch {
       Alert.alert(t('chat.recordingErrorTitle'), t('chat.recordingErrorBody'));
       return;
     }
     recordingRef.current = null;
     setRecording(null);
-    if (!uri) return;
+    if (result.restoreError) {
+      // The capture is already unloaded; keep the UI usable and surface the
+      // audio-session problem without pretending recording is still active.
+      Alert.alert(t('chat.recordingErrorTitle'), t('chat.recordingErrorBody'));
+    }
+    if (!result.uri) return;
     // A slipped finger produces a fraction-of-a-second clip of near-silence.
     // Whisper hallucinates filler ("Thank you", "You") on clips like that —
     // don't even send them.
     if (durationMillis < 700) return;
     try {
-      const b64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
-      const format = uri.split('.').pop() ?? 'm4a';
+      const b64 = await FileSystem.readAsStringAsync(result.uri, { encoding: FileSystem.EncodingType.Base64 });
+      const format = result.uri.split('.').pop() ?? 'm4a';
       const text = await transcribeClip(b64, format);
       if (text) setDraft((prev) => (prev ? `${prev} ${text}` : text));
     } catch {

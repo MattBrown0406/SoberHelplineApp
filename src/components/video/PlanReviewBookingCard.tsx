@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import type { TFunction } from 'i18next';
 import type { AccountState } from '../../api/types';
@@ -7,6 +7,7 @@ import type { usePrivateVideoSessions } from '../../hooks/usePrivateVideoSession
 import { useTheme } from '../../contexts/ThemeContext';
 import { detectedTimeZone, formatInTimeZone } from '../../lib/videoScheduling';
 import { buildPlanReviewSnapshot, planReviewSectionKeysForTier, stableStringify, type PlanReviewSectionKey, type PlanReviewSource } from '../../lib/planReview';
+import { togglePickerMode, type PickerMode } from '../../lib/appFlowGuards';
 
 type Props = { controller: ReturnType<typeof usePrivateVideoSessions>; accountState: AccountState; source: PlanReviewSource; t: TFunction<'crisis'>; consentLocale: 'en' | 'es'; onUpgrade: () => void };
 
@@ -18,8 +19,7 @@ export function PlanReviewBookingCard({ controller, accountState, source, t, con
   const [focus, setFocus] = useState('');
   const [questions, setQuestions] = useState('');
   const [startsAt, setStartsAt] = useState(() => { const d = new Date(Date.now() + 86400000); d.setMinutes(0, 0, 0); return d; });
-  const [showDate, setShowDate] = useState(false);
-  const [showTime, setShowTime] = useState(false);
+  const [pickerMode, setPickerMode] = useState<PickerMode>(null);
   const [consented, setConsented] = useState(false);
   const [preview, setPreview] = useState(false);
   const [previewFingerprint, setPreviewFingerprint] = useState<string | null>(null);
@@ -72,7 +72,7 @@ export function PlanReviewBookingCard({ controller, accountState, source, t, con
     const next = !consented; setConsented(next); setConsentFingerprint(next ? fingerprint : null);
   };
   const changeDate = (mode: 'date' | 'time') => (_event: DateTimePickerEvent, picked?: Date) => {
-    if (Platform.OS !== 'ios') mode === 'date' ? setShowDate(false) : setShowTime(false);
+    setPickerMode(null);
     if (!picked) return;
     setStartsAt((current) => {
       const next = new Date(current);
@@ -153,11 +153,11 @@ export function PlanReviewBookingCard({ controller, accountState, source, t, con
     </View> : null}
     <Text style={[styles.label, { color: colors.ink }]}>{k('date')}</Text>
     <View style={styles.row}>
-      <TouchableOpacity accessibilityRole="button" onPress={() => setShowDate(true)} style={[styles.choice, { borderColor: colors.primary }]}><Text style={{ color: colors.ink }}>{startsAt.toLocaleDateString()}</Text></TouchableOpacity>
-      <TouchableOpacity accessibilityRole="button" onPress={() => setShowTime(true)} style={[styles.choice, { borderColor: colors.primary }]}><Text style={{ color: colors.ink }}>{startsAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</Text></TouchableOpacity>
+      <TouchableOpacity accessibilityRole="button" onPress={() => setPickerMode((current) => togglePickerMode(current, 'date'))} style={[styles.choice, { borderColor: colors.primary }]}><Text style={{ color: colors.ink }}>{startsAt.toLocaleDateString()}</Text></TouchableOpacity>
+      <TouchableOpacity accessibilityRole="button" onPress={() => setPickerMode((current) => togglePickerMode(current, 'time'))} style={[styles.choice, { borderColor: colors.primary }]}><Text style={{ color: colors.ink }}>{startsAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</Text></TouchableOpacity>
     </View>
-    {showDate ? <DateTimePicker value={startsAt} mode="date" minimumDate={new Date()} onChange={changeDate('date')} /> : null}
-    {showTime ? <DateTimePicker value={startsAt} mode="time" minuteInterval={5} onChange={changeDate('time')} /> : null}
+    {pickerMode === 'date' ? <DateTimePicker value={startsAt} mode="date" minimumDate={new Date()} onChange={changeDate('date')} /> : null}
+    {pickerMode === 'time' ? <DateTimePicker value={startsAt} mode="time" minuteInterval={5} onChange={changeDate('time')} /> : null}
     <Text style={{ color: colors.inkSoft }}>{formatInTimeZone(startsAt, detectedTimeZone())}</Text>
     <TextInput value={focus} onChangeText={setFocus} multiline placeholder={k('focus')} placeholderTextColor={colors.inkSoft} style={[styles.input, { color: colors.ink, borderColor: colors.line }]} />
     <TextInput value={questions} onChangeText={setQuestions} multiline placeholder={k('questions')} placeholderTextColor={colors.inkSoft} style={[styles.input, { color: colors.ink, borderColor: colors.line }]} />
