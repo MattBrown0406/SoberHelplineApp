@@ -68,5 +68,6 @@ secrets: never in the repo, never in the app bundle.
   is decided — the hook and function are structured so a cap check drops into the
   edge function cleanly.
 - Full-duplex voice (LiveKit real-time streaming instead of turn-based clips).
-- Session history: transcripts are intentionally not persisted anywhere in v1
-  (privacy-first, matching the recorder's on-device-only stance).
+- (Shipped) Session history: completed sessions (scenario, text transcript,
+  debrief) save to `rehearsal_sessions` (owner-only RLS, per-session delete,
+  audio never stored) and are browsable at /rehearsal-history.

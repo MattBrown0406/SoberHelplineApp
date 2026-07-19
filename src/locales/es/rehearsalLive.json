@@ -10,10 +10,11 @@
     "voiceOn": "🔊  Respuestas con voz — toca para practicar solo con texto",
     "voiceOff": "🔇  Voz apagada — toca para escuchar sus respuestas",
     "temperamentLabel": "¿Cómo suele reaccionar?",
-    "reassurance": "Aquí no puedes lastimar a nadie, y nada de lo que digas sale de la sesión. Si se siente demasiado real, detente cuando quieras.",
+    "reassurance": "Aquí no puedes lastimar a nadie. Las sesiones se guardan de forma privada en tu cuenta para que veas tu progreso — y puedes borrar cualquiera cuando quieras.",
     "startButton": "Empezar a practicar",
     "whyTitle": "Esto es práctica — y practicar es el punto",
-    "whyBody": "Esto no es un juego que se gana. La adicción ha comprometido la capacidad de tu ser querido para tomar decisiones sanas, así que la persona real puede esquivar, negociar o estallar sin importar qué tan bien hables. El compañero aquí tampoco va a ceder sin más — porque la persona real tampoco lo hará. Lo que cambia con cada repetición eres tú: nervios más firmes, palabras más claras, una petición más serena. Eso es lo que entra a la conversación real."
+    "whyBody": "Esto no es un juego que se gana. La adicción ha comprometido la capacidad de tu ser querido para tomar decisiones sanas, así que la persona real puede esquivar, negociar o estallar sin importar qué tan bien hables. El compañero aquí tampoco va a ceder sin más — porque la persona real tampoco lo hará. Lo que cambia con cada repetición eres tú: nervios más firmes, palabras más claras, una petición más serena. Eso es lo que entra a la conversación real.",
+    "pastSessions": "Ver sesiones anteriores"
   },
   "relationships": {
     "spouse": "Esposo/a",
@@ -74,9 +75,9 @@
     "heading": "Retroalimentación del coach",
     "scores": {
       "love": "Amor primero",
-      "iStatements": "Frases con \"yo\"",
-      "calm": "Mantuvo la calma",
-      "ask": "Sostuvo la petición"
+      "ask": "Sostuvo la petición",
+      "boundaries": "Sostuvo los límites",
+      "calm": "Mantuvo la calma"
     },
     "wentWell": "Lo que funcionó",
     "workOn": "Lo que puedes afinar",
@@ -84,5 +85,16 @@
     "againButton": "Practicar de nuevo",
     "doneButton": "Terminar por ahora",
     "encouragement": "Aquí no se gana ni se pierde — solo se llega más preparado. Repítelo con otro estado de ánimo, o uno más difícil. Cada repetición mejora la conversación real."
+  },
+  "history": {
+    "title": "Sesiones anteriores",
+    "subtitle": "Tus repeticiones, guardadas. Mira cómo suben los puntajes.",
+    "empty": "Aún no hay sesiones. Termina una conversación de práctica y su transcripción y retroalimentación se guardarán aquí.",
+    "delete": "Borrar esta sesión",
+    "deleteTitle": "¿Borrar sesión?",
+    "deleteBody": "Esto elimina la transcripción y la retroalimentación permanentemente.",
+    "deleteCancel": "Conservar",
+    "deleteConfirm": "Borrar",
+    "privacyNote": "Las sesiones solo son visibles para ti. El audio nunca se guarda."
   }
 }

@@ -29,7 +29,7 @@ export type PartnerDebrief = {
   wentWell: string[];
   workOn: string[];
   drill: string;
-  scores: { love: number; iStatements: number; calm: number; ask: number };
+  scores: { love: number; ask: number; boundaries: number; calm: number };
 };
 
 /** Hard cap on user turns per session — keeps sessions focused and costs bounded. */

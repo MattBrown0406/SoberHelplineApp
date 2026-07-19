@@ -77,7 +77,7 @@ export function ScriptCard({ script }: Props) {
             style={[
               styles.block,
               {
-                backgroundColor: colors.greenLight,
+                backgroundColor: '#d3e4da',
                 borderLeftColor: colors.green,
               },
             ]}

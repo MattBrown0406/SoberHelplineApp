@@ -22,6 +22,7 @@ import { FreeTierPaywall } from '../src/components/ui/FreeTierPaywall';
 import { isAdminEmail } from '../src/lib/admin';
 import { useLovedOne } from '../src/hooks/useLovedOne';
 import { useRehearsalCount } from '../src/hooks/useRehearsalCount';
+import { supabase } from '../src/lib/supabase';
 import {
   useRehearsalPartner,
   type PartnerTemperament,
@@ -37,7 +38,7 @@ const RELATIONSHIPS: PartnerRelationship[] = ['spouse', 'partner', 'son', 'daugh
 const GENDERS: PartnerGender[] = ['male', 'female'];
 const AGES: PartnerAge[] = ['young', 'middle', 'older'];
 
-const SCORE_KEYS = ['love', 'iStatements', 'calm', 'ask'] as const;
+const SCORE_KEYS = ['love', 'ask', 'boundaries', 'calm'] as const;
 
 /** Map the loved-one profile relationship onto the picker's options. */
 function defaultRelationship(profile: string | null | undefined): PartnerRelationship {
@@ -113,12 +114,30 @@ export default function RehearsalLiveScreen() {
     return () => clearTimeout(id);
   }, [messages.length, sending]);
 
+  const savedSessionRef = useRef(false);
   useEffect(() => {
-    if (debrief) {
-      increment();
-      setStage('debrief');
+    if (!debrief) return;
+    increment();
+    setStage('debrief');
+    // Save the session once so the family can review their reps later.
+    if (!savedSessionRef.current && user?.id) {
+      savedSessionRef.current = true;
+      void supabase.from('rehearsal_sessions').insert({
+        account_id: user.id,
+        source_id: typeof params.sourceId === 'string' ? params.sourceId : null,
+        scenario: {
+          relationship,
+          temperament,
+          gender,
+          age,
+          language,
+          partnerName,
+        },
+        transcript: messages.map(({ role, text }) => ({ role, text })),
+        debrief,
+      });
     }
-  }, [debrief, increment]);
+  }, [debrief, increment, user?.id, params.sourceId, relationship, temperament, gender, age, language, partnerName, messages]);
 
   useEffect(() => {
     // Prime the audio session once so the first reply speaks without delay,
@@ -205,6 +224,7 @@ export default function RehearsalLiveScreen() {
   }
 
   function handleAgain() {
+    savedSessionRef.current = false;
     reset();
     setStage('setup');
   }
@@ -343,6 +363,9 @@ export default function RehearsalLiveScreen() {
               activeOpacity={0.85}
             >
               <Text style={styles.bigBtnText}>{t('setup.startButton')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push('/rehearsal-history')} style={styles.historyLink} hitSlop={8}>
+              <Text style={[styles.historyLinkText, { color: colors.inkSoft }]}>{t('setup.pastSessions')} →</Text>
             </TouchableOpacity>
           </ScrollView>
         )}
@@ -649,4 +672,6 @@ const styles = StyleSheet.create({
   },
   drillText: { fontSize: 15, lineHeight: 22 },
   privacyNote: { fontSize: 10, textAlign: 'center', lineHeight: 15, marginTop: 6 },
+  historyLink: { alignItems: 'center', paddingVertical: 10 },
+  historyLinkText: { fontSize: 13, fontWeight: '600' },
 });
