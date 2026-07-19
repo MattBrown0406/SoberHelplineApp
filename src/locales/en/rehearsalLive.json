@@ -11,7 +11,9 @@
     "voiceOff": "🔇  Voice replies off — tap to hear them talk back",
     "temperamentLabel": "How do they usually react?",
     "reassurance": "You can't hurt anyone here, and nothing you say leaves the session. If it gets too real, stop anytime.",
-    "startButton": "Start practicing"
+    "startButton": "Start practicing",
+    "whyTitle": "This is practice — and practice is the point",
+    "whyBody": "This isn't a game you win. Addiction has compromised your loved one's ability to make healthy choices, so the person you'll really face may deflect, bargain, or lash out no matter how well you speak. The partner here won't just give in either — because the real one won't. What changes with every rep is you: steadier nerves, cleaner words, a calmer hold on your ask. That's what walks into the real room."
   },
   "relationships": {
     "spouse": "Spouse",
@@ -64,7 +66,9 @@
     "finishButton": "End practice & get coaching feedback",
     "error": "Couldn't reach your practice partner. Check your connection and try again.",
     "safetyTitle": "Let's pause the practice",
-    "safetyBody": "It sounds like you might be carrying something real right now. Tap here for immediate support options — this matters more than rehearsal."
+    "safetyBody": "It sounds like you might be carrying something real right now. Tap here for immediate support options — this matters more than rehearsal.",
+    "holdToSpeak": "Hold anywhere on this bar to speak",
+    "releaseWhenDone": "Listening — release when you're done"
   },
   "debrief": {
     "heading": "Coach's feedback",
@@ -78,6 +82,7 @@
     "workOn": "What to tighten",
     "drillLabel": "Your next drill",
     "againButton": "Practice again",
-    "doneButton": "Done for now"
+    "doneButton": "Done for now",
+    "encouragement": "There's no winning or losing here — there's only getting readier. Run it again with a different mood, or a harder one. Every rep makes the real conversation better."
   }
 }

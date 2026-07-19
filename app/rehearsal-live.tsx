@@ -321,6 +321,12 @@ export default function RehearsalLiveScreen() {
               </TouchableOpacity>
             ))}
 
+            {/* Why practice works — the heart of the tool */}
+            <View style={[styles.whyCard, { backgroundColor: colors.primaryDark, borderLeftColor: colors.coral }]}>
+              <Text style={[styles.whyTitle, { color: colors.white }]}>{t('setup.whyTitle')}</Text>
+              <Text style={[styles.whyBody, { color: colors.inkSoft }]}>{t('setup.whyBody')}</Text>
+            </View>
+
             <Text style={[styles.reassurance, { color: colors.inkSoft }]}>{t('setup.reassurance')}</Text>
 
             <TouchableOpacity
@@ -391,28 +397,33 @@ export default function RehearsalLiveScreen() {
               {turnsLeft > 0 ? t('chat.turnsLeft', { count: turnsLeft }) : t('chat.turnsDone')}
             </Text>
 
-            <View style={styles.inputRow}>
-              {/* Hold to talk */}
-              <TouchableOpacity
-                style={[
-                  styles.micBtn,
-                  {
-                    backgroundColor: recording ? colors.coral : colors.primaryDark,
-                    opacity: inputLocked || transcribing ? 0.4 : 1,
-                  },
-                ]}
-                onPressIn={startTalking}
-                onPressOut={stopTalking}
-                disabled={inputLocked || transcribing}
-                activeOpacity={0.85}
-              >
-                {transcribing ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <Text style={styles.micBtnText}>{recording ? '●' : '🎤'}</Text>
-                )}
-              </TouchableOpacity>
+            {/* Hold to speak — full-width, drift-tolerant */}
+            <TouchableOpacity
+              style={[
+                styles.holdBar,
+                {
+                  backgroundColor: recording ? colors.coral : colors.primaryDark,
+                  borderColor: colors.coral,
+                  opacity: inputLocked || transcribing ? 0.4 : 1,
+                },
+              ]}
+              onPressIn={startTalking}
+              onPressOut={stopTalking}
+              disabled={inputLocked || transcribing}
+              activeOpacity={0.9}
+              pressRetentionOffset={{ top: 150, bottom: 150, left: 150, right: 150 }}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            >
+              {transcribing ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text style={styles.holdBarText}>
+                  {recording ? `●  ${t('chat.releaseWhenDone')}` : `🎤  ${t('chat.holdToSpeak')}`}
+                </Text>
+              )}
+            </TouchableOpacity>
 
+            <View style={styles.inputRow}>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.primaryDark, color: colors.white }]}
                 placeholder={recording ? t('chat.listening') : t('chat.placeholder')}
@@ -494,6 +505,8 @@ export default function RehearsalLiveScreen() {
               </View>
             )}
 
+            <Text style={[styles.encouragement, { color: colors.inkSoft }]}>{t('debrief.encouragement')}</Text>
+
             <TouchableOpacity
               style={[styles.bigBtn, { backgroundColor: colors.coral, marginTop: 20 }]}
               onPress={handleAgain}
@@ -566,15 +579,27 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 12, textAlign: 'center', marginTop: 6 },
   turnsNote: { fontSize: 11, textAlign: 'center', marginBottom: 6 },
   inputRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-end', marginBottom: 4 },
-  micBtn: {
-    borderRadius: 14,
-    width: 46,
-    height: 46,
+  holdBar: {
+    borderRadius: 16,
+    borderWidth: 1.5,
+    minHeight: 58,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 8,
+    paddingVertical: 16,
   },
-  micBtnText: { fontSize: 18, color: '#fff' },
+  holdBarText: { fontSize: 16, fontWeight: '700', color: '#fff' },
   micHint: { fontSize: 10, textAlign: 'center', marginBottom: 8 },
+  whyCard: {
+    borderRadius: 14,
+    borderLeftWidth: 3,
+    padding: 16,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  whyTitle: { fontWeight: '700', fontSize: 15, marginBottom: 6 },
+  whyBody: { fontSize: 13, lineHeight: 20 },
+  encouragement: { fontSize: 13, lineHeight: 20, marginTop: 16, textAlign: 'center', fontStyle: 'italic' },
   input: {
     flex: 1,
     borderRadius: 14,

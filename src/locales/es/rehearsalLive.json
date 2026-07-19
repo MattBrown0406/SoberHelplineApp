@@ -11,7 +11,9 @@
     "voiceOff": "🔇  Voz apagada — toca para escuchar sus respuestas",
     "temperamentLabel": "¿Cómo suele reaccionar?",
     "reassurance": "Aquí no puedes lastimar a nadie, y nada de lo que digas sale de la sesión. Si se siente demasiado real, detente cuando quieras.",
-    "startButton": "Empezar a practicar"
+    "startButton": "Empezar a practicar",
+    "whyTitle": "Esto es práctica — y practicar es el punto",
+    "whyBody": "Esto no es un juego que se gana. La adicción ha comprometido la capacidad de tu ser querido para tomar decisiones sanas, así que la persona real puede esquivar, negociar o estallar sin importar qué tan bien hables. El compañero aquí tampoco va a ceder sin más — porque la persona real tampoco lo hará. Lo que cambia con cada repetición eres tú: nervios más firmes, palabras más claras, una petición más serena. Eso es lo que entra a la conversación real."
   },
   "relationships": {
     "spouse": "Esposo/a",
@@ -64,7 +66,9 @@
     "finishButton": "Terminar y recibir retroalimentación",
     "error": "No pudimos conectar con tu compañero de práctica. Revisa tu conexión e inténtalo de nuevo.",
     "safetyTitle": "Pausemos la práctica",
-    "safetyBody": "Parece que estás cargando algo real en este momento. Toca aquí para ver opciones de apoyo inmediato — esto importa más que el ensayo."
+    "safetyBody": "Parece que estás cargando algo real en este momento. Toca aquí para ver opciones de apoyo inmediato — esto importa más que el ensayo.",
+    "holdToSpeak": "Mantén presionada esta barra para hablar",
+    "releaseWhenDone": "Escuchando — suelta cuando termines"
   },
   "debrief": {
     "heading": "Retroalimentación del coach",
@@ -78,6 +82,7 @@
     "workOn": "Lo que puedes afinar",
     "drillLabel": "Tu próximo ejercicio",
     "againButton": "Practicar de nuevo",
-    "doneButton": "Terminar por ahora"
+    "doneButton": "Terminar por ahora",
+    "encouragement": "Aquí no se gana ni se pierde — solo se llega más preparado. Repítelo con otro estado de ánimo, o uno más difícil. Cada repetición mejora la conversación real."
   }
 }
