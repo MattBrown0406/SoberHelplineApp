@@ -6,6 +6,7 @@ on:
     paths:
       - 'supabase/migrations/**'
       - 'supabase/functions/**'
+      - '.github/workflows/quality.yml'
       - '.github/workflows/supabase-functions.yml'
   workflow_dispatch:
 

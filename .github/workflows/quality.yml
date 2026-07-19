@@ -36,12 +36,9 @@ jobs:
         with:
           deno-version: v2.3.7
       - name: Type-check Edge Functions
-        run: |
-          for file in supabase/functions/*/index.ts; do
-            deno check --node-modules-dir=auto "$file"
-          done
+        run: deno check --node-modules-dir=none supabase/functions/*/index.ts
       - name: Run Edge Function contract tests
-        run: deno test --node-modules-dir=auto supabase/functions/_shared/*_test.ts
+        run: deno test --node-modules-dir=none supabase/functions/_shared/*_test.ts
 
   database:
     runs-on: ubuntu-latest
