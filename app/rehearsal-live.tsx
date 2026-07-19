@@ -379,6 +379,16 @@ export default function RehearsalLiveScreen() {
               contentContainerStyle={styles.chatContent}
               showsVerticalScrollIndicator={false}
             >
+              {typeof params.text === 'string' && params.text.trim().length > 0 && (
+                <TouchableOpacity
+                  style={[styles.openingCard, { backgroundColor: colors.primaryDark, borderLeftColor: colors.coral }]}
+                  onPress={() => setDraft(String(params.text))}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[styles.openingLabel, { color: colors.inkSoft }]}>{t('chat.openingLabel')}</Text>
+                  <Text style={[styles.openingText, { color: colors.white }]}>"{params.text}"</Text>
+                </TouchableOpacity>
+              )}
               <Text style={[styles.chatIntro, { color: colors.inkSoft }]}>
                 {t('chat.intro', { name: partnerName })}
               </Text>
@@ -599,6 +609,20 @@ const styles = StyleSheet.create({
   bigBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   chatContent: { paddingBottom: 12 },
   chatIntro: { fontSize: 13, lineHeight: 19, marginBottom: 16, textAlign: 'center' },
+  openingCard: {
+    borderRadius: 14,
+    borderLeftWidth: 3,
+    padding: 14,
+    marginBottom: 12,
+  },
+  openingLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 5,
+  },
+  openingText: { fontSize: 15, lineHeight: 22, fontStyle: 'italic' },
   bubble: { borderRadius: 16, padding: 12, marginBottom: 8, maxWidth: '85%' },
   bubbleUser: { alignSelf: 'flex-end', borderBottomRightRadius: 4 },
   bubblePartner: { alignSelf: 'flex-start', borderBottomLeftRadius: 4 },

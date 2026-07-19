@@ -68,7 +68,8 @@
     "safetyTitle": "Pausemos la práctica",
     "safetyBody": "Parece que estás cargando algo real en este momento. Toca aquí para ver opciones de apoyo inmediato — esto importa más que el ensayo.",
     "holdToSpeak": "Mantén presionado para hablar",
-    "releaseWhenDone": "Escuchando — suelta al terminar"
+    "releaseWhenDone": "Escuchando — suelta al terminar",
+    "openingLabel": "Tu primera frase — tócala para usarla"
   },
   "debrief": {
     "heading": "Retroalimentación del coach",

@@ -68,7 +68,8 @@
     "safetyTitle": "Let's pause the practice",
     "safetyBody": "It sounds like you might be carrying something real right now. Tap here for immediate support options — this matters more than rehearsal.",
     "holdToSpeak": "Hold to speak",
-    "releaseWhenDone": "Listening — release when done"
+    "releaseWhenDone": "Listening — release when done",
+    "openingLabel": "Your opening line — tap to use it"
   },
   "debrief": {
     "heading": "Coach's feedback",
