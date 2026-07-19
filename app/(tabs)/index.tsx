@@ -25,7 +25,7 @@ import type { TFunction } from 'i18next';
 export default function TodayScreen() {
   const { user, isAttached, accountState } = useAccount();
   const { colors } = useTheme();
-  const { t } = useTranslation('today');
+  const { t, i18n } = useTranslation('today');
   const router = useRouter();
   const { todayCheckIn, streak, saveCheckIn } = useCheckIn(user?.id ?? null);
   const { dayCount, boundariesHeld, groupSessions, quoteIndex, focusSlot, scriptSlot, situation, primaryDoor, nextFreeCall, rsvpFreeCall } =
@@ -65,7 +65,7 @@ export default function TodayScreen() {
   // streak, one free script, and the mood arc — is never gated. A habit that
   // exists converts; a paywall in place of a habit does not.
   if (accountState === 'direct-free' && !isAdmin) {
-    const freeScript = getDailyScriptPair(scriptSlot)[0];
+    const freeScript = getDailyScriptPair(scriptSlot, i18n.language)[0];
     return (
       <ScreenContainer backgroundColor={colors.cream}>
         {header}

@@ -56,13 +56,22 @@ export default function RehearsalLiveScreen() {
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('rehearsalLive');
   const router = useRouter();
-  const params = useLocalSearchParams<{ text?: string; sourceId?: string }>();
+  const params = useLocalSearchParams<{ text?: string; sourceId?: string; temperament?: string }>();
   const { user, accountState } = useAccount();
   const { lovedOne } = useLovedOne(user?.id ?? null);
   const { increment } = useRehearsalCount(params.sourceId ?? 'live-rehearsal');
 
   const [stage, setStage] = useState<Stage>('setup');
-  const [temperament, setTemperament] = useState<PartnerTemperament>('guarded');
+  // Scripts can suggest the mood that best matches their situation (e.g. the
+  // relapse script opens against a Guilt-ridden partner). Still user-changeable.
+  const suggestedTemperament =
+    typeof params.temperament === 'string' &&
+    ['guarded', 'defensive', 'volatile', 'tearful'].includes(params.temperament)
+      ? (params.temperament as PartnerTemperament)
+      : null;
+  const [temperament, setTemperament] = useState<PartnerTemperament>(
+    suggestedTemperament ?? 'guarded',
+  );
   const [relationship, setRelationship] = useState<PartnerRelationship>(
     defaultRelationship(lovedOne?.relationship),
   );

@@ -111,6 +111,23 @@ export function ScriptCard({ script }: Props) {
           {/* Why */}
           <Text style={[styles.why, { color: colors.inkSoft }]}>{script.why}</Text>
 
+          {/* Comeback drill — the likely pushback and a reply that holds */}
+          {script.comeback && (
+            <View
+              style={[
+                styles.comebackCard,
+                { backgroundColor: colors.primaryDark },
+              ]}
+            >
+              <Text style={styles.comebackLabel}>{t('comebackTheySay')}</Text>
+              <Text style={styles.comebackTheySay}>"{script.comeback.theySay}"</Text>
+              <Text style={[styles.comebackLabel, styles.comebackLabelSecond]}>
+                {t('comebackYouSay')}
+              </Text>
+              <Text style={styles.comebackYouSay}>"{script.comeback.youSay}"</Text>
+            </View>
+          )}
+
           {/* Practice */}
           <TouchableOpacity
             style={[styles.practiceBtn, { backgroundColor: colors.primaryLight, borderColor: colors.primary }]}
@@ -121,6 +138,9 @@ export function ScriptCard({ script }: Props) {
                   text: script.trySaying,
                   sourceId: script.id,
                   sourceType: 'script',
+                  ...(script.suggestedTemperament
+                    ? { temperament: script.suggestedTemperament }
+                    : {}),
                 },
               })
             }
@@ -213,6 +233,33 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     fontStyle: 'italic',
     marginTop: 1,
+  },
+  comebackCard: {
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 2,
+  },
+  comebackLabel: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 1,
+    color: 'rgba(255,255,255,0.55)',
+    marginBottom: 3,
+  },
+  comebackLabelSecond: {
+    marginTop: 9,
+  },
+  comebackTheySay: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: 'rgba(255,255,255,0.85)',
+    fontStyle: 'italic',
+  },
+  comebackYouSay: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: '#ffffff',
+    fontWeight: '600',
   },
   practiceBtn: {
     borderWidth: 1,

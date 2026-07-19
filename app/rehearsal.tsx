@@ -23,10 +23,11 @@ export default function RehearsalScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation('rehearsal');
   const router = useRouter();
-  const params = useLocalSearchParams<{ text: string; sourceId: string; sourceType: string }>();
+  const params = useLocalSearchParams<{ text: string; sourceId: string; sourceType: string; temperament?: string }>();
 
   const text = params.text ?? '';
   const sourceId = params.sourceId ?? 'unknown';
+  const temperament = typeof params.temperament === 'string' ? params.temperament : undefined;
 
   const { count, increment } = useRehearsalCount(sourceId);
   const { user, accountState } = useAccount();
@@ -227,7 +228,7 @@ export default function RehearsalScreen() {
             onPress={() =>
               router.push({
                 pathname: '/rehearsal-live',
-                params: { text, sourceId },
+                params: temperament ? { text, sourceId, temperament } : { text, sourceId },
               })
             }
             activeOpacity={0.85}

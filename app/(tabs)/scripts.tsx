@@ -49,7 +49,7 @@ function personalize(scripts: Script[], relationship: string | null, substances:
 export default function ScriptsScreen() {
   const { colors } = useTheme();
   const { user } = useAccount();
-  const { t } = useTranslation('scripts');
+  const { t, i18n } = useTranslation('scripts');
   const { t: tCommon } = useTranslation('common');
   const { q } = useLocalSearchParams<{ q?: string }>();
   const [query, setQuery] = useState('');
@@ -63,10 +63,13 @@ export default function ScriptsScreen() {
   const { lovedOne } = useLovedOne(user?.id ?? null);
 
   const allScripts = useMemo(
-    () => personalize(getScripts(), lovedOne?.relationship ?? null, lovedOne?.substances ?? []),
-    [lovedOne?.relationship, lovedOne?.substances],
+    () => personalize(getScripts(i18n.language), lovedOne?.relationship ?? null, lovedOne?.substances ?? []),
+    [lovedOne?.relationship, lovedOne?.substances, i18n.language],
   );
-  const todayScripts = useMemo(() => getDailyScriptPair(scriptSlot), [scriptSlot]);
+  const todayScripts = useMemo(
+    () => getDailyScriptPair(scriptSlot, i18n.language),
+    [scriptSlot, i18n.language],
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

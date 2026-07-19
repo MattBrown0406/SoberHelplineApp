@@ -278,6 +278,10 @@ export interface Script {
   isCustom: boolean;
   /** Set when coach has authored a custom script for this user. */
   requestedFromCoachId: string | null;
+  /** Likely pushback + a reply that holds — a one-line objection drill. */
+  comeback?: { theySay: string; youSay: string };
+  /** Best-fit practice-partner mood when jumping into AI practice from this script. */
+  suggestedTemperament?: 'guarded' | 'defensive' | 'volatile' | 'tearful';
 }
 
 // ─── Support Groups ──────────────────────────────────────────────────────────
