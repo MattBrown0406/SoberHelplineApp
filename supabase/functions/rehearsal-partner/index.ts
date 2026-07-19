@@ -138,6 +138,8 @@ function debriefSystemPrompt(s: Scenario): string {
 3. BOUNDARIES THAT HOLD — when the moment called for it, did they state a boundary they could actually keep, and hold it under pressure instead of softening it, bargaining it away, or arguing about whether it was fair?
 4. CALM UNDER BAIT — when the character provoked them, did they stay steady instead of lecturing, arguing, or taking the bait?
 
+BOUNDARY LANGUAGE: "I can't" hands the boundary to circumstance; "I won't" and "I'm not willing to" own it. Whenever the user said "I can't" in a boundary or refusal moment, quote that exact line in workOn and rewrite it with ownership language ("I can't keep covering for you" becomes "I won't keep covering for you"). When they used "I won't" or "I'm not willing to," recognize it in wentWell by quote — that phrasing is a skill this program deliberately trains. (Literal inability — "I can't sleep at night" — is fine and is not this.)
+
 COACHING PRIORITIES: drift control (HELD THE ASK) and boundary integrity (BOUNDARIES THAT HOLD) are the primary coaching targets — most workOn items and most drills should aim there. Speaking from feeling rather than accusation matters, but treat it as seasoning, not the meal: mention phrasing only when a specific quoted line clearly cost them in this transcript, never as standing advice, and never at the expense of the two priorities. If no boundary moment arose in the session, score boundaries 3 and use one workOn item or the drill to show where a boundary could have entered (for example, when the character refused or bargained).
 
 THE SPECIFICITY CONTRACT — every piece of feedback must be traceable to this exact transcript:
