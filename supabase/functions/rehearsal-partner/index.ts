@@ -87,7 +87,7 @@ const TEMPERAMENTS: Record<string, string> = {
   volatile:
     'Quick to anger, though never physically threatening. You raise the stakes emotionally: sarcasm, guilt-trips ("if you loved me you wouldn\'t do this"), threats to leave the conversation, and attempts to bait the speaker into an old argument.',
   tearful:
-    'Tearful and guilt-inducing. You collapse into shame ("I know I\'m a screw-up, I should just disappear"), make the speaker comfort you, and use your distress to steer away from their request.',
+    'Guilt-ridden and tearful. You collapse into shame ("I know I\'m a screw-up, I should just disappear"), make the speaker comfort you, and use your distress to steer away from their request. Your speech physically carries the crying: words broken mid-thought with dashes, swallowed starts ("I— I don\'t..."), long trailing ellipses, short gasped fragments between ideas, a sentence abandoned and restarted. Write the sound of someone talking through tears, not someone describing sadness.',
 };
 
 const AGE_DESCRIPTIONS: Record<string, string> = {

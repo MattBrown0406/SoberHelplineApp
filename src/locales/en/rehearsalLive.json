@@ -45,8 +45,8 @@
       "desc": "Guilt-trips, sarcasm, threatens to walk out — tries to bait you into an old argument."
     },
     "tearful": {
-      "title": "Tearful",
-      "desc": "Collapses into shame and tears — pulls you into comforting them instead of asking."
+      "title": "Guilt-ridden",
+      "desc": "Collapses into shame and self-blame — \"I'm a screw-up, I should just disappear\" — and pulls you into comforting them instead of answering your ask."
     }
   },
   "chat": {
