@@ -10,12 +10,10 @@ import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { useAccount } from '../../src/contexts/AccountContext';
-import { FreeTierPaywall } from '../../src/components/ui/FreeTierPaywall';
 import { ScriptCard } from '../../src/components/scripts/ScriptCard';
 import { getScripts, getDailyScriptPair } from '../../src/content/scripts';
 import { useTodayFeed } from '../../src/hooks/useTodayFeed';
 import { useLovedOne } from '../../src/hooks/useLovedOne';
-import { isAdminEmail } from '../../src/lib/admin';
 import type { Script } from '../../src/api/types';
 
 // Light-touch personalization: scripts most relevant to the family's stated
@@ -50,7 +48,7 @@ function personalize(scripts: Script[], relationship: string | null, substances:
 
 export default function ScriptsScreen() {
   const { colors } = useTheme();
-  const { user, accountState } = useAccount();
+  const { user } = useAccount();
   const { t } = useTranslation('scripts');
   const { t: tCommon } = useTranslation('common');
   const { q } = useLocalSearchParams<{ q?: string }>();
@@ -83,7 +81,6 @@ export default function ScriptsScreen() {
   const firstName = user?.firstName ?? '';
   const isSearching = query.trim().length > 0;
 
-  if (accountState === 'direct-free' && !isAdminEmail(user?.email)) return <FreeTierPaywall />;
 
   return (
     <ScreenContainer backgroundColor={colors.cream}>

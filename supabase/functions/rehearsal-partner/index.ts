@@ -305,6 +305,37 @@ Deno.serve(async (req: Request) => {
   const { data: userData, error: authError } = await supabase.auth.getUser();
   if (authError || !userData?.user) return json(401, { ok: false, code: 'unauthorized' });
 
+  // Entitlement gate: the AI practice partner is an Essentials/Premium feature.
+  // (The classic record-and-playback rehearsal is free and never calls this API.)
+  // Queries run under the caller's RLS, mirroring what the app itself can read.
+  const allowEmails = (Deno.env.get('REHEARSAL_ALLOW_EMAILS') ?? 'matt@soberhelpline.com')
+    .toLowerCase()
+    .split(',')
+    .map((e) => e.trim());
+  let entitled = allowEmails.includes((userData.user.email ?? '').toLowerCase().trim());
+  if (!entitled) {
+    const { data: account } = await supabase
+      .from('accounts')
+      .select('id, type')
+      .eq('user_id', userData.user.id)
+      .single();
+    if (account?.type === 'attached') {
+      entitled = true;
+    } else if (account) {
+      const { data: rows } = await supabase
+        .from('entitlements')
+        .select('tier, expires_at')
+        .eq('account_id', account.id);
+      const now = Date.now();
+      entitled = (rows ?? []).some(
+        (r: { tier: string; expires_at: string | null }) =>
+          (r.tier === 'essential' || r.tier === 'premium') &&
+          (!r.expires_at || new Date(r.expires_at).getTime() > now),
+      );
+    }
+  }
+  if (!entitled) return json(403, { ok: false, code: 'upgrade_required' });
+
   let payload: {
     mode?: string;
     scenario?: Scenario;

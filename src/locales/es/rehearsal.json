@@ -22,5 +22,6 @@
   "wallSource": "De tu límite",
   "scriptSource": "De tus guiones",
   "liveButton": "Practica con un compañero",
-  "liveButtonSub": "Una IA interpreta a tu ser querido y te responde"
+  "liveButtonSub": "Una IA interpreta a tu ser querido y te responde",
+  "liveButtonLocked": "Se desbloquea con Essentials o Premium"
 }

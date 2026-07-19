@@ -12,6 +12,8 @@ import { useTranslation } from 'react-i18next';
 import { Audio } from 'expo-av';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useRehearsalCount } from '../src/hooks/useRehearsalCount';
+import { useAccount } from '../src/contexts/AccountContext';
+import { isAdminEmail } from '../src/lib/admin';
 
 type Phase = 'prompt' | 'recording' | 'playback' | 'selfcheck' | 'done';
 
@@ -27,6 +29,8 @@ export default function RehearsalScreen() {
   const sourceId = params.sourceId ?? 'unknown';
 
   const { count, increment } = useRehearsalCount(sourceId);
+  const { user, accountState } = useAccount();
+  const liveLocked = accountState === 'direct-free' && !isAdminEmail(user?.email);
 
   const [phase, setPhase] = useState<Phase>('prompt');
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
@@ -229,7 +233,9 @@ export default function RehearsalScreen() {
             activeOpacity={0.85}
           >
             <Text style={[styles.liveBtnText, { color: colors.coral }]}>{t('liveButton')}</Text>
-            <Text style={[styles.liveBtnSub, { color: colors.inkSoft }]}>{t('liveButtonSub')}</Text>
+            <Text style={[styles.liveBtnSub, { color: colors.inkSoft }]}>
+              {liveLocked ? `🔒 ${t('liveButtonLocked')}` : t('liveButtonSub')}
+            </Text>
           </TouchableOpacity>
         )}
 

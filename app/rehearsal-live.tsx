@@ -18,6 +18,8 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
+import { FreeTierPaywall } from '../src/components/ui/FreeTierPaywall';
+import { isAdminEmail } from '../src/lib/admin';
 import { useLovedOne } from '../src/hooks/useLovedOne';
 import { useRehearsalCount } from '../src/hooks/useRehearsalCount';
 import {
@@ -54,7 +56,7 @@ export default function RehearsalLiveScreen() {
   const { t, i18n } = useTranslation('rehearsalLive');
   const router = useRouter();
   const params = useLocalSearchParams<{ text?: string; sourceId?: string }>();
-  const { user } = useAccount();
+  const { user, accountState } = useAccount();
   const { lovedOne } = useLovedOne(user?.id ?? null);
   const { increment } = useRehearsalCount(params.sourceId ?? 'live-rehearsal');
 
@@ -208,6 +210,12 @@ export default function RehearsalLiveScreen() {
   }
 
   const inputLocked = sending || turnsLeft === 0 || safetyBreak;
+
+  // The AI practice partner is an Essentials/Premium feature. The classic
+  // record-and-playback rehearsal stays free.
+  if (accountState === 'direct-free' && !isAdminEmail(user?.email)) {
+    return <FreeTierPaywall />;
+  }
 
   return (
     <ScreenContainer backgroundColor={colors.ink}>

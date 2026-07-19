@@ -22,5 +22,6 @@
   "wallSource": "From your boundary",
   "scriptSource": "From your scripts",
   "liveButton": "Practice with a partner",
-  "liveButtonSub": "An AI plays your loved one and talks back"
+  "liveButtonSub": "An AI plays your loved one and talks back",
+  "liveButtonLocked": "Unlocks with Essentials or Premium"
 }
