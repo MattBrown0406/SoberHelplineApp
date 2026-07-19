@@ -17,7 +17,7 @@ import { WeekReviewCard } from '../../src/components/today/WeekReviewCard';
 import { ScriptCard } from '../../src/components/scripts/ScriptCard';
 import { useCheckIn } from '../../src/hooks/useCheckIn';
 import { useTodayFeed } from '../../src/hooks/useTodayFeed';
-import { getDailyScriptPair } from '../../src/content/scripts';
+import { getDailyScripts } from '../../src/content/scripts';
 import { isAdminEmail } from '../../src/lib/admin';
 import type { DailyFocusItem } from '../../src/api/types';
 import type { TFunction } from 'i18next';
@@ -65,7 +65,7 @@ export default function TodayScreen() {
   // streak, one free script, and the mood arc — is never gated. A habit that
   // exists converts; a paywall in place of a habit does not.
   if (accountState === 'direct-free' && !isAdmin) {
-    const freeScript = getDailyScriptPair(scriptSlot, i18n.language)[0];
+    const freeScript = getDailyScripts(scriptSlot, i18n.language)[0];
     return (
       <ScreenContainer backgroundColor={colors.cream}>
         {header}

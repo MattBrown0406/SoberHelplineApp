@@ -53,7 +53,7 @@ export function ScriptCard({ script }: Props) {
             ]}
           >
             <Text style={[styles.chipText, { color: script.tagTextColor }]}>
-              {script.tag}
+              {t(`tags.${script.tag}`, { defaultValue: script.tag })}
             </Text>
           </View>
           <Text style={[styles.title, { color: colors.ink }]}>{script.title}</Text>

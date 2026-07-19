@@ -1173,25 +1173,35 @@ export const SCRIPTS_ES: Script[] = [
   },
 ];
 
-// Rotation: each pair appears on a specific day-slot, no script repeats within a cycle.
-const DAILY_SCRIPT_PAIRS: [string, string][] = [
-  ['script-money', 'script-crisis'],                    // Day 0
-  ['script-suspicion', 'script-repair'],                // Day 1
-  ['script-denial', 'script-anger'],                    // Day 2
-  ['script-promises', 'script-treatment-ask'],          // Day 3
-  ['script-guilt', 'script-enabling-family'],           // Day 4
-  ['script-relapse', 'script-boundary-broken'],         // Day 5
-  ['script-phone-limits', 'script-gathering'],          // Day 6
-  ['script-impaired', 'script-job'],                    // Day 7
-  ['script-housing', 'script-milestone'],               // Day 8
-  ['script-fear', 'script-trust'],                      // Day 9
-  ['script-kids', 'script-parents-disagree'],           // Day 10
-  ['script-borrowed', 'script-stolen'],                 // Day 11
-  ['script-dui', 'script-self-harm'],                   // Day 12
-  ['script-first-convo', 'script-negotiate'],           // Day 13
-  ['script-overdose-scare', 'script-come-home-call'],   // Day 14
-  ['script-sit-down', 'script-no-more-covering'],       // Day 15
-  ['script-good-day', 'script-after-no'],               // Day 16
+// Rotation: three scripts per day-slot, mixed so each day pairs a heavier
+// situation with a lighter one. Every script appears within the 12-day
+// cycle (two high-utility ones appear twice); no repeats within a day.
+const DAILY_SCRIPT_SETS: [string, string, string][] = [
+  ['script-money', 'script-crisis', 'script-good-day'],                    // Day 0
+  ['script-first-convo', 'script-denial', 'script-phone-limits'],          // Day 1
+  ['script-relapse', 'script-repair', 'script-gathering'],                 // Day 2
+  ['script-treatment-ask', 'script-promises', 'script-milestone'],         // Day 3
+  ['script-boundary-broken', 'script-guilt', 'script-job'],                // Day 4
+  ['script-come-home-call', 'script-enabling-family', 'script-trust'],     // Day 5
+  ['script-suspicion', 'script-borrowed', 'script-kids'],                  // Day 6
+  ['script-overdose-scare', 'script-anger', 'script-housing'],             // Day 7
+  ['script-sit-down', 'script-negotiate', 'script-fear'],                  // Day 8
+  ['script-no-more-covering', 'script-stolen', 'script-parents-disagree'], // Day 9
+  ['script-impaired', 'script-dui', 'script-after-no'],                    // Day 10
+  ['script-first-convo', 'script-self-harm', 'script-money'],              // Day 11
+];
+
+// Curated shelves for browsing. Every tag maps to exactly one shelf, so the
+// full library reads as a short index instead of a wall of 34 cards. Crisis
+// stays first regardless of personalization — the user who needs those
+// scripts is the one who can't afford to hunt for them.
+export const SCRIPT_CATEGORIES: { key: string; tags: string[] }[] = [
+  { key: 'crisis', tags: ['CRISIS', 'SAFETY'] },
+  { key: 'boundaries', tags: ['LIMITS', 'MONEY', 'ENABLING'] },
+  { key: 'treatment', tags: ['TREATMENT', 'DENIAL', 'PROMISES'] },
+  { key: 'emotions', tags: ['ANGER', 'GUILT', 'SUSPICION'] },
+  { key: 'recovery', tags: ['RECOVERY', 'REPAIR', 'RELAPSE'] },
+  { key: 'everyday', tags: ['CONVERSATION', 'FAMILY'] },
 ];
 
 function libraryFor(language?: string): Script[] {
@@ -1202,9 +1212,9 @@ export function getScripts(language?: string): Script[] {
   return libraryFor(language);
 }
 
-export function getDailyScriptPair(daySlot: number, language?: string): Script[] {
+export function getDailyScripts(daySlot: number, language?: string): Script[] {
   const library = libraryFor(language);
   const byId = new Map(library.map((s) => [s.id, s]));
-  const [id1, id2] = DAILY_SCRIPT_PAIRS[daySlot % DAILY_SCRIPT_PAIRS.length] ?? DAILY_SCRIPT_PAIRS[0];
-  return [byId.get(id1), byId.get(id2)].filter(Boolean) as Script[];
+  const ids = DAILY_SCRIPT_SETS[daySlot % DAILY_SCRIPT_SETS.length] ?? DAILY_SCRIPT_SETS[0];
+  return ids.map((id) => byId.get(id)).filter(Boolean) as Script[];
 }

@@ -6,7 +6,35 @@
   "noResults": "No scripts match that search.",
   "practice": "Practice this",
   "todayEyebrow": "Today's scripts",
-  "allEyebrow": "All scripts",
+  "allEyebrow": "Browse by situation",
+  "freshTomorrow": "Three fresh scripts every day — check back tomorrow for a new set.",
   "comebackTheySay": "IF THEY SAY",
-  "comebackYouSay": "YOU CAN SAY"
+  "comebackYouSay": "YOU CAN SAY",
+  "categories": {
+    "crisis": "Crisis & safety",
+    "boundaries": "Boundaries & money",
+    "treatment": "Getting them to treatment",
+    "emotions": "Hard emotions",
+    "recovery": "Recovery & repair",
+    "everyday": "Everyday conversations",
+    "other": "More"
+  },
+  "tags": {
+    "MONEY": "MONEY",
+    "CRISIS": "CRISIS",
+    "SUSPICION": "SUSPICION",
+    "REPAIR": "REPAIR",
+    "RELAPSE": "RELAPSE",
+    "PROMISES": "PROMISES",
+    "GUILT": "GUILT",
+    "DENIAL": "DENIAL",
+    "ANGER": "ANGER",
+    "SAFETY": "SAFETY",
+    "LIMITS": "LIMITS",
+    "TREATMENT": "TREATMENT",
+    "RECOVERY": "RECOVERY",
+    "FAMILY": "FAMILY",
+    "CONVERSATION": "CONVERSATION",
+    "ENABLING": "ENABLING"
+  }
 }

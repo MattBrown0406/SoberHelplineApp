@@ -3,7 +3,9 @@ import {
   View,
   Text,
   TextInput,
+  TouchableOpacity,
   StyleSheet,
+  LayoutAnimation,
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
@@ -11,7 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { ScriptCard } from '../../src/components/scripts/ScriptCard';
-import { getScripts, getDailyScriptPair } from '../../src/content/scripts';
+import { getScripts, getDailyScripts, SCRIPT_CATEGORIES } from '../../src/content/scripts';
 import { useTodayFeed } from '../../src/hooks/useTodayFeed';
 import { useLovedOne } from '../../src/hooks/useLovedOne';
 import type { Script } from '../../src/api/types';
@@ -67,9 +69,37 @@ export default function ScriptsScreen() {
     [lovedOne?.relationship, lovedOne?.substances, i18n.language],
   );
   const todayScripts = useMemo(
-    () => getDailyScriptPair(scriptSlot, i18n.language),
+    () => getDailyScripts(scriptSlot, i18n.language),
     [scriptSlot, i18n.language],
   );
+
+  // Shelves: the full library grouped into a short index, collapsed by
+  // default. Personalized order is preserved within each shelf.
+  const shelves = useMemo(() => {
+    const tagToKey = new Map<string, string>();
+    for (const cat of SCRIPT_CATEGORIES) {
+      for (const tag of cat.tags) tagToKey.set(tag, cat.key);
+    }
+    const byKey = new Map<string, Script[]>();
+    for (const script of allScripts) {
+      const key = tagToKey.get(script.tag) ?? 'other';
+      if (!byKey.has(key)) byKey.set(key, []);
+      byKey.get(key)!.push(script);
+    }
+    const ordered = SCRIPT_CATEGORIES
+      .map((cat) => ({ key: cat.key, scripts: byKey.get(cat.key) ?? [] }))
+      .filter((shelf) => shelf.scripts.length > 0);
+    const other = byKey.get('other');
+    if (other && other.length > 0) ordered.push({ key: 'other', scripts: other });
+    return ordered;
+  }, [allScripts]);
+
+  const [openShelves, setOpenShelves] = useState<Record<string, boolean>>({});
+
+  function toggleShelf(key: string) {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setOpenShelves((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -127,21 +157,60 @@ export default function ScriptsScreen() {
         )
       ) : (
         <>
-          {/* Today's 2 featured scripts */}
+          {/* Today's 3 featured scripts */}
           <Text style={[styles.sectionLabel, { color: colors.inkSoft }]}>
             {t('todayEyebrow').toUpperCase()}
           </Text>
           {todayScripts.map((script) => (
             <ScriptCard key={script.id} script={script} />
           ))}
+          <Text style={[styles.freshNote, { color: colors.inkSoft }]}>
+            {t('freshTomorrow')}
+          </Text>
 
-          {/* Full library */}
+          {/* Full library as collapsed shelves */}
           <Text style={[styles.sectionLabel, { color: colors.inkSoft }]}>
             {t('allEyebrow').toUpperCase()}
           </Text>
-          {allScripts.map((script) => (
-            <ScriptCard key={script.id} script={script} />
-          ))}
+          {shelves.map((shelf) => {
+            const isOpen = !!openShelves[shelf.key];
+            return (
+              <View key={shelf.key}>
+                <TouchableOpacity
+                  style={[styles.shelfHead, { borderColor: colors.line }]}
+                  onPress={() => toggleShelf(shelf.key)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[styles.shelfTitle, { color: colors.ink }]}>
+                    {t(`categories.${shelf.key}`)}
+                  </Text>
+                  <View style={styles.shelfRight}>
+                    <View style={[styles.shelfCount, { backgroundColor: colors.cream }]}>
+                      <Text style={[styles.shelfCountText, { color: colors.inkSoft }]}>
+                        {shelf.scripts.length}
+                      </Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.shelfArrow,
+                        { color: colors.inkSoft },
+                        isOpen && styles.shelfArrowOpen,
+                      ]}
+                    >
+                      ▶
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+                {isOpen && (
+                  <View style={styles.shelfBody}>
+                    {shelf.scripts.map((script) => (
+                      <ScriptCard key={script.id} script={script} />
+                    ))}
+                  </View>
+                )}
+              </View>
+            );
+          })}
         </>
       )}
     </ScreenContainer>
@@ -204,5 +273,55 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'center',
     marginTop: 32,
+  },
+  freshNote: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginBottom: 18,
+    marginTop: 2,
+  },
+  shelfHead: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 10,
+  },
+  shelfTitle: {
+    fontSize: 14.5,
+    fontWeight: '700',
+    flex: 1,
+  },
+  shelfRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  shelfCount: {
+    borderRadius: 99,
+    minWidth: 26,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+  },
+  shelfCountText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  shelfArrow: {
+    fontSize: 12,
+  },
+  shelfArrowOpen: {
+    transform: [{ rotate: '90deg' }],
+  },
+  shelfBody: {
+    paddingLeft: 6,
+    marginBottom: 4,
   },
 });

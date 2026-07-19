@@ -6,7 +6,35 @@
   "noResults": "Ningún guión coincide con esa búsqueda.",
   "practice": "Practicar esto",
   "todayEyebrow": "Guiones de hoy",
-  "allEyebrow": "Todos los guiones",
+  "allEyebrow": "Explora por situación",
+  "freshTomorrow": "Tres guiones nuevos cada día — vuelve mañana por otros.",
   "comebackTheySay": "SI TE DICE",
-  "comebackYouSay": "PUEDES DECIR"
+  "comebackYouSay": "PUEDES DECIR",
+  "categories": {
+    "crisis": "Crisis y seguridad",
+    "boundaries": "Límites y dinero",
+    "treatment": "Hacia el tratamiento",
+    "emotions": "Emociones difíciles",
+    "recovery": "Recuperación y reparación",
+    "everyday": "Conversaciones del día a día",
+    "other": "Más"
+  },
+  "tags": {
+    "MONEY": "DINERO",
+    "CRISIS": "CRISIS",
+    "SUSPICION": "SOSPECHA",
+    "REPAIR": "REPARAR",
+    "RELAPSE": "RECAÍDA",
+    "PROMISES": "PROMESAS",
+    "GUILT": "CULPA",
+    "DENIAL": "NEGACIÓN",
+    "ANGER": "ENOJO",
+    "SAFETY": "SEGURIDAD",
+    "LIMITS": "LÍMITES",
+    "TREATMENT": "TRATAMIENTO",
+    "RECOVERY": "RECUPERACIÓN",
+    "FAMILY": "FAMILIA",
+    "CONVERSATION": "CONVERSACIÓN",
+    "ENABLING": "CODEPENDENCIA"
+  }
 }
