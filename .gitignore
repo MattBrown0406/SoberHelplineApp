@@ -33,3 +33,4 @@ google-services.json
 
 # Contains ASC API key identifiers — keep local only
 eas.json
+.claude/settings.local.json
