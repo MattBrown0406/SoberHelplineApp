@@ -41,11 +41,11 @@
     },
     "defensive": {
       "title": "Defensive",
-      "desc": "Turns it around on you — \"you drink too,\" old grievances, \"you're ganging up on me.\""
+      "desc": "Argues, never yells — turns everything around on you, keeps score, picks your words apart. Cold, not loud."
     },
     "volatile": {
       "title": "Heated",
-      "desc": "Guilt-trips, sarcasm, threatens to walk out — tries to bait you into an old argument."
+      "desc": "Explodes — gets loud, swears, gets personal, threatens to storm out. A fight, not a debate."
     },
     "tearful": {
       "title": "Guilt-ridden",

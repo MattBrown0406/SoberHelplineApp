@@ -41,11 +41,11 @@
     },
     "defensive": {
       "title": "Defensivo",
-      "desc": "Te lo devuelve — \"tú también tomas\", viejos reproches, \"me están atacando entre todos.\""
+      "desc": "Discute, nunca grita — te lo devuelve todo, lleva la cuenta, desarma cada palabra tuya. Frío, no fuerte."
     },
     "volatile": {
       "title": "Explosivo",
-      "desc": "Culpas, sarcasmo, amenaza con irse — intenta arrastrarte a una pelea vieja."
+      "desc": "Estalla — alza la voz, dice groserías, se pone personal, amenaza con irse. Una pelea, no un debate."
     },
     "tearful": {
       "title": "Culposo",
