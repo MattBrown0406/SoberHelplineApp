@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Alert, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -17,9 +17,13 @@ export default function ConsentScreen() {
   const [saving, setSaving] = useState(false);
 
   async function record(granted: boolean) {
+    if (!user) {
+      Alert.alert(t('saveError.title'), t('saveError.body'));
+      return;
+    }
     setSaving(true);
-    if (user) {
-      await supabase.from('consents').upsert(
+    try {
+      const { error } = await supabase.from('consents').upsert(
         {
           account_id: user.id,
           consent_key: COACH_SHARING_CONSENT_KEY,
@@ -29,9 +33,13 @@ export default function ConsentScreen() {
         },
         { onConflict: 'account_id, consent_key' },
       );
+      if (error) throw error;
+      router.push('/(onboarding)/loved-one');
+    } catch {
+      Alert.alert(t('saveError.title'), t('saveError.body'));
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    router.push('/(onboarding)/loved-one');
   }
 
   return (

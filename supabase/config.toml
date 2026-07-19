@@ -364,6 +364,36 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# Privileged schedulers/webhooks. The gateway validates the JWT and each
+# function also requires the exact service-role bearer token.
+[functions.drain-spine-outbox]
+verify_jwt = true
+
+[functions.zoom-sync]
+verify_jwt = true
+
+[functions.daily-nudge]
+verify_jwt = true
+
+[functions.notify-daily-morning]
+verify_jwt = true
+
+[functions.notify-session-reminder]
+verify_jwt = true
+
+[functions.notify-chat-message]
+verify_jwt = true
+
+[functions.notify-coaching-request]
+verify_jwt = true
+
+[functions.livekit-token]
+verify_jwt = true
+
+# Public destination for Supabase email-confirmation links.
+[functions.confirm-landing]
+verify_jwt = false
+
 # Functions used by the website/app payment bridge.
 [functions.create-plan-review-checkout]
 verify_jwt = true

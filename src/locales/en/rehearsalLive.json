@@ -60,6 +60,8 @@
     "replay": "▶ Replay",
     "micPermissionTitle": "Microphone access needed",
     "micPermissionBody": "To practice out loud, allow microphone access. You can also practice by typing.",
+    "recordingErrorTitle": "Recording didn't stop",
+    "recordingErrorBody": "Try releasing the microphone again before leaving this screen.",
     "turnsLeft_one": "{{count}} exchange left in this session",
     "turnsLeft_other": "{{count}} exchanges left in this session",
     "turnsDone": "Session complete — get your feedback below",

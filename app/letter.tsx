@@ -197,30 +197,33 @@ export default function LetterScreen() {
     if (!user || !draft) return;
     setSendingLetter(true);
     try {
-      const { data: existing } = await supabase
+      const { data: existing, error: lookupError } = await supabase
         .from('threads')
         .select('id')
         .eq('kind', 'oncall')
         .maybeSingle();
+      if (lookupError) throw lookupError;
 
       let tid = existing?.id as string | undefined;
       if (!tid) {
-        const { data: created } = await supabase
+        const { data: created, error: createError } = await supabase
           .from('threads')
           .insert({ account_id: user.id, kind: 'oncall' })
           .select('id')
           .single();
-        tid = created?.id;
+        if (createError || !created?.id) throw createError ?? new Error('thread_not_created');
+        tid = created.id;
       }
 
-      if (tid) {
-        await supabase.from('messages').insert({
-          thread_id: tid,
-          sender_role: 'member',
-          body: assembleLetterText(draft),
-        });
-      }
+      const { error: sendError } = await supabase.from('messages').insert({
+        thread_id: tid,
+        sender_role: 'member',
+        body: assembleLetterText(draft),
+      });
+      if (sendError) throw sendError;
       router.push('/chat');
+    } catch {
+      Alert.alert(t('sendErrorTitle'), t('sendErrorBody'));
     } finally {
       setSendingLetter(false);
     }

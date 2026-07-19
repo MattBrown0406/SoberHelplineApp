@@ -254,7 +254,7 @@ function calendarEvent(session: VideoSession, memberName: string, coachName: str
   const start = new Date(session.scheduled_for!);
   const end = new Date(start.getTime() + session.duration_minutes! * 60_000);
   return {
-    summary: safeText(`Private video session — ${memberName} / ${coachName}`, 180),
+    summary: 'Private appointment',
     description: 'Private scheduled video support session. Open the secure staff application for session access and details.',
     start: { dateTime: start.toISOString(), timeZone: 'UTC' },
     end: { dateTime: end.toISOString(), timeZone: 'UTC' },

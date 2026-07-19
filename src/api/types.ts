@@ -66,6 +66,7 @@ export interface AuthUser {
   orgId: string | null;         // null for direct (App Store) members
   branding: OrgBranding | null; // null for direct members — use app defaults
   joinedAt: string;             // ISO 8601
+  timezone: string;
 }
 
 // ─── Staff / Coach ────────────────────────────────────────────────────────────

@@ -57,6 +57,8 @@
     "privacy": "Privacy Policy"
   },
   "signOut": "Sign out",
+  "signOutErrorTitle": "Couldn't sign out safely",
+  "signOutErrorBody": "We couldn't remove this device from private notifications. Check your connection and try again.",
   "deleteAccount": {
     "button": "Delete account",
     "confirmTitle": "Delete your account?",

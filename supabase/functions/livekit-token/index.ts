@@ -12,6 +12,7 @@ const cors = {
 
 type Account = { id: string; first_name: string | null };
 type StaffRole = { role: 'owner' | 'coach'; active: boolean };
+const ALLOWED_GROUP_ROOMS = new Set(['shp-parents', 'shp-spouses', 'shp-boundaries', 'shp-treatment']);
 type PrivateVideoSession = {
   id: string;
   account_id: string;
@@ -65,6 +66,9 @@ Deno.serve(async (req) => {
     // also prevents a leaked name from falling through to a group viewer token.
     if (requestedRoom.startsWith('premium-video-')) {
       return json({ error: 'private_sessions_require_sessionId' }, 403);
+    }
+    if (!ALLOWED_GROUP_ROOMS.has(requestedRoom)) {
+      return json({ error: 'group_room_not_allowed' }, 403);
     }
 
     return groupRoomToken(supabase, requestedRoom, account, user.email?.trim().toLowerCase() === 'matt@soberhelpline.com');
@@ -163,13 +167,14 @@ async function groupRoomToken(
   account: Account,
   isAdmin: boolean,
 ) {
-  const { data: hostRow } = await supabase
+  const { data: hostRows, error } = await supabase
     .from('group_hosts')
-    .select('account_id')
-    .eq('room_name', room)
-    .eq('account_id', account.id)
-    .maybeSingle();
-  const isHost = isAdmin && !!hostRow;
+    .select('account_id, is_live')
+    .eq('room_name', room);
+  if (error) throw error;
+  const isHost = isAdmin && (hostRows ?? []).some((row) => row.account_id === account.id);
+  const isLive = (hostRows ?? []).some((row) => row.is_live === true);
+  if (!isHost && !isLive) return json({ error: 'group_room_not_live' }, 403);
   const token = await buildToken({ room, account, canPublish: isHost, roomAdmin: isHost, ttl: '2h' });
   return json({ token, sessionId: null, room, isHost, isPrivateVideo: false, canPublish: isHost, identity: account.id });
 }

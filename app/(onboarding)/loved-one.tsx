@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -39,15 +40,20 @@ export default function LovedOneScreen() {
 
   async function handleContinue() {
     setSaving(true);
-    await save({
-      relationship,
-      first_name: firstName.trim() || null,
-      substances,
-      stage,
-      status: status ?? 'unknown',
-    });
-    setSaving(false);
-    router.push('/(onboarding)/notifications');
+    try {
+      await save({
+        relationship,
+        first_name: firstName.trim() || null,
+        substances,
+        stage,
+        status: status ?? 'unknown',
+      });
+      router.push('/(onboarding)/notifications');
+    } catch {
+      Alert.alert(t('saveError.title'), t('saveError.body'));
+    } finally {
+      setSaving(false);
+    }
   }
 
   function skip() {

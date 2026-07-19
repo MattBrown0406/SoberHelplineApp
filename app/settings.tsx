@@ -102,6 +102,16 @@ export default function SettingsScreen() {
   }
 
   async function handleSignOut() {
+    if (user) {
+      const { error } = await supabase
+        .from('accounts')
+        .update({ push_token: null })
+        .eq('id', user.id);
+      if (error) {
+        Alert.alert(t('signOutErrorTitle'), t('signOutErrorBody'));
+        return;
+      }
+    }
     await supabase.auth.signOut();
   }
 

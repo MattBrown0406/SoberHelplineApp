@@ -60,6 +60,8 @@
     "replay": "▶ Repetir",
     "micPermissionTitle": "Se necesita acceso al micrófono",
     "micPermissionBody": "Para practicar en voz alta, permite el acceso al micrófono. También puedes practicar escribiendo.",
+    "recordingErrorTitle": "La grabación no se detuvo",
+    "recordingErrorBody": "Intenta soltar el micrófono otra vez antes de salir de esta pantalla.",
     "turnsLeft_one": "Queda {{count}} intercambio en esta sesión",
     "turnsLeft_other": "Quedan {{count}} intercambios en esta sesión",
     "turnsDone": "Sesión completa — recibe tu retroalimentación abajo",

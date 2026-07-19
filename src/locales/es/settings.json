@@ -57,6 +57,8 @@
     "privacy": "Política de privacidad"
   },
   "signOut": "Cerrar sesión",
+  "signOutErrorTitle": "No se pudo cerrar la sesión de forma segura",
+  "signOutErrorBody": "No pudimos quitar este dispositivo de las notificaciones privadas. Revisa tu conexión e inténtalo de nuevo.",
   "deleteAccount": {
     "button": "Eliminar cuenta",
     "confirmTitle": "¿Eliminar tu cuenta?",

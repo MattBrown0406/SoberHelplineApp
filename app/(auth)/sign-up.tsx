@@ -21,6 +21,17 @@ import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '../../src/config';
 
 const TERMS_VERSION = '1.0';
 
+function openLegalDocument(url: string) {
+  // React Native Web's Linking.openURL replaces the signup page in the current
+  // tab, discarding everything the person already typed. Keep legal documents
+  // in a separate tab on web; native platforms still use the system browser.
+  if (Platform.OS === 'web') {
+    window.open(url, '_blank', 'noopener,noreferrer');
+    return;
+  }
+  void Linking.openURL(url);
+}
+
 export default function SignUpScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation('auth');
@@ -206,26 +217,30 @@ export default function SignUpScreen() {
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: acceptedTerms }}
-              style={styles.termsRow}
-              onPress={() => setAcceptedTerms((value) => !value)}
-            >
-              <View style={[styles.termsCheckbox, { borderColor: colors.primary, backgroundColor: acceptedTerms ? colors.primary : colors.white }]}>
-                <Text style={styles.termsCheckmark}>{acceptedTerms ? '✓' : ''}</Text>
-              </View>
+            <View style={styles.termsRow}>
+              <TouchableOpacity
+                accessibilityRole="checkbox"
+                accessibilityLabel={t('signUp.termsCheckboxLabel')}
+                accessibilityState={{ checked: acceptedTerms }}
+                aria-checked={acceptedTerms}
+                style={styles.termsCheckboxButton}
+                onPress={() => setAcceptedTerms((value) => !value)}
+              >
+                <View style={[styles.termsCheckbox, { borderColor: colors.primary, backgroundColor: acceptedTerms ? colors.primary : colors.white }]}>
+                  <Text style={styles.termsCheckmark}>{acceptedTerms ? '✓' : ''}</Text>
+                </View>
+              </TouchableOpacity>
               <Text style={[styles.termsNote, { color: colors.inkSoft }]}>
                 {t('signUp.termsNote')}{' '}
-                <Text style={{ color: colors.primary, textDecorationLine: 'underline' }} onPress={(event) => { event.stopPropagation(); void Linking.openURL(TERMS_OF_USE_URL); }}>
+                <Text style={{ color: colors.primary, textDecorationLine: 'underline' }} onPress={(event) => { event.stopPropagation(); openLegalDocument(TERMS_OF_USE_URL); }}>
                   {t('signUp.termsLink')}
                 </Text>
                 {' '}{t('signUp.andText')}{' '}
-                <Text style={{ color: colors.primary, textDecorationLine: 'underline' }} onPress={(event) => { event.stopPropagation(); void Linking.openURL(PRIVACY_POLICY_URL); }}>
+                <Text style={{ color: colors.primary, textDecorationLine: 'underline' }} onPress={(event) => { event.stopPropagation(); openLegalDocument(PRIVACY_POLICY_URL); }}>
                   {t('signUp.privacyLink')}
                 </Text>.
               </Text>
-            </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.footer}>
@@ -295,7 +310,8 @@ const styles = StyleSheet.create({
   dividerText: { fontSize: 12 },
   appleBtn: { width: '100%', height: 50 },
   termsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  termsCheckbox: { width: 22, height: 22, borderWidth: 1.5, borderRadius: 5, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
+  termsCheckboxButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', margin: -10 },
+  termsCheckbox: { width: 22, height: 22, borderWidth: 1.5, borderRadius: 5, alignItems: 'center', justifyContent: 'center' },
   termsCheckmark: { color: '#fff', fontWeight: '900' },
   termsNote: { flex: 1, fontSize: 11.5, lineHeight: 17 },
   footer: {

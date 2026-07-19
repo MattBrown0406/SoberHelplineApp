@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { privateVideoChannelTopic } from '../lib/realtimeTopics';
@@ -70,12 +70,14 @@ export function usePrivateVideoSessions(accountId: string | null, canAccess: boo
   const [mutating, setMutating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorKey, setErrorKey] = useState<string | null>(null);
+  const loadGeneration = useRef(0);
 
   const clearError = useCallback(() => { setError(null); setErrorKey(null); }, []);
 
   const load = useCallback(async () => {
+    const generation = ++loadGeneration.current;
     if (!accountId || !canAccess) {
-      setActiveSession(null); setHistory([]); setPendingProposal(null); clearError();
+      setActiveSession(null); setHistory([]); setPendingProposal(null); setLoading(false); clearError();
       return;
     }
     setLoading(true);
@@ -83,6 +85,7 @@ export function usePrivateVideoSessions(accountId: string | null, canAccess: boo
       supabase.rpc('member_get_active_video_session'),
       supabase.rpc('member_get_video_session_history', { p_limit: 10, p_before: null, p_before_id: null }),
     ]);
+    if (generation !== loadGeneration.current) return;
     const failure = activeError ?? historyError;
     if (failure) {
       setError(failure.message); setErrorKey(errorCode(failure));
@@ -96,12 +99,13 @@ export function usePrivateVideoSessions(accountId: string | null, canAccess: boo
           .from('video_session_proposals')
           .select('id, session_id, proposed_by_role, starts_at, timezone, duration_minutes, note, status, created_at')
           .eq('session_id', active.id).eq('status', 'pending').maybeSingle();
+        if (generation !== loadGeneration.current) return;
         if (proposalError) {
           setError(proposalError.message); setErrorKey(errorCode(proposalError));
         } else setPendingProposal((data as VideoSessionProposal | null) ?? null);
       } else setPendingProposal(null);
     }
-    setLoading(false);
+    if (generation === loadGeneration.current) setLoading(false);
   }, [accountId, canAccess, clearError]);
 
   useEffect(() => { void load(); }, [load]);

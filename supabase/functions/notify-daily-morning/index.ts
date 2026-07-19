@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { bandsForAccounts } from '../_shared/situation.ts';
+import { requireServiceRole } from '../_shared/service-auth.ts';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
@@ -25,8 +26,7 @@ const COPY: Record<
     mondayBody:
       "It's Monday — join The Family Squares Zoom meeting tonight at 7:00 PM Pacific. Be with people who understand what you're going through.",
     supportTitle: 'A gentle start',
-    supportBody:
-      'This stretch has looked heavy. Be kind to yourself today — and remember a coach is one tap away if you want one.',
+    supportBody: 'Take one quiet breath before the day begins. Open the app whenever you want support.',
     morningTitle: 'Good morning',
     genericMorning: 'A quiet moment for you this morning: take one breath before the day begins.',
   },
@@ -35,8 +35,7 @@ const COPY: Record<
     mondayBody:
       'Es lunes — únete esta noche a la reunión de Zoom The Family Squares a las 7:00 PM (Pacífico). Acompáñate de quienes entienden lo que estás viviendo.',
     supportTitle: 'Un comienzo suave',
-    supportBody:
-      'Esta etapa se ha visto difícil. Sé amable contigo hoy — y recuerda que un coach está a un toque si lo deseas.',
+    supportBody: 'Respira con calma antes de empezar el día. Abre la app cuando quieras apoyo.',
     morningTitle: 'Buenos días',
     genericMorning: 'Un momento de calma para ti esta mañana: respira una vez antes de empezar el día.',
   },
@@ -84,7 +83,9 @@ interface Acct {
   language: string;
 }
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  const authError = requireServiceRole(req);
+  if (authError) return authError;
   const { data: accounts, error } = await supabase
     .from('accounts')
     .select('id, push_token, language')

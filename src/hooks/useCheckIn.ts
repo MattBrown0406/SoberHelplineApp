@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { CheckIn, CheckInStreak, MoodScore } from '../api/types';
-import { getCheckIn, saveCheckIn as persistLocal, getCheckedInDates, toDateStr, localDayRangeUtc } from '../storage/checkIn';
+import { getCheckIn, saveCheckIn as persistLocal, getCheckedInDates, toDateStr } from '../storage/checkIn';
 import { supabase } from '../lib/supabase';
 import { rearmDailyNudge } from './usePushNotifications';
 
@@ -11,7 +11,7 @@ export interface UseCheckInResult {
   saveCheckIn: (moodScore: MoodScore, note?: string) => Promise<void>;
 }
 
-export function useCheckIn(accountId: string | null): UseCheckInResult {
+export function useCheckIn(accountId: string | null, timezone?: string): UseCheckInResult {
   const [todayCheckIn, setTodayCheckIn] = useState<CheckIn | null>(null);
   const [streak, setStreak] = useState<CheckInStreak>({
     currentStreak: 0,
@@ -23,24 +23,23 @@ export function useCheckIn(accountId: string | null): UseCheckInResult {
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      const { startIso, endIso } = localDayRangeUtc(new Date());
+      setIsLoading(true);
+      const storageOwner = accountId ?? 'local';
+      const today = toDateStr(new Date(), timezone);
 
       if (accountId) {
-        // Supabase-first: fetch today's check-in and full history from the database.
-        // "Today" is the user's LOCAL calendar day, bounded as UTC instants.
         const [todayResult, historyResult] = await Promise.all([
           supabase
             .from('checkins')
-            .select('id, mood, note, created_at')
+            .select('id, mood, note, created_at, checkin_date')
             .eq('account_id', accountId)
-            .gte('created_at', startIso)
-            .lte('created_at', endIso)
+            .eq('checkin_date', today)
             .maybeSingle(),
           supabase
             .from('checkins')
-            .select('created_at')
+            .select('checkin_date')
             .eq('account_id', accountId)
-            .order('created_at', { ascending: false }),
+            .order('checkin_date', { ascending: false }),
         ]);
 
         if (cancelled) return;
@@ -54,34 +53,39 @@ export function useCheckIn(accountId: string | null): UseCheckInResult {
             completedAt: todayResult.data.created_at,
             synced: true,
           };
-          await persistLocal(remote);
+          await persistLocal(remote, timezone);
+          if (cancelled) return;
           setTodayCheckIn(remote);
         } else {
-          setTodayCheckIn(await getCheckIn(new Date()));
+          const localToday = await getCheckIn(accountId, new Date(), timezone);
+          if (cancelled) return;
+          setTodayCheckIn(localToday);
         }
 
         if (historyResult.data) {
-          const dates = historyResult.data.map((r) => toDateStr(new Date(r.created_at)));
-          setStreak(computeStreak(dates));
+          setStreak(computeStreak(historyResult.data.map((row) => row.checkin_date), timezone));
         } else {
-          setStreak(computeStreak(await getCheckedInDates()));
+          const localDates = await getCheckedInDates(accountId);
+          if (cancelled) return;
+          setStreak(computeStreak(localDates, timezone));
         }
       } else {
-        // Offline / pre-auth fallback
         const [existing, dates] = await Promise.all([
-          getCheckIn(new Date()),
-          getCheckedInDates(),
+          getCheckIn(storageOwner, new Date(), timezone),
+          getCheckedInDates(storageOwner),
         ]);
         if (cancelled) return;
         setTodayCheckIn(existing);
-        setStreak(computeStreak(dates));
+        setStreak(computeStreak(dates, timezone));
       }
 
-      setIsLoading(false);
+      if (!cancelled) setIsLoading(false);
     }
-    void load();
+    void load().catch(() => {
+      if (!cancelled) setIsLoading(false);
+    });
     return () => { cancelled = true; };
-  }, [accountId]);
+  }, [accountId, timezone]);
 
   const saveCheckIn = useCallback(async (moodScore: MoodScore, note?: string) => {
     const now = new Date();
@@ -98,16 +102,12 @@ export function useCheckIn(accountId: string | null): UseCheckInResult {
       synced: false,
     };
 
-    // 1. Optimistic local write — must succeed before anything else
-    await persistLocal(checkIn);
+    await persistLocal(checkIn, timezone);
     setTodayCheckIn(checkIn);
-    const localDates = await getCheckedInDates();
-    setStreak(computeStreak(localDates));
-
-    // Drop today's check-in reminder now that it's done (no nagging).
+    const localDates = await getCheckedInDates(checkIn.userId);
+    setStreak(computeStreak(localDates, timezone));
     void rearmDailyNudge();
 
-    // 2. Sync to Supabase if authenticated
     if (accountId) {
       const { error } = await supabase.from('checkins').insert({
         id: checkIn.id,
@@ -115,33 +115,32 @@ export function useCheckIn(accountId: string | null): UseCheckInResult {
         mood: checkIn.moodScore,
         note: checkIn.note,
         created_at: checkIn.completedAt,
+        checkin_date: toDateStr(now, timezone),
       });
 
       if (error) {
         console.error('[useCheckIn] Supabase insert failed:', error);
-      } else {
-        const synced = { ...checkIn, synced: true };
-        await persistLocal(synced);
-        setTodayCheckIn(synced);
+        throw error;
       }
+
+      const synced = { ...checkIn, synced: true };
+      await persistLocal(synced, timezone);
+      setTodayCheckIn(synced);
     }
-  }, [accountId]);
+  }, [accountId, timezone]);
 
   return { todayCheckIn, streak, isLoading, saveCheckIn };
 }
 
-function computeStreak(datesDesc: string[]): CheckInStreak {
+function computeStreak(datesDesc: string[], timezone?: string): CheckInStreak {
   if (!datesDesc.length) {
     return { currentStreak: 0, longestStreak: 0, lastCompletedDate: null };
   }
 
-  const today = toDateStr(new Date());
-  const yesterday = toDateStr(new Date(Date.now() - 86_400_000));
+  const today = toDateStr(new Date(), timezone);
+  const yesterday = toDateStr(new Date(Date.now() - 86_400_000), timezone);
   const set = new Set(datesDesc);
 
-  // Current streak with a single grace day: one missed day anywhere in the run
-  // is forgiven so a busy day doesn't wipe out weeks of momentum. A second
-  // missed day ends the streak.
   let current = 0;
   let graceConsumed = false;
   let countAtGrace = 0;
@@ -149,11 +148,11 @@ function computeStreak(datesDesc: string[]): CheckInStreak {
   if (startDate) {
     const cursor = new Date(startDate + 'T12:00:00Z');
     while (true) {
-      if (set.has(toDateStr(cursor))) {
+      if (set.has(cursor.toISOString().slice(0, 10))) {
         current++;
         cursor.setUTCDate(cursor.getUTCDate() - 1);
       } else if (!graceConsumed) {
-        graceConsumed = true; // forgive one gap, then require the prior day to continue
+        graceConsumed = true;
         countAtGrace = current;
         cursor.setUTCDate(cursor.getUTCDate() - 1);
       } else {
@@ -161,23 +160,18 @@ function computeStreak(datesDesc: string[]): CheckInStreak {
       }
     }
   }
-  // Grace only "held" the streak if days were counted on the far side of the gap.
   const graceUsed = graceConsumed && current > countAtGrace;
 
-  const sorted = [...datesDesc].reverse();
-  let longest = 0;
-  let run = 1;
+  const sorted = [...new Set(datesDesc)].sort();
+  let longest = sorted.length ? 1 : 0;
+  let run = sorted.length ? 1 : 0;
   for (let i = 1; i < sorted.length; i++) {
-    const prev = new Date(sorted[i - 1] + 'T12:00:00Z');
-    prev.setUTCDate(prev.getUTCDate() + 1);
-    if (toDateStr(prev) === sorted[i]) {
-      run++;
-    } else {
-      if (run > longest) longest = run;
-      run = 1;
-    }
+    const previous = new Date(sorted[i - 1] + 'T12:00:00Z');
+    previous.setUTCDate(previous.getUTCDate() + 1);
+    if (previous.toISOString().slice(0, 10) === sorted[i]) run++;
+    else run = 1;
+    if (run > longest) longest = run;
   }
-  if (run > longest) longest = run;
 
   return {
     currentStreak: current,

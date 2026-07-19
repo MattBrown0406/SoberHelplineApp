@@ -80,6 +80,7 @@ export default function RehearsalLiveScreen() {
   const [voiceOn, setVoiceOn] = useState(true);
   const [draft, setDraft] = useState('');
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const recordingRef = useRef<Audio.Recording | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
 
@@ -153,7 +154,11 @@ export default function RehearsalLiveScreen() {
     // even with the iPhone mute switch on.
     void Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
     return () => {
-      soundRef.current?.unloadAsync();
+      void soundRef.current?.unloadAsync();
+      const active = recordingRef.current;
+      recordingRef.current = null;
+      if (active) void active.stopAndUnloadAsync().catch(() => undefined);
+      void Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true }).catch(() => undefined);
     };
   }, []);
 
@@ -205,6 +210,7 @@ export default function RehearsalLiveScreen() {
       const { recording: rec } = await Audio.Recording.createAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY,
       );
+      recordingRef.current = rec;
       setRecording(rec);
     } catch {
       // no mic (simulator) — typing still works
@@ -212,16 +218,21 @@ export default function RehearsalLiveScreen() {
   }
 
   async function stopTalking() {
-    if (!recording) return;
+    const active = recordingRef.current ?? recording;
+    if (!active) return;
     let uri: string | null = null;
     let durationMillis = 0;
     try {
-      const status = await recording.getStatusAsync();
+      const status = await active.getStatusAsync();
       durationMillis = status.durationMillis ?? 0;
-      await recording.stopAndUnloadAsync();
+      await active.stopAndUnloadAsync();
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
-      uri = recording.getURI();
-    } catch {}
+      uri = active.getURI();
+    } catch {
+      Alert.alert(t('chat.recordingErrorTitle'), t('chat.recordingErrorBody'));
+      return;
+    }
+    recordingRef.current = null;
     setRecording(null);
     if (!uri) return;
     // A slipped finger produces a fraction-of-a-second clip of near-silence.

@@ -71,6 +71,10 @@
     "acceptButton": "Turn on reminders",
     "declineButton": "Maybe later"
   },
+  "saveError": {
+    "title": "We couldn't save that",
+    "body": "Check your connection and try again. Your choices are still here."
+  },
   "done": {
     "title": "Your castle starts today",
     "body": "Check in once a day. Anchor your first wall when you're ready. Help is one tap away — always.",

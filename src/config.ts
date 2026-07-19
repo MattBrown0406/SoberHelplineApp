@@ -15,8 +15,16 @@ const RC_IOS_API_KEY =
   ?? process.env.EXPO_PUBLIC_RC_API_KEY
   ?? 'appl_sTcxKuHizcswwnnOgGMcFSlwFsa';
 const RC_ANDROID_API_KEY = process.env.EXPO_PUBLIC_RC_ANDROID_API_KEY ?? '';
+const RC_WEB_API_KEY = process.env.EXPO_PUBLIC_RC_WEB_API_KEY ?? '';
 
-export const RC_API_KEY = Platform.OS === 'android' ? RC_ANDROID_API_KEY : RC_IOS_API_KEY;
+// RevenueCat keys are platform-specific. Passing the iOS public SDK key to the
+// web SDK makes every browser session fail configuration before auth finishes.
+export const RC_API_KEY = Platform.select({
+  ios: RC_IOS_API_KEY,
+  android: RC_ANDROID_API_KEY,
+  web: RC_WEB_API_KEY,
+  default: '',
+}) ?? '';
 export const SUBSCRIPTION_MANAGEMENT_URL = Platform.select({
   android: 'https://play.google.com/store/account/subscriptions',
   default: 'https://apps.apple.com/account/subscriptions',

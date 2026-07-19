@@ -21,6 +21,10 @@ function serializeIdentity<T>(operation: () => Promise<T>): Promise<T> {
 
 /** Configure RevenueCat and finish customer identification before entitlement reads. */
 export function configureRevenueCat(userId?: string): Promise<boolean> {
+  // Web billing is optional. If no key is configured for the active platform,
+  // leave RevenueCat disabled instead of invoking its SDK with another
+  // platform's key and producing a guaranteed configuration failure.
+  if (!revenueCatPublicKey) return Promise.resolve(false);
   return serializeIdentity(async () => {
     try {
       ensureConfigured();
@@ -41,6 +45,7 @@ export function configureRevenueCat(userId?: string): Promise<boolean> {
 
 /** Prevent one Supabase account from inheriting another account's RC identity. */
 export function resetRevenueCatUser(): Promise<void> {
+  if (!revenueCatPublicKey) return Promise.resolve();
   return serializeIdentity(async () => {
     try {
       ensureConfigured();

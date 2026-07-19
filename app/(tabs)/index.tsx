@@ -27,7 +27,7 @@ export default function TodayScreen() {
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('today');
   const router = useRouter();
-  const { todayCheckIn, streak, saveCheckIn } = useCheckIn(user?.id ?? null);
+  const { todayCheckIn, streak, saveCheckIn } = useCheckIn(user?.id ?? null, user?.timezone);
   const { dayCount, boundariesHeld, groupSessions, quoteIndex, focusSlot, scriptSlot, situation, primaryDoor, nextFreeCall, rsvpFreeCall } =
     useTodayFeed(user?.id ?? null, user?.joinedAt ?? null);
   const isAdmin = isAdminEmail(user?.email);

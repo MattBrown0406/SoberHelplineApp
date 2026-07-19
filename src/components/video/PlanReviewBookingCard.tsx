@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { ActivityIndicator, Alert, Linking, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import type { TFunction } from 'i18next';
 import type { AccountState } from '../../api/types';
 import type { usePrivateVideoSessions } from '../../hooks/usePrivateVideoSessions';
@@ -18,6 +18,8 @@ export function PlanReviewBookingCard({ controller, accountState, source, t, con
   const [focus, setFocus] = useState('');
   const [questions, setQuestions] = useState('');
   const [startsAt, setStartsAt] = useState(() => { const d = new Date(Date.now() + 86400000); d.setMinutes(0, 0, 0); return d; });
+  const [showDate, setShowDate] = useState(false);
+  const [showTime, setShowTime] = useState(false);
   const [consented, setConsented] = useState(false);
   const [preview, setPreview] = useState(false);
   const [previewFingerprint, setPreviewFingerprint] = useState<string | null>(null);
@@ -68,6 +70,16 @@ export function PlanReviewBookingCard({ controller, accountState, source, t, con
   const toggleConsent = () => {
     if (!consented && (!preview || previewFingerprint !== fingerprint)) { Alert.alert(k('checkTitle'), k('previewBeforeConsent')); return; }
     const next = !consented; setConsented(next); setConsentFingerprint(next ? fingerprint : null);
+  };
+  const changeDate = (mode: 'date' | 'time') => (_event: DateTimePickerEvent, picked?: Date) => {
+    if (Platform.OS !== 'ios') mode === 'date' ? setShowDate(false) : setShowTime(false);
+    if (!picked) return;
+    setStartsAt((current) => {
+      const next = new Date(current);
+      if (mode === 'date') next.setFullYear(picked.getFullYear(), picked.getMonth(), picked.getDate());
+      else next.setHours(picked.getHours(), picked.getMinutes(), 0, 0);
+      return next;
+    });
   };
   async function submit() {
     if (!selected.length || !consented || !preview || previewFingerprint !== fingerprint || consentFingerprint !== fingerprint || startsAt <= new Date()) { Alert.alert(k('checkTitle'), k('checkBody')); return; }
@@ -139,7 +151,13 @@ export function PlanReviewBookingCard({ controller, accountState, source, t, con
       <Text style={{ color: colors.inkSoft }}>{k('previewQuestions', { value: requestQuestions.length ? requestQuestions.join(' · ') : k('none') })}</Text>
       {Object.entries(snapshot.sections).map(([key, value]) => <View key={key}><Text style={{ color: colors.ink, fontWeight: '800' }}>{k(`sections.${key}`)}</Text><Text selectable style={{ color: colors.inkSoft }}>{JSON.stringify(value, null, 2)}</Text><TouchableOpacity onPress={() => toggle(key as PlanReviewSectionKey)}><Text style={{ color: colors.coral, fontWeight: '700' }}>{k('remove')}</Text></TouchableOpacity></View>)}
     </View> : null}
-    <Text style={[styles.label, { color: colors.ink }]}>{k('date')}</Text><DateTimePicker value={startsAt} mode="datetime" minimumDate={new Date()} onChange={(_event, value) => value && setStartsAt(value)} />
+    <Text style={[styles.label, { color: colors.ink }]}>{k('date')}</Text>
+    <View style={styles.row}>
+      <TouchableOpacity accessibilityRole="button" onPress={() => setShowDate(true)} style={[styles.choice, { borderColor: colors.primary }]}><Text style={{ color: colors.ink }}>{startsAt.toLocaleDateString()}</Text></TouchableOpacity>
+      <TouchableOpacity accessibilityRole="button" onPress={() => setShowTime(true)} style={[styles.choice, { borderColor: colors.primary }]}><Text style={{ color: colors.ink }}>{startsAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</Text></TouchableOpacity>
+    </View>
+    {showDate ? <DateTimePicker value={startsAt} mode="date" minimumDate={new Date()} onChange={changeDate('date')} /> : null}
+    {showTime ? <DateTimePicker value={startsAt} mode="time" minuteInterval={5} onChange={changeDate('time')} /> : null}
     <Text style={{ color: colors.inkSoft }}>{formatInTimeZone(startsAt, detectedTimeZone())}</Text>
     <TextInput value={focus} onChangeText={setFocus} multiline placeholder={k('focus')} placeholderTextColor={colors.inkSoft} style={[styles.input, { color: colors.ink, borderColor: colors.line }]} />
     <TextInput value={questions} onChangeText={setQuestions} multiline placeholder={k('questions')} placeholderTextColor={colors.inkSoft} style={[styles.input, { color: colors.ink, borderColor: colors.line }]} />

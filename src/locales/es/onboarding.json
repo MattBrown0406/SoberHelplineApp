@@ -71,6 +71,10 @@
     "acceptButton": "Activar recordatorios",
     "declineButton": "Quizás después"
   },
+  "saveError": {
+    "title": "No pudimos guardar eso",
+    "body": "Revisa tu conexión e inténtalo de nuevo. Tus selecciones siguen aquí."
+  },
   "done": {
     "title": "Tu castillo comienza hoy",
     "body": "Regístrate una vez al día. Ancla tu primera muralla cuando estés lista. La ayuda está a un toque — siempre.",

@@ -14,6 +14,7 @@
 //        Add header: Authorization: Bearer <service-role-key>
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { requireServiceRole } from '../_shared/service-auth.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -31,11 +32,9 @@ async function sendExpoPush(to: string, title: string, body: string): Promise<vo
   }
 }
 
-function truncate(text: string, max = 100): string {
-  return text.length > max ? text.slice(0, max) + '…' : text;
-}
-
 Deno.serve(async (req: Request) => {
+  const authError = requireServiceRole(req);
+  if (authError) return authError;
   try {
     const payload = await req.json();
     const message = payload.record;
@@ -62,7 +61,7 @@ Deno.serve(async (req: Request) => {
         await sendExpoPush(
           coachToken,
           `Message from ${name}`,
-          truncate(message.body),
+          'Open Sober Helpline to read this private message.',
         );
       } else {
         console.warn('[notify-chat-message] coach has no push token yet');
@@ -73,7 +72,7 @@ Deno.serve(async (req: Request) => {
         await sendExpoPush(
           member.push_token,
           'New message from your coach',
-          truncate(message.body),
+          'Open Sober Helpline to read this private message.',
         );
       } else {
         console.warn('[notify-chat-message] member has no push token');

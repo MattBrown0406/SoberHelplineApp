@@ -1,11 +1,14 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { requireServiceRole } from '../_shared/service-auth.ts';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
 );
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  const authError = requireServiceRole(req);
+  if (authError) return authError;
   const { data: tokens } = await supabase.rpc('get_session_rsvp_push_tokens', {
     p_session_title: 'The Family Squares',
   });

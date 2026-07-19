@@ -5,6 +5,8 @@
   "entryButton": "Comenzar una carta",
   "recipientLabel": "¿Para quién es esta carta?",
   "recipientPlaceholder": "Su nombre",
+  "sendErrorTitle": "La carta no se envió",
+  "sendErrorBody": "Tu carta sigue aquí. Revisa tu conexión e intenta enviarla de nuevo.",
   "steps": {
     "p1": "Por qué estoy aquí",
     "p2": "El impacto",

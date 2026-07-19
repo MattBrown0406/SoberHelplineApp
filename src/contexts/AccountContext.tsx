@@ -58,6 +58,7 @@ async function fetchAccount(authUser: User): Promise<AuthUser | null> {
       accountState: 'direct-premium',
       orgId: null,
       joinedAt: new Date().toISOString(),
+      timezone: 'America/Los_Angeles',
     });
   }
 
@@ -127,6 +128,7 @@ async function fetchAccount(authUser: User): Promise<AuthUser | null> {
     accountState,
     orgId: data.org_id ?? null,
     joinedAt: data.created_at,
+    timezone: data.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
   });
 }
 
@@ -138,6 +140,7 @@ function buildAuthUser({
   accountState,
   orgId,
   joinedAt,
+  timezone,
 }: {
   id: string;
   firstName: string;
@@ -146,6 +149,7 @@ function buildAuthUser({
   accountState: AccountState;
   orgId: string | null;
   joinedAt: string;
+  timezone: string;
 }): AuthUser {
   const isPaid = accountState !== 'direct-free';
   const entitlements: Entitlements = {
@@ -169,6 +173,7 @@ function buildAuthUser({
     orgId,
     branding: null,
     joinedAt,
+    timezone,
   };
 }
 

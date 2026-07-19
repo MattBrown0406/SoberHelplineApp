@@ -5,6 +5,8 @@
   "entryButton": "Start a letter",
   "recipientLabel": "Who is this letter for?",
   "recipientPlaceholder": "Their first name",
+  "sendErrorTitle": "Letter not sent",
+  "sendErrorBody": "Your letter is still here. Check your connection and try sending it again.",
   "steps": {
     "p1": "Why I'm here",
     "p2": "The impact",

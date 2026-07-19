@@ -58,7 +58,21 @@ export async function rearmDailyNudge(): Promise<void> {
   const hour = await getReminderHour();
   const title = i18n.t('settings:notifications.dailyNudgeTitle');
   const bodies = nudgeBodies();
-  const checkedInToday = (await getCheckIn(new Date())) !== null;
+  let storageOwner = 'local';
+  let timezone: string | undefined;
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.user.id) {
+    const { data: account } = await supabase
+      .from('accounts')
+      .select('id, timezone')
+      .eq('user_id', session.user.id)
+      .maybeSingle();
+    if (account?.id) {
+      storageOwner = account.id;
+      timezone = account.timezone;
+    }
+  }
+  const checkedInToday = (await getCheckIn(storageOwner, new Date(), timezone)) !== null;
   const now = new Date();
 
   for (let i = 0; i < NUDGE_DAYS; i++) {

@@ -14,6 +14,7 @@
 //        HTTP method: POST  |  Add header: Authorization: Bearer <service-role-key>
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { requireServiceRole } from '../_shared/service-auth.ts';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
@@ -22,7 +23,18 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '
 const NOTIFY_TO = 'matt@soberhelpline.com';
 const NOTIFY_FROM = 'notifications@soberhelpline.com';
 
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
 Deno.serve(async (req: Request) => {
+  const authError = requireServiceRole(req);
+  if (authError) return authError;
   try {
     const payload = await req.json();
     const booking = payload.record;
@@ -48,9 +60,9 @@ Deno.serve(async (req: Request) => {
 
     const html = `
       <h2>New 1:1 Coaching Request</h2>
-      <p><strong>From:</strong> ${name}</p>
-      <p><strong>Available times:</strong><br>${(booking.preferred_times ?? '').replace(/\n/g, '<br>')}</p>
-      ${booking.note ? `<p><strong>Notes / contact:</strong><br>${booking.note.replace(/\n/g, '<br>')}</p>` : ''}
+      <p><strong>From:</strong> ${escapeHtml(name)}</p>
+      <p><strong>Available times:</strong><br>${escapeHtml(booking.preferred_times).replace(/\n/g, '<br>')}</p>
+      ${booking.note ? `<p><strong>Notes / contact:</strong><br>${escapeHtml(booking.note).replace(/\n/g, '<br>')}</p>` : ''}
       <p><strong>Submitted:</strong> ${new Date(booking.created_at).toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })} PT</p>
       <hr>
       <p style="color:#666;font-size:12px;">Reply to this email or reach the user via the contact info above.</p>

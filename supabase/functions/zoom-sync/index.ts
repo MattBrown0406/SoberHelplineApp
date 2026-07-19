@@ -16,6 +16,7 @@
 // (fixed ID) — prefer that when possible.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { requireServiceRole } from '../_shared/service-auth.ts';
 
 const MEETING_TOPIC_MATCH = Deno.env.get('ZOOM_TOPIC_MATCH') ?? 'Family Squares';
 // Tolerant match: the prod row is titled 'The Family Squares'; older seeds used
@@ -35,7 +36,9 @@ async function zoomToken(): Promise<string> {
   return (await res.json()).access_token as string;
 }
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  const authError = requireServiceRole(req);
+  if (authError) return authError;
   try {
     const token = await zoomToken();
     const res = await fetch(

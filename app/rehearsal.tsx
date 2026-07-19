@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -35,6 +35,7 @@ export default function RehearsalScreen() {
 
   const [phase, setPhase] = useState<Phase>('prompt');
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const recordingRef = useRef<Audio.Recording | null>(null);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [soundUri, setSoundUri] = useState<string | null>(null);
   const [checkAnswers, setCheckAnswers] = useState<Record<string, boolean | null>>({});
@@ -42,9 +43,16 @@ export default function RehearsalScreen() {
 
   useEffect(() => {
     return () => {
-      sound?.unloadAsync();
+      void sound?.unloadAsync();
     };
   }, [sound]);
+
+  useEffect(() => () => {
+    const active = recordingRef.current;
+    recordingRef.current = null;
+    if (active) void active.stopAndUnloadAsync().catch(() => undefined);
+    void Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(() => undefined);
+  }, []);
 
   async function startRecording() {
     try {
@@ -57,6 +65,7 @@ export default function RehearsalScreen() {
       const { recording: rec } = await Audio.Recording.createAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY,
       );
+      recordingRef.current = rec;
       setRecording(rec);
       setPhase('recording');
     } catch {
@@ -65,13 +74,18 @@ export default function RehearsalScreen() {
   }
 
   async function stopRecording() {
-    if (!recording) return;
+    const active = recordingRef.current ?? recording;
+    if (!active) return;
     try {
-      await recording.stopAndUnloadAsync();
+      await active.stopAndUnloadAsync();
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
-      const uri = recording.getURI();
+      const uri = active.getURI();
       setSoundUri(uri ?? null);
-    } catch {}
+    } catch {
+      Alert.alert('Recording error', 'We could not finish that recording. Please try again.');
+      return;
+    }
+    recordingRef.current = null;
     setRecording(null);
     setPhase('playback');
   }
