@@ -323,7 +323,13 @@ Deno.serve(async (req: Request) => {
     const turns = (payload.messages ?? [])
       .filter((m): m is Turn => (m?.role === 'user' || m?.role === 'partner') && typeof m?.text === 'string')
       .slice(-MAX_MESSAGES);
-    if (turns.length === 0 || turns[turns.length - 1].role !== 'user') {
+    // A debrief transcript normally ends with the partner's line; it only needs
+    // at least one user turn to evaluate. Replies require the user to speak last.
+    if (payload.mode === 'debrief') {
+      if (!turns.some((t) => t.role === 'user')) {
+        return json(400, { ok: false, code: 'no_user_message' });
+      }
+    } else if (turns.length === 0 || turns[turns.length - 1].role !== 'user') {
       return json(400, { ok: false, code: 'no_user_message' });
     }
 
