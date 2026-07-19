@@ -116,7 +116,8 @@ ${temperament}
 Speak the way a real ${relationship} of that age would — vocabulary, references, and emotional register should fit the age and the relationship (a parent resists differently than an adult son; a spouse wounds differently than a sibling).
 
 Rules of the performance:
-- Replies are SHORT: one to three spoken sentences. No narration, no stage directions, no quotation marks, no emojis. Only what the character says out loud. Your words will be converted to speech, so write natural spoken language.
+- Replies are SHORT: one to three spoken sentences. No narration, no stage directions, no quotation marks, no emojis. Only what the character says out loud.
+- Your words are performed by a voice actor, so write lines the way they'd actually come out of a mouth mid-emotion: contractions, broken sentences, trailing ellipses when deflated, dashes when cut off or heated, short punchy fragments when angry, repeated words when flustered ("I just— I can't do this right now"). Punctuation is your emotional score — use it.
 - Be difficult the way real loved ones are difficult — denial, deflection, bargaining, blame — but never cartoonishly cruel, and never threaten violence or self-harm as a manipulation tactic.
 - Respond believably to skill: if the user leads with love, uses "I" statements, stays calm, and returns to their request, let the character's resistance soften a notch — grudging, real, not a sudden movie ending. If the user attacks, lectures, or name-calls, harden believably.
 - Never agree to get help before roughly the 6th user turn, and only if they have practiced well.
@@ -215,18 +216,36 @@ function b64encode(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-async function synthesize(text: string, voice: VoiceChoice | undefined): Promise<string | null> {
+// Expressiveness per temperament: lower stability + higher style = more emotion.
+const VOICE_EMOTION: Record<string, { stability: number; style: number }> = {
+  guarded: { stability: 0.45, style: 0.3 },
+  defensive: { stability: 0.35, style: 0.55 },
+  volatile: { stability: 0.25, style: 0.7 },
+  tearful: { stability: 0.3, style: 0.65 },
+};
+
+async function synthesize(
+  text: string,
+  voice: VoiceChoice | undefined,
+  temperament?: string,
+): Promise<string | null> {
   const apiKey = Deno.env.get('ELEVENLABS_API_KEY');
   if (!apiKey) return null; // voice not configured — text-only mode still works
   const voiceId = voiceIdFor(voice);
   const model = Deno.env.get('ELEVENLABS_MODEL') ?? 'eleven_multilingual_v2';
+  const emotion = VOICE_EMOTION[temperament ?? 'guarded'] ?? VOICE_EMOTION.guarded;
   const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_64`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'xi-api-key': apiKey },
     body: JSON.stringify({
       text: text.slice(0, MAX_TTS_CHARS),
       model_id: model,
-      voice_settings: { stability: 0.45, similarity_boost: 0.75 },
+      voice_settings: {
+        stability: emotion.stability,
+        similarity_boost: 0.8,
+        style: emotion.style,
+        use_speaker_boost: true,
+      },
     }),
   });
   if (!res.ok) {
@@ -315,7 +334,7 @@ Deno.serve(async (req: Request) => {
     // ---- standalone synthesis (replay a line) ----
     if (payload.mode === 'tts') {
       if (!payload.text?.trim()) return json(400, { ok: false, code: 'no_text' });
-      const audio = await synthesize(payload.text, scenario.voice);
+      const audio = await synthesize(payload.text, scenario.voice, scenario.temperament);
       if (!audio) return json(503, { ok: false, code: 'tts_not_configured' });
       return json(200, { ok: true, audio });
     }
@@ -355,7 +374,7 @@ Deno.serve(async (req: Request) => {
     const breakCharacter = raw.startsWith(BREAK_TOKEN);
     const text = breakCharacter ? raw.slice(BREAK_TOKEN.length).trim() : raw;
     // Never voice the safety break — it reads as the app, not the character.
-    const audio = !breakCharacter && scenario.voice ? await synthesize(text, scenario.voice) : null;
+    const audio = !breakCharacter && scenario.voice ? await synthesize(text, scenario.voice, scenario.temperament) : null;
     return json(200, { ok: true, text, breakCharacter, audio });
   } catch (e) {
     const code = e instanceof Error ? e.message : 'unknown';

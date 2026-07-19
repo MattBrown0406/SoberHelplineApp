@@ -119,31 +119,46 @@ export default function RehearsalLiveScreen() {
   }, [debrief, increment]);
 
   useEffect(() => {
+    // Prime the audio session once so the first reply speaks without delay,
+    // even with the iPhone mute switch on.
+    void Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
     return () => {
       soundRef.current?.unloadAsync();
     };
   }, []);
 
+  const clipCounter = useRef(0);
   const playAudio = useCallback(async (audioB64: string) => {
     try {
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
-      const path = `${FileSystem.cacheDirectory}rehearsal-reply.mp3`;
+      clipCounter.current += 1;
+      const path = `${FileSystem.cacheDirectory}rehearsal-reply-${clipCounter.current}.mp3`;
       await FileSystem.writeAsStringAsync(path, audioB64, { encoding: FileSystem.EncodingType.Base64 });
       if (soundRef.current) await soundRef.current.unloadAsync();
-      const { sound } = await Audio.Sound.createAsync({ uri: path });
+      const { sound } = await Audio.Sound.createAsync({ uri: path }, { shouldPlay: true });
       soundRef.current = sound;
-      await sound.playAsync();
     } catch {
       // Voice is a layer, never a blocker — the text is already on screen.
     }
   }, []);
 
+  // Speak each partner reply the moment it lands on screen — this is a dialogue.
+  const lastSpokenIndex = useRef(-1);
+  useEffect(() => {
+    if (stage !== 'chat' || !voiceOn || messages.length === 0) return;
+    const lastIndex = messages.length - 1;
+    const last = messages[lastIndex];
+    if (last.role === 'partner' && last.audio && lastIndex > lastSpokenIndex.current) {
+      lastSpokenIndex.current = lastIndex;
+      void playAudio(last.audio);
+    }
+  }, [messages, stage, voiceOn, playAudio]);
+
   async function handleSend(text?: string) {
     const outgoing = (text ?? draft).trim();
     if (!outgoing) return;
     setDraft('');
-    const audio = await send(outgoing);
-    if (audio && voiceOn) void playAudio(audio);
+    await send(outgoing);
   }
 
   async function startTalking() {
