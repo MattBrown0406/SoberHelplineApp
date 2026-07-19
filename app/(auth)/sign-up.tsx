@@ -58,6 +58,10 @@ export default function SignUpScreen() {
       email: email.trim(),
       password,
       options: {
+        // Land confirmation clicks on a friendly hosted page instead of the
+        // project Site URL (which used to dead-end at localhost for users).
+        // Must be in the Supabase Auth redirect allow-list.
+        emailRedirectTo: `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/confirm-landing`,
         data: {
           first_name: firstName.trim(),
           last_name: lastName.trim(),
