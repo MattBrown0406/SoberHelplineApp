@@ -160,6 +160,26 @@ Respond with STRICT JSON only, no markdown fences, exactly this shape:
 
 // ---------------- LLM (OpenAI preferred, Anthropic fallback) ----------------
 
+// Upstream APIs (OpenAI, ElevenLabs) throw transient 429s/5xx under load.
+// One blip should never surface as "couldn't reach your practice partner" —
+// retry with a short backoff before giving up.
+async function fetchWithRetry(url: string, init: RequestInit, attempts = 3): Promise<Response> {
+  for (let i = 0; ; i++) {
+    let res: Response | null = null;
+    try {
+      res = await fetch(url, init);
+    } catch (e) {
+      if (i >= attempts - 1) throw e; // network-level failure on final attempt
+    }
+    if (res) {
+      const retryable = res.status === 429 || res.status >= 500;
+      if (!retryable || i >= attempts - 1) return res;
+      await res.text().catch(() => {}); // drain the body before retrying
+    }
+    await new Promise((r) => setTimeout(r, 500 * (i + 1)));
+  }
+}
+
 async function callModel(system: string, turns: Turn[], maxTokens: number, modelOverride?: string): Promise<string> {
   const openaiKey = Deno.env.get('OPENAI_API_KEY');
   const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
@@ -170,7 +190,7 @@ async function callModel(system: string, turns: Turn[], maxTokens: number, model
 
   if (openaiKey) {
     const model = modelOverride ?? Deno.env.get('REHEARSAL_MODEL') ?? 'gpt-4o-mini';
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    const res = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${openaiKey}` },
       body: JSON.stringify({
@@ -191,7 +211,7 @@ async function callModel(system: string, turns: Turn[], maxTokens: number, model
 
   if (anthropicKey) {
     const model = Deno.env.get('REHEARSAL_MODEL') ?? 'claude-sonnet-4-5';
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -249,7 +269,7 @@ async function synthesize(
   const voiceId = voiceIdFor(voice);
   const model = Deno.env.get('ELEVENLABS_MODEL') ?? 'eleven_multilingual_v2';
   const emotion = VOICE_EMOTION[temperament ?? 'guarded'] ?? VOICE_EMOTION.guarded;
-  const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_64`, {
+  const res = await fetchWithRetry(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_64`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'xi-api-key': apiKey },
     body: JSON.stringify({
@@ -282,7 +302,7 @@ async function transcribe(audioB64: string, format: string, language?: string): 
   form.append('file', new Blob([bytes]), `speech.${ext}`);
   form.append('model', 'whisper-1');
   if (language === 'es' || language === 'en') form.append('language', language);
-  const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+  const res = await fetchWithRetry('https://api.openai.com/v1/audio/transcriptions', {
     method: 'POST',
     headers: { authorization: `Bearer ${apiKey}` },
     body: form,

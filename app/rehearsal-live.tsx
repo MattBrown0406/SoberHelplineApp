@@ -188,7 +188,10 @@ export default function RehearsalLiveScreen() {
     const outgoing = (text ?? draft).trim();
     if (!outgoing) return;
     setDraft('');
-    await send(outgoing);
+    const result = await send(outgoing);
+    // If the send failed, put their words back — never make someone retype
+    // a sentence that was hard to say the first time.
+    if (!result.ok) setDraft((prev) => (prev ? prev : outgoing));
   }
 
   async function startTalking() {
