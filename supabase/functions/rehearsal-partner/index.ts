@@ -293,6 +293,34 @@ async function synthesize(
 
 // ---------------- OpenAI Whisper speech-to-text ----------------
 
+// Whisper hallucinates on silence/noise — it fills the void with phrases it
+// saw constantly in training. A slipped finger on the hold-to-speak bar used
+// to become "Thank you" or "You" in the input box. Two defenses: segments
+// Whisper itself marks as probable non-speech are dropped, and transcripts
+// that consist only of a known hallucination phrase are treated as silence.
+const WHISPER_HALLUCINATIONS = new Set([
+  // English
+  'you', 'thank you', 'thank you so much', 'thanks', 'thanks for watching',
+  'thank you for watching', 'bye', 'bye bye', 'okay', 'so', 'the', 'oh', 'uh', 'um',
+  // Spanish
+  'gracias', 'muchas gracias', 'gracias por ver', 'gracias por ver el video',
+  'adios', 'adiós', 'hasta luego',
+]);
+
+function isSilenceHallucination(text: string): boolean {
+  const norm = text
+    .toLowerCase()
+    .replace(/[.,!?¡¿'"“”\-…]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!norm) return true;
+  if (WHISPER_HALLUCINATIONS.has(norm)) return true;
+  // Whisper's infamous subtitle-credit hallucinations (any language)
+  if (norm.startsWith('subtitulos') || norm.startsWith('subtítulos') || norm.includes('amara org')) return true;
+  return false;
+}
+
+/** Returns '' (not an error) for silence — a slipped finger is a no-op, not a failure. */
 async function transcribe(audioB64: string, format: string, language?: string): Promise<string> {
   const apiKey = Deno.env.get('OPENAI_API_KEY');
   if (!apiKey) throw new Error('stt_not_configured');
@@ -301,6 +329,8 @@ async function transcribe(audioB64: string, format: string, language?: string): 
   const form = new FormData();
   form.append('file', new Blob([bytes]), `speech.${ext}`);
   form.append('model', 'whisper-1');
+  form.append('response_format', 'verbose_json'); // exposes per-segment no_speech_prob
+  form.append('temperature', '0');
   if (language === 'es' || language === 'en') form.append('language', language);
   const res = await fetchWithRetry('https://api.openai.com/v1/audio/transcriptions', {
     method: 'POST',
@@ -312,8 +342,16 @@ async function transcribe(audioB64: string, format: string, language?: string): 
     throw new Error('stt_error');
   }
   const data = await res.json();
-  const text = (data?.text ?? '').trim();
-  if (!text) throw new Error('stt_empty');
+  const segments = Array.isArray(data?.segments) ? data.segments : null;
+  const text = (segments
+    ? segments
+        .filter((s: { no_speech_prob?: number }) => (s?.no_speech_prob ?? 0) < 0.6)
+        .map((s: { text?: string }) => s?.text ?? '')
+        .join(' ')
+    : (data?.text ?? ''))
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (isSilenceHallucination(text)) return '';
   return text;
 }
 

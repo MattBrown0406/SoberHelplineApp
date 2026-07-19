@@ -214,13 +214,20 @@ export default function RehearsalLiveScreen() {
   async function stopTalking() {
     if (!recording) return;
     let uri: string | null = null;
+    let durationMillis = 0;
     try {
+      const status = await recording.getStatusAsync();
+      durationMillis = status.durationMillis ?? 0;
       await recording.stopAndUnloadAsync();
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
       uri = recording.getURI();
     } catch {}
     setRecording(null);
     if (!uri) return;
+    // A slipped finger produces a fraction-of-a-second clip of near-silence.
+    // Whisper hallucinates filler ("Thank you", "You") on clips like that —
+    // don't even send them.
+    if (durationMillis < 700) return;
     try {
       const b64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
       const format = uri.split('.').pop() ?? 'm4a';
