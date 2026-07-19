@@ -58,7 +58,6 @@
     "listening": "Escuchando…",
     "send": "Decirlo",
     "replay": "▶ Repetir",
-    "micHint": "Mantén presionado el micrófono para hablar — tus palabras aparecen como texto que puedes revisar antes de enviar",
     "micPermissionTitle": "Se necesita acceso al micrófono",
     "micPermissionBody": "Para practicar en voz alta, permite el acceso al micrófono. También puedes practicar escribiendo.",
     "turnsLeft_one": "Queda {{count}} intercambio en esta sesión",
@@ -68,8 +67,8 @@
     "error": "No pudimos conectar con tu compañero de práctica. Revisa tu conexión e inténtalo de nuevo.",
     "safetyTitle": "Pausemos la práctica",
     "safetyBody": "Parece que estás cargando algo real en este momento. Toca aquí para ver opciones de apoyo inmediato — esto importa más que el ensayo.",
-    "holdToSpeak": "Mantén presionada esta barra para hablar",
-    "releaseWhenDone": "Escuchando — suelta cuando termines"
+    "holdToSpeak": "Mantén presionado para hablar",
+    "releaseWhenDone": "Escuchando — suelta al terminar"
   },
   "debrief": {
     "heading": "Retroalimentación del coach",

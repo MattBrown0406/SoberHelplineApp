@@ -77,15 +77,15 @@ export function ScriptCard({ script }: Props) {
             style={[
               styles.block,
               {
-                backgroundColor: '#d3e4da',
-                borderLeftColor: colors.green,
+                backgroundColor: colors.green,
+                borderLeftColor: '#33543f',
               },
             ]}
           >
-            <Text style={[styles.blockLabel, { color: colors.green }]}>
+            <Text style={[styles.blockLabel, { color: 'rgba(255,255,255,0.85)' }]}>
               {t('trySaying')}
             </Text>
-            <Text style={[styles.blockText, { color: colors.ink }]}>
+            <Text style={[styles.blockText, { color: '#ffffff' }]}>
               {script.trySaying}
             </Text>
           </View>

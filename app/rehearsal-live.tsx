@@ -428,32 +428,6 @@ export default function RehearsalLiveScreen() {
               {turnsLeft > 0 ? t('chat.turnsLeft', { count: turnsLeft }) : t('chat.turnsDone')}
             </Text>
 
-            {/* Hold to speak — full-width, drift-tolerant */}
-            <TouchableOpacity
-              style={[
-                styles.holdBar,
-                {
-                  backgroundColor: recording ? colors.coral : colors.primaryDark,
-                  borderColor: colors.coral,
-                  opacity: inputLocked || transcribing ? 0.4 : 1,
-                },
-              ]}
-              onPressIn={startTalking}
-              onPressOut={stopTalking}
-              disabled={inputLocked || transcribing}
-              activeOpacity={0.9}
-              pressRetentionOffset={{ top: 150, bottom: 150, left: 150, right: 150 }}
-              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-            >
-              {transcribing ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <Text style={styles.holdBarText}>
-                  {recording ? `●  ${t('chat.releaseWhenDone')}` : `🎤  ${t('chat.holdToSpeak')}`}
-                </Text>
-              )}
-            </TouchableOpacity>
-
             <View style={styles.inputRow}>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.primaryDark, color: colors.white }]}
@@ -477,8 +451,6 @@ export default function RehearsalLiveScreen() {
                 <Text style={styles.sendBtnText}>{t('chat.send')}</Text>
               </TouchableOpacity>
             </View>
-            <Text style={[styles.micHint, { color: colors.inkSoft }]}>{t('chat.micHint')}</Text>
-
             <TouchableOpacity
               style={[
                 styles.finishBtn,
@@ -492,6 +464,32 @@ export default function RehearsalLiveScreen() {
                 <ActivityIndicator color={colors.white} size="small" />
               ) : (
                 <Text style={[styles.finishBtnText, { color: colors.white }]}>{t('chat.finishButton')}</Text>
+              )}
+            </TouchableOpacity>
+
+            {/* Hold to speak — pinned to the bottom where the thumb lives */}
+            <TouchableOpacity
+              style={[
+                styles.holdBar,
+                {
+                  backgroundColor: recording ? colors.coral : colors.primaryDark,
+                  borderColor: colors.coral,
+                  opacity: inputLocked || transcribing ? 0.4 : 1,
+                },
+              ]}
+              onPressIn={startTalking}
+              onPressOut={stopTalking}
+              disabled={inputLocked || transcribing}
+              activeOpacity={0.9}
+              pressRetentionOffset={{ top: 200, bottom: 200, left: 200, right: 200 }}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            >
+              {transcribing ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text style={styles.holdBarText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
+                  {recording ? `●  ${t('chat.releaseWhenDone')}` : `🎤  ${t('chat.holdToSpeak')}`}
+                </Text>
               )}
             </TouchableOpacity>
           </View>
@@ -555,8 +553,10 @@ export default function RehearsalLiveScreen() {
           </ScrollView>
         )}
 
-        {/* Privacy / reality note */}
-        <Text style={[styles.privacyNote, { color: colors.inkSoft }]}>{t('privacyNote')}</Text>
+        {/* Privacy / reality note (setup and debrief — the chat keeps the bar at the very bottom) */}
+        {stage !== 'chat' && (
+          <Text style={[styles.privacyNote, { color: colors.inkSoft }]}>{t('privacyNote')}</Text>
+        )}
       </KeyboardAvoidingView>
     </ScreenContainer>
   );
@@ -613,14 +613,14 @@ const styles = StyleSheet.create({
   holdBar: {
     borderRadius: 16,
     borderWidth: 1.5,
-    minHeight: 58,
+    minHeight: 62,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
-    paddingVertical: 16,
+    marginTop: 6,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
   },
   holdBarText: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  micHint: { fontSize: 10, textAlign: 'center', marginBottom: 8 },
   whyCard: {
     borderRadius: 14,
     borderLeftWidth: 3,

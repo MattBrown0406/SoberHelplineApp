@@ -58,7 +58,6 @@
     "listening": "Listening…",
     "send": "Say it",
     "replay": "▶ Replay",
-    "micHint": "Hold the mic to speak — your words appear as text you can review before sending",
     "micPermissionTitle": "Microphone access needed",
     "micPermissionBody": "To practice out loud, allow microphone access. You can also practice by typing.",
     "turnsLeft_one": "{{count}} exchange left in this session",
@@ -68,8 +67,8 @@
     "error": "Couldn't reach your practice partner. Check your connection and try again.",
     "safetyTitle": "Let's pause the practice",
     "safetyBody": "It sounds like you might be carrying something real right now. Tap here for immediate support options — this matters more than rehearsal.",
-    "holdToSpeak": "Hold anywhere on this bar to speak",
-    "releaseWhenDone": "Listening — release when you're done"
+    "holdToSpeak": "Hold to speak",
+    "releaseWhenDone": "Listening — release when done"
   },
   "debrief": {
     "heading": "Coach's feedback",
