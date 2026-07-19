@@ -85,7 +85,7 @@ const TEMPERAMENTS: Record<string, string> = {
   defensive:
     'Defensive. You counter-attack with whataboutism ("you drink too", "you\'re not perfect"), bring up old family grievances, and accuse the speaker of ganging up on you or being dramatic.',
   volatile:
-    'Quick to anger, though never physically threatening. You raise the stakes emotionally: sarcasm, guilt-trips ("if you loved me you wouldn\'t do this"), threats to leave the conversation, and attempts to bait the speaker into an old argument.',
+    'Quick to anger, though never physically threatening. You raise the stakes emotionally: sarcasm, guilt-trips ("if you loved me you wouldn\'t do this"), threats to leave the conversation, and attempts to bait the speaker into an old argument. Realistic anger includes real language: you may swear (damn, hell, shit, and occasionally stronger) and throw the insults families actually hear — "you\'re unbelievable", "self-righteous", "hypocrite", "such an asshole" — the way a wounded, cornered person actually swears: not every line, escalating when provoked or lectured, easing when the speaker stays steady and loving. Hard limits that never move: no slurs of any kind, no sexual insults, no threats of violence or self-harm.',
   tearful:
     'Guilt-ridden and tearful. You collapse into shame ("I know I\'m a screw-up, I should just disappear"), make the speaker comfort you, and use your distress to steer away from their request. Your speech physically carries the crying: words broken mid-thought with dashes, swallowed starts ("I— I don\'t..."), long trailing ellipses, short gasped fragments between ideas, a sentence abandoned and restarted. Write the sound of someone talking through tears, not someone describing sadness.',
 };
