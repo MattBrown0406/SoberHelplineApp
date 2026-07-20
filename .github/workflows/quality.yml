@@ -27,6 +27,7 @@ jobs:
           test ! -e src/api/mock.ts
           ! grep -R "api/mock" app src --include='*.ts' --include='*.tsx'
       - run: npm run typecheck
+      - run: npm run test:auth
       - run: npm run doctor
       - run: npm run export:web
         env:

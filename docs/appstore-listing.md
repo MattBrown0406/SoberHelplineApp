@@ -117,5 +117,5 @@ Esperanza. Ayuda. Recuperación.
 ## Notes for App Review
 - Positioned as coaching/education/support — NOT treatment, therapy, or cure. Keep it that way.
 - Crisis disclaimer (911 / 988 + "not a substitute for treatment") must remain in both descriptions.
-- Provide demo logins for all account states (direct free, direct premium, org-attached) in App Review notes.
+- Provide one verified direct/free demo login that covers the complete consumer review path; describe provider-connected accounts accurately without requiring reviewer-owned email confirmation.
 - Keywords intentionally avoid trademarks; "alanon" is a common search term — confirm comfort before submit.

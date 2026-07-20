@@ -49,6 +49,11 @@ if (dsn) {
   });
 }
 
+export function addAppBreadcrumb(category: string, level: Sentry.SeverityLevel = 'info'): void {
+  if (!monitoringEnabled) return;
+  Sentry.addBreadcrumb({ category, level });
+}
+
 export function captureAppError(error: unknown): void {
   if (!monitoringEnabled) return;
   Sentry.captureException(error);

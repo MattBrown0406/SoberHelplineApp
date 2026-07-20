@@ -16,11 +16,14 @@ import { Link } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { supabase } from '../../src/lib/supabase';
+import { useAccount } from '../../src/contexts/AccountContext';
+import { addAppBreadcrumb, captureAppError } from '../../src/lib/monitoring';
 const LOGO = require('../../assets/images/logo.png');
 
 export default function SignInScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation('auth');
+  const { completeSignIn } = useAccount();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -30,16 +33,45 @@ export default function SignInScreen() {
   async function handleEmailSignIn() {
     setError(null);
     setLoading(true);
-    const { error: err } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-    setLoading(false);
-    if (err) {
-      setError(
-        err.message.toLowerCase().includes('invalid') || err.status === 400
-          ? t('signIn.errorInvalid')
-          : t('signIn.errorGeneric'),
-      );
+    let authenticated = false;
+    addAppBreadcrumb('auth.sign_in_started');
+
+    try {
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      if (authError) {
+        addAppBreadcrumb('auth.sign_in_rejected', 'warning');
+        setError(
+          authError.message.toLowerCase().includes('invalid') || authError.status === 400
+            ? t('signIn.errorInvalid')
+            : t('signIn.errorGeneric'),
+        );
+        return;
+      }
+
+      if (!data.user || !data.session) {
+        addAppBreadcrumb('auth.sign_in_missing_session', 'error');
+        setError(t('signIn.errorGeneric'));
+        return;
+      }
+
+      authenticated = true;
+      addAppBreadcrumb('auth.sign_in_completed');
+      // Do not wait for the auth listener or optional subscription providers.
+      // This immediately swaps the idle form for the authenticated bootstrap UI.
+      completeSignIn(data.user);
+    } catch (signInError) {
+      addAppBreadcrumb('auth.sign_in_network_failed', 'error');
+      captureAppError(signInError);
+      setError(t('signIn.errorGeneric'));
+    } finally {
+      // On success the authenticated bootstrap screen owns progress feedback.
+      // On failure restore the form so the user can safely retry.
+      if (!authenticated) setLoading(false);
     }
-    // On success, AccountContext fires onAuthStateChange → InitialLayout redirects
   }
 
   return (

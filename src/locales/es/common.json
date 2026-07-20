@@ -27,5 +27,9 @@
     "body": "Tu sesión sigue iniciada. Revisa tu conexión e inténtalo de nuevo; no necesitas ingresar tu contraseña otra vez.",
     "retry": "Intentar de nuevo"
   },
+  "authBootstrap": {
+    "title": "Iniciando tu sesión…",
+    "body": "Tu cuenta está segura. Estamos preparando tu experiencia de Sober Helpline."
+  },
   "comingSoon": "Próximamente"
 }

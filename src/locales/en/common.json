@@ -27,5 +27,9 @@
     "body": "You're still signed in. Check your connection and try again—there's no need to enter your password again.",
     "retry": "Try again"
   },
+  "authBootstrap": {
+    "title": "Signing you in…",
+    "body": "Your account is secure. We're preparing your Sober Helpline experience."
+  },
   "comingSoon": "Coming soon"
 }

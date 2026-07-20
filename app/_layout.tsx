@@ -9,6 +9,8 @@ import { initI18n } from '../src/i18n';
 import { usePushNotifications } from '../src/hooks/usePushNotifications';
 import { isOnboarded, subscribeOnboarded } from '../src/onboarding/state';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
+import { getInitialLayoutState } from '../src/lib/authBootstrap';
+import { addAppBreadcrumb } from '../src/lib/monitoring';
 
 // Handles redirect between (auth) and (tabs) based on session state.
 // Must be a child of AccountProvider so it can read useAccount().
@@ -42,25 +44,63 @@ function InitialLayout() {
     const inAuth = segments[0] === '(auth)';
     const inOnboarding = segments[0] === '(onboarding)';
     if (!isAuthenticated) {
-      if (!inAuth) router.replace('/(auth)/sign-in');
+      if (!inAuth) {
+        addAppBreadcrumb('auth.navigation_sign_in');
+        router.replace('/(auth)/sign-in');
+      }
       return;
     }
     if (onboarded === null) return;
     if (user && !onboarded && !inOnboarding) {
+      addAppBreadcrumb('auth.navigation_onboarding');
       router.replace('/(onboarding)/welcome');
     } else if (user && onboarded && inAuth) {
+      addAppBreadcrumb('auth.navigation_app');
       router.replace('/(tabs)');
     }
   }, [user, isAuthenticated, isLoading, onboarded, segments[0]]);
 
-  if (isAuthenticated && accountError && !user) {
-    return <View style={{ flex: 1, padding: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F7F2E8', gap: 14 }}>
+  const layoutState = getInitialLayoutState({
+    isAuthenticated,
+    isLoading,
+    hasUser: user !== null,
+    onboardingReady: onboarded !== null,
+    hasAccountError: accountError !== null,
+  });
+
+  if (layoutState === 'account-error') {
+    return <View accessibilityRole="alert" accessibilityLiveRegion="assertive" style={{ flex: 1, padding: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F7F2E8', gap: 14 }}>
       <Text style={{ fontSize: 24, fontWeight: '900', textAlign: 'center', color: '#173B3F' }}>{t('accountLoad.title')}</Text>
       <Text style={{ fontSize: 16, lineHeight: 23, textAlign: 'center', color: '#52676A' }}>{t('accountLoad.body')}</Text>
-      <TouchableOpacity disabled={isLoading} onPress={() => void refreshAccount().catch(() => undefined)} style={{ minWidth: 180, borderRadius: 10, padding: 14, alignItems: 'center', backgroundColor: '#146C73' }}>
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityState={{ disabled: isLoading, busy: isLoading }}
+        disabled={isLoading}
+        onPress={() => void refreshAccount().catch(() => undefined)}
+        style={{ minWidth: 180, borderRadius: 10, padding: 14, alignItems: 'center', backgroundColor: '#146C73' }}
+      >
         {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '900' }}>{t('accountLoad.retry')}</Text>}
       </TouchableOpacity>
     </View>;
+  }
+
+  if (layoutState === 'bootstrap') {
+    return (
+      <View accessibilityLiveRegion="polite" style={{ flex: 1, padding: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F7F2E8', gap: 16 }}>
+        <ActivityIndicator
+          accessibilityRole="progressbar"
+          accessibilityLabel={t('authBootstrap.title')}
+          size="large"
+          color="#146C73"
+        />
+        <Text style={{ fontSize: 24, fontWeight: '900', textAlign: 'center', color: '#173B3F' }}>
+          {t('authBootstrap.title')}
+        </Text>
+        <Text style={{ maxWidth: 420, fontSize: 16, lineHeight: 23, textAlign: 'center', color: '#52676A' }}>
+          {t('authBootstrap.body')}
+        </Text>
+      </View>
+    );
   }
 
   return <Stack screenOptions={{ headerShown: false }} />;

@@ -4,6 +4,13 @@ import type { AuthUser, AccountState, Entitlements } from '../api/types';
 import { supabase } from '../lib/supabase';
 import { isAdminEmail } from '../lib/admin';
 import { configureRevenueCat, getActiveRevenueCatTier, resetRevenueCatUser } from '../lib/revenueCat';
+import {
+  AccountRequestGate,
+  resolveDirectAccountState,
+  resolveRefreshedDirectAccountState,
+  withTimeoutFallback,
+} from '../lib/authBootstrap';
+import { addAppBreadcrumb, captureAppError } from '../lib/monitoring';
 
 const DEFAULT_ENTITLEMENTS: Entitlements = {
   canMessageOnCallCoach: false,
@@ -24,6 +31,7 @@ interface AccountContextValue {
   accountError: string | null;
   isAttached: boolean;
   refreshAccount: () => Promise<void>;
+  completeSignIn: (sessionUser: User) => void;
 }
 
 const AccountContext = createContext<AccountContextValue>({
@@ -35,15 +43,24 @@ const AccountContext = createContext<AccountContextValue>({
   accountError: null,
   isAttached: false,
   refreshAccount: async () => {},
+  completeSignIn: () => {},
 });
 
-async function fetchAccount(authUser: User): Promise<AuthUser | null> {
+async function fetchCoreAccount(authUser: User): Promise<AuthUser | null> {
   const isAdmin = isAdminEmail(authUser.email);
-  const { data, error } = await supabase
-    .from('accounts')
-    .select('id, type, org_id, first_name, last_name, language, timezone, created_at')
-    .eq('user_id', authUser.id)
-    .single();
+  const accountResult = await withTimeoutFallback(
+    Promise.resolve(
+      supabase
+        .from('accounts')
+        .select('id, type, org_id, first_name, last_name, language, timezone, created_at')
+        .eq('user_id', authUser.id)
+        .single(),
+    ),
+    4000,
+    null,
+  );
+  if (!accountResult) throw new Error('account_load_timeout');
+  const { data, error } = accountResult;
 
   if (error || !data) {
     if (!isAdmin || (error && error.code !== 'PGRST116')) {
@@ -62,60 +79,34 @@ async function fetchAccount(authUser: User): Promise<AuthUser | null> {
     });
   }
 
-  // Records only affirmative signup metadata; existing users without that evidence
-  // are not backfilled or silently treated as having consented.
-  await supabase.rpc('record_signup_terms_consent');
+  // Consent persistence is best-effort and must never hold the user on the
+  // sign-in screen. The RPC only records affirmative signup metadata.
+  void supabase.rpc('record_signup_terms_consent').then(({ error: consentError }) => {
+    if (consentError) addAppBreadcrumb('auth.consent_persistence_failed', 'warning');
+  });
 
-  let accountState: AccountState =
-    data.type === 'attached' ? 'attached' : 'direct-free';
+  let accountState: AccountState = data.type === 'attached' ? 'attached' : 'direct-free';
 
   if (data.type === 'direct') {
-    const rcReady = await configureRevenueCat(data.id);
-
     if (isAdmin) {
       accountState = 'direct-premium';
-    }
-
-    // Sync external subscriptions → entitlements rows before reading them:
-    //  - sync-web-membership: soberhelpline.com $14.99 family members
-    //  - sync-iap-entitlements: App Store subscribers (server-verified via the
-    //    RevenueCat REST API) — required because DB RLS gates (textline,
-    //    private video) can only see the entitlements table, not RevenueCat.
-    // Best-effort with a cap: a slow/unreachable bridge never blocks login.
-    if (!isAdmin) {
-      try {
-        await Promise.race([
-          Promise.allSettled([
-            supabase.functions.invoke('sync-web-membership'),
-            supabase.functions.invoke('sync-iap-entitlements'),
-          ]),
-          new Promise((resolve) => setTimeout(resolve, 4000)),
-        ]);
-      } catch {
-        // Offline or bridge down — fall through to existing entitlements/IAP.
-      }
-    }
-
-    // Resolve all active grants explicitly; Premium always wins over Essential.
-    const { data: entitlementRows } = isAdmin ? { data: null } : await supabase
-      .from('entitlements')
-      .select('tier, expires_at')
-      .eq('account_id', data.id);
-
-    const activeTiers = (entitlementRows ?? [])
-      .filter((ent) => !ent.expires_at || new Date(ent.expires_at) >= new Date())
-      .map((ent) => ent.tier);
-    if (activeTiers.includes('premium')) accountState = 'direct-premium';
-    else if (activeTiers.includes('essential')) accountState = 'direct-essential';
-
-    // Check RevenueCat — source of truth for IAP subscriptions.
-    // Identity was established before server synchronization above.
-    if (!isAdmin && rcReady) {
-      const rcTier = await getActiveRevenueCatTier();
-      if (rcTier === 'premium') {
-        accountState = 'direct-premium';
-      } else if (accountState === 'direct-free' && rcTier === 'essential') {
-        accountState = 'direct-essential';
+    } else {
+      // Database entitlements are immediately available and safe to use for the
+      // first render. External subscription reconciliation happens after entry.
+      const entitlementResult = await withTimeoutFallback(
+        Promise.resolve(
+          supabase
+            .from('entitlements')
+            .select('tier, expires_at')
+            .eq('account_id', data.id),
+        ),
+        1000,
+        null,
+      );
+      if (!entitlementResult || entitlementResult.error) {
+        addAppBreadcrumb('auth.entitlements_initial_load_failed', 'warning');
+      } else {
+        accountState = resolveDirectAccountState(entitlementResult.data ?? []);
       }
     }
   }
@@ -129,6 +120,68 @@ async function fetchAccount(authUser: User): Promise<AuthUser | null> {
     orgId: data.org_id ?? null,
     joinedAt: data.created_at,
     timezone: data.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+  });
+}
+
+async function enrichAccount(authUser: User, coreAccount: AuthUser): Promise<AuthUser> {
+  if (isAdminEmail(authUser.email) || coreAccount.accountState === 'attached') return coreAccount;
+
+  const revenueCatReady = await withTimeoutFallback(configureRevenueCat(coreAccount.id), 2500, false);
+
+  // These bridges repair the server-side entitlement mirror, but they are
+  // optional enrichment. A slow provider must never block successful login.
+  await withTimeoutFallback(
+    Promise.allSettled([
+      supabase.functions.invoke('sync-web-membership'),
+      supabase.functions.invoke('sync-iap-entitlements'),
+    ]).then(() => undefined),
+    4000,
+    undefined,
+  );
+
+  const entitlementResult = await withTimeoutFallback(
+    Promise.resolve(
+      supabase
+        .from('entitlements')
+        .select('tier, expires_at')
+        .eq('account_id', coreAccount.id),
+    ),
+    1500,
+    null,
+  );
+
+  // A successful post-sync database read is authoritative. RevenueCat may be
+  // cached on-device, so it must not restore access after the server revoked it.
+  // RevenueCat is only a display fallback when the database cannot be read.
+  let accountState: AccountState;
+  if (entitlementResult && !entitlementResult.error) {
+    accountState = resolveRefreshedDirectAccountState({
+      databaseRows: entitlementResult.data ?? [],
+      previousState: coreAccount.accountState as 'direct-free' | 'direct-essential' | 'direct-premium',
+      revenueCatTier: null,
+    });
+  } else {
+    addAppBreadcrumb('auth.entitlements_refresh_failed', 'warning');
+    const revenueCatTier = revenueCatReady
+      ? await withTimeoutFallback(getActiveRevenueCatTier(), 2500, null)
+      : null;
+    accountState = resolveRefreshedDirectAccountState({
+      databaseRows: null,
+      previousState: coreAccount.accountState as 'direct-free' | 'direct-essential' | 'direct-premium',
+      revenueCatTier,
+    });
+  }
+
+  if (accountState === coreAccount.accountState) return coreAccount;
+  return buildAuthUser({
+    id: coreAccount.id,
+    firstName: coreAccount.firstName,
+    lastName: coreAccount.lastName,
+    email: coreAccount.email,
+    accountState,
+    orgId: coreAccount.orgId,
+    joinedAt: coreAccount.joinedAt,
+    timezone: coreAccount.timezone,
   });
 }
 
@@ -183,69 +236,159 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   const [authUser, setAuthUser] = useState<User | null>(null);
   const [accountError, setAccountError] = useState<string | null>(null);
   const authGenerationRef = useRef(0);
+  const accountRequestGateRef = useRef(new AccountRequestGate());
+  const authUserRef = useRef<User | null>(null);
+  const userRef = useRef<AuthUser | null>(null);
+  const isLoadingRef = useRef(true);
+
+  const completeSignIn = useCallback((sessionUser: User) => {
+    const previousAuthUserId = authUserRef.current?.id;
+    if (
+      previousAuthUserId === sessionUser.id &&
+      (isLoadingRef.current || userRef.current !== null)
+    ) {
+      return;
+    }
+
+    // Never expose one account's profile or client-side entitlements under a
+    // different authenticated session, even briefly.
+    if (previousAuthUserId && previousAuthUserId !== sessionUser.id) {
+      userRef.current = null;
+      setUser(null);
+    }
+
+    const generation = ++authGenerationRef.current;
+    const requestId = accountRequestGateRef.current.begin();
+    authUserRef.current = sessionUser;
+    isLoadingRef.current = true;
+    setAuthUser(sessionUser);
+    setIsLoading(true);
+    setAccountError(null);
+    addAppBreadcrumb('auth.account_bootstrap_started');
+
+    void fetchCoreAccount(sessionUser)
+      .then((account) => {
+        if (
+          authGenerationRef.current !== generation ||
+          !accountRequestGateRef.current.isCurrent(requestId) ||
+          !account
+        ) return;
+        userRef.current = account;
+        setUser(account);
+        isLoadingRef.current = false;
+        setIsLoading(false);
+        addAppBreadcrumb('auth.account_bootstrap_completed');
+
+        // Optional subscription providers refresh after app entry. They can
+        // improve entitlements, but cannot keep a valid user on the login page.
+        void enrichAccount(sessionUser, account)
+          .then((enriched) => {
+            if (
+              authGenerationRef.current !== generation ||
+              !accountRequestGateRef.current.isCurrent(requestId)
+            ) return;
+            userRef.current = enriched;
+            setUser(enriched);
+            addAppBreadcrumb('auth.account_enrichment_completed');
+          })
+          .catch((error) => {
+            if (
+              authGenerationRef.current !== generation ||
+              !accountRequestGateRef.current.isCurrent(requestId)
+            ) return;
+            addAppBreadcrumb('auth.account_enrichment_failed', 'warning');
+            captureAppError(error);
+          });
+      })
+      .catch((error) => {
+        if (
+          authGenerationRef.current !== generation ||
+          !accountRequestGateRef.current.isCurrent(requestId)
+        ) return;
+        isLoadingRef.current = false;
+        setIsLoading(false);
+        setAccountError(error instanceof Error ? error.message : 'account_load_failed');
+        addAppBreadcrumb('auth.account_bootstrap_failed', 'error');
+        captureAppError(error);
+      });
+  }, []);
 
   const refreshAccount = useCallback(async () => {
-    if (!authUser) return;
+    const currentAuthUser = authUserRef.current;
+    if (!currentAuthUser) return;
     const generation = authGenerationRef.current;
+    const requestId = accountRequestGateRef.current.begin();
     setAccountError(null);
+    if (!userRef.current) {
+      isLoadingRef.current = true;
+      setIsLoading(true);
+    }
     try {
-      const account = await fetchAccount(authUser);
-      if (authGenerationRef.current === generation) setUser(account);
+      const account = await fetchCoreAccount(currentAuthUser);
+      if (
+        authGenerationRef.current !== generation ||
+        !accountRequestGateRef.current.isCurrent(requestId) ||
+        !account
+      ) return;
+      userRef.current = account;
+      setUser(account);
+      isLoadingRef.current = false;
+      setIsLoading(false);
+      const enriched = await enrichAccount(currentAuthUser, account);
+      if (
+        authGenerationRef.current === generation &&
+        accountRequestGateRef.current.isCurrent(requestId)
+      ) {
+        userRef.current = enriched;
+        setUser(enriched);
+      }
     } catch (error) {
-      if (authGenerationRef.current === generation) {
+      if (
+        authGenerationRef.current === generation &&
+        accountRequestGateRef.current.isCurrent(requestId)
+      ) {
+        isLoadingRef.current = false;
+        setIsLoading(false);
         setAccountError(error instanceof Error ? error.message : 'account_load_failed');
+        captureAppError(error);
       }
       throw error;
     }
-  }, [authUser]);
+  }, []);
 
   useEffect(() => {
-    function loadSessionUser(sessionUser: User) {
-      const generation = ++authGenerationRef.current;
-      setAuthUser(sessionUser);
-      setIsLoading(true);
-      setAccountError(null);
-      void fetchAccount(sessionUser)
-        .then((account) => {
-          if (authGenerationRef.current !== generation) return;
-          setUser(account);
-        })
-        .catch((error) => {
-          if (authGenerationRef.current !== generation) return;
-          setAccountError(error instanceof Error ? error.message : 'account_load_failed');
-        })
-        .finally(() => {
-          if (authGenerationRef.current === generation) setIsLoading(false);
-        });
-    }
-
     const initialGeneration = authGenerationRef.current;
     void supabase.auth.getSession().then(({ data: { session } }) => {
       if (authGenerationRef.current !== initialGeneration) return;
       if (session) {
-        loadSessionUser(session.user);
+        completeSignIn(session.user);
       } else {
+        isLoadingRef.current = false;
         setIsLoading(false);
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        if (session) {
-          loadSessionUser(session.user);
-        } else {
-          ++authGenerationRef.current;
-          setAuthUser(null);
-          setUser(null);
-          setAccountError(null);
-          setIsLoading(false);
-          void resetRevenueCatUser();
-        }
-      },
-    );
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        completeSignIn(session.user);
+      } else {
+        ++authGenerationRef.current;
+        accountRequestGateRef.current.invalidate();
+        authUserRef.current = null;
+        userRef.current = null;
+        isLoadingRef.current = false;
+        setAuthUser(null);
+        setUser(null);
+        setAccountError(null);
+        setIsLoading(false);
+        void resetRevenueCatUser();
+      }
+    });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [completeSignIn]);
 
   const accountState = user?.accountState ?? 'direct-free';
   const entitlements = user?.entitlements ?? DEFAULT_ENTITLEMENTS;
@@ -261,6 +404,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         accountError,
         isAttached: accountState === 'attached',
         refreshAccount,
+        completeSignIn,
       }}
     >
       {children}
