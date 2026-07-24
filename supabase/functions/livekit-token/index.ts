@@ -4,6 +4,7 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { AccessToken } from 'npm:livekit-server-sdk@2';
+import { isAdminEmail } from '../_shared/admin.ts';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -71,7 +72,7 @@ Deno.serve(async (req) => {
       return json({ error: 'group_room_not_allowed' }, 403);
     }
 
-    return groupRoomToken(supabase, requestedRoom, account, user.email?.trim().toLowerCase() === 'matt@soberhelpline.com');
+    return groupRoomToken(supabase, requestedRoom, account, isAdminEmail(user.email));
   } catch (error) {
     console.error('livekit-token:', error);
     return json({ error: 'token_request_failed' }, 500);

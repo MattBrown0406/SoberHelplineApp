@@ -381,7 +381,7 @@ Deno.serve(async (req: Request) => {
   // Entitlement gate: the AI practice partner is an Essentials/Premium feature.
   // (The classic record-and-playback rehearsal is free and never calls this API.)
   // Queries run under the caller's RLS, mirroring what the app itself can read.
-  const allowEmails = (Deno.env.get('REHEARSAL_ALLOW_EMAILS') ?? 'matt@soberhelpline.com')
+  const allowEmails = (Deno.env.get('REHEARSAL_ALLOW_EMAILS') ?? 'matt@soberhelpline.com,matt@freedominterventions.com')
     .toLowerCase()
     .split(',')
     .map((e) => e.trim());
