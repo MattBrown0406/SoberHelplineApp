@@ -299,28 +299,15 @@ AS $$
   );
 $$;
 
--- ─── video_sessions legacy owner/admin policies (latest: 20260708120000) ─────
--- 20260712120000 dropped these when it introduced the staff-role model; the
--- DROP IF EXISTS below keeps that newer state intact while making any
--- database that still has the legacy policies admin-centralized.
+-- ─── video_sessions legacy owner/admin policies ──────────────────────────────
+-- 20260712120000 intentionally dropped the 20260708120000 owner/admin policies
+-- when it introduced the video_staff_roles model ("member or staff read"; all
+-- writes go through audited RPCs). We do NOT recreate them — the new admin is
+-- covered via the video_staff_roles seed below. The DROPs are no-ops on a
+-- correctly migrated database and clean up any drifted one.
 DROP POLICY IF EXISTS "video sessions: owner/admin select" ON public.video_sessions;
-CREATE POLICY "video sessions: owner/admin select" ON public.video_sessions FOR SELECT
-  USING (
-    account_id = public.my_account_id()
-    OR public.is_admin_jwt()
-  );
-
 DROP POLICY IF EXISTS "video sessions: owner request" ON public.video_sessions;
-CREATE POLICY "video sessions: owner request" ON public.video_sessions FOR INSERT
-  WITH CHECK (
-    account_id = public.my_account_id()
-    AND public.has_active_private_video_access(account_id)
-  );
-
 DROP POLICY IF EXISTS "video sessions: admin update" ON public.video_sessions;
-CREATE POLICY "video sessions: admin update" ON public.video_sessions FOR UPDATE
-  USING (public.is_admin_jwt())
-  WITH CHECK (public.is_admin_jwt());
 
 -- ─── has_active_textline_access (latest: 20260707100000) ─────────────────────
 CREATE OR REPLACE FUNCTION public.has_active_textline_access(p_account_id uuid)
