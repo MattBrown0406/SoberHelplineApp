@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
 import { ScreenContainer } from '../src/components/ui/ScreenContainer';
+import { RehearsalDebrief } from '../src/components/rehearsal/RehearsalDebrief';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
 import { FreeTierPaywall } from '../src/components/ui/FreeTierPaywall';
@@ -38,8 +39,6 @@ const TEMPERAMENTS: PartnerTemperament[] = ['guarded', 'defensive', 'volatile', 
 const RELATIONSHIPS: PartnerRelationship[] = ['spouse', 'partner', 'son', 'daughter', 'sibling', 'parent', 'friend'];
 const GENDERS: PartnerGender[] = ['male', 'female'];
 const AGES: PartnerAge[] = ['young', 'middle', 'older'];
-
-const SCORE_KEYS = ['love', 'ask', 'boundaries', 'calm'] as const;
 
 /** Map the loved-one profile relationship onto the picker's options. */
 function defaultRelationship(profile: string | null | undefined): PartnerRelationship {
@@ -545,60 +544,7 @@ export default function RehearsalLiveScreen() {
 
         {/* ---------- DEBRIEF ---------- */}
         {stage === 'debrief' && debrief && (
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <Text style={styles.heading}>{t('debrief.heading')}</Text>
-
-            <View style={[styles.scoreRow]}>
-              {SCORE_KEYS.map((key) => (
-                <View key={key} style={[styles.scorePill, { backgroundColor: colors.primaryDark }]}>
-                  <Text style={[styles.scoreValue, { color: colors.white }]}>
-                    {debrief.scores?.[key] ?? '–'}/5
-                  </Text>
-                  <Text style={[styles.scoreLabel, { color: colors.inkSoft }]}>
-                    {t(`debrief.scores.${key}`)}
-                  </Text>
-                </View>
-              ))}
-            </View>
-
-            <Text style={[styles.debriefSection, { color: colors.green }]}>{t('debrief.wentWell')}</Text>
-            {debrief.wentWell?.map((item, i) => (
-              <Text key={i} style={[styles.debriefItem, { color: colors.white }]}>
-                •  {item}
-              </Text>
-            ))}
-
-            <Text style={[styles.debriefSection, { color: colors.coral }]}>{t('debrief.workOn')}</Text>
-            {debrief.workOn?.map((item, i) => (
-              <Text key={i} style={[styles.debriefItem, { color: colors.white }]}>
-                •  {item}
-              </Text>
-            ))}
-
-            {!!debrief.drill && (
-              <View style={[styles.drillCard, { backgroundColor: colors.primaryDark }]}>
-                <Text style={[styles.drillLabel, { color: colors.inkSoft }]}>{t('debrief.drillLabel')}</Text>
-                <Text style={[styles.drillText, { color: colors.white }]}>{debrief.drill}</Text>
-              </View>
-            )}
-
-            <Text style={[styles.encouragement, { color: colors.inkSoft }]}>{t('debrief.encouragement')}</Text>
-
-            <TouchableOpacity
-              style={[styles.bigBtn, { backgroundColor: colors.coral, marginTop: 20 }]}
-              onPress={handleAgain}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.bigBtnText}>{t('debrief.againButton')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.finishBtn, { borderColor: colors.inkSoft }]}
-              onPress={() => router.back()}
-              activeOpacity={0.85}
-            >
-              <Text style={[styles.finishBtnText, { color: colors.white }]}>{t('debrief.doneButton')}</Text>
-            </TouchableOpacity>
-          </ScrollView>
+          <RehearsalDebrief debrief={debrief} onAgain={handleAgain} onDone={() => router.back()} />
         )}
 
         {/* Privacy / reality note (setup and debrief — the chat keeps the bar at the very bottom) */}

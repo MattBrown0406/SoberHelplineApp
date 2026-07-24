@@ -38,6 +38,8 @@ type Turn = { role: 'user' | 'partner'; text: string };
 
 type VoiceChoice = { gender?: 'male' | 'female'; age?: 'young' | 'middle' | 'older' };
 
+type CrisisPreset = 'late_night_pickup' | 'money_urgent' | 'relapse_confession' | 'crisis_blame';
+
 type Scenario = {
   relationship?: string;
   name?: string;
@@ -46,6 +48,10 @@ type Scenario = {
   scriptText?: string;
   language?: string;
   voice?: VoiceChoice;
+  // 'incoming_call' flips the frame: the character OPENS the conversation,
+  // already mid-crisis, and the user answers cold. Omit = standard mode.
+  mode?: 'standard' | 'incoming_call';
+  crisisPreset?: CrisisPreset;
 };
 
 // Default ElevenLabs premade voices per gender × age. These are widely available
@@ -96,6 +102,21 @@ const AGE_DESCRIPTIONS: Record<string, string> = {
   older: 'in their sixties or beyond',
 };
 
+// Incoming-call crisis presets: the situation the character is already in when
+// the phone rings. Each describes the opening emotional state + circumstances;
+// the character's name/relationship/substances still come from the scenario,
+// and temperament is layered on top by the system prompt as usual.
+const CRISIS_PRESETS: Record<string, string> = {
+  late_night_pickup:
+    "You are calling late at night from somewhere you should not be — a party, a bar, someone's place across town — and you are impaired. You want a ride home RIGHT NOW. If they question you, hesitate, or sound like they might say no, you escalate: come get me or I'll drive myself. You are not calling to talk about the bigger problem; you are calling because you need something this minute.",
+  money_urgent:
+    "You are calling because you need money right now — around $200. You say you'll pay it back and you do not want to be asked what it's for (don't ask what for, I just need it). If they ask questions, you deflect, pressure, and guilt-trip: after everything I've dealt with, you're really going to interrogate me over two hundred dollars? The urgency is real in your voice from the first second.",
+  relapse_confession:
+    "You are calling mid-use, confessing a relapse. Your speech is slurred and rambling — slow starts, repeated words, thoughts that trail off and pick back up. You swing between remorse (I messed up, I'm sorry, I'm so sorry) and defensiveness (it's not a big deal, it was one time, don't start). You called them, so part of you wants help, but you will not say that cleanly.",
+  crisis_blame:
+    'You are calling to blame them for everything that is wrong right now. The opening is hostile — this is THEIR fault, they never supported you, the family is against you. You are testing their composure: if they get defensive or argue back, you get louder and more certain. Underneath the anger there is pain, but you lead with the attack.',
+};
+
 function partnerSystemPrompt(s: Scenario): string {
   const relationship = s.relationship || 'adult family member';
   const name = s.name?.trim() || 'the loved one';
@@ -107,6 +128,12 @@ function partnerSystemPrompt(s: Scenario): string {
     ? `\n\nThe user is practicing lines like this (they may adapt them):\n"""${s.scriptText.slice(0, MAX_SCRIPT_CHARS)}"""`
     : '';
   const language = s.language === 'es' ? 'Respond in Spanish.' : 'Respond in English.';
+  const incoming =
+    s.mode === 'incoming_call'
+      ? `\n\nINCOMING CALL MODE: this conversation is a phone call that YOU placed to the user. They answered with no warning and no preparation. You open the call already mid-crisis — your very first line drops them straight into the situation below, hot, already in motion, immediately demanding a response. That first line is one to three spoken sentences, nothing else.
+Crisis situation: ${CRISIS_PRESETS[s.crisisPreset ?? ''] ?? CRISIS_PRESETS.late_night_pickup}
+After your opening, stay in that situation all call: it is the reason for every reply. The crisis resolves the way real ones do — slowly, grudgingly, only if they handle you well.`
+      : '';
 
   return `You are a role-play practice partner inside Sober Helpline, an app that helps families of people struggling with addiction prepare for hard conversations. You are playing "${name}", the user's ${relationship}, ${age} (${gender}), who is struggling with ${substances} and does not yet want help. The user is practicing what they will really say to this person.${script}
 
@@ -131,12 +158,17 @@ ${language}`;
 
 function debriefSystemPrompt(s: Scenario): string {
   const language = s.language === 'es' ? 'Write every string in Spanish.' : 'Write every string in English.';
+  const ambush =
+    s.mode === 'incoming_call'
+      ? `
+5. COMPOSURE UNDER AMBUSH — this session was an incoming call: the loved one opened mid-crisis and the user had zero prep time. Weigh their FIRST TWO responses especially: did they steady themselves and engage with love and clarity instead of reacting? Fold this assessment into the existing fields — quote early responses in wentWell/workOn where they show the user recovering (or not) from the cold open, let it inform the "calm" score, and build the drill from their weakest early moment if it belongs there.`
+      : '';
   return `You are a seasoned, warm intervention coach inside Sober Helpline, reviewing a family member's practice conversation with a role-played loved one. Evaluate ONLY the user's turns against this framework, drawn from 20+ years of professional intervention practice:
 
 1. LOVE FIRST — did they open with care and connection before evidence or requests?
 2. HELD THE ASK — did they keep the conversation from drifting: one clear request, returned to kindly every time the character deflected, guilted, bargained, or changed the subject — without negotiating the ask downward or chasing side arguments?
 3. BOUNDARIES THAT HOLD — when the moment called for it, did they state a boundary they could actually keep, and hold it under pressure instead of softening it, bargaining it away, or arguing about whether it was fair?
-4. CALM UNDER BAIT — when the character provoked them, did they stay steady instead of lecturing, arguing, or taking the bait?
+4. CALM UNDER BAIT — when the character provoked them, did they stay steady instead of lecturing, arguing, or taking the bait?${ambush}
 
 BOUNDARY LANGUAGE: "I can't" hands the boundary to circumstance; "I won't" and "I'm not willing to" own it. Whenever the user said "I can't" in a boundary or refusal moment, quote that exact line in workOn and rewrite it with ownership language ("I can't keep covering for you" becomes "I won't keep covering for you"). When they used "I won't" or "I'm not willing to," recognize it in wentWell by quote — that phrasing is a skill this program deliberately trains. (Literal inability — "I can't sleep at night" — is fine and is not this.)
 
@@ -447,12 +479,15 @@ Deno.serve(async (req: Request) => {
       .filter((m): m is Turn => (m?.role === 'user' || m?.role === 'partner') && typeof m?.text === 'string')
       .slice(-MAX_MESSAGES);
     // A debrief transcript normally ends with the partner's line; it only needs
-    // at least one user turn to evaluate. Replies require the user to speak last.
+    // at least one user turn to evaluate. Replies require the user to speak last —
+    // EXCEPT the incoming-call opening: with no prior turns the character opens
+    // the call itself, already mid-crisis.
+    const incomingOpening = scenario.mode === 'incoming_call' && turns.length === 0;
     if (payload.mode === 'debrief') {
       if (!turns.some((t) => t.role === 'user')) {
         return json(400, { ok: false, code: 'no_user_message' });
       }
-    } else if (turns.length === 0 || turns[turns.length - 1].role !== 'user') {
+    } else if (!incomingOpening && (turns.length === 0 || turns[turns.length - 1].role !== 'user')) {
       return json(400, { ok: false, code: 'no_user_message' });
     }
 
@@ -475,7 +510,13 @@ Deno.serve(async (req: Request) => {
     }
 
     // ---- reply (default), with optional spoken audio ----
-    const raw = await callModel(partnerSystemPrompt(scenario), turns, 300);
+    // Incoming-call opening: there is no user turn yet. Send a kickoff user
+    // message (never shown to the user) so every provider has something to
+    // answer — the system prompt's INCOMING CALL MODE section shapes the line.
+    const replyTurns: Turn[] = incomingOpening
+      ? [{ role: 'user', text: '[They pick up the phone. Open the call.]' }]
+      : turns;
+    const raw = await callModel(partnerSystemPrompt(scenario), replyTurns, 300);
     const breakCharacter = raw.startsWith(BREAK_TOKEN);
     const text = breakCharacter ? raw.slice(BREAK_TOKEN.length).trim() : raw;
     // Never voice the safety break — it reads as the app, not the character.

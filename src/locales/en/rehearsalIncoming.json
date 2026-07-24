@@ -1,0 +1,32 @@
+{
+  "title": "Incoming Call",
+  "entry": {
+    "title": "Incoming Call",
+    "subtitle": "Practice the ambush. They call you — mid-crisis, no prep. Answer cold.",
+    "badge": "New",
+    "locked": "Included with Essentials — upgrade to take the call"
+  },
+  "ring": {
+    "label": "Incoming call",
+    "mobile": "Mobile",
+    "answer": "Answer",
+    "decline": "Decline",
+    "hint": "This is practice. On the other end of this call, your loved one is already mid-crisis — and you get no prep time. Just like the real ones."
+  },
+  "declined": {
+    "title": "Call declined",
+    "body": "They'll call back. Real calls don't wait forever.",
+    "rering": "Let them call back",
+    "leave": "Not now"
+  },
+  "call": {
+    "connecting": "Connecting…",
+    "onCall_one": "On call — {{count}} exchange left",
+    "onCall_other": "On call — {{count}} exchanges left",
+    "you": "You",
+    "placeholder": "Say it the way you would answer…",
+    "showTranscript": "Show full transcript",
+    "hideTranscript": "Hide full transcript",
+    "hangUp": "End call & get feedback"
+  }
+}
