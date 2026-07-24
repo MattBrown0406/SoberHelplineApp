@@ -675,13 +675,10 @@ $$;
 REVOKE EXECUTE ON FUNCTION public.archive_thread(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.archive_thread(uuid) TO authenticated;
 
--- ─── Task 2: web_sso_tokens defense-in-depth ─────────────────────────────────
--- validate-sso-token now redeems with ONE atomic conditional UPDATE, which
--- alone closes the concurrent-redemption race (id is the PRIMARY KEY, so a
--- second partial unique index on id would be redundant and is intentionally
--- skipped). This partial index keeps "one live token per account" true as
--- defense-in-depth against token spraying: at most one unused+unexpired token
--- exists per account, so a race loser cannot redeem a stale sibling token.
-CREATE UNIQUE INDEX IF NOT EXISTS web_sso_tokens_one_live_per_account_idx
-  ON public.web_sso_tokens (account_id)
-  WHERE used_at IS NULL;
+-- ─── Task 2: web_sso_tokens ───────────────────────────────────────────────────
+-- validate-sso-token now redeems with ONE atomic conditional UPDATE
+-- (used_at IS NULL AND expires_at > now()), which closes the concurrent-
+-- redemption race on its own. A partial unique index "one live token per
+-- account" was considered and rejected: expired tokens keep used_at NULL, so
+-- prod data already violates it, and it would make issuing a replacement
+-- token fail while an unexpired one exists. No schema change needed.
