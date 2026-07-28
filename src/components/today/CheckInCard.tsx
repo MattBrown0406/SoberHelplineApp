@@ -45,6 +45,7 @@ export function CheckInCard({
   const { colors } = useTheme();
   const { t } = useTranslation('today');
   const [pendingMood, setPendingMood] = useState<MoodScore | null>(selectedMood);
+  const [isSaving, setIsSaving] = useState(false);
 
   const showSupport = lowMoodDays >= SUPPORT_THRESHOLD && !!onTalkToCoach;
 
@@ -63,15 +64,21 @@ export function CheckInCard({
       ? ' ' + t('checkIn.doneCoach', { orgFirst: orgName.split(' ')[0] })
       : '';
 
-  function handleComplete() {
+  async function handleComplete() {
+    if (isSaving) return;
     if (pendingMood === null) {
       Alert.alert(t('checkIn.noMoodTitle'), t('checkIn.noMoodMessage'));
       return;
     }
-    void onComplete(pendingMood).catch((err: unknown) => {
+    setIsSaving(true);
+    try {
+      await onComplete(pendingMood);
+    } catch (err: unknown) {
       console.error('[CheckInCard] saveCheckIn failed:', err);
       Alert.alert(t('checkIn.errorTitle'), t('checkIn.errorMessage'));
-    });
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -89,7 +96,7 @@ export function CheckInCard({
 
       {!completed ? (
         <>
-          <View style={styles.moodRow}>
+          <View style={styles.moodRow} accessibilityRole="radiogroup">
             {MOODS.map(({ score, emoji }) => (
               <TouchableOpacity
                 key={score}
@@ -102,6 +109,10 @@ export function CheckInCard({
                       pendingMood === score ? colors.primaryLight : '#fff',
                   },
                 ]}
+                accessibilityRole="radio"
+                accessibilityLabel={t('checkIn.moodAccessibility', { score })}
+                accessibilityState={{ selected: pendingMood === score, disabled: isSaving }}
+                disabled={isSaving}
                 onPress={() => setPendingMood(score)}
                 activeOpacity={0.8}
               >
@@ -119,17 +130,25 @@ export function CheckInCard({
               styles.btn,
               {
                 backgroundColor: colors.primary,
-                opacity: pendingMood !== null ? 1 : 0.45,
+                opacity: pendingMood !== null && !isSaving ? 1 : 0.45,
               },
             ]}
-            onPress={handleComplete}
+            accessibilityRole="button"
+            accessibilityState={{ busy: isSaving, disabled: pendingMood === null || isSaving }}
+            disabled={pendingMood === null || isSaving}
+            onPress={() => void handleComplete()}
             activeOpacity={0.8}
           >
-            <Text style={styles.btnText}>{t('checkIn.completeButton')}</Text>
+            <Text style={styles.btnText}>
+              {isSaving ? t('checkIn.savingButton') : t('checkIn.completeButton')}
+            </Text>
           </TouchableOpacity>
         </>
       ) : (
         <View
+          accessible
+          accessibilityRole="alert"
+          accessibilityLiveRegion="polite"
           style={[
             styles.doneBanner,
             { backgroundColor: colors.greenLight, borderColor: '#cde3d4' },

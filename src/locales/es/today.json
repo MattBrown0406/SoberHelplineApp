@@ -21,6 +21,8 @@
     "privacyAttached": "Los patrones se comparten únicamente con tu coach de {{orgName}}.",
     "privacyDirect": "Los patrones son privados a menos que elijas compartirlos con un coach.",
     "completeButton": "Completar registro",
+    "savingButton": "Guardando registro…",
+    "moodAccessibility": "Estado de ánimo {{score}} de 5",
     "moodHint": "Toca un emoji arriba para seleccionar tu estado de ánimo",
     "noMoodTitle": "Selecciona un estado de ánimo",
     "noMoodMessage": "Toca uno de los emojis de arriba para registrar cómo te sientes y luego completa tu registro.",

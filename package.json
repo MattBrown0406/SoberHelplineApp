@@ -1,6 +1,6 @@
 {
   "name": "sober-helpline-app",
-  "version": "3.5.0",
+  "version": "3.5.1",
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
@@ -9,6 +9,8 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "test:auth": "node --test tests/auth-bootstrap.test.mjs",
+    "test:checkin": "tsx --test tests/checkin-persistence.test.ts",
+    "audit:release": "node scripts/audit-dependencies.mjs",
     "doctor": "npx expo-doctor",
     "export:web": "expo export --platform web",
     "test:db": "npx --yes supabase@2.109.1 test db"
@@ -55,9 +57,11 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/react": "~19.1.10",
+    "livekit-server-sdk": "2.17.0",
+    "tsx": "4.20.6",
     "typescript": "^5.3.3"
   },
   "overrides": {
-    "postcss": "8.5.10"
+    "postcss": "8.5.18"
   }
 }

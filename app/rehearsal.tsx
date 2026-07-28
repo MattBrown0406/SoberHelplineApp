@@ -7,7 +7,7 @@ import {
   Alert,
 } from 'react-native';
 import { ScreenContainer } from '../src/components/ui/ScreenContainer';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, type Href } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Audio } from 'expo-av';
 import { useTheme } from '../src/contexts/ThemeContext';
@@ -267,7 +267,7 @@ export default function RehearsalScreen() {
         {(phase === 'prompt' || phase === 'done') && (
           <TouchableOpacity
             style={[styles.liveBtn, { borderColor: colors.coral }]}
-            onPress={() => router.push('/rehearsal-incoming')}
+            onPress={() => router.push('/rehearsal-incoming' as Href)}
             activeOpacity={0.85}
           >
             <View style={styles.incomingTitleRow}>

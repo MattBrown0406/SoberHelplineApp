@@ -11,6 +11,12 @@ Information → Notes. Also confirm the demo-account and contact fields in that 
 
 Thank you for reviewing Sober Helpline.
 
+WHAT'S NEW IN 3.5.1
+This maintenance update fixes a daily check-in race that could show a save error
+when that day's check-in already existed in the account. Duplicate submissions
+now resolve to the existing authoritative record, and the app no longer displays
+a completed check-in before the authenticated cloud save succeeds.
+
 WHAT THE APP IS
 Sober Helpline supports the families and loved ones of people struggling with
 drug or alcohol addiction — with daily check-ins, boundary-setting tools,
@@ -32,11 +38,23 @@ PROVIDER-CONNECTED ACCOUNTS
 Some families receive Sober Helpline through an invited provider organization and see that provider's branding and assigned care team. This is an invitation-only account type. The direct demo account above covers the complete consumer review path and does not require access to a reviewer-controlled email inbox.
 
 IN-APP PURCHASES
-Optional auto-renewable subscriptions (Essential, Premium) are sold via Apple
-in-app purchase and unlock coach messaging and live coaching features.
+Optional auto-renewable subscriptions (Essential, Premier) are sold via Apple
+in-app purchase. Essential unlocks private support messaging. Premier adds the
+in-app plan-review and private-video benefits described on the purchase screen.
 
-1:1 COACHING REQUESTS (Guideline 3.1.3(d))
-The "Book 1:1 coaching" screen submits a scheduling request for a real-time, person-to-person coaching session. It does not collect payment or open an external checkout inside the app. Staff follows up with the requester to arrange the individual service. Digital subscriptions and group features use Apple in-app purchase.
+1:1 COACHING SERVICES (Guideline 3.1.3(d))
+The standard "Book 1:1 coaching" screen submits a scheduling request for a
+real-time, person-to-person coaching session. It does not collect payment or open
+an external checkout inside the app. Staff follows up with the requester to
+arrange that individual service.
+
+Essential members can also request a separate $150, 60-minute, real-time plan
+review with a coach. After the appointment request is created, that screen may
+open an external PayPal checkout for this person-to-person service. Payment is
+for the live one-to-one coaching appointment—not app features, digital content,
+or a group service. Premier members receive the same live plan-review appointment
+as part of their Apple-billed subscription and are not sent to external checkout.
+All subscription-based digital features use Apple in-app purchase.
 
 CRISIS / SAFETY
 The app surfaces 911 and 988 (Suicide & Crisis Lifeline) prominently and never
@@ -75,7 +93,7 @@ Matt Brown · matt@soberhelpline.com · 503-836-2136
 - [ ] App Privacy "nutrition label" completed (data types, linkage, tracking = none).
 - [ ] Age rating questionnaire completed (likely 17+ given mature subject matter — answer honestly re: medical/drug references).
 - [ ] Support URL + marketing URL set.
-- [ ] Confirmed the 1:1 coaching request flow does not collect payment or open an external checkout in-app.
+- [ ] Confirmed the standard 1:1 request flow has no checkout and the separate $150 plan-review checkout is only for a real-time person-to-person service, exactly as disclosed in the review notes.
 - [ ] Build uploaded via EAS/Xcode and selected for this version.
 - [ ] Screenshots uploaded (iPhone 6.5"/6.7"; iPad if iPad enabled).
 
