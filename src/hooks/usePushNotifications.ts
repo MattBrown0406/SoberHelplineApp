@@ -8,6 +8,7 @@ import i18n from '../i18n';
 import { supabase } from '../lib/supabase';
 import { getCheckIn } from '../storage/checkIn';
 import { AsyncWriteBarrier } from '../lib/appFlowGuards';
+import { getPushDestination, shouldHandlePushResponse } from '../lib/pushRouting';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -22,10 +23,12 @@ const REMINDER_HOUR_KEY = 'reminderHour';
 export const DEFAULT_REMINDER_HOUR = 9;
 const NUDGE_DAYS = 7; // schedule a week of nudges ahead so non-openers still get pinged
 const pushWriteBarrier = new AsyncWriteBarrier();
+let activePushAccountId: string | null = null;
 let nudgeRearmQueue: Promise<void> = Promise.resolve();
 
 /** Invalidate token acquisition and wait for an already-started write to settle. */
 export async function cancelPushRegistration(accountId: string): Promise<void> {
+  if (activePushAccountId === accountId) activePushAccountId = null;
   await pushWriteBarrier.cancelAndWait(accountId);
 }
 
@@ -118,107 +121,118 @@ export function rearmDailyNudge(): Promise<void> {
 }
 
 export async function registerForPushNotifications(accountId: string): Promise<boolean> {
+  activePushAccountId = accountId;
   const generation = pushWriteBarrier.begin(accountId);
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
-      importance: Notifications.AndroidImportance.DEFAULT,
-    });
-  }
-
-  const { status: existing } = await Notifications.getPermissionsAsync();
-  let finalStatus = existing;
-  if (existing !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
-  if (finalStatus !== 'granted') return false;
-
   try {
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('default', {
+        name: 'default',
+        importance: Notifications.AndroidImportance.DEFAULT,
+      });
+    }
+
+    const { status: existing } = await Notifications.getPermissionsAsync();
+    let finalStatus = existing;
+    if (existing !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    if (finalStatus !== 'granted') return false;
+
     const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
     if (!projectId) throw new Error('EAS project ID is not configured');
     const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
     if (!token) return false;
-    if (!pushWriteBarrier.isCurrent(accountId, generation)) return false;
-    // locale drives the language of server-sent pushes (session reminders,
-    // win-back, community support) — kept in sync with the app language.
-    const tokenWrite = pushWriteBarrier.track(accountId, Promise.resolve(supabase
-      .from('accounts')
-      .update({ push_token: token, locale: i18n.language ?? 'en' })
-      .eq('id', accountId)));
-    const { error } = await tokenWrite;
-    if (error) throw error;
+    if (!pushWriteBarrier.isCurrent(accountId, generation) || activePushAccountId !== accountId) return false;
+
+    // Transfer this device token to the current authenticated account in one
+    // server transaction so account switching cannot leave two owners.
+    const tokenWrite = pushWriteBarrier.track(accountId, Promise.resolve(supabase.rpc(
+      'register_push_device',
+      { p_token: token, p_locale: i18n.language ?? 'en' },
+    )));
+    const { data, error } = await tokenWrite;
+    if (error || data !== true) throw error ?? new Error('push_token_not_registered');
+    if (!pushWriteBarrier.isCurrent(accountId, generation) || activePushAccountId !== accountId) return false;
+
+    await rearmDailyNudge().catch((error) => {
+      console.warn('[push] local nudge rearm failed', error);
+    });
+    return true;
   } catch (error) {
-    // Push failures must be observable: a coach missing a scheduling request is
-    // operationally significant. Simulators commonly cannot obtain a token.
+    // Includes native permission/channel calls so callers never receive an
+    // unhandled rejection or remain stuck in a busy state.
     console.warn('[push] registration failed', error);
     return false;
   }
-
-  await rearmDailyNudge();
-  return true;
 }
 
-export function usePushNotifications(accountId: string | null): void {
+export function usePushNotifications(accountId: string | null, navigationReady: boolean): void {
   const router = useRouter();
 
   useEffect(() => {
     if (!accountId) return;
-    void registerForPushNotifications(accountId);
+    void registerForPushNotifications(accountId).catch(() => false);
 
-    const openSchedulingNotification = (response: Notifications.NotificationResponse) => {
-      const data = response.notification.request.content.data ?? {};
-      const kind = typeof data.kind === 'string' ? data.kind : '';
-
-      if (kind === 'group_live') {
-        const roomName = typeof data.room_name === 'string' ? data.room_name : '';
-        const allowedRooms = new Set([
-          'shp-parents', 'shp-spouses', 'shp-boundaries', 'shp-treatment',
-        ]);
-        if (allowedRooms.has(roomName)) {
-          router.push({ pathname: '/live-room' as never, params: { room: roomName } });
-        }
-        return;
-      }
-
-      const sessionId = typeof data.session_id === 'string' ? data.session_id : '';
-
-      const sessionKinds = new Set([
-        'admin_video_request', 'coach_video_accepted', 'coach_video_reschedule',
-        'coach_video_cancelled', 'coach_video_reminder', 'member_video_scheduled',
-        'member_video_counteroffer', 'member_video_cancelled', 'member_video_live',
-        'member_video_completed', 'member_video_no_show', 'premier_video_reminder',
-      ]);
-      const validSessionId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sessionId);
-      // Route only an explicit allowlist and never consume an unvalidated identifier.
-      if (!sessionKinds.has(kind) || !validSessionId) return;
-      if (kind === 'member_video_live') {
-        router.push({ pathname: '/video-session' as never, params: { sessionId } });
-      } else if (kind.startsWith('admin_') || kind.startsWith('coach_')) {
-        router.push('/admin' as never);
-      } else {
-        router.push('/support' as never);
-      }
-    };
-
-    const responseSub = Notifications.addNotificationResponseReceivedListener(openSchedulingNotification);
-    void Notifications.getLastNotificationResponseAsync().then(async (response) => {
-      if (!response) return;
-      try {
-        openSchedulingNotification(response);
-      } finally {
-        await Notifications.clearLastNotificationResponseAsync();
-      }
-    });
-
-    // Re-arm on foreground so the rolling week stays topped up and today's
-    // nudge drops the moment the user checks in within the session.
     const appStateSub = AppState.addEventListener('change', (state) => {
       if (state === 'active') void rearmDailyNudge();
     });
     return () => {
-      responseSub.remove();
       appStateSub.remove();
+      void cancelPushRegistration(accountId);
     };
-  }, [accountId, router]);
+  }, [accountId]);
+
+  useEffect(() => {
+    if (!accountId || !navigationReady) return;
+    let effectActive = true;
+
+    const openNotification = async (
+      response: Notifications.NotificationResponse,
+    ): Promise<boolean> => {
+      const rawData = response.notification.request.content.data ?? {};
+      const data = rawData as Record<string, unknown>;
+      const destination = getPushDestination(data);
+      // Malformed, unsupported, or expired payloads are intentionally discarded.
+      if (!destination) return true;
+
+      if (destination.pathname === '/rehearsal-incoming') {
+        const { data: valid, error } = await supabase.rpc('validate_practice_push_event', {
+          p_event_id: destination.params.eventId,
+        });
+        if (!effectActive) return false;
+        if (error) {
+          console.warn('[push] practice event validation failed', error);
+          return false;
+        }
+        if (valid !== true) return true;
+      }
+
+      if (!effectActive) return false;
+      if (!shouldHandlePushResponse(data, response.notification.request.identifier)) return true;
+      try {
+        router.push(destination as never);
+        return true;
+      } catch (error) {
+        console.warn('[push] notification navigation failed', error);
+        return false;
+      }
+    };
+
+    const responseSub = Notifications.addNotificationResponseReceivedListener((response) => {
+      void openNotification(response);
+    });
+    void Notifications.getLastNotificationResponseAsync()
+      .then(async (response) => {
+        if (!response) return;
+        const shouldClear = await openNotification(response);
+        if (shouldClear) await Notifications.clearLastNotificationResponseAsync();
+      })
+      .catch((error) => console.warn('[push] cold-start response failed', error));
+
+    return () => {
+      effectActive = false;
+      responseSub.remove();
+    };
+  }, [accountId, navigationReady, router]);
 }

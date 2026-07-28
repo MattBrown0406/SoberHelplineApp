@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { pushDeliveryPolicy } from "../_shared/push-policy.ts";
 
 // Engagement push dispatcher. pg_cron invokes it with { job }:
 //   drain            — send queued push_outbox rows (community hearts, etc.)
@@ -22,6 +23,7 @@ type PushMessage = {
   title: string;
   body: string;
   sound: "default";
+  ttl?: number;
   data?: Record<string, unknown>;
 };
 
@@ -170,6 +172,7 @@ serve(async (req) => {
       ) => [account.id, account.push_token as string | null]),
     );
     const tokenlessIds: string[] = [];
+    const canceledPracticeIds: string[] = [];
     const sendable: { row: typeof rows[number]; message: PushMessage }[] = [];
 
     // Every outbox row remains distinct. In particular, separate session
@@ -180,6 +183,25 @@ serve(async (req) => {
         tokenlessIds.push(row.id);
         continue;
       }
+      let deliveryPolicy = pushDeliveryPolicy(row.kind);
+      if (row.kind === "practice_incoming") {
+        const eventId = row.metadata && typeof row.metadata === "object"
+          ? (row.metadata as Record<string, unknown>).event_id
+          : null;
+        if (typeof eventId !== "string") {
+          canceledPracticeIds.push(row.id);
+          continue;
+        }
+        const { data: remainingTtl, error: eligibilityError } = await supabase.rpc(
+          "practice_push_delivery_ttl",
+          { p_event_id: eventId, p_account_id: row.account_id },
+        );
+        if (eligibilityError || typeof remainingTtl !== "number" || remainingTtl < 1) {
+          canceledPracticeIds.push(row.id);
+          continue;
+        }
+        deliveryPolicy = { ttl: remainingTtl };
+      }
       sendable.push({
         row,
         message: {
@@ -187,11 +209,20 @@ serve(async (req) => {
           title: row.title,
           body: row.body,
           sound: "default",
+          ...deliveryPolicy,
           data: row.metadata && typeof row.metadata === "object"
             ? row.metadata
             : {},
         },
       });
+    }
+
+    if (canceledPracticeIds.length) {
+      const { error: canceledError } = await supabase
+        .from("push_outbox")
+        .update({ failed_at: now, last_error: "practice_expired_or_ineligible", processing_at: null, processing_token: null })
+        .in("id", canceledPracticeIds).eq("processing_token", claimToken);
+      if (canceledError) return json({ error: canceledError.message }, 500);
     }
 
     if (tokenlessIds.length) {

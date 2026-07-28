@@ -7,11 +7,16 @@
     "locked": "Included with Essentials — upgrade to take the call"
   },
   "ring": {
-    "label": "Incoming call",
+    "badge": "PRACTICE",
+    "label": "AI practice call",
     "mobile": "Mobile",
     "answer": "Answer",
     "decline": "Decline",
-    "hint": "This is practice. On the other end of this call, your loved one is already mid-crisis — and you get no prep time. Just like the real ones."
+    "hint": "This is practice. On the other end of this call, your loved one is already mid-crisis — and you get no prep time. Just like the real ones.",
+    "unavailableTitle": "Practice call unavailable",
+    "unavailableBody": "This practice call expired or was already answered. Wait for the next one or start a manual practice.",
+    "tryAgainTitle": "Couldn't answer yet",
+    "tryAgainBody": "We couldn't verify this practice call. Check your connection and try answering again."
   },
   "declined": {
     "title": "Call declined",

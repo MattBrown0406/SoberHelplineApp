@@ -67,13 +67,14 @@ export default function RehearsalIncomingScreen() {
   const { colors } = useTheme();
   const { t, i18n } = useTranslation(['rehearsalIncoming', 'rehearsalLive']);
   const router = useRouter();
-  const params = useLocalSearchParams<{ temperament?: string; crisisPreset?: string }>();
+  const params = useLocalSearchParams<{ temperament?: string; crisisPreset?: string; eventId?: string }>();
   const { user, accountState } = useAccount();
   const { lovedOne } = useLovedOne(user?.id ?? null);
   const { increment } = useRehearsalCount('incoming-call');
 
   const [stage, setStage] = useState<Stage>('ring');
   const [declined, setDeclined] = useState(false);
+  const answeringRef = useRef(false);
   // Scenario is rolled once per call attempt — no setup screen, that's the ambush.
   const [roll, setRoll] = useState(() => ({
     temperament: pinnedParam(params.temperament, TEMPERAMENTS) ?? pickRandom(TEMPERAMENTS),
@@ -115,7 +116,7 @@ export default function RehearsalIncomingScreen() {
     voice: { gender, age },
     mode: 'incoming_call',
     crisisPreset: roll.crisisPreset,
-  });
+  }, typeof params.eventId === 'string' ? params.eventId : undefined);
 
   // Ring: pulse the answer button and loop the vibration pattern until
   // answered or declined. Vibration only — no new native deps, OTA-safe.
@@ -206,9 +207,33 @@ export default function RehearsalIncomingScreen() {
   }, [messages, stage, playAudio]);
 
   async function handleAnswer() {
+    if (answeringRef.current) return;
+    answeringRef.current = true;
+    const eventId = typeof params.eventId === 'string' ? params.eventId : '';
+    if (eventId) {
+      const validEventId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(eventId);
+      if (!validEventId) {
+        answeringRef.current = false;
+        Alert.alert(t('rehearsalIncoming:ring.unavailableTitle'), t('rehearsalIncoming:ring.unavailableBody'));
+        return;
+      }
+      const { data: claimed, error } = await supabase.rpc('claim_practice_push_event', {
+        p_event_id: eventId,
+      });
+      if (error) {
+        answeringRef.current = false;
+        Alert.alert(t('rehearsalIncoming:ring.tryAgainTitle'), t('rehearsalIncoming:ring.tryAgainBody'));
+        return;
+      }
+      if (claimed !== true) {
+        answeringRef.current = false;
+        Alert.alert(t('rehearsalIncoming:ring.unavailableTitle'), t('rehearsalIncoming:ring.unavailableBody'));
+        return;
+      }
+    }
     setStage('call');
-    // Fetch the character's opening line — the call they placed, mid-crisis.
-    // On failure the hook's error state shows the standard retry message.
+    // The durable event claim above is the exactly-once boundary. Only now may
+    // the authenticated rehearsal backend generate the character's opening.
     await open();
   }
 
@@ -331,6 +356,9 @@ export default function RehearsalIncomingScreen() {
           <View style={styles.ringWrap}>
             {!declined ? (
               <>
+                <Text style={[styles.practiceBadge, { color: colors.primary, borderColor: colors.primary }]}>
+                  {t('rehearsalIncoming:ring.badge')}
+                </Text>
                 <Text style={[styles.ringLabel, { color: colors.inkSoft }]}>{t('rehearsalIncoming:ring.label')}</Text>
                 <Text style={styles.ringName}>{partnerName}</Text>
                 <Text style={[styles.ringSub, { color: colors.inkSoft }]}>{t('rehearsalIncoming:ring.mobile')}</Text>
@@ -542,6 +570,7 @@ const styles = StyleSheet.create({
   backText: { fontSize: 15 },
   // Ring
   ringWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 40 },
+  practiceBadge: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5, fontSize: 11, fontWeight: '900', letterSpacing: 1.2, marginBottom: 12 },
   ringLabel: { fontSize: 13, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 18 },
   ringName: { fontSize: 34, fontWeight: '700', color: '#fff', textAlign: 'center', lineHeight: 42 },
   ringSub: { fontSize: 15, marginTop: 6 },

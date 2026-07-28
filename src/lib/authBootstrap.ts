@@ -1,5 +1,13 @@
 export type InitialLayoutState = 'stack' | 'bootstrap' | 'account-error';
 
+export function isPushNavigationReady(input: {
+  layoutState: InitialLayoutState;
+  isAuthenticated: boolean;
+  onboarded: boolean | null;
+}): boolean {
+  return input.layoutState === 'stack' && input.isAuthenticated && input.onboarded === true;
+}
+
 export function getInitialLayoutState(input: {
   isAuthenticated: boolean;
   isLoading: boolean;

@@ -20,7 +20,7 @@
 //
 // Requires an authenticated user. No API key ever ships to clients.
 
-import { createClient } from 'npm:@supabase/supabase-js@2';
+import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -417,16 +417,18 @@ Deno.serve(async (req: Request) => {
     .toLowerCase()
     .split(',')
     .map((e) => e.trim());
+  const { data: account } = await supabase
+    .from('accounts')
+    .select('id, type')
+    .eq('user_id', userData.user.id)
+    .single();
+  if (!account) return json(403, { ok: false, code: 'account_required' });
+
   let entitled = allowEmails.includes((userData.user.email ?? '').toLowerCase().trim());
   if (!entitled) {
-    const { data: account } = await supabase
-      .from('accounts')
-      .select('id, type')
-      .eq('user_id', userData.user.id)
-      .single();
-    if (account?.type === 'attached') {
+    if (account.type === 'attached') {
       entitled = true;
-    } else if (account) {
+    } else {
       const { data: rows } = await supabase
         .from('entitlements')
         .select('tier, expires_at')
@@ -448,6 +450,7 @@ Deno.serve(async (req: Request) => {
     audio?: string;
     format?: string;
     text?: string;
+    practiceEventId?: string;
   };
   try {
     payload = await req.json();
@@ -516,12 +519,88 @@ Deno.serve(async (req: Request) => {
     const replyTurns: Turn[] = incomingOpening
       ? [{ role: 'user', text: '[They pick up the phone. Open the call.]' }]
       : turns;
-    const raw = await callModel(partnerSystemPrompt(scenario), replyTurns, 300);
-    const breakCharacter = raw.startsWith(BREAK_TOKEN);
-    const text = breakCharacter ? raw.slice(BREAK_TOKEN.length).trim() : raw;
-    // Never voice the safety break — it reads as the app, not the character.
-    const audio = !breakCharacter && scenario.voice ? await synthesize(text, scenario.voice, scenario.temperament) : null;
-    return json(200, { ok: true, text, breakCharacter, audio });
+
+    const eventId = typeof payload.practiceEventId === 'string' ? payload.practiceEventId : '';
+    const validEventId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(eventId);
+    let admin: SupabaseClient<any> | null = null;
+    let generationLock: string | null = null;
+
+    if (incomingOpening && eventId) {
+      if (!validEventId) return json(400, { ok: false, code: 'invalid_practice_event' });
+      const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      if (!serviceKey) return json(503, { ok: false, code: 'service_not_configured' });
+      admin = createClient(Deno.env.get('SUPABASE_URL')!, serviceKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const { data: event, error: eventError } = await admin
+        .from('practice_push_events')
+        .select('event_id, expires_at, answered_at, generation_started_at, opening_text, break_character')
+        .eq('event_id', eventId)
+        .eq('account_id', account.id)
+        .maybeSingle();
+      if (eventError) throw new Error('practice_event_lookup_failed');
+      if (!event || !event.answered_at || new Date(event.expires_at).getTime() <= Date.now()) {
+        return json(409, { ok: false, code: 'practice_event_unavailable' });
+      }
+      if (event.opening_text) {
+        const cachedAudio = !event.break_character && scenario.voice
+          ? await synthesize(event.opening_text, scenario.voice, scenario.temperament)
+          : null;
+        return json(200, {
+          ok: true,
+          text: event.opening_text,
+          breakCharacter: !!event.break_character,
+          audio: cachedAudio,
+        });
+      }
+
+      const startedAt = event.generation_started_at ? new Date(event.generation_started_at).getTime() : 0;
+      if (startedAt > Date.now() - 2 * 60 * 1000) {
+        return json(409, { ok: false, code: 'opening_in_progress' });
+      }
+      generationLock = new Date().toISOString();
+      let lockQuery = admin
+        .from('practice_push_events')
+        .update({ generation_started_at: generationLock })
+        .eq('event_id', eventId)
+        .eq('account_id', account.id)
+        .is('opening_text', null);
+      lockQuery = event.generation_started_at
+        ? lockQuery.eq('generation_started_at', event.generation_started_at)
+        : lockQuery.is('generation_started_at', null);
+      const { data: locked, error: lockError } = await lockQuery.select('event_id').maybeSingle();
+      if (lockError) throw new Error('practice_event_lock_failed');
+      if (!locked) return json(409, { ok: false, code: 'opening_in_progress' });
+    }
+
+    try {
+      const raw = await callModel(partnerSystemPrompt(scenario), replyTurns, 300);
+      const breakCharacter = raw.startsWith(BREAK_TOKEN);
+      const text = breakCharacter ? raw.slice(BREAK_TOKEN.length).trim() : raw;
+      if (admin && eventId && generationLock) {
+        const { error: cacheError } = await admin
+          .from('practice_push_events')
+          .update({ opening_text: text, break_character: breakCharacter })
+          .eq('event_id', eventId)
+          .eq('account_id', account.id)
+          .eq('generation_started_at', generationLock);
+        if (cacheError) throw new Error('opening_cache_failed');
+      }
+      // Never voice the safety break — it reads as the app, not the character.
+      const audio = !breakCharacter && scenario.voice ? await synthesize(text, scenario.voice, scenario.temperament) : null;
+      return json(200, { ok: true, text, breakCharacter, audio });
+    } catch (error) {
+      if (admin && eventId && generationLock) {
+        await admin
+          .from('practice_push_events')
+          .update({ generation_started_at: null })
+          .eq('event_id', eventId)
+          .eq('account_id', account.id)
+          .eq('generation_started_at', generationLock)
+          .is('opening_text', null);
+      }
+      throw error;
+    }
   } catch (e) {
     const code = e instanceof Error ? e.message : 'unknown';
     const status = code === 'missing_api_key' || code === 'stt_not_configured' ? 503 : 502;

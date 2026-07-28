@@ -16,6 +16,7 @@ await writeFile(modulePath, output);
 const {
   AccountRequestGate,
   getInitialLayoutState,
+  isPushNavigationReady,
   resolveDirectAccountState,
   resolveRefreshedDirectAccountState,
   withTimeoutFallback,
@@ -81,6 +82,13 @@ test('signed-out and fully hydrated states render the router stack', () => {
     }),
     'stack',
   );
+});
+
+test('cold-start push routing waits for authenticated onboarding and the mounted stack', () => {
+  assert.equal(isPushNavigationReady({ layoutState: 'bootstrap', isAuthenticated: true, onboarded: null }), false);
+  assert.equal(isPushNavigationReady({ layoutState: 'stack', isAuthenticated: true, onboarded: false }), false);
+  assert.equal(isPushNavigationReady({ layoutState: 'stack', isAuthenticated: false, onboarded: true }), false);
+  assert.equal(isPushNavigationReady({ layoutState: 'stack', isAuthenticated: true, onboarded: true }), true);
 });
 
 test('optional provider enrichment has a bounded fallback', async () => {

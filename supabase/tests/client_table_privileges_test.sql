@@ -54,8 +54,15 @@ SELECT ok(
 
 SELECT ok(
   has_column_privilege('authenticated','public.accounts','language','UPDATE')
-  AND has_column_privilege('authenticated','public.accounts','push_token','UPDATE'),
-  'members can update narrow profile and device columns'
+  AND has_column_privilege('authenticated','public.accounts','push_token','UPDATE')
+  AND has_table_privilege('authenticated','public.practice_push_preferences','SELECT')
+  AND has_column_privilege('authenticated','public.practice_push_preferences','account_id','INSERT')
+  AND has_column_privilege('authenticated','public.practice_push_preferences','account_id','UPDATE')
+  AND has_column_privilege('authenticated','public.practice_push_preferences','enabled','INSERT')
+  AND has_column_privilege('authenticated','public.practice_push_preferences','enabled','UPDATE')
+  AND NOT has_column_privilege('authenticated','public.practice_push_preferences','next_prompt_at','UPDATE')
+  AND NOT has_table_privilege('authenticated','public.practice_push_events','SELECT'),
+  'members can update narrow profile, device, and practice preference columns'
 );
 SELECT ok(
   NOT has_column_privilege('authenticated','public.accounts','type','UPDATE')
