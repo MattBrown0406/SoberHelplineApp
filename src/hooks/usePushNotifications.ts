@@ -22,6 +22,7 @@ const REMINDER_HOUR_KEY = 'reminderHour';
 export const DEFAULT_REMINDER_HOUR = 9;
 const NUDGE_DAYS = 7; // schedule a week of nudges ahead so non-openers still get pinged
 const pushWriteBarrier = new AsyncWriteBarrier();
+let nudgeRearmQueue: Promise<void> = Promise.resolve();
 
 /** Invalidate token acquisition and wait for an already-started write to settle. */
 export async function cancelPushRegistration(accountId: string): Promise<void> {
@@ -54,7 +55,7 @@ function nudgeBodies(): string[] {
  * Schedules a rolling week so users who don't open the app daily still get
  * reminders. Safe to call repeatedly (it cancels and re-arms).
  */
-export async function rearmDailyNudge(): Promise<void> {
+async function performDailyNudgeRearm(): Promise<void> {
   const { status } = await Notifications.getPermissionsAsync();
   if (status !== 'granted') return;
 
@@ -107,6 +108,13 @@ export async function rearmDailyNudge(): Promise<void> {
     },
     trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: sunday },
   });
+}
+
+/** Serialize re-arms so overlapping foreground/save/settings events cannot interleave. */
+export function rearmDailyNudge(): Promise<void> {
+  const task = nudgeRearmQueue.then(performDailyNudgeRearm, performDailyNudgeRearm);
+  nudgeRearmQueue = task.catch(() => undefined);
+  return task;
 }
 
 export async function registerForPushNotifications(accountId: string): Promise<boolean> {

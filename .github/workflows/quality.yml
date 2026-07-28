@@ -20,14 +20,15 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - name: Block high or critical dependency advisories
-        run: npm audit --audit-level=high
+      - name: Block unaccepted high or critical dependency advisories
+        run: npm run audit:release
       - name: Prevent production mock modules
         run: |
           test ! -e src/api/mock.ts
           ! grep -R "api/mock" app src --include='*.ts' --include='*.tsx'
       - run: npm run typecheck
       - run: npm run test:auth
+      - run: npm run test:checkin
       - run: npm run doctor
       - run: npm run export:web
         env:
@@ -37,9 +38,9 @@ jobs:
         with:
           deno-version: v2.3.7
       - name: Type-check Edge Functions
-        run: deno check --node-modules-dir=none supabase/functions/*/index.ts
+        run: deno check --frozen --node-modules-dir=none supabase/functions/*/index.ts
       - name: Run Edge Function contract tests
-        run: deno test --node-modules-dir=none supabase/functions/_shared/*_test.ts
+        run: deno test --frozen --node-modules-dir=none supabase/functions/_shared/*_test.ts
 
   database:
     runs-on: ubuntu-latest

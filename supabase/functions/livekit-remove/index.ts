@@ -6,6 +6,7 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { RoomServiceClient } from 'npm:livekit-server-sdk@2';
+import { isAdminEmail } from '../_shared/admin.ts';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -36,7 +37,7 @@ Deno.serve(async (req) => {
       .single();
     if (!account) return json({ error: 'no account' }, 403);
 
-    const isAdmin = user.email?.trim().toLowerCase() === 'matt@soberhelpline.com';
+    const isAdmin = isAdminEmail(user.email);
     const { data: hostRow } = await supabase
       .from('group_hosts')
       .select('account_id')

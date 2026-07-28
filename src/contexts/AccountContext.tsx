@@ -111,6 +111,23 @@ async function fetchCoreAccount(authUser: User): Promise<AuthUser | null> {
     }
   }
 
+  let effectiveTimezone = data.timezone || 'UTC';
+  const deviceTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (deviceTimezone && deviceTimezone !== data.timezone) {
+    const timezoneResult = await withTimeoutFallback(
+      Promise.resolve(
+        supabase.from('accounts').update({ timezone: deviceTimezone }).eq('id', data.id),
+      ),
+      1000,
+      null,
+    );
+    if (timezoneResult && !timezoneResult.error) {
+      effectiveTimezone = deviceTimezone;
+    } else {
+      addAppBreadcrumb('auth.timezone_sync_failed', 'warning');
+    }
+  }
+
   return buildAuthUser({
     id: data.id,
     firstName: data.first_name ?? '',
@@ -119,7 +136,7 @@ async function fetchCoreAccount(authUser: User): Promise<AuthUser | null> {
     accountState,
     orgId: data.org_id ?? null,
     joinedAt: data.created_at,
-    timezone: data.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+    timezone: effectiveTimezone,
   });
 }
 

@@ -21,6 +21,8 @@
     "privacyAttached": "Patterns are shared only with your {{orgName}} coach.",
     "privacyDirect": "Patterns stay private unless you choose to share them with a coach.",
     "completeButton": "Complete check-in",
+    "savingButton": "Saving check-in…",
+    "moodAccessibility": "Mood {{score}} out of 5",
     "moodHint": "Tap an emoji above to select your mood",
     "noMoodTitle": "Select a mood",
     "noMoodMessage": "Tap one of the emojis above to record how you're feeling, then complete your check-in.",

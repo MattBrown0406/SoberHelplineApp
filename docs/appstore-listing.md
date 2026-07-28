@@ -11,6 +11,9 @@ listing. Update `promotionalText` anytime without re-review.
 
 ## English (U.S.)
 
+### What's New in Version 3.5.1
+Fixed an issue that could show a save error during the daily check-in. This update also improves check-in reliability when the same day is submitted more than once.
+
 ### App Name
 Sober Helpline
 
@@ -21,7 +24,7 @@ Family Addiction Support
 When someone you love is struggling with addiction, you don't have to face it alone. Daily support, boundary tools, and real coaches — in English and Spanish.
 
 ### Keywords
-addiction,recovery,sobriety,intervention,enabling,boundaries,codependency,alanon,substance,coach,sober
+addiction,recovery,sobriety,intervention,enabling,boundaries,codependency,substance,coach,sober
 
 ### Description
 You can't control whether your loved one chooses recovery. You can control how you respond — and you don't have to do it alone.
@@ -65,6 +68,9 @@ Hope. Help. Recovery.
 
 ## Spanish (Mexico) — es-MX
 
+### Novedades de la versión 3.5.1
+Corregimos un problema que podía mostrar un error al guardar el registro diario. Esta actualización también mejora la confiabilidad cuando se envía más de una vez el registro del mismo día.
+
 ### Subtitle
 Apoyo Familiar en Adicción
 
@@ -72,7 +78,7 @@ Apoyo Familiar en Adicción
 Cuando alguien que amas lucha contra la adicción, no tienes que enfrentarlo solo. Apoyo diario, herramientas de límites y coaches reales — en español e inglés.
 
 ### Keywords
-adiccion,recuperacion,sobriedad,intervencion,limites,codependencia,familia,sustancias,coach,sobrio,alanon
+adiccion,recuperacion,sobriedad,intervencion,limites,codependencia,familia,sustancias,coach,sobrio
 
 ### Description
 No puedes controlar si tu ser querido elige la recuperación. Sí puedes controlar cómo respondes — y no tienes que hacerlo solo.
@@ -118,4 +124,4 @@ Esperanza. Ayuda. Recuperación.
 - Positioned as coaching/education/support — NOT treatment, therapy, or cure. Keep it that way.
 - Crisis disclaimer (911 / 988 + "not a substitute for treatment") must remain in both descriptions.
 - Provide one verified direct/free demo login that covers the complete consumer review path; describe provider-connected accounts accurately without requiring reviewer-owned email confirmation.
-- Keywords intentionally avoid trademarks; "alanon" is a common search term — confirm comfort before submit.
+- Keywords stay within Apple's 100-character limit and avoid third-party trademarks.

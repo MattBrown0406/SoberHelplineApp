@@ -1,7 +1,7 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SET search_path=public,extensions;
-SELECT plan(11);
+SELECT plan(16);
 
 WITH required(table_name, privilege) AS (
   VALUES
@@ -22,6 +22,35 @@ SELECT ok(
   bool_and(has_table_privilege('authenticated', 'public.' || quote_ident(table_name), privilege)),
   'authenticated has every table privilege required by direct app flows'
 ) FROM required;
+
+SELECT ok(
+  NOT EXISTS (
+    SELECT 1
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public' AND c.relkind IN ('r','p')
+      AND (
+        has_table_privilege('authenticated', c.oid, 'TRUNCATE')
+        OR has_table_privilege('authenticated', c.oid, 'REFERENCES')
+        OR has_table_privilege('authenticated', c.oid, 'TRIGGER')
+      )
+  ),
+  'authenticated has no RLS-bypassing or schema-mutation table privileges'
+);
+SELECT ok(
+  NOT EXISTS (
+    SELECT 1
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public' AND c.relkind IN ('r','p')
+      AND (
+        has_table_privilege('anon', c.oid, 'TRUNCATE')
+        OR has_table_privilege('anon', c.oid, 'REFERENCES')
+        OR has_table_privilege('anon', c.oid, 'TRIGGER')
+      )
+  ),
+  'anon has no RLS-bypassing or schema-mutation table privileges'
+);
 
 SELECT ok(
   has_column_privilege('authenticated','public.accounts','language','UPDATE')
@@ -53,7 +82,16 @@ SELECT ok(
 );
 
 INSERT INTO auth.users(id,email,raw_app_meta_data,raw_user_meta_data,aud,role)
-VALUES ('19000000-0000-0000-0000-000000000001','privilege-member@example.com','{}','{"first_name":"Privilege"}','authenticated','authenticated');
+VALUES
+  ('19000000-0000-0000-0000-000000000001','privilege-member@example.com','{}','{"first_name":"Privilege"}','authenticated','authenticated'),
+  ('19000000-0000-0000-0000-000000000002','other-member@example.com','{}','{"first_name":"Other"}','authenticated','authenticated');
+
+INSERT INTO public.threads(id, account_id, kind) VALUES
+  ('19000000-0000-0000-0000-000000000011', (SELECT id FROM public.accounts WHERE user_id='19000000-0000-0000-0000-000000000001'), 'oncall'),
+  ('19000000-0000-0000-0000-000000000012', (SELECT id FROM public.accounts WHERE user_id='19000000-0000-0000-0000-000000000002'), 'oncall');
+INSERT INTO public.messages(id, thread_id, sender_role, body) VALUES
+  ('19000000-0000-0000-0000-000000000021', '19000000-0000-0000-0000-000000000011', 'member', 'own message'),
+  ('19000000-0000-0000-0000-000000000022', '19000000-0000-0000-0000-000000000012', 'member', 'other message');
 
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claims','{"sub":"19000000-0000-0000-0000-000000000001","email":"privilege-member@example.com","role":"authenticated"}',true);
@@ -75,6 +113,22 @@ SELECT throws_ok(
 SELECT lives_ok(
   $$INSERT INTO public.checkins(account_id,mood,checkin_date) VALUES(public.my_account_id(),3,current_date)$$,
   'a member can create an RLS-protected check-in'
+);
+SELECT lives_ok(
+  $$SELECT public.toggle_reaction('19000000-0000-0000-0000-000000000021','👍')$$,
+  'a member can react to a message in their own thread'
+);
+SELECT throws_ok(
+  $$SELECT public.toggle_reaction('19000000-0000-0000-0000-000000000022','👍')$$,
+  '42501',
+  'message_not_accessible',
+  'a member cannot react to another family thread'
+);
+SELECT throws_ok(
+  $$SELECT public.toggle_reaction('19000000-0000-0000-0000-000000000021','arbitrary')$$,
+  '22023',
+  'invalid_reaction',
+  'the reaction RPC accepts only the app reaction allowlist'
 );
 
 SELECT * FROM finish();

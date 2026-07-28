@@ -13,6 +13,8 @@ export type PartnerRelationship =
   | 'parent'
   | 'friend';
 
+export type CrisisPreset = 'late_night_pickup' | 'money_urgent' | 'relapse_confession' | 'crisis_blame';
+
 export type PartnerScenario = {
   relationship?: string;
   name?: string;
@@ -21,6 +23,9 @@ export type PartnerScenario = {
   scriptText?: string;
   language?: string;
   voice?: { gender: PartnerGender; age: PartnerAge };
+  // incoming_call: the AI places the call and opens mid-crisis (no user turn first)
+  mode?: 'standard' | 'incoming_call';
+  crisisPreset?: CrisisPreset;
 };
 
 export type PartnerTurn = { role: 'user' | 'partner'; text: string; audio?: string | null };
@@ -163,6 +168,36 @@ export function useRehearsalPartner(scenario: PartnerScenario) {
     }
   }, [transcribing]);
 
+  /**
+   * Incoming-call mode only: fetch the character's opening line — the call
+   * they placed, already mid-crisis, before the user has said a word. The
+   * server handles the empty-turns case when scenario.mode is incoming_call.
+   */
+  const open = useCallback(async (): Promise<{ ok: boolean; audio: string | null }> => {
+    if (sending || messages.length > 0) return { ok: false, audio: null };
+    setError(null);
+    setSending(true);
+    try {
+      const result = await invokeRehearsal({ mode: 'reply', scenario: scenarioRef.current, messages: [] });
+      if (result.ok === false) {
+        setError(result.code);
+        return { ok: false, audio: null };
+      }
+      if ('text' in result) {
+        const audio = result.audio ?? null;
+        setMessages([{ role: 'partner', text: result.text, audio }]);
+        if (result.breakCharacter) setSafetyBreak(true);
+        return { ok: true, audio };
+      }
+      return { ok: false, audio: null };
+    } catch {
+      setError('network');
+      return { ok: false, audio: null };
+    } finally {
+      setSending(false);
+    }
+  }, [messages.length, sending]);
+
   const requestDebrief = useCallback(async () => {
     if (debriefLoading || messages.filter((m) => m.role === 'user').length === 0) return;
     setError(null);
@@ -200,6 +235,7 @@ export function useRehearsalPartner(scenario: PartnerScenario) {
     turnsLeft,
     send,
     transcribeClip,
+    open,
     requestDebrief,
     reset,
   };
