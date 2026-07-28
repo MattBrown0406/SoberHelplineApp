@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import { restorePurchases } from '../src/lib/revenueCat';
 import {
   cancelPushRegistration,
   getReminderHour,
+  registerForPushNotifications,
   setReminderHour,
   DEFAULT_REMINDER_HOUR,
 } from '../src/hooks/usePushNotifications';
@@ -36,6 +37,26 @@ const REMINDER_PRESETS = [
   { hour: 21, labelKey: 'notifications.reminderNight' },
 ] as const;
 
+const PRACTICE_WINDOWS = [
+  { start: 8, end: 12, labelKey: 'notifications.practiceWindowMorning' },
+  { start: 12, end: 17, labelKey: 'notifications.practiceWindowAfternoon' },
+  { start: 17, end: 21, labelKey: 'notifications.practiceWindowEvening' },
+] as const;
+
+type PracticePushSettings = {
+  enabled: boolean;
+  frequency: 1 | 2 | 3;
+  windowStart: number;
+  windowEnd: number;
+};
+
+const DEFAULT_PRACTICE_PUSH: PracticePushSettings = {
+  enabled: false,
+  frequency: 2,
+  windowStart: 12,
+  windowEnd: 17,
+};
+
 export default function SettingsScreen() {
   const { colors } = useTheme();
   const { user, isAttached, accountState, refreshAccount } = useAccount();
@@ -49,6 +70,14 @@ export default function SettingsScreen() {
   const [deletingAccount, setDeletingAccount] = useState(false);
   const isAdmin = isAdminEmail(user?.email);
   const [reminderHour, setReminderHourState] = useState(DEFAULT_REMINDER_HOUR);
+  const [practicePush, setPracticePush] = useState<PracticePushSettings>(DEFAULT_PRACTICE_PUSH);
+  const [practicePushLoading, setPracticePushLoading] = useState(true);
+  const [practicePushSaving, setPracticePushSaving] = useState(false);
+  const [practicePushLoadFailed, setPracticePushLoadFailed] = useState(false);
+  const [practicePushReload, setPracticePushReload] = useState(0);
+  const practiceAccountRef = useRef<string | null>(user?.id ?? null);
+  practiceAccountRef.current = user?.id ?? null;
+  const canUsePracticePush = isAdmin || isAttached || accountState !== 'direct-free';
 
   useEffect(() => {
     void getReminderHour().then(setReminderHourState);
@@ -57,6 +86,103 @@ export default function SettingsScreen() {
   function chooseReminderHour(hour: number) {
     setReminderHourState(hour);
     void setReminderHour(hour);
+  }
+
+  useEffect(() => {
+    let active = true;
+    if (!user || !canUsePracticePush) {
+      setPracticePush(DEFAULT_PRACTICE_PUSH);
+      setPracticePushLoading(false);
+      setPracticePushLoadFailed(false);
+      return () => { active = false; };
+    }
+
+    setPracticePush(DEFAULT_PRACTICE_PUSH);
+    setPracticePushLoading(true);
+    setPracticePushLoadFailed(false);
+    void (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('practice_push_preferences')
+          .select('enabled, frequency_per_week, window_start_hour, window_end_hour')
+          .eq('account_id', user.id)
+          .maybeSingle();
+        if (!active) return;
+        if (error) {
+          console.warn('[practice-push] preference load failed', error);
+          setPracticePushLoadFailed(true);
+          return;
+        }
+        if (data) {
+          const rawFrequency = Number(data.frequency_per_week);
+          const frequency: 1 | 2 | 3 = rawFrequency === 1 || rawFrequency === 3 ? rawFrequency : 2;
+          setPracticePush({
+            enabled: !!data.enabled,
+            frequency,
+            windowStart: Number(data.window_start_hour),
+            windowEnd: Number(data.window_end_hour),
+          });
+        }
+      } catch (error) {
+        if (active) {
+          console.warn('[practice-push] preference load failed', error);
+          setPracticePushLoadFailed(true);
+        }
+      } finally {
+        if (active) setPracticePushLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, [user?.id, canUsePracticePush, practicePushReload]);
+
+  async function savePracticePush(next: PracticePushSettings): Promise<boolean> {
+    if (!user || practicePushSaving || !canUsePracticePush) return false;
+    const accountId = user.id;
+    const previous = practicePush;
+    setPracticePush(next);
+    setPracticePushSaving(true);
+    try {
+      const { error } = await supabase.from('practice_push_preferences').upsert({
+        account_id: accountId,
+        enabled: next.enabled,
+        frequency_per_week: next.frequency,
+        window_start_hour: next.windowStart,
+        window_end_hour: next.windowEnd,
+      }, { onConflict: 'account_id' });
+      if (error) throw error;
+      if (practiceAccountRef.current !== accountId) return false;
+      setPracticePushLoadFailed(false);
+      return true;
+    } catch (error) {
+      console.warn('[practice-push] preference save failed', error);
+      if (practiceAccountRef.current === accountId) {
+        setPracticePush(previous);
+        Alert.alert(t('notifications.practiceSaveErrorTitle'), t('notifications.practiceSaveErrorBody'));
+      }
+      return false;
+    } finally {
+      if (practiceAccountRef.current === accountId) setPracticePushSaving(false);
+    }
+  }
+
+  async function handlePracticePushToggle(enabled: boolean) {
+    if (!user) return;
+    const accountId = user.id;
+    if (enabled) {
+      setPracticePushSaving(true);
+      let registered = false;
+      try {
+        registered = await registerForPushNotifications(accountId);
+      } finally {
+        if (practiceAccountRef.current === accountId) setPracticePushSaving(false);
+      }
+      if (practiceAccountRef.current !== accountId) return;
+      if (!registered) {
+        Alert.alert(t('notifications.practicePermissionTitle'), t('notifications.practicePermissionBody'));
+        return;
+      }
+    }
+    await savePracticePush({ ...practicePush, enabled });
   }
 
   useEffect(() => {
@@ -357,6 +483,127 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* Opt-in AI-initiated practice calls. Remote pushes contain no family
+            details and only route to the fixed Incoming Practice screen. */}
+        {canUsePracticePush && (
+          <View style={[styles.card, { borderColor: colors.line }]}>
+            <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
+              {t('notifications.practiceEyebrow')}
+            </Text>
+            {practicePushLoading ? (
+              <ActivityIndicator color={colors.primary} />
+            ) : practicePushLoadFailed ? (
+              <View>
+                <Text style={[styles.toggleDesc, { color: colors.coral }]}>
+                  {t('notifications.practiceLoadError')}
+                </Text>
+                <TouchableOpacity
+                  style={[styles.retryBtn, { borderColor: colors.line }]}
+                  onPress={() => setPracticePushReload((value) => value + 1)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.restoreText, { color: colors.primary }]}>
+                    {t('notifications.practiceRetry')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <>
+                <View style={styles.toggleRow}>
+                  <View style={styles.toggleTextWrap}>
+                    <Text style={[styles.toggleLabel, { color: colors.ink }]}>
+                      {t('notifications.practiceTitle')}
+                    </Text>
+                    <Text style={[styles.toggleDesc, { color: colors.inkSoft }]}>
+                      {t('notifications.practiceDesc')}
+                    </Text>
+                  </View>
+                  <Switch
+                    value={practicePush.enabled}
+                    onValueChange={(value) => void handlePracticePushToggle(value)}
+                    disabled={practicePushSaving}
+                    trackColor={{ false: colors.line, true: colors.primary }}
+                    thumbColor="#fff"
+                    accessibilityLabel={t('notifications.practiceTitle')}
+                  />
+                </View>
+
+                {practicePush.enabled && (
+                  <View style={[styles.practiceOptions, { borderTopColor: colors.line }]}>
+                    <Text style={[styles.optionLabel, { color: colors.ink }]}>
+                      {t('notifications.practiceFrequencyLabel')}
+                    </Text>
+                    <View style={styles.pillRow}>
+                      {([1, 2, 3] as const).map((frequency) => {
+                        const active = practicePush.frequency === frequency;
+                        return (
+                          <TouchableOpacity
+                            key={frequency}
+                            style={[
+                              styles.pill,
+                              {
+                                borderColor: active ? colors.primary : colors.line,
+                                backgroundColor: active ? colors.primaryLight : '#fff',
+                              },
+                            ]}
+                            onPress={() => void savePracticePush({ ...practicePush, frequency })}
+                            disabled={practicePushSaving}
+                            activeOpacity={0.8}
+                            accessibilityRole="button"
+                            accessibilityState={{ selected: active, disabled: practicePushSaving }}
+                          >
+                            <Text style={[styles.pillText, { color: active ? colors.primary : colors.inkSoft }]}>
+                              {t('notifications.practiceFrequency', { count: frequency })}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+
+                    <Text style={[styles.optionLabel, { color: colors.ink }]}>
+                      {t('notifications.practiceWindowLabel')}
+                    </Text>
+                    <View style={styles.pillRow}>
+                      {PRACTICE_WINDOWS.map((window) => {
+                        const active = practicePush.windowStart === window.start
+                          && practicePush.windowEnd === window.end;
+                        return (
+                          <TouchableOpacity
+                            key={window.start}
+                            style={[
+                              styles.pill,
+                              {
+                                borderColor: active ? colors.primary : colors.line,
+                                backgroundColor: active ? colors.primaryLight : '#fff',
+                              },
+                            ]}
+                            onPress={() => void savePracticePush({
+                              ...practicePush,
+                              windowStart: window.start,
+                              windowEnd: window.end,
+                            })}
+                            disabled={practicePushSaving}
+                            activeOpacity={0.8}
+                            accessibilityRole="button"
+                            accessibilityState={{ selected: active, disabled: practicePushSaving }}
+                          >
+                            <Text style={[styles.pillText, { color: active ? colors.primary : colors.inkSoft }]}>
+                              {t(window.labelKey)}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                    <Text style={[styles.privacyNote, { color: colors.inkSoft }]}>
+                      {t('notifications.practicePrivacy')}
+                    </Text>
+                  </View>
+                )}
+              </>
+            )}
+          </View>
+        )}
+
         {/* Legal — Terms of Use (EULA) + Privacy Policy (App Store 3.1.2c) */}
         <View style={[styles.card, { borderColor: colors.line }]}>
           <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
@@ -498,6 +745,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pillText: { fontSize: 13, fontWeight: '600' },
+  practiceOptions: { borderTopWidth: 1, marginTop: 16, paddingTop: 14 },
+  optionLabel: { fontSize: 13, fontWeight: '700', marginBottom: 8, marginTop: 10 },
+  privacyNote: { fontSize: 11, lineHeight: 16, marginTop: 14 },
+  retryBtn: {
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    marginTop: 12,
+  },
 
   signOutBtn: {
     borderRadius: 14,

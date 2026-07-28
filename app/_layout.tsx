@@ -9,7 +9,7 @@ import { initI18n } from '../src/i18n';
 import { usePushNotifications } from '../src/hooks/usePushNotifications';
 import { isOnboarded, subscribeOnboarded } from '../src/onboarding/state';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
-import { getInitialLayoutState } from '../src/lib/authBootstrap';
+import { getInitialLayoutState, isPushNavigationReady } from '../src/lib/authBootstrap';
 import { addAppBreadcrumb } from '../src/lib/monitoring';
 
 // Handles redirect between (auth) and (tabs) based on session state.
@@ -21,7 +21,17 @@ function InitialLayout() {
   const segments = useSegments();
   const [onboarded, setOnboarded] = useState<boolean | null>(null);
 
-  usePushNotifications(user?.id ?? null);
+  const layoutState = getInitialLayoutState({
+    isAuthenticated,
+    isLoading,
+    hasUser: user !== null,
+    onboardingReady: onboarded !== null,
+    hasAccountError: accountError !== null,
+  });
+  usePushNotifications(
+    user?.id ?? null,
+    isPushNavigationReady({ layoutState, isAuthenticated, onboarded }),
+  );
 
   useEffect(() => {
     if (!user?.id) {
@@ -59,14 +69,6 @@ function InitialLayout() {
       router.replace('/(tabs)');
     }
   }, [user, isAuthenticated, isLoading, onboarded, segments[0]]);
-
-  const layoutState = getInitialLayoutState({
-    isAuthenticated,
-    isLoading,
-    hasUser: user !== null,
-    onboardingReady: onboarded !== null,
-    hasAccountError: accountError !== null,
-  });
 
   if (layoutState === 'account-error') {
     return <View accessibilityRole="alert" accessibilityLiveRegion="assertive" style={{ flex: 1, padding: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F7F2E8', gap: 14 }}>

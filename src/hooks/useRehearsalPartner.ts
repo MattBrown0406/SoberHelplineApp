@@ -64,7 +64,7 @@ async function extractErrorCode(fnError: unknown): Promise<string> {
   return 'network';
 }
 
-const TRANSIENT = new Set(['network', 'model_error', 'http_500', 'http_502', 'http_503', 'http_504']);
+const TRANSIENT = new Set(['network', 'model_error', 'opening_in_progress', 'http_409', 'http_500', 'http_502', 'http_503', 'http_504']);
 
 /**
  * Invoke the edge function with two safety nets:
@@ -97,7 +97,7 @@ async function invokeRehearsal(body: Record<string, unknown>): Promise<InvokeRes
   return { ok: false, code: lastCode };
 }
 
-export function useRehearsalPartner(scenario: PartnerScenario) {
+export function useRehearsalPartner(scenario: PartnerScenario, practiceEventId?: string) {
   const [messages, setMessages] = useState<PartnerTurn[]>([]);
   const [sending, setSending] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
@@ -108,6 +108,8 @@ export function useRehearsalPartner(scenario: PartnerScenario) {
   // Scenario is fixed for the life of a session; keep the latest without re-creating callbacks.
   const scenarioRef = useRef(scenario);
   scenarioRef.current = scenario;
+  const practiceEventIdRef = useRef(practiceEventId);
+  practiceEventIdRef.current = practiceEventId;
 
   const userTurns = messages.filter((m) => m.role === 'user').length;
   const turnsLeft = Math.max(0, MAX_USER_TURNS - userTurns);
@@ -178,7 +180,12 @@ export function useRehearsalPartner(scenario: PartnerScenario) {
     setError(null);
     setSending(true);
     try {
-      const result = await invokeRehearsal({ mode: 'reply', scenario: scenarioRef.current, messages: [] });
+      const result = await invokeRehearsal({
+        mode: 'reply',
+        scenario: scenarioRef.current,
+        messages: [],
+        ...(practiceEventIdRef.current ? { practiceEventId: practiceEventIdRef.current } : {}),
+      });
       if (result.ok === false) {
         setError(result.code);
         return { ok: false, audio: null };

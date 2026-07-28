@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test:auth": "node --test tests/auth-bootstrap.test.mjs",
     "test:checkin": "tsx --test tests/checkin-persistence.test.ts",
+    "test:push": "tsx --test tests/push-routing.test.ts",
     "audit:release": "node scripts/audit-dependencies.mjs",
     "doctor": "npx expo-doctor",
     "export:web": "expo export --platform web",

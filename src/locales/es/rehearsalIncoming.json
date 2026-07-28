@@ -7,11 +7,16 @@
     "locked": "Incluido con Essentials — mejora tu plan para tomar la llamada"
   },
   "ring": {
-    "label": "Llamada entrante",
+    "badge": "PRÁCTICA",
+    "label": "Llamada de práctica con IA",
     "mobile": "Móvil",
     "answer": "Contestar",
     "decline": "Rechazar",
-    "hint": "Esto es práctica. Al otro lado de esta llamada, tu ser querido ya está en plena crisis — y no tienes tiempo de prepararte. Como en las de verdad."
+    "hint": "Esto es práctica. Al otro lado de esta llamada, tu ser querido ya está en plena crisis — y no tienes tiempo de prepararte. Como en las de verdad.",
+    "unavailableTitle": "Llamada de práctica no disponible",
+    "unavailableBody": "Esta llamada de práctica venció o ya fue contestada. Espera la próxima o inicia una práctica manual.",
+    "tryAgainTitle": "Aún no pudimos contestar",
+    "tryAgainBody": "No pudimos verificar esta llamada de práctica. Revisa tu conexión e intenta contestar de nuevo."
   },
   "declined": {
     "title": "Llamada rechazada",
