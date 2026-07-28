@@ -1,9 +1,21 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mergeCheckInDates, persistDailyCheckIn } from '../src/lib/checkInPersistence';
+import { createCheckInId, mergeCheckInDates, persistDailyCheckIn } from '../src/lib/checkInPersistence';
 
 const existingRow = { id: 'existing', mood: 4, note: null, created_at: '2026-07-28T01:00:00Z' };
 const insertedRow = { id: 'inserted', mood: 3, note: null, created_at: '2026-07-28T02:00:00Z' };
+
+test('accepts native UUID values for PostgreSQL check-in IDs', () => {
+  const id = createCheckInId(() => '123e4567-e89b-42d3-a456-426614174000');
+  assert.equal(id, '123e4567-e89b-42d3-a456-426614174000');
+});
+
+test('rejects the old timestamp fallback before it reaches Supabase', () => {
+  assert.throws(
+    () => createCheckInId(() => 'ci-1722190000000-123456'),
+    /checkin_id_not_uuid/,
+  );
+});
 
 test('returns the newly inserted check-in', async () => {
   let lookupCalled = false;

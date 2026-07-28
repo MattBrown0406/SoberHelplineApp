@@ -8,6 +8,15 @@ export interface PersistenceResult<Row> {
   error: PersistenceError | null;
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/** Check-in IDs are written to a PostgreSQL uuid column, including on native. */
+export function createCheckInId(generateUuid: () => string): string {
+  const id = generateUuid();
+  if (!UUID_PATTERN.test(id)) throw new Error('checkin_id_not_uuid');
+  return id;
+}
+
 /** Merge cloud and device check-in histories without losing older cloud dates. */
 export function mergeCheckInDates(...dateSets: ReadonlyArray<ReadonlyArray<string>>): string[] {
   return Array.from(new Set(dateSets.flat())).sort((left, right) => right.localeCompare(left));

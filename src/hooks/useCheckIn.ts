@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { randomUUID } from 'expo-crypto';
 import type { CheckIn, CheckInStreak, MoodScore } from '../api/types';
 import { getCheckIn, saveCheckIn as persistLocal, getCheckedInDates, toDateStr } from '../storage/checkIn';
 import { supabase } from '../lib/supabase';
-import { persistDailyCheckIn, mergeCheckInDates } from '../lib/checkInPersistence';
+import { createCheckInId, persistDailyCheckIn, mergeCheckInDates } from '../lib/checkInPersistence';
 import { captureAppError } from '../lib/monitoring';
 import { rearmDailyNudge } from './usePushNotifications';
 
@@ -99,9 +100,10 @@ export function useCheckIn(accountId: string | null, timezone?: string): UseChec
 
     const task = (async () => {
       const now = new Date();
-      const id = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
-        ? crypto.randomUUID()
-        : `ci-${now.getTime()}-${Math.floor(Math.random() * 1_000_000)}`;
+      // React Native/Hermes does not guarantee the browser Web Crypto global.
+      // expo-crypto is the native source of UUIDs; a timestamp fallback is not
+      // valid for the PostgreSQL uuid column and makes every device save fail.
+      const id = createCheckInId(randomUUID);
       const checkinDate = toDateStr(now, timezone);
 
       const pending: CheckIn = {
