@@ -1,0 +1,32 @@
+{
+  "title": "Llamada entrante",
+  "entry": {
+    "title": "Llamada entrante",
+    "subtitle": "Practica la emboscada. Ellos te llaman — en plena crisis, sin preparación. Respondes en frío.",
+    "badge": "Nuevo",
+    "locked": "Incluido con Essentials — mejora tu plan para tomar la llamada"
+  },
+  "ring": {
+    "label": "Llamada entrante",
+    "mobile": "Móvil",
+    "answer": "Contestar",
+    "decline": "Rechazar",
+    "hint": "Esto es práctica. Al otro lado de esta llamada, tu ser querido ya está en plena crisis — y no tienes tiempo de prepararte. Como en las de verdad."
+  },
+  "declined": {
+    "title": "Llamada rechazada",
+    "body": "Volverán a llamar. Las llamadas reales no esperan para siempre.",
+    "rering": "Dejar que vuelvan a llamar",
+    "leave": "Ahora no"
+  },
+  "call": {
+    "connecting": "Conectando…",
+    "onCall_one": "En llamada — queda {{count}} intercambio",
+    "onCall_other": "En llamada — quedan {{count}} intercambios",
+    "you": "Tú",
+    "placeholder": "Dilo como responderías de verdad…",
+    "showTranscript": "Ver transcripción completa",
+    "hideTranscript": "Ocultar transcripción",
+    "hangUp": "Colgar y recibir retroalimentación"
+  }
+}

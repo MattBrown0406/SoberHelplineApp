@@ -263,6 +263,27 @@ export default function RehearsalScreen() {
           </TouchableOpacity>
         )}
 
+        {/* Incoming call — the ambush rep: they call YOU, mid-crisis, no prep */}
+        {(phase === 'prompt' || phase === 'done') && (
+          <TouchableOpacity
+            style={[styles.liveBtn, { borderColor: colors.coral }]}
+            onPress={() => router.push('/rehearsal-incoming')}
+            activeOpacity={0.85}
+          >
+            <View style={styles.incomingTitleRow}>
+              <Text style={[styles.liveBtnText, { color: colors.coral }]}>
+                📞 {t('rehearsalIncoming:entry.title')}
+              </Text>
+              <View style={[styles.newBadge, { backgroundColor: colors.coral }]}>
+                <Text style={styles.newBadgeText}>{t('rehearsalIncoming:entry.badge')}</Text>
+              </View>
+            </View>
+            <Text style={[styles.liveBtnSub, { color: colors.inkSoft }]}>
+              {liveLocked ? `🔒 ${t('rehearsalIncoming:entry.locked')}` : t('rehearsalIncoming:entry.subtitle')}
+            </Text>
+          </TouchableOpacity>
+        )}
+
         {/* Re-record option during playback */}
         {phase === 'playback' && (
           <TouchableOpacity style={styles.rerecordBtn} onPress={resetForAnother}>
@@ -350,5 +371,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   liveBtnText: { fontWeight: '700', fontSize: 15 },
-  liveBtnSub: { fontSize: 11, marginTop: 3 },
+  liveBtnSub: { fontSize: 11, marginTop: 3, textAlign: 'center', paddingHorizontal: 14 },
+  incomingTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  newBadge: { borderRadius: 99, paddingVertical: 2, paddingHorizontal: 8 },
+  newBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' },
 });

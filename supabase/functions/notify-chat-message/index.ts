@@ -15,10 +15,10 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { requireServiceRole } from '../_shared/service-auth.ts';
+import { ADMIN_EMAILS } from '../_shared/admin.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-const COACH_EMAIL = 'matt@soberhelpline.com';
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 
 async function sendExpoPush(to: string, title: string, body: string): Promise<void> {
@@ -52,19 +52,21 @@ Deno.serve(async (req: Request) => {
     const member = memberRows?.[0];
 
     if (message.sender_role === 'member') {
-      // A user sent a message — notify the coach
-      const { data: coachToken } = await supabase.rpc('get_account_push_token_by_email', {
-        p_email: COACH_EMAIL,
-      });
-      if (coachToken) {
-        const name = member?.first_name ?? 'Someone';
-        await sendExpoPush(
-          coachToken,
-          `Message from ${name}`,
-          'Open Sober Helpline to read this private message.',
-        );
-      } else {
-        console.warn('[notify-chat-message] coach has no push token yet');
+      // A user sent a message — notify every admin (coach) that has a push token
+      for (const email of ADMIN_EMAILS) {
+        const { data: coachToken } = await supabase.rpc('get_account_push_token_by_email', {
+          p_email: email,
+        });
+        if (coachToken) {
+          const name = member?.first_name ?? 'Someone';
+          await sendExpoPush(
+            coachToken,
+            `Message from ${name}`,
+            'Open Sober Helpline to read this private message.',
+          );
+        } else {
+          console.warn(`[notify-chat-message] admin ${email} has no push token yet`);
+        }
       }
     } else if (message.sender_role === 'coach') {
       // Coach replied — notify the member

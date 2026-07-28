@@ -21,26 +21,20 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ valid: false, reason: 'missing token' }), { headers, status: 400 });
     }
 
-    // Find a valid, unused, unexpired token
+    // Atomically claim a valid, unused, unexpired token. The conditional UPDATE
+    // (used_at IS NULL, unexpired) makes concurrent redeem requests race-safe:
+    // only the first commits a row, the rest update 0 rows and fail closed.
     const { data, error } = await supabase
       .from('web_sso_tokens')
-      .select('id, account_id, expires_at, used_at')
+      .update({ used_at: new Date().toISOString() })
       .eq('id', token)
       .is('used_at', null)
       .gt('expires_at', new Date().toISOString())
-      .single();
-
-    if (error || !data) {
+      .select('account_id');
+    if (error || !data || data.length === 0) {
       return new Response(JSON.stringify({ valid: false, reason: 'invalid or expired' }), { headers, status: 200 });
     }
-
-    // Mark it used
-    await supabase
-      .from('web_sso_tokens')
-      .update({ used_at: new Date().toISOString() })
-      .eq('id', token);
-
-    return new Response(JSON.stringify({ valid: true, account_id: data.account_id }), { headers, status: 200 });
+    return new Response(JSON.stringify({ valid: true, account_id: data[0].account_id }), { headers, status: 200 });
   } catch (err) {
     return new Response(JSON.stringify({ valid: false, reason: String(err) }), { headers, status: 500 });
   }
