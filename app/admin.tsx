@@ -17,6 +17,7 @@ import { useTheme } from '../src/contexts/ThemeContext';
 import { isAdminEmail } from '../src/lib/admin';
 import { supabase } from '../src/lib/supabase';
 import { useAdminVideoSessions } from '../src/hooks/useAdminVideoSessions';
+import type { AdminBriefRow } from '../src/lib/situationBrief';
 
 type FunnelStats = {
   members: number;
@@ -60,6 +61,8 @@ export default function AdminScreen() {
   const [loadingQuestions, setLoadingQuestions] = useState(true);
   const [threads, setThreads] = useState<ThreadRow[]>([]);
   const [loadingThreads, setLoadingThreads] = useState(true);
+  const [briefs, setBriefs] = useState<AdminBriefRow[]>([]);
+  const [loadingBriefs, setLoadingBriefs] = useState(true);
   const [archivingThread, setArchivingThread] = useState<string | null>(null);
   const [funnel, setFunnel] = useState<FunnelStats | null>(null);
 
@@ -98,6 +101,12 @@ export default function AdminScreen() {
     if (!qError && qData) setQuestions(qData as QuestionRow[]);
     setLoadingQuestions(false);
 
+
+    // Load situation briefs (escalating families raising their hand)
+    setLoadingBriefs(true);
+    const { data: bData, error: bError } = await supabase.rpc('admin_get_situation_briefs');
+    if (!bError && bData) setBriefs(bData as AdminBriefRow[]);
+    setLoadingBriefs(false);
 
     // Load active member conversations
     setLoadingThreads(true);
@@ -289,6 +298,66 @@ export default function AdminScreen() {
             )}
           />
         )}
+      </View>
+
+      {/* ── Situation Briefs ── */}
+      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
+        <Text style={[styles.cardTitle, { color: colors.ink }]}>
+          Situation Briefs ({briefs.filter((b) => b.status === 'sent').length} unread)
+        </Text>
+
+        {loadingBriefs ? (
+          <ActivityIndicator color={colors.primary} style={{ marginTop: 16 }} />
+        ) : briefs.length === 0 ? (
+          <Text style={[styles.emptyText, { color: colors.inkSoft }]}>
+            No briefs yet. Escalating families see a &quot;Send Matt this week&quot; door on Today.
+          </Text>
+        ) : (
+          <FlatList
+            data={briefs}
+            keyExtractor={(item) => item.id}
+            scrollEnabled={false}
+            ItemSeparatorComponent={() => (
+              <View style={[styles.separator, { backgroundColor: colors.line }]} />
+            )}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.threadRow}
+                activeOpacity={0.82}
+                onPress={() => router.push({ pathname: '/admin-brief' as never, params: { briefId: item.id } })}
+              >
+                <View style={styles.threadInfo}>
+                  <View style={styles.threadNameRow}>
+                    <Text style={[styles.rsvpName, { color: colors.ink }]}>
+                      {item.first_name} {item.last_name}
+                    </Text>
+                    {item.status === 'sent' && (
+                      <View style={[styles.unreadBadge, { backgroundColor: colors.coral }]}>
+                        <Text style={styles.unreadBadgeText}>NEW</Text>
+                      </View>
+                    )}
+                  </View>
+                  {item.note ? (
+                    <Text style={[styles.threadPreview, { color: colors.inkSoft }]} numberOfLines={1}>
+                      “{item.note}”
+                    </Text>
+                  ) : null}
+                  <Text style={[styles.threadMeta, { color: colors.inkSoft }]}>
+                    {item.band.toUpperCase()} · score {item.score}
+                    {item.sustained ? ' · sustained' : ''}
+                    {` · ${new Date(item.created_at).toLocaleDateString()}`}
+                    {` · ${item.status}`}
+                  </Text>
+                </View>
+                <Text style={[styles.openThreadText, { color: colors.primary }]}>Open</Text>
+              </TouchableOpacity>
+            )}
+          />
+        )}
+
+        <TouchableOpacity onPress={loadData} style={{ marginTop: 16 }}>
+          <Text style={[styles.refreshText, { color: colors.primary }]}>Refresh</Text>
+        </TouchableOpacity>
       </View>
 
       <VideoSessionManager sessions={videoSessions} />

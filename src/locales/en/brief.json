@@ -1,0 +1,54 @@
+{
+  "title": "Send Matt your week",
+  "eyebrow": "SITUATION BRIEF",
+  "intro": "This puts your last two weeks directly in front of Matt — so his eyes are on your situation before it goes further. He reads every brief personally and replies here in the app.",
+  "previewNote": "This is exactly what Matt will see. Nothing is shared until you tap Send.",
+  "sections": {
+    "situation": "Where things stand",
+    "mood": "Your check-ins (7 days)",
+    "warnings": "Warning signs (14 days)",
+    "recovery": "Recovery signs (14 days)",
+    "boundaries": "Your boundaries",
+    "lovedOne": "Your loved one",
+    "rehearsal": "Recent practice"
+  },
+  "situationLine": {
+    "calm": "Things look steady right now.",
+    "watch": "A few signals worth watching.",
+    "elevated": "The load is real — several signals are up.",
+    "crisis": "Multiple serious signals. You shouldn't carry this alone.",
+    "sustainedTag": "sustained"
+  },
+  "moodSummary": "{{total}} check-ins · average mood {{avg}} of 5 · {{lowDays}} hard days",
+  "moodEmpty": "No check-ins in the last 7 days.",
+  "trackerEmpty": "No signs logged in the last 14 days.",
+  "boundariesEmpty": "No boundaries written yet.",
+  "lovedOneStatus": {
+    "stable": "Stable",
+    "in_treatment": "In treatment",
+    "unknown": "Status unknown",
+    "using": "Actively using",
+    "escalating": "Escalating",
+    "crisis": "In crisis"
+  },
+  "noteLabel": "In your own words",
+  "notePlaceholder": "Anything you want Matt to know that the numbers don't say (optional)",
+  "consent": "You're choosing to share this with Matt. He's the only person who sees it, and it never leaves the app.",
+  "sendButton": "Send to Matt",
+  "sending": "Sending…",
+  "sentTitle": "It's in Matt's hands.",
+  "sentBody": "Matt reads every brief personally and replies here in the app — usually within a day. If things can't wait, don't: use Crisis Mode or call or text 988 now.",
+  "tooSoonTitle": "You sent Matt a brief today",
+  "tooSoonBody": "Give him a moment to catch up — you can send another one tomorrow. If things have gotten worse right now, use Crisis Mode or message him directly.",
+  "errorTitle": "Couldn't send your brief",
+  "errorBody": "Check your connection and try again.",
+  "historyTitle": "Your briefs",
+  "status": {
+    "sent": "Sent",
+    "read": "Matt has read it",
+    "replied": "Matt replied"
+  },
+  "openMessages": "Matt replied — open your messages →",
+  "messagesLink": "Message Matt directly →",
+  "crisisNote": "In an emergency, don't wait for a reply: call or text 988, or call 911."
+}

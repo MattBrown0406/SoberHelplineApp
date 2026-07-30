@@ -1,0 +1,54 @@
+{
+  "title": "Envíale tu semana a Matt",
+  "eyebrow": "INFORME DE SITUACIÓN",
+  "intro": "Esto pone tus últimas dos semanas directamente frente a Matt — para que sus ojos estén sobre tu situación antes de que avance más. Él lee cada informe personalmente y responde aquí en la app.",
+  "previewNote": "Esto es exactamente lo que Matt verá. No se comparte nada hasta que toques Enviar.",
+  "sections": {
+    "situation": "Cómo están las cosas",
+    "mood": "Tus registros (7 días)",
+    "warnings": "Señales de alerta (14 días)",
+    "recovery": "Señales de recuperación (14 días)",
+    "boundaries": "Tus límites",
+    "lovedOne": "Tu ser querido",
+    "rehearsal": "Práctica reciente"
+  },
+  "situationLine": {
+    "calm": "Las cosas se ven estables por ahora.",
+    "watch": "Algunas señales que vale la pena vigilar.",
+    "elevated": "La carga es real — varias señales están elevadas.",
+    "crisis": "Varias señales serias. No deberías cargar esto a solas.",
+    "sustainedTag": "sostenido"
+  },
+  "moodSummary": "{{total}} registros · ánimo promedio {{avg}} de 5 · {{lowDays}} días difíciles",
+  "moodEmpty": "Sin registros en los últimos 7 días.",
+  "trackerEmpty": "Sin señales registradas en los últimos 14 días.",
+  "boundariesEmpty": "Aún no has escrito límites.",
+  "lovedOneStatus": {
+    "stable": "Estable",
+    "in_treatment": "En tratamiento",
+    "unknown": "Estado desconocido",
+    "using": "Consumiendo activamente",
+    "escalating": "Escalando",
+    "crisis": "En crisis"
+  },
+  "noteLabel": "En tus propias palabras",
+  "notePlaceholder": "Lo que quieras que Matt sepa y que los números no dicen (opcional)",
+  "consent": "Estás eligiendo compartir esto con Matt. Él es la única persona que lo ve, y nunca sale de la app.",
+  "sendButton": "Enviar a Matt",
+  "sending": "Enviando…",
+  "sentTitle": "Está en manos de Matt.",
+  "sentBody": "Matt lee cada informe personalmente y responde aquí en la app — normalmente en un día. Si esto no puede esperar, no esperes: usa el Modo Crisis o llama o envía un mensaje al 988 ahora.",
+  "tooSoonTitle": "Ya le enviaste un informe a Matt hoy",
+  "tooSoonBody": "Dale un momento para ponerse al día — puedes enviar otro mañana. Si las cosas empeoraron ahora mismo, usa el Modo Crisis o escríbele directamente.",
+  "errorTitle": "No se pudo enviar tu informe",
+  "errorBody": "Revisa tu conexión e inténtalo de nuevo.",
+  "historyTitle": "Tus informes",
+  "status": {
+    "sent": "Enviado",
+    "read": "Matt lo leyó",
+    "replied": "Matt respondió"
+  },
+  "openMessages": "Matt respondió — abre tus mensajes →",
+  "messagesLink": "Escríbele a Matt directamente →",
+  "crisisNote": "En una emergencia, no esperes una respuesta: llama o envía un mensaje al 988, o llama al 911."
+}

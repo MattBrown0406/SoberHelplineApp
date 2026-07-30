@@ -48,6 +48,12 @@ export function getPushDestination(data: PushData, nowMs = Date.now()): PushDest
     return { pathname: '/rehearsal-incoming', params: { eventId } };
   }
 
+  // Admin-only: a member sent a situation brief. Lands on the admin dashboard,
+  // where the Situation Briefs inbox sits (no member data rides in the payload).
+  if (kind === 'situation_brief') {
+    return { pathname: '/admin' };
+  }
+
   if (kind === 'group_live') {
     const roomName = typeof data.room_name === 'string' ? data.room_name : '';
     return ALLOWED_GROUP_ROOMS.has(roomName)

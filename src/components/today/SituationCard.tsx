@@ -82,7 +82,23 @@ export function SituationCard({ nextFreeCall, primaryDoor, onRsvp }: Props) {
 
       {primaryDoor !== 'free_call' && doorRoute && (
         <View style={[styles.doorSection, { borderTopColor: colors.line }]}>
+          {/* The escalation moment is when connection with Matt matters most.
+              The brief is the lowest-friction door — it asks for consent, not
+              money — so it leads; coaching/intervention follow. */}
           <Text style={[styles.doorSub, { color: colors.inkSoft }]}>
+            {t('situationCta.sendBriefSub')}
+          </Text>
+          <TouchableOpacity
+            style={[styles.briefBtn, { backgroundColor: colors.coral }]}
+            onPress={() => {
+              logFunnelEvent('brief_opened', { source: 'today_door' });
+              router.push('/situation-brief' as never);
+            }}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.briefBtnText}>{t('situationCta.sendBrief')}</Text>
+          </TouchableOpacity>
+          <Text style={[styles.doorSub, { color: colors.inkSoft, marginTop: 14 }]}>
             {t(`situationCta.${primaryDoor}Sub`)}
           </Text>
           <TouchableOpacity
@@ -135,6 +151,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: 'center',
   },
+  briefBtn: {
+    borderRadius: 99,
+    paddingVertical: 13,
+    alignItems: 'center',
+  },
+  briefBtnText: { color: '#fff', fontSize: 14.5, fontWeight: '700' },
   doorBtnText: { fontSize: 14.5, fontWeight: '700' },
   finderLink: { alignItems: 'center', marginTop: 12 },
   finderLinkText: { fontSize: 13, fontWeight: '600' },

@@ -11,7 +11,8 @@ export type FunnelStage =
   | 'attended'
   | 'coaching_requested'
   | 'intervention_viewed'
-  | 'intervention_started';
+  | 'intervention_started'
+  | 'brief_opened';
 
 /**
  * Fire-and-forget funnel event. Never throws — analytics must not break a flow.
