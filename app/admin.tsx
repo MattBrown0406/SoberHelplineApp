@@ -21,6 +21,7 @@ import type { AdminBriefRow } from '../src/lib/situationBrief';
 
 type FunnelStats = {
   members: number;
+  paid_accounts: number;
   onboarded_loved_one: number;
   free_rsvps: number;
   attended: number;
@@ -165,6 +166,7 @@ export default function AdminScreen() {
           <>
             <View style={styles.funnelRow}>
               <FunnelStat label="Members" value={funnel.members} colors={colors} />
+              <FunnelStat label="Paid accounts" value={funnel.paid_accounts} colors={colors} />
               <FunnelStat label="Loved one set" value={funnel.onboarded_loved_one} colors={colors} />
             </View>
             <Text style={[styles.funnelStage, { color: colors.inkSoft }]}>
@@ -182,7 +184,7 @@ export default function AdminScreen() {
               <BandPill label="Crisis" value={funnel.bands.crisis} color={colors.coral} colors={colors} />
             </View>
             <Text style={[styles.funnelNote, { color: colors.inkSoft }]}>
-              Attended = tapped Join on a group call. Intervention = opened/started planning. RSVP from session RSVPs, coaching from bookings.
+              Paid accounts = active Essential or Premier subscriptions. RSVPs reset Tuesdays at 2:00 AM Pacific. Attended = tapped Join on a group call. Intervention = opened/started planning.
             </Text>
           </>
         )}
