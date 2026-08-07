@@ -2,7 +2,7 @@
   "expo": {
     "name": "Sober Helpline",
     "slug": "SoberHelplineApp",
-    "version": "3.5.2",
+    "version": "3.6",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "sober-helpline",
