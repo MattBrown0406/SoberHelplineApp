@@ -1,6 +1,6 @@
 {
   "name": "sober-helpline-app",
-  "version": "3.5.1",
+  "version": "3.5.2",
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
