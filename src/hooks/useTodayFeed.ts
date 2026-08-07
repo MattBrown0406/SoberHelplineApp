@@ -9,7 +9,6 @@ import {
 } from '../lib/situation';
 
 const QUOTE_COUNT = 14;
-const FOCUS_POOL_COUNT = 7;
 
 /** The weekly free group call surfaced as the daily anchor on Today. */
 export interface FreeCall {
@@ -26,7 +25,6 @@ export interface TodayFeedData {
   boundariesHeld: number;
   groupSessions: number;
   quoteIndex: number;
-  focusSlot: number;
   scriptSlot: number;
   situation: Situation;
   primaryDoor: FunnelDoor;
@@ -43,7 +41,6 @@ export function useTodayFeed(
   const [boundariesHeld, setBoundariesHeld] = useState(0);
   const [groupSessions, setGroupSessions] = useState(0);
   const [quoteIndex, setQuoteIndex] = useState(0);
-  const [focusSlot, setFocusSlot] = useState(0);
   const [scriptSlot, setScriptSlot] = useState(0);
   const [situation, setSituation] = useState<Situation>(DEFAULT_SITUATION);
   const [nextFreeCall, setNextFreeCall] = useState<FreeCall | null>(null);
@@ -77,7 +74,6 @@ export function useTodayFeed(
     setBoundariesHeld(wallsRes.count ?? 0);
     setGroupSessions(rsvpCountRes.count ?? 0);
     setQuoteIndex(doy % QUOTE_COUNT);
-    setFocusSlot(doy % FOCUS_POOL_COUNT);
     setScriptSlot(doy % 14);
     setDayCount(
       joinedAt
@@ -134,7 +130,6 @@ export function useTodayFeed(
     boundariesHeld,
     groupSessions,
     quoteIndex,
-    focusSlot,
     scriptSlot,
     situation,
     primaryDoor: funnelDoor(situation),

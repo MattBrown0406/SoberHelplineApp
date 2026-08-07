@@ -3,6 +3,14 @@
   "kicker": "Crisis Mode",
   "title": "Help me know what to do right now",
   "intro": "Answer what is true. This does not replace 911, 988, poison control, medical care, or law enforcement.",
+  "emergency": {
+    "title": "Immediate danger?",
+    "note": "These actions are always free. Calls and texts require phone service.",
+    "call911": "Call 911 (U.S.)",
+    "call988": "Call 988",
+    "text988": "Text 988",
+    "poisonControl": "U.S. Poison Control"
+  },
   "triage": {
     "title": "1. Triage the situation",
     "items": {
@@ -179,6 +187,79 @@
   },
   "field": {
     "placeholder": "Tap to enter"
+  },
+  "wallet": {
+    "kicker": "ALWAYS FREE",
+    "title": "Safety Wallet",
+    "body": "Keep the household details you may need when it is hard to think clearly. Nothing here is shared unless you choose to export it.",
+    "offline": "Saved on this device · available offline",
+    "startGuide": "Something is happening now — open the Crisis Guide",
+    "loading": "Opening your saved safety plan…",
+    "savedCount": "{{count}} safety details ready",
+    "autoSave": "Changes save automatically for this account on this device. Avoid entering private details on a shared device.",
+    "groups": {
+      "household": "Household essentials",
+      "overdose": "Overdose readiness",
+      "dependents": "Children, dependents, and hazards",
+      "family": "Family response plan"
+    },
+    "groupHelp": {
+      "household": "Record the contacts and destination your family would otherwise have to search for during a crisis.",
+      "overdose": "If opioids may be involved, keep naloxone where people can find it quickly and follow its package instructions.",
+      "dependents": "Plan only actions that can be taken safely. Leave and call emergency services when violence or weapons are possible.",
+      "family": "Choose who makes decisions and what the family will consistently do next."
+    },
+    "fields": {
+      "lovedOneName": "Loved one name",
+      "householdAddress": "Household address",
+      "substances": "Substances that may be involved",
+      "overdoseHistory": "Overdose history",
+      "naloxoneLocation": "Where naloxone is kept",
+      "naloxoneExpiresOn": "Naloxone expiration date",
+      "suicideHistory": "Suicide or self-harm history",
+      "weaponsAccess": "Weapons access or safety concern",
+      "childrenInHome": "Children or dependents in the home",
+      "safeAdult": "Safe adult and phone number",
+      "childPickupPlan": "Child or dependent pickup plan",
+      "keysAndMedicationPlan": "Keys, cash, and medication safety plan",
+      "emergencyContacts": "Emergency contacts",
+      "preferredHospital": "Preferred hospital or detox",
+      "insurance": "Insurance or policy notes",
+      "currentBoundaries": "Current family boundaries",
+      "decisionMakers": "Family decision-makers"
+    },
+    "placeholders": {
+      "lovedOneName": "First name",
+      "householdAddress": "Address responders may need",
+      "substances": "Opioids, alcohol, stimulants…",
+      "overdoseHistory": "Dates or important context",
+      "naloxoneLocation": "Example: kitchen cabinet beside the sink",
+      "naloxoneExpiresOn": "MM/YYYY",
+      "suicideHistory": "Known history or current concerns",
+      "weaponsAccess": "What responders or safe adults should know",
+      "childrenInHome": "Ages or care needs; names are optional",
+      "safeAdult": "Name, relationship, and phone",
+      "childPickupPlan": "Who picks up whom and where they go",
+      "keysAndMedicationPlan": "Where they can be secured when safe",
+      "emergencyContacts": "Name · relationship · phone",
+      "preferredHospital": "Facility name, address, or phone",
+      "insurance": "Carrier and member information you choose to store",
+      "currentBoundaries": "What the family will and will not do",
+      "decisionMakers": "One coordinator and one backup"
+    },
+    "recentIncidents": "Recent incident log",
+    "incidentHelp": "Keep entries factual and brief. The newest five appear here; up to 25 remain saved on this device.",
+    "noIncidents": "No incidents have been recorded.",
+    "addIncident": "Add an incident",
+    "share": "Share / Export Safety Wallet",
+    "shareTitle": "Sober Helpline Safety Wallet",
+    "shareHeading": "SOBER HELPLINE FAMILY SAFETY WALLET",
+    "shareNote": "This plan does not replace emergency, medical, legal, or behavioral-health services. Call 911 for immediate danger or 988 for suicide or mental-health crisis support in the U.S.",
+    "clear": "Clear saved Safety Wallet",
+    "clearTitle": "Clear saved Safety Wallet?",
+    "clearBody": "This removes the plan, incident history, boundary draft, and saved family roles for this account from this device.",
+    "clearConfirm": "Clear",
+    "cancel": "Cancel"
   },
   "planReview": {
     "title": "Book a plan review",

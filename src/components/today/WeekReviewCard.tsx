@@ -20,7 +20,12 @@ export function WeekReviewCard({
 }) {
   const { colors } = useTheme();
   const { t } = useTranslation('today');
-  const [stats, setStats] = useState<{ count: number; avg: number } | null>(null);
+  const [stats, setStats] = useState<{
+    count: number;
+    avg: number;
+    avgCapacity: number | null;
+    highPressureDays: number;
+  } | null>(null);
 
   const day = new Date().getDay(); // 0 = Sunday, 6 = Saturday
   const isWeekend = day === 0 || day === 6;
@@ -31,14 +36,25 @@ export function WeekReviewCard({
     const since = new Date(Date.now() - 7 * 86400000).toISOString();
     void supabase
       .from('checkins')
-      .select('mood')
+      .select('mood, capacity, pressure')
       .eq('account_id', accountId)
       .gte('created_at', since)
       .then(({ data }) => {
         if (cancelled || !data || data.length < 2) return;
         const moods = data.map((r) => r.mood as MoodScore);
         const avg = Math.round((moods.reduce((a, b) => a + b, 0) / moods.length) * 10) / 10;
-        setStats({ count: moods.length, avg });
+        const capacities = data
+          .map((row) => row.capacity as number | null)
+          .filter((value): value is number => typeof value === 'number');
+        const avgCapacity = capacities.length
+          ? Math.round(
+              (capacities.reduce((sum, value) => sum + value, 0) / capacities.length) * 10,
+            ) / 10
+          : null;
+        const highPressureDays = data.filter(
+          (row) => typeof row.pressure === 'number' && row.pressure >= 4,
+        ).length;
+        setStats({ count: moods.length, avg, avgCapacity, highPressureDays });
       });
     return () => { cancelled = true; };
   }, [accountId, isWeekend]);
@@ -48,6 +64,12 @@ export function WeekReviewCard({
   const lines = [
     t('weekReview.checkins', { count: stats.count }),
     t('weekReview.avgMood', { avg: stats.avg }),
+    ...(stats.avgCapacity !== null
+      ? [t('weekReview.avgCapacity', { avg: stats.avgCapacity })]
+      : []),
+    ...(stats.highPressureDays > 0
+      ? [t('weekReview.highPressureDays', { count: stats.highPressureDays })]
+      : []),
     ...(boundariesHeld > 0 ? [t('weekReview.boundaries', { count: boundariesHeld })] : []),
   ];
 

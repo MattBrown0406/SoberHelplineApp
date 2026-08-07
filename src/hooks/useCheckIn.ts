@@ -1,17 +1,18 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { randomUUID } from 'expo-crypto';
-import type { CheckIn, CheckInStreak, MoodScore } from '../api/types';
+import type { CaregiverCheckInInput, CheckIn, CheckInStreak, MoodScore } from '../api/types';
 import { getCheckIn, saveCheckIn as persistLocal, getCheckedInDates, toDateStr } from '../storage/checkIn';
 import { supabase } from '../lib/supabase';
 import { createCheckInId, persistDailyCheckIn, mergeCheckInDates } from '../lib/checkInPersistence';
 import { captureAppError } from '../lib/monitoring';
+import { isMoodScore, parseSupportNeed } from '../lib/caregiverCheckIn';
 import { rearmDailyNudge } from './usePushNotifications';
 
 export interface UseCheckInResult {
   todayCheckIn: CheckIn | null;
   streak: CheckInStreak;
   isLoading: boolean;
-  saveCheckIn: (moodScore: MoodScore, note?: string) => Promise<void>;
+  saveCheckIn: (input: CaregiverCheckInInput) => Promise<void>;
 }
 
 export function useCheckIn(accountId: string | null, timezone?: string): UseCheckInResult {
@@ -36,7 +37,7 @@ export function useCheckIn(accountId: string | null, timezone?: string): UseChec
         const [todayResult, historyResult] = await Promise.all([
           supabase
             .from('checkins')
-            .select('id, mood, note, created_at, checkin_date')
+            .select('id, mood, capacity, pressure, support_need, note, created_at, checkin_date')
             .eq('account_id', accountId)
             .eq('checkin_date', today)
             .maybeSingle(),
@@ -57,6 +58,13 @@ export function useCheckIn(accountId: string | null, timezone?: string): UseChec
             id: todayResult.data.id,
             userId: accountId,
             moodScore: todayResult.data.mood as MoodScore,
+            capacityScore: isMoodScore(todayResult.data.capacity)
+              ? todayResult.data.capacity
+              : null,
+            pressureScore: isMoodScore(todayResult.data.pressure)
+              ? todayResult.data.pressure
+              : null,
+            supportNeed: parseSupportNeed(todayResult.data.support_need),
             note: todayResult.data.note ?? null,
             completedAt: todayResult.data.created_at,
             synced: true,
@@ -95,7 +103,7 @@ export function useCheckIn(accountId: string | null, timezone?: string): UseChec
     return () => { cancelled = true; };
   }, [accountId, timezone]);
 
-  const saveCheckIn = useCallback((moodScore: MoodScore, note?: string) => {
+  const saveCheckIn = useCallback((input: CaregiverCheckInInput) => {
     if (saveInFlightRef.current) return saveInFlightRef.current;
 
     const task = (async () => {
@@ -109,8 +117,11 @@ export function useCheckIn(accountId: string | null, timezone?: string): UseChec
       const pending: CheckIn = {
         id,
         userId: accountId ?? 'local',
-        moodScore,
-        note: note ?? null,
+        moodScore: input.moodScore,
+        capacityScore: input.capacityScore,
+        pressureScore: input.pressureScore,
+        supportNeed: input.supportNeed,
+        note: input.note?.trim() || null,
         completedAt: now.toISOString(),
         synced: false,
       };
@@ -126,18 +137,21 @@ export function useCheckIn(accountId: string | null, timezone?: string): UseChec
                 id: pending.id,
                 account_id: accountId,
                 mood: pending.moodScore,
+                capacity: pending.capacityScore,
+                pressure: pending.pressureScore,
+                support_need: pending.supportNeed,
                 note: pending.note,
                 created_at: pending.completedAt,
                 checkin_date: checkinDate,
               })
-              .select('id, mood, note, created_at')
+              .select('id, mood, capacity, pressure, support_need, note, created_at')
               .single();
             return { data, error };
           },
           async () => {
             const { data, error } = await supabase
               .from('checkins')
-              .select('id, mood, note, created_at')
+              .select('id, mood, capacity, pressure, support_need, note, created_at')
               .eq('account_id', accountId)
               .eq('checkin_date', checkinDate)
               .maybeSingle();
@@ -149,6 +163,9 @@ export function useCheckIn(accountId: string | null, timezone?: string): UseChec
           id: remote.id,
           userId: accountId,
           moodScore: remote.mood as MoodScore,
+          capacityScore: isMoodScore(remote.capacity) ? remote.capacity : null,
+          pressureScore: isMoodScore(remote.pressure) ? remote.pressure : null,
+          supportNeed: parseSupportNeed(remote.support_need),
           note: remote.note ?? null,
           completedAt: remote.created_at,
           synced: true,

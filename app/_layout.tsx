@@ -9,6 +9,7 @@ import { initI18n } from '../src/i18n';
 import { usePushNotifications } from '../src/hooks/usePushNotifications';
 import { isOnboarded, subscribeOnboarded } from '../src/onboarding/state';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
+import { SafetyShortcut } from '../src/components/safety/SafetyShortcut';
 import { getInitialLayoutState, isPushNavigationReady } from '../src/lib/authBootstrap';
 import { addAppBreadcrumb } from '../src/lib/monitoring';
 
@@ -122,6 +123,7 @@ export default function RootLayout() {
       <AccountProvider>
         <ThemeProvider>
           <InitialLayout />
+          <SafetyShortcut />
           <StatusBar style="auto" />
         </ThemeProvider>
       </AccountProvider>

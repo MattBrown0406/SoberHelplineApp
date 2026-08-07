@@ -10,7 +10,7 @@ You are trusting us during one of the hardest seasons of your family's life. So:
 ## What we collect
 
 - **Account basics:** name, email, language preference, time zone, and whether your account is connected to a provider organization.
-- **What you put in the app:** daily check-ins, tracker entries, boundaries ("walls"), letters, messages with coaches, wins you submit, rehearsal counts. Rehearsal **recordings stay on your device** and are never uploaded.
+- **What you put in the app:** loved-one profile details (such as relationship, substance concerns, and the current recovery phase you select), daily check-ins (including mood, capacity, pressure, support need, and an optional note), tracker entries, boundaries ("walls"), letters, messages with coaches, wins you submit, rehearsal counts, and Safety Wallet details. Rehearsal **recordings stay on your device** and are never uploaded. Your Safety Wallet and incident log also stay on your device unless you deliberately export them or preview, consent to, and submit selected sections for a plan review.
 - **Subscription status:** processed by Apple/Google and RevenueCat (our subscription processor). We never see or store full payment card numbers.
 - **Technical basics:** device type, app version, crash logs, and de-identified usage events (which screens are used). Sensitive content — letters, check-in notes, messages — is **excluded from analytics**.
 
@@ -18,11 +18,13 @@ You are trusting us during one of the hardest seasons of your family's life. So:
 
 | Content | You | Your coach | Your family space | Provider org admin | Sober Helpline staff |
 |---|---|---|---|---|---|
+| Loved-one profile & selected recovery phase | ✓ | only if you share it in a brief | ✗ | ✗ | only the brief you explicitly submit |
 | Daily check-ins & notes | ✓ | ✓ (assigned/on-call only) | ✗ | ✗ | ✗ (except audited support access) |
 | Tracker log | ✓ | ✓ | ✗ | ✗ | ✗ |
 | Private walls | ✓ | ✓ | ✗ | ✗ | ✗ |
 | Shared walls & commitments | ✓ | ✓ | ✓ | ✗ | ✗ |
 | Intervention letters | ✓ | only if you share | ✗ | ✗ | ✗ |
+| Safety Wallet & incident log | ✓ (on device) | only if you submit selected sections for review | ✗ | ✗ | only the review snapshot you explicitly submit |
 | Messages with coach | ✓ | ✓ | ✗ | ✗ | ✗ |
 | Engagement summaries (streaks, alert flags) | ✓ | ✓ | ✗ | ✓ (attached accounts, summary only) | aggregate only |
 

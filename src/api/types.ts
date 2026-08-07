@@ -152,10 +152,32 @@ export interface Session {
 /** 1 = worst, 5 = best. Maps to the 5 mood emoji buttons (😞 😕 😐 🙂 😊). */
 export type MoodScore = 1 | 2 | 3 | 4 | 5;
 
+export type CaregiverSupportNeed =
+  | 'rest'
+  | 'connection'
+  | 'boundary'
+  | 'plan'
+  | 'safety'
+  | 'steady';
+
+export interface CaregiverCheckInInput {
+  moodScore: MoodScore;
+  capacityScore: MoodScore;
+  pressureScore: MoodScore;
+  supportNeed: CaregiverSupportNeed;
+  note?: string;
+}
+
 export interface CheckIn {
   id: string;
   userId: string;
   moodScore: MoodScore;
+  /** Null on check-ins saved by an older app version. */
+  capacityScore: MoodScore | null;
+  /** 1 = little pressure, 5 = overwhelming pressure; null on legacy rows. */
+  pressureScore: MoodScore | null;
+  /** The caregiver's requested kind of support; null on legacy rows. */
+  supportNeed: CaregiverSupportNeed | null;
   note: string | null;
   completedAt: string;  // ISO 8601
   /**

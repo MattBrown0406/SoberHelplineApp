@@ -31,5 +31,9 @@
     "title": "Iniciando tu sesión…",
     "body": "Tu cuenta está segura. Estamos preparando tu experiencia de Sober Helpline."
   },
+  "safetyShortcut": {
+    "label": "Seguridad",
+    "accessibility": "Abrir la Cartera de Seguridad sin conexión"
+  },
   "comingSoon": "Próximamente"
 }

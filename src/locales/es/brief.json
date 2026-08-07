@@ -20,6 +20,16 @@
     "sustainedTag": "sostenido"
   },
   "moodSummary": "{{total}} registros · ánimo promedio {{avg}} de 5 · {{lowDays}} días difíciles",
+  "caregiverSummary": "Capacidad promedio {{capacity}} de 5 · presión promedio {{pressure}} de 5",
+  "latestSupportNeed": "Necesidad de apoyo más reciente: {{need}}",
+  "supportNeeds": {
+    "rest": "descanso o espacio",
+    "connection": "alguien con quien hablar",
+    "boundary": "ayuda para mantener un límite",
+    "plan": "un siguiente paso práctico",
+    "safety": "ayuda para sentirme a salvo",
+    "steady": "estabilidad por ahora"
+  },
   "moodEmpty": "Sin registros en los últimos 7 días.",
   "trackerEmpty": "Sin señales registradas en los últimos 14 días.",
   "boundariesEmpty": "Aún no has escrito límites.",

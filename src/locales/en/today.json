@@ -17,6 +17,30 @@
   "checkIn": {
     "eyebrow": "Daily check-in",
     "question": "How are you holding up today?",
+    "moodQuestion": "Where is your mood right now?",
+    "capacityQuestion": "How much capacity do you have for today?",
+    "capacityLow": "Running on empty",
+    "capacityHigh": "Room to cope",
+    "capacityAccessibility": "Capacity",
+    "pressureQuestion": "How much pressure are you carrying?",
+    "pressureLow": "Manageable",
+    "pressureHigh": "Overwhelming",
+    "pressureAccessibility": "Pressure",
+    "needsQuestion": "What would help most today?",
+    "supportNeeds": {
+      "rest": "Rest or breathing room",
+      "connection": "Someone to talk to",
+      "boundary": "Help holding a boundary",
+      "plan": "A practical next step",
+      "safety": "Help feeling safe",
+      "steady": "I'm steady for now"
+    },
+    "noteLabel": "One sentence you need to get out",
+    "notePlaceholder": "Optional private note…",
+    "optional": "Optional",
+    "completionHint": "Choose one answer in each section to complete your check-in.",
+    "incompleteTitle": "Finish your check-in",
+    "incompleteMessage": "Choose your mood, capacity, pressure, and what would help most today.",
     "privacy": "Your answers are private.",
     "privacyAttached": "Patterns are shared only with your {{orgName}} coach.",
     "privacyDirect": "Patterns stay private unless you choose to share them with a coach.",
@@ -34,6 +58,43 @@
     "lowSupportTitle": "A heavy stretch",
     "lowSupportBody": "That's {{count}} hard days lately — a lot to carry alone. A coach can help you steady things in one private hour, just for you.",
     "lowSupportButton": "Talk to a coach",
+    "responses": {
+      "safety": {
+        "title": "Safety comes first",
+        "body": "Make the next step about immediate safety, not resolving the whole situation. If anyone may be in danger or you suspect an overdose, call emergency services now.",
+        "cta": "Open the Safety Wallet"
+      },
+      "overloaded": {
+        "title": "Make today's plan smaller",
+        "body": "You're carrying heavy pressure with very little capacity. Focus on one safe next step, one boundary, and one person who can support you.",
+        "cta": "Find family support"
+      },
+      "connection": {
+        "title": "Do not carry today alone",
+        "body": "Choose one safe person and make a specific ask: ten minutes to listen, help with a task, or company while you make a call.",
+        "cta": "Open support options"
+      },
+      "boundary": {
+        "title": "Choose the boundary you can hold",
+        "body": "Use a short sentence, name what you will do, and avoid adding a consequence you cannot follow through on.",
+        "cta": "Review your boundaries"
+      },
+      "plan": {
+        "title": "Only plan the next decision",
+        "body": "Write down what is known, what must be decided today, and what can wait. Today's family pathway above can guide the next step.",
+        "cta": "Review today's pathway"
+      },
+      "rest": {
+        "title": "Reduce one demand",
+        "body": "Rest is part of staying steady. Delay one nonessential task and protect a small block of time that belongs to you.",
+        "cta": "Make room to rest"
+      },
+      "steady": {
+        "title": "Protect the steadiness you have",
+        "body": "Use some of today's capacity on your own life — a meal, a walk, work, sleep, or contact with someone who knows you.",
+        "cta": "Keep going"
+      }
+    },
     "milestone7": "🌱 Seven days of showing up for yourself. That consistency is how families heal.",
     "milestone30": "🌿 Thirty days. A month of steadiness — you are building something real.",
     "milestone90": "🌳 Ninety days. This is who you are now. We're honored to walk with you.",
@@ -63,8 +124,207 @@
     "title": "Look at what you did this week",
     "checkins": "{{count}} check-ins",
     "avgMood": "average mood {{avg}}/5",
+    "avgCapacity": "average capacity {{avg}}/5",
+    "highPressureDays": "{{count}} high-pressure days",
     "boundaries": "{{count}} boundaries held",
     "encourage": "Steadiness like this is what recovery looks like from the family side. Keep going."
+  },
+  "pathway": {
+    "eyebrow": "Your family pathway",
+    "title": "What helps in this phase",
+    "changePhase": "Change the current phase",
+    "choosePhase": "Which phase best fits today?",
+    "savePhase": "Use this phase",
+    "saveError": "We couldn't update the phase. Please try again.",
+    "loading": "Loading…",
+    "privacy": "This private selection guides your content. It is not a score or diagnosis.",
+    "guidance": {
+      "do": "Do today",
+      "avoid": "Avoid today",
+      "expect": "What may be normal"
+    },
+    "phases": {
+      "active_use": {
+        "label": "Active use",
+        "description": "When use is active, the goal is less chaos and more safety — not winning an argument.",
+        "cta": "Review your Safety Wallet",
+        "do": [
+          "Confirm who you can call and where you can go if the home becomes unsafe.",
+          "Keep money, medications, keys, and important documents where only you can reach them.",
+          "Choose one clear boundary you can actually hold today."
+        ],
+        "avoid": [
+          "Do not argue about substance use while they are intoxicated.",
+          "Do not give cash or erase a consequence just to make the moment quieter.",
+          "Do not investigate in a way that puts you or a child at risk."
+        ],
+        "expect": [
+          "Denial, blame, or fast mood changes can happen; you do not have to resolve them tonight.",
+          "You may feel hyper-alert or guilty when you step back. That does not make the boundary wrong.",
+          "Promises may be sincere and still not be followed by action."
+        ]
+      },
+      "considering_treatment": {
+        "label": "Considering treatment",
+        "description": "Interest in help often comes with ambivalence. Prepare a small next step before the window opens.",
+        "cta": "Explore treatment options",
+        "do": [
+          "Write down two realistic help options and the first call required for each.",
+          "Choose a calm, sober time and lead with one observable fact and one offer of help.",
+          "Decide what practical help you can offer — a ride or a call — without taking over."
+        ],
+        "avoid": [
+          "Do not make threats or ultimatums you are not prepared to carry out.",
+          "Do not overwhelm them with a long list of programs in one conversation.",
+          "Do not turn the talk into a debate about labels or whether they are 'bad enough.'"
+        ],
+        "expect": [
+          "A person can want change and fear it at the same time.",
+          "The conversation may need to happen more than once.",
+          "Motivation can shift quickly, so a simple prepared option helps."
+        ]
+      },
+      "in_treatment": {
+        "label": "In treatment",
+        "description": "Treatment gives the family room to steady itself too. Your work is support, boundaries, and your own recovery.",
+        "cta": "Find family support",
+        "do": [
+          "Ask the program what family education or support is available and what consent allows them to share.",
+          "Restart one routine that supports your sleep, meals, work, or connection.",
+          "Write down the boundaries that will still matter after treatment."
+        ],
+        "avoid": [
+          "Do not try to manage the treatment plan from outside the program.",
+          "Do not demand private clinical details as proof that treatment is working.",
+          "Do not treat discharge as the finish line for recovery."
+        ],
+        "expect": [
+          "Relief, anger, hope, and fear can all show up together.",
+          "Contact may be limited while the person focuses on care.",
+          "Early changes can be real and still uneven."
+        ]
+      },
+      "returning_home": {
+        "label": "Preparing to return home",
+        "description": "A planned transition is safer than an improvised one. Make expectations and responses clear before the first hard day.",
+        "cta": "Prepare the home safety plan",
+        "do": [
+          "Agree on basic home expectations, supports, and what happens if a boundary is crossed.",
+          "Update emergency contacts, safe places, medication storage, and overdose-response supplies.",
+          "Plan the first week: transportation, appointments, household roles, and quiet recovery time."
+        ],
+        "avoid": [
+          "Do not wait for a crisis to decide how the household will respond.",
+          "Do not assign yourself the job of monitoring them every hour.",
+          "Do not remove outside support just because they are coming home."
+        ],
+        "expect": [
+          "Transitions can bring excitement and tension at the same time.",
+          "Everyone may need time to adjust to new roles and routines.",
+          "Trust usually rebuilds more slowly than hope."
+        ]
+      },
+      "early_recovery_30": {
+        "label": "First 30 days",
+        "description": "The first month is about structure, support, and safety. Stability matters more than dramatic promises.",
+        "cta": "Track what you observe",
+        "do": [
+          "Protect recovery routines and choose one small routine that steadies you too.",
+          "Decide how you will respond to one warning sign before it appears.",
+          "Notice and name one recovery action without demanding reassurance."
+        ],
+        "avoid": [
+          "Do not treat every hard mood as proof of a return to use.",
+          "Do not loosen important boundaries because the first days are going well.",
+          "Do not make their recovery your full-time job."
+        ],
+        "expect": [
+          "Sleep, energy, and mood can be uneven while routines form.",
+          "Boredom and household friction can rise when the initial relief fades.",
+          "Your nervous system may stay on alert even when things are calmer."
+        ]
+      },
+      "early_recovery_90": {
+        "label": "Days 31–90",
+        "description": "As daily life returns, protect the routines that work and rebuild trust in small, observable steps.",
+        "cta": "Review recent patterns",
+        "do": [
+          "Hold one calm weekly check-in about routines, needs, and household responsibilities.",
+          "Rebuild one shared activity that does not revolve around recovery talk.",
+          "Recognize consistent behavior, not just intentions or promises."
+        ],
+        "avoid": [
+          "Do not rush to restore money, access, or responsibilities before trust is ready.",
+          "Do not stop your own support because the immediate crisis has eased.",
+          "Do not confuse several good weeks with finished recovery work."
+        ],
+        "expect": [
+          "Confidence may grow faster than stability.",
+          "Old relationship tension may surface now that the crisis is quieter.",
+          "New routines can still be fragile around stress, conflict, or isolation."
+        ]
+      },
+      "ongoing_recovery": {
+        "label": "Ongoing recovery",
+        "description": "Longer-term recovery still benefits from honest connection, durable boundaries, and a life that belongs to each person.",
+        "cta": "Strengthen your support network",
+        "do": [
+          "Keep one boundary and one support practice active even during a calm stretch.",
+          "Review the household safety plan and contact list before you need them.",
+          "Make room for a relationship moment that is not about addiction or recovery."
+        ],
+        "avoid": [
+          "Do not abandon the plan simply because things have been well.",
+          "Do not pressure recovery to follow your preferred timeline.",
+          "Do not use sobriety to dismiss unresolved feelings or relationship repair."
+        ],
+        "expect": [
+          "Milestones can bring grief or anxiety alongside pride.",
+          "Relationships can have setbacks without a return to substance use.",
+          "The kind of support each person needs may change over time."
+        ]
+      },
+      "return_to_use": {
+        "label": "Return to use",
+        "description": "A return to use is serious, especially after abstinence. Move from shock to safety, facts, and the next available support.",
+        "cta": "Open crisis support",
+        "do": [
+          "Assess immediate danger and use your safety plan; call emergency services for a suspected overdose or immediate threat.",
+          "State what you observed in simple facts and follow the boundary you already set.",
+          "Contact your own support person and gather the next appropriate care option."
+        ],
+        "avoid": [
+          "Do not shame, lecture, or try to force insight in the middle of intoxication.",
+          "Do not physically block someone from leaving or put yourself in harm's way.",
+          "Do not hide a suspected overdose or delay emergency help."
+        ],
+        "expect": [
+          "Panic, grief, anger, or numbness are common family reactions.",
+          "Risk can change quickly, and tolerance may be lower after abstinence.",
+          "This setback does not erase prior recovery, but the next safe action matters now."
+        ]
+      },
+      "unsure": {
+        "label": "Not sure yet",
+        "description": "Uncertainty is exhausting. Start with safety and observable facts instead of trying to solve the whole story today.",
+        "cta": "Track observable signs",
+        "do": [
+          "Write down only what you directly saw or heard, with a date and time.",
+          "Check your own body and the household for immediate safety concerns.",
+          "Choose one trusted person you can speak with without needing to prove anything."
+        ],
+        "avoid": [
+          "Do not make an accusation when you only have a feeling or one ambiguous sign.",
+          "Do not search, follow, or confront in a way that could put you at risk.",
+          "Do not dismiss your concern just because you do not have certainty."
+        ],
+        "expect": [
+          "Not knowing can keep your nervous system on high alert.",
+          "One sign by itself usually does not prove substance use.",
+          "Clarity may come from a pattern of facts rather than one conversation."
+        ]
+      }
+    }
   },
   "focus": {
     "eyebrow": "Today's focus",

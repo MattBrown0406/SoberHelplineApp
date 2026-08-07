@@ -1,7 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Alert,
-  Linking,
   ScrollView,
   Share,
   StyleSheet,
@@ -10,7 +9,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -18,8 +16,11 @@ import type { TFunction } from 'i18next';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
 import { usePrivateVideoSessions } from '../src/hooks/usePrivateVideoSessions';
+import { useSafetyWallet } from '../src/hooks/useSafetyWallet';
 import { PremierVideoSchedulingCard } from '../src/components/video/PremierVideoSchedulingCard';
 import { PlanReviewBookingCard } from '../src/components/video/PlanReviewBookingCard';
+import { EmergencyActions } from '../src/components/safety/EmergencyActions';
+import type { SafetyBoundary, SafetyIncident, SafetyPlan } from '../src/lib/safetyWallet';
 import {
   CRISIS_SITUATION_ORDER,
   assessSituationRisk,
@@ -34,20 +35,6 @@ type TriageKey =
   | 'childrenPresent' | 'drivingIntoxicated' | 'missing' | 'intoxicated'
   | 'aggressive' | 'askingMoney' | 'willingTalk';
 
-type Incident = {
-  id: string; createdAt: string; summary: string; substances: string; threats: string;
-  childrenPresent: boolean; policeOrEms: boolean; boundaryCrossed: boolean;
-};
-
-type SafetyPlan = {
-  lovedOneName: string; substances: string; overdoseHistory: string; suicideHistory: string;
-  weaponsAccess: string; childrenInHome: string; emergencyContacts: string;
-  preferredHospital: string; insurance: string; currentBoundaries: string; decisionMakers: string;
-};
-
-type BoundaryDraft = { behavior: string; support: string; noLongerDo: string; consequence: string };
-type CommandPlan = { coordinator: string; communicator: string; safetyLead: string; unifiedStatement: string };
-
 const TRIAGE: { key: TriageKey; red?: boolean; orange?: boolean }[] = [
   { key: 'notBreathing', red: true }, { key: 'overdose', red: true },
   { key: 'suicide', red: true }, { key: 'violence', red: true },
@@ -57,13 +44,6 @@ const TRIAGE: { key: TriageKey; red?: boolean; orange?: boolean }[] = [
   { key: 'askingMoney', orange: true }, { key: 'willingTalk' },
 ];
 
-const DEFAULT_PLAN: SafetyPlan = {
-  lovedOneName: '', substances: '', overdoseHistory: '', suicideHistory: '', weaponsAccess: '',
-  childrenInHome: '', emergencyContacts: '', preferredHospital: '', insurance: '',
-  currentBoundaries: '', decisionMakers: '',
-};
-const DEFAULT_BOUNDARY: BoundaryDraft = { behavior: '', support: '', noLongerDo: '', consequence: '' };
-const DEFAULT_COMMAND: CommandPlan = { coordinator: '', communicator: '', safetyLead: '', unifiedStatement: '' };
 const PLAN_FIELDS: (keyof SafetyPlan)[] = [
   'lovedOneName', 'substances', 'overdoseHistory', 'suicideHistory', 'weaponsAccess',
   'childrenInHome', 'emergencyContacts', 'preferredHospital', 'insurance',
@@ -86,34 +66,6 @@ function preselectedForSituation(situation: CrisisSituationKey): Record<TriageKe
   return selected;
 }
 
-function crisisStorageKey(userId: string, suffix: string) {
-  return `soberhelpline:crisis:${userId}:${suffix}`;
-}
-
-function parseStoredRecord<T extends object>(raw: string | null, fallback: T): T {
-  if (!raw) return fallback;
-  try {
-    const value: unknown = JSON.parse(raw);
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return fallback;
-    const safe = { ...fallback } as Record<string, unknown>;
-    const candidate = value as Record<string, unknown>;
-    for (const [key, defaultValue] of Object.entries(fallback)) {
-      if (typeof candidate[key] === typeof defaultValue) safe[key] = candidate[key];
-    }
-    return safe as T;
-  } catch { return fallback; }
-}
-
-function parseStoredIncidents(raw: string | null): Incident[] {
-  if (!raw) return [];
-  try {
-    const value: unknown = JSON.parse(raw);
-    return Array.isArray(value)
-      ? value.filter((item): item is Incident => !!item && typeof item === 'object' && typeof item.summary === 'string' && typeof item.createdAt === 'string')
-      : [];
-  } catch { return []; }
-}
-
 function levelColor(level: RiskLevel) {
   if (level === 'RED') return '#b42318';
   if (level === 'ORANGE') return '#c4604f';
@@ -133,7 +85,7 @@ function emergencyChecklistKey(situation: CrisisSituationKey | null, selected: R
   return 'redDefault';
 }
 
-function buildBoundary(draft: BoundaryDraft, t: TFunction<'crisis'>) {
+function buildBoundary(draft: SafetyBoundary, t: TFunction<'crisis'>) {
   return t('builder.template', {
     behavior: draft.behavior.trim() || t('builder.defaults.behavior'),
     support: draft.support.trim() || t('builder.defaults.support'),
@@ -154,18 +106,24 @@ export default function CrisisModeScreen() {
   const hasPremier = accountState === 'direct-premium' || accountState === 'attached';
   const canAccessPrivateVideo = !!user && entitlements.canAccessPrivateVideo;
   const privateVideo = usePrivateVideoSessions(user?.id ?? null, hasEssential);
+  const {
+    plan,
+    setPlan,
+    incidents,
+    addIncident: storeIncident,
+    boundary,
+    setBoundary,
+    command,
+    setCommand,
+    clear: clearSafetyWallet,
+  } = useSafetyWallet(user?.id ?? null, hasPremier);
 
   const [stage, setStage] = useState<Stage>('situation');
   const [situationKey, setSituationKey] = useState<CrisisSituationKey | null>(null);
   const [selected, setSelected] = useState<Record<TriageKey, boolean>>(emptyTriage);
-  const [plan, setPlan] = useState<SafetyPlan>(DEFAULT_PLAN);
-  const [incidents, setIncidents] = useState<Incident[]>([]);
-  const [incidentDraft, setIncidentDraft] = useState<Omit<Incident, 'id' | 'createdAt'>>({
+  const [incidentDraft, setIncidentDraft] = useState<Omit<SafetyIncident, 'id' | 'createdAt'>>({
     summary: '', substances: '', threats: '', childrenPresent: false, policeOrEms: false, boundaryCrossed: false,
   });
-  const [boundary, setBoundary] = useState<BoundaryDraft>(DEFAULT_BOUNDARY);
-  const [command, setCommand] = useState<CommandPlan>(DEFAULT_COMMAND);
-  const [hydratedUserId, setHydratedUserId] = useState<string | null>(null);
 
   const level = useMemo(() => riskLevel(situationKey, selected), [selected, situationKey]);
   const situation = situationKey ? situations[situationKey] : null;
@@ -184,45 +142,6 @@ export default function CrisisModeScreen() {
     incidents,
     familyRoles: command,
   }), [boundary, boundaryText, command, incidents, level, plan, selected, situation?.label, situationKey]);
-
-  useEffect(() => {
-    setHydratedUserId(null);
-    if (!hasEssential || !user) {
-      setPlan(DEFAULT_PLAN); setIncidents([]); setBoundary(DEFAULT_BOUNDARY); setCommand(DEFAULT_COMMAND);
-      return;
-    }
-    const userId = user.id;
-    let cancelled = false;
-    async function load() {
-      const [planRaw, incidentsRaw, boundaryRaw, commandRaw] = await Promise.all([
-        AsyncStorage.getItem(crisisStorageKey(userId, 'plan')),
-        AsyncStorage.getItem(crisisStorageKey(userId, 'incidents')),
-        AsyncStorage.getItem(crisisStorageKey(userId, 'boundary')),
-        AsyncStorage.getItem(crisisStorageKey(userId, 'command')),
-      ]);
-      if (cancelled) return;
-      setPlan(parseStoredRecord(planRaw, DEFAULT_PLAN));
-      setIncidents(parseStoredIncidents(incidentsRaw));
-      setBoundary(parseStoredRecord(boundaryRaw, DEFAULT_BOUNDARY));
-      setCommand(parseStoredRecord(commandRaw, DEFAULT_COMMAND));
-      setHydratedUserId(userId);
-    }
-    void load();
-    return () => { cancelled = true; };
-  }, [hasEssential, user]);
-
-  useEffect(() => {
-    if (hasEssential && user && hydratedUserId === user.id) void AsyncStorage.setItem(crisisStorageKey(user.id, 'plan'), JSON.stringify(plan));
-  }, [hasEssential, hydratedUserId, plan, user]);
-  useEffect(() => {
-    if (hasEssential && user && hydratedUserId === user.id) void AsyncStorage.setItem(crisisStorageKey(user.id, 'incidents'), JSON.stringify(incidents));
-  }, [hasEssential, hydratedUserId, incidents, user]);
-  useEffect(() => {
-    if (hasEssential && user && hydratedUserId === user.id) void AsyncStorage.setItem(crisisStorageKey(user.id, 'boundary'), JSON.stringify(boundary));
-  }, [boundary, hasEssential, hydratedUserId, user]);
-  useEffect(() => {
-    if (hasPremier && user && hydratedUserId === user.id) void AsyncStorage.setItem(crisisStorageKey(user.id, 'command'), JSON.stringify(command));
-  }, [command, hasPremier, hydratedUserId, user]);
 
   function chooseSituation(key: CrisisSituationKey) {
     setSituationKey(key);
@@ -245,21 +164,17 @@ export default function CrisisModeScreen() {
       isSpanish ? 'Esto elimina de este dispositivo el plan, incidentes, límites y roles guardados para esta cuenta.' : 'This removes this account’s saved plan, incidents, boundaries, and roles from this device.',
       [
         { text: isSpanish ? 'Cancelar' : 'Cancel', style: 'cancel' },
-        { text: isSpanish ? 'Borrar' : 'Clear', style: 'destructive', onPress: () => {
-          void Promise.all(['plan', 'incidents', 'boundary', 'command'].map((suffix) => AsyncStorage.removeItem(crisisStorageKey(user.id, suffix))));
-          setPlan(DEFAULT_PLAN); setIncidents([]); setBoundary(DEFAULT_BOUNDARY); setCommand(DEFAULT_COMMAND);
-        } },
+        { text: isSpanish ? 'Borrar' : 'Clear', style: 'destructive', onPress: () => void clearSafetyWallet() },
       ],
     );
   }
 
   function addIncident() {
-    if (!hasEssential) { showUpgrade('Essential'); return; }
     if (!incidentDraft.summary.trim()) {
       Alert.alert(t('incident.alertTitle'), t('incident.alertBody')); return;
     }
-    const next: Incident = { ...incidentDraft, id: `${Date.now()}`, createdAt: new Date().toISOString() };
-    setIncidents((prev) => [next, ...prev].slice(0, 25));
+    const next: SafetyIncident = { ...incidentDraft, id: `${Date.now()}`, createdAt: new Date().toISOString() };
+    storeIncident(next);
     setIncidentDraft({ summary: '', substances: '', threats: '', childrenPresent: false, policeOrEms: false, boundaryCrossed: false });
   }
 
@@ -277,7 +192,7 @@ export default function CrisisModeScreen() {
   }
 
   async function shareSummary(includeCommand = false) {
-    if (!hasEssential || !situation) { showUpgrade('Essential'); return; }
+    if (!situation) return;
     const recent = incidents.slice(0, 5).map((i) => `- ${new Date(i.createdAt).toLocaleString()}: ${i.summary}`).join('\n') || t('share.noIncidents');
     const message = [
       t('share.heading'), '', `${t('share.riskLevel')}: ${level}`, situation.label, '',
@@ -319,7 +234,7 @@ export default function CrisisModeScreen() {
           </View>
         </View>
 
-        <EmergencyActions colors={colors} isSpanish={isSpanish} />
+        <EmergencyActions />
 
         {stage === 'situation' && (
           <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
@@ -375,17 +290,16 @@ export default function CrisisModeScreen() {
             </View>
             <ActionCard title={isSpanish ? 'No hagas esto' : "Don't do this"} items={dontDo} colors={colors} />
 
-            {level === 'RED' && <EmergencyActions colors={colors} isSpanish={isSpanish} prominent />}
+            {level === 'RED' && <EmergencyActions prominent />}
 
             <TouchableOpacity style={[styles.outlineBtn, { borderColor: colors.primary }]} onPress={startOver}>
               <Text style={[styles.outlineBtnText, { color: colors.primary }]}>{isSpanish ? 'Iniciar una nueva evaluación' : 'Start a new assessment'}</Text>
             </TouchableOpacity>
 
-            {hasEssential ? (
-              <>
+            <>
                 <View style={[styles.tierBanner, { backgroundColor: colors.secondaryLight }]}>
-                  <Text style={[styles.tierTitle, { color: colors.ink }]}>{isSpanish ? 'Herramientas Essential desbloqueadas' : 'Essential tools unlocked'}</Text>
-                  <Text style={[styles.small, { color: colors.inkSoft }]}>{isSpanish ? 'Se guarda en este dispositivo para esta cuenta. Evita usar un dispositivo compartido.' : 'Saved on this device for this account. Avoid using a shared device.'}</Text>
+                  <Text style={[styles.tierTitle, { color: colors.ink }]}>{isSpanish ? 'Herramientas básicas de seguridad siempre gratuitas' : 'Core safety tools are always free'}</Text>
+                  <Text style={[styles.small, { color: colors.inkSoft }]}>{isSpanish ? 'Se guardan en este dispositivo para esta cuenta y están disponibles sin conexión. Evita usar un dispositivo compartido.' : 'Saved on this device for this account and available offline. Avoid using a shared device.'}</Text>
                 </View>
                 <ActionCard title={isSpanish ? 'Plan para las próximas 24 horas' : 'Next 24-hour plan'} items={situation.next24} colors={colors} numbered />
                 <ActionCard title={isSpanish ? 'Plan para las próximas 72 horas' : 'Next 72-hour plan'} items={situation.next72} colors={colors} numbered />
@@ -417,10 +331,7 @@ export default function CrisisModeScreen() {
                 </View>
                 <TouchableOpacity style={[styles.outlineBtn, { borderColor: colors.secondary }]} onPress={() => void shareSummary()}><Text style={[styles.outlineBtnText, { color: colors.secondary }]}>{t('support.share')}</Text></TouchableOpacity>
                 <TouchableOpacity style={styles.textBtn} onPress={clearSavedData}><Text style={[styles.textBtnText, { color: colors.coral }]}>{isSpanish ? 'Borrar datos de crisis guardados' : 'Clear saved crisis data'}</Text></TouchableOpacity>
-              </>
-            ) : (
-              <LockedCard tier="Essential" cta={isSpanish ? 'Ver Essential' : 'View Essential'} title={isSpanish ? 'Guarda el plan y continúa después' : 'Save the plan and continue later'} body={isSpanish ? 'Essential incluye planes de 24/72 horas, registro de incidentes, límites y resumen compartible.' : 'Essential includes 24/72-hour plans, incident history, boundaries, and a shareable summary.'} colors={colors} onPress={() => showUpgrade('Essential')} />
-            )}
+            </>
 
             {hasPremier ? (
               <View style={[styles.card, styles.premiumCard, { backgroundColor: colors.ink, borderColor: colors.primary }]}>
@@ -448,23 +359,6 @@ export default function CrisisModeScreen() {
       </ScrollView>
     </SafeAreaView>
   );
-}
-
-function EmergencyActions({ colors, isSpanish, prominent = false }: { colors: ReturnType<typeof useTheme>['colors']; isSpanish: boolean; prominent?: boolean }) {
-  return <View style={[styles.emergencyCard, { backgroundColor: prominent ? '#fff1ef' : colors.white, borderColor: colors.coral }]}>
-    <Text style={[styles.emergencyTitle, { color: colors.coral }]}>{isSpanish ? '¿Hay peligro inmediato?' : 'Immediate danger?'}</Text>
-    <Text style={[styles.small, { color: colors.inkSoft }]}>{isSpanish ? 'Estas acciones siempre son gratuitas.' : 'These actions are always free.'}</Text>
-    <View style={styles.emergencyButtons}>
-      <EmergencyButton label={isSpanish ? 'Llamar al 911 (EE. UU.)' : 'Call 911 (U.S.)'} onPress={() => Linking.openURL('tel:911')} color={colors.coral} />
-      <EmergencyButton label={isSpanish ? 'Llamar al 988' : 'Call 988'} onPress={() => Linking.openURL('tel:988')} color={colors.primary} />
-      <EmergencyButton label={isSpanish ? 'Enviar texto al 988' : 'Text 988'} onPress={() => Linking.openURL('sms:988')} color={colors.primary} />
-      <EmergencyButton label={isSpanish ? 'Control de Envenenamiento EE. UU.' : 'U.S. Poison Control'} onPress={() => Linking.openURL('tel:18002221222')} color={colors.secondary} />
-    </View>
-  </View>;
-}
-
-function EmergencyButton({ label, onPress, color }: { label: string; onPress: () => void; color: string }) {
-  return <TouchableOpacity style={[styles.emergencyBtn, { borderColor: color }]} onPress={onPress} accessibilityRole="button"><Text style={[styles.emergencyBtnText, { color }]}>{label}</Text></TouchableOpacity>;
 }
 
 function ActionCard({ title, items, colors, numbered = false }: { title: string; items: string[]; colors: ReturnType<typeof useTheme>['colors']; numbered?: boolean }) {
@@ -508,8 +402,6 @@ const styles = StyleSheet.create({
   primaryBtn: { borderRadius: 14, paddingVertical: 14, paddingHorizontal: 16, alignItems: 'center', marginTop: 14 }, primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '900' },
   outlineBtn: { borderWidth: 1.5, borderRadius: 14, paddingVertical: 13, alignItems: 'center', marginBottom: 14 }, outlineBtnText: { fontSize: 15, fontWeight: '900' },
   textBtn: { padding: 12, alignItems: 'center' }, textBtnText: { fontSize: 14, fontWeight: '800' },
-  emergencyCard: { borderWidth: 1.5, borderRadius: 18, padding: 15, marginBottom: 14 }, emergencyTitle: { fontSize: 17, fontWeight: '900', marginBottom: 3 },
-  emergencyButtons: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 11 }, emergencyBtn: { borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 11, paddingVertical: 9 }, emergencyBtnText: { fontSize: 13, fontWeight: '900' },
   tierBanner: { borderRadius: 16, padding: 15, marginBottom: 14 }, tierTitle: { fontSize: 16, fontWeight: '900', marginBottom: 4 }, lockBadge: { fontSize: 11, letterSpacing: 1.2, fontWeight: '900', marginBottom: 7 },
   fieldWrap: { marginTop: 12 }, fieldLabel: { color: '#203331', fontSize: 13, fontWeight: '800', marginBottom: 6 },
   input: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#d4dfdd', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 11, color: '#203331', fontSize: 15 }, inputMulti: { minHeight: 82, textAlignVertical: 'top' },
