@@ -1,5 +1,17 @@
 {
-  "header": "Learn",
+  "header": "Tools & learning",
+  "tools": {
+    "eyebrow": "QUICK TOOLS",
+    "costTitle": "Money & Boundaries Worksheet",
+    "costBody": "Estimate what active addiction has cost your family, then decide what you will—and will not—fund going forward.",
+    "costButton": "Start worksheet",
+    "costBadge": "Free · Private",
+    "safetyTitle": "Offline Safety Wallet",
+    "safetyBody": "Keep emergency contacts, naloxone information, and your household response plan ready even without service.",
+    "safetyButton": "Open Safety Wallet",
+    "safetyBadge": "Free · Offline",
+    "learningEyebrow": "LEARNING LIBRARY"
+  },
   "education": {
     "title": "Family Education",
     "body": "60+ exercises and assessments to help you understand addiction, set limits, and support recovery.",

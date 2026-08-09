@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
   Share,
   StyleSheet,
   Text,
@@ -17,7 +18,13 @@ import { useAccount } from '../src/contexts/AccountContext';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useLovedOne } from '../src/hooks/useLovedOne';
 import { useSafetyWallet } from '../src/hooks/useSafetyWallet';
-import type { SafetyIncident, SafetyPlan } from '../src/lib/safetyWallet';
+import {
+  isSafetyWalletReady,
+  safetyWalletCoreProgress,
+  type SafetyIncident,
+  type SafetyPlan,
+} from '../src/lib/safetyWallet';
+import { maybeRequestReview } from '../src/lib/reviewPrompt';
 
 type PlanField = keyof SafetyPlan;
 type IncidentDraft = Omit<SafetyIncident, 'id' | 'createdAt'>;
@@ -80,6 +87,8 @@ export default function SafetyWalletScreen() {
     () => Object.values(plan).filter((value) => value.trim().length > 0).length,
     [plan],
   );
+  const coreProgress = useMemo(() => safetyWalletCoreProgress(plan), [plan]);
+  const walletReady = isSafetyWalletReady(plan);
 
   function updatePlan(key: PlanField, value: string) {
     setPlan((current) => ({ ...current, [key]: value }));
@@ -131,6 +140,21 @@ export default function SafetyWalletScreen() {
     ]);
   }
 
+  function finishWallet() {
+    Keyboard.dismiss();
+    router.back();
+    setTimeout(() => {
+      void maybeRequestReview({
+        accountId: user?.id ?? null,
+        milestone: 'safety_wallet_ready',
+        safety: {
+          situationBand: lovedOne?.status === 'crisis' ? 'crisis' : null,
+          recentCrisisAt: incidents[0]?.createdAt ?? null,
+        },
+      });
+    }, 750);
+  }
+
   return (
     <ScreenContainer keyboardShouldPersistTaps="handled" contentContainerStyle={styles.wrap}>
       <TouchableOpacity onPress={() => router.back()} hitSlop={12} accessibilityRole="button">
@@ -173,6 +197,9 @@ export default function SafetyWalletScreen() {
               {t('wallet.savedCount', { count: completedFields })}
             </Text>
             <Text style={[styles.small, { color: colors.inkSoft }]}>{t('wallet.autoSave')}</Text>
+            <Text style={[styles.coreProgress, { color: colors.primary }]}>
+              {t('wallet.coreProgress', coreProgress)}
+            </Text>
           </View>
 
           {FIELD_GROUPS.map((group) => (
@@ -196,6 +223,24 @@ export default function SafetyWalletScreen() {
               ))}
             </View>
           ))}
+
+          {walletReady && (
+            <View
+              accessibilityRole="summary"
+              style={[styles.readyCard, { backgroundColor: colors.greenLight, borderColor: colors.green }]}
+            >
+              <Text style={[styles.readyTitle, { color: colors.green }]}>{t('wallet.readyTitle')}</Text>
+              <Text style={[styles.small, { color: colors.inkSoft }]}>{t('wallet.readyBody')}</Text>
+              <TouchableOpacity
+                accessibilityRole="button"
+                style={[styles.primaryButton, { backgroundColor: colors.green }]}
+                onPress={finishWallet}
+                activeOpacity={0.82}
+              >
+                <Text style={styles.primaryButtonText}>{t('wallet.finish')}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
             <Text style={[styles.sectionTitle, { color: colors.ink }]}>{t('wallet.recentIncidents')}</Text>
@@ -323,6 +368,9 @@ const styles = StyleSheet.create({
   loading: { padding: 28, alignItems: 'center', gap: 10 },
   statusCard: { borderRadius: 16, padding: 15, marginBottom: 14 },
   statusTitle: { fontSize: 15, fontWeight: '900', marginBottom: 3 },
+  coreProgress: { fontSize: 12.5, fontWeight: '800', marginTop: 8 },
+  readyCard: { borderWidth: 1.5, borderRadius: 20, padding: 18, marginBottom: 14 },
+  readyTitle: { fontSize: 18, lineHeight: 23, fontWeight: '900', marginBottom: 5 },
   card: { borderWidth: 1, borderRadius: 20, padding: 18, marginBottom: 14 },
   sectionTitle: { fontSize: 20, lineHeight: 25, fontWeight: '900', marginBottom: 4 },
   fieldWrap: { marginTop: 13 },

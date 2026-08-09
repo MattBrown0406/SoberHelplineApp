@@ -197,6 +197,10 @@
     "loading": "Abriendo tu plan de seguridad guardado…",
     "savedCount": "{{count}} datos de seguridad listos",
     "autoSave": "Los cambios se guardan automáticamente para esta cuenta en este dispositivo. Evita ingresar datos privados en un dispositivo compartido.",
+    "coreProgress": "Plan principal: {{completed}} de {{total}} datos esenciales listos",
+    "readyTitle": "Tu Cartera de Seguridad principal está lista",
+    "readyBody": "Puedes seguir agregando información cuando quieras. Revisa este plan con frecuencia y actualiza contactos, ubicaciones y roles familiares cuando cambien.",
+    "finish": "Terminar por ahora",
     "groups": {
       "household": "Datos esenciales del hogar",
       "overdose": "Preparación para una sobredosis",

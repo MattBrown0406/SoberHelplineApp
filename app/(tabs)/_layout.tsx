@@ -68,7 +68,7 @@ export default function TabLayout() {
         name="learn"
         options={{
           title: t('nav.learn'),
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📚" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon emoji="🧰" focused={focused} />,
         }}
       />
       <Tabs.Screen

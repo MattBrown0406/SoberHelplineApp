@@ -79,8 +79,33 @@ export const DEFAULT_FAMILY_COMMAND: FamilyCommandPlan = {
 
 export const SAFETY_STORAGE_SUFFIXES = ['plan', 'incidents', 'boundary', 'command'] as const;
 
+const CORE_READINESS_FIELDS: Array<keyof SafetyPlan> = [
+  'emergencyContacts',
+  'preferredHospital',
+  'safeAdult',
+  'keysAndMedicationPlan',
+  'currentBoundaries',
+  'decisionMakers',
+];
+
 export function safetyStorageKey(accountId: string, suffix: typeof SAFETY_STORAGE_SUFFIXES[number]): string {
   return `soberhelpline:crisis:${accountId}:${suffix}`;
+}
+
+/**
+ * A practical core plan is ready when a family has recorded how to reach help,
+ * where to go, and how the household will respond. Optional history fields do
+ * not block completion because they are not relevant to every family.
+ */
+export function isSafetyWalletReady(plan: SafetyPlan): boolean {
+  return CORE_READINESS_FIELDS.every((field) => plan[field].trim().length > 0);
+}
+
+export function safetyWalletCoreProgress(plan: SafetyPlan): { completed: number; total: number } {
+  return {
+    completed: CORE_READINESS_FIELDS.filter((field) => plan[field].trim().length > 0).length,
+    total: CORE_READINESS_FIELDS.length,
+  };
 }
 
 /**

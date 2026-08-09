@@ -20,6 +20,8 @@ import { useTodayFeed } from '../../src/hooks/useTodayFeed';
 import { useLovedOne } from '../../src/hooks/useLovedOne';
 import { getDailyScripts } from '../../src/content/scripts';
 import { isAdminEmail } from '../../src/lib/admin';
+import { maybeRequestReview, queueSupportCallReview } from '../../src/lib/reviewPrompt';
+import type { CaregiverCheckInInput } from '../../src/api/types';
 import type { TFunction } from 'i18next';
 
 export default function TodayScreen() {
@@ -37,6 +39,29 @@ export default function TodayScreen() {
   const greeting = timeGreeting(t, firstName);
   const contextLabel = t(isAttached ? 'hero.contextAttached' : 'hero.contextDirect');
   const dailyQuote = t(`dailyQuote.${quoteIndex}`);
+
+  async function completeCheckIn(input: CaregiverCheckInInput): Promise<void> {
+    const nextStreak = await saveCheckIn(input);
+    if (nextStreak.currentStreak === 7) {
+      setTimeout(() => {
+        void maybeRequestReview({
+          accountId: user?.id ?? null,
+          milestone: 'check_in_streak_7',
+          safety: {
+            situationBand: situation.band,
+            checkIn: input,
+          },
+        });
+      }, 750);
+    }
+  }
+
+  function queueMondayMeetingReview(): Promise<void> {
+    return queueSupportCallReview({
+      accountId: user?.id ?? null,
+      safety: { situationBand: situation.band },
+    });
+  }
 
   const pathwayCard = (
     <RecoveryPathwayCard
@@ -59,7 +84,7 @@ export default function TodayScreen() {
   const checkInCard = (
     <CheckInCard
       checkIn={todayCheckIn}
-      onComplete={saveCheckIn}
+      onComplete={completeCheckIn}
       newStreak={streak.currentStreak}
       graceUsed={streak.graceUsed ?? false}
       isAttached={isAttached}
@@ -81,6 +106,7 @@ export default function TodayScreen() {
           nextFreeCall={nextFreeCall}
           primaryDoor={primaryDoor}
           onRsvp={rsvpFreeCall}
+          onSupportCallJoin={queueMondayMeetingReview}
         />
         <NeedsRouter />
         {pathwayCard}
@@ -110,6 +136,7 @@ export default function TodayScreen() {
         nextFreeCall={nextFreeCall}
         primaryDoor={primaryDoor}
         onRsvp={rsvpFreeCall}
+        onSupportCallJoin={queueMondayMeetingReview}
       />
 
       <NeedsRouter />

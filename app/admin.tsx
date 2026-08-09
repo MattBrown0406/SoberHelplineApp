@@ -31,6 +31,13 @@ type FunnelStats = {
   intervention_started: number;
   bands: { calm: number; watch: number; elevated: number; crisis: number };
 };
+type ReviewPromptStats = {
+  eligible_events: number;
+  prompt_requests: number;
+  prompted_accounts: number;
+  manual_opens: number;
+  last_30_days: { eligible: number; requested: number; manual: number };
+};
 type RsvpRow = { first_name: string; last_name: string; email: string; rsvped_at: string };
 type QuestionRow = { id: string; first_name: string; last_name: string; question: string; submitted_at: string };
 type ThreadRow = {
@@ -66,6 +73,7 @@ export default function AdminScreen() {
   const [loadingBriefs, setLoadingBriefs] = useState(true);
   const [archivingThread, setArchivingThread] = useState<string | null>(null);
   const [funnel, setFunnel] = useState<FunnelStats | null>(null);
+  const [reviewStats, setReviewStats] = useState<ReviewPromptStats | null>(null);
 
   // Owners can use every admin tool; active video staff can use scheduling only.
   useEffect(() => {
@@ -78,6 +86,8 @@ export default function AdminScreen() {
     // Funnel + family-health snapshot
     const { data: funnelData } = await supabase.rpc('admin_funnel_stats');
     if (funnelData) setFunnel(funnelData as FunnelStats);
+    const { data: reviewData } = await supabase.rpc('admin_review_prompt_stats');
+    if (reviewData) setReviewStats(reviewData as ReviewPromptStats);
 
     // Load current Zoom URL. Tolerant title match: the prod row is titled
     // 'The Family Squares' (older seeds used 'Monday Night Family Support').
@@ -189,6 +199,23 @@ export default function AdminScreen() {
           </>
         )}
       </View>
+
+      {reviewStats && (
+        <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
+          <Text style={[styles.cardTitle, { color: colors.ink }]}>App Store review system</Text>
+          <View style={styles.funnelRow}>
+            <FunnelStat label="Eligible moments" value={reviewStats.eligible_events} colors={colors} />
+            <FunnelStat label="Native requests" value={reviewStats.prompt_requests} colors={colors} />
+            <FunnelStat label="Manual opens" value={reviewStats.manual_opens} colors={colors} />
+          </View>
+          <Text style={[styles.funnelStage, { color: colors.inkSoft }]}>
+            Last 30 days: {reviewStats.last_30_days.eligible} eligible → {reviewStats.last_30_days.requested} requested; {reviewStats.last_30_days.manual} opened rating from Settings.
+          </Text>
+          <Text style={[styles.funnelNote, { color: colors.inkSoft }]}>
+            Apple does not report whether its native sheet was displayed or which rating a member chose. Compare these requests with App Store Connect rating volume.
+          </Text>
+        </View>
+      )}
 
       {/* ── Zoom Link ── */}
       <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>

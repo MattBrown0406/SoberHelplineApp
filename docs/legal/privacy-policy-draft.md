@@ -12,7 +12,7 @@ You are trusting us during one of the hardest seasons of your family's life. So:
 - **Account basics:** name, email, language preference, time zone, and whether your account is connected to a provider organization.
 - **What you put in the app:** loved-one profile details (such as relationship, substance concerns, and the current recovery phase you select), daily check-ins (including mood, capacity, pressure, support need, and an optional note), tracker entries, boundaries ("walls"), letters, messages with coaches, wins you submit, rehearsal counts, and Safety Wallet details. Rehearsal **recordings stay on your device** and are never uploaded. Your Safety Wallet and incident log also stay on your device unless you deliberately export them or preview, consent to, and submit selected sections for a plan review.
 - **Subscription status:** processed by Apple/Google and RevenueCat (our subscription processor). We never see or store full payment card numbers.
-- **Technical basics:** device type, app version, crash logs, and de-identified usage events (which screens are used). Sensitive content — letters, check-in notes, messages — is **excluded from analytics**.
+- **Technical basics:** device type, app version, crash logs, and privacy-limited product-interaction events (for example, which feature or conversion step was used). Account-associated events are deleted with the account. Sensitive content — letters, check-in answers or notes, Safety Wallet details, incident details, and messages — is **excluded from analytics**.
 
 ## Who can see what (the part that matters)
 

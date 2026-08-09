@@ -131,3 +131,9 @@ Esperanza. Ayuda. Recuperación.
 - Crisis disclaimer (911 / 988 + "not a substitute for treatment") must remain in both descriptions.
 - Provide one verified direct/free demo login that covers the complete consumer review path; describe provider-connected accounts accurately without requiring reviewer-owned email confirmation.
 - Keywords stay within Apple's 100-character limit and avoid third-party trademarks.
+
+## App Store conversion testing
+
+The implementation and test sequence for native rating requests, first-three-
+screenshot experiments, icon testing, and review-funnel measurement is in
+[`app-store-review-and-conversion-system.md`](./app-store-review-and-conversion-system.md).

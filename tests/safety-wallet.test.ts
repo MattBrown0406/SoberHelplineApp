@@ -2,8 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   DEFAULT_SAFETY_PLAN,
+  isSafetyWalletReady,
   parseStoredIncidents,
   parseStoredRecord,
+  safetyWalletCoreProgress,
   safetyStorageKey,
 } from '../src/lib/safetyWallet';
 
@@ -62,4 +64,21 @@ test('isolates saved safety data by account', () => {
     safetyStorageKey('account-a', 'incidents'),
     safetyStorageKey('account-b', 'incidents'),
   );
+});
+
+test('requires the six practical core fields before the wallet is ready', () => {
+  const partial = {
+    ...DEFAULT_SAFETY_PLAN,
+    emergencyContacts: 'Alex · 555-0100',
+    preferredHospital: 'General Hospital',
+    safeAdult: 'Sam · 555-0101',
+    keysAndMedicationPlan: 'Locked cabinet',
+    currentBoundaries: 'No cash',
+  };
+  assert.equal(isSafetyWalletReady(partial), false);
+  assert.deepEqual(safetyWalletCoreProgress(partial), { completed: 5, total: 6 });
+
+  const ready = { ...partial, decisionMakers: 'Alex, then Sam' };
+  assert.equal(isSafetyWalletReady(ready), true);
+  assert.deepEqual(safetyWalletCoreProgress(ready), { completed: 6, total: 6 });
 });

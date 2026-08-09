@@ -1,5 +1,17 @@
 {
-  "header": "Aprender",
+  "header": "Herramientas y aprendizaje",
+  "tools": {
+    "eyebrow": "HERRAMIENTAS RÁPIDAS",
+    "costTitle": "Hoja de dinero y límites",
+    "costBody": "Calcula lo que la adicción activa le ha costado a tu familia y decide qué financiarás y qué no financiarás en adelante.",
+    "costButton": "Iniciar actividad",
+    "costBadge": "Gratis · Privado",
+    "safetyTitle": "Cartera de seguridad sin conexión",
+    "safetyBody": "Mantén los contactos de emergencia, la información sobre naloxona y el plan de respuesta del hogar disponibles incluso sin servicio.",
+    "safetyButton": "Abrir cartera de seguridad",
+    "safetyBadge": "Gratis · Sin conexión",
+    "learningEyebrow": "BIBLIOTECA DE APRENDIZAJE"
+  },
   "education": {
     "title": "Educación familiar",
     "body": "Más de 60 ejercicios y evaluaciones para entender la adicción, establecer límites y apoyar la recuperación.",

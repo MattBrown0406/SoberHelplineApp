@@ -11,6 +11,7 @@ interface Props {
   nextFreeCall: FreeCall | null;
   primaryDoor: FunnelDoor;
   onRsvp: () => void;
+  onSupportCallJoin?: () => Promise<void>;
 }
 
 /**
@@ -18,7 +19,7 @@ interface Props {
  * the family's situation warrants it, a higher-intent door (coaching or
  * intervention) is offered. The free call is never gated — it's the entry rung.
  */
-export function SituationCard({ nextFreeCall, primaryDoor, onRsvp }: Props) {
+export function SituationCard({ nextFreeCall, primaryDoor, onRsvp, onSupportCallJoin }: Props) {
   const { colors } = useTheme();
   const { t } = useTranslation('today');
   const router = useRouter();
@@ -40,10 +41,14 @@ export function SituationCard({ nextFreeCall, primaryDoor, onRsvp }: Props) {
         <>
           <TouchableOpacity
             style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
-            onPress={() => {
+            onPress={() => void (async () => {
               logFunnelEvent('attended', { source: 'today' });
-              void Linking.openURL(nextFreeCall!.zoom_url!);
-            }}
+              try {
+                await onSupportCallJoin?.();
+              } finally {
+                await Linking.openURL(nextFreeCall!.zoom_url!);
+              }
+            })()}
             activeOpacity={0.85}
           >
             <Text style={styles.primaryBtnText}>{t('situationCta.join')}</Text>

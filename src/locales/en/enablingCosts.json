@@ -1,0 +1,98 @@
+{
+  "header": "Money & boundaries",
+  "progress": "Step {{current}} of 3",
+  "estimate": {
+    "eyebrow": "12-MONTH REFLECTION",
+    "title": "What has your family taken on?",
+    "body": "Estimate the money your family spent absorbing problems connected to active addiction. Rough numbers are enough. This is information—not a judgment.",
+    "privacy": "Private by design: amounts stay on this screen and are not saved or sent.",
+    "timeframe": "Include only the last 12 months.",
+    "runningTotal": "Current estimate",
+    "continue": "Review my estimate",
+    "empty": "Enter at least one amount to continue."
+  },
+  "categories": [
+    {
+      "id": "living",
+      "title": "Living expenses you took over",
+      "body": "Bills and everyday costs that shifted from them to you.",
+      "items": [
+        { "id": "housing", "label": "Housing", "hint": "Rent, mortgage, hotel stays, or the value of living in your home without contributing" },
+        { "id": "recurringBills", "label": "Phone, utilities, and insurance", "hint": "Recurring accounts you kept current" },
+        { "id": "dailySpending", "label": "Food, gas, and daily spending", "hint": "Groceries, meals, fuel, and repeated small requests" },
+        { "id": "transportation", "label": "Vehicles and transportation", "hint": "Payments, insurance, repairs, rides, or replacement transportation" }
+      ]
+    },
+    {
+      "id": "rescues",
+      "title": "Financial rescues",
+      "body": "Money used to solve an immediate problem or prevent a consequence.",
+      "items": [
+        { "id": "cash", "label": "Cash, transfers, and loans", "hint": "Money handed over, sent electronically, or expected to be repaid" },
+        { "id": "personalDebts", "label": "Debts you paid", "hint": "Credit cards, overdue accounts, or money owed to other people" },
+        { "id": "finesAndRelease", "label": "Fines, towing, and release costs", "hint": "Tickets, impound fees, bail, or similar expenses" }
+      ]
+    },
+    {
+      "id": "consequences",
+      "title": "Consequences paid by the family",
+      "body": "Costs that reached your household after something went wrong.",
+      "items": [
+        { "id": "legalCosts", "label": "Legal and court costs", "hint": "Attorneys, filings, hearings, or other legal expenses" },
+        { "id": "propertyLoss", "label": "Damaged, lost, or replaced property", "hint": "Home repairs, vehicles, electronics, or other belongings" },
+        { "id": "unrecoveredMoney", "label": "Money or valuables not returned", "hint": "Include losses you may not have previously counted" }
+      ]
+    }
+  ],
+  "reflection": {
+    "eyebrow": "YOUR ESTIMATE",
+    "title": "See the pattern clearly",
+    "totalLabel": "Last 12 months",
+    "monthlyLabel": "Average each month",
+    "projectionLabel": "If the same pattern continued for five years",
+    "largestLabel": "Largest area",
+    "context": "This number does not measure how much you care. It reflects the ways you tried to keep someone safe or keep the family functioning. You can use it now to decide where your support will go next.",
+    "fundTitle": "What are you still willing to fund?",
+    "fundBody": "Choose support that points toward health, safety, or recovery.",
+    "fundOptions": [
+      { "id": "provider", "label": "Treatment or an assessment paid directly to the provider" },
+      { "id": "medical", "label": "Medical care or medication paid directly" },
+      { "id": "necessities", "label": "Food or necessities I purchase myself" },
+      { "id": "transport", "label": "Transportation to verified recovery support" },
+      { "id": "guidance", "label": "Help approved with a coach, counselor, or trusted family partner" }
+    ],
+    "pauseTitle": "What will require a pause or a no?",
+    "pauseBody": "Select the requests you do not want to answer under pressure.",
+    "pauseOptions": [
+      { "id": "unrestrictedCash", "label": "Cash or unrestricted transfers" },
+      { "id": "useRelatedDebt", "label": "Debts, fines, or legal costs caused by continued use" },
+      { "id": "recurringBills", "label": "Recurring bills I have repeatedly taken over" },
+      { "id": "replacement", "label": "Replacing property after preventable damage or loss" },
+      { "id": "urgentRequest", "label": "Any money request that demands an immediate answer" }
+    ],
+    "boundaryTitle": "Write one money boundary",
+    "boundaryBody": "Make it about what you will do. Keep it short enough to say when emotions are high.",
+    "boundaryPlaceholder": "Example: I will not give cash. I can pay a treatment provider directly.",
+    "continue": "Build my money plan",
+    "selectionNeeded": "Choose at least one item or write a boundary to continue."
+  },
+  "plan": {
+    "eyebrow": "YOUR MONEY PLAN",
+    "title": "A clearer answer for the next request",
+    "estimateLabel": "Estimated 12-month impact",
+    "willFund": "I can support",
+    "willPause": "I will pause or say no to",
+    "myBoundary": "My boundary",
+    "noneSelected": "Nothing selected",
+    "nextStep": "You do not have to defend this plan in the middle of a crisis. Review it with someone you trust, then practice saying the boundary calmly.",
+    "practice": "Practice saying this boundary",
+    "share": "Share my plan",
+    "startOver": "Start over",
+    "shareTitle": "My money boundary plan",
+    "shareIntro": "My estimated 12-month family cost was {{total}}.",
+    "shareFund": "I can support:",
+    "sharePause": "I will pause or say no to:",
+    "shareBoundary": "My boundary: {{boundary}}"
+  },
+  "disclaimer": "For personal reflection and education only—not financial, legal, or medical advice. If anyone is in immediate danger, call 911. Call or text 988 for crisis support."
+}

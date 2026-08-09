@@ -12,7 +12,7 @@ export interface UseCheckInResult {
   todayCheckIn: CheckIn | null;
   streak: CheckInStreak;
   isLoading: boolean;
-  saveCheckIn: (input: CaregiverCheckInInput) => Promise<void>;
+  saveCheckIn: (input: CaregiverCheckInInput) => Promise<CheckInStreak>;
 }
 
 export function useCheckIn(accountId: string | null, timezone?: string): UseCheckInResult {
@@ -23,7 +23,7 @@ export function useCheckIn(accountId: string | null, timezone?: string): UseChec
     lastCompletedDate: null,
   });
   const [isLoading, setIsLoading] = useState(true);
-  const saveInFlightRef = useRef<Promise<void> | null>(null);
+  const saveInFlightRef = useRef<Promise<CheckInStreak> | null>(null);
   const knownDatesRef = useRef<string[]>([]);
 
   useEffect(() => {
@@ -127,6 +127,7 @@ export function useCheckIn(accountId: string | null, timezone?: string): UseChec
       };
 
       let completed = pending;
+      let updatedStreak: CheckInStreak;
 
       if (accountId) {
         const remote = await persistDailyCheckIn(
@@ -178,7 +179,8 @@ export function useCheckIn(accountId: string | null, timezone?: string): UseChec
         setTodayCheckIn(completed);
         const knownDates = mergeCheckInDates(knownDatesRef.current, [checkinDate]);
         knownDatesRef.current = knownDates;
-        setStreak(computeStreak(knownDates, timezone));
+        updatedStreak = computeStreak(knownDates, timezone);
+        setStreak(updatedStreak);
         try {
           await persistLocal(completed, timezone);
         } catch (error) {
@@ -190,9 +192,11 @@ export function useCheckIn(accountId: string | null, timezone?: string): UseChec
         setTodayCheckIn(completed);
         const localDates = await getCheckedInDates(completed.userId);
         knownDatesRef.current = localDates;
-        setStreak(computeStreak(localDates, timezone));
+        updatedStreak = computeStreak(localDates, timezone);
+        setStreak(updatedStreak);
       }
       void rearmDailyNudge().catch(captureAppError);
+      return updatedStreak;
     })().catch((error) => {
       captureAppError(error);
       throw error;

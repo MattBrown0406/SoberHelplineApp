@@ -197,6 +197,10 @@
     "loading": "Opening your saved safety plan…",
     "savedCount": "{{count}} safety details ready",
     "autoSave": "Changes save automatically for this account on this device. Avoid entering private details on a shared device.",
+    "coreProgress": "Core plan: {{completed}} of {{total}} essentials ready",
+    "readyTitle": "Your core Safety Wallet is ready",
+    "readyBody": "You can keep adding details anytime. Review this plan regularly and update contacts, locations, and family roles when they change.",
+    "finish": "Finish for now",
     "groups": {
       "household": "Household essentials",
       "overdose": "Overdose readiness",

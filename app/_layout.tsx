@@ -1,7 +1,7 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, AppState, Text, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AccountProvider, useAccount } from '../src/contexts/AccountContext';
 import { ThemeProvider } from '../src/contexts/ThemeContext';
@@ -12,6 +12,53 @@ import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { SafetyShortcut } from '../src/components/safety/SafetyShortcut';
 import { getInitialLayoutState, isPushNavigationReady } from '../src/lib/authBootstrap';
 import { addAppBreadcrumb } from '../src/lib/monitoring';
+import { flushQueuedSupportCallReview, setReviewPromptRoute } from '../src/lib/reviewPrompt';
+
+function ReviewPromptCoordinator() {
+  const { user } = useAccount();
+  const segments = useSegments();
+  const routePath = segments.join('/');
+  const routeRef = useRef(routePath);
+  routeRef.current = routePath;
+  setReviewPromptRoute(routePath);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let active = true;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const flushOnToday = () => {
+      if (!active || !isTodayRoute(routeRef.current)) return;
+      timer = setTimeout(() => {
+        if (active && isTodayRoute(routeRef.current)) {
+          void flushQueuedSupportCallReview(user.id);
+        }
+      }, 800);
+    };
+
+    // Handles a member reopening the app after the external meeting app was
+    // closed, as well as the normal background → foreground return.
+    flushOnToday();
+    let previousState = AppState.currentState;
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      const returnedToForeground = previousState !== 'active' && nextState === 'active';
+      previousState = nextState;
+      if (returnedToForeground) flushOnToday();
+    });
+
+    return () => {
+      active = false;
+      if (timer) clearTimeout(timer);
+      subscription.remove();
+    };
+  }, [user?.id, routePath]);
+
+  return null;
+}
+
+function isTodayRoute(routePath: string): boolean {
+  return routePath === '(tabs)' || routePath === '(tabs)/index';
+}
 
 // Handles redirect between (auth) and (tabs) based on session state.
 // Must be a child of AccountProvider so it can read useAccount().
@@ -123,6 +170,7 @@ export default function RootLayout() {
       <AccountProvider>
         <ThemeProvider>
           <InitialLayout />
+          <ReviewPromptCoordinator />
           <SafetyShortcut />
           <StatusBar style="auto" />
         </ThemeProvider>

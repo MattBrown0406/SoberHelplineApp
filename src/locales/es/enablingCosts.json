@@ -1,0 +1,98 @@
+{
+  "header": "Dinero y límites",
+  "progress": "Paso {{current}} de 3",
+  "estimate": {
+    "eyebrow": "REFLEXIÓN DE 12 MESES",
+    "title": "¿Qué gastos ha asumido tu familia?",
+    "body": "Calcula el dinero que tu familia gastó absorbiendo problemas relacionados con la adicción activa. Una cifra aproximada es suficiente. Es información, no un juicio.",
+    "privacy": "Privado por diseño: las cantidades permanecen en esta pantalla y no se guardan ni se envían.",
+    "timeframe": "Incluye únicamente los últimos 12 meses.",
+    "runningTotal": "Cálculo actual",
+    "continue": "Revisar mi cálculo",
+    "empty": "Ingresa al menos una cantidad para continuar."
+  },
+  "categories": [
+    {
+      "id": "living",
+      "title": "Gastos de vida que asumiste",
+      "body": "Facturas y gastos cotidianos que pasaron de esa persona a ti.",
+      "items": [
+        { "id": "housing", "label": "Vivienda", "hint": "Alquiler, hipoteca, hoteles o el valor de vivir en tu casa sin contribuir" },
+        { "id": "recurringBills", "label": "Teléfono, servicios y seguro", "hint": "Cuentas recurrentes que mantuviste al día" },
+        { "id": "dailySpending", "label": "Comida, gasolina y gastos diarios", "hint": "Supermercado, comidas, combustible y pequeñas peticiones repetidas" },
+        { "id": "transportation", "label": "Vehículos y transporte", "hint": "Pagos, seguro, reparaciones, viajes o transporte de reemplazo" }
+      ]
+    },
+    {
+      "id": "rescues",
+      "title": "Rescates financieros",
+      "body": "Dinero utilizado para resolver un problema inmediato o evitar una consecuencia.",
+      "items": [
+        { "id": "cash", "label": "Efectivo, transferencias y préstamos", "hint": "Dinero entregado, enviado electrónicamente o que esperabas recuperar" },
+        { "id": "personalDebts", "label": "Deudas que pagaste", "hint": "Tarjetas de crédito, cuentas vencidas o dinero que debía a otras personas" },
+        { "id": "finesAndRelease", "label": "Multas, remolque y costos de liberación", "hint": "Multas, depósito vehicular, fianza o gastos similares" }
+      ]
+    },
+    {
+      "id": "consequences",
+      "title": "Consecuencias pagadas por la familia",
+      "body": "Costos que llegaron a tu hogar después de que algo saliera mal.",
+      "items": [
+        { "id": "legalCosts", "label": "Gastos legales y judiciales", "hint": "Abogados, trámites, audiencias u otros gastos legales" },
+        { "id": "propertyLoss", "label": "Bienes dañados, perdidos o reemplazados", "hint": "Reparaciones del hogar, vehículos, aparatos u otras pertenencias" },
+        { "id": "unrecoveredMoney", "label": "Dinero u objetos de valor no recuperados", "hint": "Incluye pérdidas que quizá no habías contado antes" }
+      ]
+    }
+  ],
+  "reflection": {
+    "eyebrow": "TU CÁLCULO",
+    "title": "Observa el patrón con claridad",
+    "totalLabel": "Últimos 12 meses",
+    "monthlyLabel": "Promedio mensual",
+    "projectionLabel": "Si el mismo patrón continuara durante cinco años",
+    "largestLabel": "Área principal",
+    "context": "Esta cifra no mide cuánto te importa esa persona. Refleja las maneras en que trataste de mantenerla segura o mantener a la familia funcionando. Ahora puedes usarla para decidir hacia dónde irá tu apoyo.",
+    "fundTitle": "¿Qué estás dispuesto a seguir financiando?",
+    "fundBody": "Elige apoyos que apunten a la salud, la seguridad o la recuperación.",
+    "fundOptions": [
+      { "id": "provider", "label": "Tratamiento o evaluación pagados directamente al proveedor" },
+      { "id": "medical", "label": "Atención médica o medicamentos pagados directamente" },
+      { "id": "necessities", "label": "Comida o artículos necesarios que compro yo" },
+      { "id": "transport", "label": "Transporte a un apoyo de recuperación verificado" },
+      { "id": "guidance", "label": "Ayuda aprobada con un coach, consejero o familiar de confianza" }
+    ],
+    "pauseTitle": "¿Qué requerirá una pausa o un no?",
+    "pauseBody": "Selecciona las peticiones que no quieres responder bajo presión.",
+    "pauseOptions": [
+      { "id": "unrestrictedCash", "label": "Efectivo o transferencias sin restricciones" },
+      { "id": "useRelatedDebt", "label": "Deudas, multas o gastos legales causados por el consumo continuo" },
+      { "id": "recurringBills", "label": "Facturas recurrentes que he asumido repetidamente" },
+      { "id": "replacement", "label": "Reemplazar bienes después de daños o pérdidas evitables" },
+      { "id": "urgentRequest", "label": "Cualquier petición de dinero que exija una respuesta inmediata" }
+    ],
+    "boundaryTitle": "Escribe un límite sobre el dinero",
+    "boundaryBody": "Enfócalo en lo que tú harás. Que sea lo bastante breve para decirlo cuando las emociones estén intensas.",
+    "boundaryPlaceholder": "Ejemplo: No daré efectivo. Puedo pagar directamente a un proveedor de tratamiento.",
+    "continue": "Crear mi plan de dinero",
+    "selectionNeeded": "Elige al menos un elemento o escribe un límite para continuar."
+  },
+  "plan": {
+    "eyebrow": "TU PLAN DE DINERO",
+    "title": "Una respuesta más clara para la próxima petición",
+    "estimateLabel": "Impacto calculado de 12 meses",
+    "willFund": "Puedo apoyar",
+    "willPause": "Haré una pausa o diré no a",
+    "myBoundary": "Mi límite",
+    "noneSelected": "Nada seleccionado",
+    "nextStep": "No tienes que defender este plan en medio de una crisis. Revísalo con alguien de confianza y luego practica cómo decir el límite con calma.",
+    "practice": "Practicar cómo decir este límite",
+    "share": "Compartir mi plan",
+    "startOver": "Empezar de nuevo",
+    "shareTitle": "Mi plan de límites con el dinero",
+    "shareIntro": "El costo familiar calculado de 12 meses fue {{total}}.",
+    "shareFund": "Puedo apoyar:",
+    "sharePause": "Haré una pausa o diré no a:",
+    "shareBoundary": "Mi límite: {{boundary}}"
+  },
+  "disclaimer": "Solo para reflexión personal y educación; no constituye asesoramiento financiero, legal ni médico. Si alguien está en peligro inmediato, llama al 911. Llama o envía un mensaje al 988 para apoyo en una crisis."
+}

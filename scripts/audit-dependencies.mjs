@@ -6,6 +6,11 @@ const acceptedHighAdvisories = new Set([
   // to the first npm-proposed fix currently requires an unsupported React
   // Native major. Re-evaluate whenever Expo SDK is upgraded.
   'https://github.com/advisories/GHSA-mh99-v99m-4gvg',
+  // image-size is pulled only through Expo's Metro build tooling. GitHub lists
+  // no patched npm version as of 2026-08-08, and the parsers are not included
+  // in the shipped app bundle. Re-evaluate with Expo/Metro upgrades.
+  'https://github.com/advisories/GHSA-w3rx-r6r6-pgpr',
+  'https://github.com/advisories/GHSA-5p2g-fcmc-qvqq',
 ]);
 
 let stdout = '';

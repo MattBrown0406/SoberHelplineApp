@@ -12,7 +12,11 @@ export type FunnelStage =
   | 'coaching_requested'
   | 'intervention_viewed'
   | 'intervention_started'
-  | 'brief_opened';
+  | 'brief_opened'
+  | 'review_eligible'
+  | 'review_prompt_requested'
+  | 'review_unavailable'
+  | 'review_manual_opened';
 
 /**
  * Fire-and-forget funnel event. Never throws — analytics must not break a flow.

@@ -68,6 +68,14 @@
     "restoreErrorTitle": "Couldn't restore",
     "restoreErrorBody": "Something went wrong restoring your purchases. Please try again."
   },
+  "review": {
+    "eyebrow": "Support the app",
+    "title": "Rate Sober Helpline",
+    "body": "Your App Store rating helps another family find support when they need it.",
+    "button": "Rate Sober Helpline",
+    "unavailableTitle": "App Store unavailable",
+    "unavailableBody": "We couldn't open the App Store right now. Please try again later."
+  },
   "legal": {
     "eyebrow": "Legal",
     "terms": "Terms of Use (EULA)",
