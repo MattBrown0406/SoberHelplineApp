@@ -84,5 +84,5 @@ treatment unchanged during the icon test.
   screenshots.
 - Update the first screenshot in English and Spanish with an outcome-focused
   headline.
-- Confirm the 3.6 description mentions AI Conversation Practice and the free
+- Confirm the current version description mentions AI Conversation Practice and the free
   Family Squares Monday Night Support Meeting.
