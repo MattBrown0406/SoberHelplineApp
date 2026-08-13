@@ -40,8 +40,18 @@ SELECT ok(has_function_privilege('authenticated','public.record_wall_wavering(uu
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claims','{"sub":"61000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
 
+-- Look up the co-member via family_members (space-visible) rather than
+-- accounts: accounts RLS only allows reading your own row, so joining
+-- accounts.user_id here would hide James even when the RPC is correct.
 SELECT is(
-  (SELECT first_name FROM public.family_member_profiles('71000000-0000-0000-0000-000000000001') WHERE account_id=(SELECT id FROM accounts WHERE user_id='61000000-0000-0000-0000-000000000002')),
+  (
+    SELECT p.first_name
+    FROM public.family_member_profiles('71000000-0000-0000-0000-000000000001') AS p
+    JOIN public.family_members AS fm
+      ON fm.account_id = p.account_id
+     AND fm.family_space_id = '71000000-0000-0000-0000-000000000001'
+    WHERE fm.role = 'member'
+  ),
   'James',
   'co-members see real first names, not a generic Member label'
 );

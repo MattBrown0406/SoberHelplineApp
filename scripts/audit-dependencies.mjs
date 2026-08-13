@@ -6,6 +6,12 @@ const acceptedHighAdvisories = new Set([
   // to the first npm-proposed fix currently requires an unsupported React
   // Native major. Re-evaluate whenever Expo SDK is upgraded.
   'https://github.com/advisories/GHSA-mh99-v99m-4gvg',
+  // Transitive Metro/image-size DoS advisories. Advisories name 2.0.3 as the
+  // fix, but that version has never been published (latest is still 2.0.2 /
+  // legacy 1.2.1). image-size is not shipped in the app JS bundle. Re-evaluate
+  // when a patched image-size release exists.
+  'https://github.com/advisories/GHSA-w3rx-r6r6-pgpr',
+  'https://github.com/advisories/GHSA-5p2g-fcmc-qvqq',
 ]);
 
 let stdout = '';
