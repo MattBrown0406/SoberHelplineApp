@@ -421,5 +421,18 @@
     "finderLink": "Find treatment & support near you →",
     "sendBrief": "Send Matt this week",
     "sendBriefSub": "Put your last two weeks in front of Matt — your check-ins, warning signs, and boundaries. He reads every brief and replies personally."
+  },
+  "curriculum": {
+    "weekLabel": "WEEK {{week}}",
+    "practiceLabel": "This week's practice",
+    "promptLabel": "Worth sitting with",
+    "expand": "Read the practice",
+    "collapse": "Close",
+    "phase": {
+      "orientation": "Getting your bearings",
+      "stabilizing": "Steadying the ground",
+      "familyRecovery": "Your own recovery",
+      "durability": "Making it last"
+    }
   }
 }

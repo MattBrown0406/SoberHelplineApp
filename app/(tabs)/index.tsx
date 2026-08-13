@@ -15,12 +15,14 @@ import { NeedsRouter } from '../../src/components/today/NeedsRouter';
 import { ContinueLetterCard } from '../../src/components/today/ContinueLetterCard';
 import { WeekReviewCard } from '../../src/components/today/WeekReviewCard';
 import { ScriptCard } from '../../src/components/scripts/ScriptCard';
+import { CurriculumCard } from '../../src/components/today/CurriculumCard';
 import { useCheckIn } from '../../src/hooks/useCheckIn';
 import { useTodayFeed } from '../../src/hooks/useTodayFeed';
 import { useLovedOne } from '../../src/hooks/useLovedOne';
 import { useFamilySpace } from '../../src/hooks/useFamilySpace';
 import { useHoldLog } from '../../src/hooks/useHoldLog';
 import { getDailyScripts } from '../../src/content/scripts';
+import { PHASE_LABEL_KEY, selectCurriculumPiece } from '../../src/content/curriculum';
 import { isAdminEmail } from '../../src/lib/admin';
 import { maybeRequestReview, queueSupportCallReview } from '../../src/lib/reviewPrompt';
 import type { CaregiverCheckInInput } from '../../src/api/types';
@@ -33,15 +35,16 @@ export default function TodayScreen() {
   const router = useRouter();
   const { todayCheckIn, streak, saveCheckIn } = useCheckIn(user?.id ?? null, user?.timezone);
   const { lovedOne, loading: lovedOneLoading, save: saveLovedOne } = useLovedOne(user?.id ?? null);
-  const { dayCount, boundariesHeld, groupSessions, quoteIndex, scriptSlot, situation, primaryDoor, nextFreeCall, rsvpFreeCall } =
+  const { dayCount, boundariesHeld, groupSessions, quoteIndex, scriptSlot, curriculumWeek, curriculumPhase, situation, primaryDoor, nextFreeCall, rsvpFreeCall } =
     useTodayFeed(user?.id ?? null, user?.joinedAt ?? null);
+  const { space: familySpace } = useFamilySpace(user?.id ?? null, user?.firstName || 'You');
+  const holdLog = useHoldLog(user?.id ?? null, familySpace?.id ?? null);
   const isAdmin = isAdminEmail(user?.email);
 
   const firstName = user?.firstName ?? 'there';
   const greeting = timeGreeting(t, firstName);
   const contextLabel = t(isAttached ? 'hero.contextAttached' : 'hero.contextDirect');
   const dailyQuote = t(`dailyQuote.${quoteIndex}`);
-
   async function completeCheckIn(input: CaregiverCheckInInput): Promise<void> {
     const nextStreak = await saveCheckIn(input);
     if (nextStreak.currentStreak === 7) {
@@ -73,6 +76,9 @@ export default function TodayScreen() {
       onSavePhase={(stage) => saveLovedOne({ stage })}
     />
   );
+  // Null when the band is elevated/crisis and no crisis-safe piece fits: a
+  // family whose week is on fire gets the support surface, not an exercise.
+  const curriculumPiece = selectCurriculumPiece(curriculumWeek, situation.band, i18n.language);
 
   const header = (
     <View style={styles.headerRow}>
@@ -124,6 +130,14 @@ export default function TodayScreen() {
             </Text>
           </>
         )}
+        <HoldLogCard
+          own={holdLog.own}
+          shared={holdLog.shared}
+          saving={holdLog.saving}
+          canShare={!!familySpace}
+          nameFor={(id) => familySpace?.members.find((m) => m.accountId === id)?.displayName ?? (user?.firstName || 'You')}
+          onSave={(result, share) => { void holdLog.save(result, share); }}
+        />
         <MoodChart accountId={user?.id ?? null} />
         <FreeTierPaywall inline />
       </ScreenContainer>
@@ -156,12 +170,28 @@ export default function TodayScreen() {
 
       {checkInCard}
 
+      <HoldLogCard
+        own={holdLog.own}
+        shared={holdLog.shared}
+        saving={holdLog.saving}
+        canShare={!!familySpace}
+        nameFor={(id) => familySpace?.members.find((m) => m.accountId === id)?.displayName ?? (user?.firstName || 'You')}
+        onSave={(result, share) => { void holdLog.save(result, share); }}
+      />
+
       <ContinueLetterCard accountId={user?.id ?? null} />
 
       <WeekReviewCard accountId={user?.id ?? null} boundariesHeld={boundariesHeld} />
 
       <MoodChart accountId={user?.id ?? null} />
 
+      {curriculumPiece && (
+        <CurriculumCard
+          piece={curriculumPiece}
+          week={curriculumWeek}
+          phaseLabel={t(PHASE_LABEL_KEY[curriculumPhase])}
+        />
+      )}
       {isAdmin && (
         <TouchableOpacity onPress={() => router.push('/admin')} style={styles.adminLink}>
           <Text style={[styles.adminLinkText, { color: colors.inkSoft }]}>Admin</Text>

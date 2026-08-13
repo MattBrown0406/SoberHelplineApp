@@ -17,6 +17,7 @@
     "test:reviews": "tsx --test tests/review-prompt-policy.test.ts",
     "test:costs": "tsx --test tests/enabling-cost-worksheet.test.ts",
     "test:family": "tsx --test tests/family-scripts.test.ts",
+    "test:curriculum": "tsx --test tests/curriculum.test.ts",
     "audit:release": "node scripts/audit-dependencies.mjs",
     "doctor": "npx expo-doctor",
     "export:web": "expo export --platform web",
