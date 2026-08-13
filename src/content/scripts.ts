@@ -1212,6 +1212,10 @@ export function getScripts(language?: string): Script[] {
   return libraryFor(language);
 }
 
+export function getScriptById(id: string, language?: string): Script | undefined {
+  return libraryFor(language).find((script) => script.id === id);
+}
+
 export function getDailyScripts(daySlot: number, language?: string): Script[] {
   const library = libraryFor(language);
   const byId = new Map(library.map((s) => [s.id, s]));

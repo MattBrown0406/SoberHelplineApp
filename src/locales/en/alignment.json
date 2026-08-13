@@ -37,5 +37,28 @@
   "weeklySlipped": "I slipped on one",
   "weeklyNote": "This stays private unless you choose to share with your family.",
   "createErrorTitle": "Could not create family space",
-  "createErrorMessage": "Please try again. If the problem continues, contact support."
+  "createErrorMessage": "Please try again. If the problem continues, contact support.",
+  "proposeErrorTitle": "Could not propose that wall",
+  "proposeErrorMessage": "Check your connection and try again.",
+  "commitButton": "I'm holding this",
+  "backupNotice": "{{name}} could use backup on a wall.",
+  "sharedScript": {
+    "eyebrow": "What we will say",
+    "body": "This wall is aligned. Everyone rehearses the same words — mixed messages are how the family gets split."
+  },
+  "holdLog": {
+    "eyebrow": "We held the wall",
+    "title": "Did you hold your walls this week?",
+    "body": "This is about whether the family held — not whether your loved one used. Private unless you choose to share.",
+    "held": "We held",
+    "mostly": "Mostly",
+    "slipped": "We slipped",
+    "share": "Share this with Family Space",
+    "unshare": "Make private again",
+    "shared": "Shared with Family Space this week.",
+    "familyThisWeek": "Family this week",
+    "familyLine": "{{name}} — {{result}}",
+    "errorTitle": "Could not save hold log",
+    "errorMessage": "Check your connection and try again."
+  }
 }

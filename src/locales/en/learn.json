@@ -14,8 +14,68 @@
   },
   "education": {
     "title": "Family Education",
-    "body": "60+ exercises and assessments to help you understand addiction, set limits, and support recovery.",
-    "button": "Open"
+    "body": "Core family education lives here in the app — no website login required. Read a section, then use the FAQ below for the questions every family asks.",
+    "button": "Read here",
+    "sections": [
+      {
+        "title": "Addiction is a family illness",
+        "body": "You cannot control whether your loved one uses. You can control the walls, the moat, and the drawbridge. Families recover in parallel — not after the person using is 'fixed.' Your steadiness changes the equation."
+      },
+      {
+        "title": "Help vs enabling",
+        "body": "A useful test: does this action protect the person, or protect the addiction from consequences? Rides to a meeting, food, treatment paid to a provider — help. Cash, covering a DUI, calling in sick for them — those cushion the disease. Naming enabling is not blame; it is the first wall."
+      },
+      {
+        "title": "You do not have to wait for rock bottom",
+        "body": "Rock bottom is just the moment consequences outweigh denial. You can raise the bottom by ending the cushioning. People enter treatment because of court dates, ultimatums, and planned interventions all the time."
+      }
+    ]
+  },
+  "resources": {
+    "eyebrow": "Resources — not a placement funnel",
+    "sub": "Levels of care, family fellowships, naloxone, and 988. The finder is a public A–Z directory. A navigator can help you choose. No sponsored ranking.",
+    "levels": {
+      "title": "LEVELS OF CARE",
+      "items": [
+        {
+          "title": "Detox",
+          "body": "Medically supervised withdrawal, usually days. It manages safety while the body clears substances. Detox is not treatment by itself — most people need a next level of care immediately after."
+        },
+        {
+          "title": "Residential / inpatient",
+          "body": "Living at a facility, commonly 30–90 days, with 24-hour structure. Used when home is unsafe, use is severe, or previous outpatient care was not enough."
+        },
+        {
+          "title": "PHP (partial hospitalization)",
+          "body": "Full days of treatment while sleeping at home or sober living. A step down from residential, or a step up when outpatient is not holding."
+        },
+        {
+          "title": "IOP (intensive outpatient)",
+          "body": "Several hours, several days a week. Lets someone keep work or family roles while staying in structured care."
+        },
+        {
+          "title": "Outpatient (OP)",
+          "body": "Weekly or twice-weekly sessions. Often the long tail after higher levels of care — not usually the starting point in a crisis."
+        }
+      ]
+    },
+    "fellowships": {
+      "title": "Al-Anon and Nar-Anon",
+      "body": "Free peer meetings for families and friends — not treatment placement, not a sales call. Al-Anon is for families affected by someone else's drinking; Nar-Anon is for families affected by someone else's drug use. Search al-anon.org or naranon.org for local and online meetings. You can go even if your loved one is still using."
+    },
+    "naloxone": {
+      "title": "Naloxone (Narcan)",
+      "body": "Naloxone can reverse an opioid overdose. In most U.S. states it is available at pharmacies without a prescription. Keep it at home if opioids (including fentanyl in other drugs) may be involved. Call 911 as you administer it. This is harm reduction, not a treatment plan."
+    },
+    "lifeline": {
+      "title": "988 Suicide & Crisis Lifeline",
+      "body": "Call or text 988 for suicidal thoughts, self-harm, or a mental-health crisis. 911 is for a life-threatening emergency or overdose (unresponsive, blue lips, stopped breathing). Both stay above any coaching or paid door in this app.",
+      "action": "Call 988"
+    },
+    "finder": {
+      "button": "Open the public finder",
+      "note": "Centers are listed A–Z. Inquiry goes to a Sober Helpline navigator — this is not a sponsored marketplace and not a paid placement funnel."
+    }
   },
   "recordings": {
     "title": "Past Recordings",

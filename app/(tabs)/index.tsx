@@ -18,6 +18,8 @@ import { ScriptCard } from '../../src/components/scripts/ScriptCard';
 import { useCheckIn } from '../../src/hooks/useCheckIn';
 import { useTodayFeed } from '../../src/hooks/useTodayFeed';
 import { useLovedOne } from '../../src/hooks/useLovedOne';
+import { useFamilySpace } from '../../src/hooks/useFamilySpace';
+import { useHoldLog } from '../../src/hooks/useHoldLog';
 import { getDailyScripts } from '../../src/content/scripts';
 import { isAdminEmail } from '../../src/lib/admin';
 import { maybeRequestReview, queueSupportCallReview } from '../../src/lib/reviewPrompt';

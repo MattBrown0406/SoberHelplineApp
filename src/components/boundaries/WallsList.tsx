@@ -13,6 +13,8 @@ interface Props {
   walls: BoundaryWall[];
   onDelete: (id: string) => void;
   isAttached: boolean;
+  hasFamilySpace?: boolean;
+  onPropose?: (wall: BoundaryWall) => void;
 }
 
 function formatDate(iso: string): string {
@@ -20,9 +22,10 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-export function WallsList({ walls, onDelete, isAttached }: Props) {
+export function WallsList({ walls, onDelete, isAttached, hasFamilySpace, onPropose }: Props) {
   const { colors } = useTheme();
   const { t } = useTranslation('boundaries');
+  const { t: tAlign } = useTranslation('alignment');
 
   return (
     <View style={[styles.card, { borderColor: colors.line }]}>
@@ -49,6 +52,17 @@ export function WallsList({ walls, onDelete, isAttached }: Props) {
                 <Text style={[styles.wallDate, { color: colors.inkSoft }]}>
                   {formatDate(wall.createdAt)}
                 </Text>
+                {hasFamilySpace && onPropose ? (
+                  <TouchableOpacity
+                    style={[styles.proposeBtn, { borderColor: colors.primary }]}
+                    onPress={() => onPropose(wall)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.proposeBtnText, { color: colors.primary }]}>
+                      {tAlign('proposeButton')}
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
               </View>
               <TouchableOpacity
                 onPress={() => onDelete(wall.id)}
@@ -59,6 +73,7 @@ export function WallsList({ walls, onDelete, isAttached }: Props) {
             </View>
           ))}
 
+          {!hasFamilySpace ? (
           <TouchableOpacity
             style={[styles.shareBtn, { borderColor: colors.primary }]}
             activeOpacity={0.8}
@@ -67,6 +82,7 @@ export function WallsList({ walls, onDelete, isAttached }: Props) {
               {isAttached ? t('walls.shareAttached') : t('walls.shareDirect')}
             </Text>
           </TouchableOpacity>
+          ) : null}
         </>
       )}
     </View>
@@ -125,6 +141,18 @@ const styles = StyleSheet.create({
   deleteBtn: {
     fontSize: 13,
     paddingTop: 2,
+  },
+  proposeBtn: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    marginTop: 6,
+  },
+  proposeBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   shareBtn: {
     borderWidth: 1.5,

@@ -18,22 +18,25 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { useAccount } from '../../src/contexts/AccountContext';
-import { FreeTierPaywall } from '../../src/components/ui/FreeTierPaywall';
 import { useBoundaries } from '../../src/hooks/useBoundaries';
 import { CastleSection } from '../../src/components/boundaries/CastleSection';
 import { AnchorCard } from '../../src/components/boundaries/AnchorCard';
 import { WallBuilder } from '../../src/components/boundaries/WallBuilder';
 import { WallsList } from '../../src/components/boundaries/WallsList';
+import { HoldLogCard } from '../../src/components/boundaries/HoldLogCard';
+import { SharedFamilyScriptCard } from '../../src/components/boundaries/SharedFamilyScriptCard';
 import enContent from '../../src/locales/en/boundaries.json';
 import esContent from '../../src/locales/es/boundaries.json';
 import { useFamilySpace } from '../../src/hooks/useFamilySpace';
-import { isAdminEmail } from '../../src/lib/admin';
+import { useHoldLog } from '../../src/hooks/useHoldLog';
+import { isWallAligned } from '../../src/content/familyScripts';
+import type { BoundaryWall } from '../../src/api/types';
 
 type BoundariesContent = typeof enContent;
 
 export default function BoundariesScreen() {
   const { colors } = useTheme();
-  const { user, isAttached, accountState } = useAccount();
+  const { user, isAttached } = useAccount();
   const { t: tCommon, i18n } = useTranslation('common');
   const { t: tAlign } = useTranslation('alignment');
   const router = useRouter();
@@ -43,7 +46,17 @@ export default function BoundariesScreen() {
     ? esContent
     : enContent;
 
-  const { space: familySpace, create: createFamilySpace, joinByCode } = useFamilySpace(user?.id ?? null);
+  const youLabel = content.journal.you;
+  const {
+    space: familySpace,
+    backupNotices,
+    create: createFamilySpace,
+    joinByCode,
+    proposeWall,
+    markWavering,
+    commitWall,
+  } = useFamilySpace(user?.id ?? null, youLabel);
+  const holdLog = useHoldLog(user?.id ?? null, familySpace?.id ?? null);
   const [prefill, setPrefill] = useState('');
   const [lastAnchorTag, setLastAnchorTag] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState('');
@@ -183,9 +196,38 @@ export default function BoundariesScreen() {
     [addWall],
   );
 
-  const firstName = user?.firstName ?? '';
+  const handlePropose = useCallback(
+    async (wall: BoundaryWall) => {
+      try {
+        const tag = wall.anchorTag ?? '';
+        await proposeWall(wall.text, {
+          anchor: tag.startsWith('e-') ? 'enabling' : tag.startsWith('h-') ? 'harm' : null,
+          anchorTag: wall.anchorTag,
+          sourceWallId: wall.id,
+        });
+        Alert.alert(tAlign('proposeSuccess'));
+      } catch {
+        Alert.alert(tAlign('proposeErrorTitle'), tAlign('proposeErrorMessage'));
+      }
+    },
+    [proposeWall, tAlign],
+  );
 
-  if (accountState === 'direct-free' && !isAdminEmail(user?.email)) return <FreeTierPaywall />;
+  const handleWavering = useCallback(
+    (sharedWallId: string) => {
+      Alert.alert(
+        tAlign('waveringTitle'),
+        `${tAlign('waveringBody')}\n\n${tAlign('waveringShareQ')}`,
+        [
+          { text: tAlign('waveringKeepPrivate'), onPress: () => void markWavering(sharedWallId, false) },
+          { text: tAlign('waveringConfirm'), onPress: () => void markWavering(sharedWallId, true) },
+        ],
+      );
+    },
+    [markWavering, tAlign],
+  );
+
+  const firstName = user?.firstName ?? '';
 
   return (
     <ScreenContainer scrollRef={scrollRef} backgroundColor={colors.cream} keyboardShouldPersistTaps="handled">
@@ -340,6 +382,21 @@ export default function BoundariesScreen() {
           walls={walls}
           onDelete={removeWall}
           isAttached={isAttached}
+          hasFamilySpace={!!familySpace}
+          onPropose={(wall) => void handlePropose(wall)}
+        />
+
+        <HoldLogCard
+          own={holdLog.own}
+          shared={holdLog.shared}
+          saving={holdLog.saving}
+          canShare={!!familySpace}
+          nameFor={(id) => familySpace?.members.find((m) => m.accountId === id)?.displayName ?? youLabel}
+          onSave={(result, share) => {
+            void holdLog.save(result, share).catch(() => {
+              Alert.alert(tAlign('holdLog.errorTitle'), tAlign('holdLog.errorMessage'));
+            });
+          }}
         />
 
         {/* ── Intervention Letter ──────────────────────────────── */}
@@ -385,10 +442,22 @@ export default function BoundariesScreen() {
                 </Text>
               </View>
 
+              {backupNotices.length > 0 ? (
+                <View style={[styles.backupBox, { backgroundColor: colors.secondaryLight, borderColor: colors.secondary }]}>
+                  {backupNotices.slice(0, 3).map((notice) => (
+                    <Text key={notice.id} style={[styles.backupLine, { color: colors.ink }]}>
+                      {tAlign('backupNotice', { name: notice.displayName })}
+                    </Text>
+                  ))}
+                </View>
+              ) : null}
+
               {/* Shared walls */}
               {familySpace.sharedWalls.map((sw) => {
                 const committed = sw.commitments.filter((c) => c.status === 'committed').length;
                 const wavering = sw.commitments.some((c) => c.status === 'wavering');
+                const myStatus = sw.commitments.find((c) => c.memberId === user?.id)?.status;
+                const aligned = isWallAligned(committed, familySpace.members.length, wavering);
                 return (
                   <View
                     key={sw.id}
@@ -397,37 +466,60 @@ export default function BoundariesScreen() {
                     <View style={styles.sharedWallTop}>
                       <Text style={[styles.sharedWallText, { color: colors.ink }]}>{sw.text}</Text>
                       <View style={styles.memberPips}>
-                        {sw.commitments.map((c) => (
+                        {familySpace.members.map((member) => {
+                          const c = sw.commitments.find((row) => row.memberId === member.accountId);
+                          return (
                           <View
-                            key={c.memberId}
+                            key={member.accountId}
                             style={[
                               styles.pip,
                               {
                                 backgroundColor:
-                                  c.status === 'committed'
+                                  c?.status === 'committed'
                                     ? colors.green
-                                    : c.status === 'wavering'
+                                    : c?.status === 'wavering'
                                     ? colors.secondary
                                     : colors.line,
                               },
                             ]}
                           />
-                        ))}
+                          );
+                        })}
                       </View>
                     </View>
                     <Text style={[styles.commitCount, { color: colors.inkSoft }]}>
-                      {committed}/{sw.commitments.length} {tAlign('statusCommitted').toLowerCase()}
+                      {committed}/{familySpace.members.length} {tAlign('statusCommitted').toLowerCase()}
                     </Text>
+                    <Text style={[styles.commitCount, { color: colors.inkSoft }]}>
+                      {familySpace.members.map((member) => {
+                        const status = sw.commitments.find((row) => row.memberId === member.accountId)?.status;
+                        const label = status === 'committed'
+                          ? tAlign('statusCommitted')
+                          : status === 'wavering'
+                            ? tAlign('statusWavering')
+                            : tAlign('statusNotYet');
+                        return `${member.displayName}: ${label}`;
+                      }).join('  ·  ')}
+                    </Text>
+                    {myStatus !== 'committed' ? (
+                      <TouchableOpacity
+                        onPress={() => void commitWall(sw.id)}
+                        style={[styles.waveringBtn, { borderColor: colors.green, marginBottom: 8 }]}
+                      >
+                        <Text style={[styles.waveringBtnText, { color: colors.green }]}>
+                          {tAlign('commitButton')}
+                        </Text>
+                      </TouchableOpacity>
+                    ) : null}
                     <TouchableOpacity
-                      onPress={() =>
-                        Alert.alert(tAlign('waveringTitle'), tAlign('waveringBody'))
-                      }
+                      onPress={() => handleWavering(sw.id)}
                       style={[styles.waveringBtn, { borderColor: colors.secondary }]}
                     >
                       <Text style={[styles.waveringBtnText, { color: colors.secondary }]}>
                         {tAlign('waveringButton')}
                       </Text>
                     </TouchableOpacity>
+                    {aligned ? <SharedFamilyScriptCard wallText={sw.text} /> : null}
                   </View>
                 );
               })}
@@ -732,4 +824,6 @@ const styles = StyleSheet.create({
     minWidth: 52,
   },
   journalPostText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  backupBox: { borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 12, gap: 6 },
+  backupLine: { fontSize: 13, lineHeight: 19, fontWeight: '600' },
 });

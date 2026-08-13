@@ -30,6 +30,7 @@ jobs:
       - run: npm run test:auth
       - run: npm run test:checkin
       - run: npm run test:push
+      - run: npm run test:family
       - run: npm run doctor
       - run: npm run export:web
         env:

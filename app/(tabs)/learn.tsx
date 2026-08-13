@@ -5,9 +5,8 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { useAccount } from '../../src/contexts/AccountContext';
-import { FreeTierPaywall } from '../../src/components/ui/FreeTierPaywall';
 import { useWebSSO } from '../../src/hooks/useWebSSO';
-import { isAdminEmail } from '../../src/lib/admin';
+
 
 type ContentSection = { key: string; path: string; sso: boolean };
 type FaqItem = { q: string; a: string };
@@ -37,7 +36,7 @@ function FaqRow({ item, colors }: { item: FaqItem; colors: ReturnType<typeof use
 export default function LearnScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation('learn');
-  const { user, accountState } = useAccount();
+  const { user, entitlements, accountState } = useAccount();
   const router = useRouter();
   const { openWithSSO } = useWebSSO();
   const [faqQuery, setFaqQuery] = useState('');
@@ -53,8 +52,6 @@ export default function LearnScreen() {
       (item) => item.q.toLowerCase().includes(q) || item.a.toLowerCase().includes(q),
     );
   }, [faqItems, faqQuery]);
-
-  const learningLocked = accountState === 'direct-free' && !isAdminEmail(user?.email);
 
   return (
     <ScreenContainer scroll contentContainerStyle={styles.inner}>
@@ -96,7 +93,7 @@ export default function LearnScreen() {
 
       <Text style={[styles.sectionEyebrow, { color: colors.inkSoft }]}>{t('tools.learningEyebrow')}</Text>
 
-      {learningLocked ? <FreeTierPaywall inline /> : (
+      {entitlements.canAccessLearningContent ? (
         <>
           {SECTIONS.map(({ key, path, sso }) => (
             <View key={key} style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
@@ -132,7 +129,7 @@ export default function LearnScreen() {
             ))}
           </View>
         </>
-      )}
+      ) : null}
     </ScreenContainer>
   );
 }

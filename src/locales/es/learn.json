@@ -14,8 +14,68 @@
   },
   "education": {
     "title": "Educación familiar",
-    "body": "Más de 60 ejercicios y evaluaciones para entender la adicción, establecer límites y apoyar la recuperación.",
-    "button": "Abrir"
+    "body": "La educación familiar esencial está aquí en la app — sin iniciar sesión en el sitio. Lee una sección y luego usa las preguntas frecuentes.",
+    "button": "Leer aquí",
+    "sections": [
+      {
+        "title": "La adicción es una enfermedad familiar",
+        "body": "No puedes controlar si tu ser querido consume. Sí puedes controlar los muros, el foso y el puente levadizo. Las familias se recuperan en paralelo — no después de que la persona que consume esté 'arreglada.' Tu firmeza cambia la ecuación."
+      },
+      {
+        "title": "Ayudar frente a facilitar",
+        "body": "Una prueba útil: ¿esta acción protege a la persona, o protege a la adicción de las consecuencias? Llevarle a una reunión, comida, pagar un tratamiento al proveedor — ayuda. Efectivo, encubrir un DUI, llamar enfermo por ellos — eso amortigua la enfermedad. Nombrar la facilitación no es culpar; es el primer muro."
+      },
+      {
+        "title": "No tienes que esperar el fondo",
+        "body": "El fondo es solo el momento en que las consecuencias pesan más que la negación. Puedes subir el fondo dejando de amortiguar. La gente entra a tratamiento por citas judiciales, ultimátums e intervenciones planificadas todo el tiempo."
+      }
+    ]
+  },
+  "resources": {
+    "eyebrow": "Recursos — no un embudo de colocación",
+    "sub": "Niveles de atención, grupos familiares, naloxona y 988. El buscador es un directorio público A–Z. Un navegador puede ayudarte a elegir. Sin ranking patrocinado.",
+    "levels": {
+      "title": "NIVELES DE ATENCIÓN",
+      "items": [
+        {
+          "title": "Desintoxicación",
+          "body": "Abstinencia con supervisión médica, normalmente días. Cuida la seguridad mientras el cuerpo elimina sustancias. La desintoxicación no es tratamiento por sí sola — la mayoría necesita el siguiente nivel de inmediato."
+        },
+        {
+          "title": "Residencial / internamiento",
+          "body": "Vivir en un centro, comúnmente 30–90 días, con estructura las 24 horas. Se usa cuando el hogar no es seguro, el consumo es grave o el ambulatorio no alcanzó."
+        },
+        {
+          "title": "PHP (hospitalización parcial)",
+          "body": "Días completos de tratamiento durmiendo en casa o en vivienda sobria. Un paso abajo del residencial, o un paso arriba cuando el ambulatorio no sostiene."
+        },
+        {
+          "title": "IOP (ambulatorio intensivo)",
+          "body": "Varias horas, varios días a la semana. Permite mantener trabajo o roles familiares con cuidado estructurado."
+        },
+        {
+          "title": "Ambulatorio (OP)",
+          "body": "Sesiones semanales o dos veces por semana. A menudo la cola larga después de niveles más altos — no suele ser el punto de partida en una crisis."
+        }
+      ]
+    },
+    "fellowships": {
+      "title": "Al-Anon y Nar-Anon",
+      "body": "Reuniones de pares gratuitas para familias y amigos — no colocación en tratamiento ni una llamada de ventas. Al-Anon es para familias afectadas por la bebida de otra persona; Nar-Anon, por el uso de drogas. Busca al-anon.org o naranon.org. Puedes ir aunque tu ser querido siga consumiendo."
+    },
+    "naloxone": {
+      "title": "Naloxona (Narcan)",
+      "body": "La naloxona puede revertir una sobredosis de opioides. En la mayoría de los estados de EE. UU. está en farmacias sin receta. Tenla en casa si puede haber opioides (incluido fentanilo en otras drogas). Llama al 911 mientras la administras. Esto es reducción de daños, no un plan de tratamiento."
+    },
+    "lifeline": {
+      "title": "988 — Línea de Prevención del Suicidio y Crisis",
+      "body": "Llama o envía un mensaje al 988 ante pensamientos suicidas, autolesión o una crisis de salud mental. El 911 es para una emergencia que amenaza la vida o una sobredosis (sin respuesta, labios azules, respiración detenida). Ambas quedan por encima de cualquier puerta de coaching de pago en esta app.",
+      "action": "Llamar 988"
+    },
+    "finder": {
+      "button": "Abrir el buscador público",
+      "note": "Los centros se listan A–Z. La consulta va a un navegador de Sober Helpline — no es un marketplace patrocinado ni un embudo de colocación de pago."
+    }
   },
   "recordings": {
     "title": "Grabaciones anteriores",

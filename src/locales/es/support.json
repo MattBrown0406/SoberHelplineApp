@@ -52,9 +52,9 @@
     "current": "Plan actual"
   },
   "paywall": {
-    "eyebrow": "DESBLOQUEA LA APP",
-    "heading": "Suscríbete para acceso completo",
-    "body": "Los miembros Esencial tienen registros diarios, seguimiento del estado de ánimo, límites, guiones, mensajería y grupos.",
+    "eyebrow": "COACHING Y GRUPOS",
+    "heading": "Los mensajes al coach y el video en vivo van con un plan",
+    "body": "Los muros del castillo, la revisión de facilitación, el tracker, las preguntas de Aprender y los recursos familiares siguen gratis. Essential y Premier añaden mensajería con el coach, grupos y video en vivo. Las líneas de crisis (911 / 988 / Copiloto) no se bloquean.",
     "viewPlans": "Ver planes",
     "subscribeEssential": "Suscribirse a Essential · {{price}}/mes",
     "subscribePremium": "Mejorar a Premier · {{price}}/mes",

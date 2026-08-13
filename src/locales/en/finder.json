@@ -2,7 +2,7 @@
   "title": "Treatment Finder",
   "intro": {
     "h1": "Let's find the right help for someone you love.",
-    "lede": "Answer a few quick questions and we'll match you with vetted treatment centers, interventionists, and sober coaches — with real availability.",
+    "lede": "A public, A–Z directory of treatment centers, interventionists, and sober coaches. Filter by what you need, then a Sober Helpline navigator can help you choose. No sponsored ranking.",
     "whatEyebrow": "What are you looking for?"
   },
   "cats": {
@@ -171,7 +171,7 @@
     "edit": "Edit",
     "filters": "Filters: {{list}}",
     "empty": "No providers found. Try selecting \"Any state\" or removing filters.",
-    "also": "Also recommended for your situation"
+    "also": "Others in the same state (A–Z, not sponsored)"
   },
   "detail": {
     "notFound": "Provider not found.",

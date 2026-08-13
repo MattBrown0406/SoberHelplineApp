@@ -2,7 +2,7 @@
   "title": "Buscador de tratamientos",
   "intro": {
     "h1": "Encontremos la ayuda adecuada para esa persona que amas.",
-    "lede": "Responde unas preguntas rápidas y te conectaremos con centros de tratamiento, intervencionistas y coaches de sobriedad verificados — con disponibilidad real.",
+    "lede": "Directorio público A–Z de centros, intervencionistas y coaches de sobriedad. Filtra por lo que necesitas; un navegador de Sober Helpline puede ayudarte a elegir. Sin ranking patrocinado.",
     "whatEyebrow": "¿Qué estás buscando?"
   },
   "cats": {
@@ -171,7 +171,7 @@
     "edit": "Editar",
     "filters": "Filtros: {{list}}",
     "empty": "No se encontraron proveedores. Prueba con \"Cualquier estado\" o quita filtros.",
-    "also": "También recomendado para tu situación"
+    "also": "Otros en el mismo estado (A–Z, no patrocinado)"
   },
   "detail": {
     "notFound": "Proveedor no encontrado.",
