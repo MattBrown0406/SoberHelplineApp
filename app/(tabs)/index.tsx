@@ -15,6 +15,7 @@ import { NeedsRouter } from '../../src/components/today/NeedsRouter';
 import { ContinueLetterCard } from '../../src/components/today/ContinueLetterCard';
 import { WeekReviewCard } from '../../src/components/today/WeekReviewCard';
 import { ScriptCard } from '../../src/components/scripts/ScriptCard';
+import { HoldLogCard } from '../../src/components/boundaries/HoldLogCard';
 import { CurriculumCard } from '../../src/components/today/CurriculumCard';
 import { useCheckIn } from '../../src/hooks/useCheckIn';
 import { useTodayFeed } from '../../src/hooks/useTodayFeed';
