@@ -4,7 +4,7 @@ Family support companion for addiction recovery — the Expo / React Native app 
 
 **Hope. Help. Recovery.**
 
-Native version **3.7** (iOS `buildNumber` 1 / Android `versionCode` 1).
+Native version **3.7** (iOS `buildNumber` 1 / Android `versionCode` 4).
 
 ## What ships
 

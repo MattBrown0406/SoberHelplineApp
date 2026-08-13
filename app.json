@@ -39,7 +39,7 @@
         "backgroundColor": "#142a47"
       },
       "package": "com.soberhelplineapp",
-      "versionCode": 1,
+      "versionCode": 4,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
