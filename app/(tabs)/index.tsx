@@ -15,9 +15,11 @@ import { NeedsRouter } from '../../src/components/today/NeedsRouter';
 import { ContinueLetterCard } from '../../src/components/today/ContinueLetterCard';
 import { WeekReviewCard } from '../../src/components/today/WeekReviewCard';
 import { ScriptCard } from '../../src/components/scripts/ScriptCard';
+import { CurriculumCard } from '../../src/components/today/CurriculumCard';
 import { useCheckIn } from '../../src/hooks/useCheckIn';
 import { useTodayFeed } from '../../src/hooks/useTodayFeed';
 import { getDailyScripts } from '../../src/content/scripts';
+import { PHASE_LABEL_KEY, selectCurriculumPiece } from '../../src/content/curriculum';
 import { isAdminEmail } from '../../src/lib/admin';
 import type { DailyFocusItem } from '../../src/api/types';
 import type { TFunction } from 'i18next';
@@ -28,7 +30,7 @@ export default function TodayScreen() {
   const { t, i18n } = useTranslation('today');
   const router = useRouter();
   const { todayCheckIn, streak, saveCheckIn } = useCheckIn(user?.id ?? null, user?.timezone);
-  const { dayCount, boundariesHeld, groupSessions, quoteIndex, focusSlot, scriptSlot, situation, primaryDoor, nextFreeCall, rsvpFreeCall } =
+  const { dayCount, boundariesHeld, groupSessions, quoteIndex, focusSlot, scriptSlot, curriculumWeek, curriculumPhase, situation, primaryDoor, nextFreeCall, rsvpFreeCall } =
     useTodayFeed(user?.id ?? null, user?.joinedAt ?? null);
   const isAdmin = isAdminEmail(user?.email);
 
@@ -37,6 +39,9 @@ export default function TodayScreen() {
   const contextLabel = t(isAttached ? 'hero.contextAttached' : 'hero.contextDirect');
   const dailyQuote = t(`dailyQuote.${quoteIndex}`);
   const focusItems = buildFocusItems(t, focusSlot);
+  // Null when the band is elevated/crisis and no crisis-safe piece fits: a
+  // family whose week is on fire gets the support surface, not an exercise.
+  const curriculumPiece = selectCurriculumPiece(curriculumWeek, situation.band, i18n.language);
 
   const header = (
     <View style={styles.headerRow}>
@@ -121,6 +126,14 @@ export default function TodayScreen() {
       <WeekReviewCard accountId={user?.id ?? null} boundariesHeld={boundariesHeld} />
 
       <MoodChart accountId={user?.id ?? null} />
+
+      {curriculumPiece && (
+        <CurriculumCard
+          piece={curriculumPiece}
+          week={curriculumWeek}
+          phaseLabel={t(PHASE_LABEL_KEY[curriculumPhase])}
+        />
+      )}
 
       <FocusCard items={focusItems} />
 

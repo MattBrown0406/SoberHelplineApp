@@ -7,6 +7,12 @@ import {
   type FunnelDoor,
   type Situation,
 } from '../lib/situation';
+import {
+  curriculumWeek,
+  isBeyondAuthoredCurriculum,
+  phaseForWeek,
+} from '../content/curriculum';
+import type { CurriculumPhase } from '../api/types';
 
 const QUOTE_COUNT = 14;
 const FOCUS_POOL_COUNT = 7;
@@ -28,6 +34,11 @@ export interface TodayFeedData {
   quoteIndex: number;
   focusSlot: number;
   scriptSlot: number;
+  /** 1-based week in the family's own arc. Advances; never wraps. */
+  curriculumWeek: number;
+  curriculumPhase: CurriculumPhase;
+  /** True once the family has run past the authored curriculum. */
+  beyondCurriculum: boolean;
   situation: Situation;
   primaryDoor: FunnelDoor;
   nextFreeCall: FreeCall | null;
@@ -46,6 +57,7 @@ export function useTodayFeed(
   const [focusSlot, setFocusSlot] = useState(0);
   const [scriptSlot, setScriptSlot] = useState(0);
   const [situation, setSituation] = useState<Situation>(DEFAULT_SITUATION);
+  const [week, setWeek] = useState(1);
   const [nextFreeCall, setNextFreeCall] = useState<FreeCall | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -84,6 +96,9 @@ export function useTodayFeed(
         ? Math.max(1, Math.floor((now.getTime() - new Date(joinedAt).getTime()) / 86400000) + 1)
         : 1,
     );
+    // The curriculum week advances with the family's own arc — unlike the
+    // day-of-year slots above, it never wraps back to the start.
+    setWeek(curriculumWeek(joinedAt, now));
 
     if (sitRes.data) setSituation(sitRes.data as Situation);
 
@@ -136,6 +151,9 @@ export function useTodayFeed(
     quoteIndex,
     focusSlot,
     scriptSlot,
+    curriculumWeek: week,
+    curriculumPhase: phaseForWeek(week),
+    beyondCurriculum: isBeyondAuthoredCurriculum(week),
     situation,
     primaryDoor: funnelDoor(situation),
     nextFreeCall,

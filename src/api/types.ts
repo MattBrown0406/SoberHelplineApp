@@ -285,6 +285,50 @@ export interface Script {
   suggestedTemperament?: 'guarded' | 'defensive' | 'volatile' | 'tearful';
 }
 
+// ─── Family Curriculum ───────────────────────────────────────────────────────
+
+/**
+ * The family's own recovery arc, keyed off weeks-since-join — deliberately NOT
+ * the loved one's level of care. Two families in week 3 need the same thing
+ * whether their loved one is still using or 60 days into residential.
+ */
+export type CurriculumPhase =
+  | 'orientation'      // w1–2  — you're not crazy, you're not alone
+  | 'stabilizing'      // w3–5  — boundaries as protection, not punishment
+  | 'family_recovery'  // w6–8  — your recovery is not contingent on theirs
+  | 'durability';      // w9+   — what holds after the crisis lifts
+
+/**
+ * Accepted band input for curriculum selection. Kept as a widened string union
+ * so `src/content/curriculum.ts` does not have to import from `src/lib/situation.ts`
+ * (content modules stay dependency-free, matching scripts.ts).
+ */
+export type SituationBandInput = 'calm' | 'watch' | 'elevated' | 'crisis';
+
+export interface CurriculumPiece {
+  id: string;
+  /** 1-based week in the family's arc. */
+  week: number;
+  phase: CurriculumPhase;
+  tag: string;
+  tagBackgroundColor: string; // hex
+  tagTextColor: string;       // hex
+  icon: string;               // emoji
+  accentColor: string;        // hex background for icon box
+  title: string;
+  /** Why this is happening — named and normalized, never shamed. */
+  mechanism: string;
+  /** One concrete thing to do this week. */
+  practice: string;
+  /** One question worth sitting with. Not homework. */
+  prompt: string;
+  /**
+   * Safe to surface while the situation band is `elevated` or `crisis`.
+   * Pieces that ask for reflection are wrong for a family whose week is on fire.
+   */
+  crisisSafe: boolean;
+}
+
 // ─── Support Groups ──────────────────────────────────────────────────────────
 
 export type GroupScheduleType = 'recurring' | 'drop-in' | 'one-time';

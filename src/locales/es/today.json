@@ -160,5 +160,18 @@
     "finderLink": "Encuentra tratamiento y apoyo cerca de ti →",
     "sendBrief": "Envíale tu semana a Matt",
     "sendBriefSub": "Pon tus últimas dos semanas frente a Matt — tus registros, señales de alerta y límites. Él lee cada informe y responde personalmente."
+  },
+  "curriculum": {
+    "weekLabel": "SEMANA {{week}}",
+    "practiceLabel": "La práctica de esta semana",
+    "promptLabel": "Vale la pena pensarlo",
+    "expand": "Leer la práctica",
+    "collapse": "Cerrar",
+    "phase": {
+      "orientation": "Ubicándote",
+      "stabilizing": "Afirmando el terreno",
+      "familyRecovery": "Tu propia recuperación",
+      "durability": "Que dure"
+    }
   }
 }
