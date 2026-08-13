@@ -717,45 +717,6 @@
     "@revenuecat/purchases-typescript-internal@18.19.0": {
       "integrity": "sha512-XKOJ2CS+hYXnv0EUoQ7hV3AvHBcx0HqkLpnqYVMaAQyZ/BT/+CmUexVbXSfRAXGPBw0LTqR2gBQ4JrZEsYPxpw=="
     },
-    "@sentry/cli-darwin@2.55.0": {
-      "integrity": "sha512-jGHE7SHHzqXUmnsmRLgorVH6nmMmTjQQXdPZbSL5tRtH8d3OIYrVNr5D72DSgD26XAPBDMV0ibqOQ9NKoiSpfA==",
-      "os": ["darwin"]
-    },
-    "@sentry/cli-linux-arm64@2.55.0": {
-      "integrity": "sha512-jNB/0/gFcOuDCaY/TqeuEpsy/k52dwyk1SOV3s1ku4DUsln6govTppeAGRewY3T1Rj9B2vgIWTrnB8KVh9+Rgg==",
-      "os": ["linux", "freebsd", "android"],
-      "cpu": ["arm64"]
-    },
-    "@sentry/cli-linux-arm@2.55.0": {
-      "integrity": "sha512-ATjU0PsiWADSPLF/kZroLZ7FPKd5W9TDWHVkKNwIUNTei702LFgTjNeRwOIzTgSvG3yTmVEqtwFQfFN/7hnVXQ==",
-      "os": ["linux", "freebsd", "android"],
-      "cpu": ["arm"]
-    },
-    "@sentry/cli-linux-i686@2.55.0": {
-      "integrity": "sha512-8LZjo6PncTM6bWdaggscNOi5r7F/fqRREsCwvd51dcjGj7Kp1plqo9feEzYQ+jq+KUzVCiWfHrUjddFmYyZJrg==",
-      "os": ["linux", "freebsd", "android"],
-      "cpu": ["x86", "ia32"]
-    },
-    "@sentry/cli-linux-x64@2.55.0": {
-      "integrity": "sha512-5LUVvq74Yj2cZZy5g5o/54dcWEaX4rf3myTHy73AKhRj1PABtOkfexOLbF9xSrZy95WXWaXyeH+k5n5z/vtHfA==",
-      "os": ["linux", "freebsd", "android"],
-      "cpu": ["x64"]
-    },
-    "@sentry/cli-win32-arm64@2.55.0": {
-      "integrity": "sha512-cWIQdzm1pfLwPARsV6dUb8TVd6Y3V1A2VWxjTons3Ift6GvtVmiAe0OWL8t2Yt95i8v61kTD/6Tq21OAaogqzA==",
-      "os": ["win32"],
-      "cpu": ["arm64"]
-    },
-    "@sentry/cli-win32-i686@2.55.0": {
-      "integrity": "sha512-ldepCn2t9r4I0wvgk7NRaA7coJyy4rTQAzM66u9j5nTEsUldf66xym6esd5ZZRAaJUjffqvHqUIr/lrieTIrVg==",
-      "os": ["win32"],
-      "cpu": ["x86", "ia32"]
-    },
-    "@sentry/cli-win32-x64@2.55.0": {
-      "integrity": "sha512-4hPc/I/9tXx+HLTdTGwlagtAfDSIa2AoTUP30tl32NAYQhx9a6niUbPAemK2qfxesiufJ7D2djX83rCw6WnJVA==",
-      "os": ["win32"],
-      "cpu": ["x64"]
-    },
     "@sinclair/typebox@0.27.10": {
       "integrity": "sha512-MTBk/3jGLNB2tVxv6uLlFh1iu64iYOQ2PbdOSK3NW8JZsmlaOh2q6sdtKowBhfw8QFLmYNzTW4/oK4uATIi6ZA=="
     },
@@ -2103,61 +2064,6 @@
         "debug@2.6.9",
         "marky"
       ]
-    },
-    "lightningcss-android-arm64@1.32.0": {
-      "integrity": "sha512-YK7/ClTt4kAK0vo6w3X+Pnm0D2cf2vPHbhOXdoNti1Ga0al1P4TBZhwjATvjNwLEBCnKvjJc2jQgHXH0NEwlAg==",
-      "os": ["android"],
-      "cpu": ["arm64"]
-    },
-    "lightningcss-darwin-arm64@1.32.0": {
-      "integrity": "sha512-RzeG9Ju5bag2Bv1/lwlVJvBE3q6TtXskdZLLCyfg5pt+HLz9BqlICO7LZM7VHNTTn/5PRhHFBSjk5lc4cmscPQ==",
-      "os": ["darwin"],
-      "cpu": ["arm64"]
-    },
-    "lightningcss-darwin-x64@1.32.0": {
-      "integrity": "sha512-U+QsBp2m/s2wqpUYT/6wnlagdZbtZdndSmut/NJqlCcMLTWp5muCrID+K5UJ6jqD2BFshejCYXniPDbNh73V8w==",
-      "os": ["darwin"],
-      "cpu": ["x64"]
-    },
-    "lightningcss-freebsd-x64@1.32.0": {
-      "integrity": "sha512-JCTigedEksZk3tHTTthnMdVfGf61Fky8Ji2E4YjUTEQX14xiy/lTzXnu1vwiZe3bYe0q+SpsSH/CTeDXK6WHig==",
-      "os": ["freebsd"],
-      "cpu": ["x64"]
-    },
-    "lightningcss-linux-arm-gnueabihf@1.32.0": {
-      "integrity": "sha512-x6rnnpRa2GL0zQOkt6rts3YDPzduLpWvwAF6EMhXFVZXD4tPrBkEFqzGowzCsIWsPjqSK+tyNEODUBXeeVHSkw==",
-      "os": ["linux"],
-      "cpu": ["arm"]
-    },
-    "lightningcss-linux-arm64-gnu@1.32.0": {
-      "integrity": "sha512-0nnMyoyOLRJXfbMOilaSRcLH3Jw5z9HDNGfT/gwCPgaDjnx0i8w7vBzFLFR1f6CMLKF8gVbebmkUN3fa/kQJpQ==",
-      "os": ["linux"],
-      "cpu": ["arm64"]
-    },
-    "lightningcss-linux-arm64-musl@1.32.0": {
-      "integrity": "sha512-UpQkoenr4UJEzgVIYpI80lDFvRmPVg6oqboNHfoH4CQIfNA+HOrZ7Mo7KZP02dC6LjghPQJeBsvXhJod/wnIBg==",
-      "os": ["linux"],
-      "cpu": ["arm64"]
-    },
-    "lightningcss-linux-x64-gnu@1.32.0": {
-      "integrity": "sha512-V7Qr52IhZmdKPVr+Vtw8o+WLsQJYCTd8loIfpDaMRWGUZfBOYEJeyJIkqGIDMZPwPx24pUMfwSxxI8phr/MbOA==",
-      "os": ["linux"],
-      "cpu": ["x64"]
-    },
-    "lightningcss-linux-x64-musl@1.32.0": {
-      "integrity": "sha512-bYcLp+Vb0awsiXg/80uCRezCYHNg1/l3mt0gzHnWV9XP1W5sKa5/TCdGWaR/zBM2PeF/HbsQv/j2URNOiVuxWg==",
-      "os": ["linux"],
-      "cpu": ["x64"]
-    },
-    "lightningcss-win32-arm64-msvc@1.32.0": {
-      "integrity": "sha512-8SbC8BR40pS6baCM8sbtYDSwEVQd4JlFTOlaD3gWGHfThTcABnNDBda6eTZeqbofalIJhFx0qKzgHJmcPTnGdw==",
-      "os": ["win32"],
-      "cpu": ["arm64"]
-    },
-    "lightningcss-win32-x64-msvc@1.32.0": {
-      "integrity": "sha512-Amq9B/SoZYdDi1kFrojnoqPLxYhQ4Wo5XiL8EVJrVsB8ARoC1PWW6VGtT0WKCemjy8aC+louJnjS7U18x3b06Q==",
-      "os": ["win32"],
-      "cpu": ["x64"]
     },
     "livekit-client@2.20.1_@types+dom-mediacapture-record@1.0.22": {
       "integrity": "sha512-JxooxLFMkdwqTo4XLer+DCij6S3//Z/GuHSjqdhlj94Vtbh1Eayd7Lyq47qkIE86+xVJhqxIdYnq53lg4oPH9w==",
@@ -3533,6 +3439,7 @@
         "npm:expo-router@~6.0.24",
         "npm:expo-splash-screen@~31.0.13",
         "npm:expo-status-bar@~3.0.9",
+        "npm:expo-store-review@~9.0.9",
         "npm:expo-updates@~29.0.19",
         "npm:expo@~54.0.36",
         "npm:i18next@^26.3.1",
@@ -3551,7 +3458,17 @@
         "npm:react@19.1.0",
         "npm:tsx@4.20.6",
         "npm:typescript@^5.3.3"
-      ]
+      ],
+      "overrides": {
+        "@expo/xcpretty": {
+          "js-yaml": "4.3.1"
+        },
+        "@istanbuljs/load-nyc-config": {
+          "js-yaml": "3.15.1"
+        },
+        "postcss": "8.5.23",
+        "nanoid": "3.3.18"
+      }
     }
   }
 }
