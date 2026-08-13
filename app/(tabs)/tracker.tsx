@@ -9,14 +9,12 @@ import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAccount } from '../../src/contexts/AccountContext';
-import { FreeTierPaywall } from '../../src/components/ui/FreeTierPaywall';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { useTracker } from '../../src/hooks/useTracker';
 import { useSituation } from '../../src/hooks/useSituation';
 import { SituationOffRamp } from '../../src/components/situation/SituationOffRamp';
 import type { FunnelDoor } from '../../src/lib/situation';
 import { supabase } from '../../src/lib/supabase';
-import { isAdminEmail } from '../../src/lib/admin';
 
 const ALERT_THRESHOLD = 3;
 
@@ -94,7 +92,7 @@ function SignToggle({
 export default function TrackerScreen() {
   const { colors } = useTheme();
   const router = useRouter();
-  const { user, isAttached, accountState } = useAccount();
+  const { user, isAttached } = useAccount();
   const { t, i18n } = useTranslation('tracker');
 
   const { activeWarning, activeRecovery, toggleSign, warningLevel, recoveryMomentum } =
@@ -156,8 +154,6 @@ export default function TrackerScreen() {
 
   const privacyNote =
     t('privacyNote') + (isAttached ? t('privacyNoteCoach') : t('privacyNoteDirect'));
-
-  if (accountState === 'direct-free' && !isAdminEmail(user?.email)) return <FreeTierPaywall />;
 
   return (
     <ScreenContainer backgroundColor={colors.cream}>

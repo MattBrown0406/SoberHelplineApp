@@ -8,7 +8,7 @@
     "scripts": "Practice",
     "boundaries": "Boundaries",
     "tracker": "Tracker",
-    "learn": "Learn",
+    "learn": "Tools",
     "support": "Support"
   },
   "staff": {
@@ -30,6 +30,10 @@
   "authBootstrap": {
     "title": "Signing you in…",
     "body": "Your account is secure. We're preparing your Sober Helpline experience."
+  },
+  "safetyShortcut": {
+    "label": "Safety",
+    "accessibility": "Open the offline Safety Wallet"
   },
   "comingSoon": "Coming soon"
 }

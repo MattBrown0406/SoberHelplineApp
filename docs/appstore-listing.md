@@ -34,7 +34,10 @@ Sober Helpline is built for the people who love someone struggling with drugs or
 A LIGHT TO GUIDE YOUR FAMILY HOME
 
 DAILY CHECK-INS
-A 90-second check-in each morning keeps you grounded and builds a steady rhythm of self-care — because caring for yourself isn't selfish, it's the plan.
+A 90-second check-in captures your mood, available capacity, current pressure, and what kind of support would help today. Get a practical response while building a steady rhythm of self-care — because caring for yourself isn't selfish, it's the plan.
+
+GUIDANCE FOR THE PHASE YOU'RE IN
+Choose what best fits today — active use, considering treatment, treatment, the return home, early recovery, or a return to use. Get one practical action, one thing to avoid, and one realistic expectation for that phase each day.
 
 BOUNDARIES THAT HOLD
 Build boundaries anchored in two honest questions — "Have I enabled the addiction?" and "Has it harmed me?" — not in guilt or anger. Learn the castle approach: protect what matters, and decide who and what you let in.
@@ -55,7 +58,7 @@ IN ENGLISH AND SPANISH
 The entire app, including the support that matters most, available in both languages.
 
 CRISIS SUPPORT, ALWAYS FREE
-Reach a real person when things get hard. Crisis access is never behind a paywall.
+Open immediate safety guidance, 911/988/Poison Control shortcuts, and an offline household Safety Wallet without a subscription. Optional memberships add coach messaging and live support.
 
 MEMBERSHIP
 Sober Helpline is free to download. Optional subscriptions unlock coach messaging and live coaching calls. Families connected to a provider organization access everything through their provider.
@@ -88,7 +91,10 @@ Sober Helpline es para quienes aman a alguien que lucha contra las drogas o el a
 UNA LUZ QUE GUÍA A TU FAMILIA A CASA
 
 REGISTROS DIARIOS
-Un registro de 90 segundos cada mañana te mantiene firme y crea un ritmo constante de autocuidado — porque cuidarte no es egoísmo, es el plan.
+Un registro de 90 segundos captura tu ánimo, capacidad disponible, presión actual y el tipo de apoyo que te ayudaría hoy. Recibe una respuesta práctica mientras creas un ritmo constante de autocuidado — porque cuidarte no es egoísmo, es el plan.
+
+ORIENTACIÓN PARA LA ETAPA ACTUAL
+Elige lo que mejor describe el día de hoy: consumo activo, considerar tratamiento, tratamiento, regreso a casa, recuperación temprana o regreso al consumo. Cada día recibirás una acción práctica, algo que conviene evitar y una expectativa realista para esa etapa.
 
 LÍMITES QUE SE SOSTIENEN
 Construye límites anclados en dos preguntas honestas — "¿He facilitado la adicción?" y "¿Me ha dañado?" — no en la culpa ni en la ira. Aprende el enfoque del castillo: protege lo que importa y decide a quién y qué dejas entrar.
@@ -109,7 +115,7 @@ EN ESPAÑOL E INGLÉS
 Toda la app, incluido el apoyo que más importa, disponible en ambos idiomas.
 
 APOYO EN CRISIS, SIEMPRE GRATIS
-Comunícate con una persona real cuando las cosas se ponen difíciles. El acceso en crisis nunca está detrás de un pago.
+Abre orientación inmediata de seguridad, accesos al 911/988/Control de Envenenamiento y una Cartera de Seguridad del hogar sin conexión y sin suscripción. Las membresías opcionales agregan mensajes y apoyo en vivo con un coach.
 
 MEMBRESÍA
 Sober Helpline es gratis para descargar. Las suscripciones opcionales desbloquean mensajes con un coach y llamadas de coaching en vivo. Las familias conectadas con una organización proveedora acceden a todo a través de su proveedor.
@@ -125,3 +131,9 @@ Esperanza. Ayuda. Recuperación.
 - Crisis disclaimer (911 / 988 + "not a substitute for treatment") must remain in both descriptions.
 - Provide one verified direct/free demo login that covers the complete consumer review path; describe provider-connected accounts accurately without requiring reviewer-owned email confirmation.
 - Keywords stay within Apple's 100-character limit and avoid third-party trademarks.
+
+## App Store conversion testing
+
+The implementation and test sequence for native rating requests, first-three-
+screenshot experiments, icon testing, and review-funnel measurement is in
+[`app-store-review-and-conversion-system.md`](./app-store-review-and-conversion-system.md).

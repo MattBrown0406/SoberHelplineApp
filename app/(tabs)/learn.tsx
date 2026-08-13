@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
 import { Text, TextInput, TouchableOpacity, View, StyleSheet, Linking } from 'react-native';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { useAccount } from '../../src/contexts/AccountContext';
-import { FreeTierPaywall } from '../../src/components/ui/FreeTierPaywall';
 import { useWebSSO } from '../../src/hooks/useWebSSO';
-import { isAdminEmail } from '../../src/lib/admin';
+
 
 type ContentSection = { key: string; path: string; sso: boolean };
 type FaqItem = { q: string; a: string };
@@ -36,7 +36,8 @@ function FaqRow({ item, colors }: { item: FaqItem; colors: ReturnType<typeof use
 export default function LearnScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation('learn');
-  const { user, accountState } = useAccount();
+  const { user, entitlements, accountState } = useAccount();
+  const router = useRouter();
   const { openWithSSO } = useWebSSO();
   const [faqQuery, setFaqQuery] = useState('');
 
@@ -52,45 +53,83 @@ export default function LearnScreen() {
     );
   }, [faqItems, faqQuery]);
 
-  if (accountState === 'direct-free' && !isAdminEmail(user?.email)) return <FreeTierPaywall />;
-
   return (
     <ScreenContainer scroll contentContainerStyle={styles.inner}>
       <Text style={[styles.header, { color: colors.ink }]}>{t('header')}</Text>
 
-      {SECTIONS.map(({ key, path, sso }) => (
-        <View key={key} style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
-          <Text style={[styles.cardTitle, { color: colors.ink }]}>{t(`${key}.title`)}</Text>
-          <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t(`${key}.body`)}</Text>
-          <TouchableOpacity
-            style={[styles.cardButton, { backgroundColor: colors.primary }]}
-            onPress={() => sso ? void openWithSSO(user?.id ?? null, path) : void Linking.openURL(path)}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.cardButtonText}>{t(`${key}.button`)}</Text>
-          </TouchableOpacity>
-        </View>
-      ))}
+      <Text style={[styles.sectionEyebrow, { color: colors.inkSoft }]}>{t('tools.eyebrow')}</Text>
 
-      {/* In-app answers to the questions every family asks — no web round-trip. */}
-      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
-        <Text style={[styles.cardTitle, { color: colors.ink }]}>{t('faq.eyebrow')}</Text>
-        <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t('faq.sub')}</Text>
-        <View style={[styles.faqSearch, { borderColor: colors.line }]}>
-          <Text style={styles.faqSearchIcon}>🔍</Text>
-          <TextInput
-            style={[styles.faqSearchInput, { color: colors.ink }]}
-            value={faqQuery}
-            onChangeText={setFaqQuery}
-            placeholder={t('faq.eyebrow')}
-            placeholderTextColor={colors.inkSoft}
-            autoCorrect={false}
-          />
+      <View style={[styles.featuredTool, { backgroundColor: colors.primaryDark }]}>
+        <View style={styles.toolTopRow}>
+          <Text style={styles.toolIcon}>💵</Text>
+          <Text style={[styles.toolBadge, { backgroundColor: colors.secondary }]}>{t('tools.costBadge')}</Text>
         </View>
-        {filteredFaq.map((item) => (
-          <FaqRow key={item.q} item={item} colors={colors} />
-        ))}
+        <Text style={styles.featuredTitle}>{t('tools.costTitle')}</Text>
+        <Text style={styles.featuredBody}>{t('tools.costBody')}</Text>
+        <TouchableOpacity
+          style={[styles.cardButton, { backgroundColor: colors.secondary }]}
+          onPress={() => router.push('/enabling-costs' as never)}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.cardButtonText}>{t('tools.costButton')}</Text>
+        </TouchableOpacity>
       </View>
+
+      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.green }]}>
+        <View style={styles.toolTopRow}>
+          <Text style={styles.toolIcon}>🛟</Text>
+          <Text style={[styles.toolBadge, { color: colors.green, backgroundColor: colors.greenLight }]}>{t('tools.safetyBadge')}</Text>
+        </View>
+        <Text style={[styles.cardTitle, { color: colors.ink }]}>{t('tools.safetyTitle')}</Text>
+        <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t('tools.safetyBody')}</Text>
+        <TouchableOpacity
+          style={[styles.cardButton, { backgroundColor: colors.green }]}
+          onPress={() => router.push('/safety-wallet')}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.cardButtonText}>{t('tools.safetyButton')}</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Text style={[styles.sectionEyebrow, { color: colors.inkSoft }]}>{t('tools.learningEyebrow')}</Text>
+
+      {entitlements.canAccessLearningContent ? (
+        <>
+          {SECTIONS.map(({ key, path, sso }) => (
+            <View key={key} style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
+              <Text style={[styles.cardTitle, { color: colors.ink }]}>{t(`${key}.title`)}</Text>
+              <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t(`${key}.body`)}</Text>
+              <TouchableOpacity
+                style={[styles.cardButton, { backgroundColor: colors.primary }]}
+                onPress={() => sso ? void openWithSSO(user?.id ?? null, path) : void Linking.openURL(path)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.cardButtonText}>{t(`${key}.button`)}</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+
+          {/* In-app answers to the questions every family asks — no web round-trip. */}
+          <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
+            <Text style={[styles.cardTitle, { color: colors.ink }]}>{t('faq.eyebrow')}</Text>
+            <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t('faq.sub')}</Text>
+            <View style={[styles.faqSearch, { borderColor: colors.line }]}>
+              <Text style={styles.faqSearchIcon}>🔍</Text>
+              <TextInput
+                style={[styles.faqSearchInput, { color: colors.ink }]}
+                value={faqQuery}
+                onChangeText={setFaqQuery}
+                placeholder={t('faq.eyebrow')}
+                placeholderTextColor={colors.inkSoft}
+                autoCorrect={false}
+              />
+            </View>
+            {filteredFaq.map((item) => (
+              <FaqRow key={item.q} item={item} colors={colors} />
+            ))}
+          </View>
+        </>
+      ) : null}
     </ScreenContainer>
   );
 }
@@ -98,6 +137,34 @@ export default function LearnScreen() {
 const styles = StyleSheet.create({
   inner: { padding: 20, paddingBottom: 40 },
   header: { fontSize: 24, fontWeight: '700', marginBottom: 20 },
+  sectionEyebrow: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    marginBottom: 10,
+  },
+  featuredTool: {
+    borderRadius: 18,
+    padding: 20,
+    marginBottom: 16,
+  },
+  toolTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  toolIcon: { fontSize: 25 },
+  toolBadge: {
+    color: '#fff',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    fontSize: 10.5,
+    fontWeight: '800',
+  },
+  featuredTitle: { color: '#fff', fontSize: 20, lineHeight: 25, fontWeight: '800', marginBottom: 7 },
+  featuredBody: { color: '#d9e3ed', fontSize: 14, lineHeight: 20, marginBottom: 17 },
   card: {
     borderRadius: 12,
     borderWidth: 1,

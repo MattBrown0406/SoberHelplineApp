@@ -7,7 +7,7 @@ import { useTheme } from '../../src/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
 import { HeroCard } from '../../src/components/today/HeroCard';
 import { CheckInCard } from '../../src/components/today/CheckInCard';
-import { FocusCard } from '../../src/components/today/FocusCard';
+import { RecoveryPathwayCard } from '../../src/components/today/RecoveryPathwayCard';
 import { MoodChart } from '../../src/components/today/MoodChart';
 import { FreeTierPaywall } from '../../src/components/ui/FreeTierPaywall';
 import { SituationCard } from '../../src/components/today/SituationCard';
@@ -15,11 +15,18 @@ import { NeedsRouter } from '../../src/components/today/NeedsRouter';
 import { ContinueLetterCard } from '../../src/components/today/ContinueLetterCard';
 import { WeekReviewCard } from '../../src/components/today/WeekReviewCard';
 import { ScriptCard } from '../../src/components/scripts/ScriptCard';
+import { HoldLogCard } from '../../src/components/boundaries/HoldLogCard';
+import { CurriculumCard } from '../../src/components/today/CurriculumCard';
 import { useCheckIn } from '../../src/hooks/useCheckIn';
 import { useTodayFeed } from '../../src/hooks/useTodayFeed';
+import { useLovedOne } from '../../src/hooks/useLovedOne';
+import { useFamilySpace } from '../../src/hooks/useFamilySpace';
+import { useHoldLog } from '../../src/hooks/useHoldLog';
 import { getDailyScripts } from '../../src/content/scripts';
+import { PHASE_LABEL_KEY, selectCurriculumPiece } from '../../src/content/curriculum';
 import { isAdminEmail } from '../../src/lib/admin';
-import type { DailyFocusItem } from '../../src/api/types';
+import { maybeRequestReview, queueSupportCallReview } from '../../src/lib/reviewPrompt';
+import type { CaregiverCheckInInput } from '../../src/api/types';
 import type { TFunction } from 'i18next';
 
 export default function TodayScreen() {
@@ -28,15 +35,51 @@ export default function TodayScreen() {
   const { t, i18n } = useTranslation('today');
   const router = useRouter();
   const { todayCheckIn, streak, saveCheckIn } = useCheckIn(user?.id ?? null, user?.timezone);
-  const { dayCount, boundariesHeld, groupSessions, quoteIndex, focusSlot, scriptSlot, situation, primaryDoor, nextFreeCall, rsvpFreeCall } =
+  const { lovedOne, loading: lovedOneLoading, save: saveLovedOne } = useLovedOne(user?.id ?? null);
+  const { dayCount, boundariesHeld, groupSessions, quoteIndex, scriptSlot, curriculumWeek, curriculumPhase, situation, primaryDoor, nextFreeCall, rsvpFreeCall } =
     useTodayFeed(user?.id ?? null, user?.joinedAt ?? null);
+  const { space: familySpace } = useFamilySpace(user?.id ?? null, user?.firstName || 'You');
+  const holdLog = useHoldLog(user?.id ?? null, familySpace?.id ?? null);
   const isAdmin = isAdminEmail(user?.email);
 
   const firstName = user?.firstName ?? 'there';
   const greeting = timeGreeting(t, firstName);
   const contextLabel = t(isAttached ? 'hero.contextAttached' : 'hero.contextDirect');
   const dailyQuote = t(`dailyQuote.${quoteIndex}`);
-  const focusItems = buildFocusItems(t, focusSlot);
+  async function completeCheckIn(input: CaregiverCheckInInput): Promise<void> {
+    const nextStreak = await saveCheckIn(input);
+    if (nextStreak.currentStreak === 7) {
+      setTimeout(() => {
+        void maybeRequestReview({
+          accountId: user?.id ?? null,
+          milestone: 'check_in_streak_7',
+          safety: {
+            situationBand: situation.band,
+            checkIn: input,
+          },
+        });
+      }, 750);
+    }
+  }
+
+  function queueMondayMeetingReview(): Promise<void> {
+    return queueSupportCallReview({
+      accountId: user?.id ?? null,
+      safety: { situationBand: situation.band },
+    });
+  }
+
+  const pathwayCard = (
+    <RecoveryPathwayCard
+      stage={lovedOne?.stage}
+      status={lovedOne?.status ?? situation.drivers.loved_one_status}
+      loading={lovedOneLoading}
+      onSavePhase={(stage) => saveLovedOne({ stage })}
+    />
+  );
+  // Null when the band is elevated/crisis and no crisis-safe piece fits: a
+  // family whose week is on fire gets the support surface, not an exercise.
+  const curriculumPiece = selectCurriculumPiece(curriculumWeek, situation.band, i18n.language);
 
   const header = (
     <View style={styles.headerRow}>
@@ -49,9 +92,8 @@ export default function TodayScreen() {
 
   const checkInCard = (
     <CheckInCard
-      completed={todayCheckIn !== null}
-      selectedMood={todayCheckIn?.moodScore ?? null}
-      onComplete={saveCheckIn}
+      checkIn={todayCheckIn}
+      onComplete={completeCheckIn}
       newStreak={streak.currentStreak}
       graceUsed={streak.graceUsed ?? false}
       isAttached={isAttached}
@@ -73,8 +115,10 @@ export default function TodayScreen() {
           nextFreeCall={nextFreeCall}
           primaryDoor={primaryDoor}
           onRsvp={rsvpFreeCall}
+          onSupportCallJoin={queueMondayMeetingReview}
         />
         <NeedsRouter />
+        {pathwayCard}
         {checkInCard}
         {freeScript && (
           <>
@@ -87,6 +131,14 @@ export default function TodayScreen() {
             </Text>
           </>
         )}
+        <HoldLogCard
+          own={holdLog.own}
+          shared={holdLog.shared}
+          saving={holdLog.saving}
+          canShare={!!familySpace}
+          nameFor={(id) => familySpace?.members.find((m) => m.accountId === id)?.displayName ?? (user?.firstName || 'You')}
+          onSave={(result, share) => { void holdLog.save(result, share); }}
+        />
         <MoodChart accountId={user?.id ?? null} />
         <FreeTierPaywall inline />
       </ScreenContainer>
@@ -101,9 +153,12 @@ export default function TodayScreen() {
         nextFreeCall={nextFreeCall}
         primaryDoor={primaryDoor}
         onRsvp={rsvpFreeCall}
+        onSupportCallJoin={queueMondayMeetingReview}
       />
 
       <NeedsRouter />
+
+      {pathwayCard}
 
       <HeroCard
         dayCount={dayCount}
@@ -116,14 +171,28 @@ export default function TodayScreen() {
 
       {checkInCard}
 
+      <HoldLogCard
+        own={holdLog.own}
+        shared={holdLog.shared}
+        saving={holdLog.saving}
+        canShare={!!familySpace}
+        nameFor={(id) => familySpace?.members.find((m) => m.accountId === id)?.displayName ?? (user?.firstName || 'You')}
+        onSave={(result, share) => { void holdLog.save(result, share); }}
+      />
+
       <ContinueLetterCard accountId={user?.id ?? null} />
 
       <WeekReviewCard accountId={user?.id ?? null} boundariesHeld={boundariesHeld} />
 
       <MoodChart accountId={user?.id ?? null} />
 
-      <FocusCard items={focusItems} />
-
+      {curriculumPiece && (
+        <CurriculumCard
+          piece={curriculumPiece}
+          week={curriculumWeek}
+          phaseLabel={t(PHASE_LABEL_KEY[curriculumPhase])}
+        />
+      )}
       {isAdmin && (
         <TouchableOpacity onPress={() => router.push('/admin')} style={styles.adminLink}>
           <Text style={[styles.adminLinkText, { color: colors.inkSoft }]}>Admin</Text>
@@ -131,47 +200,6 @@ export default function TodayScreen() {
       )}
     </ScreenContainer>
   );
-}
-
-function buildFocusItems(t: TFunction<'today'>, slot: number): DailyFocusItem[] {
-  const pools: DailyFocusItem[][] = [
-    // Day 0 — conversation + boundaries
-    [
-      { id: 'f-script', icon: '💬', title: t('focus.scriptPractice.title'), subtitle: t('focus.scriptPractice.subtitle'), accentColor: '#e8eef6', actionType: 'script', actionId: null, route: '/(tabs)/scripts' },
-      { id: 'f-boundary', icon: '🛡️', title: t('focus.boundaryReview.title'), subtitle: t('focus.boundaryReview.subtitle'), accentColor: '#fdf3e3', actionType: 'exercise', actionId: null, route: '/(tabs)/boundaries' },
-    ],
-    // Day 1 — letter + breathe
-    [
-      { id: 'f-letter', icon: '✉️', title: t('focus.letter.title'), subtitle: t('focus.letter.subtitle'), accentColor: '#e8eef6', actionType: 'exercise', actionId: null, route: '/letter' },
-      { id: 'f-breathe', icon: '🧘', title: t('focus.breathe.title'), subtitle: t('focus.breathe.subtitle'), accentColor: '#e9f2ec', actionType: null, actionId: null, route: '/rehearsal' },
-    ],
-    // Day 2 — group + tracker
-    [
-      { id: 'f-group', icon: '🤝', title: t('focus.group.title'), subtitle: t('focus.group.subtitle'), accentColor: '#e8eef6', actionType: 'reminder', actionId: null, route: '/(tabs)/support' },
-      { id: 'f-track', icon: '📊', title: t('focus.tracker.title'), subtitle: t('focus.tracker.subtitle'), accentColor: '#fdf3e3', actionType: 'exercise', actionId: null, route: '/(tabs)/tracker' },
-    ],
-    // Day 3 — anchor + self care
-    [
-      { id: 'f-anchor', icon: '⚓', title: t('focus.anchor.title'), subtitle: t('focus.anchor.subtitle'), accentColor: '#e8eef6', actionType: null, actionId: null, route: '/(tabs)/boundaries' },
-      { id: 'f-self', icon: '🌿', title: t('focus.selfCare.title'), subtitle: t('focus.selfCare.subtitle'), accentColor: '#e9f2ec', actionType: null, actionId: null, route: null },
-    ],
-    // Day 4 — support network + enabling check
-    [
-      { id: 'f-network', icon: '📞', title: t('focus.supportNetwork.title'), subtitle: t('focus.supportNetwork.subtitle'), accentColor: '#e8eef6', actionType: null, actionId: null, route: '/(tabs)/support' },
-      { id: 'f-enabling', icon: '🔍', title: t('focus.enabling.title'), subtitle: t('focus.enabling.subtitle'), accentColor: '#fdf3e3', actionType: null, actionId: null, route: '/(tabs)/boundaries' },
-    ],
-    // Day 5 — research + journal
-    [
-      { id: 'f-research', icon: '📖', title: t('focus.research.title'), subtitle: t('focus.research.subtitle'), accentColor: '#e8eef6', actionType: null, actionId: null, route: '/(tabs)/learn' },
-      { id: 'f-journal', icon: '✏️', title: t('focus.journal.title'), subtitle: t('focus.journal.subtitle'), accentColor: '#e9f2ec', actionType: null, actionId: null, route: '/(tabs)/tracker' },
-    ],
-    // Day 6 — opening line + check-in
-    [
-      { id: 'f-opening', icon: '🎯', title: t('focus.openingLine.title'), subtitle: t('focus.openingLine.subtitle'), accentColor: '#e8eef6', actionType: null, actionId: null, route: '/(tabs)/scripts' },
-      { id: 'f-checkin', icon: '📋', title: t('focus.dailyCheckIn.title'), subtitle: t('focus.dailyCheckIn.subtitle'), accentColor: '#fdf3e3', actionType: 'reminder', actionId: null, route: null },
-    ],
-  ];
-  return pools[slot] ?? pools[0];
 }
 
 function timeGreeting(t: TFunction<'today'>, name: string): string {

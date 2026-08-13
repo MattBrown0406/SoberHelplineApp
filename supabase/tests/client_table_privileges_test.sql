@@ -16,7 +16,8 @@ WITH required(table_name, privilege) AS (
     ('threads','SELECT'), ('threads','INSERT'),
     ('messages','SELECT'), ('messages','INSERT'),
     ('message_attachments','SELECT'), ('message_attachments','INSERT'),
-    ('rehearsal_sessions','SELECT'), ('rehearsal_sessions','INSERT'), ('rehearsal_sessions','DELETE')
+    ('rehearsal_sessions','SELECT'), ('rehearsal_sessions','INSERT'), ('rehearsal_sessions','DELETE'),
+    ('wall_hold_logs','SELECT'), ('wall_hold_logs','INSERT'), ('wall_hold_logs','UPDATE')
 )
 SELECT ok(
   bool_and(has_table_privilege('authenticated', 'public.' || quote_ident(table_name), privilege)),

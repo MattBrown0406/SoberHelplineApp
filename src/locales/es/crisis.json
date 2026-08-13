@@ -3,6 +3,14 @@
   "kicker": "Modo Crisis",
   "title": "Ayúdame a saber qué hacer ahora mismo",
   "intro": "Marca lo que sea cierto. Esto no reemplaza al 911, al 988, al control de envenenamiento, a la atención médica ni a la policía.",
+  "emergency": {
+    "title": "¿Hay peligro inmediato?",
+    "note": "Estas acciones siempre son gratuitas. Las llamadas y mensajes requieren servicio telefónico.",
+    "call911": "Llamar al 911 (EE. UU.)",
+    "call988": "Llamar al 988",
+    "text988": "Enviar mensaje al 988",
+    "poisonControl": "Control de Envenenamiento EE. UU."
+  },
   "triage": {
     "title": "1. Evalúa la situación",
     "items": {
@@ -179,6 +187,83 @@
   },
   "field": {
     "placeholder": "Toca para escribir"
+  },
+  "wallet": {
+    "kicker": "SIEMPRE GRATIS",
+    "title": "Cartera de Seguridad",
+    "body": "Guarda los datos del hogar que podrías necesitar cuando sea difícil pensar con claridad. Nada se comparte a menos que elijas exportarlo.",
+    "offline": "Guardado en este dispositivo · disponible sin conexión",
+    "startGuide": "Algo está pasando ahora — abrir la Guía de Crisis",
+    "loading": "Abriendo tu plan de seguridad guardado…",
+    "savedCount": "{{count}} datos de seguridad listos",
+    "autoSave": "Los cambios se guardan automáticamente para esta cuenta en este dispositivo. Evita ingresar datos privados en un dispositivo compartido.",
+    "coreProgress": "Plan principal: {{completed}} de {{total}} datos esenciales listos",
+    "readyTitle": "Tu Cartera de Seguridad principal está lista",
+    "readyBody": "Puedes seguir agregando información cuando quieras. Revisa este plan con frecuencia y actualiza contactos, ubicaciones y roles familiares cuando cambien.",
+    "finish": "Terminar por ahora",
+    "groups": {
+      "household": "Datos esenciales del hogar",
+      "overdose": "Preparación para una sobredosis",
+      "dependents": "Niños, dependientes y riesgos",
+      "family": "Plan de respuesta familiar"
+    },
+    "groupHelp": {
+      "household": "Anota los contactos y el destino que tu familia tendría que buscar durante una crisis.",
+      "overdose": "Si puede haber opioides, guarda la naloxona donde todos puedan encontrarla rápido y sigue las instrucciones del empaque.",
+      "dependents": "Planea solo acciones que puedan hacerse con seguridad. Sal y llama a emergencias si puede haber violencia o armas.",
+      "family": "Elijan quién toma decisiones y qué hará la familia de forma consistente."
+    },
+    "fields": {
+      "lovedOneName": "Nombre de tu ser querido",
+      "householdAddress": "Dirección del hogar",
+      "substances": "Sustancias que podrían estar involucradas",
+      "overdoseHistory": "Historial de sobredosis",
+      "naloxoneLocation": "Dónde se guarda la naloxona",
+      "naloxoneExpiresOn": "Fecha de vencimiento de la naloxona",
+      "suicideHistory": "Historial de suicidio o autolesión",
+      "weaponsAccess": "Acceso a armas o riesgo de seguridad",
+      "childrenInHome": "Niños o dependientes en el hogar",
+      "safeAdult": "Adulto de confianza y teléfono",
+      "childPickupPlan": "Plan para recoger a niños o dependientes",
+      "keysAndMedicationPlan": "Plan de seguridad para llaves, efectivo y medicamentos",
+      "emergencyContacts": "Contactos de emergencia",
+      "preferredHospital": "Hospital o desintoxicación preferida",
+      "insurance": "Seguro o notas de póliza",
+      "currentBoundaries": "Límites familiares actuales",
+      "decisionMakers": "Quiénes toman decisiones en la familia"
+    },
+    "placeholders": {
+      "lovedOneName": "Nombre",
+      "householdAddress": "Dirección que podrían necesitar los servicios de emergencia",
+      "substances": "Opioides, alcohol, estimulantes…",
+      "overdoseHistory": "Fechas o contexto importante",
+      "naloxoneLocation": "Ejemplo: gabinete de cocina junto al fregadero",
+      "naloxoneExpiresOn": "MM/AAAA",
+      "suicideHistory": "Historial conocido o preocupaciones actuales",
+      "weaponsAccess": "Lo que deben saber los servicios o adultos de confianza",
+      "childrenInHome": "Edades o necesidades de cuidado; los nombres son opcionales",
+      "safeAdult": "Nombre, relación y teléfono",
+      "childPickupPlan": "Quién recoge a quién y adónde van",
+      "keysAndMedicationPlan": "Dónde se pueden guardar cuando sea seguro",
+      "emergencyContacts": "Nombre · relación · teléfono",
+      "preferredHospital": "Nombre, dirección o teléfono del centro",
+      "insurance": "Aseguradora y datos que elijas guardar",
+      "currentBoundaries": "Lo que la familia hará y no hará",
+      "decisionMakers": "Una persona coordinadora y un respaldo"
+    },
+    "recentIncidents": "Registro de incidentes recientes",
+    "incidentHelp": "Mantén las entradas breves y objetivas. Aquí aparecen las cinco más recientes; se guardan hasta 25 en este dispositivo.",
+    "noIncidents": "No se han registrado incidentes.",
+    "addIncident": "Agregar un incidente",
+    "share": "Compartir / Exportar Cartera de Seguridad",
+    "shareTitle": "Cartera de Seguridad de Sober Helpline",
+    "shareHeading": "CARTERA DE SEGURIDAD FAMILIAR DE SOBER HELPLINE",
+    "shareNote": "Este plan no reemplaza servicios de emergencia, médicos, legales ni de salud conductual. Llama al 911 ante peligro inmediato o al 988 para apoyo por crisis de suicidio o salud mental en EE. UU.",
+    "clear": "Borrar Cartera de Seguridad guardada",
+    "clearTitle": "¿Borrar la Cartera de Seguridad guardada?",
+    "clearBody": "Esto elimina de este dispositivo el plan, el historial de incidentes, el borrador de límites y los roles familiares guardados de esta cuenta.",
+    "clearConfirm": "Borrar",
+    "cancel": "Cancelar"
   },
   "planReview": {
     "title": "Reservar una revisión del plan",

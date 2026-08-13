@@ -17,6 +17,30 @@
   "checkIn": {
     "eyebrow": "Registro diario",
     "question": "¿Cómo estás hoy?",
+    "moodQuestion": "¿Cómo está tu ánimo ahora?",
+    "capacityQuestion": "¿Cuánta capacidad tienes para el día de hoy?",
+    "capacityLow": "Sin energía disponible",
+    "capacityHigh": "Con espacio para afrontar",
+    "capacityAccessibility": "Capacidad",
+    "pressureQuestion": "¿Cuánta presión estás cargando?",
+    "pressureLow": "Manejable",
+    "pressureHigh": "Abrumadora",
+    "pressureAccessibility": "Presión",
+    "needsQuestion": "¿Qué te ayudaría más hoy?",
+    "supportNeeds": {
+      "rest": "Descanso o espacio",
+      "connection": "Alguien con quien hablar",
+      "boundary": "Ayuda para mantener un límite",
+      "plan": "Un siguiente paso práctico",
+      "safety": "Ayuda para sentirme a salvo",
+      "steady": "Estoy estable por ahora"
+    },
+    "noteLabel": "Una frase que necesitas sacar",
+    "notePlaceholder": "Nota privada opcional…",
+    "optional": "Opcional",
+    "completionHint": "Elige una respuesta en cada sección para completar tu registro.",
+    "incompleteTitle": "Completa tu registro",
+    "incompleteMessage": "Elige tu ánimo, capacidad, presión y lo que más te ayudaría hoy.",
     "privacy": "Tus respuestas son privadas.",
     "privacyAttached": "Los patrones se comparten únicamente con tu coach de {{orgName}}.",
     "privacyDirect": "Los patrones son privados a menos que elijas compartirlos con un coach.",
@@ -34,6 +58,43 @@
     "lowSupportTitle": "Una etapa difícil",
     "lowSupportBody": "Han sido {{count}} días difíciles últimamente — mucho para llevarlo sola. Un coach puede ayudarte a estabilizar las cosas en una hora privada, solo para ti.",
     "lowSupportButton": "Hablar con un coach",
+    "responses": {
+      "safety": {
+        "title": "La seguridad es lo primero",
+        "body": "Haz que el siguiente paso se centre en la seguridad inmediata, no en resolver toda la situación. Si alguien puede estar en peligro o sospechas una sobredosis, llama a emergencias ahora.",
+        "cta": "Abrir el Plan de Seguridad"
+      },
+      "overloaded": {
+        "title": "Haz más pequeño el plan de hoy",
+        "body": "Estás bajo mucha presión y con muy poca capacidad. Enfócate en un paso seguro, un límite y una persona que pueda apoyarte.",
+        "cta": "Encontrar apoyo familiar"
+      },
+      "connection": {
+        "title": "No cargues el día de hoy a solas",
+        "body": "Elige una persona segura y pide algo específico: diez minutos para escucharte, ayuda con una tarea o compañía mientras haces una llamada.",
+        "cta": "Abrir opciones de apoyo"
+      },
+      "boundary": {
+        "title": "Elige el límite que puedas mantener",
+        "body": "Usa una frase corta, explica lo que tú harás y evita agregar una consecuencia que no puedas cumplir.",
+        "cta": "Revisar tus límites"
+      },
+      "plan": {
+        "title": "Planifica solo la siguiente decisión",
+        "body": "Anota lo que sabes, lo que debe decidirse hoy y lo que puede esperar. El camino familiar de hoy, arriba, puede guiar el siguiente paso.",
+        "cta": "Revisar el camino de hoy"
+      },
+      "rest": {
+        "title": "Reduce una exigencia",
+        "body": "Descansar es parte de mantenerte estable. Pospon una tarea no esencial y protege un momento pequeño que sea solo para ti.",
+        "cta": "Hacer espacio para descansar"
+      },
+      "steady": {
+        "title": "Protege la estabilidad que tienes",
+        "body": "Usa parte de tu capacidad de hoy en tu propia vida: comer, caminar, trabajar, dormir o contactar a alguien que te conozca bien.",
+        "cta": "Seguir adelante"
+      }
+    },
     "milestone7": "🌱 Siete días cuidando de ti. Esa constancia es la forma en que las familias sanan.",
     "milestone30": "🌿 Treinta días. Un mes de estabilidad — estás construyendo algo real.",
     "milestone90": "🌳 Noventa días. Esto ya es parte de quién eres. Es un honor acompañarte.",
@@ -63,8 +124,207 @@
     "title": "Mira lo que lograste esta semana",
     "checkins": "{{count}} registros",
     "avgMood": "ánimo promedio {{avg}}/5",
+    "avgCapacity": "capacidad promedio {{avg}}/5",
+    "highPressureDays": "{{count}} días de alta presión",
     "boundaries": "{{count}} límites sostenidos",
     "encourage": "Esta constancia es la recuperación vista desde la familia. Sigue así."
+  },
+  "pathway": {
+    "eyebrow": "Camino de tu familia",
+    "title": "Lo que ayuda en esta etapa",
+    "changePhase": "Cambiar la etapa actual",
+    "choosePhase": "¿Qué etapa describe mejor el día de hoy?",
+    "savePhase": "Usar esta etapa",
+    "saveError": "No pudimos actualizar la etapa. Inténtalo de nuevo.",
+    "loading": "Cargando…",
+    "privacy": "Esta selección privada guía tu contenido. No es una puntuación ni un diagnóstico.",
+    "guidance": {
+      "do": "Haz esto hoy",
+      "avoid": "Evita esto hoy",
+      "expect": "Lo que puede ser normal"
+    },
+    "phases": {
+      "active_use": {
+        "label": "Consumo activo",
+        "description": "Cuando el consumo está activo, la meta es reducir el caos y aumentar la seguridad, no ganar una discusión.",
+        "cta": "Revisar tu Plan de Seguridad",
+        "do": [
+          "Confirma a quién puedes llamar y adónde puedes ir si el hogar deja de ser seguro.",
+          "Guarda dinero, medicamentos, llaves y documentos importantes donde solo tú puedas acceder.",
+          "Elige un límite claro que realmente puedas mantener hoy."
+        ],
+        "avoid": [
+          "No discutas sobre el consumo mientras la persona esté intoxicada.",
+          "No des dinero ni borres una consecuencia solo para calmar el momento.",
+          "No investigues de una manera que te ponga en riesgo a ti o a un menor."
+        ],
+        "expect": [
+          "Puede haber negación, culpa o cambios rápidos de ánimo; no tienes que resolverlos esta noche.",
+          "Puedes sentirte en alerta o culpable al tomar distancia. Eso no significa que el límite esté mal.",
+          "Las promesas pueden ser sinceras y aun así no convertirse en acciones."
+        ]
+      },
+      "considering_treatment": {
+        "label": "Considerando tratamiento",
+        "description": "El interés por recibir ayuda suele venir con dudas. Prepara un paso pequeño antes de que se abra la oportunidad.",
+        "cta": "Explorar opciones de tratamiento",
+        "do": [
+          "Anota dos opciones realistas de ayuda y la primera llamada necesaria para cada una.",
+          "Elige un momento tranquilo y sobrio; empieza con un hecho observable y una oferta de ayuda.",
+          "Decide qué ayuda práctica puedes ofrecer, como transporte o una llamada, sin hacerte cargo de todo."
+        ],
+        "avoid": [
+          "No hagas amenazas ni ultimátums que no estés dispuesto a cumplir.",
+          "No abrumes a la persona con una lista larga de programas en una sola conversación.",
+          "No conviertas la charla en un debate sobre etiquetas o si la situación es 'lo bastante grave'."
+        ],
+        "expect": [
+          "Una persona puede querer cambiar y temer el cambio al mismo tiempo.",
+          "Puede ser necesario tener la conversación más de una vez.",
+          "La motivación puede cambiar rápido; por eso ayuda tener una opción sencilla preparada."
+        ]
+      },
+      "in_treatment": {
+        "label": "En tratamiento",
+        "description": "El tratamiento también le da a la familia espacio para estabilizarse. Tu tarea es apoyar, mantener límites y cuidar tu recuperación.",
+        "cta": "Encontrar apoyo para la familia",
+        "do": [
+          "Pregunta al programa qué educación o apoyo familiar ofrece y qué información puede compartir con consentimiento.",
+          "Retoma una rutina que apoye tu sueño, alimentación, trabajo o conexión con otros.",
+          "Anota los límites que seguirán siendo importantes después del tratamiento."
+        ],
+        "avoid": [
+          "No intentes dirigir el plan de tratamiento desde fuera del programa.",
+          "No exijas detalles clínicos privados como prueba de que el tratamiento funciona.",
+          "No veas el alta como la meta final de la recuperación."
+        ],
+        "expect": [
+          "El alivio, el enojo, la esperanza y el miedo pueden aparecer a la vez.",
+          "El contacto puede ser limitado mientras la persona se concentra en su atención.",
+          "Los primeros cambios pueden ser reales y, aun así, irregulares."
+        ]
+      },
+      "returning_home": {
+        "label": "Preparando el regreso a casa",
+        "description": "Una transición planificada es más segura que una improvisada. Aclara expectativas y respuestas antes del primer día difícil.",
+        "cta": "Preparar el plan de seguridad del hogar",
+        "do": [
+          "Acuerden expectativas básicas del hogar, apoyos y qué ocurrirá si se cruza un límite.",
+          "Actualiza contactos de emergencia, lugares seguros, almacenamiento de medicamentos y suministros para responder a una sobredosis.",
+          "Planifica la primera semana: transporte, citas, tareas del hogar y tiempo tranquilo para la recuperación."
+        ],
+        "avoid": [
+          "No esperes una crisis para decidir cómo responderá el hogar.",
+          "No te asignes la tarea de vigilar a la persona a toda hora.",
+          "No retires el apoyo externo solo porque regresa a casa."
+        ],
+        "expect": [
+          "Las transiciones pueden traer entusiasmo y tensión al mismo tiempo.",
+          "Todos pueden necesitar tiempo para adaptarse a nuevos roles y rutinas.",
+          "La confianza suele reconstruirse más lentamente que la esperanza."
+        ]
+      },
+      "early_recovery_30": {
+        "label": "Primeros 30 días",
+        "description": "El primer mes se centra en estructura, apoyo y seguridad. La estabilidad importa más que las grandes promesas.",
+        "cta": "Registrar lo que observas",
+        "do": [
+          "Protege las rutinas de recuperación y elige una rutina pequeña que también te estabilice.",
+          "Decide cómo responderás a una señal de alerta antes de que aparezca.",
+          "Reconoce una acción de recuperación sin exigir tranquilidad a cambio."
+        ],
+        "avoid": [
+          "No tomes cada estado de ánimo difícil como prueba de un regreso al consumo.",
+          "No aflojes límites importantes porque los primeros días van bien.",
+          "No conviertas su recuperación en tu trabajo de tiempo completo."
+        ],
+        "expect": [
+          "El sueño, la energía y el ánimo pueden ser irregulares mientras se forman rutinas.",
+          "El aburrimiento y la fricción en casa pueden aumentar cuando baja el alivio inicial.",
+          "Tu sistema nervioso puede seguir en alerta aunque las cosas estén más tranquilas."
+        ]
+      },
+      "early_recovery_90": {
+        "label": "Días 31–90",
+        "description": "A medida que vuelve la vida diaria, protege las rutinas que funcionan y reconstruye la confianza con pasos pequeños y observables.",
+        "cta": "Revisar patrones recientes",
+        "do": [
+          "Tengan una conversación semanal y tranquila sobre rutinas, necesidades y responsabilidades del hogar.",
+          "Retomen una actividad compartida que no gire alrededor de hablar de recuperación.",
+          "Reconoce la conducta constante, no solo las intenciones o promesas."
+        ],
+        "avoid": [
+          "No apresures la devolución de dinero, acceso o responsabilidades antes de que la confianza esté lista.",
+          "No abandones tu propio apoyo porque la crisis inmediata haya disminuido.",
+          "No confundas varias semanas buenas con el fin del trabajo de recuperación."
+        ],
+        "expect": [
+          "La confianza personal puede crecer más rápido que la estabilidad.",
+          "Las tensiones antiguas de la relación pueden aparecer ahora que la crisis está más tranquila.",
+          "Las rutinas nuevas todavía pueden ser frágiles ante el estrés, el conflicto o el aislamiento."
+        ]
+      },
+      "ongoing_recovery": {
+        "label": "Recuperación continua",
+        "description": "La recuperación a largo plazo sigue beneficiándose de conexión honesta, límites duraderos y una vida propia para cada persona.",
+        "cta": "Fortalecer tu red de apoyo",
+        "do": [
+          "Mantén activo un límite y una práctica de apoyo incluso durante una etapa tranquila.",
+          "Revisa el plan de seguridad del hogar y la lista de contactos antes de necesitarlos.",
+          "Haz espacio para un momento de relación que no trate sobre adicción o recuperación."
+        ],
+        "avoid": [
+          "No abandones el plan simplemente porque las cosas hayan estado bien.",
+          "No presiones a la recuperación para que siga el calendario que tú prefieres.",
+          "No uses la sobriedad para ignorar sentimientos pendientes o la reparación de la relación."
+        ],
+        "expect": [
+          "Los aniversarios pueden traer duelo o ansiedad junto con orgullo.",
+          "Las relaciones pueden tener tropiezos sin que haya un regreso al consumo.",
+          "El tipo de apoyo que necesita cada persona puede cambiar con el tiempo."
+        ]
+      },
+      "return_to_use": {
+        "label": "Regreso al consumo",
+        "description": "Un regreso al consumo es serio, especialmente después de la abstinencia. Pasa del impacto inicial a la seguridad, los hechos y el próximo apoyo disponible.",
+        "cta": "Abrir apoyo para crisis",
+        "do": [
+          "Evalúa el peligro inmediato y usa tu plan de seguridad; llama a emergencias ante una posible sobredosis o amenaza inmediata.",
+          "Explica lo que observaste con hechos sencillos y mantén el límite que ya estableciste.",
+          "Contacta a una persona de tu red de apoyo y reúne la siguiente opción adecuada de atención."
+        ],
+        "avoid": [
+          "No avergüences, sermonees ni intentes forzar una reflexión durante la intoxicación.",
+          "No bloquees físicamente la salida de alguien ni te pongas en peligro.",
+          "No ocultes una posible sobredosis ni retrases la ayuda de emergencia."
+        ],
+        "expect": [
+          "El pánico, el duelo, el enojo o el entumecimiento son reacciones familiares comunes.",
+          "El riesgo puede cambiar rápido y la tolerancia puede ser menor después de la abstinencia.",
+          "Este tropiezo no borra la recuperación anterior, pero la siguiente acción segura importa ahora."
+        ]
+      },
+      "unsure": {
+        "label": "Aún no lo sé",
+        "description": "La incertidumbre agota. Empieza por la seguridad y los hechos observables en lugar de intentar resolver toda la historia hoy.",
+        "cta": "Registrar señales observables",
+        "do": [
+          "Anota solo lo que viste u oíste directamente, con fecha y hora.",
+          "Revisa cómo se siente tu cuerpo y si hay riesgos inmediatos en el hogar.",
+          "Elige una persona de confianza con quien puedas hablar sin tener que demostrar nada."
+        ],
+        "avoid": [
+          "No hagas una acusación cuando solo tienes una sensación o una señal ambigua.",
+          "No registres, sigas ni confrontes de una manera que pueda ponerte en riesgo.",
+          "No ignores tu preocupación solo porque no tienes certeza."
+        ],
+        "expect": [
+          "No saber puede mantener tu sistema nervioso en alerta máxima.",
+          "Una sola señal normalmente no demuestra que haya consumo.",
+          "La claridad puede surgir de un patrón de hechos, no de una sola conversación."
+        ]
+      }
+    }
   },
   "focus": {
     "eyebrow": "Tu enfoque de hoy",
@@ -156,9 +416,23 @@
     "coaching": "Habla 1 a 1 con un coach",
     "intervention": "Planear una intervención con Matt",
     "coachingSub": "¿Cargando mucho esta semana? Una hora privada para planear tu próximo paso — $150.",
+    "coachingSubCrisis": "¿Cargando mucho esta semana? Una hora privada con un coach está disponible después de usar el 911, el 988 o el Copiloto de Crisis.",
     "interventionSub": "Cuando es momento de más que una app, Matt te acompañará paso a paso.",
     "finderLink": "Encuentra tratamiento y apoyo cerca de ti →",
     "sendBrief": "Envíale tu semana a Matt",
     "sendBriefSub": "Pon tus últimas dos semanas frente a Matt — tus registros, señales de alerta y límites. Él lee cada informe y responde personalmente."
+  },
+  "curriculum": {
+    "weekLabel": "SEMANA {{week}}",
+    "practiceLabel": "La práctica de esta semana",
+    "promptLabel": "Vale la pena pensarlo",
+    "expand": "Leer la práctica",
+    "collapse": "Cerrar",
+    "phase": {
+      "orientation": "Ubicándote",
+      "stabilizing": "Afirmando el terreno",
+      "familyRecovery": "Tu propia recuperación",
+      "durability": "Que dure"
+    }
   }
 }

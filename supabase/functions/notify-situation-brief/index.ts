@@ -31,7 +31,14 @@ function escapeHtml(value: unknown): string {
     .replaceAll("'", '&#39;');
 }
 
-type MoodDay = { day?: string; mood?: number; note?: string | null };
+type MoodDay = {
+  day?: string;
+  mood?: number;
+  capacity?: number | null;
+  pressure?: number | null;
+  support_need?: string | null;
+  note?: string | null;
+};
 type TrackerSign = { sign_key?: string; kind?: string; week?: string };
 type Wall = { text?: string; anchor?: string | null };
 
@@ -63,6 +70,19 @@ Deno.serve(async (req: Request) => {
     const avgMood = moods.length
       ? (moods.reduce((a, b) => a + b, 0) / moods.length).toFixed(1)
       : '—';
+    const capacities = mood
+      .map((m) => m.capacity)
+      .filter((value): value is number => typeof value === 'number');
+    const pressures = mood
+      .map((m) => m.pressure)
+      .filter((value): value is number => typeof value === 'number');
+    const avgCapacity = capacities.length
+      ? (capacities.reduce((a, b) => a + b, 0) / capacities.length).toFixed(1)
+      : null;
+    const avgPressure = pressures.length
+      ? (pressures.reduce((a, b) => a + b, 0) / pressures.length).toFixed(1)
+      : null;
+    const latestSupportNeed = mood.find((entry) => entry.support_need)?.support_need ?? null;
 
     const bandLabel = String(brief.band ?? 'calm').toUpperCase();
 
@@ -77,6 +97,15 @@ Deno.serve(async (req: Request) => {
           : ''
       }
       <p><strong>Mood (7d):</strong> avg ${escapeHtml(avgMood)} over ${mood.length} check-in${mood.length === 1 ? '' : 's'}</p>
+      ${
+        avgCapacity && avgPressure
+          ? `<p><strong>Caregiver load (7d):</strong> avg capacity ${escapeHtml(avgCapacity)}/5 · avg pressure ${escapeHtml(avgPressure)}/5${
+              latestSupportNeed
+                ? ` · latest need: ${escapeHtml(latestSupportNeed).replaceAll('_', ' ')}`
+                : ''
+            }</p>`
+          : ''
+      }
       <p><strong>Tracker (14d):</strong> ${warnings.length} warning / ${recoveries.length} recovery sign${recoveries.length === 1 ? '' : 's'}${
         warnings.length
           ? '<br>' + warnings.map((w) => `⚠ ${escapeHtml(w.sign_key)}`).join('<br>')

@@ -26,6 +26,7 @@ import {
   DEFAULT_REMINDER_HOUR,
 } from '../src/hooks/usePushNotifications';
 import { PRIVACY_POLICY_URL, SUBSCRIPTION_MANAGEMENT_URL, TERMS_OF_USE_URL } from '../src/config';
+import { openStoreReviewFromSettings } from '../src/lib/reviewPrompt';
 
 const CONSENT_SHARE_CHECKINS = '2';
 const CONSENT_VERSION = '1.0';
@@ -67,6 +68,7 @@ export default function SettingsScreen() {
   const [shareCheckIns, setShareCheckIns] = useState(false);
   const [consentLoading, setConsentLoading] = useState(true);
   const [restoring, setRestoring] = useState(false);
+  const [openingReview, setOpeningReview] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const isAdmin = isAdminEmail(user?.email);
   const [reminderHour, setReminderHourState] = useState(DEFAULT_REMINDER_HOUR);
@@ -263,6 +265,14 @@ export default function SettingsScreen() {
     } finally {
       setRestoring(false);
     }
+  }
+
+  async function handleRateApp() {
+    if (openingReview) return;
+    setOpeningReview(true);
+    const opened = await openStoreReviewFromSettings();
+    setOpeningReview(false);
+    if (!opened) Alert.alert(t('review.unavailableTitle'), t('review.unavailableBody'));
   }
 
   function handleDeleteAccount() {
@@ -603,6 +613,28 @@ export default function SettingsScreen() {
             )}
           </View>
         )}
+
+        <View style={[styles.card, { borderColor: colors.line }]}>
+          <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
+            {t('review.eyebrow')}
+          </Text>
+          <Text style={[styles.toggleLabel, { color: colors.ink }]}>{t('review.title')}</Text>
+          <Text style={[styles.toggleDesc, { color: colors.inkSoft, marginBottom: 12 }]}>
+            {t('review.body')}
+          </Text>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityState={{ busy: openingReview, disabled: openingReview }}
+            style={[styles.restoreBtn, { borderColor: colors.primary }]}
+            onPress={() => void handleRateApp()}
+            disabled={openingReview}
+            activeOpacity={0.8}
+          >
+            {openingReview
+              ? <ActivityIndicator color={colors.primary} />
+              : <Text style={[styles.restoreText, { color: colors.primary }]}>{t('review.button')}</Text>}
+          </TouchableOpacity>
+        </View>
 
         {/* Legal — Terms of Use (EULA) + Privacy Policy (App Store 3.1.2c) */}
         <View style={[styles.card, { borderColor: colors.line }]}>

@@ -14,6 +14,7 @@ import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
 import { useSituationBrief } from '../src/hooks/useSituationBrief';
 import {
+  briefCaregiverAverage,
   briefMoodAverage,
   signLabel,
   type BriefStatus,
@@ -69,6 +70,9 @@ export default function SituationBriefScreen() {
     [warnings],
   );
   const moodAvg = sections ? briefMoodAverage(sections.mood) : null;
+  const capacityAvg = sections ? briefCaregiverAverage(sections.mood, 'capacity') : null;
+  const pressureAvg = sections ? briefCaregiverAverage(sections.mood, 'pressure') : null;
+  const latestSupportNeed = sections?.mood.find((entry) => entry.support_need)?.support_need;
   const lowDays = (sections?.mood ?? []).filter((m) => m.mood <= 2).length;
   const latestReplied = briefs.find((b) => b.status === 'replied');
 
@@ -142,13 +146,30 @@ export default function SituationBriefScreen() {
           <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
             <Text style={[styles.cardTitle, { color: colors.ink }]}>{t('sections.mood')}</Text>
             {sections && sections.mood.length > 0 ? (
-              <Text style={[styles.body, { color: colors.inkSoft }]}>
-                {t('moodSummary', {
-                  total: sections.mood.length,
-                  avg: moodAvg ?? '—',
-                  lowDays,
-                })}
-              </Text>
+              <>
+                <Text style={[styles.body, { color: colors.inkSoft }]}>
+                  {t('moodSummary', {
+                    total: sections.mood.length,
+                    avg: moodAvg ?? '—',
+                    lowDays,
+                  })}
+                </Text>
+                {capacityAvg !== null && pressureAvg !== null && (
+                  <Text style={[styles.body, { color: colors.inkSoft, marginTop: 5 }]}>
+                    {t('caregiverSummary', {
+                      capacity: capacityAvg,
+                      pressure: pressureAvg,
+                    })}
+                  </Text>
+                )}
+                {latestSupportNeed && (
+                  <Text style={[styles.body, { color: colors.inkSoft, marginTop: 5 }]}>
+                    {t('latestSupportNeed', {
+                      need: t(`supportNeeds.${latestSupportNeed}` as never),
+                    })}
+                  </Text>
+                )}
+              </>
             ) : (
               <Text style={[styles.body, { color: colors.inkSoft }]}>{t('moodEmpty')}</Text>
             )}

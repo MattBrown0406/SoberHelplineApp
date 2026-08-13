@@ -20,6 +20,16 @@
     "sustainedTag": "sustained"
   },
   "moodSummary": "{{total}} check-ins · average mood {{avg}} of 5 · {{lowDays}} hard days",
+  "caregiverSummary": "Average capacity {{capacity}} of 5 · average pressure {{pressure}} of 5",
+  "latestSupportNeed": "Most recent support need: {{need}}",
+  "supportNeeds": {
+    "rest": "rest or breathing room",
+    "connection": "someone to talk to",
+    "boundary": "help holding a boundary",
+    "plan": "a practical next step",
+    "safety": "help feeling safe",
+    "steady": "steady for now"
+  },
   "moodEmpty": "No check-ins in the last 7 days.",
   "trackerEmpty": "No signs logged in the last 14 days.",
   "boundariesEmpty": "No boundaries written yet.",

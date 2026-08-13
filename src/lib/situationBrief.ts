@@ -9,6 +9,9 @@ import type { Situation, SituationBand } from './situation';
 export interface BriefMoodDay {
   day: string;
   mood: number;
+  capacity?: number | null;
+  pressure?: number | null;
+  support_need?: string | null;
   note: string | null;
 }
 
@@ -111,4 +114,15 @@ export function signLabel(
 export function briefMoodAverage(mood: BriefMoodDay[]): number | null {
   if (mood.length === 0) return null;
   return Math.round((mood.reduce((sum, m) => sum + m.mood, 0) / mood.length) * 10) / 10;
+}
+
+export function briefCaregiverAverage(
+  mood: BriefMoodDay[],
+  metric: 'capacity' | 'pressure',
+): number | null {
+  const values = mood
+    .map((entry) => entry[metric])
+    .filter((value): value is number => typeof value === 'number');
+  if (values.length === 0) return null;
+  return Math.round((values.reduce((sum, value) => sum + value, 0) / values.length) * 10) / 10;
 }

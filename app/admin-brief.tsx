@@ -13,7 +13,12 @@ import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
 import { isAdminEmail } from '../src/lib/admin';
 import { supabase } from '../src/lib/supabase';
-import { briefMoodAverage, signLabel, type AdminBriefDetail } from '../src/lib/situationBrief';
+import {
+  briefCaregiverAverage,
+  briefMoodAverage,
+  signLabel,
+  type AdminBriefDetail,
+} from '../src/lib/situationBrief';
 
 type TrackerSignDef = { id: string; label: string; category: string };
 
@@ -99,6 +104,8 @@ export default function AdminBriefScreen() {
   const sections = brief.sections;
   const mood = sections.mood ?? [];
   const moodAvg = briefMoodAverage(mood);
+  const capacityAvg = briefCaregiverAverage(mood, 'capacity');
+  const pressureAvg = briefCaregiverAverage(mood, 'pressure');
   const lowDays = mood.filter((m) => m.mood <= 2).length;
   const warnings = [...new Set((sections.tracker ?? []).filter((s) => s.kind === 'warning').map((s) => s.sign_key))];
   const recoveries = [...new Set((sections.tracker ?? []).filter((s) => s.kind === 'recovery').map((s) => s.sign_key))];
@@ -142,9 +149,17 @@ export default function AdminBriefScreen() {
             <Text style={[styles.body, { color: colors.inkSoft }]}>
               Avg {moodAvg ?? '—'}/5 · {lowDays} hard day{lowDays === 1 ? '' : 's'}
             </Text>
+            {capacityAvg !== null && pressureAvg !== null && (
+              <Text style={[styles.body, { color: colors.inkSoft, marginTop: 4 }]}>
+                Avg capacity {capacityAvg}/5 · avg pressure {pressureAvg}/5
+              </Text>
+            )}
             {mood.map((m) => (
               <Text key={m.day} style={[styles.moodRow, { color: colors.ink }]}>
                 {m.day} — {'●'.repeat(m.mood)}{'○'.repeat(5 - m.mood)} {m.mood}/5
+                {typeof m.capacity === 'number' ? ` · capacity ${m.capacity}/5` : ''}
+                {typeof m.pressure === 'number' ? ` · pressure ${m.pressure}/5` : ''}
+                {m.support_need ? ` · needs ${m.support_need.replaceAll('_', ' ')}` : ''}
                 {m.note ? `  “${m.note}”` : ''}
               </Text>
             ))}

@@ -68,6 +68,14 @@
     "restoreErrorTitle": "No se pudo restaurar",
     "restoreErrorBody": "Algo salió mal al restaurar tus compras. Inténtalo de nuevo."
   },
+  "review": {
+    "eyebrow": "Apoya la app",
+    "title": "Califica Sober Helpline",
+    "body": "Tu calificación en App Store ayuda a que otra familia encuentre apoyo cuando lo necesita.",
+    "button": "Calificar Sober Helpline",
+    "unavailableTitle": "App Store no disponible",
+    "unavailableBody": "No pudimos abrir App Store en este momento. Inténtalo de nuevo más tarde."
+  },
   "legal": {
     "eyebrow": "Legal",
     "terms": "Términos de uso (EULA)",
