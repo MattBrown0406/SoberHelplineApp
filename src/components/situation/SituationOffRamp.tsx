@@ -13,6 +13,8 @@ interface Props {
   onBeforeNavigate?: () => void;
   /** Tighter spacing for embedding inside the crisis sheet. */
   compact?: boolean;
+  /** Crisis sheet must never show a price. Coaching copy stays below 911/988. */
+  hidePrice?: boolean;
 }
 
 /**
@@ -21,7 +23,7 @@ interface Props {
  * is rendered subordinate to 988/911, never in their place, and only appears for
  * an escalated band (coaching / intervention).
  */
-export function SituationOffRamp({ door, onBeforeNavigate, compact }: Props) {
+export function SituationOffRamp({ door, onBeforeNavigate, compact, hidePrice }: Props) {
   const { colors } = useTheme();
   const { t } = useTranslation('today');
   const router = useRouter();
@@ -47,7 +49,7 @@ export function SituationOffRamp({ door, onBeforeNavigate, compact }: Props) {
         {t(DOOR_COPY_KEY[door])}
       </Text>
       <Text style={[styles.sub, { color: colors.ink }]}>
-        {t(`situationCta.${door}Sub`)}
+        {t(hidePrice && door === 'coaching' ? 'situationCta.coachingSubCrisis' : `situationCta.${door}Sub`)}
       </Text>
     </TouchableOpacity>
   );

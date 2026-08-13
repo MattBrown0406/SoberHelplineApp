@@ -1,6 +1,6 @@
 {
   "name": "sober-helpline-app",
-  "version": "3.5.1",
+  "version": "3.7.0",
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
@@ -11,6 +11,7 @@
     "test:auth": "node --test tests/auth-bootstrap.test.mjs",
     "test:checkin": "tsx --test tests/checkin-persistence.test.ts",
     "test:push": "tsx --test tests/push-routing.test.ts",
+    "test:family": "tsx --test tests/family-scripts.test.ts",
     "audit:release": "node scripts/audit-dependencies.mjs",
     "doctor": "npx expo-doctor",
     "export:web": "expo export --platform web",

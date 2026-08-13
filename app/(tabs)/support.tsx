@@ -183,7 +183,7 @@ function CrisisSheet({
             Always below the safety lines and never in their place. */}
         {door !== 'free_call' && !isAttached && (
           <View style={styles.offRampWrap}>
-            <SituationOffRamp door={door} onBeforeNavigate={onClose} compact />
+            <SituationOffRamp door={door} onBeforeNavigate={onClose} compact hidePrice />
           </View>
         )}
       </View>

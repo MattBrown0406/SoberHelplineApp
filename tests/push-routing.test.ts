@@ -43,6 +43,13 @@ test('does not let an arbitrary screen field choose a route', () => {
   );
 });
 
+test('routes an opted-in family backup notice to Boundaries', () => {
+  assert.deepEqual(
+    getPushDestination({ kind: 'family_backup' }),
+    { pathname: '/(tabs)/boundaries' },
+  );
+});
+
 test('preserves validated group-live routing', () => {
   assert.deepEqual(
     getPushDestination({ kind: 'group_live', room_name: 'shp-boundaries' }),

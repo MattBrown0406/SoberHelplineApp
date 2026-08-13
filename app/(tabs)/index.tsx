@@ -15,8 +15,11 @@ import { NeedsRouter } from '../../src/components/today/NeedsRouter';
 import { ContinueLetterCard } from '../../src/components/today/ContinueLetterCard';
 import { WeekReviewCard } from '../../src/components/today/WeekReviewCard';
 import { ScriptCard } from '../../src/components/scripts/ScriptCard';
+import { HoldLogCard } from '../../src/components/boundaries/HoldLogCard';
 import { useCheckIn } from '../../src/hooks/useCheckIn';
 import { useTodayFeed } from '../../src/hooks/useTodayFeed';
+import { useFamilySpace } from '../../src/hooks/useFamilySpace';
+import { useHoldLog } from '../../src/hooks/useHoldLog';
 import { getDailyScripts } from '../../src/content/scripts';
 import { isAdminEmail } from '../../src/lib/admin';
 import type { DailyFocusItem } from '../../src/api/types';
@@ -30,6 +33,8 @@ export default function TodayScreen() {
   const { todayCheckIn, streak, saveCheckIn } = useCheckIn(user?.id ?? null, user?.timezone);
   const { dayCount, boundariesHeld, groupSessions, quoteIndex, focusSlot, scriptSlot, situation, primaryDoor, nextFreeCall, rsvpFreeCall } =
     useTodayFeed(user?.id ?? null, user?.joinedAt ?? null);
+  const { space: familySpace } = useFamilySpace(user?.id ?? null, user?.firstName || 'You');
+  const holdLog = useHoldLog(user?.id ?? null, familySpace?.id ?? null);
   const isAdmin = isAdminEmail(user?.email);
 
   const firstName = user?.firstName ?? 'there';
@@ -87,6 +92,14 @@ export default function TodayScreen() {
             </Text>
           </>
         )}
+        <HoldLogCard
+          own={holdLog.own}
+          shared={holdLog.shared}
+          saving={holdLog.saving}
+          canShare={!!familySpace}
+          nameFor={(id) => familySpace?.members.find((m) => m.accountId === id)?.displayName ?? (user?.firstName || 'You')}
+          onSave={(result, share) => { void holdLog.save(result, share); }}
+        />
         <MoodChart accountId={user?.id ?? null} />
         <FreeTierPaywall inline />
       </ScreenContainer>
@@ -115,6 +128,15 @@ export default function TodayScreen() {
       />
 
       {checkInCard}
+
+      <HoldLogCard
+        own={holdLog.own}
+        shared={holdLog.shared}
+        saving={holdLog.saving}
+        canShare={!!familySpace}
+        nameFor={(id) => familySpace?.members.find((m) => m.accountId === id)?.displayName ?? (user?.firstName || 'You')}
+        onSave={(result, share) => { void holdLog.save(result, share); }}
+      />
 
       <ContinueLetterCard accountId={user?.id ?? null} />
 

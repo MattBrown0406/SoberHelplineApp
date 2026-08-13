@@ -52,9 +52,9 @@
     "current": "Current plan"
   },
   "paywall": {
-    "eyebrow": "UNLOCK THE APP",
-    "heading": "Subscribe for full access",
-    "body": "Essential members get daily check-ins, mood tracking, boundaries, scripts, messaging, and groups.",
+    "eyebrow": "COACHING & GROUPS",
+    "heading": "Coach messaging and live video stay with a plan",
+    "body": "Castle walls, the enabling check-in, tracker, Learn FAQ, and family resources stay free. Essential and Premier add coach messaging, groups, and live video. Crisis lines (911 / 988 / Crisis Copilot) stay ungated.",
     "viewPlans": "View plans",
     "subscribeEssential": "Subscribe to Essential · {{price}}/month",
     "subscribePremium": "Upgrade to Premier · {{price}}/month",

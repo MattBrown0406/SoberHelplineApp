@@ -1,28 +1,41 @@
 # Sober Helpline App
 
-Family support companion for addiction recovery — the mobile app for [SoberHelpline.com](https://soberhelpline.com).
+Family support companion for addiction recovery — the Expo / React Native app for families using [SoberHelpline.com](https://soberhelpline.com). This repository is **not** the website.
 
 **Hope. Help. Recovery.**
 
-The intervention is a moment; the family's recovery is a journey. Sober Helpline guides families through it: daily check-ins, boundary-building anchored in the castle framework, warning-sign *and* recovery-sign tracking, conversation scripts, and crisis access to live coaches.
+Native version **3.7** (iOS `buildNumber` 1 / Android `versionCode` 1).
+
+## What ships
+
+Expo Router tabs: **Today**, **Practice/Scripts**, **Boundaries**, **Tracker**, **Learn**, **Support**.
+
+Sober Helpline is free crisis triage and family support — never a paid treatment-placement funnel. The finder stays alphabetical and navigator-mediated, with no sponsored ranking. Crisis (911 / 988 / Crisis Copilot) stays above any paid coaching door.
+
+Family-behavior tools on the free (`direct-free`) tier:
+
+- Castle walls, enabling quiz, tracker, in-app Learn FAQ and resources
+- Family Space: propose a wall, persist “I’m wavering,” shared “what we will say” script, hold-log (we held the wall)
+
+Coach messaging and live video stay paid.
 
 ## Repository contents
 
 | Path | What it is |
 |---|---|
-| `design/sober-helpline-app.html` | Interactive prototype of the family-facing mobile app (open in any browser). Includes a demo toggle for **attached** (provider org) vs **direct** (App Store) account states. |
-| `design/sober-helpline-provider-console.html` | Provider org console mockup — meetings/groups, coach assignment, white-label branding, tiered subscription. Reference spec: these features ship inside the SoberHelpline.com provider account, not as a separate product. |
-| `design/sober-helpline-super-admin.html` | Platform owner console mockup — crisis coach network (availability + on-call routing), direct members, provider orgs, tiered org billing. Reference spec: ships inside the existing SoberHelpline.com admin dashboard. |
-| `docs/product-decisions.md` | Access model, monetization lanes, and App Store compliance strategy. |
+| `app/` | Expo Router screens (tabs + crisis, finder, rehearsal, letter) |
+| `src/` | Hooks, i18n (en/es), content, UI |
+| `supabase/migrations/` | Schema. Apply via the usual Supabase workflow — **do not apply to production from a PR agent** |
+| `docs/` | Product decisions, legal drafts, feature specs |
 
 ## Product model (one paragraph)
 
-One app binary, two account states. **Attached** families get an assigned coach, provider-scheduled sessions, and zero in-app commerce (the provider org pays; providers bill families directly). **Direct** App Store families get tiered IAP plans — Essential (message the on-call coach) and Premium (live calls during coach business hours) — backed by the platform's hand-picked crisis coach network. Provider orgs pay a monthly tier based on families supervised and can white-label the app (logo, name, colors) delivered per-account at login.
+One app binary, two account states. **Attached** families get an assigned coach, provider-scheduled sessions, and zero in-app commerce. **Direct** App Store families get free family-behavior tools plus optional IAP (Essential: coach messaging; Premier: live video). Crisis lines are never gated. The public finder is A–Z and navigator-mediated — not a placement marketplace.
 
 ## Related repositories
 
-- [`soberhelpline`](https://github.com/MattBrown0406/soberhelpline) — website, provider dashboard, coach admin, and the API this app consumes.
+- [`soberhelpline`](https://github.com/MattBrown0406/soberhelpline) — website, provider dashboard, coach admin.
 
 ## Status
 
-Design/prototype stage. Next steps: pick the mobile stack (React Native or Flutter), define the API contract (entitlements, branding payload, on-call roster, sessions feed), and build the check-in + boundaries vertical slice first.
+Shipped Expo app. TestFlight / device testing happens after a native version bump; App Store review is a separate step.

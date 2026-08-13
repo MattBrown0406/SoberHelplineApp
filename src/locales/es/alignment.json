@@ -37,5 +37,28 @@
   "weeklySlipped": "Fallé en uno",
   "weeklyNote": "Esto es privado a menos que elijas compartirlo con tu familia.",
   "createErrorTitle": "No se pudo crear el espacio familiar",
-  "createErrorMessage": "Por favor intenta de nuevo. Si el problema continúa, contacta con soporte."
+  "createErrorMessage": "Por favor intenta de nuevo. Si el problema continúa, contacta con soporte.",
+  "proposeErrorTitle": "No se pudo proponer ese muro",
+  "proposeErrorMessage": "Revisa tu conexión e inténtalo de nuevo.",
+  "commitButton": "Yo lo sostengo",
+  "backupNotice": "{{name}} podría usar apoyo en un muro.",
+  "sharedScript": {
+    "eyebrow": "Lo que diremos",
+    "body": "Este muro está alineado. Todos ensayan las mismas palabras — los mensajes mezclados son cómo se divide a la familia."
+  },
+  "holdLog": {
+    "eyebrow": "Sostuvimos el muro",
+    "title": "¿Sostuvieron sus muros esta semana?",
+    "body": "Esto es sobre si la familia sostuvo — no sobre si tu ser querido consumió. Privado a menos que elijas compartirlo.",
+    "held": "Lo sostuvimos",
+    "mostly": "En su mayor parte",
+    "slipped": "Resbalamos",
+    "share": "Compartir con el espacio familiar",
+    "unshare": "Volver a privado",
+    "shared": "Compartido con el espacio familiar esta semana.",
+    "familyThisWeek": "La familia esta semana",
+    "familyLine": "{{name}} — {{result}}",
+    "errorTitle": "No se pudo guardar el registro",
+    "errorMessage": "Revisa tu conexión e inténtalo de nuevo."
+  }
 }

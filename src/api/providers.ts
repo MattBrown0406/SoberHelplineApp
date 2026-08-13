@@ -229,7 +229,9 @@ export async function fetchProviders(
 
   const { data, error } = await q.order('provider_name').limit(50);
   if (error) throw error;
-  return dedupeByProvider(data ?? []).map(mapRow);
+  return dedupeByProvider(data ?? [])
+    .map(mapRow)
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 }
 
 export async function fetchProviderById(id: string): Promise<Provider | undefined> {
@@ -266,6 +268,10 @@ export async function submitProviderInquiry(input: ProviderInquiry): Promise<voi
 
 const AVAIL_RANK: Record<Availability, number> = { now: 0, lim: 1, wait: 2 };
 
+/**
+ * Availability sort is intentionally unused by the in-app finder. Results stay
+ * alphabetical so the directory cannot become a sponsored or ranked marketplace.
+ */
 export function sortByAvailability(list: Provider[]): Provider[] {
   return [...list].sort((a, b) => AVAIL_RANK[a.availability] - AVAIL_RANK[b.availability]);
 }

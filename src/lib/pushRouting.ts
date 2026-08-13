@@ -31,7 +31,8 @@ export type PushDestination =
   | { pathname: '/live-room'; params: { room: string } }
   | { pathname: '/video-session'; params: { sessionId: string } }
   | { pathname: '/admin' }
-  | { pathname: '/support' };
+  | { pathname: '/support' }
+  | { pathname: '/(tabs)/boundaries' };
 
 /**
  * Convert an untrusted notification payload into a fixed app destination.
@@ -52,6 +53,10 @@ export function getPushDestination(data: PushData, nowMs = Date.now()): PushDest
   // where the Situation Briefs inbox sits (no member data rides in the payload).
   if (kind === 'situation_brief') {
     return { pathname: '/admin' };
+  }
+
+  if (kind === 'family_backup') {
+    return { pathname: '/(tabs)/boundaries' };
   }
 
   if (kind === 'group_live') {

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
   fetchProviders,
-  sortByAvailability,
   type Provider,
   type ProviderType,
 } from '../api/providers';
@@ -58,7 +57,7 @@ export function useProviderSearch() {
 
       const main = await fetchProviders(filters.path, opts);
       if (cancelled) return;
-      setResults(sortByAvailability(main));
+      setResults(main);
 
       if (filters.path === 'center') {
         // Cross-sell only providers in the same state, so we don't surface an

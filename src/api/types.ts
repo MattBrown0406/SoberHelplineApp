@@ -309,9 +309,31 @@ export type CommitmentStatus = 'committed' | 'declined' | 'wavering';
 
 export interface FamilyMember {
   id: string;
+  accountId: string;
   displayName: string;
   role: 'owner' | 'member';
   joinedAt: string; // ISO 8601
+}
+
+export interface FamilyBackupNotice {
+  id: string;
+  accountId: string;
+  displayName: string;
+  sharedWallId: string;
+  wallText: string;
+  createdAt: string;
+}
+
+export type HoldResult = 'held' | 'mostly' | 'slipped';
+
+export interface WallHoldLog {
+  id: string;
+  accountId: string;
+  familySpaceId: string | null;
+  weekStart: string; // YYYY-MM-DD (Monday)
+  result: HoldResult;
+  sharedWithFamily: boolean;
+  updatedAt: string;
 }
 
 export interface WallCommitment {
