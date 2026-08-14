@@ -77,6 +77,24 @@ export default function LearnScreen() {
         </TouchableOpacity>
       </View>
 
+      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.coral }]}>
+        <View style={styles.toolTopRow}>
+          <Text style={styles.toolIcon}>🏠</Text>
+          <Text style={[styles.toolBadge, { backgroundColor: colors.coral }]}>{t('tools.homecomingBadge')}</Text>
+        </View>
+        <Text style={[styles.cardTitle, { color: colors.ink }]}>{t('tools.homecomingTitle')}</Text>
+        <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t('tools.homecomingBody')}</Text>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={t('tools.homecomingButton')}
+          style={[styles.cardButton, { backgroundColor: colors.coral }]}
+          onPress={() => router.push('/homecoming-week' as never)}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.cardButtonText}>{t('tools.homecomingButton')}</Text>
+        </TouchableOpacity>
+      </View>
+
       <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
         <View style={styles.toolTopRow}>
           <Text style={styles.toolIcon}>💵</Text>
