@@ -140,7 +140,7 @@ function validDate(value: string): boolean {
   return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
 function parentHomeWords(value: string): boolean {
-  return /\b(mom|mum|mother|dad|father|parents?|parental|family home|old room|mamá|mama|madre|papá|papa|padre|padres|casa familiar)\b/i.test(value);
+  return /\b(mom|mum|mother|stepmom|stepmother|dad|father|stepdad|stepfather|parents?|parental|folks|grandma|grandmother|grandpa|grandfather|grandparents?|family home|old room|relatives?|mamá|mama|madre|madrastra|papá|papa|padre|padrastro|padres|abuel[ao]s?|familiares?|parientes?|casa familiar|casa de (?:la )?familia)\b/i.test(value);
 }
 
 export function homecomingHousingOptions(plan: HomecomingWeekPlan): HomecomingHousingType[] {
@@ -173,10 +173,12 @@ export function dischargeReadiness(plan: HomecomingWeekPlan): {
   if (!has(discharge.housingDetails)) missing.push('discharge.housingDetails');
 
   const adult = identity.ageBand === 'adult';
-  const adultParentTypeBlocked = adult && discharge.housingType === 'family_home'
-    && (!discharge.adultReturnHomeConfirmed || !has(discharge.adultReturnHomeQuote));
-  const adultParentNotesBlocked = adult && !discharge.adultReturnHomeConfirmed && parentHomeWords(discharge.housingDetails);
-  const housingBlocked = adultParentTypeBlocked || adultParentNotesBlocked;
+  const adultParentDestination = adult
+    && (discharge.housingType === 'family_home' || parentHomeWords(discharge.housingDetails));
+  const housingBlocked = adultParentDestination
+    && (!discharge.adultReturnHomeConfirmed
+      || !has(discharge.adultReturnHomeQuote)
+      || !parentHomeWords(discharge.adultReturnHomeQuote));
   if (housingBlocked) missing.push('discharge.adultHousingRule');
   if (identity.ageBand === 'under_18' && !has(discharge.receivingAdult)) missing.push('discharge.receivingAdult');
 

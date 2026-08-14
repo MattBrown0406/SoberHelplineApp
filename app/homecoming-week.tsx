@@ -256,7 +256,7 @@ function DischargeSection({ controller, housingBlocked }: { controller: Controll
         <Choices value={d.fellowship} options={['aa', 'na', 'ca', 'smart', 'refuge', 'other'].map((value) => ({ value, label: t(`discharge.fellowships.${value}`) }))} onChange={(fellowship) => updateDischarge({ fellowship: fellowship as typeof d.fellowship })} />
         {d.fellowship === 'other' && <Field label={t('discharge.fellowshipOther')} value={d.fellowshipOther} onChange={(fellowshipOther) => updateDischarge({ fellowshipOther })} />}
         <Text style={[styles.label, { color: colors.ink }]}>{t('discharge.meetingsKnown')}</Text>
-        <Choices value={d.meetingsKnown} options={[{ value: 'yes', label: t('discharge.yes') }, { value: 'no', label: t('discharge.no') }]} onChange={(meetingsKnown) => updateDischarge({ meetingsKnown: meetingsKnown as typeof d.meetingsKnown })} />
+        <Choices value={d.meetingsKnown} options={[{ value: 'yes', label: t('discharge.yes') }, { value: 'no', label: t('discharge.noNotComplete') }]} onChange={(meetingsKnown) => updateDischarge({ meetingsKnown: meetingsKnown as typeof d.meetingsKnown })} />
         <Field multiline label={t('discharge.firstMeetings')} value={d.firstMeetings} onChange={(firstMeetings) => updateDischarge({ firstMeetings })} />
         <Field multiline label={t('discharge.meetingPlace')} value={d.meetingPlace} onChange={(meetingPlace) => updateDischarge({ meetingPlace })} />
         <Field multiline label={t('discharge.backupMeeting')} value={d.backupMeeting} onChange={(backupMeeting) => updateDischarge({ backupMeeting })} />

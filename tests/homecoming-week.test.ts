@@ -95,21 +95,26 @@ test('adult parent home requires explicit discharge control and quoted language'
   assert.equal(dischargeReadiness(plan).housingBlocked, true);
   plan = updateHomecomingDischarge(plan, { adultReturnHomeConfirmed: true });
   assert.equal(dischargeReadiness(plan).ready, false);
+  plan = updateHomecomingDischarge(plan, { adultReturnHomeQuote: 'Follow the written discharge plan.' });
+  assert.equal(dischargeReadiness(plan).ready, false);
   plan = updateHomecomingDischarge(plan, { adultReturnHomeQuote: 'Return to family home with parents.' });
   assert.equal(dischargeReadiness(plan).ready, true);
   assert.ok(homecomingHousingOptions(plan).includes('family_home'));
 });
 
-test('adult parent wording in notes cannot bypass the control', () => {
-  let plan = completeDischarge(true);
-  plan = updateHomecomingDischarge(plan, {
-    housingType: 'other',
-    housingDetails: 'Live with mom and dad for now',
-    adultReturnHomeConfirmed: false,
-  });
-  const result = dischargeReadiness(plan);
-  assert.equal(result.housingBlocked, true);
-  assert.equal(result.ready, false);
+test('adult parent wording in English or Spanish notes cannot bypass the control', () => {
+  for (const housingDetails of ['Live with mom and dad for now', 'Casa de la abuela durante un mes', 'Stay with my folks']) {
+    let plan = completeDischarge(true);
+    plan = updateHomecomingDischarge(plan, {
+      housingType: 'other',
+      housingDetails,
+      adultReturnHomeConfirmed: true,
+      adultReturnHomeQuote: 'Follow the written discharge plan.',
+    });
+    const result = dischargeReadiness(plan);
+    assert.equal(result.housingBlocked, true);
+    assert.equal(result.ready, false);
+  }
 });
 
 test('changing a minor to adult clears inherited family-home details', () => {
