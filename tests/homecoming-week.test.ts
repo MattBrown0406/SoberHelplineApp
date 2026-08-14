@@ -97,6 +97,10 @@ test('adult parent home requires explicit discharge control and quoted language'
   assert.equal(dischargeReadiness(plan).ready, false);
   plan = updateHomecomingDischarge(plan, { adultReturnHomeQuote: 'Follow the written discharge plan.' });
   assert.equal(dischargeReadiness(plan).ready, false);
+  plan = updateHomecomingDischarge(plan, { adultReturnHomeQuote: 'Do not return to parents after discharge.' });
+  assert.equal(dischargeReadiness(plan).ready, false);
+  plan = updateHomecomingDischarge(plan, { adultReturnHomeQuote: 'No debe volver a la casa familiar.' });
+  assert.equal(dischargeReadiness(plan).ready, false);
   plan = updateHomecomingDischarge(plan, { adultReturnHomeQuote: 'Return to family home with parents.' });
   assert.equal(dischargeReadiness(plan).ready, true);
   assert.ok(homecomingHousingOptions(plan).includes('family_home'));

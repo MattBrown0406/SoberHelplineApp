@@ -142,6 +142,10 @@ function validDate(value: string): boolean {
 function parentHomeWords(value: string): boolean {
   return /\b(mom|mum|mother|stepmom|stepmother|dad|father|stepdad|stepfather|parents?|parental|folks|grandma|grandmother|grandpa|grandfather|grandparents?|family home|old room|relatives?|mamá|mama|madre|madrastra|papá|papa|padre|padrastro|padres|abuel[ao]s?|familiares?|parientes?|casa familiar|casa de (?:la )?familia)\b/i.test(value);
 }
+function parentHomeQuoteSupportsReturn(value: string): boolean {
+  if (!parentHomeWords(value)) return false;
+  return !/\b(do not|don't|not|never|must not|should not|cannot|can't|avoid|prohibit(?:ed)?|no|nunca|no debe|no deberá|no volver|no regrese|evitar|prohibid[oa])\b/i.test(value);
+}
 
 export function homecomingHousingOptions(plan: HomecomingWeekPlan): HomecomingHousingType[] {
   if (plan.identity.ageBand === 'under_18') return ['family_home', 'other'];
@@ -178,7 +182,7 @@ export function dischargeReadiness(plan: HomecomingWeekPlan): {
   const housingBlocked = adultParentDestination
     && (!discharge.adultReturnHomeConfirmed
       || !has(discharge.adultReturnHomeQuote)
-      || !parentHomeWords(discharge.adultReturnHomeQuote));
+      || !parentHomeQuoteSupportsReturn(discharge.adultReturnHomeQuote));
   if (housingBlocked) missing.push('discharge.adultHousingRule');
   if (identity.ageBand === 'under_18' && !has(discharge.receivingAdult)) missing.push('discharge.receivingAdult');
 
