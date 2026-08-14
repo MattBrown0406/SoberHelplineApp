@@ -1,7 +1,7 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SET search_path=public,extensions;
-SELECT plan(12);
+SELECT plan(15);
 
 INSERT INTO auth.users (id, email, raw_app_meta_data, raw_user_meta_data, aud, role)
 VALUES
@@ -24,6 +24,20 @@ INSERT INTO public.family_members (family_space_id, account_id, role)
 VALUES
   ('71000000-0000-0000-0000-000000000001', (SELECT id FROM accounts WHERE user_id='61000000-0000-0000-0000-000000000001'), 'owner'),
   ('71000000-0000-0000-0000-000000000001', (SELECT id FROM accounts WHERE user_id='61000000-0000-0000-0000-000000000002'), 'member');
+
+INSERT INTO public.family_spaces (id, name, created_by, invite_code)
+VALUES (
+  '71000000-0000-0000-0000-000000000002',
+  'Other family',
+  (SELECT id FROM accounts WHERE user_id='61000000-0000-0000-0000-000000000003'),
+  'OTHER-WALL'
+);
+INSERT INTO public.family_members (family_space_id, account_id, role)
+VALUES (
+  '71000000-0000-0000-0000-000000000002',
+  (SELECT id FROM accounts WHERE user_id='61000000-0000-0000-0000-000000000003'),
+  'owner'
+);
 
 SELECT ok(
   has_table_privilege('authenticated','public.wall_hold_logs','SELECT')
@@ -80,6 +94,29 @@ SELECT is(
 
 INSERT INTO public.wall_hold_logs (account_id, family_space_id, week_start, result, shared_with_family)
 VALUES (public.my_account_id(), '71000000-0000-0000-0000-000000000001', '2026-08-10', 'held', false);
+
+SELECT throws_ok(
+  $$INSERT INTO public.wall_hold_logs (account_id, family_space_id, week_start, result, shared_with_family)
+    VALUES (public.my_account_id(), '71000000-0000-0000-0000-000000000002', '2026-08-03', 'held', true)$$,
+  '42501',
+  'new row violates row-level security policy for table "wall_hold_logs"',
+  'member cannot inject a shared hold log into another family space'
+);
+
+SELECT throws_ok(
+  $$UPDATE public.wall_hold_logs
+    SET family_space_id='71000000-0000-0000-0000-000000000002', shared_with_family=true
+    WHERE account_id=public.my_account_id()$$,
+  '42501',
+  'new row violates row-level security policy for table "wall_hold_logs"',
+  'member cannot move an existing hold log into another family space'
+);
+
+SELECT is(
+  (SELECT count(*)::integer FROM wavering_events WHERE notification_claimed_at IS NOT NULL),
+  0,
+  'new wavering notifications start unclaimed for one-time delivery'
+);
 
 RESET ROLE;
 SET LOCAL ROLE authenticated;

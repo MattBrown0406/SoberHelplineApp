@@ -22,7 +22,7 @@ export function SafetyShortcut() {
       <TouchableOpacity
         accessibilityRole="button"
         accessibilityLabel={t('safetyShortcut.accessibility')}
-        onPress={() => router.push('/safety-wallet')}
+        onPress={() => router.push('/safety-wallet' as never)}
         activeOpacity={0.88}
         style={[
           styles.button,

@@ -247,7 +247,7 @@ export function CheckInCard({
               <TouchableOpacity
                 accessibilityRole="button"
                 style={[styles.responseBtn, { borderColor: colors.coral }]}
-                onPress={() => router.push('/safety-wallet')}
+                onPress={() => router.push('/safety-wallet' as never)}
                 activeOpacity={0.82}
               >
                 <Text style={[styles.responseBtnText, { color: colors.coral }]}>

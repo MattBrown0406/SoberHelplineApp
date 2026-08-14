@@ -84,7 +84,7 @@ export default function LearnScreen() {
         <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t('tools.safetyBody')}</Text>
         <TouchableOpacity
           style={[styles.cardButton, { backgroundColor: colors.green }]}
-          onPress={() => router.push('/safety-wallet')}
+          onPress={() => router.push('/safety-wallet' as never)}
           activeOpacity={0.85}
         >
           <Text style={styles.cardButtonText}>{t('tools.safetyButton')}</Text>

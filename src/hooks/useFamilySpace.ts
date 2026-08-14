@@ -185,13 +185,15 @@ export function useFamilySpace(accountId: string | null, youLabel = 'You') {
   }, [reload]);
 
   const markWavering = useCallback(async (sharedWallId: string, shareWithFamily: boolean): Promise<void> => {
-    const { error } = await supabase.rpc('record_wall_wavering', {
+    const { data: eventId, error } = await supabase.rpc('record_wall_wavering', {
       p_shared_wall_id: sharedWallId,
       p_share_with_family: shareWithFamily,
     });
     if (error) throw error;
-    if (shareWithFamily) {
-      void supabase.functions.invoke('notify-family-backup', { body: { shared_wall_id: sharedWallId } });
+    if (shareWithFamily && eventId) {
+      void supabase.functions.invoke('notify-family-backup', {
+        body: { wavering_event_id: eventId },
+      });
     }
     await reload();
   }, [reload]);

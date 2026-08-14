@@ -34,14 +34,14 @@ Deno.serve(async (req) => {
   );
   if (userError || !userData?.user) return json({ error: 'unauthorized' }, 401);
 
-  let sharedWallId = '';
+  let waveringEventId = '';
   try {
     const body = await req.json();
-    sharedWallId = typeof body?.shared_wall_id === 'string' ? body.shared_wall_id : '';
+    waveringEventId = typeof body?.wavering_event_id === 'string' ? body.wavering_event_id : '';
   } catch {
     return json({ error: 'invalid_body' }, 400);
   }
-  if (!sharedWallId) return json({ error: 'invalid_body' }, 400);
+  if (!waveringEventId) return json({ error: 'invalid_body' }, 400);
 
   const { data: account } = await admin
     .from('accounts')
@@ -50,10 +50,44 @@ Deno.serve(async (req) => {
     .maybeSingle();
   if (!account) return json({ error: 'no account' }, 404);
 
+  const { data: event } = await admin
+    .from('wavering_events')
+    .select('id, shared_wall_id, account_id, shared_with_family, created_at, notification_claimed_at')
+    .eq('id', waveringEventId)
+    .maybeSingle();
+  if (!event || event.account_id !== account.id) return json({ error: 'not_found' }, 404);
+  if (!event.shared_with_family || event.notification_claimed_at) return json({ ok: true, sent: 0 });
+  if (Date.now() - new Date(event.created_at).getTime() > 10 * 60 * 1000) {
+    return json({ ok: true, sent: 0 });
+  }
+
+  // Consent is represented by the latest event for this member and wall. A
+  // newer private event revokes an earlier opt-in before it can be replayed.
+  const { data: latest } = await admin
+    .from('wavering_events')
+    .select('id, shared_with_family')
+    .eq('shared_wall_id', event.shared_wall_id)
+    .eq('account_id', account.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!latest || latest.id !== event.id || !latest.shared_with_family) {
+    return json({ ok: true, sent: 0 });
+  }
+
+  const { data: claimed } = await admin
+    .from('wavering_events')
+    .update({ notification_claimed_at: new Date().toISOString() })
+    .eq('id', event.id)
+    .is('notification_claimed_at', null)
+    .select('shared_wall_id')
+    .maybeSingle();
+  if (!claimed) return json({ ok: true, sent: 0 });
+
   const { data: wall } = await admin
     .from('shared_walls')
     .select('id, family_space_id')
-    .eq('id', sharedWallId)
+    .eq('id', event.shared_wall_id)
     .maybeSingle();
   if (!wall) return json({ error: 'not_found' }, 404);
 
@@ -65,16 +99,6 @@ Deno.serve(async (req) => {
     .maybeSingle();
   if (!membership) return json({ error: 'forbidden' }, 403);
 
-  const { data: latest } = await admin
-    .from('wavering_events')
-    .select('id, shared_with_family')
-    .eq('shared_wall_id', sharedWallId)
-    .eq('account_id', account.id)
-    .eq('shared_with_family', true)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (!latest) return json({ ok: true, sent: 0 });
 
   const { data: members } = await admin
     .from('family_members')
