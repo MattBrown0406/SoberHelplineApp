@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import {
   View,
   Text,
+  ActivityIndicator,
   TouchableOpacity,
   StyleSheet,
   Linking,
@@ -14,6 +15,9 @@ import { useTheme } from '../src/contexts/ThemeContext';
 import { FEATURED_PROVIDER } from '../src/config';
 import { logFunnelEvent } from '../src/lib/funnel';
 import { MAX_CONTENT_WIDTH } from '../src/components/ui/ScreenContainer';
+import { useAccount } from '../src/contexts/AccountContext';
+import { useTreatmentActionPlan } from '../src/hooks/useTreatmentActionPlan';
+import { treatmentActionProgress } from '../src/lib/treatmentActionPlan';
 
 /**
  * Warm, low-pressure landing for the top funnel rung: planning an intervention
@@ -23,7 +27,11 @@ import { MAX_CONTENT_WIDTH } from '../src/components/ui/ScreenContainer';
 export default function PlanInterventionScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation('support');
+  const { t: tActionPlan } = useTranslation('treatmentActionPlan');
   const router = useRouter();
+  const { user } = useAccount();
+  const { plan, loadState, saveState, reload } = useTreatmentActionPlan(user?.id ?? null);
+  const actionProgress = treatmentActionProgress(plan);
 
   useEffect(() => {
     logFunnelEvent('intervention_viewed');
@@ -34,6 +42,93 @@ export default function PlanInterventionScreen() {
     t('intervention.step2'),
     t('intervention.step3'),
   ];
+
+  if (loadState === 'loading') {
+    return (
+      <SafeAreaView style={[styles.container, styles.loading, { backgroundColor: colors.cream }]}>
+        <ActivityIndicator color={colors.primary} />
+      </SafeAreaView>
+    );
+  }
+
+  if (loadState === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
+        <View style={[styles.header, { borderBottomColor: colors.line }]}>
+          <TouchableOpacity onPress={() => router.back()} hitSlop={12} accessibilityRole="button">
+            <Text style={[styles.back, { color: colors.primary }]}>‹</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView contentContainerStyle={styles.body}>
+          <View accessibilityRole="alert" style={[styles.gateCard, { backgroundColor: colors.coralLight, borderColor: colors.coral }]}>
+            <Text style={[styles.cardTitle, { color: colors.coral }]}>{tActionPlan('loadErrorTitle')}</Text>
+            <Text style={[styles.stepText, { color: colors.ink }]}>{tActionPlan('loadErrorBody')}</Text>
+            <TouchableOpacity
+              accessibilityRole="button"
+              style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
+              onPress={() => void reload()}
+            >
+              <Text style={styles.primaryBtnText}>{tActionPlan('retryLoad')}</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={[styles.gateSupportNote, { color: colors.inkSoft }]}>{tActionPlan('gateSupportNote')}</Text>
+          <TouchableOpacity
+            accessibilityRole="button"
+            style={[styles.gateSecondary, { borderColor: colors.primary }]}
+            onPress={() => router.push('/book-coaching')}
+          >
+            <Text style={[styles.secondaryBtnText, { color: colors.primary }]}>{tActionPlan('gateSupportButton')}</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  if (!actionProgress.ready || saveState !== 'saved') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
+        <View style={[styles.header, { borderBottomColor: colors.line }]}>
+          <TouchableOpacity onPress={() => router.back()} hitSlop={12} accessibilityRole="button">
+            <Text style={[styles.back, { color: colors.primary }]}>‹</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView contentContainerStyle={styles.body}>
+          <Text style={[styles.eyebrow, { color: colors.coral }]}>{tActionPlan('kicker')}</Text>
+          <Text style={[styles.title, { color: colors.ink }]}>
+            {saveState === 'error' ? tActionPlan('saveError') : tActionPlan('gateTitle')}
+          </Text>
+          <Text style={[styles.intro, { color: colors.inkSoft }]}>
+            {saveState === 'saving' ? tActionPlan('saving') : tActionPlan('warningBody')}
+          </Text>
+          <View style={[styles.gateCard, { backgroundColor: colors.coralLight, borderColor: colors.coral }]}>
+            <Text style={[styles.gateProgress, { color: colors.coral }]}>
+              {tActionPlan('progress', actionProgress)}
+            </Text>
+            <TouchableOpacity
+              accessibilityRole="button"
+              style={[styles.primaryBtn, { backgroundColor: colors.coral }]}
+              onPress={() => router.push('/treatment-action-plan' as never)}
+            >
+              <Text style={styles.primaryBtnText}>{tActionPlan('title')}</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={[styles.gateSupportNote, { color: colors.inkSoft }]}>{tActionPlan('gateSupportNote')}</Text>
+          <TouchableOpacity
+            accessibilityRole="button"
+            style={[styles.gateSecondary, { borderColor: colors.primary }]}
+            onPress={() => router.push('/book-coaching')}
+          >
+            <Text style={[styles.secondaryBtnText, { color: colors.primary }]}>{tActionPlan('gateSupportButton')}</Text>
+          </TouchableOpacity>
+          <View accessibilityRole="alert" style={[styles.gateExceptions, { borderLeftColor: colors.coral }]}>
+            <Text style={[styles.actionPlanKicker, { color: colors.coral }]}>{tActionPlan('exceptionsTitle')}</Text>
+            <Text style={[styles.stepText, { color: colors.ink }]}>{tActionPlan('spontaneous')}</Text>
+            <Text style={[styles.stepText, { color: colors.ink }]}>{tActionPlan('emergency')}</Text>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
@@ -53,6 +148,19 @@ export default function PlanInterventionScreen() {
         <Text style={[styles.intro, { color: colors.inkSoft }]}>
           {t('intervention.intro')}
         </Text>
+
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={tActionPlan('title')}
+          accessibilityHint={tActionPlan('warningBody')}
+          style={[styles.actionPlanCard, { backgroundColor: colors.coralLight, borderColor: colors.coral }]}
+          onPress={() => router.push('/treatment-action-plan' as never)}
+          activeOpacity={0.85}
+        >
+          <Text style={[styles.actionPlanKicker, { color: colors.coral }]}>{tActionPlan('kicker')}</Text>
+          <Text style={[styles.cardTitle, { color: colors.ink }]}>{tActionPlan('title')}</Text>
+          <Text style={[styles.stepText, { color: colors.inkSoft }]}>{tActionPlan('warningBody')}</Text>
+        </TouchableOpacity>
 
         {/* What it looks like */}
         <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
@@ -134,6 +242,7 @@ export default function PlanInterventionScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  loading: { alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -158,6 +267,13 @@ const styles = StyleSheet.create({
     padding: 18,
     marginTop: 16,
   },
+  actionPlanCard: { borderRadius: 18, borderWidth: 1.5, padding: 18, marginTop: 16 },
+  actionPlanKicker: { fontSize: 10.5, fontWeight: '900', letterSpacing: 1, marginBottom: 7 },
+  gateCard: { borderRadius: 18, borderWidth: 1.5, padding: 18, marginTop: 10 },
+  gateProgress: { fontSize: 16, fontWeight: '900' },
+  gateSupportNote: { fontSize: 13, lineHeight: 19, textAlign: 'center', marginTop: 20 },
+  gateSecondary: { borderRadius: 99, borderWidth: 1.5, paddingVertical: 13, alignItems: 'center', marginTop: 10 },
+  gateExceptions: { borderLeftWidth: 4, paddingLeft: 13, marginTop: 24, gap: 7 },
   cardTitle: { fontSize: 15.5, fontWeight: '700', marginBottom: 12 },
   stepRow: { flexDirection: 'row', gap: 12, marginBottom: 12, alignItems: 'flex-start' },
   stepNum: {

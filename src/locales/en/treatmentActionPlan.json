@@ -1,0 +1,94 @@
+{
+  "back": "‹ Tools",
+  "kicker": "PREPARE BEFORE THE CONVERSATION",
+  "title": "Treatment Action Plan",
+  "intro": "A yes can come late at night and disappear within hours. Finalize the logistics before the planned conversation so your family can move immediately when your loved one accepts help.",
+  "privacy": "Private · Not shared with family or treatment centers",
+  "warningTitle": "Do not hold the planned conversation yet",
+  "warningBody": "Every applicable action item must be green first. A treatment bed, payment plan, ride, and household coverage should not be figured out after your loved one says yes.",
+  "readyTitle": "Logistics are ready",
+  "readyBody": "Reconfirm availability with the admissions contact immediately before the conversation. Availability can change.",
+  "exceptionsTitle": "Two exceptions: act now",
+  "spontaneous": "If your loved one asks for help unexpectedly, respond now and call the treatment professional or admissions contact. Do not delay voluntary help just to finish this checklist.",
+  "emergency": "For an overdose or immediate danger, call 911. For suicidal thoughts or a mental-health crisis, call or text 988. Do not wait for this plan.",
+  "progress": "{{percentage}}% ready · {{completed}} of {{total}} complete",
+  "advanceBadge": "FINALIZE IN ADVANCE",
+  "detailsRequired": "Specific details are required before this item turns green.",
+  "autoSave": "Saved privately in the app.",
+  "saving": "Saving…",
+  "saveError": "This device did not save the latest change.",
+  "retry": "Retry save",
+  "loadErrorTitle": "The saved plan could not be opened",
+  "loadErrorBody": "Your existing plan has not been replaced. Retry opening it. Only start over if you intentionally want to delete the protected copy on this device.",
+  "retryLoad": "Retry opening plan",
+  "startOver": "Delete protected copy and start over",
+  "gateTitle": "Complete the Treatment Action Plan first",
+  "gateSupportButton": "Get professional help preparing",
+  "gateSupportNote": "You can speak with an interventionist while preparing. That is different from holding the planned conversation with your loved one.",
+  "finderButton": "Open A–Z treatment directory",
+  "finderNote": "Use the directory to identify options, then confirm clinical fit and current availability directly. Listings are not sponsored rankings.",
+  "interventionButton": "Return to intervention planning",
+  "clear": "Clear plan",
+  "clearTitle": "Clear the Treatment Action Plan?",
+  "clearBody": "This permanently removes the plan saved on this device.",
+  "cancel": "Cancel",
+  "clearConfirm": "Clear",
+  "status": {
+    "not_started": "Not started",
+    "working": "Working on it",
+    "confirmed": "Confirmed",
+    "not_applicable": "Does not apply"
+  },
+  "categories": {
+    "admission": "Admission and payment",
+    "departure": "Departure logistics",
+    "coverage": "Family and practical coverage"
+  },
+  "items": {
+    "placement": {
+      "title": "Treatment option and availability confirmed",
+      "body": "Confirm the appropriate level of care directly with admissions. Record the facility, phone number, callback name, what was confirmed, and how long that confirmation is expected to hold.",
+      "placeholder": "Facility/program, admissions number, callback name, confirmation time, availability window"
+    },
+    "coverage": {
+      "title": "Insurance or payment verified",
+      "body": "Verify benefits and the actual payment plan before the conversation. Include deductible, estimated family responsibility, prior authorization, and the name or reference number from the verification. Do not enter policy, member, or Social Security numbers.",
+      "placeholder": "Verifier, reference number, deductible/out-of-pocket amount, authorization or private-pay plan"
+    },
+    "transport": {
+      "title": "Transportation assigned to a specific person",
+      "body": "Name the primary driver, backup driver, departure point, timing, and who will stay with your loved one. Do not leave the ride as “someone will handle it.”",
+      "placeholder": "Primary driver, backup driver, vehicle/flight, departure point and timing"
+    },
+    "bag": {
+      "title": "Bag packed and kept out of sight",
+      "body": "Prepare facility-approved clothing and essentials before the conversation. Keep the bag controlled by a family member so packing does not become a delay or confrontation.",
+      "placeholder": "Who packed it, who controls it, and any facility packing restrictions"
+    },
+    "work": {
+      "title": "Work coverage and communication ready",
+      "body": "Prepare a truthful, minimal-disclosure plan for the first absence. Decide who can help communicate only with permission; do not impersonate your loved one or invent a medical story.",
+      "placeholder": "Coverage contact, approved message, leave/FMLA questions, or why this does not apply"
+    },
+    "dependents": {
+      "title": "Children, pets, and household duties covered",
+      "body": "Assign named people and backup coverage for children, pets, school transportation, housing access, and other daily responsibilities.",
+      "placeholder": "Names, dates, pickup/feeding instructions, backup person, or why this does not apply"
+    },
+    "money": {
+      "title": "First 72 hours of money decided",
+      "body": "Agree in advance what the family will pay directly, what it will not fund, who holds cards or keys, and how immediate legitimate expenses will be handled without giving cash.",
+      "placeholder": "Approved direct payments, no-cash boundary, responsible family member, card/key plan"
+    },
+    "documents": {
+      "title": "Identification, medications, and documents ready",
+      "body": "Gather the identification, insurance card, medication list, pharmacy information, emergency contacts, and any facility-requested documents that can be prepared lawfully in advance.",
+      "placeholder": "Documents gathered, medication/pharmacy list, who holds them, anything still outstanding"
+    },
+    "backup": {
+      "title": "Backup admission path confirmed",
+      "body": "Beds and authorizations can change. Confirm the next call, alternate program, or professional escalation path so one failed handoff does not end the attempt.",
+      "placeholder": "Backup program/contact, call order, professional point person, after-hours number"
+    }
+  }
+}
