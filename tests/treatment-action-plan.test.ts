@@ -159,9 +159,11 @@ test('They Said Yes mode is on TAP with fixed departure, recant, and one-tap adm
   const actionPlanScreen = readFileSync(resolve(TEST_DIR, '../app/treatment-action-plan.tsx'), 'utf8');
   const yesMode = readFileSync(resolve(TEST_DIR, '../src/components/treatment/TheySaidYesMode.tsx'), 'utf8');
   assert.match(actionPlanScreen, /<TheySaidYesMode controller=\{controller\} \/>/);
-  assert.match(yesMode, /yesLoggedAt: new Date\(\)\.toISOString\(\)/);
+  assert.match(yesMode, /yesLoggedAt: now\.toISOString\(\)/);
   assert.match(yesMode, /recantedAt: new Date\(\)\.toISOString\(\)/);
   assert.match(yesMode, /Linking\.openURL\(`tel:\$\{dialNumber\}`\)/);
   assert.match(yesMode, /departureAt: next\.toISOString\(\)/);
+  assert.match(yesMode, /const departureLocked = state\.mode !== 'idle'/);
+  assert.match(yesMode, /departureLocked \? \(/);
   assert.doesNotMatch(yesMode, /WILLINGNESS_WINDOW_HOURS|72-hour/);
 });

@@ -59,6 +59,7 @@
     "driver": "Assigned driver",
     "driverPlaceholder": "Name the person who is driving",
     "leaveTime": "Leave time — do not keep moving it",
+    "leaveLocked": "Locked for this yes. Keep the family moving toward this time instead of renegotiating the night.",
     "setDate": "Set departure date",
     "setTime": "Set departure time",
     "nightWatch": "Who stays up",

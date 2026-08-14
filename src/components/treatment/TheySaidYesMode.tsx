@@ -35,6 +35,7 @@ export function TheySaidYesMode({ controller }: { controller: Controller }) {
   const execution = plan.execution;
   const dialNumber = admissionsDialNumber(execution.admissionsPhone);
   const departure = execution.departureAt ? new Date(execution.departureAt) : null;
+  const departureLocked = state.mode !== 'idle' && !!departure && Number.isFinite(departure.getTime());
   const pickerValue = departure && Number.isFinite(departure.getTime())
     ? departure
     : new Date(clock.getTime() + 2 * 60 * 60 * 1000);
@@ -57,7 +58,12 @@ export function TheySaidYesMode({ controller }: { controller: Controller }) {
   }
 
   function logYes() {
-    updateExecution({ yesLoggedAt: new Date().toISOString(), recantedAt: null });
+    const now = new Date();
+    updateExecution({
+      yesLoggedAt: now.toISOString(),
+      recantedAt: null,
+      ...(departure && departure.getTime() <= now.getTime() ? { departureAt: null } : {}),
+    });
   }
 
   function confirmRecant() {
@@ -168,18 +174,29 @@ export function TheySaidYesMode({ controller }: { controller: Controller }) {
       />
 
       <Text style={[styles.label, { color: colors.ink }]}>{t('yesMode.leaveTime')}</Text>
-      <View style={styles.buttonRow}>
-        <SmallButton
-          label={departure ? departure.toLocaleDateString() : t('yesMode.setDate')}
-          onPress={() => setShowDate(true)}
-        />
-        <SmallButton
-          label={departure ? departure.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : t('yesMode.setTime')}
-          onPress={() => setShowTime(true)}
-        />
-      </View>
-      {showDate && <DateTimePicker value={pickerValue} mode="date" minimumDate={new Date()} onChange={changeDeparture('date')} />}
-      {showTime && <DateTimePicker value={pickerValue} mode="time" minuteInterval={5} onChange={changeDeparture('time')} />}
+      {departureLocked ? (
+        <View style={[styles.lockedDeparture, { backgroundColor: colors.primaryLight, borderColor: colors.primary }]}>
+          <Text style={[styles.lockedTime, { color: colors.primary }]}>
+            {departure.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+          </Text>
+          <Text style={[styles.lockedHint, { color: colors.inkSoft }]}>{t('yesMode.leaveLocked')}</Text>
+        </View>
+      ) : (
+        <>
+          <View style={styles.buttonRow}>
+            <SmallButton
+              label={departure ? departure.toLocaleDateString() : t('yesMode.setDate')}
+              onPress={() => setShowDate(true)}
+            />
+            <SmallButton
+              label={departure ? departure.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : t('yesMode.setTime')}
+              onPress={() => setShowTime(true)}
+            />
+          </View>
+          {showDate && <DateTimePicker value={pickerValue} mode="date" minimumDate={new Date()} onChange={changeDeparture('date')} />}
+          {showTime && <DateTimePicker value={pickerValue} mode="time" minuteInterval={5} onChange={changeDeparture('time')} />}
+        </>
+      )}
 
       <View style={styles.twoColumn}>
         <RoleField label={t('yesMode.nightWatch')} value={execution.nightWatch} onChange={(nightWatch) => updateExecution({ nightWatch })} />
@@ -289,6 +306,9 @@ const styles = StyleSheet.create({
   buttonRow: { flexDirection: 'row', gap: 8 },
   smallButton: { flex: 1, borderWidth: 1, borderRadius: 10, paddingVertical: 11, alignItems: 'center' },
   smallButtonText: { fontSize: 12.5, fontWeight: '800' },
+  lockedDeparture: { borderWidth: 1, borderRadius: 11, padding: 11 },
+  lockedTime: { fontSize: 14, fontWeight: '900' },
+  lockedHint: { fontSize: 11.5, lineHeight: 16, marginTop: 3 },
   twoColumn: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   roleField: { minWidth: '47%', flexGrow: 1 },
   sayBox: { borderWidth: 1, borderRadius: 12, padding: 12, marginTop: 11 },

@@ -59,6 +59,7 @@
     "driver": "Conductor asignado",
     "driverPlaceholder": "Nombre de la persona que conducirá",
     "leaveTime": "Hora de salida — no sigas cambiándola",
+    "leaveLocked": "Fijada para este sí. Mantén a la familia avanzando hacia esta hora en lugar de renegociar la noche.",
     "setDate": "Fijar fecha de salida",
     "setTime": "Fijar hora de salida",
     "nightWatch": "Quién permanece despierto",
