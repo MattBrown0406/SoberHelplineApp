@@ -49,6 +49,9 @@ export function WillingnessWindowCard({
     () => treatmentActionProgress(actionPlan.plan),
     [actionPlan.plan],
   );
+  const planGreen = actionPlan.loadState === 'ready'
+    && actionPlan.saveState === 'saved'
+    && progress.ready;
 
   async function submitEvent() {
     if (!selectedType) return;
@@ -133,26 +136,36 @@ export function WillingnessWindowCard({
             <Text style={[styles.sayText, { color: colors.ink }]}>{t('window.sayText')}</Text>
           </View>
 
-          <View style={[styles.readiness, { borderColor: progress.ready ? colors.green : colors.coral }]}>
-            <Text style={[styles.readinessTitle, { color: progress.ready ? colors.green : colors.coral }]}>
+          <View style={[styles.readiness, { borderColor: planGreen ? colors.green : colors.coral }]}>
+            <Text style={[styles.readinessTitle, { color: planGreen ? colors.green : colors.coral }]}>
               {actionPlan.loadState === 'loading'
                 ? t('window.readinessChecking')
                 : actionPlan.loadState === 'error'
-                ? t('window.readinessUnavailable')
-                : progress.ready
+                  ? t('window.readinessUnavailable')
+                  : actionPlan.saveState === 'saving'
+                    ? t('window.readinessSaving')
+                    : actionPlan.saveState === 'error'
+                      ? t('window.readinessUnsaved')
+                      : planGreen
                   ? t('window.readinessReady')
                   : t('window.readinessNotReady', { percentage: progress.percentage })}
             </Text>
             <Text style={[styles.readinessBody, { color: colors.inkSoft }]}>
               {actionPlan.loadState === 'loading'
                 ? t('window.readinessChecking')
-                : progress.ready
-                  ? t('window.readinessReadyBody')
-                  : t('window.readinessBody')}
+                : actionPlan.loadState === 'error'
+                  ? t('window.readinessUnavailableBody')
+                  : actionPlan.saveState === 'saving'
+                    ? t('window.readinessSavingBody')
+                    : actionPlan.saveState === 'error'
+                      ? t('window.readinessUnsavedBody')
+                      : planGreen
+                        ? t('window.readinessReadyBody')
+                        : t('window.readinessBody')}
             </Text>
             <TouchableOpacity
               accessibilityRole="button"
-              style={[styles.primaryButton, { backgroundColor: progress.ready ? colors.green : colors.primary }]}
+              style={[styles.primaryButton, { backgroundColor: planGreen ? colors.green : colors.primary }]}
               onPress={() => router.push('/treatment-action-plan' as never)}
             >
               <Text style={styles.primaryButtonText}>{t('window.openPlan')}</Text>

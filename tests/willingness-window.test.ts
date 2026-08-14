@@ -74,4 +74,6 @@ test('loading and failed reads keep safety guidance visible and block a false cl
   assert.doesNotMatch(errorBranch, /setShowLogger/);
   assert.ok(activeBranch.indexOf('<SafetyNote />') < activeBranch.indexOf('window.sayLabel'));
   assert.match(hook, /loadedAccountId === accountId \? latestEvent : null/);
+  assert.match(card, /actionPlan\.loadState === 'ready'[\s\S]*actionPlan\.saveState === 'saved'[\s\S]*progress\.ready/);
+  assert.match(card, /borderColor: planGreen/);
 });
