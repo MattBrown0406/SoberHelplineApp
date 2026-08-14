@@ -21,7 +21,10 @@ import {
   homecomingIdentityStorageKey,
   homecomingItemStorageKey,
 } from '../src/lib/homecomingStorageKeys';
-import { parseProtectedHomecomingRecord } from '../src/lib/homecomingProtectedRecord';
+import {
+  parseProtectedHomecomingHousingRecord,
+  parseProtectedHomecomingRecord,
+} from '../src/lib/homecomingProtectedRecord';
 
 const TEST_DIR = dirname(fileURLToPath(import.meta.url));
 
@@ -111,7 +114,10 @@ test('adult parent home requires explicit discharge control and quoted language'
 });
 
 test('adult family destinations in English or Spanish notes cannot bypass a false category', () => {
-  for (const housingDetails of ["My sister's house", 'Casa de mi hermano', 'Casa de la abuela durante un mes', 'Stay with my folks']) {
+  for (const housingDetails of [
+    "My sister's house", "My daughter's house", "My niece's place", "Guardian's apartment", 'Stay with my son',
+    'Casa de mi hermano', 'Casa de la abuela durante un mes', 'Vivir con mi hija', 'Casa de mi sobrino', 'Stay with my folks',
+  ]) {
     let plan = completeDischarge(true);
     plan = updateHomecomingDischarge(plan, {
       housingType: 'other',
@@ -219,6 +225,21 @@ test('present but malformed protected records fail closed', () => {
   assert.throws(() => parseProtectedHomecomingRecord('{}', 'identity', 'preferredName'), /missing_field/);
   assert.throws(() => parseProtectedHomecomingRecord('{"preferredName":"Sam"}', 'identity', ['preferredName', 'ageBand']), /missing_field/);
   assert.deepEqual(parseProtectedHomecomingRecord('{"preferredName":"Sam"}', 'identity', 'preferredName'), { preferredName: 'Sam' });
+});
+
+test('legacy housing records migrate only the two known new fields', () => {
+  const legacy = JSON.stringify({
+    housingType: 'sober_living', housingDetails: 'Oak House', receivingAdult: '',
+    adultReturnHomeConfirmed: false, adultReturnHomeQuote: '',
+  });
+  assert.deepEqual(parseProtectedHomecomingHousingRecord(legacy), {
+    housingType: 'sober_living', housingDetails: 'Oak House', receivingAdult: '',
+    adultReturnHomeConfirmed: false, adultReturnHomeQuote: '',
+    otherHousingFamilyStatus: '', adultReturnHomeQuoteAffirmed: false,
+  });
+  assert.throws(() => parseProtectedHomecomingHousingRecord(JSON.stringify({
+    housingType: 'sober_living', receivingAdult: '', adultReturnHomeConfirmed: false, adultReturnHomeQuote: '',
+  })), /missing_field.*housingDetails/);
 });
 
 test('protected storage and hook preserve account scope and clear/read/write coordination', () => {

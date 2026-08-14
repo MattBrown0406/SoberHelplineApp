@@ -147,7 +147,7 @@ function normalized(value: string): string {
 }
 function describesFamilyDestination(value: string): boolean {
   const text = normalized(value);
-  const kin = '(?:mom|mum|mother|stepmom|stepmother|dad|father|stepdad|stepfather|parent|parents|folks|grandma|grandmother|grandpa|grandfather|grandparent|grandparents|sister|brother|sibling|aunt|uncle|cousin|relative|relatives|mama|madre|madrastra|papa|padre|padrastro|padres|abuela|abuelo|abuelas|abuelos|hermana|hermano|hermanas|hermanos|tia|tio|tias|tios|prima|primo|primas|primos|familia|familiar|familiares|pariente|parientes)';
+  const kin = '(?:mom|mum|mother|stepmom|stepmother|dad|father|stepdad|stepfather|parent|parents|folks|grandma|grandmother|grandpa|grandfather|grandparent|grandparents|daughter|son|child|children|stepdaughter|stepson|sister|brother|sibling|aunt|uncle|niece|nephew|cousin|guardian|relative|relatives|mama|madre|madrastra|papa|padre|padrastro|padres|abuela|abuelo|abuelas|abuelos|hija|hijo|hijas|hijos|hijastro|hijastra|hermana|hermano|hermanas|hermanos|tia|tio|tias|tios|sobrina|sobrino|sobrinas|sobrinos|prima|primo|primas|primos|tutor|tutora|tutores|familia|familiar|familiares|pariente|parientes)';
   const home = '(?:home|house|apartment|place|room|casa|hogar|apartamento|departamento|piso|habitacion)';
   return new RegExp(`\\b${kin}(?: s)?\\s+${home}\\b`).test(text)
     || new RegExp(`\\b${home}\\s+(?:of|de|del|de la|de mi|con)\\s+(?:mi\\s+)?${kin}\\b`).test(text)

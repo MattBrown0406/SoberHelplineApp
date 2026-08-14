@@ -8,7 +8,10 @@ import {
   type HomecomingItemState,
   type HomecomingWeekPlan,
 } from '../lib/homecomingWeek';
-import { parseProtectedHomecomingRecord } from '../lib/homecomingProtectedRecord';
+import {
+  parseProtectedHomecomingHousingRecord,
+  parseProtectedHomecomingRecord,
+} from '../lib/homecomingProtectedRecord';
 import {
   homecomingDischargeStorageKey,
   homecomingIdentityStorageKey,
@@ -52,9 +55,12 @@ export async function loadProtectedHomecomingWeek(accountId: string): Promise<Ho
   ]);
   const sectionRows = rows.slice(0, SECTIONS.length);
   const itemRows = rows.slice(SECTIONS.length);
-  const discharge = Object.assign({}, ...sectionRows.map((raw, index) => parseProtectedHomecomingRecord(
-    raw, `discharge:${SECTIONS[index]}`, SECTION_KEYS[SECTIONS[index]],
-  )));
+  const discharge = Object.assign({}, ...sectionRows.map((raw, index) => {
+    const section = SECTIONS[index];
+    return section === 'housing'
+      ? parseProtectedHomecomingHousingRecord(raw)
+      : parseProtectedHomecomingRecord(raw, `discharge:${section}`, SECTION_KEYS[section]);
+  }));
   const items: Record<string, unknown> = {};
   HOMECOMING_ITEMS.forEach(({ id }, index) => {
     items[id] = parseProtectedHomecomingRecord(

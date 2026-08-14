@@ -21,3 +21,20 @@ export function parseProtectedHomecomingRecord(
   }
   return record;
 }
+
+const LEGACY_HOUSING_KEYS = [
+  'housingType', 'housingDetails', 'receivingAdult',
+  'adultReturnHomeConfirmed', 'adultReturnHomeQuote',
+] as const;
+
+export function parseProtectedHomecomingHousingRecord(raw: string | null): Record<string, unknown> {
+  const record = parseProtectedHomecomingRecord(raw, 'discharge:housing', LEGACY_HOUSING_KEYS);
+  if (raw === null) return record;
+  return {
+    ...record,
+    otherHousingFamilyStatus: Object.prototype.hasOwnProperty.call(record, 'otherHousingFamilyStatus')
+      ? record.otherHousingFamilyStatus : '',
+    adultReturnHomeQuoteAffirmed: Object.prototype.hasOwnProperty.call(record, 'adultReturnHomeQuoteAffirmed')
+      ? record.adultReturnHomeQuoteAffirmed : false,
+  };
+}
