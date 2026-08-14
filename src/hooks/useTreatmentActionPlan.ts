@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   defaultTreatmentActionPlan,
   TREATMENT_ACTION_ITEMS,
+  updateTreatmentActionExecution,
   updateTreatmentActionItem,
+  type TreatmentActionExecution,
   type TreatmentActionItemId,
   type TreatmentActionPlan,
   type TreatmentActionStatus,
@@ -10,6 +12,7 @@ import {
 import {
   clearProtectedTreatmentActionPlan,
   loadProtectedTreatmentActionPlan,
+  saveProtectedTreatmentActionExecution,
   saveProtectedTreatmentActionItem,
 } from '../storage/treatmentActionPlan';
 
@@ -23,7 +26,9 @@ type Snapshot = {
 type WriteCoordinator = {
   queue: Promise<void>;
   version: number;
+  readVersion: number;
   hadFailure: boolean;
+  clearing: boolean;
 };
 
 const sharedSnapshots = new Map<string, Snapshot>();
@@ -33,7 +38,13 @@ const writeCoordinators = new Map<string, WriteCoordinator>();
 function coordinatorFor(accountId: string): WriteCoordinator {
   const existing = writeCoordinators.get(accountId);
   if (existing) return existing;
-  const coordinator = { queue: Promise.resolve(), version: 0, hadFailure: false };
+  const coordinator = {
+    queue: Promise.resolve(),
+    version: 0,
+    readVersion: 0,
+    hadFailure: false,
+    clearing: false,
+  };
   writeCoordinators.set(accountId, coordinator);
   return coordinator;
 }
@@ -84,13 +95,24 @@ export function useTreatmentActionPlan(accountId: string | null) {
       });
       return;
     }
+    const coordinator = coordinatorFor(accountId);
+    if (coordinator.clearing) return;
+    const currentReadVersion = ++coordinator.readVersion;
     publish(accountId, { loadState: 'loading' });
     try {
       const loaded = await loadProtectedTreatmentActionPlan(accountId);
-      if (currentGeneration !== generation.current) return;
+      if (
+        currentGeneration !== generation.current
+        || currentReadVersion !== coordinator.readVersion
+        || coordinator.clearing
+      ) return;
       publish(accountId, { plan: loaded, loadState: 'ready', saveState: 'saved' });
     } catch {
-      if (currentGeneration !== generation.current) return;
+      if (
+        currentGeneration !== generation.current
+        || currentReadVersion !== coordinator.readVersion
+        || coordinator.clearing
+      ) return;
       // Never convert a read failure into a writable blank plan. The caller
       // must retry or explicitly clear protected storage before editing.
       publish(accountId, { loadState: 'error', saveState: 'error' });
@@ -116,6 +138,7 @@ export function useTreatmentActionPlan(accountId: string | null) {
   const queueWrite = useCallback((work: () => Promise<void>, repairsAllItems = false) => {
     if (!accountId) return;
     const coordinator = coordinatorFor(accountId);
+    if (coordinator.clearing) return;
     const version = ++coordinator.version;
     publish(accountId, { saveState: 'saving' });
     coordinator.queue = coordinator.queue
@@ -138,6 +161,7 @@ export function useTreatmentActionPlan(accountId: string | null) {
     patch: Partial<{ status: TreatmentActionStatus; details: string }>,
   ) => {
     if (!accountId) return;
+    if (coordinatorFor(accountId).clearing) return;
     const current = sharedSnapshots.get(accountId);
     if (!current || current.loadState !== 'ready') return;
     const nextPlan = updateTreatmentActionItem(current.plan, id, patch);
@@ -150,30 +174,53 @@ export function useTreatmentActionPlan(accountId: string | null) {
     ));
   }, [accountId, queueWrite]);
 
+  const updateExecution = useCallback((patch: Partial<TreatmentActionExecution>) => {
+    if (!accountId) return;
+    if (coordinatorFor(accountId).clearing) return;
+    const current = sharedSnapshots.get(accountId);
+    if (!current || current.loadState !== 'ready') return;
+    const nextPlan = updateTreatmentActionExecution(current.plan, patch);
+    publish(accountId, { plan: nextPlan });
+    queueWrite(() => saveProtectedTreatmentActionExecution(
+      accountId,
+      nextPlan.execution,
+      nextPlan.updatedAt,
+    ));
+  }, [accountId, queueWrite]);
+
   const retrySave = useCallback(() => {
     if (!accountId) return;
     const current = sharedSnapshots.get(accountId);
     if (!current || current.loadState !== 'ready') return;
-    queueWrite(() => Promise.all(
-      TREATMENT_ACTION_ITEMS.map((definition) =>
+    queueWrite(() => Promise.all([
+      ...TREATMENT_ACTION_ITEMS.map((definition) =>
         saveProtectedTreatmentActionItem(
           accountId,
           definition.id,
           current.plan.items[definition.id],
           current.plan.updatedAt,
         )),
-    ).then(() => undefined), true);
+      saveProtectedTreatmentActionExecution(
+        accountId,
+        current.plan.execution,
+        current.plan.updatedAt,
+      ),
+    ]).then(() => undefined), true);
   }, [accountId, queueWrite]);
 
   const clear = useCallback(async () => {
     if (!accountId) return;
     const coordinator = coordinatorFor(accountId);
+    if (coordinator.clearing) return;
+    coordinator.clearing = true;
+    ++coordinator.readVersion;
     ++coordinator.version;
     publish(accountId, { saveState: 'saving' });
     await coordinator.queue.catch(() => undefined);
     try {
       await clearProtectedTreatmentActionPlan(accountId);
     } catch (error) {
+      coordinator.clearing = false;
       publish(accountId, { saveState: 'error' });
       throw error;
     }
@@ -183,6 +230,7 @@ export function useTreatmentActionPlan(accountId: string | null) {
       saveState: 'saved',
     });
     coordinator.hadFailure = false;
+    coordinator.clearing = false;
   }, [accountId]);
 
   const visibleSnapshot = view.accountId === accountId
@@ -197,6 +245,7 @@ export function useTreatmentActionPlan(accountId: string | null) {
     loadState: visibleSnapshot.loadState,
     saveState: visibleSnapshot.saveState,
     updateItem,
+    updateExecution,
     retrySave,
     reload,
     clear,
