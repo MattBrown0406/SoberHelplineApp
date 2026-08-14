@@ -10,6 +10,10 @@
     "safetyBody": "Mantén los contactos de emergencia, la información sobre naloxona y el plan de respuesta del hogar disponibles incluso sin servicio.",
     "safetyButton": "Abrir cartera de seguridad",
     "safetyBadge": "Gratis · Sin conexión",
+    "actionTitle": "Plan de acción para el tratamiento",
+    "actionBody": "Prepara la cama, el seguro, el transporte, la maleta, el trabajo, los dependientes y las primeras 72 horas antes de la conversación planificada.",
+    "actionButton": "Crear el plan de acción",
+    "actionBadge": "Preparar antes",
     "learningEyebrow": "BIBLIOTECA DE APRENDIZAJE"
   },
   "education": {

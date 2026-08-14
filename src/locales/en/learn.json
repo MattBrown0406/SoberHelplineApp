@@ -10,6 +10,10 @@
     "safetyBody": "Keep emergency contacts, naloxone information, and your household response plan ready even without service.",
     "safetyButton": "Open Safety Wallet",
     "safetyBadge": "Free · Offline",
+    "actionTitle": "Treatment Action Plan",
+    "actionBody": "Get the bed, insurance, ride, bag, work coverage, dependents, and first 72 hours ready before the planned conversation.",
+    "actionButton": "Build the action plan",
+    "actionBadge": "Prepare in advance",
     "learningEyebrow": "LEARNING LIBRARY"
   },
   "education": {

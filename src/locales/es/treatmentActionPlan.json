@@ -1,0 +1,94 @@
+{
+  "back": "‹ Herramientas",
+  "kicker": "PREPÁRALO ANTES DE LA CONVERSACIÓN",
+  "title": "Plan de acción para el tratamiento",
+  "intro": "Un sí puede llegar tarde por la noche y desaparecer en pocas horas. Finaliza la logística antes de la conversación planificada para que la familia pueda actuar de inmediato cuando tu ser querido acepte ayuda.",
+  "privacy": "Privado · No se comparte con familiares ni centros",
+  "warningTitle": "Aún no tengas la conversación planificada",
+  "warningBody": "Cada acción aplicable debe estar en verde primero. La cama, el pago, el transporte y el cuidado del hogar no deben resolverse después de que tu ser querido diga que sí.",
+  "readyTitle": "La logística está preparada",
+  "readyBody": "Vuelve a confirmar la disponibilidad con admisiones justo antes de la conversación. La disponibilidad puede cambiar.",
+  "exceptionsTitle": "Dos excepciones: actúa ahora",
+  "spontaneous": "Si tu ser querido pide ayuda inesperadamente, responde ahora y llama al profesional o a admisiones. No retrases la ayuda voluntaria solo para terminar esta lista.",
+  "emergency": "Ante una sobredosis o peligro inmediato, llama al 911. Ante pensamientos suicidas o una crisis de salud mental, llama o envía un mensaje al 988. No esperes a completar este plan.",
+  "progress": "{{percentage}}% preparado · {{completed}} de {{total}} completados",
+  "advanceBadge": "FINALIZAR CON ANTICIPACIÓN",
+  "detailsRequired": "Se necesitan detalles específicos antes de que esta acción pase a verde.",
+  "autoSave": "Guardado de forma privada en la app.",
+  "saving": "Guardando…",
+  "saveError": "Este dispositivo no guardó el último cambio.",
+  "retry": "Intentar guardar de nuevo",
+  "loadErrorTitle": "No se pudo abrir el plan guardado",
+  "loadErrorBody": "Tu plan existente no fue reemplazado. Intenta abrirlo de nuevo. Empieza de cero solo si deseas borrar intencionalmente la copia protegida de este dispositivo.",
+  "retryLoad": "Intentar abrir el plan de nuevo",
+  "startOver": "Borrar la copia protegida y empezar de cero",
+  "gateTitle": "Primero completa el Plan de acción para el tratamiento",
+  "gateSupportButton": "Obtener ayuda profesional para prepararse",
+  "gateSupportNote": "Puedes hablar con un intervencionista mientras te preparas. Eso es diferente de tener la conversación planificada con tu ser querido.",
+  "finderButton": "Abrir directorio A–Z de tratamiento",
+  "finderNote": "Usa el directorio para identificar opciones y confirma directamente la idoneidad clínica y disponibilidad actual. Los listados no son rankings patrocinados.",
+  "interventionButton": "Volver a planificar la intervención",
+  "clear": "Borrar plan",
+  "clearTitle": "¿Borrar el Plan de acción para el tratamiento?",
+  "clearBody": "Esto elimina permanentemente el plan guardado en este dispositivo.",
+  "cancel": "Cancelar",
+  "clearConfirm": "Borrar",
+  "status": {
+    "not_started": "Sin empezar",
+    "working": "En proceso",
+    "confirmed": "Confirmado",
+    "not_applicable": "No aplica"
+  },
+  "categories": {
+    "admission": "Admisión y pago",
+    "departure": "Logística de salida",
+    "coverage": "Cobertura familiar y práctica"
+  },
+  "items": {
+    "placement": {
+      "title": "Opción de tratamiento y disponibilidad confirmadas",
+      "body": "Confirma directamente con admisiones el nivel de atención adecuado. Anota el centro, teléfono, nombre de quien confirmó, qué se confirmó y cuánto tiempo se espera que se mantenga.",
+      "placeholder": "Centro/programa, teléfono, nombre, hora de confirmación y plazo de disponibilidad"
+    },
+    "coverage": {
+      "title": "Seguro o forma de pago verificados",
+      "body": "Verifica beneficios y el plan de pago real antes de la conversación. Incluye deducible, responsabilidad familiar estimada, autorización previa y nombre o referencia. No ingreses números de póliza, miembro ni Seguro Social.",
+      "placeholder": "Verificador, referencia, deducible/gasto, autorización o plan de pago privado"
+    },
+    "transport": {
+      "title": "Transporte asignado a una persona específica",
+      "body": "Nombra conductor principal y suplente, punto y hora de salida, y quién acompañará a tu ser querido. No lo dejes en “alguien se encargará.”",
+      "placeholder": "Conductor principal, suplente, vehículo/vuelo, punto y hora de salida"
+    },
+    "bag": {
+      "title": "Maleta preparada y fuera de la vista",
+      "body": "Prepara con antelación ropa y artículos permitidos por el centro. Déjala bajo control de un familiar para que empacar no cause demora o confrontación.",
+      "placeholder": "Quién la preparó, quién la controla y restricciones del centro"
+    },
+    "work": {
+      "title": "Cobertura laboral y comunicación preparadas",
+      "body": "Prepara un plan veraz y con divulgación mínima para la primera ausencia. Decide quién puede ayudar a comunicar solo con permiso; no suplantes a tu ser querido ni inventes una historia médica.",
+      "placeholder": "Contacto, mensaje aprobado, preguntas sobre licencia/FMLA o por qué no aplica"
+    },
+    "dependents": {
+      "title": "Niños, mascotas y tareas del hogar cubiertos",
+      "body": "Asigna personas y suplentes para niños, mascotas, transporte escolar, acceso a la vivienda y otras responsabilidades diarias.",
+      "placeholder": "Nombres, fechas, instrucciones, suplente o por qué no aplica"
+    },
+    "money": {
+      "title": "Dinero de las primeras 72 horas decidido",
+      "body": "Acuerden qué pagará la familia directamente, qué no financiará, quién tendrá tarjetas o llaves y cómo cubrirán gastos legítimos inmediatos sin entregar efectivo.",
+      "placeholder": "Pagos directos aprobados, límite sin efectivo, responsable y plan para tarjetas/llaves"
+    },
+    "documents": {
+      "title": "Identificación, medicamentos y documentos preparados",
+      "body": "Reúne identificación, tarjeta del seguro, lista de medicamentos, farmacia, contactos de emergencia y documentos solicitados que se puedan preparar legalmente.",
+      "placeholder": "Documentos reunidos, medicamentos/farmacia, quién los guarda y qué falta"
+    },
+    "backup": {
+      "title": "Ruta de admisión alternativa confirmada",
+      "body": "Las camas y autorizaciones pueden cambiar. Confirma la siguiente llamada, programa alternativo o ruta profesional para que un intento fallido no cierre la oportunidad.",
+      "placeholder": "Programa/contacto alternativo, orden de llamadas, profesional responsable y número fuera de horario"
+    }
+  }
+}

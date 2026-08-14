@@ -61,11 +61,29 @@ export default function LearnScreen() {
 
       <View style={[styles.featuredTool, { backgroundColor: colors.primaryDark }]}>
         <View style={styles.toolTopRow}>
+          <Text style={styles.toolIcon}>✅</Text>
+          <Text style={[styles.toolBadge, { backgroundColor: colors.coral }]}>{t('tools.actionBadge')}</Text>
+        </View>
+        <Text style={styles.featuredTitle}>{t('tools.actionTitle')}</Text>
+        <Text style={styles.featuredBody}>{t('tools.actionBody')}</Text>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={t('tools.actionButton')}
+          style={[styles.cardButton, { backgroundColor: colors.secondary }]}
+          onPress={() => router.push('/treatment-action-plan' as never)}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.cardButtonText}>{t('tools.actionButton')}</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
+        <View style={styles.toolTopRow}>
           <Text style={styles.toolIcon}>💵</Text>
           <Text style={[styles.toolBadge, { backgroundColor: colors.secondary }]}>{t('tools.costBadge')}</Text>
         </View>
-        <Text style={styles.featuredTitle}>{t('tools.costTitle')}</Text>
-        <Text style={styles.featuredBody}>{t('tools.costBody')}</Text>
+        <Text style={[styles.cardTitle, { color: colors.ink }]}>{t('tools.costTitle')}</Text>
+        <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t('tools.costBody')}</Text>
         <TouchableOpacity
           style={[styles.cardButton, { backgroundColor: colors.secondary }]}
           onPress={() => router.push('/enabling-costs' as never)}
