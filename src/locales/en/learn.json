@@ -18,6 +18,10 @@
     "homecomingBody": "Build the age-aware, housing-safe plan for days 0–7 after discharge—before the ride home and first weekend.",
     "homecomingButton": "Build Homecoming Week",
     "homecomingBadge": "Days 0–7 · Private",
+    "visitationTitle": "Family Visitation Plan",
+    "visitationBody": "Write the visit before you drive: no cash, no promises of home, a fixed leave time, and a parking-lot exit plan.",
+    "visitationButton": "Write the visit",
+    "visitationBadge": "Before visiting hours",
     "learningEyebrow": "LEARNING LIBRARY"
   },
   "education": {
