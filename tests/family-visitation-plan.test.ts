@@ -10,6 +10,7 @@ import {
   updateFamilyVisitationPlan,
   VISITATION_COMMITMENTS,
 } from '../src/lib/familyVisitationPlan';
+import { familyVisitationStorageKey } from '../src/lib/familyVisitationStorageKeys';
 
 const TEST_DIR = dirname(fileURLToPath(import.meta.url));
 
@@ -56,6 +57,17 @@ test('impossible dates and blank care package plans fail closed', () => {
   assert.equal(familyVisitationProgress(plan).ready, false);
 });
 
+test('visit times must be real and departure must follow arrival', () => {
+  let plan = updateFamilyVisitationPlan(completePlan(), { arrivalTime: 'not a time', leaveTime: 'also not a time' });
+  assert.equal(familyVisitationProgress(plan).ready, false);
+  plan = updateFamilyVisitationPlan(completePlan(), { arrivalTime: '3:00 PM', leaveTime: '2:00 PM' });
+  assert.equal(familyVisitationProgress(plan).ready, false);
+  plan = updateFamilyVisitationPlan(completePlan(), { arrivalTime: '14:00', leaveTime: '15:30' });
+  assert.equal(familyVisitationProgress(plan).ready, true);
+  plan = updateFamilyVisitationPlan(completePlan(), { arrivalTime: '2:00 p. m.', leaveTime: '3:00 p. m.' });
+  assert.equal(familyVisitationProgress(plan).ready, true);
+});
+
 test('stored plans normalize unknown and oversized values', () => {
   const parsed = parseFamilyVisitationPlan(JSON.stringify({
     ...completePlan(),
@@ -69,8 +81,19 @@ test('stored plans normalize unknown and oversized values', () => {
 });
 
 test('present but truncated protected plans fail closed', () => {
+  assert.throws(() => parseFamilyVisitationPlan(''), /invalid_json/);
   assert.throws(() => parseFamilyVisitationPlan('{}'), /missing_field/);
   assert.throws(() => parseFamilyVisitationPlan(JSON.stringify({ ...completePlan(), commitments: {} })), /missing_commitment/);
+  assert.throws(() => parseFamilyVisitationPlan(JSON.stringify({ ...completePlan(), facility: 123 })), /invalid_field:facility/);
+  assert.throws(() => parseFamilyVisitationPlan(JSON.stringify({ ...completePlan(), updatedAt: {} })), /invalid_updated_at/);
+});
+
+test('SecureStore keys are valid and account scoped', () => {
+  const first = familyVisitationStorageKey('11111111-1111-4111-8111-111111111111');
+  const second = familyVisitationStorageKey('22222222-2222-4222-8222-222222222222');
+  assert.notEqual(first, second);
+  assert.match(first, /^[A-Za-z0-9._-]+$/);
+  assert.throws(() => familyVisitationStorageKey('account:unsafe'), /invalid_visitation_account_id/);
 });
 
 test('route, localization, protected storage, and Tools entry are wired', () => {
@@ -96,7 +119,7 @@ test('route, localization, protected storage, and Tools entry are wired', () => 
   assert.match(route, /accessibilityRole="checkbox"/);
   assert.match(route, /saveState === 'saved'/);
   assert.match(storage, /WHEN_UNLOCKED_THIS_DEVICE_ONLY/);
-  assert.match(storage, /encodeURIComponent\(accountId\)/);
+  assert.match(storage, /familyVisitationStorageKey\(accountId\)/);
   assert.match(hook, /accountId/);
   assert.match(hook, /loadState: 'error'/);
   assert.match(hook, /readVersion/);

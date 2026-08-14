@@ -1,13 +1,10 @@
 import * as SecureStore from 'expo-secure-store';
 import { parseFamilyVisitationPlan, type FamilyVisitationPlan } from '../lib/familyVisitationPlan';
+import { familyVisitationStorageKey } from '../lib/familyVisitationStorageKeys';
 
 const OPTIONS: SecureStore.SecureStoreOptions = {
   keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
 };
-
-export function familyVisitationStorageKey(accountId: string): string {
-  return `@sh:family-visitation-plan:${encodeURIComponent(accountId)}`;
-}
 
 async function requireProtectedStorage(): Promise<void> {
   if (!(await SecureStore.isAvailableAsync())) throw new Error('protected_storage_unavailable');

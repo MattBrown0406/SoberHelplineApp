@@ -58,6 +58,19 @@ function validDate(value: string): boolean {
   return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
 
+function timeMinutes(value: string): number | null {
+  const normalized = value.trim().toUpperCase().replace(/[.\s]/g, '');
+  const twelveHour = normalized.match(/^(\d{1,2})(?::([0-5]\d))?(AM|PM)$/);
+  if (twelveHour) {
+    const hour = Number(twelveHour[1]);
+    if (hour < 1 || hour > 12) return null;
+    const minute = Number(twelveHour[2] ?? '0');
+    return (hour % 12) * 60 + minute + (twelveHour[3] === 'PM' ? 720 : 0);
+  }
+  const twentyFourHour = normalized.match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
+  return twentyFourHour ? Number(twentyFourHour[1]) * 60 + Number(twentyFourHour[2]) : null;
+}
+
 export function updateFamilyVisitationPlan(
   plan: FamilyVisitationPlan,
   patch: Partial<Omit<FamilyVisitationPlan, 'updatedAt'>>,
@@ -73,7 +86,7 @@ export function updateFamilyVisitationPlan(
 }
 
 export function parseFamilyVisitationPlan(raw: string | null): FamilyVisitationPlan {
-  if (!raw) return defaultFamilyVisitationPlan();
+  if (raw === null) return defaultFamilyVisitationPlan();
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
@@ -87,6 +100,12 @@ export function parseFamilyVisitationPlan(raw: string | null): FamilyVisitationP
   const requiredFields = ['facility', 'visitDate', 'arrivalTime', 'leaveTime', 'attendees', 'carePackage', 'parkingLotExitPlan', 'commitments', 'updatedAt'] as const;
   const missingField = requiredFields.find((key) => !Object.prototype.hasOwnProperty.call(source, key));
   if (missingField) throw new Error(`protected_visitation_missing_field:${missingField}`);
+  const textFields = ['facility', 'visitDate', 'arrivalTime', 'leaveTime', 'attendees', 'carePackage', 'parkingLotExitPlan'] as const;
+  const invalidText = textFields.find((key) => typeof source[key] !== 'string');
+  if (invalidText) throw new Error(`protected_visitation_invalid_field:${invalidText}`);
+  if (source.updatedAt !== null && (typeof source.updatedAt !== 'string' || !Number.isFinite(new Date(source.updatedAt).getTime()))) {
+    throw new Error('protected_visitation_invalid_updated_at');
+  }
   if (!source.commitments || typeof source.commitments !== 'object' || Array.isArray(source.commitments)) {
     throw new Error('protected_visitation_invalid_commitments');
   }
@@ -116,14 +135,19 @@ export function familyVisitationProgress(plan: FamilyVisitationPlan): {
   missing: string[];
 } {
   const missing: string[] = [];
-  const requiredText = ['facility', 'arrivalTime', 'leaveTime', 'attendees', 'carePackage', 'parkingLotExitPlan'] as const;
+  const requiredText = ['facility', 'attendees', 'carePackage', 'parkingLotExitPlan'] as const;
   for (const key of requiredText) {
     if (!plan[key].trim()) missing.push(key);
   }
   if (!validDate(plan.visitDate)) missing.push('visitDate');
+  const arrivalMinutes = timeMinutes(plan.arrivalTime);
+  const leaveMinutes = timeMinutes(plan.leaveTime);
+  if (arrivalMinutes === null) missing.push('arrivalTime');
+  if (leaveMinutes === null) missing.push('leaveTime');
+  if (arrivalMinutes !== null && leaveMinutes !== null && leaveMinutes <= arrivalMinutes) missing.push('leaveTimeOrder');
   for (const id of VISITATION_COMMITMENTS) {
     if (!plan.commitments[id]) missing.push(`commitments.${id}`);
   }
-  const total = requiredText.length + 1 + VISITATION_COMMITMENTS.length;
+  const total = requiredText.length + 3 + VISITATION_COMMITMENTS.length;
   return { ready: missing.length === 0, completed: total - missing.length, total, missing };
 }
