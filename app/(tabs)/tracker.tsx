@@ -15,6 +15,7 @@ import { useSituation } from '../../src/hooks/useSituation';
 import { SituationOffRamp } from '../../src/components/situation/SituationOffRamp';
 import type { FunnelDoor } from '../../src/lib/situation';
 import { supabase } from '../../src/lib/supabase';
+import { WillingnessWindowCard } from '../../src/components/tracker/WillingnessWindowCard';
 
 const ALERT_THRESHOLD = 3;
 
@@ -157,6 +158,10 @@ export default function TrackerScreen() {
 
   return (
     <ScreenContainer backgroundColor={colors.cream}>
+        <WillingnessWindowCard
+          accountId={user?.id ?? null}
+          onSituationRefresh={refreshSituation}
+        />
         {/* ── Warning signs ─────────────────────────────────────── */}
         <View style={[styles.card, { borderColor: colors.line }]}>
           <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>

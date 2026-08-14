@@ -16,6 +16,11 @@ export interface SituationDrivers {
   recovery_signs: number;
   net_warnings: number;
   loved_one_status: string | null;
+  latest_consequence_id?: string | null;
+  latest_consequence_type?: string | null;
+  latest_consequence_at?: string | null;
+  willingness_window_ends_at?: string | null;
+  willingness_window_active?: boolean;
 }
 
 export interface Situation {
@@ -39,6 +44,11 @@ export const DEFAULT_SITUATION: Situation = {
     recovery_signs: 0,
     net_warnings: 0,
     loved_one_status: null,
+    latest_consequence_id: null,
+    latest_consequence_type: null,
+    latest_consequence_at: null,
+    willingness_window_ends_at: null,
+    willingness_window_active: false,
   },
 };
 

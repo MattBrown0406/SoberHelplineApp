@@ -19,6 +19,7 @@
     "test:family": "tsx --test tests/family-scripts.test.ts",
     "test:curriculum": "tsx --test tests/curriculum.test.ts",
     "test:treatment-action": "tsx --test tests/treatment-action-plan.test.ts",
+    "test:willingness-window": "tsx --test tests/willingness-window.test.ts",
     "audit:release": "node scripts/audit-dependencies.mjs",
     "doctor": "npx expo-doctor",
     "export:web": "expo export --platform web",

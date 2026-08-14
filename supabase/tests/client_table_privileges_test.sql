@@ -9,6 +9,7 @@ WITH required(table_name, privilege) AS (
     ('checkins','SELECT'), ('checkins','INSERT'), ('checkins','UPDATE'), ('checkins','DELETE'),
     ('walls','SELECT'), ('walls','INSERT'), ('walls','UPDATE'), ('walls','DELETE'),
     ('tracker_logs','SELECT'), ('tracker_logs','INSERT'), ('tracker_logs','UPDATE'), ('tracker_logs','DELETE'),
+    ('consequence_events','SELECT'), ('consequence_events','DELETE'),
     ('consents','SELECT'), ('consents','INSERT'), ('consents','UPDATE'),
     ('loved_ones','SELECT'), ('loved_ones','INSERT'), ('loved_ones','UPDATE'), ('loved_ones','DELETE'),
     ('sessions','SELECT'),
