@@ -101,6 +101,7 @@ test('route, localization, protected storage, and Tools entry are wired', () => 
   assert.match(hook, /loadState: 'error'/);
   assert.match(hook, /readVersion/);
   assert.match(hook, /clearing/);
+  assert.match(hook, /bound\.accountId === accountId/);
   assert.match(tools, /router\.push\('\/family-visitation-plan'/);
   assert.match(tools, /tools\.visitationTitle/);
 });

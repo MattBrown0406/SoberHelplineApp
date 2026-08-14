@@ -64,19 +64,21 @@ async function hydrate(accountId: string, coordinator: Coordinator): Promise<voi
 }
 
 export function useFamilyVisitationPlan(accountId: string | null) {
-  const [snapshot, setSnapshot] = useState<Snapshot>(() => accountId
-    ? coordinatorFor(accountId).snapshot
-    : { plan: defaultFamilyVisitationPlan(), loadState: 'ready', saveState: 'saved' });
+  const emptySnapshot: Snapshot = { plan: defaultFamilyVisitationPlan(), loadState: 'ready', saveState: 'saved' };
+  const [bound, setBound] = useState<{ accountId: string | null; snapshot: Snapshot }>(() => ({
+    accountId,
+    snapshot: accountId ? coordinatorFor(accountId).snapshot : emptySnapshot,
+  }));
 
   useEffect(() => {
     if (!accountId) {
-      setSnapshot({ plan: defaultFamilyVisitationPlan(), loadState: 'ready', saveState: 'saved' });
+      setBound({ accountId: null, snapshot: emptySnapshot });
       return undefined;
     }
     const coordinator = coordinatorFor(accountId);
-    const listener = (next: Snapshot) => setSnapshot(next);
+    const listener = (next: Snapshot) => setBound({ accountId, snapshot: next });
     coordinator.listeners.add(listener);
-    setSnapshot(coordinator.snapshot);
+    setBound({ accountId, snapshot: coordinator.snapshot });
     void hydrate(accountId, coordinator);
     return () => { coordinator.listeners.delete(listener); };
   }, [accountId]);
@@ -136,5 +138,8 @@ export function useFamilyVisitationPlan(accountId: string | null) {
     }
   }, [accountId]);
 
-  return { ...snapshot, update, reload, retrySave, clear };
+  const visibleSnapshot = bound.accountId === accountId
+    ? bound.snapshot
+    : accountId ? coordinatorFor(accountId).snapshot : emptySnapshot;
+  return { ...visibleSnapshot, update, reload, retrySave, clear };
 }
