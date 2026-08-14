@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import {
   defaultTreatmentActionPlan,
   isTreatmentActionItemComplete,
@@ -97,4 +100,18 @@ test('protected storage keys and note limits are account scoped', () => {
   const oversized = 'x'.repeat(TREATMENT_ACTION_DETAIL_LIMIT + 50);
   const next = updateTreatmentActionItem(defaultTreatmentActionPlan(), 'placement', { details: oversized });
   assert.equal(next.items.placement.details.length, TREATMENT_ACTION_DETAIL_LIMIT);
+});
+
+test('safety exceptions remain visible while loading, after storage errors, and during gating', () => {
+  const testDirectory = dirname(fileURLToPath(import.meta.url));
+  const actionPlanScreen = readFileSync(
+    resolve(testDirectory, '../app/treatment-action-plan.tsx'),
+    'utf8',
+  );
+  const interventionScreen = readFileSync(
+    resolve(testDirectory, '../app/plan-intervention.tsx'),
+    'utf8',
+  );
+  assert.equal(actionPlanScreen.match(/<SafetyExceptions \/>/g)?.length, 3);
+  assert.equal(interventionScreen.match(/<GateExceptions \/>/g)?.length, 3);
 });

@@ -45,8 +45,13 @@ export default function PlanInterventionScreen() {
 
   if (loadState === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, styles.loading, { backgroundColor: colors.cream }]}>
-        <ActivityIndicator color={colors.primary} />
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
+        <ScrollView contentContainerStyle={styles.body}>
+          <View style={styles.loading} accessibilityLiveRegion="polite">
+            <ActivityIndicator color={colors.primary} />
+          </View>
+          <GateExceptions />
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -79,6 +84,7 @@ export default function PlanInterventionScreen() {
           >
             <Text style={[styles.secondaryBtnText, { color: colors.primary }]}>{tActionPlan('gateSupportButton')}</Text>
           </TouchableOpacity>
+          <GateExceptions />
         </ScrollView>
       </SafeAreaView>
     );
@@ -120,11 +126,7 @@ export default function PlanInterventionScreen() {
           >
             <Text style={[styles.secondaryBtnText, { color: colors.primary }]}>{tActionPlan('gateSupportButton')}</Text>
           </TouchableOpacity>
-          <View accessibilityRole="alert" style={[styles.gateExceptions, { borderLeftColor: colors.coral }]}>
-            <Text style={[styles.actionPlanKicker, { color: colors.coral }]}>{tActionPlan('exceptionsTitle')}</Text>
-            <Text style={[styles.stepText, { color: colors.ink }]}>{tActionPlan('spontaneous')}</Text>
-            <Text style={[styles.stepText, { color: colors.ink }]}>{tActionPlan('emergency')}</Text>
-          </View>
+          <GateExceptions />
         </ScrollView>
       </SafeAreaView>
     );
@@ -240,9 +242,21 @@ export default function PlanInterventionScreen() {
   );
 }
 
+function GateExceptions() {
+  const { colors } = useTheme();
+  const { t } = useTranslation('treatmentActionPlan');
+  return (
+    <View accessibilityRole="alert" style={[styles.gateExceptions, { borderLeftColor: colors.coral }]}>
+      <Text style={[styles.actionPlanKicker, { color: colors.coral }]}>{t('exceptionsTitle')}</Text>
+      <Text style={[styles.stepText, { color: colors.ink }]}>{t('spontaneous')}</Text>
+      <Text style={[styles.stepText, { color: colors.ink }]}>{t('emergency')}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  loading: { alignItems: 'center', justifyContent: 'center' },
+  loading: { alignItems: 'center', justifyContent: 'center', paddingVertical: 48 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

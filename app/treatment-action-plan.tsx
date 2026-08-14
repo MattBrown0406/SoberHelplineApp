@@ -57,20 +57,26 @@ export default function TreatmentActionPlanScreen() {
       </View>
 
       {loadState === 'error' ? (
-        <View accessibilityRole="alert" style={[styles.loadError, { backgroundColor: colors.coralLight, borderColor: colors.coral }]}>
-          <Text style={[styles.readinessTitle, { color: colors.coral }]}>{t('loadErrorTitle')}</Text>
-          <Text style={[styles.readinessBody, { color: colors.ink }]}>{t('loadErrorBody')}</Text>
-          <TouchableOpacity accessibilityRole="button" style={[styles.primaryButton, { backgroundColor: colors.primary }]} onPress={() => void reload()}>
-            <Text style={styles.primaryButtonText}>{t('retryLoad')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity accessibilityRole="button" style={styles.clearButton} onPress={confirmClear}>
-            <Text style={[styles.clearText, { color: colors.coral }]}>{t('startOver')}</Text>
-          </TouchableOpacity>
-        </View>
+        <>
+          <View accessibilityRole="alert" style={[styles.loadError, { backgroundColor: colors.coralLight, borderColor: colors.coral }]}>
+            <Text style={[styles.readinessTitle, { color: colors.coral }]}>{t('loadErrorTitle')}</Text>
+            <Text style={[styles.readinessBody, { color: colors.ink }]}>{t('loadErrorBody')}</Text>
+            <TouchableOpacity accessibilityRole="button" style={[styles.primaryButton, { backgroundColor: colors.primary }]} onPress={() => void reload()}>
+              <Text style={styles.primaryButtonText}>{t('retryLoad')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity accessibilityRole="button" style={styles.clearButton} onPress={confirmClear}>
+              <Text style={[styles.clearText, { color: colors.coral }]}>{t('startOver')}</Text>
+            </TouchableOpacity>
+          </View>
+          <SafetyExceptions />
+        </>
       ) : !hydrated ? (
-        <View style={styles.loading} accessibilityLiveRegion="polite">
-          <ActivityIndicator color={colors.primary} />
-        </View>
+        <>
+          <View style={styles.loading} accessibilityLiveRegion="polite">
+            <ActivityIndicator color={colors.primary} />
+          </View>
+          <SafetyExceptions />
+        </>
       ) : (
         <>
           <View
@@ -106,11 +112,7 @@ export default function TreatmentActionPlanScreen() {
             </Text>
           </View>
 
-          <View accessibilityRole="alert" style={[styles.emergency, { borderColor: colors.coral }]}>
-            <Text style={[styles.exceptionsTitle, { color: colors.coral }]}>{t('exceptionsTitle')}</Text>
-            <Text style={[styles.emergencyText, { color: colors.ink }]}>{t('spontaneous')}</Text>
-            <Text style={[styles.emergencyText, { color: colors.ink }]}>{t('emergency')}</Text>
-          </View>
+          <SafetyExceptions />
 
           {CATEGORIES.map((category) => (
             <View key={category}>
@@ -168,6 +170,18 @@ export default function TreatmentActionPlanScreen() {
         </>
       )}
     </ScreenContainer>
+  );
+}
+
+function SafetyExceptions() {
+  const { colors } = useTheme();
+  const { t } = useTranslation('treatmentActionPlan');
+  return (
+    <View accessibilityRole="alert" style={[styles.emergency, { borderColor: colors.coral }]}>
+      <Text style={[styles.exceptionsTitle, { color: colors.coral }]}>{t('exceptionsTitle')}</Text>
+      <Text style={[styles.emergencyText, { color: colors.ink }]}>{t('spontaneous')}</Text>
+      <Text style={[styles.emergencyText, { color: colors.ink }]}>{t('emergency')}</Text>
+    </View>
   );
 }
 
