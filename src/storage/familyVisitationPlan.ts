@@ -1,5 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
-import { parseFamilyVisitationPlan, type FamilyVisitationPlan } from '../lib/familyVisitationPlan';
+import { familyVisitationProtectedByteLength, parseFamilyVisitationPlan, VISITATION_PROTECTED_BYTE_LIMIT, type FamilyVisitationPlan } from '../lib/familyVisitationPlan';
 import { familyVisitationStorageKey } from '../lib/familyVisitationStorageKeys';
 
 const OPTIONS: SecureStore.SecureStoreOptions = {
@@ -18,6 +18,7 @@ export async function loadProtectedFamilyVisitationPlan(accountId: string): Prom
 
 export async function saveProtectedFamilyVisitationPlan(accountId: string, plan: FamilyVisitationPlan): Promise<void> {
   await requireProtectedStorage();
+  if (familyVisitationProtectedByteLength(plan) > VISITATION_PROTECTED_BYTE_LIMIT) throw new Error('protected_visitation_value_too_large');
   await SecureStore.setItemAsync(familyVisitationStorageKey(accountId), JSON.stringify(plan), OPTIONS);
 }
 

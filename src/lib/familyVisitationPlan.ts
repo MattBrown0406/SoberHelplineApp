@@ -1,4 +1,5 @@
 export const VISITATION_DETAIL_LIMIT = 350;
+export const VISITATION_PROTECTED_BYTE_LIMIT = 1800;
 
 export const VISITATION_COMMITMENTS = [
   'writtenBeforeDrive',
@@ -44,12 +45,54 @@ export function defaultFamilyVisitationPlan(): FamilyVisitationPlan {
   };
 }
 
+function utf8ByteLength(value: string): number {
+  let bytes = 0;
+  for (const character of value) {
+    const codePoint = character.codePointAt(0) ?? 0;
+    bytes += codePoint <= 0x7f ? 1 : codePoint <= 0x7ff ? 2 : codePoint <= 0xffff ? 3 : 4;
+  }
+  return bytes;
+}
+
 function cap(value: string): string {
-  return value.slice(0, VISITATION_DETAIL_LIMIT);
+  let result = '';
+  let bytes = 0;
+  for (const character of value) {
+    const characterBytes = utf8ByteLength(character);
+    if (bytes + characterBytes > VISITATION_DETAIL_LIMIT) break;
+    result += character;
+    bytes += characterBytes;
+  }
+  return result;
 }
 
 function safeString(value: unknown): string {
   return typeof value === 'string' ? cap(value) : '';
+}
+
+export function familyVisitationProtectedByteLength(plan: FamilyVisitationPlan): number {
+  return utf8ByteLength(JSON.stringify(plan));
+}
+
+const PLAN_TEXT_KEYS = ['facility', 'visitDate', 'arrivalTime', 'leaveTime', 'attendees', 'carePackage', 'parkingLotExitPlan'] as const;
+type PlanTextKey = typeof PLAN_TEXT_KEYS[number];
+
+function fitPlanToProtectedBudget(plan: FamilyVisitationPlan, changedKeys: (keyof FamilyVisitationPlan)[]): FamilyVisitationPlan {
+  if (familyVisitationProtectedByteLength(plan) <= VISITATION_PROTECTED_BYTE_LIMIT) return plan;
+  const changedTextKeys = changedKeys.filter((key): key is PlanTextKey =>
+    PLAN_TEXT_KEYS.includes(key as PlanTextKey));
+  const next = { ...plan };
+  for (const key of changedTextKeys.reverse()) {
+    const characters = Array.from(next[key]);
+    while (characters.length > 0 && familyVisitationProtectedByteLength(next) > VISITATION_PROTECTED_BYTE_LIMIT) {
+      characters.pop();
+      next[key] = characters.join('');
+    }
+  }
+  if (familyVisitationProtectedByteLength(next) > VISITATION_PROTECTED_BYTE_LIMIT) {
+    throw new Error('protected_visitation_value_too_large');
+  }
+  return next;
 }
 
 function validDate(value: string): boolean {
@@ -82,7 +125,8 @@ export function updateFamilyVisitationPlan(
   const commitments = patch.commitments
     ? Object.fromEntries(VISITATION_COMMITMENTS.map((id) => [id, patch.commitments?.[id] === true])) as VisitationCommitments
     : plan.commitments;
-  return { ...plan, ...textPatch, commitments, updatedAt: now };
+  const next = { ...plan, ...textPatch, commitments, updatedAt: now };
+  return fitPlanToProtectedBudget(next, Object.keys(patch) as (keyof FamilyVisitationPlan)[]);
 }
 
 export function parseFamilyVisitationPlan(raw: string | null): FamilyVisitationPlan {
@@ -112,7 +156,7 @@ export function parseFamilyVisitationPlan(raw: string | null): FamilyVisitationP
   const commitmentSource = source.commitments as Record<string, unknown>;
   const missingCommitment = VISITATION_COMMITMENTS.find((id) => typeof commitmentSource[id] !== 'boolean');
   if (missingCommitment) throw new Error(`protected_visitation_missing_commitment:${missingCommitment}`);
-  return {
+  const plan: FamilyVisitationPlan = {
     facility: safeString(source.facility),
     visitDate: safeString(source.visitDate),
     arrivalTime: safeString(source.arrivalTime),
@@ -126,6 +170,10 @@ export function parseFamilyVisitationPlan(raw: string | null): FamilyVisitationP
     updatedAt: typeof source.updatedAt === 'string' && Number.isFinite(new Date(source.updatedAt).getTime())
       ? source.updatedAt : null,
   };
+  if (familyVisitationProtectedByteLength(plan) > VISITATION_PROTECTED_BYTE_LIMIT) {
+    throw new Error('protected_visitation_value_too_large');
+  }
+  return plan;
 }
 
 export function familyVisitationProgress(plan: FamilyVisitationPlan): {

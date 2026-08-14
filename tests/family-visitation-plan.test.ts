@@ -5,10 +5,13 @@ import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 import {
   defaultFamilyVisitationPlan,
+  familyVisitationProtectedByteLength,
   familyVisitationProgress,
   parseFamilyVisitationPlan,
   updateFamilyVisitationPlan,
   VISITATION_COMMITMENTS,
+  VISITATION_DETAIL_LIMIT,
+  VISITATION_PROTECTED_BYTE_LIMIT,
 } from '../src/lib/familyVisitationPlan';
 import { familyVisitationStorageKey } from '../src/lib/familyVisitationStorageKeys';
 
@@ -94,6 +97,31 @@ test('SecureStore keys are valid and account scoped', () => {
   assert.notEqual(first, second);
   assert.match(first, /^[A-Za-z0-9._-]+$/);
   assert.throws(() => familyVisitationStorageKey('account:unsafe'), /invalid_visitation_account_id/);
+});
+
+test('valid plans remain below the protected UTF-8 byte budget', () => {
+  const huge = '🧦'.repeat(350);
+  const plan = updateFamilyVisitationPlan(completePlan(), {
+    attendees: huge,
+    carePackage: huge,
+    parkingLotExitPlan: huge,
+  });
+  assert.ok(familyVisitationProtectedByteLength(plan) <= VISITATION_PROTECTED_BYTE_LIMIT);
+  assert.equal(familyVisitationProgress(plan).ready, true);
+  assert.ok(VISITATION_PROTECTED_BYTE_LIMIT < 2048);
+  assert.doesNotThrow(() => parseFamilyVisitationPlan(JSON.stringify(plan)));
+  const individuallyValidButAggregateOversized = 'x'.repeat(VISITATION_DETAIL_LIMIT);
+  const oversized = {
+    ...completePlan(),
+    facility: individuallyValidButAggregateOversized,
+    visitDate: individuallyValidButAggregateOversized,
+    arrivalTime: individuallyValidButAggregateOversized,
+    leaveTime: individuallyValidButAggregateOversized,
+    attendees: individuallyValidButAggregateOversized,
+    carePackage: individuallyValidButAggregateOversized,
+    parkingLotExitPlan: individuallyValidButAggregateOversized,
+  };
+  assert.throws(() => parseFamilyVisitationPlan(JSON.stringify(oversized)), /value_too_large/);
 });
 
 test('route, localization, protected storage, and Tools entry are wired', () => {
