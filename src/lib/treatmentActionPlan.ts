@@ -124,6 +124,8 @@ export function treatmentActionProgress(plan: TreatmentActionPlan): {
 
 export function admissionsDialNumber(phone: string): string | null {
   const trimmed = phone.trim();
+  // Never flatten extensions or incidental digits into a different destination.
+  if (!/^\+?[\d\s().-]+$/.test(trimmed)) return null;
   const digits = trimmed.replace(/\D/g, '');
   if (digits.length < 7 || digits.length > 15) return null;
   return `${trimmed.startsWith('+') ? '+' : ''}${digits}`;

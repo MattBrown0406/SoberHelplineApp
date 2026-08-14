@@ -56,6 +56,8 @@
     "executionTitle": "Detalles fijos de la entrega de esta noche",
     "admissionsPhone": "Teléfono de admisiones",
     "admissionsPhonePlaceholder": "Número directo o fuera de horario",
+    "admissionsPhoneHelp": "Ingresa solo el número principal. Guarda cualquier extensión en las notas de colocación.",
+    "admissionsPhoneInvalid": "Usa un número principal sin extensión, número de habitación ni otro texto.",
     "driver": "Conductor asignado",
     "driverPlaceholder": "Nombre de la persona que conducirá",
     "leaveTime": "Hora de salida — no sigas cambiándola",
