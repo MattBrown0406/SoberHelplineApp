@@ -134,7 +134,11 @@ export function defaultHomecomingWeekPlan(): HomecomingWeekPlan {
 }
 
 function has(value: string): boolean { return value.trim().length > 0; }
-function validDate(value: string): boolean { return /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(new Date(`${value}T12:00:00`).getTime()); }
+function validDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T12:00:00Z`);
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
 function parentHomeWords(value: string): boolean {
   return /\b(mom|mum|mother|dad|father|parents?|parental|family home|old room|mamá|mama|madre|papá|papa|padre|padres|casa familiar)\b/i.test(value);
 }
@@ -337,6 +341,15 @@ export function parseHomecomingWeekPlan(raw: string | null): HomecomingWeekPlan 
       if (typeof defaultValue === 'boolean') discharge[key] = d[key] === true;
       else discharge[key] = safeString(d[key], key === 'otherInstructions' || key === 'adultReturnHomeQuote' || key === 'soberLivingRules' ? HOMECOMING_DETAIL_LIMIT : HOMECOMING_FIELD_LIMIT);
     }
+    discharge.level = enumValue(d.level, ['', 'detox', 'residential', 'php', 'iop', 'outpatient', 'other'] as const, '');
+    discharge.housingType = enumValue(d.housingType, ['', 'family_home', 'sober_living', 'own_home', 'partner', 'friend', 'other'] as const, '');
+    discharge.soberLivingStatus = enumValue(d.soberLivingStatus, ['', 'named', 'none_named'] as const, '');
+    discharge.outpatientStatus = enumValue(d.outpatientStatus, ['', 'named', 'none_named'] as const, '');
+    discharge.fellowship = enumValue(d.fellowship, ['', 'aa', 'na', 'ca', 'smart', 'refuge', 'other'] as const, '');
+    discharge.meetingsKnown = enumValue(d.meetingsKnown, ['', 'yes', 'no'] as const, '');
+    discharge.employmentStatus = enumValue(d.employmentStatus, ['', 'work', 'school', 'not_yet', 'disabled', 'unknown'] as const, '');
+    discharge.aftercareStatus = enumValue(d.aftercareStatus, ['', 'named', 'none_named'] as const, '');
+    discharge.medicationStatus = enumValue(d.medicationStatus, ['', 'yes', 'no'] as const, '');
     plan = updateHomecomingDischarge(plan, discharge as HomecomingDischarge, safeDate(candidate.updatedAt) ?? new Date(0).toISOString());
     const sourceItems = candidate.items && typeof candidate.items === 'object' && !Array.isArray(candidate.items)
       ? candidate.items as Record<string, unknown> : {};

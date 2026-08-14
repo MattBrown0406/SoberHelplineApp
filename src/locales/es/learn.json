@@ -14,6 +14,10 @@
     "actionBody": "Prepara la cama, el seguro, el transporte, la maleta, el trabajo, los dependientes y las primeras 72 horas antes de la conversación planificada.",
     "actionButton": "Crear el plan de acción",
     "actionBadge": "Preparar antes",
+    "homecomingTitle": "Semana de Regreso",
+    "homecomingBody": "Crea el plan según edad y vivienda segura para los días 0–7 después del alta, antes del viaje a casa y el primer fin de semana.",
+    "homecomingButton": "Crear Semana de Regreso",
+    "homecomingBadge": "Días 0–7 · Privado",
     "learningEyebrow": "BIBLIOTECA DE APRENDIZAJE"
   },
   "education": {

@@ -14,6 +14,10 @@
     "actionBody": "Get the bed, insurance, ride, bag, work coverage, dependents, and first 72 hours ready before the planned conversation.",
     "actionButton": "Build the action plan",
     "actionBadge": "Prepare in advance",
+    "homecomingTitle": "Homecoming Week",
+    "homecomingBody": "Build the age-aware, housing-safe plan for days 0–7 after discharge—before the ride home and first weekend.",
+    "homecomingButton": "Build Homecoming Week",
+    "homecomingBadge": "Days 0–7 · Private",
     "learningEyebrow": "LEARNING LIBRARY"
   },
   "education": {

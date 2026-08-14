@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import {
   defaultHomecomingWeekPlan,
   dischargeReadiness,
@@ -8,10 +11,18 @@ import {
   homecomingProgress,
   HOMECOMING_ITEMS,
   isHomecomingItemComplete,
+  parseHomecomingWeekPlan,
   updateHomecomingDischarge,
   updateHomecomingIdentity,
   updateHomecomingItem,
 } from '../src/lib/homecomingWeek';
+import {
+  homecomingDischargeStorageKey,
+  homecomingIdentityStorageKey,
+  homecomingItemStorageKey,
+} from '../src/lib/homecomingStorageKeys';
+
+const TEST_DIR = dirname(fileURLToPath(import.meta.url));
 
 function completeDischarge(adult = true) {
   let plan = defaultHomecomingWeekPlan();
@@ -101,6 +112,29 @@ test('adult parent wording in notes cannot bypass the control', () => {
   assert.equal(result.ready, false);
 });
 
+test('changing a minor to adult clears inherited family-home details', () => {
+  let plan = completeDischarge(false);
+  plan = updateHomecomingIdentity(plan, { ageBand: 'adult', exactAge: '19' });
+  assert.equal(plan.discharge.housingType, '');
+  assert.equal(plan.discharge.housingDetails, '');
+  assert.equal(plan.discharge.receivingAdult, '');
+  assert.ok(!homecomingHousingOptions(plan).includes('family_home'));
+});
+
+test('invalid calendar dates and unknown stored enums fail closed', () => {
+  let plan = completeDischarge(true);
+  plan = updateHomecomingDischarge(plan, { dischargeDate: '2026-02-31' });
+  assert.equal(dischargeReadiness(plan).ready, false);
+  const source = completeDischarge(true);
+  const parsed = parseHomecomingWeekPlan(JSON.stringify({
+    ...source,
+    discharge: { ...source.discharge, housingType: 'parents_forever', level: 'vacation' },
+  }));
+  assert.equal(parsed.discharge.housingType, '');
+  assert.equal(parsed.discharge.level, '');
+  assert.equal(dischargeReadiness(parsed).ready, false);
+});
+
 test('age and gender alter optional-fit guidance without gendering family roles', () => {
   let plan = completeDischarge(true);
   plan = updateHomecomingIdentity(plan, { exactAge: '19', gender: 'woman' });
@@ -141,4 +175,42 @@ test('overall readiness requires discharge truth and every day 0-7 item', () => 
       : { status: 'confirmed', person: 'Jordan', place: 'Named place', time: 'Named time', backup: 'Casey', details: 'Specific plan' });
   }
   assert.equal(homecomingProgress(plan).ready, true);
+});
+
+test('protected storage and hook preserve account scope and clear/read/write coordination', () => {
+  assert.notEqual(homecomingIdentityStorageKey('account-a'), homecomingIdentityStorageKey('account-b'));
+  assert.notEqual(homecomingDischargeStorageKey('account-a', 'housing'), homecomingDischargeStorageKey('account-b', 'housing'));
+  assert.notEqual(homecomingItemStorageKey('account-a', 'day0_pickup'), homecomingItemStorageKey('account-b', 'day0_pickup'));
+  const storage = readFileSync(resolve(TEST_DIR, '../src/storage/homecomingWeek.ts'), 'utf8');
+  const hook = readFileSync(resolve(TEST_DIR, '../src/hooks/useHomecomingWeek.ts'), 'utf8');
+  assert.match(storage, /WHEN_UNLOCKED_THIS_DEVICE_ONLY/);
+  assert.match(storage, /SecureStore\.deleteItemAsync/);
+  assert.match(hook, /clearing: boolean/);
+  assert.match(hook, /\+\+coordinator\.readVersion/);
+  assert.match(hook, /readVersion !== coordinator\.readVersion \|\| coordinator\.clearing/);
+  assert.match(hook, /if \(coordinator\.clearing\) return/);
+});
+
+test('route keeps safety exceptions visible in loading, storage-error, and normal states', () => {
+  const route = readFileSync(resolve(TEST_DIR, '../app/homecoming-week.tsx'), 'utf8');
+  assert.equal((route.match(/<SafetyExceptions \/>/g) ?? []).length, 3);
+  assert.match(route, /tel:911/);
+  assert.match(route, /tel:988/);
+  assert.match(route, /saveState === 'saved'/);
+  assert.match(route, /adultReturnHomeConfirmed/);
+  assert.match(route, /adultReturnHomeQuote/);
+  assert.match(route, /accessibilityRole="radio"/);
+});
+
+test('English and Spanish Homecoming Week keys match and Tools links the sibling workflow', () => {
+  const en = JSON.parse(readFileSync(resolve(TEST_DIR, '../src/locales/en/homecomingWeek.json'), 'utf8')) as Record<string, unknown>;
+  const es = JSON.parse(readFileSync(resolve(TEST_DIR, '../src/locales/es/homecomingWeek.json'), 'utf8')) as Record<string, unknown>;
+  const keys = (value: Record<string, unknown>, prefix = ''): string[] => Object.entries(value).flatMap(([key, row]) => {
+    const path = prefix ? `${prefix}.${key}` : key;
+    return row && typeof row === 'object' && !Array.isArray(row) ? keys(row as Record<string, unknown>, path) : [path];
+  }).sort();
+  assert.deepEqual(keys(en), keys(es));
+  const tools = readFileSync(resolve(TEST_DIR, '../app/(tabs)/learn.tsx'), 'utf8');
+  assert.match(tools, /router\.push\('\/homecoming-week'/);
+  assert.match(tools, /tools\.homecomingTitle/);
 });

@@ -160,7 +160,7 @@ export function useHomecomingWeek(accountId: string | null) {
       await clearProtectedHomecomingWeek(accountId);
     } catch (error) {
       coordinator.clearing = false;
-      publish(accountId, { saveState: 'error' });
+      publish(accountId, { loadState: 'error', saveState: 'error' });
       throw error;
     }
     publish(accountId, { plan: defaultHomecomingWeekPlan(), loadState: 'ready', saveState: 'saved' });
