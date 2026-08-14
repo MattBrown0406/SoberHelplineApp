@@ -34,6 +34,15 @@ test('a new Treatment Action Plan starts red with nine advance items', () => {
   });
 });
 
+test('one-tap admissions dialing rejects extensions and incidental digits', () => {
+  assert.equal(admissionsDialNumber('(503) 555-1212'), '5035551212');
+  assert.equal(admissionsDialNumber('+1 503.555.1212'), '+15035551212');
+  assert.equal(admissionsDialNumber('503-555-1212 ext 42'), null);
+  assert.equal(admissionsDialNumber('503-555-1212 x42'), null);
+  assert.equal(admissionsDialNumber('503-555-1212 #42'), null);
+  assert.equal(admissionsDialNumber('room 42 — 503-555-1212'), null);
+});
+
 test('critical logistics do not turn green from a status tap without specific details', () => {
   const definition = TREATMENT_ACTION_ITEMS.find((item) => item.id === 'placement');
   assert.ok(definition);

@@ -56,6 +56,8 @@
     "executionTitle": "Tonight's fixed handoff details",
     "admissionsPhone": "Admissions phone",
     "admissionsPhonePlaceholder": "Direct or after-hours admissions number",
+    "admissionsPhoneHelp": "Enter the main callable number only. Keep any extension in the placement notes.",
+    "admissionsPhoneInvalid": "Use a main phone number without an extension, room number, or other text.",
     "driver": "Assigned driver",
     "driverPlaceholder": "Name the person who is driving",
     "leaveTime": "Leave time — do not keep moving it",

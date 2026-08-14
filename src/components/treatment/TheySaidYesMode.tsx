@@ -153,6 +153,11 @@ export function TheySaidYesMode({ controller }: { controller: Controller }) {
         placeholderTextColor={colors.inkSoft}
         style={[styles.input, { color: colors.ink, borderColor: colors.line, backgroundColor: colors.cream }]}
       />
+      <Text style={[styles.inputHelp, { color: execution.admissionsPhone.trim() && !dialNumber ? colors.coral : colors.inkSoft }]}>
+        {execution.admissionsPhone.trim() && !dialNumber
+          ? t('yesMode.admissionsPhoneInvalid')
+          : t('yesMode.admissionsPhoneHelp')}
+      </Text>
       <TouchableOpacity
         accessibilityRole="button"
         accessibilityState={{ disabled: !dialNumber }}
@@ -302,6 +307,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: '900', marginTop: 17, marginBottom: 2 },
   label: { fontSize: 11.5, fontWeight: '800', marginTop: 11, marginBottom: 5 },
   input: { minHeight: 44, borderWidth: 1, borderRadius: 10, paddingHorizontal: 11, paddingVertical: 9, fontSize: 13.5 },
+  inputHelp: { fontSize: 11.5, lineHeight: 16, marginTop: 4 },
   sentenceInput: { minHeight: 68, borderWidth: 1, borderRadius: 10, paddingHorizontal: 11, paddingVertical: 9, fontSize: 13.5, textAlignVertical: 'top' },
   buttonRow: { flexDirection: 'row', gap: 8 },
   smallButton: { flex: 1, borderWidth: 1, borderRadius: 10, paddingVertical: 11, alignItems: 'center' },
