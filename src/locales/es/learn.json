@@ -18,6 +18,10 @@
     "homecomingBody": "Crea el plan según edad y vivienda segura para los días 0–7 después del alta, antes del viaje a casa y el primer fin de semana.",
     "homecomingButton": "Crear Semana de Regreso",
     "homecomingBadge": "Días 0–7 · Privado",
+    "visitationTitle": "Plan Familiar de Visita",
+    "visitationBody": "Escribe la visita antes de conducir: sin efectivo, sin promesas de volver a casa, hora fija de salida y plan para el estacionamiento.",
+    "visitationButton": "Escribir la visita",
+    "visitationBadge": "Antes del horario de visita",
     "learningEyebrow": "BIBLIOTECA DE APRENDIZAJE"
   },
   "education": {

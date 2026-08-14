@@ -35,6 +35,7 @@ jobs:
       - run: npm run test:treatment-action
       - run: npm run test:willingness-window
       - run: npm run test:homecoming-week
+      - run: npm run test:family-visitation
       - run: npm run doctor
       - run: npm run export:web
         env:
