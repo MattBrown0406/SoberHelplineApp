@@ -2,11 +2,13 @@ import * as SecureStore from 'expo-secure-store';
 import {
   parseTreatmentActionPlan,
   TREATMENT_ACTION_ITEMS,
+  type TreatmentActionExecution,
   type TreatmentActionItemId,
   type TreatmentActionItemState,
   type TreatmentActionPlan,
 } from '../lib/treatmentActionPlan';
 import {
+  treatmentActionExecutionStorageKey,
   treatmentActionItemStorageKey,
   treatmentActionMetaStorageKey,
 } from '../lib/treatmentActionStorageKeys';
@@ -14,7 +16,6 @@ import {
 const OPTIONS: SecureStore.SecureStoreOptions = {
   keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
 };
-
 
 async function requireProtectedStorage(): Promise<void> {
   if (!(await SecureStore.isAvailableAsync())) {
@@ -24,8 +25,9 @@ async function requireProtectedStorage(): Promise<void> {
 
 export async function loadProtectedTreatmentActionPlan(accountId: string): Promise<TreatmentActionPlan> {
   await requireProtectedStorage();
-  const [metaRaw, ...itemRows] = await Promise.all([
+  const [metaRaw, executionRaw, ...itemRows] = await Promise.all([
     SecureStore.getItemAsync(treatmentActionMetaStorageKey(accountId), OPTIONS),
+    SecureStore.getItemAsync(treatmentActionExecutionStorageKey(accountId), OPTIONS),
     ...TREATMENT_ACTION_ITEMS.map((definition) =>
       SecureStore.getItemAsync(treatmentActionItemStorageKey(accountId, definition.id), OPTIONS)),
   ]);
@@ -50,7 +52,15 @@ export async function loadProtectedTreatmentActionPlan(accountId: string): Promi
       updatedAt = null;
     }
   }
-  return parseTreatmentActionPlan(JSON.stringify({ items, updatedAt }));
+  let execution: unknown = null;
+  if (executionRaw) {
+    try {
+      execution = JSON.parse(executionRaw) as unknown;
+    } catch {
+      execution = null;
+    }
+  }
+  return parseTreatmentActionPlan(JSON.stringify({ items, execution, updatedAt }));
 }
 
 export async function saveProtectedTreatmentActionItem(
@@ -60,9 +70,21 @@ export async function saveProtectedTreatmentActionItem(
   updatedAt: string | null,
 ): Promise<void> {
   await requireProtectedStorage();
-  // Each note is capped in the UI so every encrypted keychain value remains
-  // comfortably below historical platform size limits.
   await SecureStore.setItemAsync(treatmentActionItemStorageKey(accountId, id), JSON.stringify(item), OPTIONS);
+  await SecureStore.setItemAsync(treatmentActionMetaStorageKey(accountId), JSON.stringify({ updatedAt }), OPTIONS);
+}
+
+export async function saveProtectedTreatmentActionExecution(
+  accountId: string,
+  execution: TreatmentActionExecution,
+  updatedAt: string | null,
+): Promise<void> {
+  await requireProtectedStorage();
+  await SecureStore.setItemAsync(
+    treatmentActionExecutionStorageKey(accountId),
+    JSON.stringify(execution),
+    OPTIONS,
+  );
   await SecureStore.setItemAsync(treatmentActionMetaStorageKey(accountId), JSON.stringify({ updatedAt }), OPTIONS);
 }
 
@@ -70,6 +92,7 @@ export async function clearProtectedTreatmentActionPlan(accountId: string): Prom
   await requireProtectedStorage();
   await Promise.all([
     SecureStore.deleteItemAsync(treatmentActionMetaStorageKey(accountId), OPTIONS),
+    SecureStore.deleteItemAsync(treatmentActionExecutionStorageKey(accountId), OPTIONS),
     ...TREATMENT_ACTION_ITEMS.map((definition) =>
       SecureStore.deleteItemAsync(treatmentActionItemStorageKey(accountId, definition.id), OPTIONS)),
   ]);

@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   defaultTreatmentActionPlan,
   TREATMENT_ACTION_ITEMS,
+  updateTreatmentActionExecution,
   updateTreatmentActionItem,
+  type TreatmentActionExecution,
   type TreatmentActionItemId,
   type TreatmentActionPlan,
   type TreatmentActionStatus,
@@ -10,6 +12,7 @@ import {
 import {
   clearProtectedTreatmentActionPlan,
   loadProtectedTreatmentActionPlan,
+  saveProtectedTreatmentActionExecution,
   saveProtectedTreatmentActionItem,
 } from '../storage/treatmentActionPlan';
 
@@ -150,19 +153,37 @@ export function useTreatmentActionPlan(accountId: string | null) {
     ));
   }, [accountId, queueWrite]);
 
+  const updateExecution = useCallback((patch: Partial<TreatmentActionExecution>) => {
+    if (!accountId) return;
+    const current = sharedSnapshots.get(accountId);
+    if (!current || current.loadState !== 'ready') return;
+    const nextPlan = updateTreatmentActionExecution(current.plan, patch);
+    publish(accountId, { plan: nextPlan });
+    queueWrite(() => saveProtectedTreatmentActionExecution(
+      accountId,
+      nextPlan.execution,
+      nextPlan.updatedAt,
+    ));
+  }, [accountId, queueWrite]);
+
   const retrySave = useCallback(() => {
     if (!accountId) return;
     const current = sharedSnapshots.get(accountId);
     if (!current || current.loadState !== 'ready') return;
-    queueWrite(() => Promise.all(
-      TREATMENT_ACTION_ITEMS.map((definition) =>
+    queueWrite(() => Promise.all([
+      ...TREATMENT_ACTION_ITEMS.map((definition) =>
         saveProtectedTreatmentActionItem(
           accountId,
           definition.id,
           current.plan.items[definition.id],
           current.plan.updatedAt,
         )),
-    ).then(() => undefined), true);
+      saveProtectedTreatmentActionExecution(
+        accountId,
+        current.plan.execution,
+        current.plan.updatedAt,
+      ),
+    ]).then(() => undefined), true);
   }, [accountId, queueWrite]);
 
   const clear = useCallback(async () => {
@@ -197,6 +218,7 @@ export function useTreatmentActionPlan(accountId: string | null) {
     loadState: visibleSnapshot.loadState,
     saveState: visibleSnapshot.saveState,
     updateItem,
+    updateExecution,
     retrySave,
     reload,
     clear,

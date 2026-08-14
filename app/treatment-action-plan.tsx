@@ -14,6 +14,7 @@ import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import { useAccount } from '../src/contexts/AccountContext';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useTreatmentActionPlan } from '../src/hooks/useTreatmentActionPlan';
+import { TheySaidYesMode } from '../src/components/treatment/TheySaidYesMode';
 import {
   isTreatmentActionItemComplete,
   TREATMENT_ACTION_DETAIL_LIMIT,
@@ -31,8 +32,10 @@ export default function TreatmentActionPlanScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation('treatmentActionPlan');
   const { user } = useAccount();
-  const { plan, hydrated, loadState, saveState, updateItem, retrySave, reload, clear } = useTreatmentActionPlan(user?.id ?? null);
+  const controller = useTreatmentActionPlan(user?.id ?? null);
+  const { plan, hydrated, loadState, saveState, updateItem, retrySave, reload, clear } = controller;
   const progress = useMemo(() => treatmentActionProgress(plan), [plan]);
+  const plannedReady = progress.ready && saveState === 'saved';
 
   function confirmClear() {
     Alert.alert(t('clearTitle'), t('clearBody'), [
@@ -79,22 +82,38 @@ export default function TreatmentActionPlanScreen() {
         </>
       ) : (
         <>
+          <SafetyExceptions />
+
+          <TheySaidYesMode controller={controller} />
+
           <View
             accessibilityRole="summary"
             accessibilityLiveRegion="polite"
             style={[
               styles.readiness,
               {
-                backgroundColor: progress.ready ? colors.greenLight : colors.coralLight,
-                borderColor: progress.ready ? colors.green : colors.coral,
+                backgroundColor: plannedReady ? colors.greenLight : colors.coralLight,
+                borderColor: plannedReady ? colors.green : colors.coral,
               },
             ]}
           >
-            <Text style={[styles.readinessTitle, { color: progress.ready ? colors.green : colors.coral }]}>
-              {progress.ready ? t('readyTitle') : t('warningTitle')}
+            <Text style={[styles.readinessTitle, { color: plannedReady ? colors.green : colors.coral }]}>
+              {plannedReady
+                ? t('readyTitle')
+                : progress.ready && saveState === 'saving'
+                  ? t('plannedSavingTitle')
+                  : progress.ready && saveState === 'error'
+                    ? t('plannedUnsavedTitle')
+                    : t('warningTitle')}
             </Text>
             <Text style={[styles.readinessBody, { color: colors.ink }]}>
-              {progress.ready ? t('readyBody') : t('warningBody')}
+              {plannedReady
+                ? t('readyBody')
+                : progress.ready && saveState === 'saving'
+                  ? t('plannedSavingBody')
+                  : progress.ready && saveState === 'error'
+                    ? t('plannedUnsavedBody')
+                    : t('warningBody')}
             </Text>
             <View style={[styles.track, { backgroundColor: colors.white }]}>
               <View
@@ -102,7 +121,7 @@ export default function TreatmentActionPlanScreen() {
                   styles.fill,
                   {
                     width: `${progress.percentage}%`,
-                    backgroundColor: progress.ready ? colors.green : colors.coral,
+                    backgroundColor: plannedReady ? colors.green : colors.coral,
                   },
                 ]}
               />
@@ -111,8 +130,6 @@ export default function TreatmentActionPlanScreen() {
               {t('progress', progress)}
             </Text>
           </View>
-
-          <SafetyExceptions />
 
           {CATEGORIES.map((category) => (
             <View key={category}>

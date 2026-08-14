@@ -77,3 +77,14 @@ test('loading and failed reads keep safety guidance visible and block a false cl
   assert.match(card, /actionPlan\.loadState === 'ready'[\s\S]*actionPlan\.saveState === 'saved'[\s\S]*progress\.ready/);
   assert.match(card, /borderColor: planGreen/);
 });
+
+test('the consequence window is an accelerator, not a strategy or the actual-yes clock', () => {
+  const copy = JSON.parse(readFileSync(resolve(ROOT, 'src/locales/en/tracker.json'), 'utf8')) as {
+    window: Record<string, string>;
+  };
+  assert.match(copy.window.openBody, /accelerator/);
+  assert.match(copy.window.openBody, /not the family strategy/);
+  assert.match(copy.window.openBody, /separate They Said Yes clock/);
+  assert.match(copy.window.closedBody, /Do not wait for, provoke, or manufacture a crash/);
+  assert.equal(copy.window.startWindow, 'Log this consequence');
+});
