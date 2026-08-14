@@ -21,6 +21,7 @@ import {
   homecomingIdentityStorageKey,
   homecomingItemStorageKey,
 } from '../src/lib/homecomingStorageKeys';
+import { parseProtectedHomecomingRecord } from '../src/lib/homecomingProtectedRecord';
 
 const TEST_DIR = dirname(fileURLToPath(import.meta.url));
 
@@ -102,23 +103,48 @@ test('adult parent home requires explicit discharge control and quoted language'
   plan = updateHomecomingDischarge(plan, { adultReturnHomeQuote: 'No debe volver a la casa familiar.' });
   assert.equal(dischargeReadiness(plan).ready, false);
   plan = updateHomecomingDischarge(plan, { adultReturnHomeQuote: 'Return to family home with parents.' });
+  assert.equal(dischargeReadiness(plan).ready, false);
+  assert.ok(!homecomingHousingOptions(plan).includes('family_home'));
+  plan = updateHomecomingDischarge(plan, { adultReturnHomeQuoteAffirmed: true });
   assert.equal(dischargeReadiness(plan).ready, true);
   assert.ok(homecomingHousingOptions(plan).includes('family_home'));
 });
 
-test('adult parent wording in English or Spanish notes cannot bypass the control', () => {
-  for (const housingDetails of ['Live with mom and dad for now', 'Casa de la abuela durante un mes', 'Stay with my folks']) {
+test('adult family destinations in English or Spanish notes cannot bypass a false category', () => {
+  for (const housingDetails of ["My sister's house", 'Casa de mi hermano', 'Casa de la abuela durante un mes', 'Stay with my folks']) {
     let plan = completeDischarge(true);
     plan = updateHomecomingDischarge(plan, {
       housingType: 'other',
       housingDetails,
-      adultReturnHomeConfirmed: true,
-      adultReturnHomeQuote: 'Follow the written discharge plan.',
+      otherHousingFamilyStatus: 'not_family',
+      adultReturnHomeConfirmed: false,
     });
     const result = dischargeReadiness(plan);
     assert.equal(result.housingBlocked, true);
     assert.equal(result.ready, false);
   }
+});
+
+test('other housing requires an explicit family-or-relative classification', () => {
+  let plan = completeDischarge(true);
+  plan = updateHomecomingDischarge(plan, { housingType: 'other', housingDetails: 'Oxford Hotel, room reserved' });
+  assert.equal(dischargeReadiness(plan).ready, false);
+  plan = updateHomecomingDischarge(plan, { otherHousingFamilyStatus: 'not_family' });
+  assert.equal(dischargeReadiness(plan).ready, true);
+  plan = updateHomecomingDischarge(plan, { otherHousingFamilyStatus: 'family_or_relative' });
+  assert.equal(dischargeReadiness(plan).housingBlocked, true);
+});
+
+test('day 0, first-weekend, and discharge notes cannot contradict adult housing', () => {
+  let plan = completeDischarge(true);
+  plan = updateHomecomingDischarge(plan, { otherInstructions: 'Return to parents home after discharge' });
+  assert.equal(dischargeReadiness(plan).housingBlocked, true);
+  plan = completeDischarge(true);
+  plan = updateHomecomingItem(plan, 'day0_pickup', { place: "My aunt's house", details: 'Drive there after discharge' });
+  assert.equal(dischargeReadiness(plan).housingBlocked, true);
+  plan = completeDischarge(true);
+  plan = updateHomecomingItem(plan, 'first_weekend', { place: 'Casa de mi prima', details: 'Dormir allí' });
+  assert.equal(dischargeReadiness(plan).housingBlocked, true);
 });
 
 test('changing a minor to adult clears inherited family-home details', () => {
@@ -184,6 +210,15 @@ test('overall readiness requires discharge truth and every day 0-7 item', () => 
       : { status: 'confirmed', person: 'Jordan', place: 'Named place', time: 'Named time', backup: 'Casey', details: 'Specific plan' });
   }
   assert.equal(homecomingProgress(plan).ready, true);
+});
+
+test('present but malformed protected records fail closed', () => {
+  assert.deepEqual(parseProtectedHomecomingRecord(null, 'identity', 'preferredName'), {});
+  assert.throws(() => parseProtectedHomecomingRecord('{bad json', 'identity', 'preferredName'), /invalid_json/);
+  assert.throws(() => parseProtectedHomecomingRecord('[]', 'identity', 'preferredName'), /invalid_shape/);
+  assert.throws(() => parseProtectedHomecomingRecord('{}', 'identity', 'preferredName'), /missing_field/);
+  assert.throws(() => parseProtectedHomecomingRecord('{"preferredName":"Sam"}', 'identity', ['preferredName', 'ageBand']), /missing_field/);
+  assert.deepEqual(parseProtectedHomecomingRecord('{"preferredName":"Sam"}', 'identity', 'preferredName'), { preferredName: 'Sam' });
 });
 
 test('protected storage and hook preserve account scope and clear/read/write coordination', () => {

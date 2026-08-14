@@ -1,6 +1,7 @@
 export type HomecomingAgeBand = '' | 'under_18' | 'adult';
 export type HomecomingGender = '' | 'woman' | 'man' | 'nonbinary' | 'prefer_not_to_say';
 export type HomecomingHousingType = '' | 'family_home' | 'sober_living' | 'own_home' | 'partner' | 'friend' | 'other';
+export type OtherHousingFamilyStatus = '' | 'family_or_relative' | 'not_family';
 export type HomecomingStatus = 'not_started' | 'working' | 'confirmed' | 'not_applicable';
 export type NamedStatus = '' | 'named' | 'none_named';
 
@@ -47,9 +48,11 @@ export type HomecomingDischarge = {
   levelOther: string;
   housingType: HomecomingHousingType;
   housingDetails: string;
+  otherHousingFamilyStatus: OtherHousingFamilyStatus;
   receivingAdult: string;
   adultReturnHomeConfirmed: boolean;
   adultReturnHomeQuote: string;
+  adultReturnHomeQuoteAffirmed: boolean;
   soberLivingStatus: NamedStatus;
   soberLivingName: string;
   soberLivingCity: string;
@@ -109,8 +112,8 @@ const EMPTY_IDENTITY: HomecomingIdentity = {
 
 const EMPTY_DISCHARGE: HomecomingDischarge = {
   facilityName: '', dischargeDate: '', level: '', levelOther: '',
-  housingType: '', housingDetails: '', receivingAdult: '',
-  adultReturnHomeConfirmed: false, adultReturnHomeQuote: '',
+  housingType: '', housingDetails: '', otherHousingFamilyStatus: '', receivingAdult: '',
+  adultReturnHomeConfirmed: false, adultReturnHomeQuote: '', adultReturnHomeQuoteAffirmed: false,
   soberLivingStatus: '', soberLivingName: '', soberLivingCity: '', soberLivingPhone: '',
   soberLivingStartDate: '', soberLivingRules: '',
   outpatientStatus: '', outpatientName: '', outpatientStartDate: '', outpatientSchedule: '', outpatientTransport: '',
@@ -139,18 +142,26 @@ function validDate(value: string): boolean {
   const parsed = new Date(`${value}T12:00:00Z`);
   return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
-function parentHomeWords(value: string): boolean {
-  return /\b(mom|mum|mother|stepmom|stepmother|dad|father|stepdad|stepfather|parents?|parental|folks|grandma|grandmother|grandpa|grandfather|grandparents?|family home|old room|relatives?|mamá|mama|madre|madrastra|papá|papa|padre|padrastro|padres|abuel[ao]s?|familiares?|parientes?|casa familiar|casa de (?:la )?familia)\b/i.test(value);
+function normalized(value: string): string {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
-function parentHomeQuoteSupportsReturn(value: string): boolean {
-  if (!parentHomeWords(value)) return false;
-  return !/\b(do not|don't|not|never|must not|should not|cannot|can't|avoid|prohibit(?:ed)?|no|nunca|no debe|no deberá|no volver|no regrese|evitar|prohibid[oa])\b/i.test(value);
+function describesFamilyDestination(value: string): boolean {
+  const text = normalized(value);
+  const kin = '(?:mom|mum|mother|stepmom|stepmother|dad|father|stepdad|stepfather|parent|parents|folks|grandma|grandmother|grandpa|grandfather|grandparent|grandparents|sister|brother|sibling|aunt|uncle|cousin|relative|relatives|mama|madre|madrastra|papa|padre|padrastro|padres|abuela|abuelo|abuelas|abuelos|hermana|hermano|hermanas|hermanos|tia|tio|tias|tios|prima|primo|primas|primos|familia|familiar|familiares|pariente|parientes)';
+  const home = '(?:home|house|apartment|place|room|casa|hogar|apartamento|departamento|piso|habitacion)';
+  return new RegExp(`\\b${kin}(?: s)?\\s+${home}\\b`).test(text)
+    || new RegExp(`\\b${home}\\s+(?:of|de|del|de la|de mi|con)\\s+(?:mi\\s+)?${kin}\\b`).test(text)
+    || new RegExp(`\\b(?:stay|live|return|move|go|sleep|discharge|volver|vivir|quedar|dormir|alta)(?:\\s+\\w+){0,5}\\s+(?:with|to|at|con|a|de)\\s+(?:my|the|mi|mis|la|el|los|las)?\\s*${kin}\\b`).test(text)
+    || /\b(?:family home|parental home|casa familiar)\b/.test(text);
 }
 
 export function homecomingHousingOptions(plan: HomecomingWeekPlan): HomecomingHousingType[] {
   if (plan.identity.ageBand === 'under_18') return ['family_home', 'other'];
   const options: HomecomingHousingType[] = ['sober_living', 'own_home', 'partner', 'friend', 'other'];
-  if (plan.identity.ageBand === 'adult' && plan.discharge.adultReturnHomeConfirmed) options.push('family_home');
+  if (plan.identity.ageBand === 'adult'
+    && plan.discharge.adultReturnHomeConfirmed
+    && has(plan.discharge.adultReturnHomeQuote)
+    && plan.discharge.adultReturnHomeQuoteAffirmed) options.push('family_home');
   return options;
 }
 
@@ -177,12 +188,28 @@ export function dischargeReadiness(plan: HomecomingWeekPlan): {
   if (!has(discharge.housingDetails)) missing.push('discharge.housingDetails');
 
   const adult = identity.ageBand === 'adult';
-  const adultParentDestination = adult
-    && (discharge.housingType === 'family_home' || parentHomeWords(discharge.housingDetails));
-  const housingBlocked = adultParentDestination
+  if (discharge.housingType === 'other' && !discharge.otherHousingFamilyStatus) {
+    missing.push('discharge.otherHousingFamilyStatus');
+  }
+  const destinationText = [
+    discharge.housingDetails,
+    discharge.otherInstructions,
+    plan.items.day0_pickup.place,
+    plan.items.day0_pickup.details,
+    plan.items.day0_first_night.place,
+    plan.items.day0_first_night.details,
+    plan.items.first_weekend.place,
+    plan.items.first_weekend.details,
+  ].join(' ');
+  const adultFamilyDestination = adult && (
+    discharge.housingType === 'family_home'
+    || (discharge.housingType === 'other' && discharge.otherHousingFamilyStatus === 'family_or_relative')
+    || describesFamilyDestination(destinationText)
+  );
+  const housingBlocked = adultFamilyDestination
     && (!discharge.adultReturnHomeConfirmed
       || !has(discharge.adultReturnHomeQuote)
-      || !parentHomeQuoteSupportsReturn(discharge.adultReturnHomeQuote));
+      || !discharge.adultReturnHomeQuoteAffirmed);
   if (housingBlocked) missing.push('discharge.adultHousingRule');
   if (identity.ageBand === 'under_18' && !has(discharge.receivingAdult)) missing.push('discharge.receivingAdult');
 
@@ -269,11 +296,13 @@ export function updateHomecomingIdentity(
     discharge = {
       ...discharge,
       housingType: 'family_home',
+      otherHousingFamilyStatus: '',
       adultReturnHomeConfirmed: false,
       adultReturnHomeQuote: '',
+      adultReturnHomeQuoteAffirmed: false,
     };
   } else if (identity.ageBand === 'adult' && plan.identity.ageBand === 'under_18') {
-    discharge = { ...discharge, housingType: '', housingDetails: '', receivingAdult: '' };
+    discharge = { ...discharge, housingType: '', housingDetails: '', otherHousingFamilyStatus: '', receivingAdult: '' };
   }
   return { ...plan, identity, discharge, updatedAt: now };
 }
@@ -295,6 +324,7 @@ export function updateHomecomingDischarge(
   if (plan.identity.ageBand !== 'adult') {
     safe.adultReturnHomeConfirmed = false;
     safe.adultReturnHomeQuote = '';
+    safe.adultReturnHomeQuoteAffirmed = false;
   }
   return { ...plan, discharge: { ...plan.discharge, ...safe }, updatedAt: now };
 }
@@ -349,6 +379,7 @@ export function parseHomecomingWeekPlan(raw: string | null): HomecomingWeekPlan 
     }
     discharge.level = enumValue(d.level, ['', 'detox', 'residential', 'php', 'iop', 'outpatient', 'other'] as const, '');
     discharge.housingType = enumValue(d.housingType, ['', 'family_home', 'sober_living', 'own_home', 'partner', 'friend', 'other'] as const, '');
+    discharge.otherHousingFamilyStatus = enumValue(d.otherHousingFamilyStatus, ['', 'family_or_relative', 'not_family'] as const, '');
     discharge.soberLivingStatus = enumValue(d.soberLivingStatus, ['', 'named', 'none_named'] as const, '');
     discharge.outpatientStatus = enumValue(d.outpatientStatus, ['', 'named', 'none_named'] as const, '');
     discharge.fellowship = enumValue(d.fellowship, ['', 'aa', 'na', 'ca', 'smart', 'refuge', 'other'] as const, '');

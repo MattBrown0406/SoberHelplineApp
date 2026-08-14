@@ -187,7 +187,7 @@ function DischargeSection({ controller, housingBlocked }: { controller: Controll
     const next = !d.adultReturnHomeConfirmed;
     updateDischarge({
       adultReturnHomeConfirmed: next,
-      ...(!next ? { adultReturnHomeQuote: '', housingType: d.housingType === 'family_home' ? '' : d.housingType } : {}),
+      ...(!next ? { adultReturnHomeQuote: '', adultReturnHomeQuoteAffirmed: false, housingType: d.housingType === 'family_home' ? '' : d.housingType } : {}),
     });
   };
   return (
@@ -210,11 +210,29 @@ function DischargeSection({ controller, housingBlocked }: { controller: Controll
               <Text style={[styles.checkLabel, { color: colors.ink }]}>{t('discharge.adultControl')}</Text>
             </TouchableOpacity>
             <Text style={[styles.hint, { color: colors.inkSoft }]}>{t('discharge.adultControlHint')}</Text>
-            {d.adultReturnHomeConfirmed && <Field multiline label={t('discharge.adultQuote')} value={d.adultReturnHomeQuote} onChange={(adultReturnHomeQuote) => updateDischarge({ adultReturnHomeQuote })} />}
+            {d.adultReturnHomeConfirmed && <>
+              <Field multiline label={t('discharge.adultQuote')} value={d.adultReturnHomeQuote} onChange={(adultReturnHomeQuote) => updateDischarge({ adultReturnHomeQuote, adultReturnHomeQuoteAffirmed: false })} />
+              {!!d.adultReturnHomeQuote.trim() && (
+                <TouchableOpacity accessibilityRole="checkbox" accessibilityState={{ checked: d.adultReturnHomeQuoteAffirmed }} onPress={() => updateDischarge({ adultReturnHomeQuoteAffirmed: !d.adultReturnHomeQuoteAffirmed })} style={[styles.checkRow, { borderColor: d.adultReturnHomeQuoteAffirmed ? colors.primary : colors.line }]}>
+                  <View style={[styles.checkbox, { backgroundColor: d.adultReturnHomeQuoteAffirmed ? colors.primary : colors.white, borderColor: colors.primary }]}>
+                    {d.adultReturnHomeQuoteAffirmed && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
+                  <Text style={[styles.checkLabel, { color: colors.ink }]}>{t('discharge.adultQuoteAffirm')}</Text>
+                </TouchableOpacity>
+              )}
+            </>}
           </>
         )}
         <Text style={[styles.label, { color: colors.ink }]}>{t('discharge.housingType')}</Text>
         <Choices value={d.housingType} options={housingOptions.map((value) => ({ value, label: t(`discharge.housing.${value}`) }))} onChange={(housingType) => updateDischarge({ housingType: housingType as typeof d.housingType })} />
+        {d.housingType === 'other' && <>
+          <Text style={[styles.label, { color: colors.ink }]}>{t('discharge.otherHousingFamilyQuestion')}</Text>
+          <Choices value={d.otherHousingFamilyStatus} options={[
+            { value: 'family_or_relative', label: t('discharge.otherHousingFamily') },
+            { value: 'not_family', label: t('discharge.otherHousingNotFamily') },
+          ]} onChange={(otherHousingFamilyStatus) => updateDischarge({ otherHousingFamilyStatus: otherHousingFamilyStatus as typeof d.otherHousingFamilyStatus })} />
+          <Text style={[styles.hint, { color: colors.inkSoft }]}>{t('discharge.otherHousingFamilyHint')}</Text>
+        </>}
         <Field multiline label={t('discharge.housingDetails')} placeholder={t('discharge.housingPlaceholder')} value={d.housingDetails} onChange={(housingDetails) => updateDischarge({ housingDetails })} />
         {plan.identity.ageBand === 'under_18' && <Field label={t('discharge.receivingAdult')} value={d.receivingAdult} onChange={(receivingAdult) => updateDischarge({ receivingAdult })} />}
         {housingBlocked && (

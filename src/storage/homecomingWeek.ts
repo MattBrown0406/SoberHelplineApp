@@ -8,6 +8,7 @@ import {
   type HomecomingItemState,
   type HomecomingWeekPlan,
 } from '../lib/homecomingWeek';
+import { parseProtectedHomecomingRecord } from '../lib/homecomingProtectedRecord';
 import {
   homecomingDischargeStorageKey,
   homecomingIdentityStorageKey,
@@ -23,7 +24,7 @@ const SECTIONS: HomecomingDischargeSection[] = ['core', 'housing', 'sober', 'out
 
 const SECTION_KEYS: Record<HomecomingDischargeSection, (keyof HomecomingDischarge)[]> = {
   core: ['facilityName', 'dischargeDate', 'level', 'levelOther', 'otherInstructions'],
-  housing: ['housingType', 'housingDetails', 'receivingAdult', 'adultReturnHomeConfirmed', 'adultReturnHomeQuote'],
+  housing: ['housingType', 'housingDetails', 'otherHousingFamilyStatus', 'receivingAdult', 'adultReturnHomeConfirmed', 'adultReturnHomeQuote', 'adultReturnHomeQuoteAffirmed'],
   sober: ['soberLivingStatus', 'soberLivingName', 'soberLivingCity', 'soberLivingPhone', 'soberLivingStartDate', 'soberLivingRules'],
   outpatient: ['outpatientStatus', 'outpatientName', 'outpatientStartDate', 'outpatientSchedule', 'outpatientTransport'],
   recovery: [
@@ -36,13 +37,7 @@ const SECTION_KEYS: Record<HomecomingDischargeSection, (keyof HomecomingDischarg
 async function requireProtectedStorage(): Promise<void> {
   if (!(await SecureStore.isAvailableAsync())) throw new Error('protected_storage_unavailable');
 }
-function parseObject(raw: string | null): Record<string, unknown> {
-  if (!raw) return {};
-  try {
-    const value = JSON.parse(raw) as unknown;
-    return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
-  } catch { return {}; }
-}
+
 function sectionValue(discharge: HomecomingDischarge, section: HomecomingDischargeSection): Record<string, unknown> {
   return Object.fromEntries(SECTION_KEYS[section].map((key) => [key, discharge[key]]));
 }
@@ -57,11 +52,18 @@ export async function loadProtectedHomecomingWeek(accountId: string): Promise<Ho
   ]);
   const sectionRows = rows.slice(0, SECTIONS.length);
   const itemRows = rows.slice(SECTIONS.length);
-  const discharge = Object.assign({}, ...sectionRows.map(parseObject));
+  const discharge = Object.assign({}, ...sectionRows.map((raw, index) => parseProtectedHomecomingRecord(
+    raw, `discharge:${SECTIONS[index]}`, SECTION_KEYS[SECTIONS[index]],
+  )));
   const items: Record<string, unknown> = {};
-  HOMECOMING_ITEMS.forEach(({ id }, index) => { items[id] = parseObject(itemRows[index]); });
-  const updatedAt = parseObject(metaRaw).updatedAt ?? null;
-  return parseHomecomingWeekPlan(JSON.stringify({ identity: parseObject(identityRaw), discharge, items, updatedAt }));
+  HOMECOMING_ITEMS.forEach(({ id }, index) => {
+    items[id] = parseProtectedHomecomingRecord(
+      itemRows[index], `item:${id}`, ['status', 'person', 'place', 'time', 'backup', 'details', 'updatedAt'],
+    );
+  });
+  const updatedAt = parseProtectedHomecomingRecord(metaRaw, 'meta', 'updatedAt').updatedAt ?? null;
+  const identity = parseProtectedHomecomingRecord(identityRaw, 'identity', ['preferredName', 'ageBand', 'exactAge', 'gender']);
+  return parseHomecomingWeekPlan(JSON.stringify({ identity, discharge, items, updatedAt }));
 }
 
 async function saveMeta(accountId: string, updatedAt: string | null): Promise<void> {
