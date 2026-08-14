@@ -168,10 +168,13 @@ test('They Said Yes mode is on TAP with fixed departure, recant, and one-tap adm
   assert.doesNotMatch(yesMode, /WILLINGNESS_WINDOW_HOURS|72-hour/);
 });
 
-test('clear blocks new item and execution writes until protected deletion finishes', () => {
+test('clear blocks writes and invalidates every account-wide reload until protected deletion finishes', () => {
   const hook = readFileSync(resolve(TEST_DIR, '../src/hooks/useTreatmentActionPlan.ts'), 'utf8');
   assert.match(hook, /clearing: boolean/);
   assert.match(hook, /coordinator\.clearing = true/);
+  assert.match(hook, /\+\+coordinator\.readVersion/);
+  assert.match(hook, /currentReadVersion !== coordinator\.readVersion/);
+  assert.match(hook, /if \(coordinator\.clearing\) return;\n\s+const currentReadVersion/);
   assert.ok((hook.match(/coordinatorFor\(accountId\)\.clearing/g) ?? []).length >= 2);
   assert.match(hook, /coordinator\.clearing = false;\n\s+publish\(accountId, \{ saveState: 'error' \}\)/);
 });

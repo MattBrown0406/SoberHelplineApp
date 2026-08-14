@@ -26,6 +26,7 @@ type Snapshot = {
 type WriteCoordinator = {
   queue: Promise<void>;
   version: number;
+  readVersion: number;
   hadFailure: boolean;
   clearing: boolean;
 };
@@ -37,7 +38,13 @@ const writeCoordinators = new Map<string, WriteCoordinator>();
 function coordinatorFor(accountId: string): WriteCoordinator {
   const existing = writeCoordinators.get(accountId);
   if (existing) return existing;
-  const coordinator = { queue: Promise.resolve(), version: 0, hadFailure: false, clearing: false };
+  const coordinator = {
+    queue: Promise.resolve(),
+    version: 0,
+    readVersion: 0,
+    hadFailure: false,
+    clearing: false,
+  };
   writeCoordinators.set(accountId, coordinator);
   return coordinator;
 }
@@ -88,13 +95,24 @@ export function useTreatmentActionPlan(accountId: string | null) {
       });
       return;
     }
+    const coordinator = coordinatorFor(accountId);
+    if (coordinator.clearing) return;
+    const currentReadVersion = ++coordinator.readVersion;
     publish(accountId, { loadState: 'loading' });
     try {
       const loaded = await loadProtectedTreatmentActionPlan(accountId);
-      if (currentGeneration !== generation.current) return;
+      if (
+        currentGeneration !== generation.current
+        || currentReadVersion !== coordinator.readVersion
+        || coordinator.clearing
+      ) return;
       publish(accountId, { plan: loaded, loadState: 'ready', saveState: 'saved' });
     } catch {
-      if (currentGeneration !== generation.current) return;
+      if (
+        currentGeneration !== generation.current
+        || currentReadVersion !== coordinator.readVersion
+        || coordinator.clearing
+      ) return;
       // Never convert a read failure into a writable blank plan. The caller
       // must retry or explicitly clear protected storage before editing.
       publish(accountId, { loadState: 'error', saveState: 'error' });
@@ -195,6 +213,7 @@ export function useTreatmentActionPlan(accountId: string | null) {
     const coordinator = coordinatorFor(accountId);
     if (coordinator.clearing) return;
     coordinator.clearing = true;
+    ++coordinator.readVersion;
     ++coordinator.version;
     publish(accountId, { saveState: 'saving' });
     await coordinator.queue.catch(() => undefined);
