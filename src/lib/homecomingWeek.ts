@@ -149,7 +149,7 @@ function describesFamilyDestination(value: string): boolean {
   const text = normalized(value);
   const kin = '(?:mom|mum|mother|stepmom|stepmother|dad|father|stepdad|stepfather|parent|parents|folks|grandma|grandmother|grandpa|grandfather|grandparent|grandparents|daughter|son|child|children|stepdaughter|stepson|sister|brother|sibling|aunt|uncle|niece|nephew|cousin|guardian|relative|relatives|mama|madre|madrastra|papa|padre|padrastro|padres|abuela|abuelo|abuelas|abuelos|hija|hijo|hijas|hijos|hijastro|hijastra|hermana|hermano|hermanas|hermanos|tia|tio|tias|tios|sobrina|sobrino|sobrinas|sobrinos|prima|primo|primas|primos|tutor|tutora|tutores|familia|familiar|familiares|pariente|parientes)';
   const home = '(?:home|house|apartment|place|room|casa|hogar|apartamento|departamento|piso|habitacion)';
-  return new RegExp(`\\b${kin}(?: s)?\\s+${home}\\b`).test(text)
+  return new RegExp(`\\b${kin}(?: s)?(?:\\s+[a-z0-9]+){0,3}\\s+${home}\\b`).test(text)
     || new RegExp(`\\b${home}\\s+(?:of|de|del|de la|de mi|con)\\s+(?:mi\\s+)?${kin}\\b`).test(text)
     || new RegExp(`\\b(?:stay|live|return|move|go|sleep|discharge|volver|vivir|quedar|dormir|alta)(?:\\s+\\w+){0,5}\\s+(?:with|to|at|con|a|de)\\s+(?:my|the|mi|mis|la|el|los|las)?\\s*${kin}\\b`).test(text)
     || /\b(?:family home|parental home|casa familiar)\b/.test(text);
@@ -188,7 +188,7 @@ export function dischargeReadiness(plan: HomecomingWeekPlan): {
   if (!has(discharge.housingDetails)) missing.push('discharge.housingDetails');
 
   const adult = identity.ageBand === 'adult';
-  if (discharge.housingType === 'other' && !discharge.otherHousingFamilyStatus) {
+  if (adult && discharge.housingType && !discharge.otherHousingFamilyStatus) {
     missing.push('discharge.otherHousingFamilyStatus');
   }
   const destinationText = [
@@ -203,7 +203,7 @@ export function dischargeReadiness(plan: HomecomingWeekPlan): {
   ].join(' ');
   const adultFamilyDestination = adult && (
     discharge.housingType === 'family_home'
-    || (discharge.housingType === 'other' && discharge.otherHousingFamilyStatus === 'family_or_relative')
+    || discharge.otherHousingFamilyStatus === 'family_or_relative'
     || describesFamilyDestination(destinationText)
   );
   const housingBlocked = adultFamilyDestination
@@ -313,6 +313,9 @@ export function updateHomecomingDischarge(
   now = new Date().toISOString(),
 ): HomecomingWeekPlan {
   const safe: Partial<HomecomingDischarge> = { ...patch };
+  const destinationChanged = (patch.housingType !== undefined && patch.housingType !== plan.discharge.housingType)
+    || (patch.housingDetails !== undefined && patch.housingDetails !== plan.discharge.housingDetails);
+  if (destinationChanged && patch.otherHousingFamilyStatus === undefined) safe.otherHousingFamilyStatus = '';
   for (const key of Object.keys(safe) as (keyof HomecomingDischarge)[]) {
     const value = safe[key];
     if (typeof value === 'string') {

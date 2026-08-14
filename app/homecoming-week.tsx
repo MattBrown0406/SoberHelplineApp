@@ -225,7 +225,7 @@ function DischargeSection({ controller, housingBlocked }: { controller: Controll
         )}
         <Text style={[styles.label, { color: colors.ink }]}>{t('discharge.housingType')}</Text>
         <Choices value={d.housingType} options={housingOptions.map((value) => ({ value, label: t(`discharge.housing.${value}`) }))} onChange={(housingType) => updateDischarge({ housingType: housingType as typeof d.housingType })} />
-        {d.housingType === 'other' && <>
+        {plan.identity.ageBand === 'adult' && !!d.housingType && <>
           <Text style={[styles.label, { color: colors.ink }]}>{t('discharge.otherHousingFamilyQuestion')}</Text>
           <Choices value={d.otherHousingFamilyStatus} options={[
             { value: 'family_or_relative', label: t('discharge.otherHousingFamily') },

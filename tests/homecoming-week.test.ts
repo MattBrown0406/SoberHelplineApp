@@ -42,6 +42,7 @@ function completeDischarge(adult = true) {
     level: 'residential',
     housingType: adult ? 'sober_living' : 'family_home',
     housingDetails: adult ? 'Oak House, Bend' : 'Guardian home, Bend',
+    otherHousingFamilyStatus: adult ? 'not_family' : '',
     receivingAdult: adult ? '' : 'Jordan',
     soberLivingStatus: adult ? 'named' : 'none_named',
     soberLivingName: adult ? 'Oak House' : '',
@@ -108,14 +109,14 @@ test('adult parent home requires explicit discharge control and quoted language'
   plan = updateHomecomingDischarge(plan, { adultReturnHomeQuote: 'Return to family home with parents.' });
   assert.equal(dischargeReadiness(plan).ready, false);
   assert.ok(!homecomingHousingOptions(plan).includes('family_home'));
-  plan = updateHomecomingDischarge(plan, { adultReturnHomeQuoteAffirmed: true });
+  plan = updateHomecomingDischarge(plan, { adultReturnHomeQuoteAffirmed: true, otherHousingFamilyStatus: 'family_or_relative' });
   assert.equal(dischargeReadiness(plan).ready, true);
   assert.ok(homecomingHousingOptions(plan).includes('family_home'));
 });
 
 test('adult family destinations in English or Spanish notes cannot bypass a false category', () => {
   for (const housingDetails of [
-    "My sister's house", "My daughter's house", "My niece's place", "Guardian's apartment", 'Stay with my son',
+    "My sister's house", "My daughter's house", "My daughter Jane's house", "My niece's place", "Guardian's apartment", 'Stay with my son',
     'Casa de mi hermano', 'Casa de la abuela durante un mes', 'Vivir con mi hija', 'Casa de mi sobrino', 'Stay with my folks',
   ]) {
     let plan = completeDischarge(true);
@@ -138,6 +139,26 @@ test('other housing requires an explicit family-or-relative classification', () 
   plan = updateHomecomingDischarge(plan, { otherHousingFamilyStatus: 'not_family' });
   assert.equal(dischargeReadiness(plan).ready, true);
   plan = updateHomecomingDischarge(plan, { otherHousingFamilyStatus: 'family_or_relative' });
+  assert.equal(dischargeReadiness(plan).housingBlocked, true);
+});
+
+test('every adult housing category requires an explicit family-or-relative classification', () => {
+  for (const housingType of ['sober_living', 'own_home', 'partner', 'friend'] as const) {
+    let plan = completeDischarge(true);
+    plan = updateHomecomingDischarge(plan, { housingType, otherHousingFamilyStatus: '' });
+    assert.equal(dischargeReadiness(plan).ready, false, housingType);
+    plan = updateHomecomingDischarge(plan, { otherHousingFamilyStatus: 'not_family' });
+    assert.equal(dischargeReadiness(plan).ready, true, housingType);
+    plan = updateHomecomingDischarge(plan, { otherHousingFamilyStatus: 'family_or_relative' });
+    assert.equal(dischargeReadiness(plan).housingBlocked, true, housingType);
+  }
+});
+
+test('changing an adult destination clears its prior family classification', () => {
+  let plan = completeDischarge(true);
+  plan = updateHomecomingDischarge(plan, { housingDetails: "My daughter Jane's house" });
+  assert.equal(plan.discharge.otherHousingFamilyStatus, '');
+  assert.equal(dischargeReadiness(plan).ready, false);
   assert.equal(dischargeReadiness(plan).housingBlocked, true);
 });
 
