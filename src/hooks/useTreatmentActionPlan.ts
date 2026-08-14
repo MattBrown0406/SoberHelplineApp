@@ -27,6 +27,7 @@ type WriteCoordinator = {
   queue: Promise<void>;
   version: number;
   hadFailure: boolean;
+  clearing: boolean;
 };
 
 const sharedSnapshots = new Map<string, Snapshot>();
@@ -36,7 +37,7 @@ const writeCoordinators = new Map<string, WriteCoordinator>();
 function coordinatorFor(accountId: string): WriteCoordinator {
   const existing = writeCoordinators.get(accountId);
   if (existing) return existing;
-  const coordinator = { queue: Promise.resolve(), version: 0, hadFailure: false };
+  const coordinator = { queue: Promise.resolve(), version: 0, hadFailure: false, clearing: false };
   writeCoordinators.set(accountId, coordinator);
   return coordinator;
 }
@@ -119,6 +120,7 @@ export function useTreatmentActionPlan(accountId: string | null) {
   const queueWrite = useCallback((work: () => Promise<void>, repairsAllItems = false) => {
     if (!accountId) return;
     const coordinator = coordinatorFor(accountId);
+    if (coordinator.clearing) return;
     const version = ++coordinator.version;
     publish(accountId, { saveState: 'saving' });
     coordinator.queue = coordinator.queue
@@ -141,6 +143,7 @@ export function useTreatmentActionPlan(accountId: string | null) {
     patch: Partial<{ status: TreatmentActionStatus; details: string }>,
   ) => {
     if (!accountId) return;
+    if (coordinatorFor(accountId).clearing) return;
     const current = sharedSnapshots.get(accountId);
     if (!current || current.loadState !== 'ready') return;
     const nextPlan = updateTreatmentActionItem(current.plan, id, patch);
@@ -155,6 +158,7 @@ export function useTreatmentActionPlan(accountId: string | null) {
 
   const updateExecution = useCallback((patch: Partial<TreatmentActionExecution>) => {
     if (!accountId) return;
+    if (coordinatorFor(accountId).clearing) return;
     const current = sharedSnapshots.get(accountId);
     if (!current || current.loadState !== 'ready') return;
     const nextPlan = updateTreatmentActionExecution(current.plan, patch);
@@ -189,12 +193,15 @@ export function useTreatmentActionPlan(accountId: string | null) {
   const clear = useCallback(async () => {
     if (!accountId) return;
     const coordinator = coordinatorFor(accountId);
+    if (coordinator.clearing) return;
+    coordinator.clearing = true;
     ++coordinator.version;
     publish(accountId, { saveState: 'saving' });
     await coordinator.queue.catch(() => undefined);
     try {
       await clearProtectedTreatmentActionPlan(accountId);
     } catch (error) {
+      coordinator.clearing = false;
       publish(accountId, { saveState: 'error' });
       throw error;
     }
@@ -204,6 +211,7 @@ export function useTreatmentActionPlan(accountId: string | null) {
       saveState: 'saved',
     });
     coordinator.hadFailure = false;
+    coordinator.clearing = false;
   }, [accountId]);
 
   const visibleSnapshot = view.accountId === accountId
