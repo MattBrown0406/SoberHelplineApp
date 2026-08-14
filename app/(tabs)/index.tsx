@@ -140,6 +140,13 @@ export default function TodayScreen() {
           onSave={(result, share) => { void holdLog.save(result, share); }}
         />
         <MoodChart accountId={user?.id ?? null} />
+        {curriculumPiece && (
+          <CurriculumCard
+            piece={curriculumPiece}
+            week={curriculumWeek}
+            phaseLabel={t(PHASE_LABEL_KEY[curriculumPhase])}
+          />
+        )}
         <FreeTierPaywall inline />
       </ScreenContainer>
     );

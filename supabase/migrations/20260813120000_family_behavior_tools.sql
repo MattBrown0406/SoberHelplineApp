@@ -183,12 +183,31 @@ CREATE POLICY "wall_hold_logs: shared family select"
 
 CREATE POLICY "wall_hold_logs: self insert"
   ON public.wall_hold_logs FOR INSERT
-  WITH CHECK (account_id = public.my_account_id());
+  WITH CHECK (
+    account_id = public.my_account_id()
+    AND (
+      family_space_id IS NULL
+      OR public.is_family_member(family_space_id)
+    )
+    AND (NOT shared_with_family OR family_space_id IS NOT NULL)
+  );
 
 CREATE POLICY "wall_hold_logs: self update"
   ON public.wall_hold_logs FOR UPDATE
   USING (account_id = public.my_account_id())
-  WITH CHECK (account_id = public.my_account_id());
+  WITH CHECK (
+    account_id = public.my_account_id()
+    AND (
+      family_space_id IS NULL
+      OR public.is_family_member(family_space_id)
+    )
+    AND (NOT shared_with_family OR family_space_id IS NOT NULL)
+  );
+
+-- A shared wavering event may trigger at most one push fan-out. The Edge
+-- Function atomically claims this nullable timestamp before sending.
+ALTER TABLE public.wavering_events
+  ADD COLUMN notification_claimed_at timestamptz;
 
 GRANT SELECT, INSERT, UPDATE ON TABLE public.wall_hold_logs TO authenticated;
 GRANT ALL ON TABLE public.wall_hold_logs TO service_role;
