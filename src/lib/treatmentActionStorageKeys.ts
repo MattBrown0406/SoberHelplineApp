@@ -14,3 +14,7 @@ export function treatmentActionMetaStorageKey(accountId: string): string {
 export function treatmentActionExecutionStorageKey(accountId: string): string {
   return `soberhelpline.treatment_action.${accountId}.execution`;
 }
+
+export function treatmentActionPlacementStorageKey(accountId: string): string {
+  return `soberhelpline.treatment_action.${accountId}.placement_details`;
+}

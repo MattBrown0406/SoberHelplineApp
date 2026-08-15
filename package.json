@@ -22,6 +22,7 @@
     "test:willingness-window": "tsx --test tests/willingness-window.test.ts",
     "test:homecoming-week": "tsx --test tests/homecoming-week.test.ts",
     "test:family-visitation": "tsx --test tests/family-visitation-plan.test.ts",
+    "test:diy-intervention": "tsx --test tests/diy-intervention-planner.test.ts",
     "audit:release": "node scripts/audit-dependencies.mjs",
     "doctor": "npx expo-doctor",
     "export:web": "expo export --platform web",

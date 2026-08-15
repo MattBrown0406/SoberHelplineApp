@@ -33,7 +33,7 @@ export default function TreatmentActionPlanScreen() {
   const { t } = useTranslation('treatmentActionPlan');
   const { user } = useAccount();
   const controller = useTreatmentActionPlan(user?.id ?? null);
-  const { plan, hydrated, loadState, saveState, updateItem, retrySave, reload, clear } = controller;
+  const { plan, hydrated, loadState, saveState, updateItem, updatePlacementDetails, retrySave, reload, clear } = controller;
   const progress = useMemo(() => treatmentActionProgress(plan), [plan]);
   const plannedReady = progress.ready && saveState === 'saved';
 
@@ -148,6 +148,36 @@ export default function TreatmentActionPlanScreen() {
             </View>
           ))}
 
+          <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.primary }]}>
+            <Text style={[styles.cardTitle, { color: colors.ink }]}>{t('placementDetails.title')}</Text>
+            <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t('placementDetails.body')}</Text>
+            {(['programName', 'admissionsContactName', 'bedConfirmedFor', 'bedConfirmationWindow', 'bedConfirmedBy'] as const).map((key) => (
+              <TextInput
+                key={key}
+                accessibilityLabel={t(`placementDetails.${key}` as never)}
+                style={[styles.input, { color: colors.ink, borderColor: colors.line }]}
+                value={plan.placementDetails[key]}
+                onChangeText={(value) => updatePlacementDetails({ [key]: value })}
+                placeholder={t(`placementDetails.${key}` as never)}
+                placeholderTextColor={colors.inkSoft}
+                maxLength={TREATMENT_ACTION_DETAIL_LIMIT}
+              />
+            ))}
+            <Text style={[styles.finderNote, { color: colors.inkSoft }]}>
+              {t('placementDetails.phoneFromExecution', { phone: plan.execution.admissionsPhone || '—' })}
+            </Text>
+            <TouchableOpacity
+              accessibilityRole="button"
+              style={[styles.primaryButton, { backgroundColor: colors.primary }]}
+              onPress={() => updatePlacementDetails({ bedReconfirmedAt: new Date().toISOString() })}
+            >
+              <Text style={styles.primaryButtonText}>
+                {plan.placementDetails.bedReconfirmedAt ? t('placementDetails.reconfirmed') : t('placementDetails.reconfirm')}
+              </Text>
+            </TouchableOpacity>
+            <Text style={[styles.finderNote, { color: colors.inkSoft }]}>{t('placementDetails.ownerNote')}</Text>
+          </View>
+
           <View style={[styles.finderCard, { backgroundColor: colors.white, borderColor: colors.line }]}>
             <Text style={[styles.finderNote, { color: colors.inkSoft }]}>{t('finderNote')}</Text>
             <TouchableOpacity
@@ -156,6 +186,18 @@ export default function TreatmentActionPlanScreen() {
               onPress={() => router.push('/finder' as never)}
             >
               <Text style={styles.primaryButtonText}>{t('finderButton')}</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={[styles.finderCard, { backgroundColor: colors.white, borderColor: colors.primary }]}>
+            <Text style={[styles.cardTitle, { color: colors.ink }]}>{t('diyPlanner.title')}</Text>
+            <Text style={[styles.finderNote, { color: colors.inkSoft }]}>{t('diyPlanner.body')}</Text>
+            <TouchableOpacity
+              accessibilityRole="button"
+              style={[styles.primaryButton, { backgroundColor: colors.primary }]}
+              onPress={() => router.push('/diy-intervention-planner' as never)}
+            >
+              <Text style={styles.primaryButtonText}>{t('diyPlanner.button')}</Text>
             </TouchableOpacity>
           </View>
 
