@@ -4,9 +4,11 @@ import {
   TREATMENT_ACTION_ITEMS,
   updateTreatmentActionExecution,
   updateTreatmentActionItem,
+  updateTreatmentPlacementDetails,
   type TreatmentActionExecution,
   type TreatmentActionItemId,
   type TreatmentActionPlan,
+  type TreatmentPlacementDetails,
   type TreatmentActionStatus,
 } from '../lib/treatmentActionPlan';
 import {
@@ -14,6 +16,7 @@ import {
   loadProtectedTreatmentActionPlan,
   saveProtectedTreatmentActionExecution,
   saveProtectedTreatmentActionItem,
+  saveProtectedTreatmentPlacementDetails,
 } from '../storage/treatmentActionPlan';
 
 export type TreatmentActionLoadState = 'loading' | 'ready' | 'error';
@@ -71,6 +74,12 @@ function subscribe(accountId: string, listener: (snapshot: Snapshot) => void): (
   };
 }
 
+async function awaitEvery(operations: Promise<void>[]): Promise<void> {
+  const results = await Promise.allSettled(operations);
+  const failure = results.find((result): result is PromiseRejectedResult => result.status === 'rejected');
+  if (failure) throw failure.reason;
+}
+
 const EMPTY_SNAPSHOT: Snapshot = {
   plan: defaultTreatmentActionPlan(),
   loadState: 'loading',
@@ -97,20 +106,42 @@ export function useTreatmentActionPlan(accountId: string | null) {
     }
     const coordinator = coordinatorFor(accountId);
     if (coordinator.clearing) return;
+    if (coordinator.hadFailure) {
+      publish(accountId, { saveState: 'error' });
+      return;
+    }
     const currentReadVersion = ++coordinator.readVersion;
+    const mutationVersion = coordinator.version;
     publish(accountId, { loadState: 'loading' });
     try {
+      await coordinator.queue.catch(() => undefined);
+      if (
+        currentGeneration !== generation.current
+        || currentReadVersion !== coordinator.readVersion
+        || mutationVersion !== coordinator.version
+        || coordinator.clearing
+      ) return;
+      if (coordinator.hadFailure) {
+        publish(accountId, { loadState: 'error', saveState: 'error' });
+        return;
+      }
       const loaded = await loadProtectedTreatmentActionPlan(accountId);
       if (
         currentGeneration !== generation.current
         || currentReadVersion !== coordinator.readVersion
+        || mutationVersion !== coordinator.version
         || coordinator.clearing
       ) return;
+      if (coordinator.hadFailure) {
+        publish(accountId, { loadState: 'error', saveState: 'error' });
+        return;
+      }
       publish(accountId, { plan: loaded, loadState: 'ready', saveState: 'saved' });
     } catch {
       if (
         currentGeneration !== generation.current
         || currentReadVersion !== coordinator.readVersion
+        || mutationVersion !== coordinator.version
         || coordinator.clearing
       ) return;
       // Never convert a read failure into a writable blank plan. The caller
@@ -139,6 +170,7 @@ export function useTreatmentActionPlan(accountId: string | null) {
     if (!accountId) return;
     const coordinator = coordinatorFor(accountId);
     if (coordinator.clearing) return;
+    ++coordinator.readVersion;
     const version = ++coordinator.version;
     publish(accountId, { saveState: 'saving' });
     coordinator.queue = coordinator.queue
@@ -188,11 +220,25 @@ export function useTreatmentActionPlan(accountId: string | null) {
     ));
   }, [accountId, queueWrite]);
 
+  const updatePlacementDetails = useCallback((patch: Partial<TreatmentPlacementDetails>) => {
+    if (!accountId) return;
+    if (coordinatorFor(accountId).clearing) return;
+    const current = sharedSnapshots.get(accountId);
+    if (!current || current.loadState !== 'ready') return;
+    const nextPlan = updateTreatmentPlacementDetails(current.plan, patch);
+    publish(accountId, { plan: nextPlan });
+    queueWrite(() => saveProtectedTreatmentPlacementDetails(
+      accountId,
+      nextPlan.placementDetails,
+      nextPlan.updatedAt,
+    ));
+  }, [accountId, queueWrite]);
+
   const retrySave = useCallback(() => {
     if (!accountId) return;
     const current = sharedSnapshots.get(accountId);
     if (!current || current.loadState !== 'ready') return;
-    queueWrite(() => Promise.all([
+    queueWrite(() => awaitEvery([
       ...TREATMENT_ACTION_ITEMS.map((definition) =>
         saveProtectedTreatmentActionItem(
           accountId,
@@ -205,7 +251,12 @@ export function useTreatmentActionPlan(accountId: string | null) {
         current.plan.execution,
         current.plan.updatedAt,
       ),
-    ]).then(() => undefined), true);
+      saveProtectedTreatmentPlacementDetails(
+        accountId,
+        current.plan.placementDetails,
+        current.plan.updatedAt,
+      ),
+    ]), true);
   }, [accountId, queueWrite]);
 
   const clear = useCallback(async () => {
@@ -220,8 +271,9 @@ export function useTreatmentActionPlan(accountId: string | null) {
     try {
       await clearProtectedTreatmentActionPlan(accountId);
     } catch (error) {
+      coordinator.hadFailure = true;
       coordinator.clearing = false;
-      publish(accountId, { saveState: 'error' });
+      publish(accountId, { loadState: 'error', saveState: 'error' });
       throw error;
     }
     publish(accountId, {
@@ -246,6 +298,7 @@ export function useTreatmentActionPlan(accountId: string | null) {
     saveState: visibleSnapshot.saveState,
     updateItem,
     updateExecution,
+    updatePlacementDetails,
     retrySave,
     reload,
     clear,

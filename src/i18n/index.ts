@@ -26,6 +26,7 @@ import enEnablingCosts from '../locales/en/enablingCosts.json';
 import enTreatmentActionPlan from '../locales/en/treatmentActionPlan.json';
 import enHomecomingWeek from '../locales/en/homecomingWeek.json';
 import enFamilyVisitationPlan from '../locales/en/familyVisitationPlan.json';
+import enDiyInterventionPlanner from '../locales/en/diyInterventionPlanner.json';
 import esCommon from '../locales/es/common.json';
 import esToday from '../locales/es/today.json';
 import esScripts from '../locales/es/scripts.json';
@@ -49,6 +50,7 @@ import esEnablingCosts from '../locales/es/enablingCosts.json';
 import esTreatmentActionPlan from '../locales/es/treatmentActionPlan.json';
 import esHomecomingWeek from '../locales/es/homecomingWeek.json';
 import esFamilyVisitationPlan from '../locales/es/familyVisitationPlan.json';
+import esDiyInterventionPlanner from '../locales/es/diyInterventionPlanner.json';
 
 export type SupportedLanguage = 'en' | 'es';
 
@@ -72,12 +74,12 @@ export async function initI18n(): Promise<void> {
 
   await i18n.use(initReactI18next).init({
     resources: {
-      en: { common: enCommon, today: enToday, scripts: enScripts, boundaries: enBoundaries, auth: enAuth, tracker: enTracker, support: enSupport, settings: enSettings, alignment: enAlignment, letter: enLetter, rehearsal: enRehearsal, rehearsalLive: enRehearsalLive, rehearsalIncoming: enRehearsalIncoming, onboarding: enOnboarding, live: enLive, learn: enLearn, finder: enFinder, crisis: enCrisis, brief: enBrief, enablingCosts: enEnablingCosts, treatmentActionPlan: enTreatmentActionPlan, homecomingWeek: enHomecomingWeek, familyVisitationPlan: enFamilyVisitationPlan },
-      es: { common: esCommon, today: esToday, scripts: esScripts, boundaries: esBoundaries, auth: esAuth, tracker: esTracker, support: esSupport, settings: esSettings, alignment: esAlignment, letter: esLetter, rehearsal: esRehearsal, rehearsalLive: esRehearsalLive, rehearsalIncoming: esRehearsalIncoming, onboarding: esOnboarding, live: esLive, learn: esLearn, finder: esFinder, crisis: esCrisis, brief: esBrief, enablingCosts: esEnablingCosts, treatmentActionPlan: esTreatmentActionPlan, homecomingWeek: esHomecomingWeek, familyVisitationPlan: esFamilyVisitationPlan },
+      en: { common: enCommon, today: enToday, scripts: enScripts, boundaries: enBoundaries, auth: enAuth, tracker: enTracker, support: enSupport, settings: enSettings, alignment: enAlignment, letter: enLetter, rehearsal: enRehearsal, rehearsalLive: enRehearsalLive, rehearsalIncoming: enRehearsalIncoming, onboarding: enOnboarding, live: enLive, learn: enLearn, finder: enFinder, crisis: enCrisis, brief: enBrief, enablingCosts: enEnablingCosts, treatmentActionPlan: enTreatmentActionPlan, homecomingWeek: enHomecomingWeek, familyVisitationPlan: enFamilyVisitationPlan, diyInterventionPlanner: enDiyInterventionPlanner },
+      es: { common: esCommon, today: esToday, scripts: esScripts, boundaries: esBoundaries, auth: esAuth, tracker: esTracker, support: esSupport, settings: esSettings, alignment: esAlignment, letter: esLetter, rehearsal: esRehearsal, rehearsalLive: esRehearsalLive, rehearsalIncoming: esRehearsalIncoming, onboarding: esOnboarding, live: esLive, learn: esLearn, finder: esFinder, crisis: esCrisis, brief: esBrief, enablingCosts: esEnablingCosts, treatmentActionPlan: esTreatmentActionPlan, homecomingWeek: esHomecomingWeek, familyVisitationPlan: esFamilyVisitationPlan, diyInterventionPlanner: esDiyInterventionPlanner },
     },
     lng,
     fallbackLng: 'en',
-    ns: ['common', 'today', 'scripts', 'boundaries', 'auth', 'tracker', 'support', 'settings', 'alignment', 'letter', 'rehearsal', 'rehearsalLive', 'rehearsalIncoming', 'onboarding', 'live', 'learn', 'enablingCosts', 'treatmentActionPlan', 'homecomingWeek', 'familyVisitationPlan'],
+    ns: ['common', 'today', 'scripts', 'boundaries', 'auth', 'tracker', 'support', 'settings', 'alignment', 'letter', 'rehearsal', 'rehearsalLive', 'rehearsalIncoming', 'onboarding', 'live', 'learn', 'enablingCosts', 'treatmentActionPlan', 'homecomingWeek', 'familyVisitationPlan', 'diyInterventionPlanner'],
     defaultNS: 'common',
     interpolation: { escapeValue: false },
   });

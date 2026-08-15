@@ -77,6 +77,24 @@ export default function LearnScreen() {
         </TouchableOpacity>
       </View>
 
+      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.primary }]}>
+        <View style={styles.toolTopRow}>
+          <Text style={styles.toolIcon}>🧭</Text>
+          <Text style={[styles.toolBadge, { backgroundColor: colors.primary }]}>{t('tools.diyBadge')}</Text>
+        </View>
+        <Text style={[styles.cardTitle, { color: colors.ink }]}>{t('tools.diyTitle')}</Text>
+        <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t('tools.diyBody')}</Text>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={accountState === 'direct-free' ? t('tools.diyLockedButton') : t('tools.diyButton')}
+          style={[styles.cardButton, { backgroundColor: colors.primary }]}
+          onPress={() => router.push('/diy-intervention-planner' as never)}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.cardButtonText}>{accountState === 'direct-free' ? t('tools.diyLockedButton') : t('tools.diyButton')}</Text>
+        </TouchableOpacity>
+      </View>
+
       <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.coral }]}>
         <View style={styles.toolTopRow}>
           <Text style={styles.toolIcon}>🏠</Text>

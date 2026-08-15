@@ -31,7 +31,25 @@
   "gateSupportNote": "Puedes hablar con un intervencionista mientras te preparas. Eso es diferente de tener la conversación planificada con tu ser querido.",
   "finderButton": "Abrir directorio A–Z de tratamiento",
   "finderNote": "Usa el directorio para identificar opciones y confirma directamente la idoneidad clínica y disponibilidad actual. Los listados no son rankings patrocinados.",
+  "placementDetails": {
+    "title": "Programa, contacto de admisiones y cama confirmada",
+    "body": "El TAP conserva estos datos de colocación. El planificador DIY los lee aquí en vez de crear una segunda lista de colocación.",
+    "programName": "Programa de tratamiento elegido",
+    "admissionsContactName": "Nombre del contacto de admisiones",
+    "phoneFromExecution": "Teléfono de admisiones ya guardado en el TAP: {{phone}}",
+    "bedConfirmedFor": "Cama confirmada para la fecha (AAAA-MM-DD)",
+    "bedConfirmationWindow": "Ventana de confirmación o llegada",
+    "bedConfirmedBy": "Quién confirmó la cama",
+    "reconfirm": "Marcar la cama como reconfirmada ahora",
+    "reconfirmed": "Cama reconfirmada — toca para actualizar la hora",
+    "ownerNote": "Confirma directamente con el programa la idoneidad clínica y la cama. Un listado del directorio no es una recomendación ni una garantía."
+  },
   "interventionButton": "Volver a planificar la intervención",
+  "diyPlanner": {
+    "title": "Planificador de Intervención DIY · Essentials",
+    "body": "Usa aquí el TAP para colocación y logística. El planificador DIY hermano agrega idoneidad, nivel de atención necesario, unidad, cartas, ensayo, No Planificado y AMA sin copiar esta lista.",
+    "button": "Abrir Planificador de Intervención DIY"
+  },
   "clear": "Borrar plan",
   "clearTitle": "¿Borrar el Plan de acción para el tratamiento?",
   "clearBody": "Esto elimina permanentemente el plan guardado en este dispositivo.",

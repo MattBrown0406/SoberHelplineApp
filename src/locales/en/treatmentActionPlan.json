@@ -31,7 +31,25 @@
   "gateSupportNote": "You can speak with an interventionist while preparing. That is different from holding the planned conversation with your loved one.",
   "finderButton": "Open A–Z treatment directory",
   "finderNote": "Use the directory to identify options, then confirm clinical fit and current availability directly. Listings are not sponsored rankings.",
+  "placementDetails": {
+    "title": "Program, admissions contact, and confirmed bed",
+    "body": "TAP owns these placement facts. The DIY planner reads them here instead of creating a second placement checklist.",
+    "programName": "Named treatment program",
+    "admissionsContactName": "Admissions contact name",
+    "phoneFromExecution": "Admissions phone already stored in TAP: {{phone}}",
+    "bedConfirmedFor": "Bed confirmed for date (YYYY-MM-DD)",
+    "bedConfirmationWindow": "Confirmation or arrival window",
+    "bedConfirmedBy": "Who confirmed the bed",
+    "reconfirm": "Mark bed reconfirmed now",
+    "reconfirmed": "Bed reconfirmed — tap to update time",
+    "ownerNote": "Confirm clinical fit and the bed directly with the program. A directory listing is not a recommendation or guarantee."
+  },
   "interventionButton": "Return to intervention planning",
+  "diyPlanner": {
+    "title": "DIY Intervention Planner · Essentials",
+    "body": "Use TAP here for placement and logistics. The sibling DIY planner adds fit, needed level of care, team unity, letters, rehearsal, Planned No, and AMA without copying this checklist.",
+    "button": "Open DIY Intervention Planner"
+  },
   "clear": "Clear plan",
   "clearTitle": "Clear the Treatment Action Plan?",
   "clearBody": "This permanently removes the plan saved on this device.",
