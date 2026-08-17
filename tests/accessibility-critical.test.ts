@@ -62,3 +62,12 @@ test('tracker toggles expose checkbox state and trajectory is a labeled button',
   assert.match(tracker, /accessibilityLabel=\{t\('trajectory\.openButton'\)\}/);
   assert.match(tracker, /signRow:\s*\{[\s\S]*minHeight:\s*44/);
 });
+
+test('willingness-window Today alert exposes a heading, live countdown, and 44-point actions', async () => {
+  const alert = await source('src/components/today/WillingnessWindowAlert.tsx');
+  assert.match(alert, /accessibilityRole="summary"/);
+  assert.match(alert, /accessibilityRole="header"/);
+  assert.match(alert, /accessibilityLiveRegion="polite"/);
+  assert.match(alert, /accessibilityRole="button"/);
+  assert.match(alert, /minHeight: 48/);
+});

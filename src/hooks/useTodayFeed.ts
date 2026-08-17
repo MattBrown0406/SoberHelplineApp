@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import {
@@ -54,12 +54,20 @@ export function useTodayFeed(
   const [quoteIndex, setQuoteIndex] = useState(0);
   const [scriptSlot, setScriptSlot] = useState(0);
   const [situation, setSituation] = useState<Situation>(DEFAULT_SITUATION);
+  const [situationAccountId, setSituationAccountId] = useState<string | null>(null);
   const [week, setWeek] = useState(1);
   const [nextFreeCall, setNextFreeCall] = useState<FreeCall | null>(null);
   const [loading, setLoading] = useState(true);
+  const generation = useRef(0);
 
   const load = useCallback(async () => {
+    const request = ++generation.current;
     if (!accountId) {
+      setSituation(DEFAULT_SITUATION);
+      setSituationAccountId(null);
+      setBoundariesHeld(0);
+      setGroupSessions(0);
+      setNextFreeCall(null);
       setLoading(false);
       return;
     }
@@ -80,6 +88,8 @@ export function useTodayFeed(
       supabase.rpc('my_situation'),
     ]);
 
+    if (request !== generation.current) return;
+
     const now = new Date();
     const doy = dayOfYear(now);
 
@@ -96,7 +106,13 @@ export function useTodayFeed(
     // day-of-year slots above, it never wraps back to the start.
     setWeek(curriculumWeek(joinedAt, now));
 
-    if (sitRes.data) setSituation(sitRes.data as Situation);
+    if (sitRes.data) {
+      setSituation(sitRes.data as Situation);
+      setSituationAccountId(accountId);
+    } else {
+      setSituation(DEFAULT_SITUATION);
+      setSituationAccountId(accountId);
+    }
 
     // Next free call: soonest upcoming group session, else the soonest overall.
     const groups = (sessRes.data ?? []) as Omit<FreeCall, 'rsvped'>[];
@@ -110,6 +126,7 @@ export function useTodayFeed(
 
   useEffect(() => {
     void load();
+    return () => { ++generation.current; };
   }, [load]);
 
   // Refetch when the screen regains focus so an admin-updated Zoom link (or
@@ -140,6 +157,8 @@ export function useTodayFeed(
     }
   }, [accountId, nextFreeCall]);
 
+  const visibleSituation = situationAccountId === accountId ? situation : DEFAULT_SITUATION;
+
   return {
     dayCount,
     boundariesHeld,
@@ -149,8 +168,8 @@ export function useTodayFeed(
     curriculumWeek: week,
     curriculumPhase: phaseForWeek(week),
     beyondCurriculum: isBeyondAuthoredCurriculum(week),
-    situation,
-    primaryDoor: funnelDoor(situation),
+    situation: visibleSituation,
+    primaryDoor: funnelDoor(visibleSituation),
     nextFreeCall,
     rsvpFreeCall,
     loading,
