@@ -16,7 +16,9 @@ export type FunnelStage =
   | 'review_eligible'
   | 'review_prompt_requested'
   | 'review_unavailable'
-  | 'review_manual_opened';
+  | 'review_manual_opened'
+  | 'monday_call_share_requested'
+  | 'boundary_card_print_requested';
 
 /**
  * Fire-and-forget funnel event. Never throws — analytics must not break a flow.

@@ -113,6 +113,20 @@
     "eyebrow": "Today's free script",
     "note": "A new conversation script unlocks here every day."
   },
+  "passItOn": {
+    "eyebrow": "Pass it on",
+    "title": "Help the next family find the room",
+    "body": "Share the free Monday family call or print a practical boundary card for a meeting, church, or treatment family day.",
+    "shareTitle": "Free Monday family support call",
+    "shareButton": "Share the free Monday call",
+    "sharing": "Opening share options…",
+    "copied": "Call details copied. You can paste them anywhere.",
+    "printButton": "Print the boundary card",
+    "printing": "Opening print options…",
+    "privacy": "Only public Sober Helpline resources are shared. Nothing from your account or family is included.",
+    "shareError": "We couldn't open the share options. Please try again.",
+    "printError": "We couldn't open the print options. Please try again."
+  },
   "continueLetter": {
     "eyebrow": "Pick up where you left off",
     "title": "Your letter to {{name}} is waiting",
