@@ -88,3 +88,31 @@ test('the consequence window is an accelerator, not a strategy or the actual-yes
   assert.match(copy.window.closedBody, /Do not wait for, provoke, or manufacture a crash/);
   assert.equal(copy.window.startWindow, 'Log this consequence');
 });
+
+test('an active window changes the Today posture, not only the Tracker detail screen', () => {
+  const today = readFileSync(resolve(ROOT, 'app/(tabs)/index.tsx'), 'utf8');
+  const alert = readFileSync(resolve(ROOT, 'src/components/today/WillingnessWindowAlert.tsx'), 'utf8');
+  const copy = JSON.parse(readFileSync(resolve(ROOT, 'src/locales/en/tracker.json'), 'utf8')) as {
+    window: Record<string, string>;
+  };
+
+  assert.match(today, /<WillingnessWindowAlert/);
+  assert.match(today, /situation=\{situation\}/);
+  assert.match(alert, /willingness_window_active/);
+  assert.match(alert, /willingnessWindowState/);
+  assert.match(alert, /treatmentActionProgress/);
+  assert.match(alert, /window\.sayText/);
+  assert.match(alert, /router\.push\('\/\(tabs\)\/tracker'/);
+  assert.ok(alert.indexOf('window.safety') < alert.indexOf('window.sayLabel'));
+  assert.ok(alert.indexOf('function ActiveWillingnessWindow') < alert.indexOf('useTreatmentActionPlan(accountId)'));
+  assert.equal(copy.window.openTitle, 'This is the window.');
+  assert.match(copy.window.openBody, /closes in about 72 hours/);
+});
+
+test('Today situation state is fenced by account identity and request generation', () => {
+  const feed = readFileSync(resolve(ROOT, 'src/hooks/useTodayFeed.ts'), 'utf8');
+  assert.match(feed, /const generation = useRef\(0\)/);
+  assert.match(feed, /request !== generation\.current/);
+  assert.match(feed, /situationAccountId === accountId \? situation : DEFAULT_SITUATION/);
+  assert.match(feed, /setSituationAccountId\(null\)/);
+});

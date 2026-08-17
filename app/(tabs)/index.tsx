@@ -17,6 +17,7 @@ import { WeekReviewCard } from '../../src/components/today/WeekReviewCard';
 import { ScriptCard } from '../../src/components/scripts/ScriptCard';
 import { HoldLogCard } from '../../src/components/boundaries/HoldLogCard';
 import { CurriculumCard } from '../../src/components/today/CurriculumCard';
+import { WillingnessWindowAlert } from '../../src/components/today/WillingnessWindowAlert';
 import { useCheckIn } from '../../src/hooks/useCheckIn';
 import { useTodayFeed } from '../../src/hooks/useTodayFeed';
 import { useLovedOne } from '../../src/hooks/useLovedOne';
@@ -77,6 +78,9 @@ export default function TodayScreen() {
       onSavePhase={(stage) => saveLovedOne({ stage })}
     />
   );
+  const willingnessWindowAlert = (
+    <WillingnessWindowAlert accountId={user?.id ?? null} situation={situation} />
+  );
   // Null when the band is elevated/crisis and no crisis-safe piece fits: a
   // family whose week is on fire gets the support surface, not an exercise.
   const curriculumPiece = selectCurriculumPiece(curriculumWeek, situation.band, i18n.language);
@@ -111,6 +115,7 @@ export default function TodayScreen() {
     return (
       <ScreenContainer backgroundColor={colors.cream}>
         {header}
+        {willingnessWindowAlert}
         <SituationCard
           nextFreeCall={nextFreeCall}
           primaryDoor={primaryDoor}
@@ -155,6 +160,8 @@ export default function TodayScreen() {
   return (
     <ScreenContainer backgroundColor={colors.cream}>
       {header}
+
+      {willingnessWindowAlert}
 
       <SituationCard
         nextFreeCall={nextFreeCall}
