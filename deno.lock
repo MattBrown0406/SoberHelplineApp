@@ -3427,9 +3427,9 @@
         "npm:expo-asset@~12.0.13",
         "npm:expo-av@~16.0.8",
         "npm:expo-clipboard@~8.0.8",
-        "npm:expo-constants@~18.0.13",
+        "npm:expo-constants@~18.0.14",
         "npm:expo-crypto@~15.0.9",
-        "npm:expo-file-system@~19.0.23",
+        "npm:expo-file-system@~19.0.24",
         "npm:expo-font@~14.0.12",
         "npm:expo-image-picker@~17.0.11",
         "npm:expo-linear-gradient@~15.0.8",
@@ -3441,8 +3441,8 @@
         "npm:expo-splash-screen@~31.0.13",
         "npm:expo-status-bar@~3.0.9",
         "npm:expo-store-review@~9.0.9",
-        "npm:expo-updates@~29.0.19",
-        "npm:expo@~54.0.36",
+        "npm:expo-updates@~29.0.20",
+        "npm:expo@~54.0.37",
         "npm:i18next@^26.3.1",
         "npm:livekit-client@^2.19.2",
         "npm:livekit-server-sdk@2.17.0",
@@ -3459,17 +3459,7 @@
         "npm:react@19.1.0",
         "npm:tsx@4.20.6",
         "npm:typescript@^5.3.3"
-      ],
-      "overrides": {
-        "@expo/xcpretty": {
-          "js-yaml": "4.3.1"
-        },
-        "@istanbuljs/load-nyc-config": {
-          "js-yaml": "3.15.1"
-        },
-        "postcss": "8.5.23",
-        "nanoid": "3.3.18"
-      }
+      ]
     }
   }
 }
