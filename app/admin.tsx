@@ -74,6 +74,7 @@ export default function AdminScreen() {
   const [archivingThread, setArchivingThread] = useState<string | null>(null);
   const [funnel, setFunnel] = useState<FunnelStats | null>(null);
   const [reviewStats, setReviewStats] = useState<ReviewPromptStats | null>(null);
+  const [reviewStatsError, setReviewStatsError] = useState<string | null>(null);
 
   // Owners can use every admin tool; active video staff can use scheduling only.
   useEffect(() => {
@@ -86,7 +87,8 @@ export default function AdminScreen() {
     // Funnel + family-health snapshot
     const { data: funnelData } = await supabase.rpc('admin_funnel_stats');
     if (funnelData) setFunnel(funnelData as FunnelStats);
-    const { data: reviewData } = await supabase.rpc('admin_review_prompt_stats');
+    const { data: reviewData, error: reviewError } = await supabase.rpc('admin_review_prompt_stats');
+    setReviewStatsError(reviewError?.message ?? null);
     if (reviewData) setReviewStats(reviewData as ReviewPromptStats);
 
     // Load current Zoom URL. Tolerant title match: the prod row is titled
@@ -200,12 +202,18 @@ export default function AdminScreen() {
         )}
       </View>
 
-      {reviewStats && (
+      {reviewStatsError ? (
+        <View accessibilityRole="alert" style={[styles.card, { backgroundColor: colors.white, borderColor: colors.coral }]}>
+          <Text style={[styles.cardTitle, { color: colors.coral }]}>App Store review analytics unavailable</Text>
+          <Text style={[styles.funnelNote, { color: colors.inkSoft }]}>{reviewStatsError}</Text>
+        </View>
+      ) : reviewStats && (
         <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
           <Text style={[styles.cardTitle, { color: colors.ink }]}>App Store review system</Text>
           <View style={styles.funnelRow}>
             <FunnelStat label="Eligible moments" value={reviewStats.eligible_events} colors={colors} />
             <FunnelStat label="Native requests" value={reviewStats.prompt_requests} colors={colors} />
+            <FunnelStat label="Accounts with native requests" value={reviewStats.prompted_accounts} colors={colors} />
             <FunnelStat label="Manual opens" value={reviewStats.manual_opens} colors={colors} />
           </View>
           <Text style={[styles.funnelStage, { color: colors.inkSoft }]}>

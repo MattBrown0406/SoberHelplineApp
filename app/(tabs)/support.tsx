@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -34,6 +34,7 @@ import { funnelDoor, type FunnelDoor } from '../../src/lib/situation';
 import { SituationOffRamp } from '../../src/components/situation/SituationOffRamp';
 import { logFunnelEvent } from '../../src/lib/funnel';
 import { isAdminEmail } from '../../src/lib/admin';
+import { setReviewPromptPaywallVisible } from '../../src/lib/reviewPrompt';
 import type { StaffMember, SupportGroup } from '../../src/api/types';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -483,6 +484,8 @@ export default function SupportScreen() {
   const [questionSubmitting, setQuestionSubmitting] = useState(false);
   const [questionSubmitted, setQuestionSubmitted] = useState(false);
 
+  useEffect(() => () => setReviewPromptPaywallVisible(false), []);
+
   async function submitQuestion() {
     if (!questionText.trim() || !questionSession || !user?.id) return;
     setQuestionSubmitting(true);
@@ -512,7 +515,7 @@ export default function SupportScreen() {
       : await purchasePremium();
     if (result === 'success') {
       await refreshAccount();
-      setUpgradeOpen(false);
+      closeUpgrade();
     } else if (result === 'failed') {
       Alert.alert(t('upgradeSheet.title'), t('upgradeSheet.iapError'));
     }
@@ -536,8 +539,14 @@ export default function SupportScreen() {
   const isAdmin = isAdminEmail(user?.email);
 
   function openUpgrade(tier: SubscriptionTier) {
+    setReviewPromptPaywallVisible(true);
     setUpgradeTier(tier);
     setUpgradeOpen(true);
+  }
+
+  function closeUpgrade() {
+    setReviewPromptPaywallVisible(false);
+    setUpgradeOpen(false);
   }
 
 
@@ -572,7 +581,7 @@ export default function SupportScreen() {
         visible={upgradeOpen}
         tier={upgradeTier}
         priceLabel={subscriptionPrices[upgradeTier] ?? t(`tier.${upgradeTier}Amount`)}
-        onClose={() => setUpgradeOpen(false)}
+        onClose={closeUpgrade}
         onPurchase={() => void handlePurchase()}
         purchasing={purchasing}
         t={t}

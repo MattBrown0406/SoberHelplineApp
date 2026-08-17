@@ -4,8 +4,10 @@ import * as StoreReview from 'expo-store-review';
 import { Linking } from 'react-native';
 import { captureAppError } from './monitoring';
 import { logFunnelEvent } from './funnel';
+import { supabase } from './supabase';
 import {
   parseReviewPromptState,
+  buildAuthoritativeReviewSafety,
   recordReviewPromptAttempt,
   reviewPromptDecision,
   type ReviewMilestone,
@@ -32,10 +34,22 @@ export type ReviewPromptOutcome =
 
 const requestsInFlight = new Map<string, Promise<ReviewPromptOutcome>>();
 let currentRouteIsCrisis = false;
+let currentRouteIsPaywall = false;
+let embeddedPaywallVisible = false;
+let purchaseFlowDepth = 0;
 
 export function setReviewPromptRoute(routePath: string): void {
   currentRouteIsCrisis = routePath.includes('crisis-mode')
     || routePath.includes('safety-wallet');
+  currentRouteIsPaywall = routePath.includes('paywall') || routePath.includes('upgrade');
+}
+
+export function setReviewPromptPurchaseFlow(active: boolean): void {
+  purchaseFlowDepth = active ? purchaseFlowDepth + 1 : Math.max(0, purchaseFlowDepth - 1);
+}
+
+export function setReviewPromptPaywallVisible(visible: boolean): void {
+  embeddedPaywallVisible = visible;
 }
 
 function accountKey(prefix: string, accountId: string): string {
@@ -76,16 +90,17 @@ async function runReviewRequest(
   safety?: ReviewSafetyContext,
 ): Promise<ReviewPromptOutcome> {
   try {
+    const authoritativeSafety = await authoritativeReviewSafety(accountId);
+    // Automatic rating prompts fail closed when current safety posture cannot
+    // be verified. A store prompt is never important enough to guess here.
+    if (!authoritativeSafety) return 'not_eligible';
     const key = accountKey(STATE_KEY_PREFIX, accountId);
     const state = parseReviewPromptState(await AsyncStorage.getItem(key));
     const version = appVersion();
     const decision = reviewPromptDecision({
       state,
       appVersion: version,
-      safety: {
-        ...safety,
-        inCrisisFlow: currentRouteIsCrisis || safety?.inCrisisFlow,
-      },
+      safety: mergedReviewSafety(authoritativeSafety, safety),
     });
     if (!decision.eligible) return 'not_eligible';
 
@@ -103,6 +118,17 @@ async function runReviewRequest(
       appVersion: version,
       milestone,
     })));
+
+    // Recheck identity, safety, route, and paywall state after every awaited
+    // eligibility step. If anything changed, consume the local attempt but do
+    // not risk showing a prompt in the wrong context.
+    const finalAuthoritativeSafety = await authoritativeReviewSafety(accountId);
+    if (!finalAuthoritativeSafety || !reviewPromptDecision({
+      state,
+      appVersion: version,
+      safety: mergedReviewSafety(finalAuthoritativeSafety, safety),
+    }).eligible) return 'not_eligible';
+
     logFunnelEvent('review_prompt_requested', { milestone, app_version: version });
     await StoreReview.requestReview();
     return 'requested';
@@ -110,6 +136,51 @@ async function runReviewRequest(
     captureAppError(error);
     return 'failed';
   }
+}
+
+function mergedReviewSafety(
+  authoritativeSafety: ReviewSafetyContext,
+  safety?: ReviewSafetyContext,
+): ReviewSafetyContext {
+  return {
+    ...safety,
+    ...authoritativeSafety,
+    checkIn: authoritativeSafety.checkIn ?? safety?.checkIn ?? null,
+    recentCrisisAt: mostRecentTimestamp(
+      authoritativeSafety.recentCrisisAt,
+      safety?.recentCrisisAt,
+    ),
+    recentLowMood: authoritativeSafety.recentLowMood || safety?.recentLowMood,
+    inCrisisFlow: currentRouteIsCrisis || safety?.inCrisisFlow,
+    inPurchaseFlow: purchaseFlowDepth > 0 || currentRouteIsPaywall
+      || embeddedPaywallVisible || safety?.inPurchaseFlow,
+  };
+}
+
+function mostRecentTimestamp(first?: string | null, second?: string | null): string | null {
+  const values = [first, second]
+    .filter((value): value is string => typeof value === 'string' && Number.isFinite(Date.parse(value)))
+    .sort((a, b) => Date.parse(b) - Date.parse(a));
+  return values[0] ?? null;
+}
+
+async function authoritativeReviewSafety(accountId: string): Promise<ReviewSafetyContext | null> {
+  const [accountResult, situationResult, checkInResult] = await Promise.all([
+    supabase.rpc('my_account_id'),
+    supabase.rpc('my_situation'),
+    supabase
+      .from('checkins')
+      .select('mood, capacity, pressure, support_need, created_at')
+      .eq('account_id', accountId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  if (accountResult.error || accountResult.data !== accountId
+    || situationResult.error || checkInResult.error
+    || !situationResult.data || typeof situationResult.data !== 'object') return null;
+
+  return buildAuthoritativeReviewSafety(situationResult.data, checkInResult.data);
 }
 
 /** Queue a review request until the member returns from the external meeting. */
@@ -131,6 +202,15 @@ export async function queueSupportCallReview({
     accountKey(QUEUE_KEY_PREFIX, accountId),
     JSON.stringify(queued),
   );
+}
+
+export async function cancelQueuedSupportCallReview(accountId: string | null): Promise<void> {
+  if (!accountId) return;
+  try {
+    await AsyncStorage.removeItem(accountKey(QUEUE_KEY_PREFIX, accountId));
+  } catch (error) {
+    captureAppError(error);
+  }
 }
 
 /**

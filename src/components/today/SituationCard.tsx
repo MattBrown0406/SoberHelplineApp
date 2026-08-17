@@ -12,6 +12,7 @@ interface Props {
   primaryDoor: FunnelDoor;
   onRsvp: () => void;
   onSupportCallJoin?: () => Promise<void>;
+  onSupportCallOpenFailed?: () => Promise<void>;
 }
 
 /**
@@ -19,7 +20,7 @@ interface Props {
  * the family's situation warrants it, a higher-intent door (coaching or
  * intervention) is offered. The free call is never gated — it's the entry rung.
  */
-export function SituationCard({ nextFreeCall, primaryDoor, onRsvp, onSupportCallJoin }: Props) {
+export function SituationCard({ nextFreeCall, primaryDoor, onRsvp, onSupportCallJoin, onSupportCallOpenFailed }: Props) {
   const { colors } = useTheme();
   const { t } = useTranslation('today');
   const router = useRouter();
@@ -42,11 +43,16 @@ export function SituationCard({ nextFreeCall, primaryDoor, onRsvp, onSupportCall
           <TouchableOpacity
             style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
             onPress={() => void (async () => {
-              logFunnelEvent('attended', { source: 'today' });
               try {
                 await onSupportCallJoin?.();
-              } finally {
+              } catch {
+                // Review instrumentation must never block access to the meeting.
+              }
+              try {
                 await Linking.openURL(nextFreeCall!.zoom_url!);
+                logFunnelEvent('attended', { source: 'today' });
+              } catch {
+                await onSupportCallOpenFailed?.();
               }
             })()}
             activeOpacity={0.85}
