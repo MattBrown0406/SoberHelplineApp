@@ -14,11 +14,12 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import { FreeTierPaywall } from '../src/components/ui/FreeTierPaywall';
+import { Gate } from '../src/components/auth/Gate';
 import { useAccount } from '../src/contexts/AccountContext';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useDiyInterventionPlanner } from '../src/hooks/useDiyInterventionPlanner';
 import { useTreatmentActionPlan } from '../src/hooks/useTreatmentActionPlan';
-import { isAdminEmail } from '../src/lib/admin';
+
 import {
   addDiyTeamMember,
   blankDiyLetter,
@@ -46,13 +47,22 @@ const FIT_RISKS = ['recentViolence', 'weaponInHouse', 'activePsychosis', 'overdo
 const FIT_CAPABILITIES = ['familyUnitedOnOneSolution', 'canExecuteBasicsWithoutTutorial'] as const;
 
 export default function DiyInterventionPlannerScreen() {
+  return (
+    <Gate
+      feature="diyIntervention"
+      fallback={<Shell><SafetyPanel /><FreeTierPaywall inline /></Shell>}
+    >
+      <DiyInterventionPlannerContent />
+    </Gate>
+  );
+}
+
+function DiyInterventionPlannerContent() {
   const router = useRouter();
   const { colors } = useTheme();
   const { t } = useTranslation('diyInterventionPlanner');
-  const { user, accountState, isLoading } = useAccount();
-  const isDirectFree = accountState === 'direct-free';
-  const hasEssentials = !isDirectFree || isAdminEmail(user?.email);
-  const accountId = hasEssentials ? user?.id ?? null : null;
+  const { user } = useAccount();
+  const accountId = user?.id ?? null;
   const [nowMs, setNowMs] = useState(() => Date.now());
   useEffect(() => {
     const interval = setInterval(() => setNowMs(Date.now()), 1_000);
@@ -96,12 +106,6 @@ export default function DiyInterventionPlannerScreen() {
     ]);
   }
 
-  if (isLoading) {
-    return <Shell><SafetyPanel /><ActivityIndicator color={colors.primary} accessibilityLabel={t('loading')} /></Shell>;
-  }
-  if (!hasEssentials) {
-    return <Shell><SafetyPanel /><FreeTierPaywall inline /></Shell>;
-  }
 
   return (
     <ScreenContainer keyboardShouldPersistTaps="handled" contentContainerStyle={styles.wrap}>

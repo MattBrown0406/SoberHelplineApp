@@ -531,6 +531,7 @@ export default function SupportScreen() {
   const { myRooms, liveRooms } = useGroupPresence(user?.id ?? null);
   const { rsvpedRooms, pendingRooms, toggleRsvp: toggleGroupRsvp } = useGroupRsvps(user?.id ?? null);
   const canAccessPrivateVideo = !!user && entitlements.canAccessPrivateVideo;
+  const hasMembershipAccess = entitlements.canAccessGroups;
   const privateVideo = usePrivateVideoSessions(user?.id ?? null, canAccessPrivateVideo);
   const isAdmin = isAdminEmail(user?.email);
 
@@ -713,7 +714,7 @@ export default function SupportScreen() {
         )}
 
         {/* Free tier: Monday group + upgrade card */}
-        {!isAttached && accountState === 'direct-free' && (
+        {!isAttached && !hasMembershipAccess && (
           <>
             <View style={[styles.card, { borderColor: colors.line }]}>
               <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
@@ -833,7 +834,7 @@ export default function SupportScreen() {
         )}
 
         {/* Essential / Premier: full content */}
-        {!isAttached && accountState !== 'direct-free' && (
+        {!isAttached && hasMembershipAccess && (
           <>
             {/* Show one unambiguous current plan. Upgrade and review are explicit actions. */}
             <View style={[styles.card, { borderColor: colors.line }]}>

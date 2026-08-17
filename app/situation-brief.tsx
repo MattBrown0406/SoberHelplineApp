@@ -28,8 +28,8 @@ type TrackerSignDef = { id: string; label: string; category: string };
 const BAND_COLOR: Record<SituationBand, string> = {
   calm: '#4d8a63',
   watch: '#e6c070',
-  elevated: '#c4604f',
-  crisis: '#c4604f',
+  elevated: '#a94235',
+  crisis: '#a94235',
 };
 
 export default function SituationBriefScreen() {

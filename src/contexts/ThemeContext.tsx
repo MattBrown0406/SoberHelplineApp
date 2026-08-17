@@ -28,7 +28,7 @@ const DEFAULT_COLORS: AppColors = {
   primaryLight: '#e8eef6',
   secondary: '#d9913b',
   secondaryLight: '#fdf3e3',
-  coral: '#c4604f',
+  coral: '#a94235',
   coralLight: '#fbeae7',
   cream: '#faf6ef',
   sand: '#e8ddc9',

@@ -17,6 +17,7 @@ import { useTheme } from '../src/contexts/ThemeContext';
 import { useLanguage } from '../src/hooks/useLanguage';
 import { supabase } from '../src/lib/supabase';
 import { isAdminEmail } from '../src/lib/admin';
+import { useFeatureAccess } from '../src/hooks/useFeatureAccess';
 import { restorePurchases } from '../src/lib/revenueCat';
 import {
   cancelPushRegistration,
@@ -79,7 +80,7 @@ export default function SettingsScreen() {
   const [practicePushReload, setPracticePushReload] = useState(0);
   const practiceAccountRef = useRef<string | null>(user?.id ?? null);
   practiceAccountRef.current = user?.id ?? null;
-  const canUsePracticePush = isAdmin || isAttached || accountState !== 'direct-free';
+  const canUsePracticePush = useFeatureAccess('practicePush');
 
   useEffect(() => {
     void getReminderHour().then(setReminderHourState);

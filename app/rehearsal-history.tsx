@@ -13,8 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
-import { FreeTierPaywall } from '../src/components/ui/FreeTierPaywall';
-import { isAdminEmail } from '../src/lib/admin';
+import { Gate } from '../src/components/auth/Gate';
 import { supabase } from '../src/lib/supabase';
 import type { PartnerDebrief, PartnerTurn } from '../src/hooks/useRehearsalPartner';
 
@@ -33,10 +32,14 @@ type SessionRow = {
 const SCORE_KEYS = ['love', 'ask', 'boundaries', 'calm'] as const;
 
 export default function RehearsalHistoryScreen() {
+  return <Gate feature="aiRehearsal"><RehearsalHistoryContent /></Gate>;
+}
+
+function RehearsalHistoryContent() {
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('rehearsalLive');
   const router = useRouter();
-  const { user, accountState } = useAccount();
+  const { user } = useAccount();
 
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,9 +77,6 @@ export default function RehearsalHistoryScreen() {
     ]);
   }
 
-  if (accountState === 'direct-free' && !isAdminEmail(user?.email)) {
-    return <FreeTierPaywall />;
-  }
 
   return (
     <ScreenContainer backgroundColor={colors.ink}>

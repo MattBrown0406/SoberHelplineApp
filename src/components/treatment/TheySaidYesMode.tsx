@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import type { useTreatmentActionPlan } from '../../hooks/useTreatmentActionPlan';
@@ -26,6 +27,7 @@ type Controller = ReturnType<typeof useTreatmentActionPlan>;
 export function TheySaidYesMode({ controller }: { controller: Controller }) {
   const { colors } = useTheme();
   const { t } = useTranslation('treatmentActionPlan');
+  const router = useRouter();
   const { plan, updateExecution, saveState } = controller;
   const [clock, setClock] = useState(() => new Date());
   const [showDate, setShowDate] = useState(false);
@@ -261,6 +263,19 @@ export function TheySaidYesMode({ controller }: { controller: Controller }) {
           </>
         )}
       </View>
+      {state.mode !== 'idle' && (
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={t('yesMode.recordOutcome')}
+          style={[styles.outcomeButton, { borderColor: colors.primary }]}
+          onPress={() => router.push({
+            pathname: '/family-outcomes',
+            params: { event: 'entered_care', pathway: 'planned_intervention' },
+          } as never)}
+        >
+          <Text style={[styles.secondaryText, { color: colors.primary }]}>{t('yesMode.recordOutcome')}</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -329,4 +344,5 @@ const styles = StyleSheet.create({
   primaryText: { color: '#fff', fontSize: 14, fontWeight: '900' },
   secondaryButton: { borderWidth: 1.5, borderRadius: 999, paddingVertical: 12, alignItems: 'center' },
   secondaryText: { fontSize: 13, fontWeight: '900' },
+  outcomeButton: { borderWidth: 1.5, borderRadius: 999, paddingVertical: 12, alignItems: 'center', marginTop: 10 },
 });

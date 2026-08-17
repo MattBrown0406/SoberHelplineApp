@@ -30,6 +30,11 @@ jobs:
       - run: npm run test:auth
       - run: npm run test:checkin
       - run: npm run test:push
+      - run: npm run test:safety
+      - run: npm run test:pathway
+      - run: npm run test:caregiver
+      - run: npm run test:reviews
+      - run: npm run test:costs
       - run: npm run test:family
       - run: npm run test:curriculum
       - run: npm run test:treatment-action
@@ -37,6 +42,11 @@ jobs:
       - run: npm run test:homecoming-week
       - run: npm run test:family-visitation
       - run: npm run test:diy-intervention
+      - run: npm run test:gating
+      - run: npm run test:outcomes
+      - run: npm run test:offline
+      - run: npm run test:accessibility
+      - run: npm run test:migration-drift
       - run: npm run doctor
       - run: npm run export:web
         env:

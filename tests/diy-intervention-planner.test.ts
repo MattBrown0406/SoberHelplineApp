@@ -292,7 +292,8 @@ test('route enforces Essentials paywall and product prohibitions', () => {
   const en = readFileSync(resolve(TEST_DIR, '../src/locales/en/diyInterventionPlanner.json'), 'utf8');
   const es = readFileSync(resolve(TEST_DIR, '../src/locales/es/diyInterventionPlanner.json'), 'utf8');
   const product = `${route}\n${en}\n${es}`.toLowerCase();
-  assert.match(route, /accountState === 'direct-free'/);
+  assert.match(route, /<Gate[\s\S]*feature="diyIntervention"/);
+  assert.doesNotMatch(route, /accountState\s*===\s*['"]direct-free['"]/);
   assert.match(route, /<FreeTierPaywall/);
   assert.match(route, /useTreatmentActionPlan/);
   assert.match(route, /leaveTonightProgress/);

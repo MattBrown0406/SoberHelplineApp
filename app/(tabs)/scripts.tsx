@@ -11,46 +11,17 @@ import { useLocalSearchParams } from 'expo-router';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
-import { useAccount } from '../../src/contexts/AccountContext';
 import { ScriptCard } from '../../src/components/scripts/ScriptCard';
 import { getScripts, getDailyScripts, SCRIPT_CATEGORIES } from '../../src/content/scripts';
-import { useTodayFeed } from '../../src/hooks/useTodayFeed';
-import { useLovedOne } from '../../src/hooks/useLovedOne';
 import type { Script } from '../../src/api/types';
 
-// Light-touch personalization: scripts most relevant to the family's stated
-// relationship and substances float to the top of the library. Ranking only —
-// nothing is hidden.
-const RELEVANCE: Record<string, string[]> = {
-  // relationship
-  son: ['script-parents-disagree', 'script-housing', 'script-money', 'script-kids'],
-  daughter: ['script-parents-disagree', 'script-housing', 'script-money', 'script-kids'],
-  spouse: ['script-trust', 'script-kids', 'script-repair', 'script-stolen'],
-  partner: ['script-trust', 'script-kids', 'script-repair', 'script-stolen'],
-  sibling: ['script-first-convo', 'script-denial', 'script-enabling-family'],
-  friend: ['script-first-convo', 'script-denial'],
-  parent: ['script-first-convo', 'script-boundary-broken'],
-  // substances
-  alcohol: ['script-gathering', 'script-impaired', 'script-dui'],
-  opioids: ['script-crisis', 'script-relapse', 'script-fear'],
-  stimulants: ['script-anger', 'script-suspicion'],
-  prescription: ['script-stolen', 'script-borrowed'],
-  cannabis: ['script-denial', 'script-promises'],
-};
-
-function personalize(scripts: Script[], relationship: string | null, substances: string[]): Script[] {
-  const boosted = new Set<string>();
-  for (const key of [relationship ?? '', ...substances]) {
-    for (const id of RELEVANCE[key] ?? []) boosted.add(id);
-  }
-  if (boosted.size === 0) return scripts;
-  // Stable partition: boosted scripts first, original order preserved within each group.
-  return [...scripts.filter((s) => boosted.has(s.id)), ...scripts.filter((s) => !boosted.has(s.id))];
+/** A local calendar day always maps to the same bundled daily set. */
+export function localDailyScriptSlot(date = new Date()): number {
+  return Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86_400_000);
 }
 
 export default function ScriptsScreen() {
   const { colors } = useTheme();
-  const { user } = useAccount();
   const { t, i18n } = useTranslation('scripts');
   const { t: tCommon } = useTranslation('common');
   const { q } = useLocalSearchParams<{ q?: string }>();
@@ -61,16 +32,12 @@ export default function ScriptsScreen() {
     if (typeof q === 'string' && q.length > 0) setQuery(q);
   }, [q]);
 
-  const { scriptSlot } = useTodayFeed(user?.id ?? null, user?.joinedAt ?? null);
-  const { lovedOne } = useLovedOne(user?.id ?? null);
-
-  const allScripts = useMemo(
-    () => personalize(getScripts(i18n.language), lovedOne?.relationship ?? null, lovedOne?.substances ?? []),
-    [lovedOne?.relationship, lovedOne?.substances, i18n.language],
-  );
+  // Both the library and rotation are bundled. Opening this route performs no
+  // account, loved-one, feed, or Supabase request.
+  const allScripts = useMemo(() => getScripts(i18n.language), [i18n.language]);
   const todayScripts = useMemo(
-    () => getDailyScripts(scriptSlot, i18n.language),
-    [scriptSlot, i18n.language],
+    () => getDailyScripts(localDailyScriptSlot(), i18n.language),
+    [i18n.language],
   );
 
   // Shelves: the full library grouped into a short index, collapsed by
@@ -104,30 +71,27 @@ export default function ScriptsScreen() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return allScripts;
-    return allScripts.filter(
-      (s) =>
-        s.title.toLowerCase().includes(q) ||
-        s.tag.toLowerCase().includes(q),
-    );
-  }, [allScripts, query]);
+    return allScripts.filter((script) => {
+      const categoryKey = SCRIPT_CATEGORIES.find((category) => category.tags.includes(script.tag))?.key ?? 'other';
+      const haystack = [
+        script.title,
+        script.tag,
+        t(`tags.${script.tag}`),
+        t(`categories.${categoryKey}`),
+      ].join(' ').toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [allScripts, i18n.language, query, t]);
 
-  const firstName = user?.firstName ?? '';
   const isSearching = query.trim().length > 0;
 
 
   return (
     <ScreenContainer backgroundColor={colors.cream}>
       <View style={styles.headerRow}>
-        <Text style={[styles.heading, { color: colors.ink }]}>
+        <Text accessibilityRole="header" style={[styles.heading, { color: colors.ink }]}>
           {tCommon('nav.scripts')}
         </Text>
-        {firstName ? (
-          <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-            <Text style={styles.avatarText}>
-              {firstName.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        ) : null}
       </View>
 
       {/* Search */}
@@ -141,6 +105,7 @@ export default function ScriptsScreen() {
           onChangeText={setQuery}
           returnKeyType="search"
           autoCorrect={false}
+          accessibilityLabel={t('searchPlaceholder')}
         />
       </View>
 
@@ -180,11 +145,17 @@ export default function ScriptsScreen() {
                   style={[styles.shelfHead, { borderColor: colors.line }]}
                   onPress={() => toggleShelf(shelf.key)}
                   activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${t(`categories.${shelf.key}`)}, ${shelf.scripts.length}`}
+                  accessibilityHint={isOpen
+                    ? (i18n.language.startsWith('es') ? 'Contrae esta categoría de guiones' : 'Collapses this script category')
+                    : (i18n.language.startsWith('es') ? 'Expande esta categoría de guiones' : 'Expands this script category')}
+                  accessibilityState={{ expanded: isOpen }}
                 >
                   <Text style={[styles.shelfTitle, { color: colors.ink }]}>
                     {t(`categories.${shelf.key}`)}
                   </Text>
-                  <View style={styles.shelfRight}>
+                  <View style={styles.shelfRight} accessible={false}>
                     <View style={[styles.shelfCount, { backgroundColor: colors.cream }]}>
                       <Text style={[styles.shelfCountText, { color: colors.inkSoft }]}>
                         {shelf.scripts.length}
@@ -230,18 +201,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: -0.4,
   },
-  avatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 15,
-  },
+
   searchBar: {
     backgroundColor: '#fff',
     borderWidth: 1,
@@ -292,6 +252,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 10,
+    minHeight: 44,
   },
   shelfTitle: {
     fontSize: 14.5,

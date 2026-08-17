@@ -6,7 +6,7 @@ import { AppLogo } from '../../src/components/ui/AppLogo';
 
 function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
   return (
-    <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.5 }}>{emoji}</Text>
+    <Text accessible={false} style={{ fontSize: 20, opacity: focused ? 1 : 0.72 }}>{emoji}</Text>
   );
 }
 
@@ -19,7 +19,7 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: '#9aa6a4',
+        tabBarInactiveTintColor: colors.inkSoft,
         tabBarStyle: {
           backgroundColor: colors.white,
           borderTopColor: colors.line,
@@ -27,8 +27,8 @@ export default function TabLayout() {
           paddingTop: 6,
         },
         tabBarLabelStyle: {
-          fontSize: 9,
-          fontWeight: '600',
+          fontSize: 11,
+          fontWeight: '700',
         },
       }}
     >
@@ -37,7 +37,7 @@ export default function TabLayout() {
         options={{
           title: t('nav.today'),
           tabBarIcon: ({ focused }) => (
-            <View style={{ opacity: focused ? 1 : 0.5 }}>
+            <View accessible={false} style={{ opacity: focused ? 1 : 0.72 }}>
               <AppLogo size={24} />
             </View>
           ),
