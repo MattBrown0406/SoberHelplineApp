@@ -101,7 +101,8 @@
     "recantConfirmBody": "This preserves every logistical detail and changes the night guidance. It does not delete the plan.",
     "recantConfirm": "Log recant",
     "callErrorTitle": "Could not start the call",
-    "callErrorBody": "Check the admissions number and call it directly from the Phone app."
+    "callErrorBody": "Check the admissions number and call it directly from the Phone app.",
+    "recordOutcome": "After admission, record entered care"
   },
   "status": {
     "not_started": "Not started",

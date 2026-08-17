@@ -18,10 +18,10 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
-import { FreeTierPaywall } from '../src/components/ui/FreeTierPaywall';
+import { Gate } from '../src/components/auth/Gate';
 import { useCommunity, CrisisContentError, type CommunityPost } from '../src/hooks/useCommunity';
 import { MAX_CONTENT_WIDTH } from '../src/components/ui/ScreenContainer';
-import { isAdminEmail } from '../src/lib/admin';
+
 
 function relativeTime(iso: string, t: (k: string, o?: Record<string, unknown>) => string): string {
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
@@ -33,9 +33,13 @@ function relativeTime(iso: string, t: (k: string, o?: Record<string, unknown>) =
 }
 
 export default function CommunityScreen() {
+  return <Gate feature="community"><CommunityContent /></Gate>;
+}
+
+function CommunityContent() {
   const { colors } = useTheme();
   const { t } = useTranslation('support');
-  const { user, accountState } = useAccount();
+  const { user } = useAccount();
   const router = useRouter();
   const { posts, belonging, loading, createPost, reportPost, deletePost, supportPost } = useCommunity(user?.id ?? null);
 
@@ -43,7 +47,6 @@ export default function CommunityScreen() {
   const [posting, setPosting] = useState(false);
   const [crisisOpen, setCrisisOpen] = useState(false);
 
-  if (accountState === 'direct-free' && !isAdminEmail(user?.email)) return <FreeTierPaywall />;
 
   async function handlePost() {
     const body = draft.trim();

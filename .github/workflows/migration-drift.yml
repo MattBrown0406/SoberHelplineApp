@@ -1,0 +1,89 @@
+name: Production Migration Drift
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+  schedule:
+    - cron: '17 9 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: production-migration-drift
+  cancel-in-progress: false
+
+jobs:
+  compare-production-to-repository:
+    runs-on: ubuntu-latest
+    steps:
+      # Never check out pull-request code in a pull_request_target workflow.
+      # The base revision keeps the workflow and parser trusted while allowing
+      # read-only access to the production migration history.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
+
+      - name: Apply untrusted PR migration inventory without executing PR code
+        if: github.event_name == 'pull_request_target'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh api --paginate --slurp "repos/$GH_REPO/pulls/$PR_NUMBER/files?per_page=100" > "$RUNNER_TEMP/pr-files.json"
+          python3 - "$RUNNER_TEMP/pr-files.json" <<'PY'
+          import json, pathlib, re, sys
+
+          root = pathlib.Path.cwd().resolve()
+          pages = json.loads(pathlib.Path(sys.argv[1]).read_text())
+          changes = [change for page in pages for change in page]
+          valid = re.compile(r'^supabase/migrations/\d{14}_[A-Za-z0-9_]+\.sql$')
+
+          def migration_path(value):
+              if not isinstance(value, str) or not valid.fullmatch(value):
+                  return None
+              path = (root / value).resolve()
+              if root not in path.parents:
+                  raise SystemExit('Unsafe migration path in PR inventory')
+              return path
+
+          for change in changes:
+              status = change.get('status')
+              if status == 'renamed':
+                  old = migration_path(change.get('previous_filename'))
+                  if old:
+                      old.unlink(missing_ok=True)
+              if status == 'removed':
+                  removed = migration_path(change.get('filename'))
+                  if removed:
+                      removed.unlink(missing_ok=True)
+                  continue
+              candidate = migration_path(change.get('filename'))
+              if candidate:
+                  candidate.parent.mkdir(parents=True, exist_ok=True)
+                  candidate.touch(exist_ok=True)
+          PY
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.109.1
+
+      - name: Link production project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+
+      - name: Compare applied production migrations with repository
+        run: |
+          supabase migration list --linked --output json > "$RUNNER_TEMP/migration-list.txt" 2>&1
+          args=()
+          if [[ "${{ github.event_name }}" == "pull_request_target" ]]; then
+            args+=(--allow-pending-local)
+          fi
+          node scripts/check-migration-drift.mjs "$RUNNER_TEMP/migration-list.txt" "${args[@]}"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

@@ -63,7 +63,7 @@ export function ScreenContainer({
           {children}
         </ScrollView>
       ) : (
-        <View style={innerStyle}>{children}</View>
+        <View style={[innerStyle, styles.nonScrollInner]}>{children}</View>
       )}
     </SafeAreaView>
   );
@@ -79,4 +79,5 @@ const styles = StyleSheet.create({
     paddingBottom: 48,
     paddingTop: 8,
   },
+  nonScrollInner: { flexGrow: 1 },
 });

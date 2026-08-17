@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { useWebSSO } from '../../src/hooks/useWebSSO';
+import { useFeatureAccess } from '../../src/hooks/useFeatureAccess';
 
 
 type ContentSection = { key: string; path: string; sso: boolean };
@@ -19,24 +20,29 @@ const SECTIONS: ContentSection[] = [
 function FaqRow({ item, colors }: { item: FaqItem; colors: ReturnType<typeof useTheme>['colors'] }) {
   const [open, setOpen] = useState(false);
   return (
-    <TouchableOpacity
-      style={[styles.faqRow, { borderBottomColor: colors.line }]}
-      activeOpacity={0.75}
-      onPress={() => setOpen((v) => !v)}
-    >
-      <View style={styles.faqHead}>
+    <View style={[styles.faqRow, { borderBottomColor: colors.line }]}>
+      <TouchableOpacity
+        style={styles.faqHead}
+        activeOpacity={0.75}
+        onPress={() => setOpen((v) => !v)}
+        accessibilityRole="button"
+        accessibilityLabel={item.q}
+        accessibilityHint={open ? 'Collapses this answer' : 'Expands this answer'}
+        accessibilityState={{ expanded: open }}
+      >
         <Text style={[styles.faqQ, { color: colors.ink }]}>{item.q}</Text>
-        <Text style={[styles.faqToggle, { color: colors.inkSoft }]}>{open ? '−' : '+'}</Text>
-      </View>
+        <Text accessible={false} style={[styles.faqToggle, { color: colors.inkSoft }]}>{open ? '−' : '+'}</Text>
+      </TouchableOpacity>
       {open && <Text style={[styles.faqA, { color: colors.inkSoft }]}>{item.a}</Text>}
-    </TouchableOpacity>
+    </View>
   );
 }
 
 export default function LearnScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation('learn');
-  const { user, entitlements, accountState } = useAccount();
+  const { user, entitlements } = useAccount();
+  const canUseDiyIntervention = useFeatureAccess('diyIntervention');
   const router = useRouter();
   const { openWithSSO } = useWebSSO();
   const [faqQuery, setFaqQuery] = useState('');
@@ -55,7 +61,7 @@ export default function LearnScreen() {
 
   return (
     <ScreenContainer scroll contentContainerStyle={styles.inner}>
-      <Text style={[styles.header, { color: colors.ink }]}>{t('header')}</Text>
+      <Text accessibilityRole="header" style={[styles.header, { color: colors.ink }]}>{t('header')}</Text>
 
       <Text style={[styles.sectionEyebrow, { color: colors.inkSoft }]}>{t('tools.eyebrow')}</Text>
 
@@ -73,7 +79,7 @@ export default function LearnScreen() {
           onPress={() => router.push('/treatment-action-plan' as never)}
           activeOpacity={0.85}
         >
-          <Text style={styles.cardButtonText}>{t('tools.actionButton')}</Text>
+          <Text style={[styles.cardButtonText, { color: colors.ink }]}>{t('tools.actionButton')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -86,12 +92,12 @@ export default function LearnScreen() {
         <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t('tools.diyBody')}</Text>
         <TouchableOpacity
           accessibilityRole="button"
-          accessibilityLabel={accountState === 'direct-free' ? t('tools.diyLockedButton') : t('tools.diyButton')}
+          accessibilityLabel={!canUseDiyIntervention ? t('tools.diyLockedButton') : t('tools.diyButton')}
           style={[styles.cardButton, { backgroundColor: colors.primary }]}
           onPress={() => router.push('/diy-intervention-planner' as never)}
           activeOpacity={0.85}
         >
-          <Text style={styles.cardButtonText}>{accountState === 'direct-free' ? t('tools.diyLockedButton') : t('tools.diyButton')}</Text>
+          <Text style={styles.cardButtonText}>{!canUseDiyIntervention ? t('tools.diyLockedButton') : t('tools.diyButton')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -134,16 +140,18 @@ export default function LearnScreen() {
       <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
         <View style={styles.toolTopRow}>
           <Text style={styles.toolIcon}>💵</Text>
-          <Text style={[styles.toolBadge, { backgroundColor: colors.secondary }]}>{t('tools.costBadge')}</Text>
+          <Text style={[styles.toolBadge, { color: colors.ink, backgroundColor: colors.secondary }]}>{t('tools.costBadge')}</Text>
         </View>
         <Text style={[styles.cardTitle, { color: colors.ink }]}>{t('tools.costTitle')}</Text>
         <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t('tools.costBody')}</Text>
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={t('tools.costButton')}
           style={[styles.cardButton, { backgroundColor: colors.secondary }]}
           onPress={() => router.push('/enabling-costs' as never)}
           activeOpacity={0.85}
         >
-          <Text style={styles.cardButtonText}>{t('tools.costButton')}</Text>
+          <Text style={[styles.cardButtonText, { color: colors.ink }]}>{t('tools.costButton')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -155,6 +163,8 @@ export default function LearnScreen() {
         <Text style={[styles.cardTitle, { color: colors.ink }]}>{t('tools.safetyTitle')}</Text>
         <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t('tools.safetyBody')}</Text>
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={t('tools.safetyButton')}
           style={[styles.cardButton, { backgroundColor: colors.green }]}
           onPress={() => router.push('/safety-wallet' as never)}
           activeOpacity={0.85}
@@ -172,6 +182,8 @@ export default function LearnScreen() {
               <Text style={[styles.cardTitle, { color: colors.ink }]}>{t(`${key}.title`)}</Text>
               <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t(`${key}.body`)}</Text>
               <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={t(`${key}.button`)}
                 style={[styles.cardButton, { backgroundColor: colors.primary }]}
                 onPress={() => sso ? void openWithSSO(user?.id ?? null, path) : void Linking.openURL(path)}
                 activeOpacity={0.85}
@@ -183,7 +195,7 @@ export default function LearnScreen() {
 
           {/* In-app answers to the questions every family asks — no web round-trip. */}
           <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
-            <Text style={[styles.cardTitle, { color: colors.ink }]}>{t('faq.eyebrow')}</Text>
+            <Text accessibilityRole="header" style={[styles.cardTitle, { color: colors.ink }]}>{t('faq.eyebrow')}</Text>
             <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t('faq.sub')}</Text>
             <View style={[styles.faqSearch, { borderColor: colors.line }]}>
               <Text style={styles.faqSearchIcon}>🔍</Text>
@@ -194,6 +206,7 @@ export default function LearnScreen() {
                 placeholder={t('faq.eyebrow')}
                 placeholderTextColor={colors.inkSoft}
                 autoCorrect={false}
+                accessibilityLabel={t('faq.eyebrow')}
               />
             </View>
             {filteredFaq.map((item) => (
@@ -245,7 +258,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: { fontSize: 17, fontWeight: '700', marginBottom: 6 },
   cardBody: { fontSize: 14, lineHeight: 20, marginBottom: 16 },
-  cardButton: { alignSelf: 'flex-start', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8 },
+  cardButton: { alignSelf: 'flex-start', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8, minHeight: 44, justifyContent: 'center' },
   cardButtonText: { color: '#fff', fontSize: 15, fontWeight: '600' },
   faqSearch: {
     flexDirection: 'row',
@@ -260,7 +273,7 @@ const styles = StyleSheet.create({
   faqSearchIcon: { fontSize: 13 },
   faqSearchInput: { flex: 1, fontSize: 13.5, padding: 0 },
   faqRow: { paddingVertical: 13, borderBottomWidth: 1 },
-  faqHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  faqHead: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
   faqQ: { flex: 1, fontSize: 14.5, fontWeight: '600', lineHeight: 20 },
   faqToggle: { fontSize: 18, fontWeight: '600' },
   faqA: { fontSize: 13.5, lineHeight: 20, marginTop: 9 },

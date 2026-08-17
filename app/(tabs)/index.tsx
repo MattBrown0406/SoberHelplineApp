@@ -24,13 +24,13 @@ import { useFamilySpace } from '../../src/hooks/useFamilySpace';
 import { useHoldLog } from '../../src/hooks/useHoldLog';
 import { getDailyScripts } from '../../src/content/scripts';
 import { PHASE_LABEL_KEY, selectCurriculumPiece } from '../../src/content/curriculum';
-import { isAdminEmail } from '../../src/lib/admin';
+import { useFeatureAccess } from '../../src/hooks/useFeatureAccess';
 import { maybeRequestReview, queueSupportCallReview } from '../../src/lib/reviewPrompt';
 import type { CaregiverCheckInInput } from '../../src/api/types';
 import type { TFunction } from 'i18next';
 
 export default function TodayScreen() {
-  const { user, isAttached, accountState } = useAccount();
+  const { user, isAttached, isAdmin } = useAccount();
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('today');
   const router = useRouter();
@@ -40,7 +40,7 @@ export default function TodayScreen() {
     useTodayFeed(user?.id ?? null, user?.joinedAt ?? null);
   const { space: familySpace } = useFamilySpace(user?.id ?? null, user?.firstName || 'You');
   const holdLog = useHoldLog(user?.id ?? null, familySpace?.id ?? null);
-  const isAdmin = isAdminEmail(user?.email);
+  const canAccessFullToday = useFeatureAccess('todayFull');
 
   const firstName = user?.firstName ?? 'there';
   const greeting = timeGreeting(t, firstName);
@@ -106,7 +106,7 @@ export default function TodayScreen() {
   // Free tier: the free call stays the anchor, but the daily loop — check-in,
   // streak, one free script, and the mood arc — is never gated. A habit that
   // exists converts; a paywall in place of a habit does not.
-  if (accountState === 'direct-free' && !isAdmin) {
+  if (!canAccessFullToday) {
     const freeScript = getDailyScripts(scriptSlot, i18n.language)[0];
     return (
       <ScreenContainer backgroundColor={colors.cream}>

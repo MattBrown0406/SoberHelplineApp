@@ -206,6 +206,18 @@ export function RecoveryPathwayCard({
             <Text style={[styles.chevron, { color: colors.primary }]}>›</Text>
           </TouchableOpacity>
 
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={t('pathway.outcomesCta')}
+            onPress={() => router.push('/family-outcomes' as never)}
+            style={[styles.outcomesButton, { borderColor: colors.line }]}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.outcomesButtonText, { color: colors.ink }]}>
+              {t('pathway.outcomesCta')}
+            </Text>
+          </TouchableOpacity>
+
           <Text style={[styles.privacy, { color: colors.inkSoft }]}>{t('pathway.privacy')}</Text>
         </>
       )}
@@ -286,6 +298,15 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   nextButtonText: { fontSize: 13.5, fontWeight: '700' },
+  outcomesButton: {
+    borderWidth: 1,
+    borderRadius: 99,
+    paddingVertical: 11,
+    paddingHorizontal: 15,
+    marginTop: 8,
+    alignItems: 'center',
+  },
+  outcomesButtonText: { fontSize: 13, fontWeight: '700' },
   chevron: { fontSize: 19, lineHeight: 19 },
   privacy: { fontSize: 10.5, lineHeight: 15, textAlign: 'center', marginTop: 10 },
 });

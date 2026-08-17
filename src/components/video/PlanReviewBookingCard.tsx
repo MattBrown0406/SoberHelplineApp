@@ -2,18 +2,17 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import type { TFunction } from 'i18next';
-import type { AccountState } from '../../api/types';
 import type { usePrivateVideoSessions } from '../../hooks/usePrivateVideoSessions';
 import { useTheme } from '../../contexts/ThemeContext';
 import { detectedTimeZone, formatInTimeZone } from '../../lib/videoScheduling';
 import { buildPlanReviewSnapshot, planReviewSectionKeysForTier, stableStringify, type PlanReviewSectionKey, type PlanReviewSource } from '../../lib/planReview';
 import { togglePickerMode, type PickerMode } from '../../lib/appFlowGuards';
 
-type Props = { controller: ReturnType<typeof usePrivateVideoSessions>; accountState: AccountState; source: PlanReviewSource; t: TFunction<'crisis'>; consentLocale: 'en' | 'es'; onUpgrade: () => void };
+type Props = { controller: ReturnType<typeof usePrivateVideoSessions>; hasIncludedPlanReview: boolean; source: PlanReviewSource; t: TFunction<'crisis'>; consentLocale: 'en' | 'es'; onUpgrade: () => void };
 
-export function PlanReviewBookingCard({ controller, accountState, source, t, consentLocale, onUpgrade }: Props) {
+export function PlanReviewBookingCard({ controller, hasIncludedPlanReview, source, t, consentLocale, onUpgrade }: Props) {
   const { colors } = useTheme();
-  const isPremier = accountState === 'direct-premium' || accountState === 'attached';
+  const isPremier = hasIncludedPlanReview;
   const [selected, setSelected] = useState<PlanReviewSectionKey[]>([]);
   const [purpose, setPurpose] = useState('completeReview');
   const [focus, setFocus] = useState('');

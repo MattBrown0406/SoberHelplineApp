@@ -26,23 +26,14 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.109.1
-      - name: Reconcile SQL Editor migrations
-        run: |
-          supabase link --project-ref ${{ vars.SUPABASE_PROJECT_REF }}
-          for version in \
-            20260712020906 \
-            20260712021820 \
-            20260712120000 \
-            20260712130000 \
-            20260713040553; do
-            supabase migration repair --linked --status applied "$version"
-          done
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       - name: Apply all pending migrations
         run: |
           supabase link --project-ref ${{ vars.SUPABASE_PROJECT_REF }}
+          supabase migration list --linked --output json > "$RUNNER_TEMP/migration-list.txt" 2>&1
+          node scripts/check-migration-drift.mjs "$RUNNER_TEMP/migration-list.txt" --allow-pending-local
           supabase db push --linked --yes
+          supabase migration list --linked --output json > "$RUNNER_TEMP/migration-list-after-push.txt" 2>&1
+          node scripts/check-migration-drift.mjs "$RUNNER_TEMP/migration-list-after-push.txt"
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 

@@ -25,7 +25,8 @@ interface Props {
 
 export function ScriptCard({ script }: Props) {
   const { colors } = useTheme();
-  const { t } = useTranslation('scripts');
+  const { t, i18n } = useTranslation('scripts');
+  const isSpanish = (i18n.resolvedLanguage ?? i18n.language ?? 'en').startsWith('es');
   const router = useRouter();
   const { count } = useRehearsalCount(script.id);
   const [open, setOpen] = useState(false);
@@ -35,14 +36,22 @@ export function ScriptCard({ script }: Props) {
     setOpen((v) => !v);
   }
 
+  const title = `${t(`tags.${script.tag}`, { defaultValue: script.tag })}, ${script.title}`;
+
   return (
-    <TouchableOpacity
-      style={[styles.card, { borderColor: colors.line }]}
-      onPress={toggle}
-      activeOpacity={0.85}
-    >
-      {/* Header row */}
-      <View style={styles.head}>
+    <View style={[styles.card, { borderColor: colors.line }]}>
+      {/* Header row: the only expand/collapse target. */}
+      <TouchableOpacity
+        style={styles.head}
+        onPress={toggle}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel={title}
+        accessibilityHint={open
+          ? (isSpanish ? 'Contrae este guion' : 'Collapses this script')
+          : (isSpanish ? 'Expande este guion' : 'Expands this script')}
+        accessibilityState={{ expanded: open }}
+      >
         <View style={styles.headLeft}>
           <View
             style={[
@@ -67,7 +76,7 @@ export function ScriptCard({ script }: Props) {
         >
           ▶
         </Text>
-      </View>
+      </TouchableOpacity>
 
       {/* Body — shown when open */}
       {open && (
@@ -145,6 +154,9 @@ export function ScriptCard({ script }: Props) {
               })
             }
             activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={`${t('practice')}${count > 0 ? `, ${isSpanish ? 'practicado' : 'practiced'} ${count} ${isSpanish ? 'veces' : 'times'}` : ''}`}
+            accessibilityHint={isSpanish ? 'Abre la práctica para este guion' : 'Opens practice for this script'}
           >
             <Text style={[styles.practiceBtnText, { color: colors.primary }]}>
               {t('practice')}
@@ -153,7 +165,7 @@ export function ScriptCard({ script }: Props) {
           </TouchableOpacity>
         </View>
       )}
-    </TouchableOpacity>
+    </View>
   );
 }
 
@@ -175,6 +187,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 10,
+    minHeight: 44,
   },
   headLeft: {
     flex: 1,
@@ -267,6 +280,8 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     alignItems: 'center',
     marginTop: 4,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   practiceBtnText: {
     fontSize: 13,

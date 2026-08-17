@@ -37,6 +37,18 @@ export interface OrgBranding {
 /** The four possible account states. All commerce gating is driven by this. */
 export type AccountState = 'attached' | 'direct-free' | 'direct-essential' | 'direct-premium';
 
+/** Product capabilities whose access policy is owned by featureAccess.ts. */
+export type ProductFeature =
+  | 'tracker'
+  | 'todayFull'
+  | 'aiRehearsal'
+  | 'community'
+  | 'diyIntervention'
+  | 'practicePush'
+  | 'crisisCommandPlan'
+  | 'planReview'
+  | 'includedPlanReview';
+
 /**
  * Feature gates returned from the API.
  * Attached accounts: all relevant gates true (provider org pays).
@@ -51,6 +63,14 @@ export interface Entitlements {
   canAccessGroups: boolean;          // Essential + Premium + attached
   canAccessLearningContent: boolean; // all tiers including free/unauthenticated
   hasAssignedCoach: boolean;         // attached only — drives "Your team" UI
+  canAccessTracker: boolean;         // currently free; routed through Gate for policy changes
+  canAccessFullToday: boolean;       // Essential + Premium + attached
+  canAccessAiRehearsal: boolean;     // Essential + Premium + attached
+  canAccessDiyIntervention: boolean; // Essential + Premium + attached
+  canUsePracticePush: boolean;       // Essential + Premium + attached
+  canAccessCrisisCommandPlan: boolean; // Premium + attached
+  canAccessPlanReview: boolean;      // Essential + Premium + attached
+  hasIncludedPlanReview: boolean;    // Premium + attached
 }
 
 // ─── Auth / User ──────────────────────────────────────────────────────────────

@@ -12,8 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { Audio } from 'expo-av';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useRehearsalCount } from '../src/hooks/useRehearsalCount';
-import { useAccount } from '../src/contexts/AccountContext';
-import { isAdminEmail } from '../src/lib/admin';
+import { useFeatureAccess } from '../src/hooks/useFeatureAccess';
 import { finalizeRecording } from '../src/lib/appFlowGuards';
 
 type Phase = 'prompt' | 'recording' | 'playback' | 'selfcheck' | 'done';
@@ -31,8 +30,7 @@ export default function RehearsalScreen() {
   const temperament = typeof params.temperament === 'string' ? params.temperament : undefined;
 
   const { count, increment } = useRehearsalCount(sourceId);
-  const { user, accountState } = useAccount();
-  const liveLocked = accountState === 'direct-free' && !isAdminEmail(user?.email);
+  const liveLocked = !useFeatureAccess('aiRehearsal');
 
   const [phase, setPhase] = useState<Phase>('prompt');
   const [recording, setRecording] = useState<Audio.Recording | null>(null);

@@ -138,6 +138,7 @@
     "saveError": "We couldn't update the phase. Please try again.",
     "loading": "Loading…",
     "privacy": "This private selection guides your content. It is not a score or diagnosis.",
+    "outcomesCta": "Record a care or recovery change",
     "guidance": {
       "do": "Do today",
       "avoid": "Avoid today",

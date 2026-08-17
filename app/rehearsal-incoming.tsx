@@ -21,8 +21,7 @@ import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import { RehearsalDebrief } from '../src/components/rehearsal/RehearsalDebrief';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
-import { FreeTierPaywall } from '../src/components/ui/FreeTierPaywall';
-import { isAdminEmail } from '../src/lib/admin';
+import { Gate } from '../src/components/auth/Gate';
 import { useLovedOne } from '../src/hooks/useLovedOne';
 import { useRehearsalCount } from '../src/hooks/useRehearsalCount';
 import { supabase } from '../src/lib/supabase';
@@ -64,11 +63,15 @@ function pinnedParam<T extends string>(value: string | undefined, allowed: T[]):
 }
 
 export default function RehearsalIncomingScreen() {
+  return <Gate feature="aiRehearsal"><RehearsalIncomingContent /></Gate>;
+}
+
+function RehearsalIncomingContent() {
   const { colors } = useTheme();
   const { t, i18n } = useTranslation(['rehearsalIncoming', 'rehearsalLive']);
   const router = useRouter();
   const params = useLocalSearchParams<{ temperament?: string; crisisPreset?: string; eventId?: string }>();
-  const { user, accountState } = useAccount();
+  const { user } = useAccount();
   const { lovedOne } = useLovedOne(user?.id ?? null);
   const { increment } = useRehearsalCount('incoming-call');
 
@@ -339,10 +342,6 @@ export default function RehearsalIncomingScreen() {
   const lastPartner = [...messages].reverse().find((m) => m.role === 'partner');
   const lastUser = [...messages].reverse().find((m) => m.role === 'user');
 
-  // The AI practice partner is an Essentials/Premium feature — same gate as rehearsal-live.
-  if (accountState === 'direct-free' && !isAdminEmail(user?.email)) {
-    return <FreeTierPaywall />;
-  }
 
   return (
     <ScreenContainer backgroundColor={colors.ink}>

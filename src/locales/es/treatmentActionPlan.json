@@ -101,7 +101,8 @@
     "recantConfirmBody": "Esto conserva todos los detalles logísticos y cambia la orientación para la noche. No borra el plan.",
     "recantConfirm": "Registrar retractación",
     "callErrorTitle": "No se pudo iniciar la llamada",
-    "callErrorBody": "Revisa el número de admisiones y llámalo directamente desde la app Teléfono."
+    "callErrorBody": "Revisa el número de admisiones y llámalo directamente desde la app Teléfono.",
+    "recordOutcome": "Después de la admisión, registrar el ingreso a atención"
   },
   "status": {
     "not_started": "Sin empezar",

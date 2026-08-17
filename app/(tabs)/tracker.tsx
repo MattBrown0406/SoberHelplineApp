@@ -16,6 +16,7 @@ import { SituationOffRamp } from '../../src/components/situation/SituationOffRam
 import type { FunnelDoor } from '../../src/lib/situation';
 import { supabase } from '../../src/lib/supabase';
 import { WillingnessWindowCard } from '../../src/components/tracker/WillingnessWindowCard';
+import { Gate } from '../../src/components/auth/Gate';
 
 const ALERT_THRESHOLD = 3;
 
@@ -66,6 +67,9 @@ function SignToggle({
     <TouchableOpacity
       onPress={onToggle}
       activeOpacity={0.75}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: active }}
+      accessibilityLabel={`${sign.label}. ${sign.category}`}
       style={[
         styles.signRow,
         {
@@ -91,6 +95,10 @@ function SignToggle({
 }
 
 export default function TrackerScreen() {
+  return <Gate feature="tracker"><TrackerContent /></Gate>;
+}
+
+function TrackerContent() {
   const { colors } = useTheme();
   const router = useRouter();
   const { user, isAttached } = useAccount();
@@ -241,11 +249,13 @@ export default function TrackerScreen() {
           style={[styles.trajectoryBtn, { backgroundColor: colors.white, borderColor: colors.line }]}
           onPress={() => router.push('/trajectory')}
           activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel={t('trajectory.openButton')}
         >
           <Text style={[styles.trajectoryBtnText, { color: colors.ink }]}>
             {t('trajectory.openButton')}
           </Text>
-          <Text style={[styles.trajectoryChevron, { color: colors.primary }]}>›</Text>
+          <Text accessible={false} style={[styles.trajectoryChevron, { color: colors.primary }]}>›</Text>
         </TouchableOpacity>
 
         {/* ── Privacy note ──────────────────────────────────────── */}
@@ -302,6 +312,7 @@ const styles = StyleSheet.create({
   },
   signList: { gap: 6 },
   signRow: {
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 10,

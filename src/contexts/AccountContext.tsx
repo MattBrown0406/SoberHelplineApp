@@ -11,16 +11,17 @@ import {
   withTimeoutFallback,
 } from '../lib/authBootstrap';
 import { addAppBreadcrumb, captureAppError } from '../lib/monitoring';
+import { entitlementsForAccountState } from '../lib/featureAccess';
+import {
+  cacheSuccessfulAccount,
+  clearLastOfflineAccount,
+  clearOfflineAccount,
+  isOfflineFallbackError,
+  restoreLastOfflineAccount,
+  restoreOfflineAccount,
+} from '../lib/offlineAccountCache';
 
-const DEFAULT_ENTITLEMENTS: Entitlements = {
-  canMessageOnCallCoach: false,
-  canCallCoach: false,
-  canAccessPrivateVideo: false,
-  canCallAfterHours: false,
-  canAccessGroups: false,
-  canAccessLearningContent: true,
-  hasAssignedCoach: false,
-};
+const DEFAULT_ENTITLEMENTS: Entitlements = entitlementsForAccountState('direct-free');
 
 interface AccountContextValue {
   user: AuthUser | null;
@@ -30,6 +31,8 @@ interface AccountContextValue {
   isAuthenticated: boolean;
   accountError: string | null;
   isAttached: boolean;
+  isAdmin: boolean;
+  isOfflineAccountFallback: boolean;
   refreshAccount: () => Promise<void>;
   completeSignIn: (sessionUser: User) => void;
 }
@@ -42,24 +45,36 @@ const AccountContext = createContext<AccountContextValue>({
   isAuthenticated: false,
   accountError: null,
   isAttached: false,
+  isAdmin: false,
+  isOfflineAccountFallback: false,
   refreshAccount: async () => {},
   completeSignIn: () => {},
 });
 
+async function withRequiredTimeout<T>(promise: PromiseLike<T>, timeoutMs: number): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      Promise.resolve(promise),
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => reject(new Error('account_load_timeout')), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
 async function fetchCoreAccount(authUser: User): Promise<AuthUser | null> {
   const isAdmin = isAdminEmail(authUser.email);
-  const accountResult = await withTimeoutFallback(
-    Promise.resolve(
-      supabase
-        .from('accounts')
-        .select('id, type, org_id, first_name, last_name, language, timezone, created_at')
-        .eq('user_id', authUser.id)
-        .single(),
-    ),
+  const accountResult = await withRequiredTimeout(
+    supabase
+      .from('accounts')
+      .select('id, type, org_id, first_name, last_name, language, timezone, created_at')
+      .eq('user_id', authUser.id)
+      .single(),
     4000,
-    null,
   );
-  if (!accountResult) throw new Error('account_load_timeout');
   const { data, error } = accountResult;
 
   if (error || !data) {
@@ -72,10 +87,11 @@ async function fetchCoreAccount(authUser: User): Promise<AuthUser | null> {
       firstName: 'Matt',
       lastName: '',
       email: authUser.email ?? '',
-      accountState: 'direct-premium',
+      accountState: 'direct-free',
       orgId: null,
       joinedAt: new Date().toISOString(),
       timezone: 'America/Los_Angeles',
+      adminOverride: true,
     });
   }
 
@@ -87,27 +103,23 @@ async function fetchCoreAccount(authUser: User): Promise<AuthUser | null> {
 
   let accountState: AccountState = data.type === 'attached' ? 'attached' : 'direct-free';
 
-  if (data.type === 'direct') {
-    if (isAdmin) {
-      accountState = 'direct-premium';
+  if (data.type === 'direct' && !isAdmin) {
+    // Database entitlements are immediately available and safe to use for the
+    // first render. External subscription reconciliation happens after entry.
+    const entitlementResult = await withTimeoutFallback(
+      Promise.resolve(
+        supabase
+          .from('entitlements')
+          .select('tier, expires_at')
+          .eq('account_id', data.id),
+      ),
+      1000,
+      null,
+    );
+    if (!entitlementResult || entitlementResult.error) {
+      addAppBreadcrumb('auth.entitlements_initial_load_failed', 'warning');
     } else {
-      // Database entitlements are immediately available and safe to use for the
-      // first render. External subscription reconciliation happens after entry.
-      const entitlementResult = await withTimeoutFallback(
-        Promise.resolve(
-          supabase
-            .from('entitlements')
-            .select('tier, expires_at')
-            .eq('account_id', data.id),
-        ),
-        1000,
-        null,
-      );
-      if (!entitlementResult || entitlementResult.error) {
-        addAppBreadcrumb('auth.entitlements_initial_load_failed', 'warning');
-      } else {
-        accountState = resolveDirectAccountState(entitlementResult.data ?? []);
-      }
+      accountState = resolveDirectAccountState(entitlementResult.data ?? []);
     }
   }
 
@@ -137,6 +149,7 @@ async function fetchCoreAccount(authUser: User): Promise<AuthUser | null> {
     orgId: data.org_id ?? null,
     joinedAt: data.created_at,
     timezone: effectiveTimezone,
+    adminOverride: isAdmin,
   });
 }
 
@@ -211,6 +224,7 @@ function buildAuthUser({
   orgId,
   joinedAt,
   timezone,
+  adminOverride = false,
 }: {
   id: string;
   firstName: string;
@@ -220,17 +234,9 @@ function buildAuthUser({
   orgId: string | null;
   joinedAt: string;
   timezone: string;
+  adminOverride?: boolean;
 }): AuthUser {
-  const isPaid = accountState !== 'direct-free';
-  const entitlements: Entitlements = {
-    canMessageOnCallCoach: isPaid,
-    canCallCoach: accountState === 'attached' || accountState === 'direct-premium',
-    canAccessPrivateVideo: accountState === 'attached' || accountState === 'direct-premium',
-    canCallAfterHours: accountState === 'attached',
-    canAccessGroups: isPaid,
-    canAccessLearningContent: true,
-    hasAssignedCoach: accountState === 'attached',
-  };
+  const entitlements = entitlementsForAccountState(accountState, adminOverride);
 
   return {
     id,
@@ -252,11 +258,22 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [authUser, setAuthUser] = useState<User | null>(null);
   const [accountError, setAccountError] = useState<string | null>(null);
+  const [isOfflineAccountFallback, setIsOfflineAccountFallback] = useState(false);
   const authGenerationRef = useRef(0);
   const accountRequestGateRef = useRef(new AccountRequestGate());
   const authUserRef = useRef<User | null>(null);
   const userRef = useRef<AuthUser | null>(null);
   const isLoadingRef = useRef(true);
+  const cacheWriteRef = useRef<Promise<void>>(Promise.resolve());
+
+  const queueAccountCacheWrite = useCallback((authUserId: string, account: AuthUser) => {
+    cacheWriteRef.current = cacheWriteRef.current
+      .catch(() => undefined)
+      .then(() => cacheSuccessfulAccount(authUserId, account))
+      .catch(() => {
+        addAppBreadcrumb('auth.offline_account_cache_write_failed', 'warning');
+      });
+  }, []);
 
   const completeSignIn = useCallback((sessionUser: User) => {
     const previousAuthUserId = authUserRef.current?.id;
@@ -281,6 +298,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     setAuthUser(sessionUser);
     setIsLoading(true);
     setAccountError(null);
+    setIsOfflineAccountFallback(false);
     addAppBreadcrumb('auth.account_bootstrap_started');
 
     void fetchCoreAccount(sessionUser)
@@ -292,8 +310,10 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         ) return;
         userRef.current = account;
         setUser(account);
+        setIsOfflineAccountFallback(false);
         isLoadingRef.current = false;
         setIsLoading(false);
+        queueAccountCacheWrite(sessionUser.id, account);
         addAppBreadcrumb('auth.account_bootstrap_completed');
 
         // Optional subscription providers refresh after app entry. They can
@@ -306,6 +326,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
             ) return;
             userRef.current = enriched;
             setUser(enriched);
+            queueAccountCacheWrite(sessionUser.id, enriched);
             addAppBreadcrumb('auth.account_enrichment_completed');
           })
           .catch((error) => {
@@ -317,18 +338,37 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
             captureAppError(error);
           });
       })
-      .catch((error) => {
+      .catch(async (error) => {
         if (
           authGenerationRef.current !== generation ||
           !accountRequestGateRef.current.isCurrent(requestId)
         ) return;
+        if (isOfflineFallbackError(error)) {
+          const cached = await restoreOfflineAccount(sessionUser.id);
+          if (
+            cached
+            && authGenerationRef.current === generation
+            && accountRequestGateRef.current.isCurrent(requestId)
+            && authUserRef.current?.id === sessionUser.id
+          ) {
+            userRef.current = cached;
+            setUser(cached);
+            isLoadingRef.current = false;
+            setIsLoading(false);
+            setIsOfflineAccountFallback(true);
+            setAccountError(null);
+            addAppBreadcrumb('auth.offline_account_fallback_restored', 'warning');
+            return;
+          }
+        }
         isLoadingRef.current = false;
         setIsLoading(false);
+        setIsOfflineAccountFallback(false);
         setAccountError(error instanceof Error ? error.message : 'account_load_failed');
         addAppBreadcrumb('auth.account_bootstrap_failed', 'error');
         captureAppError(error);
       });
-  }, []);
+  }, [queueAccountCacheWrite]);
 
   const refreshAccount = useCallback(async () => {
     const currentAuthUser = authUserRef.current;
@@ -349,8 +389,10 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       ) return;
       userRef.current = account;
       setUser(account);
+      setIsOfflineAccountFallback(false);
       isLoadingRef.current = false;
       setIsLoading(false);
+      queueAccountCacheWrite(currentAuthUser.id, account);
       const enriched = await enrichAccount(currentAuthUser, account);
       if (
         authGenerationRef.current === generation &&
@@ -358,39 +400,85 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       ) {
         userRef.current = enriched;
         setUser(enriched);
+        queueAccountCacheWrite(currentAuthUser.id, enriched);
       }
     } catch (error) {
       if (
         authGenerationRef.current === generation &&
         accountRequestGateRef.current.isCurrent(requestId)
       ) {
+        if (isOfflineFallbackError(error)) {
+          const cached = await restoreOfflineAccount(currentAuthUser.id);
+          if (
+            cached
+            && authGenerationRef.current === generation
+            && accountRequestGateRef.current.isCurrent(requestId)
+            && authUserRef.current?.id === currentAuthUser.id
+          ) {
+            userRef.current = cached;
+            setUser(cached);
+            isLoadingRef.current = false;
+            setIsLoading(false);
+            setIsOfflineAccountFallback(true);
+            setAccountError(null);
+            addAppBreadcrumb('auth.offline_account_fallback_restored', 'warning');
+            return;
+          }
+        }
         isLoadingRef.current = false;
         setIsLoading(false);
+        setIsOfflineAccountFallback(false);
         setAccountError(error instanceof Error ? error.message : 'account_load_failed');
         captureAppError(error);
       }
       throw error;
     }
-  }, []);
+  }, [queueAccountCacheWrite]);
 
   useEffect(() => {
     const initialGeneration = authGenerationRef.current;
-    void supabase.auth.getSession().then(({ data: { session } }) => {
-      if (authGenerationRef.current !== initialGeneration) return;
-      if (session) {
-        completeSignIn(session.user);
-      } else {
+
+    const restoreAfterRetryableSessionFailure = async (error: unknown) => {
+      if (!isOfflineFallbackError(error) || authGenerationRef.current !== initialGeneration) return false;
+      const cached = await restoreLastOfflineAccount();
+      if (!cached || authGenerationRef.current !== initialGeneration) return false;
+      userRef.current = cached;
+      isLoadingRef.current = false;
+      setUser(cached);
+      setIsOfflineAccountFallback(true);
+      setAccountError(null);
+      setIsLoading(false);
+      addAppBreadcrumb('auth.offline_session_fallback_restored', 'warning');
+      return true;
+    };
+
+    void supabase.auth.getSession()
+      .then(async ({ data: { session }, error }) => {
+        if (authGenerationRef.current !== initialGeneration) return;
+        if (session) {
+          completeSignIn(session.user);
+          return;
+        }
+        if (error && await restoreAfterRetryableSessionFailure(error)) return;
         isLoadingRef.current = false;
         setIsLoading(false);
-      }
-    });
+      })
+      .catch(async (error) => {
+        if (await restoreAfterRetryableSessionFailure(error)) return;
+        if (authGenerationRef.current === initialGeneration) {
+          isLoadingRef.current = false;
+          setIsLoading(false);
+          setAccountError(error instanceof Error ? error.message : 'session_load_failed');
+        }
+      });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
         completeSignIn(session.user);
-      } else {
+      } else if (event === 'SIGNED_OUT') {
+        const signedOutAuthUserId = authUserRef.current?.id;
         ++authGenerationRef.current;
         accountRequestGateRef.current.invalidate();
         authUserRef.current = null;
@@ -399,7 +487,18 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         setAuthUser(null);
         setUser(null);
         setAccountError(null);
+        setIsOfflineAccountFallback(false);
         setIsLoading(false);
+        // Finish any older write before clearing so logout cannot race a stale
+        // profile back onto disk.
+        cacheWriteRef.current = cacheWriteRef.current
+          .catch(() => undefined)
+          .then(() => signedOutAuthUserId
+            ? clearOfflineAccount(signedOutAuthUserId)
+            : clearLastOfflineAccount())
+          .catch(() => {
+            addAppBreadcrumb('auth.offline_account_cache_clear_failed', 'warning');
+          });
         void resetRevenueCatUser();
       }
     });
@@ -417,9 +516,12 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         accountState,
         entitlements,
         isLoading,
-        isAuthenticated: authUser !== null,
+        isAuthenticated: authUser !== null || (isOfflineAccountFallback && user !== null),
         accountError,
         isAttached: accountState === 'attached',
+        // Admin is an online QA bypass, never an offline authorization cache.
+        isAdmin: !isOfflineAccountFallback && isAdminEmail(authUser?.email),
+        isOfflineAccountFallback,
         refreshAccount,
         completeSignIn,
       }}
