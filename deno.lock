@@ -3436,6 +3436,7 @@
         "npm:expo-linking@~8.0.12",
         "npm:expo-localization@~17.0.9",
         "npm:expo-notifications@~0.32.17",
+        "npm:expo-print@~15.0.8",
         "npm:expo-router@~6.0.24",
         "npm:expo-secure-store@~15.0.8",
         "npm:expo-splash-screen@~31.0.13",
