@@ -18,6 +18,7 @@ import { ScriptCard } from '../../src/components/scripts/ScriptCard';
 import { HoldLogCard } from '../../src/components/boundaries/HoldLogCard';
 import { CurriculumCard } from '../../src/components/today/CurriculumCard';
 import { WillingnessWindowAlert } from '../../src/components/today/WillingnessWindowAlert';
+import { PassItOnCard } from '../../src/components/today/PassItOnCard';
 import { useCheckIn } from '../../src/hooks/useCheckIn';
 import { useTodayFeed } from '../../src/hooks/useTodayFeed';
 import { useLovedOne } from '../../src/hooks/useLovedOne';
@@ -146,6 +147,7 @@ export default function TodayScreen() {
           onSupportCallJoin={queueMondayMeetingReview}
           onSupportCallOpenFailed={() => cancelQueuedSupportCallReview(user?.id ?? null)}
         />
+        <PassItOnCard />
         <NeedsRouter />
         {pathwayCard}
         {checkInCard}
@@ -194,6 +196,8 @@ export default function TodayScreen() {
         onSupportCallJoin={queueMondayMeetingReview}
         onSupportCallOpenFailed={() => cancelQueuedSupportCallReview(user?.id ?? null)}
       />
+
+      <PassItOnCard />
 
       <NeedsRouter />
 

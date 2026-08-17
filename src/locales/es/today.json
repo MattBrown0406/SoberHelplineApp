@@ -113,6 +113,20 @@
     "eyebrow": "Guion gratuito de hoy",
     "note": "Cada día se desbloquea aquí un nuevo guion de conversación."
   },
+  "passItOn": {
+    "eyebrow": "Compártelo",
+    "title": "Ayuda a la próxima familia a encontrar apoyo",
+    "body": "Comparte la llamada familiar gratuita de los lunes o imprime una tarjeta práctica de límites para una reunión, iglesia o día familiar de tratamiento.",
+    "shareTitle": "Llamada gratuita de apoyo familiar los lunes",
+    "shareButton": "Compartir la llamada gratuita",
+    "sharing": "Abriendo opciones para compartir…",
+    "copied": "Los datos de la llamada se copiaron. Puedes pegarlos donde quieras.",
+    "printButton": "Imprimir la tarjeta de límites",
+    "printing": "Abriendo opciones de impresión…",
+    "privacy": "Solo se comparten recursos públicos de Sober Helpline. No se incluye nada de tu cuenta ni de tu familia.",
+    "shareError": "No pudimos abrir las opciones para compartir. Inténtalo de nuevo.",
+    "printError": "No pudimos abrir las opciones de impresión. Inténtalo de nuevo."
+  },
   "continueLetter": {
     "eyebrow": "Retoma donde lo dejaste",
     "title": "Tu carta para {{name}} te espera",

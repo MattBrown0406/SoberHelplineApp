@@ -38,6 +38,12 @@ type ReviewPromptStats = {
   manual_opens: number;
   last_30_days: { eligible: number; requested: number; manual: number };
 };
+type ReferralResourceStats = {
+  monday_call_share_requests: number;
+  boundary_print_requests: number;
+  distribution_accounts: number;
+  last_30_days: { monday_call_share_requests: number; boundary_print_requests: number };
+};
 type RsvpRow = { first_name: string; last_name: string; email: string; rsvped_at: string };
 type QuestionRow = { id: string; first_name: string; last_name: string; question: string; submitted_at: string };
 type ThreadRow = {
@@ -75,6 +81,8 @@ export default function AdminScreen() {
   const [funnel, setFunnel] = useState<FunnelStats | null>(null);
   const [reviewStats, setReviewStats] = useState<ReviewPromptStats | null>(null);
   const [reviewStatsError, setReviewStatsError] = useState<string | null>(null);
+  const [referralStats, setReferralStats] = useState<ReferralResourceStats | null>(null);
+  const [referralStatsError, setReferralStatsError] = useState<string | null>(null);
 
   // Owners can use every admin tool; active video staff can use scheduling only.
   useEffect(() => {
@@ -90,6 +98,9 @@ export default function AdminScreen() {
     const { data: reviewData, error: reviewError } = await supabase.rpc('admin_review_prompt_stats');
     setReviewStatsError(reviewError?.message ?? null);
     if (reviewData) setReviewStats(reviewData as ReviewPromptStats);
+    const { data: referralData, error: referralError } = await supabase.rpc('admin_referral_resource_stats');
+    setReferralStatsError(referralError?.message ?? null);
+    if (referralData) setReferralStats(referralData as ReferralResourceStats);
 
     // Load current Zoom URL. Tolerant title match: the prod row is titled
     // 'The Family Squares' (older seeds used 'Monday Night Family Support').
@@ -221,6 +232,28 @@ export default function AdminScreen() {
           </Text>
           <Text style={[styles.funnelNote, { color: colors.inkSoft }]}>
             Apple does not report whether its native sheet was displayed or which rating a member chose. Compare these requests with App Store Connect rating volume.
+          </Text>
+        </View>
+      )}
+
+      {referralStatsError ? (
+        <View accessibilityRole="alert" style={[styles.card, { backgroundColor: colors.white, borderColor: colors.coral }]}>
+          <Text style={[styles.cardTitle, { color: colors.coral }]}>Pass It On analytics unavailable</Text>
+          <Text style={[styles.funnelNote, { color: colors.inkSoft }]}>{referralStatsError}</Text>
+        </View>
+      ) : referralStats && (
+        <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
+          <Text style={[styles.cardTitle, { color: colors.ink }]}>Pass It On distribution</Text>
+          <View style={styles.funnelRow}>
+            <FunnelStat label="Monday call share requests" value={referralStats.monday_call_share_requests} colors={colors} />
+            <FunnelStat label="Boundary print requests" value={referralStats.boundary_print_requests} colors={colors} />
+            <FunnelStat label="Accounts requesting resources" value={referralStats.distribution_accounts} colors={colors} />
+          </View>
+          <Text style={[styles.funnelStage, { color: colors.inkSoft }]}>
+            Last 30 days: {referralStats.last_30_days.monday_call_share_requests} share requests; {referralStats.last_30_days.boundary_print_requests} print requests.
+          </Text>
+          <Text style={[styles.funnelNote, { color: colors.inkSoft }]}>
+            Counts reflect requests to open share or print tools. Operating systems do not consistently report whether a recipient received the message or a document was ultimately printed or saved.
           </Text>
         </View>
       )}
