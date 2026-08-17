@@ -24,7 +24,6 @@ import {
   type SafetyIncident,
   type SafetyPlan,
 } from '../src/lib/safetyWallet';
-import { maybeRequestReview } from '../src/lib/reviewPrompt';
 
 type PlanField = keyof SafetyPlan;
 type IncidentDraft = Omit<SafetyIncident, 'id' | 'createdAt'>;
@@ -143,16 +142,6 @@ export default function SafetyWalletScreen() {
   function finishWallet() {
     Keyboard.dismiss();
     router.back();
-    setTimeout(() => {
-      void maybeRequestReview({
-        accountId: user?.id ?? null,
-        milestone: 'safety_wallet_ready',
-        safety: {
-          situationBand: lovedOne?.status === 'crisis' ? 'crisis' : null,
-          recentCrisisAt: incidents[0]?.createdAt ?? null,
-        },
-      });
-    }, 750);
   }
 
   return (

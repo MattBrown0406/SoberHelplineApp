@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { isNewBoundaryWin } from '../lib/reviewPromptPolicy';
 
 export type HoldResult = 'held' | 'mostly' | 'slipped';
 
@@ -45,6 +46,9 @@ export function useHoldLog(accountId: string | null, familySpaceId: string | nul
   const [own, setOwn] = useState<HoldLogEntry | null>(null);
   const [shared, setShared] = useState<HoldLogEntry[]>([]);
   const [saving, setSaving] = useState(false);
+  const saveInFlightRef = useRef(false);
+  const accountIdRef = useRef(accountId);
+  accountIdRef.current = accountId;
   const weekStart = currentHoldWeekStart();
 
   const load = useCallback(async () => {
@@ -85,9 +89,21 @@ export function useHoldLog(accountId: string | null, familySpaceId: string | nul
 
   const save = useCallback(
     async (result: HoldResult, shareWithFamily: boolean) => {
-      if (!accountId) return;
+      if (!accountId || saveInFlightRef.current) return false;
+      saveInFlightRef.current = true;
       setSaving(true);
       try {
+        const { data: previous, error: previousError } = await supabase
+          .from('wall_hold_logs')
+          .select('result')
+          .eq('account_id', accountId)
+          .eq('week_start', weekStart)
+          .maybeSingle();
+        if (previousError) throw previousError;
+        const newlyHeld = isNewBoundaryWin(
+          (previous?.result as HoldResult | undefined) ?? null,
+          result,
+        );
         const { error } = await supabase.from('wall_hold_logs').upsert(
           {
             account_id: accountId,
@@ -101,7 +117,9 @@ export function useHoldLog(accountId: string | null, familySpaceId: string | nul
         );
         if (error) throw error;
         await load();
+        return accountIdRef.current === accountId && newlyHeld;
       } finally {
+        saveInFlightRef.current = false;
         setSaving(false);
       }
     },

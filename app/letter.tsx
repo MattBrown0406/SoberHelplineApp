@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,12 @@ import { MAX_CONTENT_WIDTH } from '../src/components/ui/ScreenContainer';
 import { supabase } from '../src/lib/supabase';
 import { FEATURED_PROVIDER } from '../src/config';
 import type { LetterDraft, ExperienceBlock } from '../src/api/types';
+import { maybeRequestReview } from '../src/lib/reviewPrompt';
+import {
+  INTERVENTION_LETTER_PAGE_CHAR_LIMIT,
+  interventionLetterReadyToFinish,
+  interventionLetterText,
+} from '../src/lib/interventionLetter';
 
 // ── Tone flag detection ───────────────────────────────────────────────────────
 
@@ -35,33 +41,14 @@ function hasToneFlag(text: string, lang: string): boolean {
 
 // ── Brevity helpers ───────────────────────────────────────────────────────────
 
-const PAGE_CHAR_LIMIT = 1500;
 const CHARS_PER_MIN = 715;
 
-function assembleLetterText(draft: LetterDraft): string {
-  const blocks = draft.p2Experiences
-    .filter((e) => e.when.trim() || e.felt.trim())
-    .map((e) => `${e.when.trim()} ${e.felt.trim()}`.trim())
-    .join(' ');
-
-  return [
-    draft.p1Body,
-    `${draft.p2OpenerLabel} ${blocks}`,
-    draft.p3Request,
-    draft.p3Hope,
-    draft.p3HealthySupport,
-    draft.p3ClosingQuestion,
-  ]
-    .filter(Boolean)
-    .join('\n\n');
-}
-
 function pageFillPct(draft: LetterDraft): number {
-  return Math.round((assembleLetterText(draft).length / PAGE_CHAR_LIMIT) * 100);
+  return Math.round((interventionLetterText(draft).length / INTERVENTION_LETTER_PAGE_CHAR_LIMIT) * 100);
 }
 
 function readMinutes(draft: LetterDraft): number {
-  return Math.max(1, Math.ceil(assembleLetterText(draft).length / CHARS_PER_MIN));
+  return Math.max(1, Math.ceil(interventionLetterText(draft).length / CHARS_PER_MIN));
 }
 
 // ── Draft persistence ─────────────────────────────────────────────────────────
@@ -128,6 +115,20 @@ export default function LetterScreen() {
   const [draft, setDraft] = useState<LetterDraft | null>(null);
   const [saving, setSaving] = useState(false);
   const [sendingLetter, setSendingLetter] = useState(false);
+  const [finishing, setFinishing] = useState(false);
+  const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const pendingSavesRef = useRef(0);
+  const accountIdRef = useRef<string | null>(user?.id ?? null);
+  accountIdRef.current = user?.id ?? null;
+
+  useEffect(() => {
+    setStep('recipient');
+    setRecipientName('');
+    setDraft(null);
+    setSaving(false);
+    setSendingLetter(false);
+    setFinishing(false);
+  }, [user?.id]);
 
   // Load defaults from locale
   useEffect(() => {
@@ -138,9 +139,11 @@ export default function LetterScreen() {
 
   async function loadOrCreateDraft(name: string) {
     if (!user) return;
-    const key = draftKey(user.id, name);
+    const accountId = user.id;
+    const key = draftKey(accountId, name);
     try {
       const stored = await AsyncStorage.getItem(key);
+      if (accountIdRef.current !== accountId) return;
       if (stored) {
         setDraft(JSON.parse(stored));
       } else {
@@ -151,6 +154,7 @@ export default function LetterScreen() {
         setDraft(d);
       }
     } catch {
+      if (accountIdRef.current !== accountId) return;
       const d = emptyDraft(name);
       d.p2OpenerLabel = t('defaults.openerLabel');
       d.p3Request = t('defaults.request');
@@ -162,13 +166,27 @@ export default function LetterScreen() {
 
   const updateDraft = useCallback(
     async (patch: Partial<LetterDraft>) => {
-      if (!draft || !user) return;
-      const updated: LetterDraft = { ...draft, ...patch, updatedAt: new Date().toISOString() };
+      if (!draft || !user || accountIdRef.current !== user.id) return;
+      const updated: LetterDraft = {
+        ...draft,
+        ...patch,
+        status: patch.status ?? 'draft',
+        updatedAt: new Date().toISOString(),
+      };
       setDraft(updated);
+      pendingSavesRef.current += 1;
       setSaving(true);
       const key = draftKey(user.id, updated.recipientName);
-      await AsyncStorage.setItem(key, JSON.stringify(updated));
-      setSaving(false);
+      const write = saveQueueRef.current
+        .catch(() => undefined)
+        .then(() => AsyncStorage.setItem(key, JSON.stringify(updated)));
+      saveQueueRef.current = write;
+      try {
+        await write;
+      } finally {
+        pendingSavesRef.current = Math.max(0, pendingSavesRef.current - 1);
+        if (pendingSavesRef.current === 0) setSaving(false);
+      }
     },
     [draft, user],
   );
@@ -218,7 +236,7 @@ export default function LetterScreen() {
       const { error: sendError } = await supabase.from('messages').insert({
         thread_id: tid,
         sender_role: 'member',
-        body: assembleLetterText(draft),
+        body: interventionLetterText(draft),
       });
       if (sendError) throw sendError;
       router.push('/chat');
@@ -231,13 +249,36 @@ export default function LetterScreen() {
 
   async function shareExport() {
     if (!draft) return;
-    const letter = assembleLetterText(draft);
+    const letter = interventionLetterText(draft);
     await Share.share({ message: letter, title: `Letter for ${draft.recipientName}` });
+  }
+
+  async function finishLetter() {
+    if (!user || accountIdRef.current !== user.id || !draft
+      || draft.status === 'complete' || !interventionLetterReadyToFinish(draft)) return;
+    setFinishing(true);
+    try {
+      await updateDraft({ status: 'complete' });
+      if (accountIdRef.current !== user.id) return;
+      setTimeout(() => {
+        if (accountIdRef.current !== user.id) return;
+        void maybeRequestReview({
+          accountId: user.id,
+          milestone: 'intervention_letter_completed',
+        });
+      }, 750);
+    } catch {
+      Alert.alert(t('preview.finishErrorTitle'), t('preview.finishErrorBody'));
+    } finally {
+      setFinishing(false);
+    }
   }
 
   const fill = draft ? pageFillPct(draft) : 0;
   const fillColor = fill <= 85 ? colors.green : fill <= 100 ? colors.secondary : colors.coral;
   const stepIndex = STEPS.indexOf(step);
+  const readyToFinish = draft ? interventionLetterReadyToFinish(draft) : false;
+  const letterComplete = draft?.status === 'complete' && readyToFinish;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
@@ -519,11 +560,36 @@ export default function LetterScreen() {
                 {/* Assembled letter */}
                 <View style={[styles.letterCard, { borderColor: colors.line }]}>
                   <Text style={[styles.letterText, { color: colors.ink }]}>
-                    {assembleLetterText(draft) || '…'}
+                    {interventionLetterText(draft) || '…'}
                   </Text>
                 </View>
 
                 {/* Actions */}
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityState={{ disabled: !readyToFinish || finishing || letterComplete }}
+                  style={[
+                    styles.solidBtn,
+                    { backgroundColor: letterComplete ? colors.green : readyToFinish ? colors.primary : colors.line },
+                  ]}
+                  onPress={() => void finishLetter()}
+                  disabled={!readyToFinish || finishing || letterComplete}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.solidBtnText}>
+                    {letterComplete
+                      ? t('preview.finishedButton')
+                      : finishing
+                        ? t('preview.finishingButton')
+                        : t('preview.finishButton')}
+                  </Text>
+                </TouchableOpacity>
+                {!readyToFinish && (
+                  <Text style={[styles.sublabel, { color: colors.inkSoft }]}>
+                    {t('preview.finishHint')}
+                  </Text>
+                )}
+
                 <TouchableOpacity
                   style={[styles.solidBtn, { backgroundColor: colors.primary }]}
                   onPress={shareExport}

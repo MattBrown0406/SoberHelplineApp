@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Text, TouchableOpacity, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -19,9 +19,15 @@ export function ContinueLetterCard({ accountId }: { accountId: string | null }) 
   const [recipient, setRecipient] = useState<string | null>(null);
   const [hasDraft, setHasDraft] = useState(false);
 
-  useEffect(() => {
-    if (!accountId) return;
+  useFocusEffect(useCallback(() => {
+    if (!accountId) {
+      setHasDraft(false);
+      setRecipient(null);
+      return;
+    }
     let cancelled = false;
+    setHasDraft(false);
+    setRecipient(null);
     (async () => {
       try {
         const prefix = `${LETTER_PREFIX}${accountId}:`;
@@ -30,22 +36,25 @@ export function ContinueLetterCard({ accountId }: { accountId: string | null }) 
         // Prefer the most recently updated draft.
         let bestName: string | null = null;
         let bestTime = 0;
+        let foundDraft = false;
         for (const key of keys) {
           const raw = await AsyncStorage.getItem(key);
           if (!raw) continue;
           try {
-            const draft = JSON.parse(raw) as { recipientName?: string; updatedAt?: string };
+            const draft = JSON.parse(raw) as { recipientName?: string; updatedAt?: string; status?: string };
+            if (draft.status === 'complete') continue;
             const ts = draft.updatedAt ? Date.parse(draft.updatedAt) : 0;
             if (ts >= bestTime) {
               bestTime = ts;
               bestName = draft.recipientName ?? null;
+              foundDraft = true;
             }
           } catch {
             // Corrupt draft — ignore.
           }
         }
         if (!cancelled) {
-          setHasDraft(true);
+          setHasDraft(foundDraft);
           setRecipient(bestName);
         }
       } catch {
@@ -53,7 +62,7 @@ export function ContinueLetterCard({ accountId }: { accountId: string | null }) 
       }
     })();
     return () => { cancelled = true; };
-  }, [accountId]);
+  }, [accountId]));
 
   if (!hasDraft) return null;
 

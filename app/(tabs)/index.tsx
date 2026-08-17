@@ -26,7 +26,13 @@ import { useHoldLog } from '../../src/hooks/useHoldLog';
 import { getDailyScripts } from '../../src/content/scripts';
 import { PHASE_LABEL_KEY, selectCurriculumPiece } from '../../src/content/curriculum';
 import { useFeatureAccess } from '../../src/hooks/useFeatureAccess';
-import { maybeRequestReview, queueSupportCallReview } from '../../src/lib/reviewPrompt';
+import {
+  cancelQueuedSupportCallReview,
+  maybeRequestReview,
+  queueSupportCallReview,
+} from '../../src/lib/reviewPrompt';
+
+import type { HoldResult } from '../../src/hooks/useHoldLog';
 import type { CaregiverCheckInInput } from '../../src/api/types';
 import type { TFunction } from 'i18next';
 
@@ -68,6 +74,23 @@ export default function TodayScreen() {
       accountId: user?.id ?? null,
       safety: { situationBand: situation.band },
     });
+  }
+
+  async function saveBoundaryWin(result: HoldResult, share: boolean): Promise<void> {
+    let newlyHeld = false;
+    try {
+      newlyHeld = await holdLog.save(result, share);
+    } catch {
+      return;
+    }
+    if (!newlyHeld) return;
+    setTimeout(() => {
+      void maybeRequestReview({
+        accountId: user?.id ?? null,
+        milestone: 'boundary_follow_through',
+        safety: { situationBand: situation.band },
+      });
+    }, 750);
   }
 
   const pathwayCard = (
@@ -121,6 +144,7 @@ export default function TodayScreen() {
           primaryDoor={primaryDoor}
           onRsvp={rsvpFreeCall}
           onSupportCallJoin={queueMondayMeetingReview}
+          onSupportCallOpenFailed={() => cancelQueuedSupportCallReview(user?.id ?? null)}
         />
         <NeedsRouter />
         {pathwayCard}
@@ -142,7 +166,7 @@ export default function TodayScreen() {
           saving={holdLog.saving}
           canShare={!!familySpace}
           nameFor={(id) => familySpace?.members.find((m) => m.accountId === id)?.displayName ?? (user?.firstName || 'You')}
-          onSave={(result, share) => { void holdLog.save(result, share); }}
+          onSave={(result, share) => { void saveBoundaryWin(result, share); }}
         />
         <MoodChart accountId={user?.id ?? null} />
         {curriculumPiece && (
@@ -168,6 +192,7 @@ export default function TodayScreen() {
         primaryDoor={primaryDoor}
         onRsvp={rsvpFreeCall}
         onSupportCallJoin={queueMondayMeetingReview}
+        onSupportCallOpenFailed={() => cancelQueuedSupportCallReview(user?.id ?? null)}
       />
 
       <NeedsRouter />
@@ -191,7 +216,7 @@ export default function TodayScreen() {
         saving={holdLog.saving}
         canShare={!!familySpace}
         nameFor={(id) => familySpace?.members.find((m) => m.accountId === id)?.displayName ?? (user?.firstName || 'You')}
-        onSave={(result, share) => { void holdLog.save(result, share); }}
+        onSave={(result, share) => { void saveBoundaryWin(result, share); }}
       />
 
       <ContinueLetterCard accountId={user?.id ?? null} />

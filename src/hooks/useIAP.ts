@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Purchases, { type PurchasesOfferings, type PurchasesPackage } from 'react-native-purchases';
 import { purchaseRevenueCatPackage } from '../lib/revenueCat';
+import { setReviewPromptPurchaseFlow } from '../lib/reviewPrompt';
 
 export type SubscriptionTier = 'essential' | 'premium';
 export type PurchaseResult = 'success' | 'cancelled' | 'failed';
@@ -46,6 +47,7 @@ export function useIAP() {
   }, []);
 
   async function purchaseTier(tier: SubscriptionTier): Promise<PurchaseResult> {
+    setReviewPromptPurchaseFlow(true);
     setPurchasing(true);
     setIapError(null);
     try {
@@ -70,6 +72,7 @@ export function useIAP() {
       return 'failed';
     } finally {
       setPurchasing(false);
+      setReviewPromptPurchaseFlow(false);
     }
   }
 
