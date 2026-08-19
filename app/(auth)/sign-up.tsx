@@ -69,10 +69,10 @@ export default function SignUpScreen() {
       email: email.trim(),
       password,
       options: {
-        // Land confirmation clicks on a friendly hosted page instead of the
-        // project Site URL (which used to dead-end at localhost for users).
-        // Must be in the Supabase Auth redirect allow-list.
-        emailRedirectTo: `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/confirm-landing`,
+        // Supabase Edge Functions intentionally serve HTML as plain text on the
+        // default supabase.co domain. Use a normal HTTPS page under Matt's
+        // verified GitHub account so confirmation clicks render reliably.
+        emailRedirectTo: 'https://mattbrown0406.github.io/soberhelpline/app-confirmed.html',
         data: {
           first_name: firstName.trim(),
           last_name: lastName.trim(),
