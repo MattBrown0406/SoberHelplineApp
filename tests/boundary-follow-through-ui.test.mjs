@@ -26,6 +26,7 @@ function mount(name, props, store = {}, language = 'en') {
     if (id.endsWith('followThroughCopy')) return copyModule;
     if (id.endsWith('boundaryFollowThroughCore')) return core;
     if (id.endsWith('boundaryFollowThrough')) return { boundaryFollowThroughStore: store };
+    if (id.endsWith('ContextualMembershipInvitation')) return { ContextualMembershipInvitation: 'Invitation' };
     if (id.endsWith('BoundaryFollowThroughCard')) return { BoundaryFollowThroughCard: 'Editor' };
     throw Error(id);
   };
@@ -66,6 +67,11 @@ test('editor validates, keeps drafts when collapsed, persists responses only loc
   assert.ok(ui.text().includes(copy.error)); assert.equal(ui.nodes().find(n => n.props.accessibilityLabel === copy.action).props.value, 'Keep my draft');
   fail = false; ui.press(copy.adjust); await settle(); ui.render(); ui.press(copy.coach);
   assert.deepEqual(ui.routes, ['/book-coaching']); assert.ok(ui.text().includes(copy.privacy));
+  assert.equal(ui.nodes().find(n=>n.type==='Invitation').props.completed,false);
+  ui.press(copy.save); await settle(); ui.render();
+  const invitation=ui.nodes().find(n=>n.type==='Invitation');
+  assert.equal(invitation.props.completed,true);
+  assert.deepEqual(Object.keys(invitation.props).sort(),['accountId','children','completed','placement']);
 });
 test('corrupt/unreadable hydration exposes retry and cannot save an empty overwrite', async () => {
   let fail = true; let writes = 0;

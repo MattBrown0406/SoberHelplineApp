@@ -643,6 +643,8 @@ export default function SupportScreen() {
 
         <View style={[styles.card, { borderColor: colors.line, backgroundColor: colors.white }]}>
           <Text accessibilityRole="header" style={[styles.referralTitle, { color: colors.ink }]}>{copy.benefits}</Text>
+          <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={() => router.push('/membership-guide')}><Text style={{ color: colors.primary }}>{current === 'es' ? 'Cómo funciona el apoyo de coaching' : 'What coaching support looks like'}</Text></TouchableOpacity>
+          <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={() => router.push('/free-practice')}><Text style={{ color: colors.primary }}>{current === 'es' ? 'Practica una conversación gratis' : 'Try a free conversation practice'}</Text></TouchableOpacity>
           <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{copy.free}</Text>
           <Text style={[styles.referralBody, { color: colors.inkSoft, marginTop: 10 }]}>{copy.essential}</Text>
           <Text style={[styles.referralBody, { color: colors.inkSoft, marginTop: 10 }]}>{copy.premier}</Text>

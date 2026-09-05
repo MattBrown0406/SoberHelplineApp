@@ -43,6 +43,7 @@ function Panel({ accountId, onContinue }: { accountId: string | null; onContinue
     </>}
     {!editing && state.ready && state.value.situation && <GuidedButton label={c.actions[state.value.situation]} onPress={() => router.push(situationRoute(state.value.situation!))} />}
     {!editing && <>
+      <GuidedButton label={i18n.language.startsWith('es') ? 'Practica una conversación gratis' : 'Try a free conversation practice'} onPress={() => router.push('/free-practice')} />
       <GuidedButton label={c.change} onPress={() => setEditing(true)} />
       <GuidedButton label={state.value.completed.length ? c.resume : c.start} onPress={() => router.push('/guided-journey')} />
     </>}

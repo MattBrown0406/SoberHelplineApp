@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { useTheme } from '../../contexts/ThemeContext';
 import { boundaryFollowThroughStore as store } from '../../storage/boundaryFollowThrough';
 import { isReviewDate, localReviewDate, reviewDue, type BoundaryFollowThrough, type BoundaryResponse } from '../../storage/boundaryFollowThroughCore';
+import { ContextualMembershipInvitation } from '../../membershipInvitations/ContextualMembershipInvitation';
 import { boundaryFollowThroughCopy } from './followThroughCopy';
 
 /** Parent keys this editor by account + wall, so private drafts never cross accounts. */
@@ -20,6 +21,7 @@ export function BoundaryFollowThroughCard({ accountId, wallId }: { accountId: st
   const [invalid, setInvalid] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [neutralSave, setNeutralSave] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const alive = useRef(true);
   const busy = useRef(false);
@@ -45,7 +47,7 @@ export function BoundaryFollowThroughCard({ accountId, wallId }: { accountId: st
     busy.current = true; setSaving(true); setSaved(false); setError(false); setInvalid(false);
     try {
       await store.save(accountId, wallId, next);
-      if (alive.current) { setPlan(next); setSaved(true); }
+      if (alive.current) { setPlan(next); setSaved(true); if (response === undefined) setNeutralSave(true); }
     } catch { if (alive.current) setError(true); }
     finally { busy.current = false; if (alive.current) setSaving(false); }
   }
@@ -56,6 +58,7 @@ export function BoundaryFollowThroughCard({ accountId, wallId }: { accountId: st
     </TouchableOpacity>;
   }
   return <View style={styles.container}>
+    <ContextualMembershipInvitation accountId={accountId} placement="boundary-saved" completed={neutralSave} />
     <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: open }} aria-expanded={open} onPress={() => setOpen(!open)} style={styles.button}>
       <Text style={{ color: colors.primary, fontWeight: '700' }}>{copy.open}</Text>
     </TouchableOpacity>
