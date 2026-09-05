@@ -69,7 +69,8 @@
     "title": "Un pequeño recordatorio al día",
     "body": "Un recordatorio diario para tu registro de 90 segundos — y avisos de sesiones. Sin presión, sin spam.",
     "acceptButton": "Activar recordatorios",
-    "declineButton": "Quizás después"
+    "declineButton": "Quizás después",
+    "unavailable": "No se activaron los recordatorios. Puedes reintentar en Ajustes."
   },
   "saveError": {
     "title": "No pudimos guardar eso",

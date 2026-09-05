@@ -19,9 +19,12 @@ import { supabase } from '../src/lib/supabase';
 import { isAdminEmail } from '../src/lib/admin';
 import { useFeatureAccess } from '../src/hooks/useFeatureAccess';
 import { restorePurchases } from '../src/lib/revenueCat';
+import { cancelPersonalRemindersForLogout } from '../src/reminders/native';
 import {
   cancelPushRegistration,
   getReminderHour,
+  isDailyNudgeEnabled,
+  disableDailyNudges,
   registerForPushNotifications,
   setReminderHour,
   DEFAULT_REMINDER_HOUR,
@@ -73,6 +76,9 @@ export default function SettingsScreen() {
   const [deletingAccount, setDeletingAccount] = useState(false);
   const isAdmin = isAdminEmail(user?.email);
   const [reminderHour, setReminderHourState] = useState(DEFAULT_REMINDER_HOUR);
+  const [dailyEnabled, setDailyEnabled] = useState(false);
+  const [dailyBusy, setDailyBusy] = useState(false);
+  const dailyBusyRef = useRef(false);
   const [practicePush, setPracticePush] = useState<PracticePushSettings>(DEFAULT_PRACTICE_PUSH);
   const [practicePushLoading, setPracticePushLoading] = useState(true);
   const [practicePushSaving, setPracticePushSaving] = useState(false);
@@ -83,12 +89,32 @@ export default function SettingsScreen() {
   const canUsePracticePush = useFeatureAccess('practicePush');
 
   useEffect(() => {
-    void getReminderHour().then(setReminderHourState);
-  }, []);
+    let active = true;
+    setDailyEnabled(false);
+    if (user) void Promise.all([getReminderHour(), isDailyNudgeEnabled(user.id)]).then(([hour, enabled]) => {
+      if (active) { setReminderHourState(hour); setDailyEnabled(enabled); }
+    }).catch(() => {});
+    return () => { active = false; };
+  }, [user?.id]);
 
-  function chooseReminderHour(hour: number) {
-    setReminderHourState(hour);
-    void setReminderHour(hour);
+  async function chooseReminderHour(hour: number | null) {
+    if (!user || dailyBusyRef.current) return;
+    const accountId = user.id;
+    dailyBusyRef.current = true; setDailyBusy(true);
+    try {
+      if (hour === null) await disableDailyNudges(accountId);
+      else {
+        if (!await registerForPushNotifications(accountId, true, true)) throw new Error('Permission or registration unavailable');
+        if (practiceAccountRef.current !== accountId) return;
+        await setReminderHour(hour);
+      }
+      if (practiceAccountRef.current === accountId) {
+        setDailyEnabled(hour !== null);
+        if (hour !== null) setReminderHourState(hour);
+      }
+    } catch {
+      if (practiceAccountRef.current === accountId) Alert.alert(t('notifications.dailyErrorTitle'), t('notifications.dailyErrorBody'));
+    } finally { dailyBusyRef.current = false; setDailyBusy(false); }
   }
 
   useEffect(() => {
@@ -235,11 +261,20 @@ export default function SettingsScreen() {
     }
   }
 
+  async function clearRemindersBeforeExit(): Promise<boolean> {
+    try {
+      await cancelPersonalRemindersForLogout();
+      if (user) await cancelPushRegistration(user.id);
+      return true;
+    } catch {
+      Alert.alert(t('personalReminders.cleanupTitle'), t('personalReminders.cleanupBody'));
+      return false;
+    }
+  }
+
   async function handleSignOut() {
+    if (!await clearRemindersBeforeExit()) return;
     if (user) {
-      // Prevent a token acquisition already in flight from writing the token
-      // back after this account has been cleared from the device.
-      await cancelPushRegistration(user.id);
       const { error } = await supabase
         .from('accounts')
         .update({ push_token: null })
@@ -249,7 +284,8 @@ export default function SettingsScreen() {
         return;
       }
     }
-    await supabase.auth.signOut();
+    const { error: signOutError } = await supabase.auth.signOut();
+    if (signOutError) Alert.alert(t('signOutErrorTitle'), t('signOutErrorBody'));
   }
 
   async function handleRestore() {
@@ -289,6 +325,7 @@ export default function SettingsScreen() {
             setDeletingAccount(true);
             let deletionCompleted = false;
             try {
+              if (!await clearRemindersBeforeExit()) return;
               const { error: deletionError } = await supabase.rpc('delete_own_account');
               if (deletionError) {
                 Alert.alert(t('deleteAccount.errorTitle'), t('deleteAccount.errorMessage'));
@@ -426,6 +463,14 @@ export default function SettingsScreen() {
           </View>
         )}
 
+        <View style={[styles.card, { borderColor: colors.line }]}>
+          <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>{t('personalReminders.title')}</Text>
+          <Text style={[styles.infoLabel, { color: colors.inkSoft, marginBottom: 12 }]}>{t('personalReminders.body')}</Text>
+          <TouchableOpacity accessibilityRole="button" onPress={() => router.push('/personal-reminders')} style={[styles.restoreBtn, { borderColor: colors.line }]}>
+            <Text style={[styles.restoreText, { color: colors.primary }]}>{t('personalReminders.action')}</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Language */}
         <View style={[styles.card, { borderColor: colors.line }]}>
           <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
@@ -471,7 +516,7 @@ export default function SettingsScreen() {
           </Text>
           <View style={styles.pillRow}>
             {REMINDER_PRESETS.map((preset) => {
-              const active = reminderHour === preset.hour;
+              const active = dailyEnabled && reminderHour === preset.hour;
               return (
                 <TouchableOpacity
                   key={preset.hour}
@@ -482,7 +527,8 @@ export default function SettingsScreen() {
                       backgroundColor: active ? colors.primaryLight : '#fff',
                     },
                   ]}
-                  onPress={() => chooseReminderHour(preset.hour)}
+                  accessibilityRole="button" accessibilityState={{ disabled: dailyBusy, selected: active }} disabled={dailyBusy}
+                  onPress={() => void chooseReminderHour(preset.hour)}
                   activeOpacity={0.8}
                 >
                   <Text style={[styles.pillText, { color: active ? colors.primary : colors.inkSoft }]}>
@@ -493,6 +539,10 @@ export default function SettingsScreen() {
             })}
           </View>
         </View>
+
+        <TouchableOpacity accessibilityRole="button" disabled={dailyBusy || !dailyEnabled} onPress={() => void chooseReminderHour(null)} style={styles.restoreBtn}>
+          <Text style={{ color: colors.primary }}>{t('notifications.pauseDaily')}</Text>
+        </TouchableOpacity>
 
         {/* Opt-in AI-initiated practice calls. Remote pushes contain no family
             details and only route to the fixed Incoming Practice screen. */}

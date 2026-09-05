@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import * as Notifications from 'expo-notifications';
+import { registerForPushNotifications } from '../../src/hooks/usePushNotifications';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { supabase } from '../../src/lib/supabase';
@@ -45,12 +45,10 @@ export default function NotificationsScreen() {
   }
 
   async function finish(askPermission: boolean) {
-    if (askPermission && Platform.OS !== 'web') {
+    if (askPermission && Platform.OS !== 'web' && user?.id) {
       try {
-        await Notifications.requestPermissionsAsync();
-      } catch {
-        // user can enable later in Settings
-      }
+        if (!await registerForPushNotifications(user.id, true, true)) Alert.alert(t('notifications.unavailable'));
+      } catch { Alert.alert(t('notifications.unavailable')); }
     }
     if (!user?.id) return;
     await markOnboarded(user.id);

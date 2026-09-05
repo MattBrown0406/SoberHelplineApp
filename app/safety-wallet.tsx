@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Keyboard,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -108,14 +109,20 @@ function AccountSafetyWallet() {
     setShowIncidentForm(false);
   }
 
+  function clearSavedWallet() {
+    setIncidentDraft(EMPTY_INCIDENT);
+    setShowIncidentForm(false);
+    void clear().catch(() => Alert.alert(t('wallet.storageError')));
+  }
+
   function confirmClear() {
+    if (Platform.OS === 'web') {
+      if (globalThis.confirm(`${t('wallet.clearTitle')}\n\n${t('wallet.clearBody')}`)) clearSavedWallet();
+      return;
+    }
     Alert.alert(t('wallet.clearTitle'), t('wallet.clearBody'), [
       { text: t('wallet.cancel'), style: 'cancel' },
-      { text: t('wallet.clearConfirm'), style: 'destructive', onPress: () => {
-        setIncidentDraft(EMPTY_INCIDENT);
-        setShowIncidentForm(false);
-        void clear().catch(() => Alert.alert(t('wallet.storageError')));
-      } },
+      { text: t('wallet.clearConfirm'), style: 'destructive', onPress: clearSavedWallet },
     ]);
   }
 

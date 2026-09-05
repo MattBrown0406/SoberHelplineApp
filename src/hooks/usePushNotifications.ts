@@ -9,6 +9,17 @@ import { supabase } from '../lib/supabase';
 import { getCheckIn } from '../storage/checkIn';
 import { AsyncWriteBarrier } from '../lib/appFlowGuards';
 import { getPushDestination, shouldHandlePushResponse } from '../lib/pushRouting';
+export const LEGACY_NUDGE_PREFIX = 'legacy-daily-nudge:v1:';
+const LEGACY_OPT_IN_KEY = 'legacy-daily-nudge-opt-in:v1:';
+
+export async function isDailyNudgeEnabled(accountId: string): Promise<boolean> {
+  return (await AsyncStorage.getItem(LEGACY_OPT_IN_KEY + accountId)) === 'true';
+}
+
+export async function disableDailyNudges(accountId: string): Promise<void> {
+  await AsyncStorage.setItem(LEGACY_OPT_IN_KEY + accountId, 'false');
+  await rearmDailyNudge();
+}
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -30,6 +41,7 @@ let nudgeRearmQueue: Promise<void> = Promise.resolve();
 export async function cancelPushRegistration(accountId: string): Promise<void> {
   if (activePushAccountId === accountId) activePushAccountId = null;
   await pushWriteBarrier.cancelAndWait(accountId);
+  await rearmDailyNudge();
 }
 
 export async function getReminderHour(): Promise<number> {
@@ -59,17 +71,27 @@ function nudgeBodies(): string[] {
  * reminders. Safe to call repeatedly (it cancels and re-arms).
  */
 async function performDailyNudgeRearm(): Promise<void> {
-  const { status } = await Notifications.getPermissionsAsync();
-  if (status !== 'granted') return;
+  const accountId = activePushAccountId;
+  const generation = accountId ? pushWriteBarrier.begin(accountId) : -1;
+  const current = () => !!accountId && activePushAccountId === accountId
+    && pushWriteBarrier.isCurrent(accountId, generation);
+  // Only cancel identifiers this scheduler owns; unknown pre-namespace requests
+  // cannot safely be attributed to us. Never infer feature consent from OS permission.
+  const pending = await Notifications.getAllScheduledNotificationsAsync();
+  for (const request of pending) {
+    if (request.identifier.startsWith(LEGACY_NUDGE_PREFIX)) {
+      await Notifications.cancelScheduledNotificationAsync(request.identifier);
+    }
+  }
 
-  // NOTE: this owns the full local schedule. If session reminders are added as
-  // local notifications later, switch from cancelAll to per-identifier cancels.
-  await Notifications.cancelAllScheduledNotificationsAsync();
+  if (!accountId || !current() || !(await isDailyNudgeEnabled(accountId))) return;
+  const { status } = await Notifications.getPermissionsAsync();
+  if (status !== 'granted' || !current()) return;
 
   const hour = await getReminderHour();
   const title = i18n.t('settings:notifications.dailyNudgeTitle');
   const bodies = nudgeBodies();
-  let storageOwner = 'local';
+  let storageOwner = accountId;
   let timezone: string | undefined;
   const { data: { session } } = await supabase.auth.getSession();
   if (session?.user.id) {
@@ -78,11 +100,13 @@ async function performDailyNudgeRearm(): Promise<void> {
       .select('id, timezone')
       .eq('user_id', session.user.id)
       .maybeSingle();
+    if (account?.id !== accountId) return;
     if (account?.id) {
       storageOwner = account.id;
       timezone = account.timezone;
     }
   }
+  if (!session?.user.id || !current()) return;
   const checkedInToday = (await getCheckIn(storageOwner, new Date(), timezone)) !== null;
   const now = new Date();
 
@@ -92,7 +116,9 @@ async function performDailyNudgeRearm(): Promise<void> {
     fire.setDate(fire.getDate() + i);
     if (fire <= now) continue; // today's slot already passed
     if (i === 0 && checkedInToday) continue; // already checked in → don't nag today
+    if (!current()) return;
     await Notifications.scheduleNotificationAsync({
+      identifier: LEGACY_NUDGE_PREFIX + 'daily-' + i,
       content: { title, body: bodies[i % bodies.length] },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: fire },
     });
@@ -104,7 +130,9 @@ async function performDailyNudgeRearm(): Promise<void> {
   sunday.setHours(18, 0, 0, 0);
   sunday.setDate(sunday.getDate() + ((7 - sunday.getDay()) % 7));
   if (sunday <= now) sunday.setDate(sunday.getDate() + 7);
+  if (!current()) return;
   await Notifications.scheduleNotificationAsync({
+    identifier: LEGACY_NUDGE_PREFIX + 'weekly',
     content: {
       title: i18n.t('settings:notifications.weekReviewTitle'),
       body: i18n.t('settings:notifications.weekReviewBody'),
@@ -115,12 +143,13 @@ async function performDailyNudgeRearm(): Promise<void> {
 
 /** Serialize re-arms so overlapping foreground/save/settings events cannot interleave. */
 export function rearmDailyNudge(): Promise<void> {
+  if (Platform.OS === 'web') return Promise.resolve();
   const task = nudgeRearmQueue.then(performDailyNudgeRearm, performDailyNudgeRearm);
   nudgeRearmQueue = task.catch(() => undefined);
   return task;
 }
 
-export async function registerForPushNotifications(accountId: string): Promise<boolean> {
+export async function registerForPushNotifications(accountId: string, requestPermission = true, optInDailyNudges = false): Promise<boolean> {
   activePushAccountId = accountId;
   const generation = pushWriteBarrier.begin(accountId);
   try {
@@ -133,7 +162,7 @@ export async function registerForPushNotifications(accountId: string): Promise<b
 
     const { status: existing } = await Notifications.getPermissionsAsync();
     let finalStatus = existing;
-    if (existing !== 'granted') {
+    if (existing !== 'granted' && requestPermission) {
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
     }
@@ -155,6 +184,12 @@ export async function registerForPushNotifications(accountId: string): Promise<b
     if (error || data !== true) throw error ?? new Error('push_token_not_registered');
     if (!pushWriteBarrier.isCurrent(accountId, generation) || activePushAccountId !== accountId) return false;
 
+    // Only onboarding/daily-reminder Settings actions pass this third flag.
+    // RSVP, practice pushes and automatic device registration are not daily consent.
+    if (optInDailyNudges && requestPermission) {
+      await pushWriteBarrier.track(accountId, AsyncStorage.setItem(LEGACY_OPT_IN_KEY + accountId, 'true'));
+      if (!pushWriteBarrier.isCurrent(accountId, generation) || activePushAccountId !== accountId) return false;
+    }
     await rearmDailyNudge().catch((error) => {
       console.warn('[push] local nudge rearm failed', error);
     });
@@ -172,14 +207,15 @@ export function usePushNotifications(accountId: string | null, navigationReady: 
 
   useEffect(() => {
     if (!accountId) return;
-    void registerForPushNotifications(accountId).catch(() => false);
+    // Mount may register an already-authorized device, but never opens a prompt.
+    void registerForPushNotifications(accountId, false).catch(() => false);
 
     const appStateSub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') void rearmDailyNudge();
+      if (state === 'active') void rearmDailyNudge().catch(error => console.warn('[push] rearm failed', error));
     });
     return () => {
       appStateSub.remove();
-      void cancelPushRegistration(accountId);
+      void cancelPushRegistration(accountId).catch(error => console.warn('[push] cleanup failed', error));
     };
   }, [accountId]);
 

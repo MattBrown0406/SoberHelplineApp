@@ -28,7 +28,7 @@
       "Your check-in is waiting whenever you are."
     ],
     "reminderEyebrow": "Daily reminder",
-    "reminderDesc": "When should we nudge you to check in? We'll skip days you've already checked in.",
+    "reminderDesc": "Choose a time to enable daily check-in reminders. Personal reminders have separate controls.",
     "reminderMorning": "Morning",
     "reminderMidday": "Midday",
     "reminderEvening": "Evening",
@@ -51,7 +51,10 @@
     "practiceSaveErrorTitle": "Practice calls not changed",
     "practiceSaveErrorBody": "We couldn't save that setting. Your previous setting is still active. Please try again.",
     "practiceLoadError": "We couldn't load your practice-call settings. Nothing was changed.",
-    "practiceRetry": "Try again"
+    "practiceRetry": "Try again",
+    "pauseDaily": "Pause daily check-in reminders",
+    "dailyErrorTitle": "Reminder change not confirmed",
+    "dailyErrorBody": "Check notification permission in device Settings and retry. No reminder delivery is guaranteed."
   },
   "membership": {
     "eyebrow": "Membership",
@@ -94,5 +97,12 @@
     "errorMessage": "We couldn't delete your account. You are still signed in and no deletion was completed. Please try again.",
     "cleanupErrorTitle": "Account deleted",
     "cleanupErrorMessage": "Your account was deleted, but this device couldn't finish signing out. Close and reopen the app to clear the old session."
+  },
+  "personalReminders": {
+    "title": "Personal reminders",
+    "body": "Choose a discreet reminder for your own next step. Optional, easy to pause, and saved on this device.",
+    "action": "Manage personal reminders",
+    "cleanupTitle": "Reminder cleanup could not be confirmed",
+    "cleanupBody": "You are still signed in. Retry before signing out or deleting your account. You can disable notifications in your device Settings."
   }
 }

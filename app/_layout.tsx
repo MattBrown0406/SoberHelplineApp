@@ -7,6 +7,7 @@ import { AccountProvider, useAccount } from '../src/contexts/AccountContext';
 import { ThemeProvider } from '../src/contexts/ThemeContext';
 import { RouteActivationContext } from '../src/contexts/RouteActivationContext';
 import { initI18n } from '../src/i18n';
+import { PersonalRemindersLifecycle } from '../src/reminders/usePersonalReminders';
 import { usePushNotifications } from '../src/hooks/usePushNotifications';
 import { isOnboarded, subscribeOnboarded } from '../src/onboarding/state';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
@@ -131,6 +132,7 @@ function InitialLayout() {
     ? user?.id ?? null : null;
   const renderLayout = (overlay: React.ReactNode = null) => (
     <RouteActivationContext.Provider value={activationAccountId}>
+    <PersonalRemindersLifecycle accountId={user?.id ?? null} ready={!isLoading} />
     <View style={{ flex: 1 }}>
       <View style={{ flex: 1, display: overlay ? 'none' : 'flex' }}>
         <Stack screenOptions={{ headerShown: false }} />

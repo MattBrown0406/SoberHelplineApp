@@ -28,7 +28,7 @@
       "Tu registro te espera cuando estés list@."
     ],
     "reminderEyebrow": "Recordatorio diario",
-    "reminderDesc": "¿Cuándo quieres que te recordemos registrarte? Omitiremos los días en que ya lo hiciste.",
+    "reminderDesc": "Elige una hora para activar recordatorios diarios. Los recordatorios personales tienen controles separados.",
     "reminderMorning": "Mañana",
     "reminderMidday": "Mediodía",
     "reminderEvening": "Tarde",
@@ -51,7 +51,10 @@
     "practiceSaveErrorTitle": "Las llamadas de práctica no cambiaron",
     "practiceSaveErrorBody": "No pudimos guardar ese ajuste. Tu configuración anterior sigue activa. Inténtalo de nuevo.",
     "practiceLoadError": "No pudimos cargar la configuración de las llamadas de práctica. No se cambió nada.",
-    "practiceRetry": "Intentar de nuevo"
+    "practiceRetry": "Intentar de nuevo",
+    "pauseDaily": "Pausar recordatorios diarios",
+    "dailyErrorTitle": "Cambio no confirmado",
+    "dailyErrorBody": "Comprueba el permiso en los ajustes del dispositivo y reintenta. No se garantiza la entrega."
   },
   "membership": {
     "eyebrow": "Membresía",
@@ -94,5 +97,12 @@
     "errorMessage": "No pudimos eliminar tu cuenta. Aún tienes la sesión iniciada y no se completó ninguna eliminación. Inténtalo de nuevo.",
     "cleanupErrorTitle": "Cuenta eliminada",
     "cleanupErrorMessage": "Tu cuenta se eliminó, pero este dispositivo no pudo cerrar la sesión. Cierra y vuelve a abrir la aplicación para borrar la sesión anterior."
+  },
+  "personalReminders": {
+    "title": "Recordatorios personales",
+    "body": "Elige un recordatorio discreto para tu próximo paso. Son opcionales, fáciles de pausar y se guardan en este dispositivo.",
+    "action": "Administrar recordatorios personales",
+    "cleanupTitle": "No se pudo confirmar la cancelación",
+    "cleanupBody": "Tu sesión sigue abierta. Reintenta antes de cerrar sesión o eliminar tu cuenta. Puedes desactivar las notificaciones en los ajustes del dispositivo."
   }
 }

@@ -1,0 +1,6 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import ts from 'typescript';
+const source=ts.createSourceFile('wallet.tsx',fs.readFileSync(new URL('../app/safety-wallet.tsx',import.meta.url),'utf8'),ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);
+let found;function visit(n){if(ts.isFunctionDeclaration(n)&&n.name?.text==='confirmClear')found=n;ts.forEachChild(n,visit)}visit(source);assert(found);
+const code=ts.transpileModule(`const action=(${found.getText(source)});`,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;
+function make(os,confirm,clear,alert){return new Function('Platform','globalThis','clearSavedWallet','Alert','t',code+';return action;')({OS:os},{confirm},clear,{alert},x=>x)}
+test('wallet web clear requires explicit browser confirmation and native uses destructive Alert',()=>{let cleared=0;make('web',()=>false,()=>cleared++,()=>assert.fail())();assert.equal(cleared,0);make('web',()=>true,()=>cleared++,()=>assert.fail())();assert.equal(cleared,1);let buttons;make('ios',()=>assert.fail(),()=>cleared++,(_a,_b,b)=>{buttons=b})();assert.equal(cleared,1);assert.equal(buttons[1].style,'destructive');buttons[1].onPress();assert.equal(cleared,2);});
