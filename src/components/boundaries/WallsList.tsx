@@ -1,4 +1,7 @@
 import React from 'react';
+import { useRouter } from 'expo-router';
+import { BoundaryFollowThroughCard } from './BoundaryFollowThroughCard';
+import { boundaryFollowThroughCopy } from './followThroughCopy';
 import {
   View,
   Text,
@@ -11,6 +14,7 @@ import type { BoundaryWall } from '../../api/types';
 
 interface Props {
   walls: BoundaryWall[];
+  accountId?: string;
   onDelete: (id: string) => void;
   isAttached: boolean;
   hasFamilySpace?: boolean;
@@ -22,9 +26,11 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-export function WallsList({ walls, onDelete, isAttached, hasFamilySpace, onPropose }: Props) {
+export function WallsList({ walls, onDelete, accountId, hasFamilySpace, onPropose }: Props) {
   const { colors } = useTheme();
-  const { t } = useTranslation('boundaries');
+  const { t, i18n } = useTranslation('boundaries');
+  const router = useRouter();
+  const copy = boundaryFollowThroughCopy(i18n.language);
   const { t: tAlign } = useTranslation('alignment');
 
   return (
@@ -52,6 +58,7 @@ export function WallsList({ walls, onDelete, isAttached, hasFamilySpace, onPropo
                 <Text style={[styles.wallDate, { color: colors.inkSoft }]}>
                   {formatDate(wall.createdAt)}
                 </Text>
+                {accountId ? <BoundaryFollowThroughCard key={`${accountId}:${wall.id}`} accountId={accountId} wallId={wall.id} /> : null}
                 {hasFamilySpace && onPropose ? (
                   <TouchableOpacity
                     style={[styles.proposeBtn, { borderColor: colors.primary }]}
@@ -65,6 +72,8 @@ export function WallsList({ walls, onDelete, isAttached, hasFamilySpace, onPropo
                 ) : null}
               </View>
               <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={copy.delete}
                 onPress={() => onDelete(wall.id)}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
@@ -75,14 +84,17 @@ export function WallsList({ walls, onDelete, isAttached, hasFamilySpace, onPropo
 
           {!hasFamilySpace ? (
           <TouchableOpacity
+            accessibilityRole="button"
+            onPress={() => router.push('/book-coaching')}
             style={[styles.shareBtn, { borderColor: colors.primary }]}
             activeOpacity={0.8}
           >
             <Text style={[styles.shareBtnText, { color: colors.primary }]}>
-              {isAttached ? t('walls.shareAttached') : t('walls.shareDirect')}
+              {copy.coach}
             </Text>
           </TouchableOpacity>
           ) : null}
+          {!hasFamilySpace ? <Text style={[styles.empty, { color: colors.inkSoft }]}>{copy.coachPrivacy}</Text> : null}
         </>
       )}
     </View>

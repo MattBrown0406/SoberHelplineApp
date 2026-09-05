@@ -7,28 +7,33 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { boundaryFollowThroughCopy } from './followThroughCopy';
 import { useTheme } from '../../contexts/ThemeContext';
 
 interface Props {
   prefill: string;
-  onSave: (text: string, tag: string | null) => void;
+  onSave: (text: string, tag: string | null) => void | Promise<void>;
   lastAnchorTag: string | null;
 }
 
 export function WallBuilder({ prefill, onSave, lastAnchorTag }: Props) {
   const { colors } = useTheme();
-  const { t } = useTranslation('boundaries');
+  const { t, i18n } = useTranslation('boundaries');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(false);
   const [text, setText] = useState(prefill);
 
   useEffect(() => {
     if (prefill) setText(prefill);
   }, [prefill]);
 
-  function handleSave() {
+  async function handleSave() {
     const trimmed = text.trim();
-    if (!trimmed) return;
-    onSave(trimmed, lastAnchorTag);
-    setText('');
+    if (!trimmed || saving) return;
+    setSaving(true); setError(false);
+    try { await onSave(trimmed, lastAnchorTag); setText(''); }
+    catch { setError(true); }
+    finally { setSaving(false); }
   }
 
   return (
@@ -47,6 +52,7 @@ export function WallBuilder({ prefill, onSave, lastAnchorTag }: Props) {
         placeholder={t('builder.placeholder')}
         placeholderTextColor={colors.inkSoft}
         value={text}
+        editable={!saving}
         onChangeText={setText}
         multiline
         numberOfLines={3}
@@ -59,12 +65,14 @@ export function WallBuilder({ prefill, onSave, lastAnchorTag }: Props) {
             backgroundColor: text.trim() ? colors.primary : colors.line,
           },
         ]}
-        onPress={handleSave}
-        disabled={!text.trim()}
+        onPress={() => void handleSave()}
+        accessibilityRole="button"
+        disabled={!text.trim() || saving}
         activeOpacity={0.8}
       >
         <Text style={styles.saveBtnText}>{t('builder.saveButton')}</Text>
       </TouchableOpacity>
+      {error ? <Text accessibilityRole="alert" style={{ color: colors.ink }}>{boundaryFollowThroughCopy(i18n.language).wallError}</Text> : null}
     </View>
   );
 }

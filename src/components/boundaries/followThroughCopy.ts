@@ -1,0 +1,31 @@
+const en = {
+  title: 'My follow-through plan', open: 'Plan / review follow-through',
+  purpose: 'A boundary describes what you will do to care for yourself—not control or punish someone else.',
+  privacy: 'These follow-through notes stay on this device for your account. They are not backed up to the cloud or shared with family or a coach.',
+  communicate: 'What I’ll communicate', action: 'What I will do if this boundary is crossed',
+  reviewDate: 'Review date (YYYY-MM-DD)', save: 'Save on this device', saving: 'Saving…', saved: 'Saved on this device.',
+  question: 'Have I been able to follow through?', yes: 'Yes', 'not-yet': 'Not yet', adjust: 'I need help adjusting',
+  yesMessage: 'Notice the care and effort you put into this. Keep choosing what is within your control.',
+  'not-yetMessage': 'There is no failure here. Choose a smaller, realistic action and a new review date when you’re ready.',
+  adjustMessage: 'It’s okay to revise your plan or ask for support. A workable boundary protects you without punishing anyone.',
+  due: 'Ready for a gentle review', error: 'Could not load or save. Your text has not been sent. Retry before editing saved notes.',
+  retry: 'Retry loading', invalid: 'Add both statements and a real review date in YYYY-MM-DD format.',
+  coach: 'Explore coaching support', coachPrivacy: 'Opens coaching options. No boundaries or follow-through notes are sent.',
+  delete: 'Remove boundary', wallError: 'Could not complete the boundary update. Please retry.', loading: 'Loading boundaries…',
+};
+const es: typeof en = {
+  title: 'Mi plan para mantener el límite', open: 'Planificar / revisar mi límite',
+  purpose: 'Un límite describe lo que harás para cuidarte, no para controlar ni castigar a otra persona.',
+  privacy: 'Estas notas se guardan en este dispositivo para tu cuenta. No tienen copia en la nube ni se comparten con tu familia o un coach.',
+  communicate: 'Lo que voy a comunicar', action: 'Lo que haré si se cruza este límite',
+  reviewDate: 'Fecha de revisión (AAAA-MM-DD)', save: 'Guardar en este dispositivo', saving: 'Guardando…', saved: 'Guardado en este dispositivo.',
+  question: '¿He podido mantener mi límite?', yes: 'Sí', 'not-yet': 'Todavía no', adjust: 'Necesito ayuda para ajustarlo',
+  yesMessage: 'Reconoce tu esfuerzo y cuidado. Sigue eligiendo lo que está bajo tu control.',
+  'not-yetMessage': 'Esto no es un fracaso. Elige una acción más pequeña y realista y otra fecha de revisión cuando puedas.',
+  adjustMessage: 'Está bien revisar tu plan o pedir apoyo. Un límite viable te protege sin castigar a nadie.',
+  due: 'Es momento de una revisión amable', error: 'No se pudo cargar o guardar. Tu texto no se ha enviado. Reintenta antes de editar las notas guardadas.',
+  retry: 'Reintentar carga', invalid: 'Completa ambas frases y una fecha real en formato AAAA-MM-DD.',
+  coach: 'Explorar apoyo de coaching', coachPrivacy: 'Abre las opciones de coaching. No se envían límites ni notas de seguimiento.',
+  delete: 'Eliminar límite', wallError: 'No se pudo completar el cambio del límite. Inténtalo de nuevo.', loading: 'Cargando límites…',
+};
+export const boundaryFollowThroughCopy = (language: string) => language.startsWith('es') ? es : en;

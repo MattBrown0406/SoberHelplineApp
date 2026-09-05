@@ -22,6 +22,7 @@ import { useBoundaries } from '../../src/hooks/useBoundaries';
 import { CastleSection } from '../../src/components/boundaries/CastleSection';
 import { AnchorCard } from '../../src/components/boundaries/AnchorCard';
 import { WallBuilder } from '../../src/components/boundaries/WallBuilder';
+import { boundaryFollowThroughCopy } from '../../src/components/boundaries/followThroughCopy';
 import { WallsList } from '../../src/components/boundaries/WallsList';
 import { HoldLogCard } from '../../src/components/boundaries/HoldLogCard';
 import { SharedFamilyScriptCard } from '../../src/components/boundaries/SharedFamilyScriptCard';
@@ -40,7 +41,8 @@ export default function BoundariesScreen() {
   const { t: tCommon, i18n } = useTranslation('common');
   const { t: tAlign } = useTranslation('alignment');
   const router = useRouter();
-  const { walls, addWall, removeWall } = useBoundaries(user?.id ?? null);
+  const { walls, addWall, removeWall, loading: wallsLoading, error: wallsError, reload: reloadWalls } = useBoundaries(user?.id ?? null);
+  const followCopy = boundaryFollowThroughCopy(i18n.language);
 
   const content: BoundariesContent = i18n.language.startsWith('es')
     ? esContent
@@ -373,16 +375,25 @@ export default function BoundariesScreen() {
         />
 
         {/* Builder */}
-        <WallBuilder
+        {wallsLoading ? <Text style={{ color: colors.inkSoft }}>{followCopy.loading}</Text> : null}
+        {wallsError ? <View>
+          <Text accessibilityRole="alert" style={{ color: colors.ink }}>{followCopy.wallError}</Text>
+          <TouchableOpacity accessibilityRole="button" onPress={reloadWalls} style={{ padding: 12, minHeight: 44 }}>
+            <Text style={{ color: colors.primary }}>{followCopy.retry}</Text>
+          </TouchableOpacity>
+        </View> : null}
+        {!wallsLoading && !wallsError ? <WallBuilder
+          key={user?.id ?? 'local'}
           prefill={prefill}
           onSave={handleSave}
           lastAnchorTag={lastAnchorTag}
-        />
+        /> : null}
 
         {/* Saved walls */}
         <WallsList
           walls={walls}
-          onDelete={removeWall}
+          accountId={user?.id}
+          onDelete={(id) => { void removeWall(id).catch(() => Alert.alert(followCopy.wallError)); }}
           isAttached={isAttached}
           hasFamilySpace={!!familySpace}
           onPropose={(wall) => void handlePropose(wall)}
