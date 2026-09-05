@@ -2,9 +2,9 @@
   "header": "Support",
   "settings": "Settings",
   "crisis": {
-    "button": "Get help right now",
-    "copilotTitle": "Need help deciding what to do?",
-    "copilotBody": "Get calm, step-by-step family guidance for the situation happening right now.",
+    "button": "Get help now · free crisis guidance",
+    "copilotTitle": "Free crisis guidance",
+    "copilotBody": "Free step-by-step safety guidance. This is an in-app guide, not a live coach.",
     "copilotButton": "Open Crisis Copilot",
     "sheetTitle": "You're not alone right now",
     "attachedSub": "is on call for your family tonight.",
@@ -12,10 +12,11 @@
     "freeSub": "can help through the free Crisis Copilot; messaging is available with Essential and Premier.",
     "callButton": "Call",
     "messageButton": "Message",
-    "divider": "Emergency lines — always available",
+    "divider": "Emergency contacts — no subscription needed",
     "line911": "911 — Life-threatening emergency",
     "line988": "988 — Suicide & Crisis Lifeline",
-    "lineSh": "Sober Helpline crisis line"
+    "lineSh": "Sober Helpline crisis line",
+    "freeNote": "Immediate crisis guidance and emergency contacts are free — no subscription needed. Paid coaching is separate and is not emergency care."
   },
   "team": {
     "eyebrow": "Your team",
@@ -198,6 +199,8 @@
     "crisisNote": "If someone is in immediate danger, call 911 or 988."
   },
   "coaching": {
+    "submitError": "Your request was not sent. Check your connection and try again. Your selections have been kept.",
+    "loadError": "Your existing requests could not be loaded. Please refresh before sending another request.",
     "eyebrow": "1:1 coaching",
     "cardTitle": "Private Zoom session with a coach",
     "cardBody": "A full hour, one-on-one — your situation, your questions, a concrete plan. $150/hour.",
@@ -270,8 +273,8 @@
     "close": "Close"
   },
   "finderCard": {
-    "title": "Find treatment & support",
-    "sub": "Search vetted treatment centers, interventionists, and sober coaches — with real availability."
+    "title": "Find treatment · free directory",
+    "sub": "Browse treatment centers, interventionists, and sober coaches. Directory access is free; provider services may have costs. Confirm availability and fees directly."
   },
   "textline": {
     "gatedTitle": "Urgent Text Line",
@@ -304,7 +307,15 @@
       "retry": "Refresh",
       "request": "Choose a day and time",
       "minutes": "minutes",
-      "statuses": { "coach_proposal": "Your coach proposed a new time", "requested": "Your time request is pending", "scheduled": "Confirmed", "live": "Your session is live", "completed": "Completed", "cancelled": "Cancelled", "no_show": "No show" },
+      "statuses": {
+        "coach_proposal": "Your coach proposed a new time",
+        "requested": "Your time request is pending",
+        "scheduled": "Confirmed",
+        "live": "Your session is live",
+        "completed": "Completed",
+        "cancelled": "Cancelled",
+        "no_show": "No show"
+      },
       "coachProposalBody": "Accept this time or request a different one.",
       "memberProposalBody": "Your coach will confirm this exact time or suggest another.",
       "confirmedRequestedZone": "{{date}} ({{timezone}})",
@@ -326,7 +337,22 @@
       "submitNewTime": "Request this new time",
       "history": "Past sessions",
       "rebook": "Book again",
-      "errors": { "invalidTitle": "Choose another time", "future": "Select a day and time in the future.", "version_conflict": "This session changed on another device. We refreshed it; please review and try again.", "active_session_exists": "You already have an active video request.", "invalid_request": "Check the date, time, and note, then try again.", "invalid_timezone": "Your device timezone could not be used. Refresh and try again.", "proposal_not_found": "That proposal is no longer available. Refresh to see the latest time.", "session_not_found": "This session is no longer available.", "premium_video_access_required": "Premier video access is required.", "invalid_transition": "That action is no longer available for this session.", "unknown": "We couldn't update your session. Please refresh and try again." }
+      "errors": {
+        "invalidTitle": "Choose another time",
+        "future": "Select a day and time in the future.",
+        "version_conflict": "This session changed on another device. We refreshed it; please review and try again.",
+        "active_session_exists": "You already have an active video request.",
+        "invalid_request": "Check the date, time, and note, then try again.",
+        "invalid_timezone": "Your device timezone could not be used. Refresh and try again.",
+        "proposal_not_found": "That proposal is no longer available. Refresh to see the latest time.",
+        "session_not_found": "This session is no longer available.",
+        "premium_video_access_required": "Premier video access is required.",
+        "invalid_transition": "That action is no longer available for this session.",
+        "unknown": "We couldn't update your session. Please refresh and try again."
+      }
     }
-  }
+  },
+  "intro": "Connect with people here. For words to say, open Practice; for plans and worksheets, open Tools.",
+  "peopleHeading": "TALK TO SOMEONE",
+  "peopleAccess": "Coach messaging requires Essential or Premier; private video is included with Premier, subject to scheduling. Separate 1:1 coaching is $150/hour."
 }

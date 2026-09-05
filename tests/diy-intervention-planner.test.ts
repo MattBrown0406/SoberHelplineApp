@@ -345,5 +345,7 @@ test('localization parity, protected storage, route, Tools, TAP, and CI are wire
   assert.match(tap, /diy-intervention-planner/);
   assert.match(tapDomain, /TreatmentPlacementDetails/);
   assert.doesNotMatch(tapDomain.match(/export type TreatmentPlacementDetails = \{[\s\S]*?\};/)?.[0] ?? '', /admissionsPhone/);
-  assert.match(workflow, /test:diy-intervention/);
+  assert.match(workflow, /run: npm test/);
+  const scripts = JSON.parse(readFileSync(resolve(TEST_DIR, '../package.json'), 'utf8')).scripts;
+  assert.match(scripts.test, /tests\/\*\.test\.ts/);
 });

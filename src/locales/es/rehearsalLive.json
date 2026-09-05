@@ -89,6 +89,8 @@
     "encouragement": "Aquí no se gana ni se pierde — solo se llega más preparado. Repítelo con otro estado de ánimo, o uno más difícil. Cada repetición mejora la conversación real."
   },
   "history": {
+    "loadError": "No se pudo cargar tu historial de práctica. Inténtalo de nuevo.",
+    "deleteError": "No se pudo eliminar esta sesión. Inténtalo de nuevo.",
     "title": "Sesiones anteriores",
     "subtitle": "Tus repeticiones, guardadas. Mira cómo suben los puntajes.",
     "empty": "Aún no hay sesiones. Termina una conversación de práctica y su transcripción y retroalimentación se guardarán aquí.",

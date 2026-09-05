@@ -75,6 +75,9 @@ export function CheckInCard({
   );
   const [note, setNote] = useState(checkIn?.note ?? '');
   const [isSaving, setIsSaving] = useState(false);
+  const [step, setStep] = useState(0);
+  const [showNote, setShowNote] = useState(false);
+  const stepAnswered = [pendingMood, pendingCapacity, pendingPressure, pendingNeed][step] !== null;
 
   useEffect(() => {
     if (!checkIn) return;
@@ -152,6 +155,10 @@ export function CheckInCard({
 
       {!completed ? (
         <>
+          <Text accessibilityLiveRegion="polite" style={[styles.subtext, { color: colors.inkSoft }]}>
+            {t('checkIn.progress', { current: step + 1, total: 4 })}
+          </Text>
+          {step === 0 && <>
           <Text style={[styles.fieldLabel, { color: colors.ink }]}>
             {t('checkIn.moodQuestion')}
           </Text>
@@ -168,7 +175,8 @@ export function CheckInCard({
                 ]}
                 accessibilityRole="radio"
                 accessibilityLabel={t('checkIn.moodAccessibility', { score })}
-                accessibilityState={{ selected: pendingMood === score, disabled: isSaving }}
+                aria-checked={pendingMood === score}
+                accessibilityState={{ checked: pendingMood === score, selected: pendingMood === score, disabled: isSaving }}
                 disabled={isSaving}
                 onPress={() => setPendingMood(score)}
                 activeOpacity={0.8}
@@ -177,8 +185,8 @@ export function CheckInCard({
               </TouchableOpacity>
             ))}
           </View>
-
-          <ScoreField
+          </>}
+          {step === 1 && <ScoreField
             label={t('checkIn.capacityQuestion')}
             lowLabel={t('checkIn.capacityLow')}
             highLabel={t('checkIn.capacityHigh')}
@@ -187,9 +195,9 @@ export function CheckInCard({
             disabled={isSaving}
             colors={colors}
             onChange={setPendingCapacity}
-          />
+          />}
 
-          <ScoreField
+          {step === 2 && <ScoreField
             label={t('checkIn.pressureQuestion')}
             lowLabel={t('checkIn.pressureLow')}
             highLabel={t('checkIn.pressureHigh')}
@@ -198,8 +206,9 @@ export function CheckInCard({
             disabled={isSaving}
             colors={colors}
             onChange={setPendingPressure}
-          />
+          />}
 
+          {step === 3 && <>
           <Text style={[styles.fieldLabel, { color: colors.ink }]}>
             {t('checkIn.needsQuestion')}
           </Text>
@@ -210,7 +219,8 @@ export function CheckInCard({
                 <TouchableOpacity
                   key={need}
                   accessibilityRole="radio"
-                  accessibilityState={{ selected, disabled: isSaving }}
+                  aria-checked={selected}
+                  accessibilityState={{ checked: selected, selected, disabled: isSaving }}
                   disabled={isSaving}
                   onPress={() => setPendingNeed(need)}
                   style={[
@@ -257,6 +267,11 @@ export function CheckInCard({
             </View>
           )}
 
+          <TouchableOpacity accessibilityRole="button" aria-expanded={showNote} accessibilityState={{ expanded: showNote }}
+            disabled={isSaving} onPress={() => setShowNote(value => !value)} style={{ minHeight: 44, paddingVertical: 12 }}>
+            <Text style={{ color: colors.primary }}>{t(showNote ? 'checkIn.hideNote' : 'checkIn.addNote')}</Text>
+          </TouchableOpacity>
+          {showNote && <>
           <View style={styles.noteHeader}>
             <Text style={[styles.fieldLabel, styles.noteFieldLabel, { color: colors.ink }]}>
               {t('checkIn.noteLabel')}
@@ -266,6 +281,7 @@ export function CheckInCard({
             </Text>
           </View>
           <TextInput
+            accessibilityLabel={t('checkIn.noteLabel')}
             value={note}
             onChangeText={setNote}
             editable={!isSaving}
@@ -278,6 +294,7 @@ export function CheckInCard({
               { color: colors.ink, borderColor: colors.line, backgroundColor: colors.cream },
             ]}
           />
+          </>}
 
           {!isComplete && (
             <Text style={[styles.moodHint, { color: colors.inkSoft }]}>
@@ -302,6 +319,20 @@ export function CheckInCard({
               {isSaving ? t('checkIn.savingButton') : t('checkIn.completeButton')}
             </Text>
           </TouchableOpacity>
+          </>}
+          {step < 3 && <TouchableOpacity
+            accessibilityRole="button" accessibilityState={{ disabled: !stepAnswered || isSaving }}
+            disabled={!stepAnswered || isSaving}
+            onPress={() => setStep(value => Math.min(3, value + 1))}
+            style={[styles.btn, { backgroundColor: colors.primary, opacity: stepAnswered ? 1 : 0.45 }]}>
+            <Text style={styles.btnText}>{t('checkIn.next')}</Text>
+          </TouchableOpacity>}
+          {step > 0 && <TouchableOpacity accessibilityRole="button" disabled={isSaving}
+            accessibilityState={{ disabled: isSaving }}
+            onPress={() => setStep(value => Math.max(0, value - 1))}
+            style={{ minHeight: 44, paddingVertical: 14, alignItems: 'center' }}>
+            <Text style={{ color: colors.primary }}>{t('checkIn.back')}</Text>
+          </TouchableOpacity>}
         </>
       ) : (
         <>
@@ -419,7 +450,8 @@ function ScoreField({
               key={score}
               accessibilityRole="radio"
               accessibilityLabel={`${accessibilityLabel} ${score}`}
-              accessibilityState={{ selected, disabled }}
+              aria-checked={selected}
+              accessibilityState={{ checked: selected, selected, disabled }}
               disabled={disabled}
               onPress={() => onChange(score)}
               style={[

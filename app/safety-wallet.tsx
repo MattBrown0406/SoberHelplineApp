@@ -69,7 +69,7 @@ export default function SafetyWalletScreen() {
   const { t } = useTranslation('crisis');
   const { user } = useAccount();
   const { lovedOne } = useLovedOne(user?.id ?? null);
-  const { plan, setPlan, incidents, addIncident, hydrated, clear } = useSafetyWallet(user?.id ?? null);
+  const { plan, setPlan, incidents, addIncident, hydrated, loadError, reload, clear } = useSafetyWallet(user?.id ?? null);
   const [showIncidentForm, setShowIncidentForm] = useState(false);
   const [incidentDraft, setIncidentDraft] = useState<IncidentDraft>(EMPTY_INCIDENT);
 
@@ -135,7 +135,7 @@ export default function SafetyWalletScreen() {
   function confirmClear() {
     Alert.alert(t('wallet.clearTitle'), t('wallet.clearBody'), [
       { text: t('wallet.cancel'), style: 'cancel' },
-      { text: t('wallet.clearConfirm'), style: 'destructive', onPress: () => void clear() },
+      { text: t('wallet.clearConfirm'), style: 'destructive', onPress: () => void clear().catch(() => Alert.alert(t('wallet.storageError'))) },
     ]);
   }
 
@@ -174,7 +174,12 @@ export default function SafetyWalletScreen() {
         <Text style={styles.crisisButtonText}>{t('wallet.startGuide')}</Text>
       </TouchableOpacity>
 
-      {!hydrated ? (
+      {loadError || !user ? (
+        <View style={styles.loading}>
+          <Text accessibilityRole="alert" style={[styles.body, { color: colors.inkSoft }]}>{t(user ? 'wallet.storageError' : 'wallet.signInRequired')}</Text>
+          {user && <TouchableOpacity accessibilityRole="button" onPress={reload}><Text style={{ color: colors.primary }}>{t('common:accountLoad.retry')}</Text></TouchableOpacity>}
+        </View>
+      ) : !hydrated ? (
         <View style={styles.loading} accessibilityLiveRegion="polite">
           <ActivityIndicator color={colors.primary} />
           <Text style={[styles.body, { color: colors.inkSoft }]}>{t('wallet.loading')}</Text>

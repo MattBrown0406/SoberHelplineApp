@@ -41,17 +41,20 @@ export function useProviderSearch() {
   const [alsoRecommended, setAlsoRecommended] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryVersion, setRetryVersion] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setResults([]);
+    setAlsoRecommended([]);
 
     async function load() {
       const stateFilter = filters.state && filters.state !== 'Any state' ? filters.state : undefined;
       const opts = {
         state: stateFilter,
-        insurance: filters.insurance.length ? filters.insurance : undefined,
+        insurance: filters.path === 'center' && filters.insurance.length ? filters.insurance : undefined,
         loc: filters.loc,
       };
 
@@ -63,8 +66,8 @@ export function useProviderSearch() {
         // Cross-sell only providers in the same state, so we don't surface an
         // interventionist three states away from the centers being viewed.
         const [ints, coaches] = await Promise.all([
-          fetchProviders('interventionist', { state: stateFilter }),
-          fetchProviders('coach', { state: stateFilter }),
+          fetchProviders('interventionist', { state: stateFilter }).catch(() => []),
+          fetchProviders('coach', { state: stateFilter }).catch(() => []),
         ]);
         if (cancelled) return;
         const also: Provider[] = [];
@@ -81,10 +84,10 @@ export function useProviderSearch() {
       .finally(() => { if (!cancelled) setLoading(false); });
 
     return () => { cancelled = true; };
-  }, [filters.path, filters.state, filters.insurance, filters.loc]);
+  }, [filters.path, filters.state, filters.insurance, filters.loc, retryVersion]);
 
   function setPath(path: ProviderType) {
-    setFilters((f) => ({ ...f, path }));
+    setFilters((f) => ({ ...f, path, loc: null, insurance: path === 'center' ? f.insurance : [] }));
   }
   function setField<K extends keyof FinderFilters>(key: K, value: FinderFilters[K]) {
     setFilters((f) => ({ ...f, [key]: value }));
@@ -103,5 +106,6 @@ export function useProviderSearch() {
     resultCount: results.length,
     loading,
     error,
+    retry: () => setRetryVersion((value) => value + 1),
   };
 }

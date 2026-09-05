@@ -10,6 +10,7 @@ export const CORAL_DARK = '#8f4034';
 
 export function useAvailabilityColor(a: Availability) {
   const { colors } = useTheme();
+  if (a === 'unverified') return { fg: colors.inkSoft, dot: colors.inkSoft, bg: colors.line };
   if (a === 'now') return { fg: GREEN_DARK, dot: colors.green, bg: colors.greenLight };
   if (a === 'lim') return { fg: AMBER_DARK, dot: colors.secondary, bg: colors.secondaryLight };
   return { fg: CORAL_DARK, dot: colors.coral, bg: colors.coralLight };

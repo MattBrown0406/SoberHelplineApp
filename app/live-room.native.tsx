@@ -26,6 +26,7 @@ import {
 import { Track } from 'livekit-client';
 
 import { useTheme } from '../src/contexts/ThemeContext';
+import { RouteActivationGate } from '../src/contexts/RouteActivationContext';
 import { useAccount } from '../src/contexts/AccountContext';
 import { supabase } from '../src/lib/supabase';
 import { LIVEKIT_URL, SUPABASE_URL } from '../src/config';
@@ -305,7 +306,7 @@ function ViewerView({ onLeave }: { onLeave: () => void }) {
 export default function LiveRoomScreen() {
   const params = useLocalSearchParams<{ room: string }>();
   const roomName = params.room ?? '';
-  return <LiveRoomSession key={roomName} roomName={roomName} />;
+  return <RouteActivationGate><LiveRoomSession key={roomName} roomName={roomName} /></RouteActivationGate>;
 }
 
 function LiveRoomSession({ roomName }: { roomName: string }) {
@@ -326,20 +327,25 @@ function LiveRoomSession({ roomName }: { roomName: string }) {
   const startErrorRef = useRef(false);
 
   useEffect(() => {
+    let active = true;
+    mountedRef.current = true;
+    tearingDownRef.current = false;
     async function init() {
       try {
         await AudioSession.startAudioSession();
+        if (!active) return;
         const result = await fetchLiveKitToken(roomName);
-        if (!mountedRef.current) return;
+        if (!active) return;
         isHostRef.current = result.isHost;
         setTokenResult(result);
       } catch (e) {
-        if (mountedRef.current) setError(String(e));
+        if (active) setError(String(e));
       }
     }
     void init();
 
     return () => {
+      active = false;
       mountedRef.current = false;
       tearingDownRef.current = true;
       AudioSession.stopAudioSession();
@@ -392,7 +398,7 @@ function LiveRoomSession({ roomName }: { roomName: string }) {
   }
 
   async function handleConnected() {
-    if (!isHostRef.current || liveMarkedRef.current) return;
+    if (!mountedRef.current || tearingDownRef.current || !isHostRef.current || liveMarkedRef.current) return;
     if (!await transitionHostLive(true)) {
       startErrorRef.current = true;
       await transitionHostLive(false);

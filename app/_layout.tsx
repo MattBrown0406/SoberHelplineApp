@@ -5,6 +5,7 @@ import { ActivityIndicator, AppState, Text, TouchableOpacity, View } from 'react
 import { useTranslation } from 'react-i18next';
 import { AccountProvider, useAccount } from '../src/contexts/AccountContext';
 import { ThemeProvider } from '../src/contexts/ThemeContext';
+import { RouteActivationContext } from '../src/contexts/RouteActivationContext';
 import { initI18n } from '../src/i18n';
 import { usePushNotifications } from '../src/hooks/usePushNotifications';
 import { isOnboarded, subscribeOnboarded } from '../src/onboarding/state';
@@ -67,7 +68,9 @@ function InitialLayout() {
   const { t } = useTranslation('common');
   const router = useRouter();
   const segments = useSegments();
-  const [onboarded, setOnboarded] = useState<boolean | null>(null);
+  const [onboarding, setOnboarding] = useState<{ accountId: string; value: boolean } | null>(null);
+  // Never reuse account A's completed onboarding during account B's lookup.
+  const onboarded = onboarding?.accountId === user?.id ? onboarding?.value ?? null : null;
 
   const layoutState = getInitialLayoutState({
     isAuthenticated,
@@ -83,14 +86,16 @@ function InitialLayout() {
 
   useEffect(() => {
     if (!user?.id) {
-      setOnboarded(null);
+      setOnboarding(null);
       return;
     }
     let active = true;
     void isOnboarded(user.id).then((value) => {
-      if (active) setOnboarded(value);
+      if (active) setOnboarding({ accountId: user.id, value });
     });
-    const unsubscribe = subscribeOnboarded(user.id, () => setOnboarded(true));
+    const unsubscribe = subscribeOnboarded(user.id, () => {
+      if (active) setOnboarding({ accountId: user.id, value: true });
+    });
     return () => {
       active = false;
       unsubscribe();
@@ -118,8 +123,25 @@ function InitialLayout() {
     }
   }, [user, isAuthenticated, isLoading, onboarded, segments[0]]);
 
+  // Keep one router stack mounted through auth/onboarding hydration. Unmounting
+  // it discards the incoming deep link and can choose an unrelated default route.
+  const activationAccountId = layoutState === 'stack' && !isLoading &&
+    isAuthenticated && accountError === null && onboarded === true &&
+    segments[0] !== '(auth)' && segments[0] !== '(onboarding)'
+    ? user?.id ?? null : null;
+  const renderLayout = (overlay: React.ReactNode = null) => (
+    <RouteActivationContext.Provider value={activationAccountId}>
+    <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, display: overlay ? 'none' : 'flex' }}>
+        <Stack screenOptions={{ headerShown: false }} />
+      </View>
+      {overlay}
+    </View>
+    </RouteActivationContext.Provider>
+  );
+
   if (layoutState === 'account-error') {
-    return <View accessibilityRole="alert" accessibilityLiveRegion="assertive" style={{ flex: 1, padding: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F7F2E8', gap: 14 }}>
+    return renderLayout(<View accessibilityRole="alert" accessibilityLiveRegion="assertive" style={{ flex: 1, padding: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F7F2E8', gap: 14 }}>
       <Text style={{ fontSize: 24, fontWeight: '900', textAlign: 'center', color: '#173B3F' }}>{t('accountLoad.title')}</Text>
       <Text style={{ fontSize: 16, lineHeight: 23, textAlign: 'center', color: '#52676A' }}>{t('accountLoad.body')}</Text>
       <TouchableOpacity
@@ -131,11 +153,11 @@ function InitialLayout() {
       >
         {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '900' }}>{t('accountLoad.retry')}</Text>}
       </TouchableOpacity>
-    </View>;
+    </View>);
   }
 
   if (layoutState === 'bootstrap') {
-    return (
+    return renderLayout(
       <View accessibilityLiveRegion="polite" style={{ flex: 1, padding: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F7F2E8', gap: 16 }}>
         <ActivityIndicator
           accessibilityRole="progressbar"
@@ -153,7 +175,7 @@ function InitialLayout() {
     );
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return renderLayout();
 }
 
 export default function RootLayout() {

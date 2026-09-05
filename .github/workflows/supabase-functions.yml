@@ -19,6 +19,8 @@ jobs:
     uses: ./.github/workflows/quality.yml
 
   migrate:
+    # Manual dispatch remains available after deployment approval.
+    if: github.event_name != 'push' || !contains(github.event.head_commit.message, '[hold deployment]')
     needs: quality
     runs-on: ubuntu-latest
     steps:

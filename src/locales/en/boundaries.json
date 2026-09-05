@@ -49,9 +49,18 @@
     "question": "Have I enabled the addiction in any way?",
     "sub": "Be honest — this is bedrock, not blame. Tap all that apply.",
     "pills": [
-      { "id": "e-fin", "label": "💵 Financially" },
-      { "id": "e-emo", "label": "💬 Emotionally" },
-      { "id": "e-sil", "label": "🤐 Silently" }
+      {
+        "id": "e-fin",
+        "label": "💵 Financially"
+      },
+      {
+        "id": "e-emo",
+        "label": "💬 Emotionally"
+      },
+      {
+        "id": "e-sil",
+        "label": "🤐 Silently"
+      }
     ],
     "suggestions": {
       "e-fin": {
@@ -73,9 +82,18 @@
     "question": "Has the addiction harmed me in any way?",
     "sub": "Your harm is real and it counts. Tap all that apply.",
     "pills": [
-      { "id": "h-fin", "label": "💵 Financially" },
-      { "id": "h-emo", "label": "💔 Emotionally" },
-      { "id": "h-phys", "label": "🤕 Physically" }
+      {
+        "id": "h-fin",
+        "label": "💵 Financially"
+      },
+      {
+        "id": "h-emo",
+        "label": "💔 Emotionally"
+      },
+      {
+        "id": "h-phys",
+        "label": "🤕 Physically"
+      }
     ],
     "suggestions": {
       "h-fin": {
@@ -93,18 +111,18 @@
     }
   },
   "suggestion": {
-    "label": "Suggested wall:",
+    "label": "Suggested boundary:",
     "use": "Use"
   },
   "builder": {
-    "eyebrow": "Build your wall",
+    "eyebrow": "Write a boundary",
     "sub": "Tap a suggestion above or write your own. State what you will do.",
     "placeholder": "\"I will...\"",
     "saveButton": "⚓ Anchor this boundary"
   },
   "walls": {
-    "eyebrow": "My castle walls",
-    "empty": "No walls anchored yet. Answer the two questions above to lay your first stone.",
+    "eyebrow": "My boundaries (castle walls)",
+    "empty": "No boundaries saved yet. Use a suggestion above or write one clear limit.",
     "shareAttached": "Review walls with my coach",
     "shareDirect": "Share walls with the on-call coach"
   },
@@ -191,5 +209,6 @@
     "post": "Post",
     "empty": "No notes yet. Be the first to share something.",
     "you": "You"
-  }
+  },
+  "intro": "Castle walls means agreed boundaries: clear limits about what you will and will not do to protect your safety and wellbeing. Write your own first, then invite family to agree. You do not need your loved one’s permission to set a personal limit."
 }

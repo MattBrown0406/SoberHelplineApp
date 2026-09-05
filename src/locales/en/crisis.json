@@ -189,6 +189,8 @@
     "placeholder": "Tap to enter"
   },
   "wallet": {
+    "storageError": "Device storage could not be read or updated. Editing is paused to protect saved records. Recent edits may not be saved. Retry to reload the stored copy.",
+    "signInRequired": "Sign in to access your saved safety wallet. Emergency help remains available.",
     "kicker": "ALWAYS FREE",
     "title": "Safety Wallet",
     "body": "Keep the household details you may need when it is hard to think clearly. Nothing here is shared unless you choose to export it.",

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -15,34 +15,47 @@ const NEEDS: { key: string; icon: string; route: string }[] = [
   { key: 'treatmentTalk', icon: '💬', route: '/(tabs)/scripts?q=treatment' },
   { key: 'findTreatment', icon: '🧭', route: '/finder' },
   { key: 'boundary', icon: '🏰', route: '/(tabs)/boundaries' },
-  { key: 'crisis', icon: '🆘', route: '/(tabs)/support' },
+
 ];
 
 export function NeedsRouter() {
   const { colors } = useTheme();
   const { t } = useTranslation('today');
   const router = useRouter();
+  const [expanded, setExpanded] = useState(false);
 
   return (
     <View style={[styles.card, { borderColor: colors.line }]}>
       <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
-        {t('needs.eyebrow').toUpperCase()}
+        {t('needs.eyebrow')}
       </Text>
+      <TouchableOpacity
+        accessibilityRole="button"
+        onPress={() => router.push('/crisis-mode')}
+        style={{ padding: 14, minHeight: 48, borderWidth: 1, borderRadius: 12, marginBottom: 10, borderColor: colors.coral, backgroundColor: colors.coralLight }}
+      >
+        <Text style={[styles.chipText, { color: colors.ink }]}>{t('needs.crisis')}</Text>
+      </TouchableOpacity>
       <View style={styles.grid}>
-        {NEEDS.map(({ key, icon, route }) => (
+        {NEEDS.slice(0, expanded ? NEEDS.length : 2).map(({ key, icon, route }) => (
           <TouchableOpacity
             key={key}
+            accessibilityRole="button"
             style={[styles.chip, { borderColor: colors.line }]}
             activeOpacity={0.8}
             onPress={() => router.push(route as never)}
           >
             <Text style={styles.chipIcon}>{icon}</Text>
-            <Text style={[styles.chipText, { color: colors.ink }]} numberOfLines={2}>
+            <Text style={[styles.chipText, { color: colors.ink }]}>
               {t(`needs.${key}`)}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
+      <TouchableOpacity accessibilityRole="button" aria-expanded={expanded} accessibilityState={{ expanded }}
+        onPress={() => setExpanded(value => !value)} style={{ paddingTop: 14, minHeight: 44 }}>
+        <Text style={{ color: colors.primary, fontWeight: '600' }}>{t(expanded ? 'needs.fewer' : 'needs.more')}</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -61,9 +74,8 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   eyebrow: {
-    fontSize: 11,
+    fontSize: 20,
     fontWeight: '700',
-    letterSpacing: 1.2,
     marginBottom: 10,
   },
   grid: {

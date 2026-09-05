@@ -1,7 +1,7 @@
 {
   "header": "Tools & learning",
   "tools": {
-    "eyebrow": "QUICK TOOLS",
+    "eyebrow": "PLAN YOUR NEXT STEPS",
     "costTitle": "Money & Boundaries Worksheet",
     "costBody": "Estimate what active addiction has cost your family, then decide what you will—and will not—fund going forward.",
     "costButton": "Start worksheet",
@@ -13,21 +13,23 @@
     "actionTitle": "Treatment Action Plan",
     "actionBody": "Get the bed, insurance, ride, bag, work coverage, dependents, and first 72 hours ready before the planned conversation.",
     "actionButton": "Build the action plan",
-    "actionBadge": "Prepare in advance",
+    "actionBadge": "Free · Planning",
     "diyBadge": "ESSENTIALS",
     "diyTitle": "DIY Intervention Planner",
-    "diyBody": "One gated plan for fit, needed level of care, team unity, letters, rehearsal, Planned No, and AMA. Reuses TAP logistics without duplicating them.",
+    "diyBody": "Prepare a family conversation about treatment: agree on boundaries, write letters, rehearse, and plan for either answer.",
     "diyButton": "Open DIY Intervention Planner",
     "diyLockedButton": "Unlock with Essentials",
     "homecomingTitle": "Homecoming Week",
     "homecomingBody": "Build the age-aware, housing-safe plan for days 0–7 after discharge—before the ride home and first weekend.",
     "homecomingButton": "Build Homecoming Week",
-    "homecomingBadge": "Days 0–7 · Private",
+    "homecomingBadge": "Free · Days 0–7",
     "visitationTitle": "Family Visitation Plan",
     "visitationBody": "Write the visit before you drive: no cash, no promises of home, a fixed leave time, and a parking-lot exit plan.",
     "visitationButton": "Write the visit",
-    "visitationBadge": "Before visiting hours",
-    "learningEyebrow": "LEARNING LIBRARY"
+    "visitationBadge": "Free · Visit planning",
+    "learningEyebrow": "LEARN · FREE RESOURCES",
+    "diyIncluded": "Included with your current access.",
+    "diyPaid": "Paid feature · Essential or Premier membership required."
   },
   "education": {
     "title": "Family Education",
@@ -152,5 +154,13 @@
         "a": "Call 911 for overdose signs — unresponsive, blue lips, slow or stopped breathing, gurgling. Call or text 988 for any talk of suicide or self-harm. Don't wait to be sure; being wrong and safe beats being right and late. Save both numbers in your phone now, and if opioids are involved, keep naloxone (Narcan) at home — no prescription needed in most states."
       }
     ]
+  },
+  "intro": "Practice is for what to say. Boundaries is for the limits you will hold. Use these tools to plan next steps, or open Support to connect with people.",
+  "destinations": {
+    "title": "What do you need to do?",
+    "conversation": "Practice a conversation",
+    "boundaries": "Set agreed boundaries",
+    "treatment": "Find treatment · free directory",
+    "someone": "Talk to someone · Support"
   }
 }

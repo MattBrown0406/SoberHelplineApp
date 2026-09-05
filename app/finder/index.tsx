@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
+  View, Text, TouchableOpacity, StyleSheet,
   ActivityIndicator, Modal, ScrollView, SafeAreaView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -43,19 +43,10 @@ export default function FinderScreen() {
   const { t } = useTranslation('finder');
   const router = useRouter();
   const search = useProviderSearch();
-  const { filters, setPath, setField, toggleField, results, alsoRecommended, loading } = search;
+  const { filters, setPath, setField, toggleField, results, alsoRecommended, loading, error, retry } = search;
 
   const [step, setStep] = useState<Step>('intro');
   const [stateOpen, setStateOpen] = useState(false);
-  const [budgetIdx, setBudgetIdx] = useState(0);
-
-  const AGES = t('details.ages', { returnObjects: true }) as string[];
-  const GENDERS = t('details.genders', { returnObjects: true }) as string[];
-  const CONDITIONS = t('details.conditionsList', { returnObjects: true }) as string[];
-  const MODALITIES = t('details.modalities', { returnObjects: true }) as string[];
-  const POPULATIONS = t('details.populationsList', { returnObjects: true }) as string[];
-  const BUDGETS = t('details.budgets', { returnObjects: true }) as string[];
-
   function goBack() {
     if (step === 'intro') return router.back();
     if (step === 'loc') return setStep('intro');
@@ -162,14 +153,7 @@ export default function FinderScreen() {
             </Text>
             <Text style={[styles.dropdownArrow, { color: colors.inkSoft }]}>▾</Text>
           </TouchableOpacity>
-          <TextInput
-            value={filters.zip}
-            onChangeText={(v) => setField('zip', v)}
-            placeholder={t('details.zipPlaceholder')}
-            keyboardType="number-pad"
-            style={[styles.input, { borderColor: colors.line, color: colors.ink }]}
-            placeholderTextColor={colors.inkSoft}
-          />
+
 
           {/* Center-only filters */}
           {isCenter && (
@@ -180,43 +164,6 @@ export default function FinderScreen() {
                 ))}
               </Section>
 
-              {/* Budget only matters for cash/self-pay families */}
-              {filters.insurance.includes('Self-pay') && (
-                <Section label={t('details.budget').toUpperCase()}>
-                  {BUDGETS.map((b, idx) => (
-                    <FilterChip key={b} label={b} selected={budgetIdx === idx} onPress={() => setBudgetIdx(idx)} />
-                  ))}
-                </Section>
-              )}
-
-              <Section label={t('details.whoFor').toUpperCase()}>
-                {AGES.map((a) => (
-                  <FilterChip key={a} label={a} selected={filters.age === a} onPress={() => setField('age', a)} />
-                ))}
-              </Section>
-              <View style={[styles.chips, { marginTop: 8 }]}>
-                {GENDERS.map((g) => (
-                  <FilterChip key={g} label={g} selected={filters.gender === g} onPress={() => setField('gender', g)} />
-                ))}
-              </View>
-
-              <Section label={t('details.conditions').toUpperCase()}>
-                {CONDITIONS.map((c) => (
-                  <FilterChip key={c} label={c} selected={filters.conditions.includes(c)} onPress={() => toggleField('conditions', c)} />
-                ))}
-              </Section>
-
-              <Section label={t('details.approach').toUpperCase()}>
-                {MODALITIES.map((m) => (
-                  <FilterChip key={m} label={m} selected={filters.modalities.includes(m)} onPress={() => toggleField('modalities', m)} />
-                ))}
-              </Section>
-
-              <Section label={t('details.populations').toUpperCase()}>
-                {POPULATIONS.map((p) => (
-                  <FilterChip key={p} label={p} selected={filters.populations.includes(p)} onPress={() => toggleField('populations', p)} />
-                ))}
-              </Section>
             </>
           )}
 
@@ -235,16 +182,21 @@ export default function FinderScreen() {
               <Text style={[styles.edit, { color: colors.primary }]}>{t('results.edit')}</Text>
             </TouchableOpacity>
           </View>
-          {filters.insurance.length + filters.conditions.length + filters.modalities.length > 0 && (
+          {filters.insurance.length > 0 && (
             <Text style={[styles.sum, { color: colors.inkSoft }]}>
               {t('results.filters', {
-                list: [...filters.insurance.map(displayInsurance), ...filters.conditions, ...filters.modalities].join(' · '),
+                list: filters.insurance.map(displayInsurance).join(' · '),
               })}
             </Text>
           )}
 
           {loading ? (
             <ActivityIndicator color={colors.primary} style={{ marginTop: 32 }} />
+          ) : error ? (
+            <View accessibilityRole="alert">
+              <Text style={[styles.sum, { color: colors.inkSoft }]}>{t('detail.loadError')}</Text>
+              <Button label={t('common:accountLoad.retry')} onPress={retry} />
+            </View>
           ) : results.length === 0 ? (
             <Text style={[styles.sum, { color: colors.inkSoft, marginTop: 16 }]}>
               {t('results.empty')}
@@ -255,7 +207,7 @@ export default function FinderScreen() {
             ))
           )}
 
-          {alsoRecommended.length > 0 && (
+          {!loading && !error && alsoRecommended.length > 0 && (
             <>
               <Text style={[styles.h2, { color: colors.inkSoft, marginTop: 22 }]}>{t('results.also').toUpperCase()}</Text>
               {alsoRecommended.map((p) => (

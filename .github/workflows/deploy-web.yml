@@ -16,6 +16,8 @@ concurrency:
 
 jobs:
   build-and-deploy:
+    # A code-only handoff may explicitly hold production-facing deployment.
+    if: github.event_name != 'push' || !contains(github.event.head_commit.message, '[hold deployment]')
     runs-on: ubuntu-latest
     environment:
       name: github-pages

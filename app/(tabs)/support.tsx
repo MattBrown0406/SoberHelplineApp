@@ -597,6 +597,8 @@ export default function SupportScreen() {
           </TouchableOpacity>
         </View>
 
+        <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{t('intro')}</Text>
+
         {/* Crisis button — always visible */}
         <TouchableOpacity
           style={[styles.sosButton, { backgroundColor: colors.coral }]}
@@ -605,6 +607,8 @@ export default function SupportScreen() {
         >
           <Text style={styles.sosText}>🆘  {t('crisis.button')}</Text>
         </TouchableOpacity>
+
+        <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{t('crisis.freeNote')}</Text>
 
         {/* Crisis protocol guide */}
         <TouchableOpacity
@@ -626,6 +630,9 @@ export default function SupportScreen() {
           </View>
           <Text style={[styles.protocolCardArrow, { color: colors.inkSoft }]}>›</Text>
         </TouchableOpacity>
+
+        <Text accessibilityRole="header" style={[styles.eyebrow, { color: colors.inkSoft }]}>{t('peopleHeading')}</Text>
+        <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{t('peopleAccess')}</Text>
 
         {/* Attached: team + sessions */}
         {isAttached && (

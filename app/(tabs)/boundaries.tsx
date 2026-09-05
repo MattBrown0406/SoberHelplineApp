@@ -244,6 +244,8 @@ export default function BoundariesScreen() {
           ) : null}
         </View>
 
+        <Text style={[styles.enablingSub, { color: colors.inkSoft }]}>{content.intro}</Text>
+
         {/* ── Daily Challenge ──────────────────────────────────────── */}
         <View style={[styles.card, styles.challengeCard, { borderColor: isMonday ? colors.secondary : colors.primary, backgroundColor: isMonday ? colors.secondaryLight : colors.primaryLight }]}>
           <Text style={[styles.challengeEyebrow, { color: isMonday ? colors.secondary : colors.primary }]}>

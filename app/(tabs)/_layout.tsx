@@ -1,4 +1,5 @@
 import { Tabs } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
@@ -12,6 +13,7 @@ function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
 
 export default function TabLayout() {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation('common');
 
   return (
@@ -25,9 +27,13 @@ export default function TabLayout() {
           borderTopColor: colors.line,
           borderTopWidth: 1,
           paddingTop: 6,
+          height: 64 + insets.bottom,
+          paddingBottom: insets.bottom + 6,
         },
         tabBarLabelStyle: {
           fontSize: 11,
+          lineHeight: 14,
+          flexShrink: 0,
           fontWeight: '700',
         },
       }}
@@ -47,6 +53,7 @@ export default function TabLayout() {
         name="scripts"
         options={{
           title: t('nav.scripts'),
+          tabBarAccessibilityLabel: t('navPurpose.scripts'),
           tabBarIcon: ({ focused }) => <TabIcon emoji="💬" focused={focused} />,
         }}
       />
@@ -54,6 +61,7 @@ export default function TabLayout() {
         name="boundaries"
         options={{
           title: t('nav.boundaries'),
+          tabBarAccessibilityLabel: t('navPurpose.boundaries'),
           tabBarIcon: ({ focused }) => <TabIcon emoji="🏰" focused={focused} />,
         }}
       />
@@ -68,6 +76,7 @@ export default function TabLayout() {
         name="learn"
         options={{
           title: t('nav.learn'),
+          tabBarAccessibilityLabel: t('navPurpose.learn'),
           tabBarIcon: ({ focused }) => <TabIcon emoji="🧰" focused={focused} />,
         }}
       />
@@ -75,6 +84,7 @@ export default function TabLayout() {
         name="support"
         options={{
           title: t('nav.support'),
+          tabBarAccessibilityLabel: t('navPurpose.support'),
           tabBarIcon: ({ focused }) => <TabIcon emoji="🤝" focused={focused} />,
         }}
       />

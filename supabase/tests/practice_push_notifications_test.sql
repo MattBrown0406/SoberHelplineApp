@@ -1,7 +1,7 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SET search_path=public,extensions;
-SELECT plan(32);
+SELECT plan(33);
 
 SELECT ok(
   (SELECT relrowsecurity FROM pg_class WHERE oid='public.practice_push_preferences'::regclass),
@@ -44,7 +44,9 @@ locale=CASE WHEN user_id='1a000000-0000-0000-0000-000000000001' THEN 'es' ELSE '
 WHERE user_id IN ('1a000000-0000-0000-0000-000000000001','1a000000-0000-0000-0000-000000000002');
 
 INSERT INTO public.entitlements(account_id,source,tier,expires_at)
-SELECT id,'revenuecat','essential','2026-08-31T00:00:00Z'
+-- Scheduler assertions use July 2026; delivery rechecks use transaction now().
+-- Keep the entitlement valid in both clock domains, regardless of test run date.
+SELECT id,'revenuecat','essential',greatest('2026-08-31T00:00:00Z'::timestamptz, now() + interval '1 day')
 FROM public.accounts WHERE user_id='1a000000-0000-0000-0000-000000000001';
 SELECT set_config(
   'test.other_account_id',
@@ -183,6 +185,19 @@ SELECT ok(
   'sender receives only the remaining lifetime for an eligible active event'
 );
 RESET ROLE;
+UPDATE public.entitlements SET expires_at=now() - interval '1 second'
+WHERE account_id=(SELECT id FROM public.accounts WHERE user_id='1a000000-0000-0000-0000-000000000001');
+SET LOCAL ROLE service_role;
+SELECT is(
+  public.practice_push_delivery_ttl(
+    current_setting('test.practice_event_id')::uuid,
+    (SELECT id FROM public.accounts WHERE user_id='1a000000-0000-0000-0000-000000000001')
+  ), NULL::integer, 'delivery rejects expired entitlement even for an unexpired event'
+);
+RESET ROLE;
+UPDATE public.entitlements
+SET expires_at=greatest('2026-08-31T00:00:00Z'::timestamptz, now() + interval '1 day')
+WHERE account_id=(SELECT id FROM public.accounts WHERE user_id='1a000000-0000-0000-0000-000000000001');
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claims','{"sub":"1a000000-0000-0000-0000-000000000001","email":"practice-paid@example.com","role":"authenticated"}',true);
 SELECT is(

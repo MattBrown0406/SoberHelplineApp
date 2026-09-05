@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -56,26 +56,60 @@ export default function BookCoachingScreen() {
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loadError, setLoadError] = useState(false);
+  const loadRequest = useRef(0);
+  const submissionScope = useRef({ accountId: user?.id });
+  if (submissionScope.current.accountId !== user?.id) {
+    submissionScope.current = { accountId: user?.id };
+  }
 
   const load = useCallback(async () => {
-    const { data } = await supabase
-      .from('coaching_bookings')
-      .select('id, preferred_times, status, payment_status, scheduled_at, zoom_url')
-      .order('created_at', { ascending: false })
-      .limit(10);
-    setBookings((data as Booking[]) ?? []);
-  }, []);
+    const request = ++loadRequest.current;
+    if (!user?.id) return;
+    setLoadError(false);
+    try {
+      const { data, error } = await supabase
+        .from('coaching_bookings')
+        .select('id, preferred_times, status, payment_status, scheduled_at, zoom_url')
+        .eq('account_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      if (error) throw error;
+      if (request === loadRequest.current) setBookings((data as Booking[]) ?? []);
+    } catch {
+      if (request === loadRequest.current) setLoadError(true);
+    }
+  }, [user?.id]);
 
   useEffect(() => {
-    if (user) load();
-  }, [user, load]);
+    const scope = { accountId: user?.id };
+    submissionScope.current = scope;
+    setSubmitted(false);
+    setSubmitting(false);
+    setSubmitError(false);
+    setSelectedDate(null);
+    setSelectedPeriod(null);
+    setContact('');
+    setNote('');
+    setBookings([]);
+    void load();
+    return () => {
+      ++loadRequest.current;
+      if (submissionScope.current === scope) submissionScope.current = { accountId: undefined };
+    };
+  }, [load]);
 
   const canSubmit = selectedDate !== null && selectedPeriod !== null;
 
   async function handleSubmit() {
-    if (!user || !canSubmit) return;
+    if (!user || !canSubmit || submitting) return;
+    const scope = submissionScope.current;
+    if (scope.accountId !== user.id) return;
     setSubmitting(true);
+    setSubmitted(false);
+    setSubmitError(false);
 
     const dateStr = formatDateChip(selectedDate!);
     const periodStr = t(`coaching.${selectedPeriod}` as const);
@@ -88,19 +122,24 @@ export default function BookCoachingScreen() {
       .filter(Boolean)
       .join('\n\n');
 
-    const { error } = await supabase.from('coaching_bookings').insert({
-      account_id: user.id,
-      preferred_times: preferredTimes,
-      note: combinedNote || null,
-    });
-    setSubmitting(false);
-    if (!error) {
+    try {
+      const { error } = await supabase.from('coaching_bookings').insert({
+        account_id: user.id,
+        preferred_times: preferredTimes,
+        note: combinedNote || null,
+      });
+      if (error) throw error;
+      if (submissionScope.current !== scope) return;
       setSubmitted(true);
       setSelectedDate(null);
       setSelectedPeriod(null);
       setContact('');
       setNote('');
-      load();
+      void load();
+    } catch {
+      if (submissionScope.current === scope) setSubmitError(true);
+    } finally {
+      if (submissionScope.current === scope) setSubmitting(false);
     }
   }
 
@@ -140,6 +179,12 @@ export default function BookCoachingScreen() {
               {t('coaching.submitted')}
             </Text>
           </View>
+        )}
+
+        {submitError && (
+          <Text accessibilityRole="alert" style={[styles.bodyText, { color: colors.coral }]}>
+            {t('coaching.submitError', { defaultValue: 'Your request was not sent. Check your connection and try again. Your selections have been kept.' })}
+          </Text>
         )}
 
         {/* Date picker */}
@@ -239,6 +284,17 @@ export default function BookCoachingScreen() {
         <Text style={[styles.paymentNote, { color: colors.inkSoft }]}>
           {t('coaching.paymentNote')}
         </Text>
+
+        {loadError && (
+          <View>
+            <Text accessibilityRole="alert" style={[styles.bodyText, { color: colors.coral }]}>
+              {t('coaching.loadError', { defaultValue: 'Your existing requests could not be loaded. Please refresh before sending another request.' })}
+            </Text>
+            <TouchableOpacity onPress={() => void load()} accessibilityRole="button">
+              <Text style={[styles.label, { color: colors.primary }]}>{t('common:accountLoad.retry')}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {bookings.length > 0 && (
           <View style={[styles.card, { borderColor: colors.line }]}>

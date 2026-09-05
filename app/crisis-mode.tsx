@@ -125,6 +125,7 @@ export default function CrisisModeScreen() {
     command,
     setCommand,
     clear: clearSafetyWallet,
+    hydrated, loadError, reload,
   } = useSafetyWallet(user?.id ?? null, hasPremier);
 
   const [stage, setStage] = useState<Stage>('situation');
@@ -173,12 +174,13 @@ export default function CrisisModeScreen() {
       isSpanish ? 'Esto elimina de este dispositivo el plan, incidentes, límites y roles guardados para esta cuenta.' : 'This removes this account’s saved plan, incidents, boundaries, and roles from this device.',
       [
         { text: isSpanish ? 'Cancelar' : 'Cancel', style: 'cancel' },
-        { text: isSpanish ? 'Borrar' : 'Clear', style: 'destructive', onPress: () => void clearSafetyWallet() },
+        { text: isSpanish ? 'Borrar' : 'Clear', style: 'destructive', onPress: () => void clearSafetyWallet().catch(() => Alert.alert(t('wallet.storageError'))) },
       ],
     );
   }
 
   function addIncident() {
+    if (!hydrated) return;
     if (!incidentDraft.summary.trim()) {
       Alert.alert(t('incident.alertTitle'), t('incident.alertBody')); return;
     }
@@ -332,6 +334,10 @@ export default function CrisisModeScreen() {
                 <ActionCard title={isSpanish ? 'Plan para las próximas 24 horas' : 'Next 24-hour plan'} items={situation.next24} colors={colors} numbered />
                 <ActionCard title={isSpanish ? 'Plan para las próximas 72 horas' : 'Next 72-hour plan'} items={situation.next72} colors={colors} numbered />
 
+                {!hydrated ? <View style={styles.card}>
+                  <Text accessibilityRole="alert">{t(!user ? 'wallet.signInRequired' : loadError ? 'wallet.storageError' : 'wallet.loading')}</Text>
+                  {user && loadError && <TouchableOpacity accessibilityRole="button" onPress={reload}><Text>{t('common:accountLoad.retry')}</Text></TouchableOpacity>}
+                </View> : <>
                 <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
                   <Text accessibilityRole="header" style={[styles.sectionTitle, { color: colors.ink }]}>{t('plan.title')}</Text>
                   {PLAN_FIELDS.map((key) => <Field key={key} label={t(`plan.${key}`)} placeholder={fieldPlaceholder} value={plan[key]} onChangeText={(value) => setPlan((prev) => ({ ...prev, [key]: value }))} multiline={PLAN_MULTILINE.has(key)} />)}
@@ -359,9 +365,10 @@ export default function CrisisModeScreen() {
                 </View>
                 <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.secondary }]} onPress={() => void shareSummary()}><Text style={[styles.outlineBtnText, { color: colors.ink }]}>{t('support.share')}</Text></TouchableOpacity>
                 <TouchableOpacity accessibilityRole="button" style={styles.textBtn} onPress={clearSavedData}><Text style={[styles.textBtnText, { color: colors.coral }]}>{isSpanish ? 'Borrar datos de crisis guardados' : 'Clear saved crisis data'}</Text></TouchableOpacity>
+                </>}
             </>
 
-            {hasPremier ? (
+            {hasPremier && hydrated ? (
               <View style={[styles.card, styles.premiumCard, { backgroundColor: colors.ink, borderColor: colors.primary }]}>
                 <Text style={styles.premiumEyebrow}>PREMIER</Text>
                 <Text style={styles.premiumTitle}>{isSpanish ? 'Plan de Comando Familiar' : 'Family Command Plan'}</Text>
@@ -372,7 +379,7 @@ export default function CrisisModeScreen() {
                 <Field dark multiline label={isSpanish ? 'Posición familiar unificada' : 'Unified family statement'} placeholder={boundaryText} value={command.unifiedStatement} onChangeText={(value) => setCommand((prev) => ({ ...prev, unifiedStatement: value }))} />
                 <TouchableOpacity accessibilityRole="button" style={[styles.primaryBtn, { backgroundColor: colors.primary }]} onPress={() => void shareSummary(true)}><Text style={styles.primaryBtnText}>{isSpanish ? 'Compartir plan de comando' : 'Share command plan'}</Text></TouchableOpacity>
               </View>
-            ) : !isOfflineAccountFallback ? (
+            ) : !hasPremier && !isOfflineAccountFallback ? (
               <LockedCard tier="Premier" cta={isSpanish ? 'Ver Premier' : 'View Premier'} title={isSpanish ? 'Mantén a la familia alineada' : 'Keep the family aligned'} body={isSpanish ? 'Premier agrega roles, una posición unificada y apoyo por video privado.' : 'Premier adds role assignments, a unified family position, and private video support.'} colors={colors} onPress={() => showUpgrade('Premier')} />
             ) : null}
 
@@ -381,7 +388,7 @@ export default function CrisisModeScreen() {
                 <Text accessibilityRole="header" style={[styles.sectionTitle, { color: colors.ink }]}>{t('support.title')}</Text>
                 {entitlements.canMessageOnCallCoach ? <TouchableOpacity accessibilityRole="button" style={[styles.primaryBtn, { backgroundColor: colors.primary }]} onPress={() => router.push('/chat')}><Text style={styles.primaryBtnText}>{t('support.openTextline')}</Text></TouchableOpacity> : <Text style={[styles.body, { color: colors.inkSoft }]}>{isSpanish ? 'El apoyo por texto está disponible con Essential y Premier. Para peligro inmediato, usa 911 o 988.' : 'Text support is available with Essential and Premier. For immediate danger, use 911 or 988.'}</Text>}
                 {(canAccessPrivateVideo || privateVideo.activeSession?.appointment_type === 'one_off_150') ? <PremierVideoSchedulingCard controller={privateVideo} t={t} translationRoot="premierVideo" compact onJoin={(session) => router.push({ pathname: '/video-session' as never, params: { sessionId: session.id, room: session.room_name } })} /> : null}
-                {hasEssential ? <PlanReviewBookingCard controller={privateVideo} hasIncludedPlanReview={hasIncludedPlanReview} source={planReviewSource} t={t} consentLocale={isSpanish ? 'es' : 'en'} onUpgrade={() => router.push('/(tabs)/support' as never)} /> : null}
+                {hasEssential && hydrated ? <PlanReviewBookingCard controller={privateVideo} hasIncludedPlanReview={hasIncludedPlanReview} source={planReviewSource} t={t} consentLocale={isSpanish ? 'es' : 'en'} onUpgrade={() => router.push('/(tabs)/support' as never)} /> : null}
               </View>
             ) : null}
           </>

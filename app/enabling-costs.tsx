@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
   costHint: { fontSize: 11.5, lineHeight: 16, marginTop: 3 },
   moneyInputWrap: { width: 96, minHeight: 44, borderWidth: 1, borderRadius: 10, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10 },
   dollar: { fontSize: 14, fontWeight: '700' },
-  moneyInput: { flex: 1, fontSize: 16, fontWeight: '700', textAlign: 'right', paddingVertical: 8 },
+  moneyInput: { flex: 1, minWidth: 0, width: 0, fontSize: 16, fontWeight: '700', textAlign: 'right', paddingVertical: 8 },
   totalCard: { borderRadius: 20, padding: 20, alignItems: 'center', marginTop: 2, marginBottom: 18 },
   totalLabel: { color: '#d9e3ed', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
   totalAmount: { color: '#fff', fontSize: 38, fontWeight: '900', marginTop: 5, marginBottom: 16 },

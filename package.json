@@ -8,6 +8,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts && node --test tests/*.test.mjs",
     "test:auth": "node --test tests/auth-bootstrap.test.mjs",
     "test:checkin": "tsx --test tests/checkin-persistence.test.ts",
     "test:push": "tsx --test tests/push-routing.test.ts",

@@ -11,6 +11,7 @@ import { useRouter, useLocalSearchParams, type Href } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Audio } from 'expo-av';
 import { useTheme } from '../src/contexts/ThemeContext';
+import { RouteActivationGate } from '../src/contexts/RouteActivationContext';
 import { useRehearsalCount } from '../src/hooks/useRehearsalCount';
 import { useFeatureAccess } from '../src/hooks/useFeatureAccess';
 import { finalizeRecording } from '../src/lib/appFlowGuards';
@@ -20,6 +21,10 @@ type Phase = 'prompt' | 'recording' | 'playback' | 'selfcheck' | 'done';
 const SELF_CHECK_QUESTIONS = ['calm', 'additions', 'pace'] as const;
 
 export default function RehearsalScreen() {
+  return <RouteActivationGate><RehearsalContent /></RouteActivationGate>;
+}
+
+function RehearsalContent() {
   const { colors } = useTheme();
   const { t } = useTranslation('rehearsal');
   const router = useRouter();

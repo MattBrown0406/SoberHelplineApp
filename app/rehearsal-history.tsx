@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -44,22 +44,38 @@ function RehearsalHistoryContent() {
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const loadRequest = useRef(0);
 
   const load = useCallback(async () => {
-    if (!user?.id) return;
+    const request = ++loadRequest.current;
+    setLoadError(false);
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    const { data } = await supabase
-      .from('rehearsal_sessions')
-      .select('id, created_at, scenario, transcript, debrief')
-      .eq('account_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(50);
-    setSessions((data as SessionRow[]) ?? []);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from('rehearsal_sessions')
+        .select('id, created_at, scenario, transcript, debrief')
+        .eq('account_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      if (request === loadRequest.current) setSessions((data as SessionRow[]) ?? []);
+    } catch {
+      if (request === loadRequest.current) setLoadError(true);
+    } finally {
+      if (request === loadRequest.current) setLoading(false);
+    }
   }, [user?.id]);
 
   useEffect(() => {
+    setSessions([]);
+    setExpandedId(null);
     void load();
+    return () => { ++loadRequest.current; };
   }, [load]);
 
   function confirmDelete(id: string) {
@@ -68,10 +84,14 @@ function RehearsalHistoryContent() {
       {
         text: t('history.deleteConfirm'),
         style: 'destructive',
-        onPress: () => {
-          void supabase.from('rehearsal_sessions').delete().eq('id', id).then(() => {
+        onPress: async () => {
+          try {
+            const { error } = await supabase.from('rehearsal_sessions').delete().eq('id', id);
+            if (error) throw error;
             setSessions((prev) => prev.filter((s) => s.id !== id));
-          });
+          } catch {
+            Alert.alert(t('history.deleteError', { defaultValue: 'This session could not be deleted. Please try again.' }));
+          }
         },
       },
     ]);
@@ -89,6 +109,15 @@ function RehearsalHistoryContent() {
 
       {loading ? (
         <ActivityIndicator color={colors.inkSoft} style={styles.loader} />
+      ) : loadError ? (
+        <View style={[styles.emptyCard, { backgroundColor: colors.primaryDark }]}>
+          <Text accessibilityRole="alert" style={[styles.emptyText, { color: colors.inkSoft }]}>
+            {t('history.loadError', { defaultValue: 'Your practice history could not be loaded. Please try again.' })}
+          </Text>
+          <TouchableOpacity onPress={() => void load()} accessibilityRole="button" style={styles.deleteBtn}>
+            <Text style={{ color: colors.white }}>{t('common:accountLoad.retry')}</Text>
+          </TouchableOpacity>
+        </View>
       ) : sessions.length === 0 ? (
         <View style={[styles.emptyCard, { backgroundColor: colors.primaryDark }]}>
           <Text style={[styles.emptyText, { color: colors.inkSoft }]}>{t('history.empty')}</Text>

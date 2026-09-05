@@ -10,7 +10,7 @@ const SHL_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsIn
 const shl = createClient(SHL_URL, SHL_KEY);
 
 export type ProviderType = 'center' | 'interventionist' | 'coach';
-export type Availability = 'now' | 'lim' | 'wait';
+export type Availability = 'now' | 'lim' | 'wait' | 'unverified';
 
 export interface Provider {
   id: string;
@@ -41,7 +41,7 @@ export interface Provider {
 // Level-of-care option keys per path. Display strings live in the `finder`
 // i18n namespace under loc.<path>.<key>.{title,sub}.
 export const LOC_OPTIONS: Record<ProviderType, string[]> = {
-  center: ['decide', 'detox', 'residential', 'php', 'iop', 'op', 'sober'],
+  center: ['decide', 'detox', 'residential', 'op', 'sober'],
   interventionist: ['asap', 'week', 'explore'],
   coach: ['home', 'early', 'risk', 'explore'],
 };
@@ -58,8 +58,6 @@ function mapCategory(cat: string): ProviderType {
 const CENTER_LOC_CATEGORIES: Record<string, string[]> = {
   detox: ['Medical Detox'],
   residential: ['Inpatient Treatment'],
-  php: ['Outpatient Treatment'],
-  iop: ['Outpatient Treatment'],
   op: ['Outpatient Treatment'],
   sober: ['Sober Living'],
   // 'decide' (Help me decide) → all center categories
@@ -103,7 +101,7 @@ function buildLevels(row: Record<string, unknown>): string[] {
     if (row.detox_only_services) return ['Detox'];
   }
   if (cat === 'Outpatient Treatment') {
-    levels.push('PHP', 'IOP', 'Outpatient');
+    levels.push('Outpatient');
     if (row.telehealth_available) levels.push('Telehealth');
   }
   if (cat === 'Sober Living') levels.push('Sober Living');
@@ -197,7 +195,7 @@ function mapRow(row: any): Provider {
     type,
     name: (row.provider_name as string) ?? '',
     location,
-    availability: 'lim',
+    availability: 'unverified',
     insurance: (row.insurances_accepted as string[] | null) ?? [],
     tags: buildTags(row, type),
     price,
@@ -240,7 +238,8 @@ export async function fetchProviderById(id: string): Promise<Provider | undefine
     .select('*')
     .eq('id', id)
     .maybeSingle();
-  if (error || !data) return undefined;
+  if (error) throw error;
+  if (!data) return undefined;
   return mapRow(data);
 }
 
@@ -266,7 +265,7 @@ export async function submitProviderInquiry(input: ProviderInquiry): Promise<voi
   if (error) throw error;
 }
 
-const AVAIL_RANK: Record<Availability, number> = { now: 0, lim: 1, wait: 2 };
+const AVAIL_RANK: Record<Availability, number> = { now: 0, lim: 1, wait: 2, unverified: 3 };
 
 /**
  * Availability sort is intentionally unused by the in-app finder. Results stay

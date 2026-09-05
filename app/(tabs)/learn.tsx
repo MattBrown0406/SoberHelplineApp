@@ -63,7 +63,21 @@ export default function LearnScreen() {
     <ScreenContainer scroll contentContainerStyle={styles.inner}>
       <Text accessibilityRole="header" style={[styles.header, { color: colors.ink }]}>{t('header')}</Text>
 
-      <Text style={[styles.sectionEyebrow, { color: colors.inkSoft }]}>{t('tools.eyebrow')}</Text>
+      <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t('intro')}</Text>
+      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
+        <Text accessibilityRole="header" style={[styles.cardTitle, { color: colors.ink }]}>{t('destinations.title')}</Text>
+        {([
+          ['conversation', '/(tabs)/scripts'],
+          ['boundaries', '/(tabs)/boundaries'],
+          ['treatment', '/finder'],
+          ['someone', '/(tabs)/support'],
+        ] as const).map(([key, route]) => (
+          <TouchableOpacity key={key} accessibilityRole="button" onPress={() => router.push(route as never)} style={styles.destination}>
+            <Text style={[styles.cardButtonText, { color: colors.primary }]}>{t(`destinations.${key}`)} →</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      <Text accessibilityRole="header" style={[styles.sectionEyebrow, { color: colors.inkSoft }]}>{t('tools.eyebrow')}</Text>
 
       <View style={[styles.featuredTool, { backgroundColor: colors.primaryDark }]}>
         <View style={styles.toolTopRow}>
@@ -90,6 +104,7 @@ export default function LearnScreen() {
         </View>
         <Text style={[styles.cardTitle, { color: colors.ink }]}>{t('tools.diyTitle')}</Text>
         <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t('tools.diyBody')}</Text>
+        <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t(canUseDiyIntervention ? 'tools.diyIncluded' : 'tools.diyPaid')}</Text>
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel={!canUseDiyIntervention ? t('tools.diyLockedButton') : t('tools.diyButton')}
@@ -220,6 +235,7 @@ export default function LearnScreen() {
 }
 
 const styles = StyleSheet.create({
+  destination: { minHeight: 44, justifyContent: 'center', paddingVertical: 10 },
   inner: { padding: 20, paddingBottom: 40 },
   header: { fontSize: 24, fontWeight: '700', marginBottom: 20 },
   sectionEyebrow: {

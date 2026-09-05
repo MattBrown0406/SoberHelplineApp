@@ -35,5 +35,11 @@
     "label": "Safety",
     "accessibility": "Open the offline Safety Wallet"
   },
-  "comingSoon": "Coming soon"
+  "comingSoon": "Coming soon",
+  "navPurpose": {
+    "scripts": "Practice a conversation",
+    "boundaries": "Set agreed boundaries",
+    "learn": "Tools for planning and learning",
+    "support": "Support: talk to someone or find treatment"
+  }
 }

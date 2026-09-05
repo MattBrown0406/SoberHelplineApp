@@ -2,9 +2,9 @@
   "header": "Apoyo",
   "settings": "Configuración",
   "crisis": {
-    "button": "Recibir ayuda ahora",
-    "copilotTitle": "¿Necesitas ayuda para decidir qué hacer?",
-    "copilotBody": "Recibe orientación familiar tranquila, paso a paso, para la situación que está ocurriendo ahora.",
+    "button": "Ayuda ahora · guía de crisis gratis",
+    "copilotTitle": "Guía de crisis gratuita",
+    "copilotBody": "Orientación de seguridad gratuita paso a paso. Es una guía en la app, no un coach en vivo.",
     "copilotButton": "Abrir Copiloto de Crisis",
     "sheetTitle": "No estás solo/a en este momento",
     "attachedSub": "está de guardia para tu familia esta noche.",
@@ -12,10 +12,11 @@
     "freeSub": "puede ayudarte mediante el Copiloto de Crisis gratuito; los mensajes están disponibles con Essential y Premier.",
     "callButton": "Llamar",
     "messageButton": "Mensaje",
-    "divider": "Líneas de emergencia — siempre disponibles",
+    "divider": "Contactos de emergencia — sin suscripción",
     "line911": "911 — Emergencia que pone en riesgo la vida",
     "line988": "988 — Línea de crisis de suicidio y crisis",
-    "lineSh": "Línea de crisis de Sober Helpline"
+    "lineSh": "Línea de crisis de Sober Helpline",
+    "freeNote": "La guía inmediata de crisis y los contactos de emergencia son gratuitos, sin suscripción. El coaching de pago es aparte y no es atención de emergencias."
   },
   "team": {
     "eyebrow": "Tu equipo",
@@ -198,6 +199,8 @@
     "crisisNote": "Si alguien está en peligro inmediato, llama al 911 o al 988."
   },
   "coaching": {
+    "submitError": "No se envió tu solicitud. Revisa tu conexión e inténtalo de nuevo. Conservamos tus selecciones.",
+    "loadError": "No se pudieron cargar tus solicitudes. Actualiza antes de enviar otra solicitud.",
     "eyebrow": "Coaching 1 a 1",
     "cardTitle": "Sesión privada por Zoom con un coach",
     "cardBody": "Una hora completa, uno a uno: tu situación, tus preguntas, un plan concreto. $150 por hora.",
@@ -270,8 +273,8 @@
     "close": "Cerrar"
   },
   "finderCard": {
-    "title": "Encuentra tratamiento y apoyo",
-    "sub": "Busca centros de tratamiento, intervencionistas y coaches de sobriedad verificados — con disponibilidad real."
+    "title": "Buscar tratamiento · directorio gratuito",
+    "sub": "Explora centros, intervencionistas y coaches. El directorio es gratis; sus servicios pueden tener costo. Confirma disponibilidad y tarifas directamente."
   },
   "textline": {
     "gatedTitle": "Línea de Texto Urgente",
@@ -300,14 +303,56 @@
     "scheduledFor": "Programada para {{date}}",
     "scheduling": {
       "timezone": "Los horarios que solicites usan tu zona horaria detectada: {{timezone}}",
-      "loading": "Cargando sesión de video", "retry": "Actualizar", "request": "Elegir día y hora", "minutes": "minutos",
-      "statuses": { "coach_proposal": "Tu coach propuso otra hora", "requested": "Tu horario solicitado está pendiente", "scheduled": "Confirmada", "live": "Tu sesión está en vivo", "completed": "Completada", "cancelled": "Cancelada", "no_show": "No se presentó" },
-      "coachProposalBody": "Acepta este horario o solicita otro.", "memberProposalBody": "Tu coach confirmará este horario exacto o sugerirá otro.",
-      "confirmedRequestedZone": "{{date}} ({{timezone}})", "deviceTime": "En este dispositivo: {{date}} ({{timezone}})",
-      "accept": "Aceptar horario del coach", "join": "Unirse a la sesión", "addCalendar": "Agregar a Google Calendar", "reschedule": "Solicitar otro horario", "newTime": "Cambiar horario solicitado", "cancel": "Cancelar sesión",
-      "cancelTitle": "¿Cancelar esta sesión de video?", "cancelBody": "Se notificará a tu coach.", "keep": "Conservar sesión",
-      "dateTimeLabel": "Día y hora exactos", "durationAndZone": "60 minutos · {{timezone}}", "noteLabel": "Nota para tu coach (opcional)", "notePlaceholder": "¿Qué sería útil que supiera tu coach?", "submit": "Enviar solicitud", "submitNewTime": "Solicitar este nuevo horario", "history": "Sesiones anteriores", "rebook": "Reservar de nuevo",
-      "errors": { "invalidTitle": "Elige otro horario", "future": "Selecciona un día y una hora futuros.", "version_conflict": "Esta sesión cambió en otro dispositivo. La actualizamos; revísala e inténtalo de nuevo.", "active_session_exists": "Ya tienes una solicitud de video activa.", "invalid_request": "Revisa la fecha, hora y nota e inténtalo de nuevo.", "invalid_timezone": "No se pudo usar la zona horaria del dispositivo. Actualiza e inténtalo de nuevo.", "proposal_not_found": "Esa propuesta ya no está disponible. Actualiza para ver el horario más reciente.", "session_not_found": "Esta sesión ya no está disponible.", "premium_video_access_required": "Se requiere acceso Premier a video.", "invalid_transition": "Esa acción ya no está disponible para esta sesión.", "unknown": "No pudimos actualizar la sesión. Actualiza e inténtalo de nuevo." }
+      "loading": "Cargando sesión de video",
+      "retry": "Actualizar",
+      "request": "Elegir día y hora",
+      "minutes": "minutos",
+      "statuses": {
+        "coach_proposal": "Tu coach propuso otra hora",
+        "requested": "Tu horario solicitado está pendiente",
+        "scheduled": "Confirmada",
+        "live": "Tu sesión está en vivo",
+        "completed": "Completada",
+        "cancelled": "Cancelada",
+        "no_show": "No se presentó"
+      },
+      "coachProposalBody": "Acepta este horario o solicita otro.",
+      "memberProposalBody": "Tu coach confirmará este horario exacto o sugerirá otro.",
+      "confirmedRequestedZone": "{{date}} ({{timezone}})",
+      "deviceTime": "En este dispositivo: {{date}} ({{timezone}})",
+      "accept": "Aceptar horario del coach",
+      "join": "Unirse a la sesión",
+      "addCalendar": "Agregar a Google Calendar",
+      "reschedule": "Solicitar otro horario",
+      "newTime": "Cambiar horario solicitado",
+      "cancel": "Cancelar sesión",
+      "cancelTitle": "¿Cancelar esta sesión de video?",
+      "cancelBody": "Se notificará a tu coach.",
+      "keep": "Conservar sesión",
+      "dateTimeLabel": "Día y hora exactos",
+      "durationAndZone": "60 minutos · {{timezone}}",
+      "noteLabel": "Nota para tu coach (opcional)",
+      "notePlaceholder": "¿Qué sería útil que supiera tu coach?",
+      "submit": "Enviar solicitud",
+      "submitNewTime": "Solicitar este nuevo horario",
+      "history": "Sesiones anteriores",
+      "rebook": "Reservar de nuevo",
+      "errors": {
+        "invalidTitle": "Elige otro horario",
+        "future": "Selecciona un día y una hora futuros.",
+        "version_conflict": "Esta sesión cambió en otro dispositivo. La actualizamos; revísala e inténtalo de nuevo.",
+        "active_session_exists": "Ya tienes una solicitud de video activa.",
+        "invalid_request": "Revisa la fecha, hora y nota e inténtalo de nuevo.",
+        "invalid_timezone": "No se pudo usar la zona horaria del dispositivo. Actualiza e inténtalo de nuevo.",
+        "proposal_not_found": "Esa propuesta ya no está disponible. Actualiza para ver el horario más reciente.",
+        "session_not_found": "Esta sesión ya no está disponible.",
+        "premium_video_access_required": "Se requiere acceso Premier a video.",
+        "invalid_transition": "Esa acción ya no está disponible para esta sesión.",
+        "unknown": "No pudimos actualizar la sesión. Actualiza e inténtalo de nuevo."
+      }
     }
-  }
+  },
+  "intro": "Conecta con personas aquí. Para saber qué decir, abre Práctica; para planes y hojas de trabajo, abre Herramientas.",
+  "peopleHeading": "HABLA CON ALGUIEN",
+  "peopleAccess": "Los mensajes al coach requieren Essential o Premier; el video privado está incluido en Premier, sujeto a programación. El coaching individual por separado cuesta $150/hora."
 }

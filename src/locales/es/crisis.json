@@ -189,6 +189,8 @@
     "placeholder": "Toca para escribir"
   },
   "wallet": {
+    "storageError": "No se pudo leer o actualizar el almacenamiento. La edición está pausada para proteger los datos. Los cambios recientes podrían no estar guardados. Reintenta para cargar la copia guardada.",
+    "signInRequired": "Inicia sesión para acceder a tu plan guardado. La ayuda de emergencia sigue disponible.",
     "kicker": "SIEMPRE GRATIS",
     "title": "Cartera de Seguridad",
     "body": "Guarda los datos del hogar que podrías necesitar cuando sea difícil pensar con claridad. Nada se comparte a menos que elijas exportarlo.",

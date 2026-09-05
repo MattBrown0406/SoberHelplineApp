@@ -419,3 +419,7 @@ s3_region = "env(S3_REGION)"
 s3_access_key = "env(S3_ACCESS_KEY)"
 # Configures AWS_SECRET_ACCESS_KEY for S3 bucket
 s3_secret_key = "env(S3_SECRET_KEY)"
+
+# RevenueCat sends its configured shared-secret Authorization, not a Supabase JWT.
+[functions.revenuecat-webhook]
+verify_jwt = false

@@ -49,9 +49,18 @@
     "question": "¿He habilitado la adicción de alguna manera?",
     "sub": "Sé honesto/a — esto es roca, no culpa. Toca todo lo que aplique.",
     "pills": [
-      { "id": "e-fin", "label": "💵 Económicamente" },
-      { "id": "e-emo", "label": "💬 Emocionalmente" },
-      { "id": "e-sil", "label": "🤐 En silencio" }
+      {
+        "id": "e-fin",
+        "label": "💵 Económicamente"
+      },
+      {
+        "id": "e-emo",
+        "label": "💬 Emocionalmente"
+      },
+      {
+        "id": "e-sil",
+        "label": "🤐 En silencio"
+      }
     ],
     "suggestions": {
       "e-fin": {
@@ -73,9 +82,18 @@
     "question": "¿La adicción me ha dañado de alguna manera?",
     "sub": "Tu daño es real y cuenta. Toca todo lo que aplique.",
     "pills": [
-      { "id": "h-fin", "label": "💵 Económicamente" },
-      { "id": "h-emo", "label": "💔 Emocionalmente" },
-      { "id": "h-phys", "label": "🤕 Físicamente" }
+      {
+        "id": "h-fin",
+        "label": "💵 Económicamente"
+      },
+      {
+        "id": "h-emo",
+        "label": "💔 Emocionalmente"
+      },
+      {
+        "id": "h-phys",
+        "label": "🤕 Físicamente"
+      }
     ],
     "suggestions": {
       "h-fin": {
@@ -93,18 +111,18 @@
     }
   },
   "suggestion": {
-    "label": "Muralla sugerida:",
+    "label": "Límite sugerido:",
     "use": "Usar"
   },
   "builder": {
-    "eyebrow": "Construye tu muralla",
+    "eyebrow": "Escribe un límite",
     "sub": "Toca una sugerencia de arriba o escribe la tuya. Indica lo que tú harás.",
     "placeholder": "\"Yo voy a...\"",
     "saveButton": "⚓ Anclar este límite"
   },
   "walls": {
-    "eyebrow": "Mis murallas",
-    "empty": "Ninguna muralla anclada todavía. Responde las dos preguntas para poner tu primera piedra.",
+    "eyebrow": "Mis límites (muros del castillo)",
+    "empty": "Aún no hay límites guardados. Usa una sugerencia o escribe un límite claro.",
     "shareAttached": "Revisar murallas con mi coach",
     "shareDirect": "Compartir murallas con el coach disponible"
   },
@@ -191,5 +209,6 @@
     "post": "Publicar",
     "empty": "Todavía no hay notas. Sé el/la primero/a en compartir algo.",
     "you": "Tú"
-  }
+  },
+  "intro": "Los muros del castillo son límites acordados: lo que harás y lo que no harás para proteger tu seguridad y bienestar. Escribe tus límites primero y luego invita a tu familia a acordarlos. No necesitas permiso de tu ser querido para establecer un límite personal."
 }

@@ -15,6 +15,11 @@
     "groups": "sesiones en grupo"
   },
   "checkIn": {
+    "progress": "Paso {{current}} de {{total}}",
+    "next": "Continuar",
+    "back": "Atrás",
+    "addNote": "Agregar una nota privada (opcional)",
+    "hideNote": "Ocultar nota y conservar mis palabras",
     "eyebrow": "Registro diario",
     "question": "¿Cómo estás hoy?",
     "moodQuestion": "¿Cómo está tu ánimo ahora?",
@@ -81,7 +86,7 @@
       },
       "plan": {
         "title": "Planifica solo la siguiente decisión",
-        "body": "Anota lo que sabes, lo que debe decidirse hoy y lo que puede esperar. El camino familiar de hoy, arriba, puede guiar el siguiente paso.",
+        "body": "Anota lo que sabes, lo que debe decidirse hoy y lo que puede esperar. Abre El camino de tu familia más abajo para orientarte.",
         "cta": "Revisar el camino de hoy"
       },
       "rest": {
@@ -101,6 +106,8 @@
     "graceUsed": "La vida se interpuso un día esta semana — te guardamos la racha. 💙"
   },
   "needs": {
+    "more": "Más formas de recibir ayuda",
+    "fewer": "Mostrar menos opciones",
     "eyebrow": "¿Qué necesitas ahora mismo?",
     "money": "Me pidió dinero",
     "using": "Creo que está consumiendo otra vez",
@@ -108,6 +115,14 @@
     "findTreatment": "Necesitamos encontrar tratamiento",
     "boundary": "Necesito poner un límite",
     "crisis": "Esto parece una emergencia"
+  },
+  "disclosure": {
+    "show": "Mostrar",
+    "hide": "Ocultar",
+    "pathway": "El camino de tu familia",
+    "connection": "Llamada gratuita del lunes y conexión",
+    "practice": "Guiones, práctica y tu progreso",
+    "membership": "Explorar la membresía"
   },
   "freeDaily": {
     "eyebrow": "Guion gratuito de hoy",

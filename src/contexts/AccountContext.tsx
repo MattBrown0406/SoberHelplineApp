@@ -286,7 +286,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
 
     // Never expose one account's profile or client-side entitlements under a
     // different authenticated session, even briefly.
-    if (previousAuthUserId && previousAuthUserId !== sessionUser.id) {
+    if (previousAuthUserId !== sessionUser.id) {
       userRef.current = null;
       setUser(null);
     }
@@ -361,6 +361,11 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
             return;
           }
         }
+        // Recheck after the asynchronous cache read, including cache misses.
+        if (
+          authGenerationRef.current !== generation ||
+          !accountRequestGateRef.current.isCurrent(requestId)
+        ) return;
         isLoadingRef.current = false;
         setIsLoading(false);
         setIsOfflineAccountFallback(false);
@@ -425,6 +430,11 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
             return;
           }
         }
+        // Recheck after the asynchronous cache read, including cache misses.
+        if (
+          authGenerationRef.current !== generation ||
+          !accountRequestGateRef.current.isCurrent(requestId)
+        ) return;
         isLoadingRef.current = false;
         setIsLoading(false);
         setIsOfflineAccountFallback(false);
@@ -460,6 +470,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         if (error && await restoreAfterRetryableSessionFailure(error)) return;
+        if (authGenerationRef.current !== initialGeneration) return;
         isLoadingRef.current = false;
         setIsLoading(false);
       })
@@ -503,7 +514,13 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      ++authGenerationRef.current;
+      accountRequestGateRef.current.invalidate();
+      // Permit Strict Mode's effect re-subscription to bootstrap again.
+      authUserRef.current = null;
+    };
   }, [completeSignIn]);
 
   const accountState = user?.accountState ?? 'direct-free';

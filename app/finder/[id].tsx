@@ -40,17 +40,37 @@ export default function ProviderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [provider, setProvider] = useState<Provider | undefined>(undefined);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setLoadError(false);
+    setProvider(undefined);
     fetchProviderById(id)
-      .then(setProvider)
-      .finally(() => setLoading(false));
-  }, [id]);
+      .then((result) => { if (active) setProvider(result); })
+      .catch(() => { if (active) setLoadError(true); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [id, retry]);
 
   if (loading) {
     return (
       <ScreenContainer backgroundColor={colors.cream}>
         <ActivityIndicator color={colors.primary} style={{ marginTop: 60 }} />
+      </ScreenContainer>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <ScreenContainer backgroundColor={colors.cream}>
+        <Text accessibilityRole="alert" style={{ color: colors.ink, marginTop: 40 }}>
+          {t('detail.loadError', { defaultValue: 'This provider could not be loaded. Check your connection and try again.' })}
+        </Text>
+        <Button label={t('common:accountLoad.retry')} onPress={() => setRetry((value) => value + 1)} style={{ marginTop: 16 }} />
+        <Button label={t('detail.back')} onPress={() => router.back()} variant="ghost" style={{ marginTop: 16 }} />
       </ScreenContainer>
     );
   }

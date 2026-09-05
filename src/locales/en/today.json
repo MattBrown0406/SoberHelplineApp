@@ -15,6 +15,11 @@
     "groups": "group sessions"
   },
   "checkIn": {
+    "progress": "Step {{current}} of {{total}}",
+    "next": "Continue",
+    "back": "Back",
+    "addNote": "Add a private note (optional)",
+    "hideNote": "Hide note — keep my words",
     "eyebrow": "Daily check-in",
     "question": "How are you holding up today?",
     "moodQuestion": "Where is your mood right now?",
@@ -81,7 +86,7 @@
       },
       "plan": {
         "title": "Only plan the next decision",
-        "body": "Write down what is known, what must be decided today, and what can wait. Today's family pathway above can guide the next step.",
+        "body": "Write down what is known, what must be decided today, and what can wait. Open Your family pathway below for guidance.",
         "cta": "Review today's pathway"
       },
       "rest": {
@@ -101,6 +106,8 @@
     "graceUsed": "Life happened one day this week — we held your streak for you. 💙"
   },
   "needs": {
+    "more": "More ways to get help",
+    "fewer": "Show fewer options",
     "eyebrow": "What do you need right now?",
     "money": "They asked me for money",
     "using": "I think they're using again",
@@ -108,6 +115,14 @@
     "findTreatment": "We need to find treatment",
     "boundary": "I need to set a boundary",
     "crisis": "This feels like an emergency"
+  },
+  "disclosure": {
+    "show": "Show",
+    "hide": "Hide",
+    "pathway": "Your family pathway",
+    "connection": "Free Monday call & connection",
+    "practice": "Scripts, practice & your progress",
+    "membership": "Explore membership"
   },
   "freeDaily": {
     "eyebrow": "Today's free script",

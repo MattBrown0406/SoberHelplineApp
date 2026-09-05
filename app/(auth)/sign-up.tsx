@@ -45,16 +45,8 @@ export default function SignUpScreen() {
   const [checkEmail, setCheckEmail] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
-  async function recordTermsConsent(accountId: string) {
-    await supabase.from('consents').upsert({
-      account_id: accountId,
-      consent_key: '1',
-      version: TERMS_VERSION,
-      granted_at: new Date().toISOString(),
-    }, { onConflict: 'account_id, consent_key' });
-  }
-
   async function handleEmailSignUp() {
+    if (loading) return;
     setError(null);
     if (!acceptedTerms) {
       setError(t('signUp.errorTermsRequired'));
@@ -65,48 +57,45 @@ export default function SignUpScreen() {
       return;
     }
     setLoading(true);
-    const { data, error: err } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: {
-        // Supabase Edge Functions intentionally serve HTML as plain text on the
-        // default supabase.co domain. Use a normal HTTPS page under Matt's
-        // verified GitHub account so confirmation clicks render reliably.
-        emailRedirectTo: 'https://mattbrown0406.github.io/soberhelpline/app-confirmed.html',
-        data: {
-          first_name: firstName.trim(),
-          last_name: lastName.trim(),
-          terms_version: TERMS_VERSION,
-          terms_accepted_at: new Date().toISOString(),
+    try {
+      const { data, error: err } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          // Supabase Edge Functions intentionally serve HTML as plain text on the
+          // default supabase.co domain. Use a normal HTTPS page under Matt's
+          // verified GitHub account so confirmation clicks render reliably.
+          emailRedirectTo: 'https://mattbrown0406.github.io/soberhelpline/app-confirmed.html',
+          data: {
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+            terms_version: TERMS_VERSION,
+            terms_accepted_at: new Date().toISOString(),
+          },
         },
-      },
-    });
-    setLoading(false);
+      });
+      if (err) {
+        setError(
+          err.message.toLowerCase().includes('already') || err.status === 422
+            ? t('signUp.errorEmailTaken')
+            : t('signUp.errorGeneric'),
+        );
+        return;
+      }
 
-    if (err) {
-      setError(
-        err.message.toLowerCase().includes('already') || err.status === 422
-          ? t('signUp.errorEmailTaken')
-          : t('signUp.errorGeneric'),
-      );
-      return;
-    }
+      // AccountContext records explicit metadata consent after authenticated
+      // bootstrap. Confirmation-required signups cannot query account tables yet.
 
-    // Record Terms + Privacy consent (#1) once account row exists
-    if (data.user) {
-      const { data: account } = await supabase
-        .from('accounts')
-        .select('id')
-        .eq('user_id', data.user.id)
-        .single();
-      if (account) await recordTermsConsent(account.id);
+      // Supabase requires email confirmation by default
+      if (!data.session) {
+        setCheckEmail(true);
+      }
+      // If email confirmation is disabled, onAuthStateChange fires → InitialLayout redirects
+    } catch {
+      setError(t('signUp.errorGeneric'));
+    } finally {
+      setLoading(false);
     }
-
-    // Supabase requires email confirmation by default
-    if (!data.session) {
-      setCheckEmail(true);
-    }
-    // If email confirmation is disabled, onAuthStateChange fires → InitialLayout redirects
   }
 
   if (checkEmail) {
@@ -116,7 +105,7 @@ export default function SignUpScreen() {
           <Text style={styles.checkEmailIcon}>📬</Text>
           <Text style={[styles.checkEmailText, { color: colors.ink }]}>{t('signUp.checkEmail')}</Text>
           <Link href="/(auth)/sign-in" asChild>
-            <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: colors.primary, marginTop: 24 }]}>
+            <TouchableOpacity style={StyleSheet.flatten([styles.primaryBtn, { backgroundColor: colors.primary, marginTop: 24 }])}>
               <Text style={styles.primaryBtnText}>{t('signIn.submitButton')}</Text>
             </TouchableOpacity>
           </Link>

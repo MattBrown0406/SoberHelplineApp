@@ -76,7 +76,7 @@ export default function InquiryScreen() {
               </View>
             ))}
           </View>
-          <Button label={t('inquiry.backToResults')} variant="ghost" onPress={() => router.dismissAll?.() ?? router.replace('/finder')} />
+          <Button label={t('inquiry.backToResults')} variant="ghost" onPress={() => router.dismissTo('/finder')} />
           <Text style={[styles.disc, { color: colors.inkSoft }]}>{t('inquiry.crisisNote')}</Text>
         </View>
       </ScreenContainer>

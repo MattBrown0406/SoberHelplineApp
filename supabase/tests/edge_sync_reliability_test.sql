@@ -1,0 +1,82 @@
+BEGIN;
+CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
+SET search_path=public,extensions;
+SELECT no_plan();
+INSERT INTO auth.users(id,email,raw_app_meta_data,raw_user_meta_data,aud,role)
+VALUES ('15000000-0000-0000-0000-000000000001','edge-sync-test@example.com','{}','{}','authenticated','authenticated');
+CREATE FUNCTION pg_temp.edge_account() RETURNS uuid LANGUAGE sql AS $$
+  SELECT id FROM public.accounts WHERE user_id='15000000-0000-0000-0000-000000000001';
+$$;
+SELECT ok(NOT has_function_privilege('anon','public.reconcile_web_membership(uuid,jsonb)','EXECUTE'),'web RPC denies anon');
+SELECT ok(NOT has_function_privilege('authenticated','public.reconcile_web_membership(uuid,jsonb)','EXECUTE'),'web RPC denies clients');
+SELECT ok(has_function_privilege('service_role','public.reconcile_web_membership(uuid,jsonb)','EXECUTE'),'web RPC allows service');
+SELECT ok(public.reconcile_web_membership(pg_temp.edge_account(),'{"isMember":true}'),'web grants');
+INSERT INTO public.entitlements(account_id,source,tier,expires_at)
+VALUES(pg_temp.edge_account(),'scholarship','essential',now()+interval '10 days');
+CREATE TEMP TABLE prior_web AS SELECT * FROM public.entitlements WHERE account_id=pg_temp.edge_account() AND source='web';
+SELECT throws_ok($$SELECT public.reconcile_web_membership(pg_temp.edge_account(),'{"isMember":"false"}')$$,'P0001','invalid_membership','reject string boolean');
+SELECT throws_ok($$SELECT public.reconcile_web_membership(pg_temp.edge_account(),'{}')$$,'P0001','invalid_membership','reject missing boolean');
+SELECT throws_ok($$SELECT public.reconcile_web_membership(pg_temp.edge_account(),NULL)$$,'P0001','invalid_membership','reject SQL null');
+CREATE FUNCTION pg_temp.reject_web_insert() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN IF NEW.source='web' THEN RAISE EXCEPTION 'forced_insert_failure'; END IF; RETURN NEW; END;
+$$;
+CREATE TRIGGER edge_test_failure BEFORE INSERT ON public.entitlements FOR EACH ROW EXECUTE FUNCTION pg_temp.reject_web_insert();
+SELECT throws_ok($$SELECT public.reconcile_web_membership(pg_temp.edge_account(),'{"isMember":true}')$$,'P0001','forced_insert_failure','insert error rolls replacement back');
+SELECT results_eq('SELECT id FROM public.entitlements WHERE account_id=pg_temp.edge_account() AND source=''web''','SELECT id FROM prior_web','prior paid row survives failed insert unchanged');
+DROP TRIGGER edge_test_failure ON public.entitlements;
+SELECT ok(NOT public.reconcile_web_membership(pg_temp.edge_account(),'{"isMember":false}'),'explicit false revokes');
+SELECT is((SELECT count(*)::int FROM public.entitlements WHERE account_id=pg_temp.edge_account() AND source='web'),0,'web access removed');
+SELECT is((SELECT count(*)::int FROM public.entitlements WHERE account_id=pg_temp.edge_account() AND source='scholarship'),1,'other source preserved');
+SELECT ok(public.reconcile_web_membership(pg_temp.edge_account(),'{"isMember":true}'),'grant after revoke');
+SELECT ok(public.reconcile_web_membership(pg_temp.edge_account(),'{"isMember":true}'),'repeat grant');
+SELECT is((SELECT count(*)::int FROM public.entitlements WHERE account_id=pg_temp.edge_account() AND source='web'),1,'no duplicate grants');
+
+CREATE TEMP TABLE stable_web AS SELECT * FROM entitlements WHERE account_id=pg_temp.edge_account() AND source='web';
+SELECT reconcile_web_membership(pg_temp.edge_account(),'{"isMember":true}');
+SELECT results_eq('SELECT id,expires_at,raw FROM entitlements WHERE account_id=pg_temp.edge_account() AND source=''web''','SELECT id,expires_at,raw FROM stable_web','unchanged web is a true no-op');
+SELECT reconcile_revenuecat_entitlements(pg_temp.edge_account(),jsonb_build_object('essential',now()+interval '20 days'));
+CREATE TEMP TABLE stable_rc AS SELECT * FROM entitlements WHERE account_id=pg_temp.edge_account() AND source='revenuecat';
+SELECT reconcile_revenuecat_entitlements(pg_temp.edge_account(),jsonb_build_object('essential',now()+interval '20 days'));
+SELECT results_eq('SELECT id,expires_at,raw FROM entitlements WHERE account_id=pg_temp.edge_account() AND source=''revenuecat''','SELECT id,expires_at,raw FROM stable_rc','unchanged RC is a true no-op');
+SELECT reconcile_revenuecat_entitlements(pg_temp.edge_account(),jsonb_build_object('essential',now()+interval '25 days'));
+SELECT results_eq('SELECT id FROM entitlements WHERE account_id=pg_temp.edge_account() AND source=''revenuecat''','SELECT id FROM stable_rc','RC renewal preserves row identity');
+SELECT is((SELECT count(*)::int FROM spine_outbox WHERE event_name='payment' AND payload->>'email'='edge-sync-test@example.com'),0,'mirroring creates no fabricated payment events');
+SELECT reconcile_revenuecat_entitlements(pg_temp.edge_account(),'{}');
+SELECT is((SELECT count(*)::int FROM entitlements WHERE account_id=pg_temp.edge_account() AND source='revenuecat'),0,'authoritative empty RC revokes');
+SELECT is((SELECT count(*)::int FROM entitlements WHERE account_id=pg_temp.edge_account() AND source IN ('web','scholarship')),2,'RC revocation preserves other sources');
+INSERT INTO entitlements(account_id,source,tier,expires_at) VALUES(pg_temp.edge_account(),'stripe','essential',now()+interval '5 days');
+SELECT is((SELECT count(*)::int FROM spine_outbox WHERE event_name='payment' AND payload->>'email'='edge-sync-test@example.com'),1,'existing stripe event path unaffected');
+
+SELECT ok(NOT has_function_privilege('anon','public.claim_spine_outbox()','EXECUTE'),'claim denies anon');
+SELECT ok(NOT has_function_privilege('authenticated','public.claim_spine_outbox()','EXECUTE'),'claim denies clients');
+SELECT ok(NOT has_function_privilege('authenticated','public.complete_spine_outbox(bigint,uuid,boolean,text)','EXECUTE'),'completion denies clients');
+SELECT ok(has_function_privilege('service_role','public.claim_spine_outbox()','EXECUTE'),'service can claim');
+SELECT ok(has_function_privilege('service_role','public.complete_spine_outbox(bigint,uuid,boolean,text)','EXECUTE'),'service can complete');
+-- Isolate queue fixtures; all deletions roll back at the end.
+DELETE FROM public.spine_outbox;
+INSERT INTO public.spine_outbox(event_name) VALUES('edge_test');
+CREATE TEMP TABLE first_claim AS SELECT * FROM public.claim_spine_outbox();
+SELECT is((SELECT count(*)::int FROM first_claim),1,'one row claimed');
+SELECT is((SELECT attempts FROM first_claim),1,'claim atomically records attempt');
+SELECT is((SELECT count(*)::int FROM public.claim_spine_outbox()),0,'active lease cannot be sent by second worker');
+SELECT ok(NOT public.complete_spine_outbox((SELECT id FROM first_claim),gen_random_uuid(),true,NULL),'wrong token cannot complete');
+UPDATE public.spine_outbox SET lease_expires_at=clock_timestamp()-interval '1 second';
+SELECT ok(NOT public.complete_spine_outbox((SELECT id FROM first_claim),(SELECT lease_token FROM first_claim),true,NULL),'expired token cannot complete');
+CREATE TEMP TABLE second_claim AS SELECT * FROM public.claim_spine_outbox();
+SELECT is((SELECT attempts FROM second_claim),2,'crash retry increments attempts without lost update');
+SELECT ok((SELECT lease_token FROM first_claim)<>(SELECT lease_token FROM second_claim),'reclaim rotates token');
+SELECT ok(NOT public.complete_spine_outbox((SELECT id FROM first_claim),(SELECT lease_token FROM first_claim),true,NULL),'stale worker cannot overwrite newer claim');
+SELECT ok(public.complete_spine_outbox((SELECT id FROM second_claim),(SELECT lease_token FROM second_claim),false,'HTTP 503'),'failure checked and stored');
+SELECT is((SELECT count(*)::int FROM public.claim_spine_outbox()),0,'failure backs off');
+UPDATE public.spine_outbox SET lease_expires_at=clock_timestamp()-interval '1 second',attempts=5;
+CREATE TEMP TABLE last_claim AS SELECT * FROM public.claim_spine_outbox();
+SELECT is((SELECT attempts FROM last_claim),6,'last attempt recorded');
+UPDATE public.spine_outbox SET lease_expires_at=clock_timestamp()-interval '1 second';
+SELECT is((SELECT count(*)::int FROM public.claim_spine_outbox()),0,'exhausted crashed work is bounded');
+INSERT INTO public.spine_outbox(event_name) VALUES('edge_success');
+CREATE TEMP TABLE success_claim AS SELECT * FROM public.claim_spine_outbox();
+SELECT ok(public.complete_spine_outbox((SELECT id FROM success_claim),(SELECT lease_token FROM success_claim),true,NULL),'success persisted');
+SELECT is((SELECT status FROM public.spine_outbox WHERE id=(SELECT id FROM success_claim)),'sent','success status');
+SELECT is((SELECT count(*)::int FROM public.claim_spine_outbox()),0,'sent rows not resent');
+SELECT * FROM finish();
+ROLLBACK;

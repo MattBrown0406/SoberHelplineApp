@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
+import { TodayDisclosure } from '../../src/components/today/TodayDisclosure';
 import { HeroCard } from '../../src/components/today/HeroCard';
 import { CheckInCard } from '../../src/components/today/CheckInCard';
 import { RecoveryPathwayCard } from '../../src/components/today/RecoveryPathwayCard';
@@ -38,6 +39,12 @@ import type { CaregiverCheckInInput } from '../../src/api/types';
 import type { TFunction } from 'i18next';
 
 export default function TodayScreen() {
+  const { user } = useAccount();
+  // Reset account-scoped feeds and draft state together, not only the form.
+  return <TodayContent key={user?.id ?? 'signed-out'} />;
+}
+
+function TodayContent() {
   const { user, isAttached, isAdmin } = useAccount();
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('today');
@@ -120,6 +127,7 @@ export default function TodayScreen() {
 
   const checkInCard = (
     <CheckInCard
+      key={user?.id ?? 'signed-out'}
       checkIn={todayCheckIn}
       onComplete={completeCheckIn}
       newStreak={streak.currentStreak}
@@ -131,15 +139,20 @@ export default function TodayScreen() {
     />
   );
 
-  // Free tier: the free call stays the anchor, but the daily loop — check-in,
-  // streak, one free script, and the mood arc — is never gated. A habit that
-  // exists converts; a paywall in place of a habit does not.
+  // Immediate help and the daily check-in lead for every membership tier.
+  // Secondary content stays reachable without overwhelming the first screen.
   if (!canAccessFullToday) {
     const freeScript = getDailyScripts(scriptSlot, i18n.language)[0];
     return (
       <ScreenContainer backgroundColor={colors.cream}>
         {header}
+        <NeedsRouter />
         {willingnessWindowAlert}
+        {checkInCard}
+        <TodayDisclosure title={t('disclosure.pathway')}>
+          {pathwayCard}
+        </TodayDisclosure>
+        <TodayDisclosure title={t('disclosure.connection')}>
         <SituationCard
           nextFreeCall={nextFreeCall}
           primaryDoor={primaryDoor}
@@ -148,9 +161,8 @@ export default function TodayScreen() {
           onSupportCallOpenFailed={() => cancelQueuedSupportCallReview(user?.id ?? null)}
         />
         <PassItOnCard />
-        <NeedsRouter />
-        {pathwayCard}
-        {checkInCard}
+        </TodayDisclosure>
+        <TodayDisclosure title={t('disclosure.practice')}>
         {freeScript && (
           <>
             <Text style={[styles.sectionLabel, { color: colors.inkSoft }]}>
@@ -178,7 +190,10 @@ export default function TodayScreen() {
             phaseLabel={t(PHASE_LABEL_KEY[curriculumPhase])}
           />
         )}
-        <FreeTierPaywall inline />
+        </TodayDisclosure>
+        <TodayDisclosure title={t('disclosure.membership')}>
+          <FreeTierPaywall inline />
+        </TodayDisclosure>
       </ScreenContainer>
     );
   }
@@ -186,9 +201,13 @@ export default function TodayScreen() {
   return (
     <ScreenContainer backgroundColor={colors.cream}>
       {header}
-
+      <NeedsRouter />
       {willingnessWindowAlert}
-
+      {checkInCard}
+      <TodayDisclosure title={t('disclosure.pathway')}>
+        {pathwayCard}
+      </TodayDisclosure>
+      <TodayDisclosure title={t('disclosure.connection')}>
       <SituationCard
         nextFreeCall={nextFreeCall}
         primaryDoor={primaryDoor}
@@ -198,11 +217,8 @@ export default function TodayScreen() {
       />
 
       <PassItOnCard />
-
-      <NeedsRouter />
-
-      {pathwayCard}
-
+      </TodayDisclosure>
+      <TodayDisclosure title={t('disclosure.practice')}>
       <HeroCard
         dayCount={dayCount}
         contextLabel={contextLabel}
@@ -211,8 +227,6 @@ export default function TodayScreen() {
         boundariesHeld={boundariesHeld}
         groupSessions={groupSessions}
       />
-
-      {checkInCard}
 
       <HoldLogCard
         own={holdLog.own}
@@ -236,6 +250,7 @@ export default function TodayScreen() {
           phaseLabel={t(PHASE_LABEL_KEY[curriculumPhase])}
         />
       )}
+      </TodayDisclosure>
       {isAdmin && (
         <TouchableOpacity onPress={() => router.push('/admin')} style={styles.adminLink}>
           <Text style={[styles.adminLinkText, { color: colors.inkSoft }]}>Admin</Text>

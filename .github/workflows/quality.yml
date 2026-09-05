@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 concurrency:
-  group: quality-${{ github.ref }}
+  group: quality-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -27,26 +27,7 @@ jobs:
           test ! -e src/api/mock.ts
           ! grep -R "api/mock" app src --include='*.ts' --include='*.tsx'
       - run: npm run typecheck
-      - run: npm run test:auth
-      - run: npm run test:checkin
-      - run: npm run test:push
-      - run: npm run test:safety
-      - run: npm run test:pathway
-      - run: npm run test:caregiver
-      - run: npm run test:reviews
-      - run: npm run test:costs
-      - run: npm run test:family
-      - run: npm run test:curriculum
-      - run: npm run test:treatment-action
-      - run: npm run test:willingness-window
-      - run: npm run test:homecoming-week
-      - run: npm run test:family-visitation
-      - run: npm run test:diy-intervention
-      - run: npm run test:gating
-      - run: npm run test:outcomes
-      - run: npm run test:offline
-      - run: npm run test:accessibility
-      - run: npm run test:migration-drift
+      - run: npm test
       - run: npm run doctor
       - run: npm run export:web
         env:

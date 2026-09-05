@@ -22,6 +22,7 @@ import { RehearsalDebrief } from '../src/components/rehearsal/RehearsalDebrief';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
 import { Gate } from '../src/components/auth/Gate';
+import { RouteActivationGate } from '../src/contexts/RouteActivationContext';
 import { useLovedOne } from '../src/hooks/useLovedOne';
 import { useRehearsalCount } from '../src/hooks/useRehearsalCount';
 import { supabase } from '../src/lib/supabase';
@@ -63,7 +64,8 @@ function pinnedParam<T extends string>(value: string | undefined, allowed: T[]):
 }
 
 export default function RehearsalIncomingScreen() {
-  return <Gate feature="aiRehearsal"><RehearsalIncomingContent /></Gate>;
+  const { eventId } = useLocalSearchParams<{ eventId?: string }>();
+  return <RouteActivationGate><Gate feature="aiRehearsal"><RehearsalIncomingContent key={eventId ?? 'manual'} /></Gate></RouteActivationGate>;
 }
 
 function RehearsalIncomingContent() {

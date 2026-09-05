@@ -20,6 +20,7 @@ import { RehearsalDebrief } from '../src/components/rehearsal/RehearsalDebrief';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
 import { Gate } from '../src/components/auth/Gate';
+import { RouteActivationGate } from '../src/contexts/RouteActivationContext';
 import { useLovedOne } from '../src/hooks/useLovedOne';
 import { useRehearsalCount } from '../src/hooks/useRehearsalCount';
 import { supabase } from '../src/lib/supabase';
@@ -52,7 +53,7 @@ function defaultGender(relationship: PartnerRelationship): PartnerGender {
 }
 
 export default function RehearsalLiveScreen() {
-  return <Gate feature="aiRehearsal"><RehearsalLiveContent /></Gate>;
+  return <RouteActivationGate><Gate feature="aiRehearsal"><RehearsalLiveContent /></Gate></RouteActivationGate>;
 }
 
 function RehearsalLiveContent() {

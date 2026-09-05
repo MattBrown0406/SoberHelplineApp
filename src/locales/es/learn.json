@@ -1,7 +1,7 @@
 {
   "header": "Herramientas y aprendizaje",
   "tools": {
-    "eyebrow": "HERRAMIENTAS RÁPIDAS",
+    "eyebrow": "PLANIFICA TUS PRÓXIMOS PASOS",
     "costTitle": "Hoja de dinero y límites",
     "costBody": "Calcula lo que la adicción activa le ha costado a tu familia y decide qué financiarás y qué no financiarás en adelante.",
     "costButton": "Iniciar actividad",
@@ -13,21 +13,23 @@
     "actionTitle": "Plan de acción para el tratamiento",
     "actionBody": "Prepara la cama, el seguro, el transporte, la maleta, el trabajo, los dependientes y las primeras 72 horas antes de la conversación planificada.",
     "actionButton": "Crear el plan de acción",
-    "actionBadge": "Preparar antes",
+    "actionBadge": "Gratis · Planificación",
     "diyBadge": "ESSENTIALS",
     "diyTitle": "Planificador de Intervención DIY",
-    "diyBody": "Un solo plan con puertas para idoneidad, nivel de atención necesario, unidad del equipo, cartas, ensayo, No Planificado y AMA. Reutiliza la logística del TAP sin duplicarla.",
+    "diyBody": "Prepara una conversación familiar sobre tratamiento: acuerden límites, escriban cartas, ensayen y preparen un plan para cualquier respuesta.",
     "diyButton": "Abrir Planificador de Intervención DIY",
     "diyLockedButton": "Desbloquear con Essentials",
     "homecomingTitle": "Semana de Regreso",
     "homecomingBody": "Crea el plan según edad y vivienda segura para los días 0–7 después del alta, antes del viaje a casa y el primer fin de semana.",
     "homecomingButton": "Crear Semana de Regreso",
-    "homecomingBadge": "Días 0–7 · Privado",
+    "homecomingBadge": "Gratis · Días 0–7",
     "visitationTitle": "Plan Familiar de Visita",
     "visitationBody": "Escribe la visita antes de conducir: sin efectivo, sin promesas de volver a casa, hora fija de salida y plan para el estacionamiento.",
     "visitationButton": "Escribir la visita",
-    "visitationBadge": "Antes del horario de visita",
-    "learningEyebrow": "BIBLIOTECA DE APRENDIZAJE"
+    "visitationBadge": "Gratis · Plan de visita",
+    "learningEyebrow": "APRENDE · RECURSOS GRATUITOS",
+    "diyIncluded": "Incluido con tu acceso actual.",
+    "diyPaid": "Función de pago · requiere membresía Essential o Premier."
   },
   "education": {
     "title": "Educación familiar",
@@ -152,5 +154,13 @@
         "a": "Llama al 911 ante señales de sobredosis — no responde, labios azules, respiración lenta o detenida, gorgoteo. Llama o envía un mensaje al 988 ante cualquier mención de suicidio o autolesión. No esperes a estar segura; equivocarse y estar a salvo es mejor que tener razón y llegar tarde. Guarda ambos números en tu teléfono ahora, y si hay opioides, ten naloxona (Narcan) en casa — en la mayoría de los estados no requiere receta."
       }
     ]
+  },
+  "intro": "Práctica te ayuda a saber qué decir. Límites te ayuda a decidir qué vas a mantener. Usa estas herramientas para planificar, o abre Apoyo para conectar con otras personas.",
+  "destinations": {
+    "title": "¿Qué necesitas hacer?",
+    "conversation": "Practicar una conversación",
+    "boundaries": "Establecer límites acordados",
+    "treatment": "Buscar tratamiento · directorio gratuito",
+    "someone": "Hablar con alguien · Apoyo"
   }
 }

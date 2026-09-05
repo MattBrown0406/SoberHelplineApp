@@ -89,6 +89,8 @@
     "encouragement": "There's no winning or losing here — there's only getting readier. Run it again with a different mood, or a harder one. Every rep makes the real conversation better."
   },
   "history": {
+    "loadError": "Your practice history could not be loaded. Please try again.",
+    "deleteError": "This session could not be deleted. Please try again.",
     "title": "Past sessions",
     "subtitle": "Your reps, saved. Watch the scores climb.",
     "empty": "No sessions yet. Finish a practice conversation and its transcript and coaching will be saved here.",

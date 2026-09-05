@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -15,6 +15,7 @@ import {
 import { Track } from 'livekit-client';
 
 import { useTheme } from '../src/contexts/ThemeContext';
+import { RouteActivationGate } from '../src/contexts/RouteActivationContext';
 import { supabase } from '../src/lib/supabase';
 import { LIVEKIT_URL, SUPABASE_URL } from '../src/config';
 
@@ -113,20 +114,28 @@ function PrivateVideoCall({ onLeave }: { onLeave: () => void }) {
 }
 
 export default function VideoSessionScreen() {
+  const params = useLocalSearchParams<{ sessionId: string }>();
+  const sessionId = String(params.sessionId ?? '');
+  return <RouteActivationGate><VideoSessionContent key={sessionId} sessionId={sessionId} /></RouteActivationGate>;
+}
+
+function VideoSessionContent({ sessionId }: { sessionId: string }) {
   const { colors } = useTheme();
   const { t } = useTranslation('crisis');
   const router = useRouter();
-  const params = useLocalSearchParams<{ sessionId: string }>();
-  const sessionId = useMemo(() => String(params.sessionId ?? ''), [params.sessionId]);
+
   const [tokenResult, setTokenResult] = useState<TokenResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
     let active = true;
+    mountedRef.current = true;
     async function init() {
       try {
         if (!sessionId) throw new Error('Missing video session.');
         await AudioSession.startAudioSession();
+        if (!active) return;
         const result = await fetchPrivateVideoToken(sessionId);
         if (active) setTokenResult(result);
       } catch (e) {
@@ -136,11 +145,14 @@ export default function VideoSessionScreen() {
     void init();
     return () => {
       active = false;
+      mountedRef.current = false;
       void AudioSession.stopAudioSession();
     };
   }, [sessionId]);
 
-  const leave = useCallback(() => router.back(), [router]);
+  const leave = useCallback(() => {
+    if (mountedRef.current) router.back();
+  }, [router]);
 
   if (error) {
     return (
@@ -170,7 +182,9 @@ export default function VideoSessionScreen() {
       audio
       video
       onDisconnected={leave}
-      onError={(e) => Alert.alert(t('video.errorTitle'), String(e))}
+      onError={(e) => {
+        if (mountedRef.current) Alert.alert(t('video.errorTitle'), String(e));
+      }}
     >
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <PrivateVideoCall onLeave={leave} />

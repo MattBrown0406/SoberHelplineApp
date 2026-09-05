@@ -35,5 +35,11 @@
     "label": "Seguridad",
     "accessibility": "Abrir la Cartera de Seguridad sin conexión"
   },
-  "comingSoon": "Próximamente"
+  "comingSoon": "Próximamente",
+  "navPurpose": {
+    "scripts": "Practicar una conversación",
+    "boundaries": "Establecer límites acordados",
+    "learn": "Herramientas para planificar y aprender",
+    "support": "Apoyo: hablar con alguien o buscar tratamiento"
+  }
 }
