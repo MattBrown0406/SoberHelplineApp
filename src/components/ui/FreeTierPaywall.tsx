@@ -3,11 +3,13 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from './ScreenContainer';
+import { walletMembershipCopy } from '../../content/walletMembershipCopy';
 import { useTheme } from '../../contexts/ThemeContext';
 
 export function FreeTierPaywall({ inline = false }: { inline?: boolean }) {
   const { colors } = useTheme();
-  const { t } = useTranslation('support');
+  const { t, i18n } = useTranslation('support');
+  const copy = walletMembershipCopy(i18n.language);
   const router = useRouter();
 
   const card = (
@@ -19,6 +21,10 @@ export function FreeTierPaywall({ inline = false }: { inline?: boolean }) {
       <Text style={[styles.body, { color: colors.inkSoft }]}>
         {t('paywall.body')}
       </Text>
+      <Text style={[styles.body, { color: colors.inkSoft }]}>{copy.free}</Text>
+      <TouchableOpacity accessibilityRole="button" onPress={() => router.push('/crisis-mode')} style={{ padding: 12 }}>
+        <Text style={{ color: colors.primary }}>{t('crisis.copilotButton')}</Text>
+      </TouchableOpacity>
       <TouchableOpacity
         style={[styles.btn, { backgroundColor: colors.primary }]}
         onPress={() => router.push('/(tabs)/support')}

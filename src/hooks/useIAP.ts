@@ -28,6 +28,9 @@ export function useIAP() {
   const [iapError, setIapError] = useState<string | null>(null);
   const [prices, setPrices] = useState<Partial<Record<SubscriptionTier, string>>>({});
 
+  const [priceAttempt, setPriceAttempt] = useState(0);
+  const retryPrices = () => setPriceAttempt((value) => value + 1);
+
   useEffect(() => {
     let active = true;
     Purchases.getOfferings()
@@ -41,10 +44,10 @@ export function useIAP() {
         });
       })
       .catch(() => {
-        // Purchase action retries offerings; static localized copy remains fallback.
+        // Do not invent a price; the UI can explicitly retry offerings.
       });
     return () => { active = false; };
-  }, []);
+  }, [priceAttempt]);
 
   async function purchaseTier(tier: SubscriptionTier): Promise<PurchaseResult> {
     setReviewPromptPurchaseFlow(true);
@@ -82,5 +85,6 @@ export function useIAP() {
     purchasing,
     iapError,
     prices,
+    retryPrices,
   };
 }

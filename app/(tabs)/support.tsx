@@ -19,6 +19,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { useTheme } from '../../src/contexts/ThemeContext';
+import { walletMembershipCopy } from '../../src/content/walletMembershipCopy';
 import { useLanguage } from '../../src/hooks/useLanguage';
 import { getSupportGroups } from '../../src/content/supportGroups';
 import { PRIMARY_ON_CALL } from '../../src/content/onCall';
@@ -27,7 +28,7 @@ import { useGroupPresence } from '../../src/hooks/useGroupPresence';
 import { useGroupRsvps } from '../../src/hooks/useGroupRsvps';
 import { usePrivateVideoSessions } from '../../src/hooks/usePrivateVideoSessions';
 import { PremierVideoSchedulingCard } from '../../src/components/video/PremierVideoSchedulingCard';
-import { GROUPS_URL, FEATURED_PROVIDER, PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '../../src/config';
+import { COACHING_RATE_LABEL, GROUPS_URL, FEATURED_PROVIDER, PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '../../src/config';
 import { useIAP, type SubscriptionTier } from '../../src/hooks/useIAP';
 import { useSituation } from '../../src/hooks/useSituation';
 import { funnelDoor, type FunnelDoor } from '../../src/lib/situation';
@@ -357,6 +358,7 @@ function UpgradeSheet({
   visible,
   tier,
   priceLabel,
+  priceAvailable,
   onClose,
   onPurchase,
   purchasing,
@@ -367,6 +369,7 @@ function UpgradeSheet({
   visible: boolean;
   tier: SubscriptionTier;
   priceLabel: string;
+  priceAvailable: boolean;
   onClose: () => void;
   onPurchase: () => void;
   purchasing: boolean;
@@ -403,7 +406,8 @@ function UpgradeSheet({
             { backgroundColor: purchasing ? colors.inkSoft : colors.primary },
           ]}
           activeOpacity={0.85}
-          disabled={purchasing}
+          disabled={purchasing || !priceAvailable}
+          accessibilityState={{ disabled: purchasing || !priceAvailable }}
           onPress={onPurchase}
         >
           <Text style={styles.solidBtnText}>
@@ -469,10 +473,11 @@ export default function SupportScreen() {
   const { user, isAttached, accountState, entitlements, refreshAccount } = useAccount();
   const { t } = useTranslation('support');
   const { current, change, languages } = useLanguage();
+  const copy = walletMembershipCopy(current);
   const router = useRouter();
   const { width: screenWidth } = useWindowDimensions();
   const sheetOffset = Math.max(0, (screenWidth - 520) / 2);
-  const { purchasePremium, purchaseEssential, purchasing, prices: subscriptionPrices } = useIAP();
+  const { purchasePremium, purchaseEssential, purchasing, prices: subscriptionPrices, retryPrices } = useIAP();
 
   const [crisisOpen, setCrisisOpen] = useState(false);
   const [crisisProtocolOpen, setCrisisProtocolOpen] = useState(false);
@@ -510,6 +515,7 @@ export default function SupportScreen() {
   }
 
   async function handlePurchase() {
+    if (!subscriptionPrices[upgradeTier]) return;
     const result = upgradeTier === 'essential'
       ? await purchaseEssential()
       : await purchasePremium();
@@ -580,7 +586,8 @@ export default function SupportScreen() {
       <UpgradeSheet
         visible={upgradeOpen}
         tier={upgradeTier}
-        priceLabel={subscriptionPrices[upgradeTier] ?? t(`tier.${upgradeTier}Amount`)}
+        priceLabel={subscriptionPrices[upgradeTier] ?? copy.priceUnavailable}
+        priceAvailable={!!subscriptionPrices[upgradeTier]}
         onClose={closeUpgrade}
         onPurchase={() => void handlePurchase()}
         purchasing={purchasing}
@@ -633,6 +640,21 @@ export default function SupportScreen() {
 
         <Text accessibilityRole="header" style={[styles.eyebrow, { color: colors.inkSoft }]}>{t('peopleHeading')}</Text>
         <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{t('peopleAccess')}</Text>
+
+        <View style={[styles.card, { borderColor: colors.line, backgroundColor: colors.white }]}>
+          <Text accessibilityRole="header" style={[styles.referralTitle, { color: colors.ink }]}>{copy.benefits}</Text>
+          <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{copy.free}</Text>
+          <Text style={[styles.referralBody, { color: colors.inkSoft, marginTop: 10 }]}>{copy.essential}</Text>
+          <Text style={[styles.referralBody, { color: colors.inkSoft, marginTop: 10 }]}>{copy.premier}</Text>
+          <Text style={[styles.referralBody, { color: colors.inkSoft, marginTop: 10 }]}>{copy.service.replace(/\{rate\}/g, COACHING_RATE_LABEL)}</Text>
+          {hasMembershipAccess && <>
+            <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={() => router.push('/safety-wallet')}><Text style={{ color: colors.primary }}>{copy.wallet}</Text></TouchableOpacity>
+            <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={() => router.push('/crisis-mode')}><Text style={{ color: colors.primary }}>{copy.copilot}</Text></TouchableOpacity>
+            <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={() => router.push('/chat')}><Text style={{ color: colors.primary }}>{copy.chat}</Text></TouchableOpacity>
+          </>}
+          <TouchableOpacity accessibilityRole="button" style={{ paddingVertical: 14 }} onPress={() => router.push('/settings')}><Text style={{ color: colors.primary }}>{copy.manage}</Text></TouchableOpacity>
+          {(!subscriptionPrices.essential || !subscriptionPrices.premium) && !isAttached && <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={retryPrices}><Text style={{ color: colors.primary }}>{copy.retryPrices}</Text></TouchableOpacity>}
+        </View>
 
         {/* Attached: team + sessions */}
         {isAttached && (
@@ -797,7 +819,7 @@ export default function SupportScreen() {
                   <Text style={[styles.tierName, { color: colors.primary }]}>{t('tier.essentialName')}</Text>
                   <Text style={[styles.tierFeatures, { color: colors.inkSoft }]}>{t('tier.essentialFeatures')}</Text>
                 </View>
-                <Text style={[styles.tierPrice, { color: colors.primary }]}>{subscriptionPrices.essential ?? t('tier.essentialPrice')}</Text>
+                <Text style={[styles.tierPrice, { color: colors.primary }]}>{subscriptionPrices.essential ? `${subscriptionPrices.essential}${copy.month}` : copy.priceUnavailable}</Text>
               </View>
               <TouchableOpacity
                 style={[styles.solidBtn, { backgroundColor: colors.primary }]}
@@ -806,7 +828,7 @@ export default function SupportScreen() {
                 onPress={() => openUpgrade('essential')}
               >
                 <Text style={styles.solidBtnText}>
-                  {purchasing ? '...' : t('paywall.subscribeEssential', { price: subscriptionPrices.essential ?? t('tier.essentialAmount') })}
+                  {purchasing ? '...' : t('paywall.subscribeEssential', { price: subscriptionPrices.essential ?? copy.priceUnavailable })}
                 </Text>
               </TouchableOpacity>
 
@@ -816,7 +838,7 @@ export default function SupportScreen() {
                   <Text style={[styles.tierName, { color: colors.ink }]}>{t('tier.premiumName')}</Text>
                   <Text style={[styles.tierFeatures, { color: colors.inkSoft }]}>{t('tier.premiumFeatures')}</Text>
                 </View>
-                <Text style={[styles.tierPrice, { color: colors.ink }]}>{subscriptionPrices.premium ?? t('tier.premiumPrice')}</Text>
+                <Text style={[styles.tierPrice, { color: colors.ink }]}>{subscriptionPrices.premium ? `${subscriptionPrices.premium}${copy.month}` : copy.priceUnavailable}</Text>
               </View>
               <TouchableOpacity
                 style={[styles.outlineBtn, { borderColor: colors.primary, marginTop: 8 }]}
@@ -825,15 +847,15 @@ export default function SupportScreen() {
                 onPress={() => openUpgrade('premium')}
               >
                 <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
-                  {t('paywall.subscribePremium', { price: subscriptionPrices.premium ?? t('tier.premiumAmount') })}
+                  {t('paywall.subscribePremium', { price: subscriptionPrices.premium ?? copy.priceUnavailable })}
                 </Text>
               </TouchableOpacity>
 
               {/* Auto-renewable subscription disclosure + legal links (App Store 3.1.2c) */}
               <Text style={[styles.disclosure, { color: colors.inkSoft }]}>
                 {t('paywall.autoRenewDisclosure', {
-                  essentialPrice: subscriptionPrices.essential ?? t('tier.essentialAmount'),
-                  premiumPrice: subscriptionPrices.premium ?? t('tier.premiumAmount'),
+                  essentialPrice: subscriptionPrices.essential ?? copy.priceUnavailable,
+                  premiumPrice: subscriptionPrices.premium ?? copy.priceUnavailable,
                 })}
               </Text>
               <View style={styles.legalRow}>

@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import {
   Alert,
   ScrollView,
-  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -21,6 +20,8 @@ import { useFeatureAccess } from '../src/hooks/useFeatureAccess';
 import { PremierVideoSchedulingCard } from '../src/components/video/PremierVideoSchedulingCard';
 import { PlanReviewBookingCard } from '../src/components/video/PlanReviewBookingCard';
 import { EmergencyActions } from '../src/components/safety/EmergencyActions';
+import { SafetyWalletExport } from '../src/components/safety/SafetyWalletExport';
+import { walletExportItems, type WalletExportItem } from '../src/lib/safetyWalletExport';
 import type { SafetyBoundary, SafetyIncident, SafetyPlan } from '../src/lib/safetyWallet';
 import {
   CRISIS_SITUATION_ORDER,
@@ -202,26 +203,29 @@ export default function CrisisModeScreen() {
     );
   }
 
-  async function shareSummary(includeCommand = false) {
-    if (!situation) return;
-    const recent = incidents.slice(0, 5).map((i) => `- ${new Date(i.createdAt).toLocaleString()}: ${i.summary}`).join('\n') || t('share.noIncidents');
-    const message = [
-      t('share.heading'), '', `${t('share.riskLevel')}: ${level}`, situation.label, '',
-      isSpanish ? 'HACER AHORA' : 'DO NOW', ...immediateActions.map((item) => `• ${item}`), '',
-      isSpanish ? 'DECIR ESTO' : 'SAY THIS', sayThis, '',
-      isSpanish ? 'NO HACER' : "DON'T DO THIS", ...dontDo.map((item) => `• ${item}`), '',
-      isSpanish ? 'PRÓXIMAS 24 HORAS' : 'NEXT 24 HOURS', ...situation.next24.map((item) => `• ${item}`), '',
-      isSpanish ? 'PRÓXIMAS 72 HORAS' : 'NEXT 72 HOURS', ...situation.next72.map((item) => `• ${item}`), '',
-      t('share.boundary'), boundaryText, '', t('share.recent'), recent,
-      ...(includeCommand && hasPremier ? ['', isSpanish ? 'PLAN DE COMANDO FAMILIAR' : 'FAMILY COMMAND PLAN',
-        `${isSpanish ? 'Coordinador' : 'Coordinator'}: ${command.coordinator || '—'}`,
-        `${isSpanish ? 'Comunicador' : 'Communicator'}: ${command.communicator || '—'}`,
-        `${isSpanish ? 'Responsable de seguridad' : 'Safety lead'}: ${command.safetyLead || '—'}`,
-        command.unifiedStatement || '—'] : []),
-      '', t('share.note'),
-    ].join('\n');
-    await Share.share({ title: t('share.title'), message });
-  }
+  const summaryExportItems: WalletExportItem[] = situation && hasEssential && hydrated ? [
+    { id: 'guidance', label: t('share.heading'), value: [
+      `${t('share.riskLevel')}: ${level}`, situation.label,
+      isSpanish ? 'HACER AHORA' : 'DO NOW', ...immediateActions,
+      isSpanish ? 'DECIR ESTO' : 'SAY THIS', sayThis,
+      isSpanish ? 'NO HACER' : "DON'T DO THIS", ...dontDo,
+      isSpanish ? 'PRÓXIMAS 24 HORAS' : 'NEXT 24 HOURS', ...situation.next24,
+      isSpanish ? 'PRÓXIMAS 72 HORAS' : 'NEXT 72 HOURS', ...situation.next72,
+    ].join('\n') },
+    ...walletExportItems(plan, incidents, (key) => t(key as never)),
+    ...(Object.values(boundary).some((value) => value.trim())
+      ? [{ id: 'boundary', label: t('share.boundary'), value: boundaryText }] : []),
+  ] : [];
+  const commandExportItems: WalletExportItem[] = hasPremier && hydrated ? [
+    ...summaryExportItems,
+    ...([
+      ['coordinator', isSpanish ? 'Coordinador' : 'Coordinator'],
+      ['communicator', isSpanish ? 'Comunicador' : 'Communicator'],
+      ['safetyLead', isSpanish ? 'Responsable de seguridad' : 'Safety lead'],
+      ['unifiedStatement', isSpanish ? 'Posición familiar unificada' : 'Unified family statement'],
+    ] as const).flatMap(([key, label]) => command[key].trim()
+      ? [{ id: `command:${key}`, label, value: command[key] }] : []),
+  ] : [];
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.cream }]}>
@@ -363,7 +367,7 @@ export default function CrisisModeScreen() {
                   <Field label={t('builder.consequence')} placeholder={fieldPlaceholder} value={boundary.consequence} onChangeText={(value) => setBoundary((prev) => ({ ...prev, consequence: value }))} />
                   <View style={[styles.scriptBox, { backgroundColor: colors.secondaryLight }]}><Text style={[styles.script, { color: colors.ink }]}>{boundaryText}</Text></View>
                 </View>
-                <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.secondary }]} onPress={() => void shareSummary()}><Text style={[styles.outlineBtnText, { color: colors.ink }]}>{t('support.share')}</Text></TouchableOpacity>
+                <SafetyWalletExport scope={user?.id ?? 'guest'} items={summaryExportItems} label={t('support.share')} />
                 <TouchableOpacity accessibilityRole="button" style={styles.textBtn} onPress={clearSavedData}><Text style={[styles.textBtnText, { color: colors.coral }]}>{isSpanish ? 'Borrar datos de crisis guardados' : 'Clear saved crisis data'}</Text></TouchableOpacity>
                 </>}
             </>
@@ -377,7 +381,7 @@ export default function CrisisModeScreen() {
                 <Field dark label={isSpanish ? 'Única persona que comunica' : 'Single family communicator'} placeholder={fieldPlaceholder} value={command.communicator} onChangeText={(value) => setCommand((prev) => ({ ...prev, communicator: value }))} />
                 <Field dark label={isSpanish ? 'Responsable de niños/seguridad' : 'Children and safety lead'} placeholder={fieldPlaceholder} value={command.safetyLead} onChangeText={(value) => setCommand((prev) => ({ ...prev, safetyLead: value }))} />
                 <Field dark multiline label={isSpanish ? 'Posición familiar unificada' : 'Unified family statement'} placeholder={boundaryText} value={command.unifiedStatement} onChangeText={(value) => setCommand((prev) => ({ ...prev, unifiedStatement: value }))} />
-                <TouchableOpacity accessibilityRole="button" style={[styles.primaryBtn, { backgroundColor: colors.primary }]} onPress={() => void shareSummary(true)}><Text style={styles.primaryBtnText}>{isSpanish ? 'Compartir plan de comando' : 'Share command plan'}</Text></TouchableOpacity>
+                <View style={{ backgroundColor: colors.white, borderRadius: 12, padding: 12 }}><SafetyWalletExport scope={user?.id ?? 'guest'} items={commandExportItems} label={isSpanish ? 'Compartir plan de comando' : 'Share command plan'} /></View>
               </View>
             ) : !hasPremier && !isOfflineAccountFallback ? (
               <LockedCard tier="Premier" cta={isSpanish ? 'Ver Premier' : 'View Premier'} title={isSpanish ? 'Mantén a la familia alineada' : 'Keep the family aligned'} body={isSpanish ? 'Premier agrega roles, una posición unificada y apoyo por video privado.' : 'Premier adds role assignments, a unified family position, and private video support.'} colors={colors} onPress={() => showUpgrade('Premier')} />

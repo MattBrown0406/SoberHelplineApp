@@ -1,9 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Keyboard,
-  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -16,7 +15,9 @@ import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import { EmergencyActions } from '../src/components/safety/EmergencyActions';
 import { useAccount } from '../src/contexts/AccountContext';
 import { useTheme } from '../src/contexts/ThemeContext';
-import { useLovedOne } from '../src/hooks/useLovedOne';
+import { SafetyWalletExport } from '../src/components/safety/SafetyWalletExport';
+import { walletExportItems } from '../src/lib/safetyWalletExport';
+import { walletMembershipCopy } from '../src/content/walletMembershipCopy';
 import { useSafetyWallet } from '../src/hooks/useSafetyWallet';
 import {
   isSafetyWalletReady,
@@ -64,23 +65,22 @@ const EMPTY_INCIDENT: IncidentDraft = {
 };
 
 export default function SafetyWalletScreen() {
+  const { user } = useAccount();
+  return <AccountSafetyWallet key={user?.id ?? 'signed-out'} />;
+}
+
+function AccountSafetyWallet() {
   const router = useRouter();
   const { colors } = useTheme();
-  const { t } = useTranslation('crisis');
+  const { t, i18n } = useTranslation('crisis');
+  const copy = walletMembershipCopy(i18n.language);
+  const [editing, setEditing] = useState(false);
   const { user } = useAccount();
-  const { lovedOne } = useLovedOne(user?.id ?? null);
   const { plan, setPlan, incidents, addIncident, hydrated, loadError, reload, clear } = useSafetyWallet(user?.id ?? null);
   const [showIncidentForm, setShowIncidentForm] = useState(false);
   const [incidentDraft, setIncidentDraft] = useState<IncidentDraft>(EMPTY_INCIDENT);
 
-  useEffect(() => {
-    if (!hydrated || !lovedOne) return;
-    setPlan((current) => ({
-      ...current,
-      lovedOneName: current.lovedOneName || lovedOne.first_name || '',
-      substances: current.substances || lovedOne.substances.join(', '),
-    }));
-  }, [hydrated, lovedOne, setPlan]);
+  const exportItems = walletExportItems(plan, incidents, (key) => t(key as never));
 
   const completedFields = useMemo(
     () => Object.values(plan).filter((value) => value.trim().length > 0).length,
@@ -108,34 +108,14 @@ export default function SafetyWalletScreen() {
     setShowIncidentForm(false);
   }
 
-  async function shareWallet() {
-    const details = FIELD_GROUPS.flatMap((group) => [
-      '',
-      t(`wallet.groups.${group.key}` as never).toUpperCase(),
-      ...group.fields.flatMap((key) => {
-        const value = plan[key].trim();
-        return value ? [`${t(`wallet.fields.${key}` as never)}: ${value}`] : [];
-      }),
-    ]);
-    const recent = incidents.slice(0, 5).map((incident) =>
-      `• ${new Date(incident.createdAt).toLocaleString()}: ${incident.summary}`,
-    );
-    await Share.share({
-      title: t('wallet.shareTitle'),
-      message: [
-        t('wallet.shareHeading'),
-        ...details,
-        ...(recent.length ? ['', t('wallet.recentIncidents').toUpperCase(), ...recent] : []),
-        '',
-        t('wallet.shareNote'),
-      ].join('\n'),
-    });
-  }
-
   function confirmClear() {
     Alert.alert(t('wallet.clearTitle'), t('wallet.clearBody'), [
       { text: t('wallet.cancel'), style: 'cancel' },
-      { text: t('wallet.clearConfirm'), style: 'destructive', onPress: () => void clear().catch(() => Alert.alert(t('wallet.storageError'))) },
+      { text: t('wallet.clearConfirm'), style: 'destructive', onPress: () => {
+        setIncidentDraft(EMPTY_INCIDENT);
+        setShowIncidentForm(false);
+        void clear().catch(() => Alert.alert(t('wallet.storageError')));
+      } },
     ]);
   }
 
@@ -158,7 +138,7 @@ export default function SafetyWalletScreen() {
             <Text style={[styles.title, { color: colors.ink }]}>{t('wallet.title')}</Text>
           </View>
         </View>
-        <Text style={[styles.body, { color: colors.inkSoft }]}>{t('wallet.body')}</Text>
+        <Text style={[styles.body, { color: colors.inkSoft }]}>{copy.offline}</Text>
         <View style={[styles.offlineBadge, { backgroundColor: colors.greenLight }]}>
           <Text style={[styles.offlineText, { color: colors.green }]}>{t('wallet.offline')}</Text>
         </View>
@@ -178,6 +158,7 @@ export default function SafetyWalletScreen() {
         <View style={styles.loading}>
           <Text accessibilityRole="alert" style={[styles.body, { color: colors.inkSoft }]}>{t(user ? 'wallet.storageError' : 'wallet.signInRequired')}</Text>
           {user && <TouchableOpacity accessibilityRole="button" onPress={reload}><Text style={{ color: colors.primary }}>{t('common:accountLoad.retry')}</Text></TouchableOpacity>}
+          {user && <TouchableOpacity accessibilityRole="button" onPress={confirmClear}><Text style={{ color: colors.coral }}>{t('wallet.clear')}</Text></TouchableOpacity>}
         </View>
       ) : !hydrated ? (
         <View style={styles.loading} accessibilityLiveRegion="polite">
@@ -196,7 +177,18 @@ export default function SafetyWalletScreen() {
             </Text>
           </View>
 
-          {FIELD_GROUPS.map((group) => (
+          <TouchableOpacity accessibilityRole="button" style={styles.textButton} onPress={() => setEditing(!editing)}>
+            <Text style={{ color: colors.primary }}>{editing ? copy.read : copy.edit}</Text>
+          </TouchableOpacity>
+          {!editing && <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
+            {!exportItems.length && <Text style={{ color: colors.inkSoft }}>{copy.empty}</Text>}
+            {exportItems.filter((item) => item.id.startsWith('plan:')).map((item) => <View key={item.id} style={{ marginBottom: 12 }}>
+              <Text style={[styles.fieldLabel, { color: colors.ink }]}>{item.label}</Text>
+              <Text selectable style={[styles.body, { color: colors.ink }]}>{item.value}</Text>
+            </View>)}
+          </View>}
+          <SafetyWalletExport scope={user.id} items={exportItems} />
+          {editing && FIELD_GROUPS.map((group) => (
             <View key={group.key} style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
               <Text style={[styles.sectionTitle, { color: colors.ink }]}>
                 {t(`wallet.groups.${group.key}` as never)}
@@ -271,9 +263,6 @@ export default function SafetyWalletScreen() {
             )}
           </View>
 
-          <TouchableOpacity style={[styles.primaryButton, { backgroundColor: colors.primary }]} onPress={() => void shareWallet()}>
-            <Text style={styles.primaryButtonText}>{t('wallet.share')}</Text>
-          </TouchableOpacity>
           <TouchableOpacity style={styles.textButton} onPress={confirmClear}>
             <Text style={[styles.textButtonLabel, { color: colors.coral }]}>{t('wallet.clear')}</Text>
           </TouchableOpacity>
