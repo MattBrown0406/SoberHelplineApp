@@ -7,6 +7,8 @@ import { useTheme } from '../../src/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
 import { TodayDisclosure } from '../../src/components/today/TodayDisclosure';
 import { HeroCard } from '../../src/components/today/HeroCard';
+import { CheckInFeedbackCard } from '../../src/components/today/CheckInFeedbackCard';
+import { GuidedStartPanel } from '../../src/components/today/GuidedStartPanel';
 import { CheckInCard } from '../../src/components/today/CheckInCard';
 import { RecoveryPathwayCard } from '../../src/components/today/RecoveryPathwayCard';
 import { MoodChart } from '../../src/components/today/MoodChart';
@@ -149,6 +151,8 @@ function TodayContent() {
         <NeedsRouter />
         {willingnessWindowAlert}
         {checkInCard}
+        <CheckInFeedbackCard checkIn={todayCheckIn} />
+        <GuidedStartPanel />
         <TodayDisclosure title={t('disclosure.pathway')}>
           {pathwayCard}
         </TodayDisclosure>
@@ -204,6 +208,8 @@ function TodayContent() {
       <NeedsRouter />
       {willingnessWindowAlert}
       {checkInCard}
+      <CheckInFeedbackCard checkIn={todayCheckIn} />
+        <GuidedStartPanel />
       <TodayDisclosure title={t('disclosure.pathway')}>
         {pathwayCard}
       </TodayDisclosure>

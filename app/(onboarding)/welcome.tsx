@@ -1,5 +1,8 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { GuidedStartPanel, GuidedButton } from '../../src/components/today/GuidedStartPanel';
+import { guidedStartCopy } from '../../src/content/guidedStartCopy';
+import { useAccount } from '../../src/contexts/AccountContext';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -7,17 +10,24 @@ import { useTheme } from '../../src/contexts/ThemeContext';
 import { AppLogo } from '../../src/components/ui/AppLogo';
 
 export default function WelcomeScreen() {
+  const { user } = useAccount();
+  return <WelcomeContent key={user?.id ?? 'none'} />;
+}
+function WelcomeContent() {
+  const [choosing, setChoosing] = useState(true);
   const { colors } = useTheme();
-  const { t } = useTranslation('onboarding');
+  const { t, i18n } = useTranslation('onboarding');
   const router = useRouter();
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.primary }]}>
-      <View style={styles.body}>
+      <ScrollView contentContainerStyle={styles.body}>
         <View style={styles.mark}><AppLogo size={64} /></View>
         <Text style={styles.title}>{t('welcome.title')}</Text>
         <Text style={styles.subtitle}>{t('welcome.subtitle')}</Text>
 
+        {choosing ? <GuidedStartPanel onContinue={() => setChoosing(false)} /> : <>
+        <View style={{ backgroundColor: colors.white, borderRadius: 12, marginBottom: 12 }}><GuidedButton label={guidedStartCopy(i18n.language).change} onPress={() => setChoosing(true)} /></View>
         <TouchableOpacity
           style={styles.choiceBtn}
           activeOpacity={0.85}
@@ -43,14 +53,15 @@ export default function WelcomeScreen() {
             {t('welcome.directSub')}
           </Text>
         </TouchableOpacity>
-      </View>
+        </>}
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  body: { flex: 1, justifyContent: 'center', padding: 28, alignSelf: 'center', width: '100%', maxWidth: 480 },
+  body: { flexGrow: 1, justifyContent: 'center', padding: 28, alignSelf: 'center', width: '100%', maxWidth: 480 },
   mark: { marginBottom: 14 },
   title: { color: '#fff', fontSize: 27, fontWeight: '700', letterSpacing: -0.4 },
   subtitle: {

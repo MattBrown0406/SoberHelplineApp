@@ -11,9 +11,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
-  CAREGIVER_RESPONSE_ROUTE,
   CAREGIVER_SUPPORT_NEEDS,
-  caregiverResponseKey,
 } from '../../lib/caregiverCheckIn';
 import type {
   CaregiverCheckInInput,
@@ -32,7 +30,6 @@ const MOODS: Array<{ score: MoodScore; emoji: string }> = [
 
 const SCORES: MoodScore[] = [1, 2, 3, 4, 5];
 const SUPPORT_THRESHOLD = 3;
-const MILESTONES = [7, 30, 90];
 
 interface Props {
   checkIn: CheckIn | null;
@@ -95,22 +92,13 @@ export function CheckInCard({
     pendingPressure !== null &&
     pendingNeed !== null;
   const showSupport = lowMoodDays >= SUPPORT_THRESHOLD && !!onTalkToCoach;
-  const hasExpandedCheckIn =
-    checkIn?.capacityScore != null &&
-    checkIn.pressureScore != null &&
-    checkIn.supportNeed != null;
-  const responseKey = checkIn && hasExpandedCheckIn ? caregiverResponseKey(checkIn) : null;
-  const responseRoute = responseKey ? CAREGIVER_RESPONSE_ROUTE[responseKey] : null;
 
   const privacyNote =
     isAttached && orgName
       ? t('checkIn.privacyAttached', { orgName })
       : t('checkIn.privacyDirect');
 
-  const doneText =
-    newStreak > 0
-      ? t('checkIn.doneStreak', { count: newStreak })
-      : t('checkIn.done');
+  const doneText = t('checkIn.done');
 
   const doneCoach =
     isAttached && orgName
@@ -132,8 +120,8 @@ export function CheckInCard({
         supportNeed: pendingNeed,
         note,
       });
-    } catch (err: unknown) {
-      console.error('[CheckInCard] saveCheckIn failed:', err);
+    } catch {
+      // Do not log provider errors that may contain private check-in values.
       Alert.alert(t('checkIn.errorTitle'), t('checkIn.errorMessage'));
     } finally {
       setIsSaving(false);
@@ -348,45 +336,8 @@ export function CheckInCard({
             <Text style={[styles.doneText, { color: colors.green }]}>
               {doneText}{doneCoach}
             </Text>
-            {MILESTONES.includes(newStreak) && (
-              <Text style={[styles.milestoneText, { color: colors.green }]}>
-                {t(`checkIn.milestone${newStreak}`)}
-              </Text>
-            )}
-            {graceUsed && !MILESTONES.includes(newStreak) && (
-              <Text style={[styles.milestoneText, { color: colors.green }]}>
-                {t('checkIn.graceUsed')}
-              </Text>
-            )}
           </View>
 
-          {responseKey && (
-            <View
-              style={[
-                styles.responseBlock,
-                { backgroundColor: colors.cream, borderColor: colors.line },
-              ]}
-            >
-              <Text style={[styles.responseTitle, { color: colors.ink }]}>
-                {t(`checkIn.responses.${responseKey}.title`)}
-              </Text>
-              <Text style={[styles.responseBody, { color: colors.inkSoft }]}>
-                {t(`checkIn.responses.${responseKey}.body`)}
-              </Text>
-              {responseRoute && (
-                <TouchableOpacity
-                  accessibilityRole="button"
-                  style={[styles.responseBtn, { borderColor: colors.primary }]}
-                  onPress={() => router.push(responseRoute as never)}
-                  activeOpacity={0.82}
-                >
-                  <Text style={[styles.responseBtnText, { color: colors.primary }]}>
-                    {t(`checkIn.responses.${responseKey}.cta`)}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
         </>
       )}
 
