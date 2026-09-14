@@ -90,7 +90,7 @@ export default function ProviderDetailScreen() {
   return (
     <ScreenContainer backgroundColor={colors.cream} contentContainerStyle={{ paddingTop: 0 }}>
       <View style={[styles.hero, { backgroundColor: colors.primary }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.heroBack}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('detail.back')} onPress={() => router.back()} style={styles.heroBack}>
           <Text style={styles.heroBackIcon}>‹</Text>
         </TouchableOpacity>
         <View style={{ marginBottom: 11 }}>
@@ -98,11 +98,17 @@ export default function ProviderDetailScreen() {
         </View>
         <Text style={styles.heroName}>{provider.name}</Text>
         <Text style={styles.heroLoc}>{provider.location}</Text>
+        <Text style={styles.heroLoc}>{t(`categories.${provider.category}`, { defaultValue: provider.category })}</Text>
         <AvailabilityPill availability={provider.availability} onDark />
       </View>
 
       <Section label={t('detail.about').toUpperCase()}>
-        <Text style={[styles.body, { color: colors.ink }]}>{provider.about}</Text>
+        <Text style={[styles.body, { color: colors.ink }]}>{provider.about || t('detail.noDescription')}</Text>
+      </Section>
+
+      <Section label={t('detail.pricing').toUpperCase()}>
+        <Text style={[styles.body, { color: colors.ink }]}>{translateTag(provider.price, t)}</Text>
+        <Text style={[styles.disc, { color: colors.inkSoft }]}>{t('detail.confirmDetails')}</Text>
       </Section>
 
       {isCenter ? (
@@ -114,6 +120,7 @@ export default function ProviderDetailScreen() {
           )}
           <Section label={t('detail.insurance').toUpperCase()}>
             <View style={styles.tags}>
+              {provider.insurance.length === 0 && <Text style={[styles.body, { color: colors.inkSoft }]}>{t('detail.noInsurance')}</Text>}
               {provider.insurance.map((i) => (
                 <View key={i} style={[styles.tag, { backgroundColor: colors.primaryLight }]}>
                   <Text style={[styles.tagText, { color: colors.primary }]}>{i}</Text>

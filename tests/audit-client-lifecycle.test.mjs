@@ -209,13 +209,15 @@ test('two mounted wallets merge callback edits and clear cannot resurrect siblin
 
 test('provider API distinguishes DB failure from missing and never invents availability or PHP/IOP', async () => {
   let result = { data: null, error: new Error('database offline') };
+  const id = '00000000-0000-4000-8000-000000000001';
+  const chain = { select: () => chain, eq: () => chain, maybeSingle: async () => result };
   const api = load('src/api/providers.ts', { '@supabase/supabase-js': { createClient: () => ({
-    from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => result }) }) }),
+    from: () => chain,
   }) } });
-  await assert.rejects(api.fetchProviderById('id'), /database offline/);
-  result = { data: null, error: null }; assert.equal(await api.fetchProviderById('id'), undefined);
-  result = { data: { id: 'id', provider_name: 'Clinic', category: 'Outpatient Treatment' }, error: null };
-  const provider = await api.fetchProviderById('id');
+  await assert.rejects(api.fetchProviderById(id), /database offline/);
+  result = { data: null, error: null }; assert.equal(await api.fetchProviderById(id), undefined);
+  result = { data: { id, provider_name: 'Clinic', category: 'Outpatient Treatment' }, error: null };
+  const provider = await api.fetchProviderById(id);
   assert.equal(provider.availability, 'unverified');
   assert.deepEqual([...provider.levels], ['Outpatient']);
   assert.ok(!api.LOC_OPTIONS.center.includes('php'));

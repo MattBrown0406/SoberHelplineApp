@@ -7,15 +7,19 @@ import type { TFunction } from 'i18next';
 // the wrong database. These are public values, safe to embed in the client.
 const SHL_URL = 'https://anwqprmpzmcqbkttmxos.supabase.co';
 const SHL_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFud3Fwcm1wem1jcWJrdHRteG9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQwMDE1MTcsImV4cCI6MjA3OTU3NzUxN30.zvikfr-0JzQwwqMgOcoZFMuU-w0VyGL28pxB3AXVj2k';
-const shl = createClient(SHL_URL, SHL_KEY);
+const shl = createClient(SHL_URL, SHL_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+});
 
 export type ProviderType = 'center' | 'interventionist' | 'coach';
+export type ProviderSearchType = ProviderType | 'all';
 export type Availability = 'now' | 'lim' | 'wait' | 'unverified';
 
 export interface Provider {
   id: string;
   type: ProviderType;
   name: string;
+  category: string;
   location: string;
   distance?: string;
   availability: Availability;
@@ -76,25 +80,23 @@ function categoryFilters(type: ProviderType, loc?: string | null): string[] {
   }
 }
 
-// A provider often submits one row per level of care (e.g. Crestview has separate
-// Inpatient / Outpatient / Sober Living rows). Collapse to one card per provider,
-// preferring the primary (parent) submission.
-function dedupeByProvider<T extends { provider_name?: string | null; parent_submission_id?: string | null }>(rows: T[]): T[] {
-  const seen = new Map<string, T>();
-  for (const row of rows) {
-    const key = String(row.provider_name ?? '').trim().toLowerCase();
-    if (!key) continue;
-    const existing = seen.get(key);
-    if (!existing) { seen.set(key, row); continue; }
-    // Prefer the parent row (one with no parent_submission_id)
-    if (existing.parent_submission_id && !row.parent_submission_id) seen.set(key, row);
-  }
-  return [...seen.values()];
-}
+// Deliberately request only public listing fields, never contact or submitter data.
+export const PUBLIC_PROVIDER_FIELDS = [
+  'id', 'provider_name', 'category', 'city', 'state', 'status',
+  'description_of_services', 'insurances_accepted', 'cost', 'year_started',
+  'detox_available', 'detox_only_services', 'telehealth_available',
+  'lgbt_supportive', 'adolescent_services', 'gender_specific_treatment',
+  'intervention_modalities', 'cip_certified', 'works_nationally',
+  'works_internationally', 'therapeutic_modalities', 'in_person_companion_work',
+  'has_valid_passport', 'hourly_coaching_sessions', 'recovery_fellowships',
+  'sliding_scale_available', 'daily_companion_fee', 'hourly_coaching_rate',
+  'co_occurring_diagnoses',
+].join(',');
 
 function buildLevels(row: Record<string, unknown>): string[] {
   const cat = (row.category as string) ?? '';
   const levels: string[] = [];
+  if (cat === 'Medical Detox') levels.push('Detox');
   if (cat === 'Inpatient Treatment') {
     if (row.detox_available) levels.push('Detox');
     levels.push('Residential');
@@ -106,7 +108,7 @@ function buildLevels(row: Record<string, unknown>): string[] {
   }
   if (cat === 'Sober Living') levels.push('Sober Living');
   if (cat === 'Therapists') {
-    levels.push('Individual Therapy', 'Group Therapy');
+    levels.push('Therapists');
     if (row.telehealth_available) levels.push('Telehealth');
   }
   if (cat === 'Psychiatrists') {
@@ -194,6 +196,7 @@ function mapRow(row: any): Provider {
     id: row.id as string,
     type,
     name: (row.provider_name as string) ?? '',
+    category: (row.category as string) ?? '',
     location,
     availability: 'unverified',
     insurance: (row.insurances_accepted as string[] | null) ?? [],
@@ -213,29 +216,41 @@ function mapRow(row: any): Provider {
 }
 
 export async function fetchProviders(
-  type: ProviderType,
+  type: ProviderSearchType,
   opts: { state?: string; insurance?: string[]; loc?: string | null } = {},
 ): Promise<Provider[]> {
-  let q = shl
-    .from('provider_submissions_public')
-    .select('*')
-    .eq('status', 'approved')
-    .in('category', categoryFilters(type, opts.loc));
-
-  if (opts.state) q = q.eq('state', opts.state);
-  if (opts.insurance?.length) q = q.overlaps('insurances_accepted', opts.insurance);
-
-  const { data, error } = await q.order('provider_name').limit(50);
-  if (error) throw error;
-  return dedupeByProvider(data ?? [])
-    .map(mapRow)
-    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+  // One card per approved listing ID. Identical names can mean different
+  // locations or levels of care; never collapse them by name or truncate at 50.
+  const rows = new Map<string, Provider>();
+  let offset = 0;
+  for (;;) {
+    let q = shl.from('provider_submissions_public')
+      .select(PUBLIC_PROVIDER_FIELDS, { count: 'exact' }).eq('status', 'approved');
+    if (type !== 'all') q = q.in('category', categoryFilters(type, opts.loc));
+    if (opts.state) q = q.eq('state', opts.state);
+    if (opts.insurance?.length) q = q.overlaps('insurances_accepted', opts.insurance);
+    const { data, error, count } = await q.order('provider_name').order('id').range(offset, offset + 99).returns<Record<string, unknown>[]>();
+    if (error) throw error;
+    if (count === null || !data) throw new Error('Directory response is incomplete. Please retry.');
+    for (const row of data) {
+      if (typeof row.id !== 'string' || row.status !== 'approved') throw new Error('Invalid public listing.');
+      rows.set(row.id, mapRow(row));
+    }
+    offset += data.length;
+    if (offset >= count) {
+      if (rows.size !== count) throw new Error('Directory changed during loading. Please retry.');
+      return [...rows.values()];
+    }
+    if (!data.length) throw new Error('Directory response is incomplete. Please retry.');
+  }
 }
 
 export async function fetchProviderById(id: string): Promise<Provider | undefined> {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return undefined;
   const { data, error } = await shl
     .from('provider_submissions_public')
-    .select('*')
+    .select(PUBLIC_PROVIDER_FIELDS)
+    .eq('status', 'approved')
     .eq('id', id)
     .maybeSingle();
   if (error) throw error;

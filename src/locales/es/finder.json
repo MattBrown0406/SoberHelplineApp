@@ -1,6 +1,9 @@
 {
+  "categories": {"Inpatient Treatment": "Tratamiento residencial", "Outpatient Treatment": "Tratamiento ambulatorio", "Medical Detox": "Desintoxicación médica", "Sober Living": "Vivienda de recuperación", "Interventionists": "Intervencionistas", "Sober Coaches/Companions": "Coaches y acompañantes de recuperación", "Therapists": "Terapeutas", "Psychiatrists": "Psiquiatras"},
   "title": "Buscador de tratamientos",
   "intro": {
+    "browseAll": "Ver todos los proveedores",
+    "directorySource": "Anuncios aprobados actuales de SoberHelpline.com, aquí en la app. Las ubicaciones y los servicios pueden tener anuncios separados.",
     "h1": "Encontremos la ayuda adecuada para esa persona que amas.",
     "lede": "Directorio público A–Z de centros, intervencionistas y coaches de sobriedad. Filtra por lo que necesitas; un navegador de Sober Helpline puede ayudarte a elegir. Sin ranking patrocinado.",
     "whatEyebrow": "¿Qué estás buscando?"
@@ -164,6 +167,9 @@
     "selfPay": "Pago directo"
   },
   "results": {
+    "count_all": "{{count}} anuncios",
+    "search": "Buscar por nombre, ciudad, estado o servicio",
+    "refresh": "Actualizar anuncios",
     "count_center": "{{count}} centros",
     "count_interventionist": "{{count}} intervencionistas",
     "count_coach": "{{count}} coaches",
@@ -174,6 +180,10 @@
     "also": "Otros en el mismo estado (A–Z, no patrocinado)"
   },
   "detail": {
+    "pricing": "Precios publicados",
+    "confirmDetails": "Confirma los precios, el seguro y la disponibilidad actuales antes de hacer planes.",
+    "noDescription": "No se ha proporcionado una descripción de los servicios.",
+    "noInsurance": "No se indica el seguro aceptado. Pide al orientador que lo confirme.",
     "loadError": "No se pudo cargar este proveedor. Revisa tu conexión e inténtalo de nuevo.",
     "notFound": "Proveedor no encontrado.",
     "back": "Volver",

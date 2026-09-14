@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Modal, ScrollView, SafeAreaView,
+  ActivityIndicator, Modal, ScrollView, SafeAreaView, TextInput,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -17,7 +17,7 @@ type Step = 'intro' | 'loc' | 'details' | 'results';
 
 // Canonical values sent to the provider database — never localized.
 // (Insurance names match insurances_accepted; state names match the state column.)
-const INSURANCE = ['Aetna', 'BCBS', 'Cigna', 'UnitedHealthcare', 'Humana', 'Tricare', 'Medicaid', 'Medicare', 'Self-pay'];
+const INSURANCE = ['Aetna', 'Blue Cross', 'Blue Shield', 'Anthem/Blue Cross Blue Shield', 'Cigna', 'UnitedHealthcare', 'Humana', 'Tricare', 'Medicaid', 'Medicare', 'Self Pay'];
 const ANY_STATE = 'Any state';
 const STATES = [
   ANY_STATE,
@@ -47,28 +47,40 @@ export default function FinderScreen() {
 
   const [step, setStep] = useState<Step>('intro');
   const [stateOpen, setStateOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const visibleResults = results.filter(provider =>
+    `${provider.name} ${provider.location} ${provider.category} ${t(`categories.${provider.category}`, { defaultValue: provider.category })}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
+  function browseAll() {
+    setPath('all');
+    setField('state', '');
+    setField('insurance', []);
+    setQuery('');
+    setStep('results');
+  }
   function goBack() {
     if (step === 'intro') return router.back();
+    if (filters.path === 'all') return setStep('intro');
     if (step === 'loc') return setStep('intro');
     if (step === 'details') return setStep('loc');
     return setStep('details');
   }
   function chooseCategory(type: ProviderType) {
+    setQuery('');
     setPath(type);
     setField('loc', null);
     setStep('loc');
   }
 
   const stepIndex = step === 'loc' ? 1 : step === 'details' ? 2 : step === 'results' ? 3 : 0;
-  const isCenter = filters.path === 'center';
+  const isCenter = filters.path === 'center' || filters.path === 'all';
   const selectedState = filters.state && filters.state !== ANY_STATE ? filters.state : null;
   const displayState = (s: string) => (s === ANY_STATE ? t('details.anyState') : s);
-  const displayInsurance = (i: string) => (i === 'Self-pay' ? t('details.selfPay') : i);
+  const displayInsurance = (i: string) => (i === 'Self Pay' ? t('details.selfPay') : i);
 
   return (
     <ScreenContainer backgroundColor={colors.cream}>
       <View style={styles.bar}>
-        <TouchableOpacity onPress={goBack} style={[styles.back, { borderColor: colors.line }]}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('detail.back')} onPress={goBack} style={[styles.back, { borderColor: colors.line }]}>
           <Text style={[styles.backIcon, { color: colors.primary }]}>‹</Text>
         </TouchableOpacity>
         <Text style={[styles.barTitle, { color: colors.primary }]}>{t('title')}</Text>
@@ -89,6 +101,8 @@ export default function FinderScreen() {
         <>
           <Text style={[styles.h1, { color: colors.primary }]}>{t('intro.h1')}</Text>
           <Text style={[styles.lede, { color: colors.inkSoft }]}>{t('intro.lede')}</Text>
+          <Button label={t('intro.browseAll')} onPress={browseAll} style={{ marginBottom: 12 }} />
+          <Text style={[styles.sum, { color: colors.inkSoft }]}>{t('intro.directorySource')}</Text>
           <Text style={[styles.h2, { color: colors.inkSoft }]}>{t('intro.whatEyebrow').toUpperCase()}</Text>
           {CAT_ORDER.map((type) => (
             <TouchableOpacity
@@ -108,7 +122,7 @@ export default function FinderScreen() {
         </>
       )}
 
-      {step === 'loc' && (
+      {step === 'loc' && filters.path !== 'all' && (
         <>
           <Text style={[styles.h1, { color: colors.primary }]}>{t(`locHead.${filters.path}.title`)}</Text>
           <Text style={[styles.lede, { color: colors.inkSoft }]}>{t(`locHead.${filters.path}.lede`)}</Text>
@@ -175,13 +189,24 @@ export default function FinderScreen() {
         <>
           <View style={styles.resHead}>
             <Text style={[styles.resN, { color: colors.primary }]}>
-              {t(`results.count_${filters.path}`, { count: results.length })}
+              {t(`results.count_${filters.path}`, { count: visibleResults.length })}
               {selectedState ? t('results.inState', { state: selectedState }) : ''}
             </Text>
             <TouchableOpacity onPress={() => setStep('details')}>
               <Text style={[styles.edit, { color: colors.primary }]}>{t('results.edit')}</Text>
             </TouchableOpacity>
           </View>
+          <TextInput
+            accessibilityLabel={t('results.search')}
+            placeholder={t('results.search')}
+            placeholderTextColor={colors.inkSoft}
+            value={query}
+            onChangeText={setQuery}
+            autoCapitalize="none"
+            style={[styles.input, { borderColor: colors.line, color: colors.ink, marginBottom: 12 }]}
+          />
+          <Text style={[styles.sum, { color: colors.inkSoft }]}>{t('intro.directorySource')}</Text>
+          <Button label={t('results.refresh')} variant="ghost" onPress={retry} disabled={loading} />
           {filters.insurance.length > 0 && (
             <Text style={[styles.sum, { color: colors.inkSoft }]}>
               {t('results.filters', {
@@ -197,12 +222,12 @@ export default function FinderScreen() {
               <Text style={[styles.sum, { color: colors.inkSoft }]}>{t('detail.loadError')}</Text>
               <Button label={t('common:accountLoad.retry')} onPress={retry} />
             </View>
-          ) : results.length === 0 ? (
+          ) : visibleResults.length === 0 ? (
             <Text style={[styles.sum, { color: colors.inkSoft, marginTop: 16 }]}>
               {t('results.empty')}
             </Text>
           ) : (
-            results.map((p) => (
+            visibleResults.map((p) => (
               <ProviderCard key={p.id} provider={p} onPress={() => router.push(`/finder/${p.id}`)} />
             ))
           )}

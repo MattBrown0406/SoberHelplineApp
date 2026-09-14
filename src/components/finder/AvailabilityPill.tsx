@@ -37,7 +37,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 20,
     alignSelf: 'flex-start',
+    maxWidth: '100%',
   },
   dot: { width: 9, height: 9, borderRadius: 5 },
-  label: { fontSize: 12, fontWeight: '600' },
+  label: { fontSize: 12, fontWeight: '600', flexShrink: 1 },
 });

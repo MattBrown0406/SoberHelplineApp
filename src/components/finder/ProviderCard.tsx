@@ -32,10 +32,10 @@ export function ProviderCard({
   const { colors } = useTheme();
   const { t } = useTranslation('finder');
   return (
-    <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={[styles.card, { borderColor: colors.line }]}>
+    <TouchableOpacity accessibilityRole="button" accessibilityLabel={`${provider.name}, ${provider.location}, ${t(`categories.${provider.category}`, { defaultValue: provider.category })}`} activeOpacity={0.85} onPress={onPress} style={[styles.card, { borderColor: colors.line }]}>
       <View style={styles.top}>
         <TypeBadge type={provider.type} />
-        <View style={{ marginLeft: 'auto' }}>
+        <View style={{ maxWidth: '100%' }}>
           <AvailabilityPill availability={provider.availability} />
         </View>
       </View>
@@ -46,6 +46,7 @@ export function ProviderCard({
         {provider.distance ? `  ·  ${provider.distance}` : ''}
       </Text>
 
+      <Text style={[styles.loc, { color: colors.inkSoft }]}>{t(`categories.${provider.category}`, { defaultValue: provider.category })}</Text>
       <View style={styles.tags}>
         {provider.insurance.slice(0, 3).map((i) => (
           <Tag key={i} text={i} insurance />
@@ -73,14 +74,14 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 13,
   },
-  top: { flexDirection: 'row', alignItems: 'center', marginBottom: 9 },
+  top: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 9 },
   name: { fontSize: 17, fontWeight: '700', marginBottom: 3 },
   loc: { fontSize: 13, marginBottom: 10 },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 11 },
   tag: { paddingVertical: 4, paddingHorizontal: 9, borderRadius: 7 },
   tagText: { fontSize: 11.5 },
   foot: { flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, paddingTop: 11 },
-  price: { fontSize: 12.5 },
+  price: { fontSize: 12.5, flex: 1, flexShrink: 1, marginRight: 8 },
   go: { marginLeft: 'auto', paddingVertical: 9, paddingHorizontal: 15, borderRadius: 10 },
   goText: { color: '#fff', fontSize: 13.5, fontWeight: '700' },
 });

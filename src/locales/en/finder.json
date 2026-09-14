@@ -1,6 +1,9 @@
 {
+  "categories": {"Inpatient Treatment": "Inpatient Treatment", "Outpatient Treatment": "Outpatient Treatment", "Medical Detox": "Medical Detox", "Sober Living": "Sober Living", "Interventionists": "Interventionists", "Sober Coaches/Companions": "Sober Coaches/Companions", "Therapists": "Therapists", "Psychiatrists": "Psychiatrists"},
   "title": "Treatment Finder",
   "intro": {
+    "browseAll": "Browse all providers",
+    "directorySource": "Current approved listings from SoberHelpline.com, shown here in the app. Separate locations and services may have separate listings.",
     "h1": "Let's find the right help for someone you love.",
     "lede": "A public, A–Z directory of treatment centers, interventionists, and sober coaches. Filter by what you need, then a Sober Helpline navigator can help you choose. No sponsored ranking.",
     "whatEyebrow": "What are you looking for?"
@@ -164,6 +167,9 @@
     "selfPay": "Self-pay"
   },
   "results": {
+    "count_all": "{{count}} listings",
+    "search": "Search name, city, state or service",
+    "refresh": "Refresh listings",
     "count_center": "{{count}} centers",
     "count_interventionist": "{{count}} interventionists",
     "count_coach": "{{count}} coaches",
@@ -174,6 +180,10 @@
     "also": "Others in the same state (A–Z, not sponsored)"
   },
   "detail": {
+    "pricing": "Listed pricing",
+    "confirmDetails": "Confirm current pricing, insurance and availability before making arrangements.",
+    "noDescription": "A service description has not been provided.",
+    "noInsurance": "Insurance is not listed. Ask the navigator to confirm.",
     "loadError": "This provider could not be loaded. Check your connection and try again.",
     "notFound": "Provider not found.",
     "back": "Back",

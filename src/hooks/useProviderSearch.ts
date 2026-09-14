@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import {
   fetchProviders,
   type Provider,
-  type ProviderType,
+  type ProviderSearchType,
 } from '../api/providers';
 
 export interface FinderFilters {
-  path: ProviderType;
+  path: ProviderSearchType;
   state: string;
   zip: string;
   loc: string | null;
@@ -54,7 +54,7 @@ export function useProviderSearch() {
       const stateFilter = filters.state && filters.state !== 'Any state' ? filters.state : undefined;
       const opts = {
         state: stateFilter,
-        insurance: filters.path === 'center' && filters.insurance.length ? filters.insurance : undefined,
+        insurance: (filters.path === 'center' || filters.path === 'all') && filters.insurance.length ? filters.insurance : undefined,
         loc: filters.loc,
       };
 
@@ -86,7 +86,7 @@ export function useProviderSearch() {
     return () => { cancelled = true; };
   }, [filters.path, filters.state, filters.insurance, filters.loc, retryVersion]);
 
-  function setPath(path: ProviderType) {
+  function setPath(path: ProviderSearchType) {
     setFilters((f) => ({ ...f, path, loc: null, insurance: path === 'center' ? f.insurance : [] }));
   }
   function setField<K extends keyof FinderFilters>(key: K, value: FinderFilters[K]) {
