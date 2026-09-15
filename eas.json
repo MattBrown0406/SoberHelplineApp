@@ -1,7 +1,7 @@
 {
   "cli": {
     "version": "23.2.0",
-    "appVersionSource": "remote",
+    "appVersionSource": "local",
     "requireCommit": true
   },
   "build": {
@@ -10,9 +10,15 @@
       "autoIncrement": true,
       "environment": "production",
       "node": "20.19.4",
-      "ios": { "image": "macos-sequoia-15.6-xcode-26.0" }
+      "ios": {
+        "image": "macos-sequoia-15.6-xcode-26.0"
+      }
     },
     "release-3-8-3": {
+      "extends": "production",
+      "autoIncrement": false
+    },
+    "release-4-0-1": {
       "extends": "production",
       "autoIncrement": false
     }
