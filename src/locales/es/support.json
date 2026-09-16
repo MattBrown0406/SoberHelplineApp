@@ -177,6 +177,7 @@
     "archiveBody": "Esta conversación se guardará y comenzará una nueva. Puedes pedirle a tu coach que acceda a conversaciones anteriores.",
     "archiveConfirm": "Archivar e iniciar nueva",
     "archiveCancel": "Cancelar",
+    "archiveError": "No se pudo archivar esta conversación. Revisa tu conexión e inténtalo de nuevo.",
     "reactionDone": "Listo",
     "presenceTitle": "Pregúntale lo que sea a {{coach}}",
     "presenceBody": "Ninguna pregunta es demasiado pequeña ni demasiado complicada — el seguro, una conversación difícil, algo que viste anoche. {{coach}} lee cada mensaje y un coach de verdad responde en unas horas dentro del horario laboral.",

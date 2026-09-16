@@ -102,8 +102,13 @@ export default function ChatScreen() {
           style: 'destructive',
           onPress: async () => {
             setArchiving(true);
-            await archive();
-            setArchiving(false);
+            try {
+              await archive();
+            } catch {
+              Alert.alert(t('chat.archiveTitle'), t('chat.archiveError'));
+            } finally {
+              setArchiving(false);
+            }
           },
         },
       ],

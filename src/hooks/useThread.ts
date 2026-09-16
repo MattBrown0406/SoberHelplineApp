@@ -309,13 +309,21 @@ export function useThread(accountId: string | null, enabled = true) {
 
   const archive = useCallback(async (): Promise<void> => {
     if (!threadId || !accountId) return;
-    await supabase.rpc('archive_thread', { p_thread_id: threadId });
+    // Only drop local state once the server actually archived the thread;
+    // otherwise an offline tap hides the conversation without archiving it.
+    const { error } = await supabase.rpc('archive_thread', { p_thread_id: threadId });
+    if (error) throw error;
     setThreadId(null);
     setRawMessages([]);
     setRawReactions([]);
     setAttachments([]);
     setLoading(true);
-    await loadThread(accountId);
+    try {
+      await loadThread(accountId);
+    } catch (error) {
+      setLoading(false);
+      throw error;
+    }
   }, [threadId, accountId, loadThread]);
 
   const toggleReaction = useCallback(async (messageId: string, emoji: string): Promise<void> => {

@@ -177,6 +177,7 @@
     "archiveBody": "This conversation will be saved and a new one will start. You can ask your coach to access past conversations.",
     "archiveConfirm": "Archive & start new",
     "archiveCancel": "Cancel",
+    "archiveError": "Couldn't archive this conversation. Check your connection and try again.",
     "reactionDone": "Done",
     "presenceTitle": "Ask {{coach}} anything",
     "presenceBody": "No question is too small or too messy — insurance, a hard conversation, something you saw last night. {{coach}} reads every message and a real coach replies within a few hours during business hours.",
