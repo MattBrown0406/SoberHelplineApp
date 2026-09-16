@@ -39,12 +39,24 @@ export type PushDestination =
  * The payload may supply identifiers only for explicit allowlisted routes; a
  * server-provided `screen` or deep-link string is never executed directly.
  */
+// The practice-call producer emits `timestamptz::text` ("2026-07-28 20:00:00+00"),
+// not ISO 8601. Hermes' Date.parse is only guaranteed for the ISO form, and an
+// unparseable expiry would silently discard the tap. Normalize before parsing.
+function parseTimestamp(value: unknown): number {
+  if (typeof value !== 'string') return NaN;
+  const iso = value
+    .trim()
+    .replace(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}(?:\.\d+)?)/, '$1T$2')
+    .replace(/([+-]\d{2})$/, '$1:00');
+  return Date.parse(iso);
+}
+
 export function getPushDestination(data: PushData, nowMs = Date.now()): PushDestination | null {
   const kind = typeof data.kind === 'string' ? data.kind : '';
 
   if (kind === 'practice_incoming') {
     const eventId = typeof data.event_id === 'string' ? data.event_id : '';
-    const expiresAt = typeof data.expires_at === 'string' ? Date.parse(data.expires_at) : NaN;
+    const expiresAt = parseTimestamp(data.expires_at);
     if (!UUID_PATTERN.test(eventId) || !Number.isFinite(expiresAt) || expiresAt <= nowMs) return null;
     return { pathname: '/rehearsal-incoming', params: { eventId } };
   }

@@ -122,18 +122,24 @@ Deno.serve(async (req) => {
     const body = es
       ? `${name} podría usar apoyo en un muro hoy.`
       : `${name} could use backup on a wall today.`;
-    const res = await fetch(EXPO_PUSH_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({
-        to: target.push_token,
-        title,
-        body,
-        sound: 'default',
-        data: { kind: 'family_backup' },
-      }),
-    });
-    if (res.ok) sent += 1;
+    // The event is already claimed above, so a thrown fetch here would skip
+    // every remaining family member with no retry. Keep going per target.
+    try {
+      const res = await fetch(EXPO_PUSH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          to: target.push_token,
+          title,
+          body,
+          sound: 'default',
+          data: { kind: 'family_backup' },
+        }),
+      });
+      if (res.ok) sent += 1;
+    } catch (error) {
+      console.error('family backup push failed', target.id, error);
+    }
   }
 
   return json({ ok: true, sent });

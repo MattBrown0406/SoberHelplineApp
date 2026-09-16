@@ -5,6 +5,20 @@ import { getPushDestination, shouldHandlePushResponse } from '../src/lib/pushRou
 const PRACTICE_EVENT_ID = '123e4567-e89b-42d3-a456-426614174111';
 const BEFORE_EXPIRY = Date.parse('2026-07-28T19:00:00Z');
 
+test('accepts the Postgres timestamptz text form the practice-call producer emits', () => {
+  for (const expires_at of ['2026-07-28 20:00:00+00', '2026-07-28 20:00:00.123456+00', '2026-07-28 13:00:00-07']) {
+    assert.deepEqual(
+      getPushDestination({ kind: 'practice_incoming', event_id: PRACTICE_EVENT_ID, expires_at }, BEFORE_EXPIRY),
+      { pathname: '/rehearsal-incoming', params: { eventId: PRACTICE_EVENT_ID } },
+      expires_at,
+    );
+  }
+  assert.equal(
+    getPushDestination({ kind: 'practice_incoming', event_id: PRACTICE_EVENT_ID, expires_at: '2026-07-28 18:00:00+00' }, BEFORE_EXPIRY),
+    null,
+  );
+});
+
 test('routes a valid unexpired practice call push to the incoming rehearsal', () => {
   assert.deepEqual(
     getPushDestination({
