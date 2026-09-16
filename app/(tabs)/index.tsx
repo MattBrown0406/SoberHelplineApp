@@ -59,7 +59,7 @@ function TodayContent() {
   const holdLog = useHoldLog(user?.id ?? null, familySpace?.id ?? null);
   const canAccessFullToday = useFeatureAccess('todayFull');
 
-  const firstName = user?.firstName ?? 'there';
+  const firstName = user?.firstName || 'there';
   const greeting = timeGreeting(t, firstName);
   const contextLabel = t(isAttached ? 'hero.contextAttached' : 'hero.contextDirect');
   const dailyQuote = t(`dailyQuote.${quoteIndex}`);

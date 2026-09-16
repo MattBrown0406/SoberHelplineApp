@@ -103,7 +103,9 @@ async function performDailyNudgeRearm(): Promise<void> {
     if (account?.id !== accountId) return;
     if (account?.id) {
       storageOwner = account.id;
-      timezone = account.timezone;
+      // AccountContext normalizes a null timezone to UTC; the check-in date key
+      // must be computed the same way or "checked in today" never matches.
+      timezone = account.timezone || 'UTC';
     }
   }
   if (!session?.user.id || !current()) return;

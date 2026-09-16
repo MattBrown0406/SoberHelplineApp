@@ -219,7 +219,11 @@ function computeStreak(datesDesc: string[], timezone?: string): CheckInStreak {
   }
 
   const today = toDateStr(new Date(), timezone);
-  const yesterday = toDateStr(new Date(Date.now() - 86_400_000), timezone);
+  // Derive yesterday from today's calendar date rather than "now minus 24h":
+  // on a 23-hour DST day that instant can still land two calendar days back.
+  const yesterdayCursor = new Date(today + 'T12:00:00Z');
+  yesterdayCursor.setUTCDate(yesterdayCursor.getUTCDate() - 1);
+  const yesterday = yesterdayCursor.toISOString().slice(0, 10);
   const set = new Set(datesDesc);
 
   let current = 0;

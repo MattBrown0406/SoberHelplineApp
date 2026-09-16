@@ -50,10 +50,19 @@ Deno.serve(async (req) => {
   if (error) return new Response(error.message, { status: 500 });
 
   const now = new Date();
+  // accounts.timezone is client-written text; one malformed zone must not throw
+  // a RangeError here and skip the nudge for every member.
+  const resolveZone = (timezone: string | null) => {
+    try {
+      return new Intl.DateTimeFormat('en-US', { timeZone: timezone || 'America/New_York' }).resolvedOptions().timeZone;
+    } catch {
+      return 'America/New_York';
+    }
+  };
   const candidates = (accounts ?? []).filter((a) => {
     const localHour = Number(
       new Intl.DateTimeFormat('en-US', {
-        hour: 'numeric', hour12: false, timeZone: a.timezone || 'America/New_York',
+        hour: 'numeric', hour12: false, timeZone: resolveZone(a.timezone),
       }).format(now),
     );
     return localHour === NUDGE_HOUR_LOCAL;
@@ -61,9 +70,9 @@ Deno.serve(async (req) => {
   if (candidates.length === 0) return new Response('no candidates this hour');
 
   // Exclude members who already checked in on their own account-local day.
-  const localDate = (timezone: string) => {
+  const localDate = (timezone: string | null) => {
     const parts = new Intl.DateTimeFormat('en-US', {
-      timeZone: timezone || 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit',
+      timeZone: resolveZone(timezone), year: 'numeric', month: '2-digit', day: '2-digit',
     }).formatToParts(now);
     const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
     return `${values.year}-${values.month}-${values.day}`;
