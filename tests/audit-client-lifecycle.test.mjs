@@ -72,7 +72,7 @@ function authFixture() {
     '../lib/featureAccess': { entitlementsForAccountState: () => ({}) },
     '../lib/offlineAccountCache': {
       cacheSuccessfulAccount: async () => {}, clearLastOfflineAccount: async () => {}, clearOfflineAccount: async () => {},
-      isOfflineFallbackError: () => true, restoreOfflineAccount: () => cached.promise, restoreLastOfflineAccount: () => cached.promise,
+      isOfflineFallbackError: (error) => error?.message !== 'server_error', restoreOfflineAccount: () => cached.promise, restoreLastOfflineAccount: () => cached.promise,
     },
   });
   const read = () => h.render(() => AccountProvider({ children: null })).props.value;
@@ -103,6 +103,24 @@ test('offline account fallback re-fetches the live account once the app is foreg
   assert.equal(f.read().isOfflineAccountFallback, false);
   assert.equal(f.read().accountState, 'attached');
   assert.equal(f.read().user.firstName, 'Ada');
+});
+
+test('an automatic retry that fails with a server error keeps the cached fallback', async () => {
+  const f = authFixture();
+  f.session.resolve({ data: { session: { user: { id: 'principal-A' } } } });
+  f.accountRead.resolve({ data: null, error: new Error('fetch failed') });
+  f.cached.resolve({ id: 'account-A', accountState: 'direct-free', entitlements: {} });
+  await settle(); f.read(); f.h.effects();
+  assert.equal(f.read().isOfflineAccountFallback, true);
+
+  const failed = deferred(); f.nextRead(failed);
+  f.foreground();
+  failed.resolve({ data: null, error: new Error('server_error') });
+  await settle(); f.read(); f.h.effects();
+  assert.equal(f.read().isOfflineAccountFallback, true);
+  assert.equal(f.read().accountError, null);
+  assert.equal(f.read().user.id, 'account-A');
+  assert.equal(f.read().isAuthenticated, true);
 });
 
 test('a same-user auth event during offline fallback refreshes instead of being deduplicated', async () => {

@@ -378,7 +378,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       });
   }, [queueAccountCacheWrite]);
 
-  const refreshAccount = useCallback(async () => {
+  const refreshAccount = useCallback(async (options?: { retainOfflineFallback?: boolean }) => {
     const currentAuthUser = authUserRef.current;
     if (!currentAuthUser) return;
     const generation = authGenerationRef.current;
@@ -438,6 +438,12 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
           authGenerationRef.current !== generation ||
           !accountRequestGateRef.current.isCurrent(requestId)
         ) return;
+        // Automatic retries from the offline fallback must not demote a member
+        // still showing cached data into a blank account-error state.
+        if (options?.retainOfflineFallback && userRef.current && isOfflineAccountFallbackRef.current) {
+          addAppBreadcrumb('auth.offline_account_refresh_failed', 'warning');
+          throw error;
+        }
         isLoadingRef.current = false;
         setIsLoading(false);
         setIsOfflineAccountFallback(false);
@@ -494,7 +500,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         // showing, so a token refresh after connectivity returns must re-fetch
         // explicitly or the offline fallback never recovers.
         if (isOfflineAccountFallbackRef.current && authUserRef.current?.id === session.user.id) {
-          void refreshAccount().catch(() => undefined);
+          void refreshAccount({ retainOfflineFallback: true }).catch(() => undefined);
         } else {
           completeSignIn(session.user);
         }
@@ -539,7 +545,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     if (!isOfflineAccountFallback) return;
     const retry = () => {
       if (authUserRef.current) {
-        void refreshAccount().catch(() => undefined);
+        void refreshAccount({ retainOfflineFallback: true }).catch(() => undefined);
         return;
       }
       // getSession itself failed offline; the session was never bootstrapped.
