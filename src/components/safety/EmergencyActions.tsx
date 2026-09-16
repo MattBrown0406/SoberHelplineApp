@@ -1,7 +1,8 @@
 import React from 'react';
-import { Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
+import { openEmergencyLink } from '../../lib/emergencyLinks';
 
 export function EmergencyActions({ prominent = false, offline = false }: { prominent?: boolean; offline?: boolean }) {
   const { colors } = useTheme();
@@ -31,17 +32,17 @@ export function EmergencyActions({ prominent = false, offline = false }: { promi
         <EmergencyButton label={t('emergency.call911')} url="tel:911" color={colors.coral} isSpanish={isSpanish} />
         <EmergencyButton label={t('emergency.call988')} url="tel:988" color={colors.primary} isSpanish={isSpanish} />
         <EmergencyButton label={t('emergency.text988')} url="sms:988" color={colors.primary} isSpanish={isSpanish} />
-        <EmergencyButton label={t('emergency.poisonControl')} url="tel:18002221222" color={colors.secondary} isSpanish={isSpanish} />
+        <EmergencyButton label={t('emergency.poisonControl')} url="tel:18002221222" displayNumber="1-800-222-1222" color={colors.secondary} isSpanish={isSpanish} />
       </View>
     </View>
   );
 }
 
-function EmergencyButton({ label, url, color, isSpanish }: { label: string; url: string; color: string; isSpanish: boolean }) {
+function EmergencyButton({ label, url, displayNumber, color, isSpanish }: { label: string; url: string; displayNumber?: string; color: string; isSpanish: boolean }) {
   return (
     <TouchableOpacity
       style={[styles.button, { borderColor: color }]}
-      onPress={() => void Linking.openURL(url)}
+      onPress={() => openEmergencyLink(url, displayNumber)}
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityHint={isSpanish

@@ -35,6 +35,7 @@ import { funnelDoor, type FunnelDoor } from '../../src/lib/situation';
 import { SituationOffRamp } from '../../src/components/situation/SituationOffRamp';
 import { logFunnelEvent } from '../../src/lib/funnel';
 import { isAdminEmail } from '../../src/lib/admin';
+import { openEmergencyLink } from '../../src/lib/emergencyLinks';
 import { setReviewPromptPaywallVisible } from '../../src/lib/reviewPrompt';
 import type { StaffMember, SupportGroup } from '../../src/api/types';
 
@@ -53,6 +54,7 @@ function sessionTypeKey(kind: DbSession['kind'], t: (k: string) => string): stri
 // ── Crisis sheet ─────────────────────────────────────────────────────────────
 
 const CRISIS_LINE_TEL = 'tel:+15038362136'; // Sober Helpline guidance line — v1 direct dial; Twilio cascade is P2
+const CRISIS_LINE_DISPLAY = '(503) 836-2136';
 
 function CrisisSheet({
   visible,
@@ -130,11 +132,12 @@ function CrisisSheet({
             )}
           </View>
           <TouchableOpacity
+            accessibilityRole="button"
             style={[styles.sheetActionBtn, { backgroundColor: colors.primary }]}
             activeOpacity={0.8}
             onPress={() => {
               if (isAttached) {
-                Linking.openURL(CRISIS_LINE_TEL);
+                openEmergencyLink(CRISIS_LINE_TEL, CRISIS_LINE_DISPLAY);
               } else if (canMessage) {
                 onClose();
                 onMessage();

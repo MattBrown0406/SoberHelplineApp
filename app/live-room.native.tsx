@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   FlatList,
   StyleSheet,
-  Linking,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -29,6 +28,7 @@ import { useTheme } from '../src/contexts/ThemeContext';
 import { RouteActivationGate } from '../src/contexts/RouteActivationContext';
 import { useAccount } from '../src/contexts/AccountContext';
 import { supabase } from '../src/lib/supabase';
+import { openEmergencyLink } from '../src/lib/emergencyLinks';
 import { LIVEKIT_URL, SUPABASE_URL } from '../src/config';
 import { useResponsive } from '../src/hooks/useResponsive';
 
@@ -250,10 +250,10 @@ function ViewerView({ onLeave }: { onLeave: () => void }) {
         </TouchableOpacity>
       </View>
       <View style={styles.crisisRow}>
-        <TouchableOpacity onPress={() => Linking.openURL('tel:911')} style={styles.crisisBtn}>
+        <TouchableOpacity onPress={() => openEmergencyLink('tel:911')} style={styles.crisisBtn}>
           <Text style={[styles.crisisBtnText, { color: colors.coral }]}>{t('crisis.line911')}</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => Linking.openURL('tel:988')} style={styles.crisisBtn}>
+        <TouchableOpacity onPress={() => openEmergencyLink('tel:988')} style={styles.crisisBtn}>
           <Text style={[styles.crisisBtnText, { color: colors.primary }]}>{t('crisis.line988')}</Text>
         </TouchableOpacity>
       </View>

@@ -7,7 +7,6 @@ import {
   FlatList,
   StyleSheet,
   Modal,
-  Linking,
   Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -18,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
+import { openEmergencyLink } from '../src/lib/emergencyLinks';
 import { Gate } from '../src/components/auth/Gate';
 import { useCommunity, CrisisContentError, type CommunityPost } from '../src/hooks/useCommunity';
 import { MAX_CONTENT_WIDTH } from '../src/components/ui/ScreenContainer';
@@ -97,13 +97,13 @@ function CommunityContent() {
             <Text style={[styles.crisisBody, { color: colors.inkSoft }]}>{t('community.crisisBody')}</Text>
             <TouchableOpacity
               style={[styles.crisisBtn, { backgroundColor: colors.primary }]}
-              onPress={() => Linking.openURL('tel:988')}
+              onPress={() => openEmergencyLink('tel:988')}
             >
               <Text style={styles.crisisBtnText}>{t('community.crisisCall988')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.crisisBtn, { backgroundColor: colors.coral }]}
-              onPress={() => Linking.openURL('tel:911')}
+              onPress={() => openEmergencyLink('tel:911')}
             >
               <Text style={styles.crisisBtnText}>{t('community.crisisCall911')}</Text>
             </TouchableOpacity>
@@ -219,7 +219,7 @@ function CommunityContent() {
           </View>
 
           {/* Always-present safety line (per crisis protocol) */}
-          <TouchableOpacity onPress={() => Linking.openURL('tel:988')} style={styles.safetyFooter}>
+          <TouchableOpacity onPress={() => openEmergencyLink('tel:988')} style={styles.safetyFooter}>
             <Text style={[styles.safetyText, { color: colors.inkSoft }]}>{t('community.safetyFooter')}</Text>
           </TouchableOpacity>
         </View>

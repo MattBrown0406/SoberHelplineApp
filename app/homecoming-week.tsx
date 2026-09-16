@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Linking,
   StyleSheet,
   Text,
   TextInput,
@@ -16,6 +15,7 @@ import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import { useAccount } from '../src/contexts/AccountContext';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useHomecomingWeek } from '../src/hooks/useHomecomingWeek';
+import { openEmergencyLink } from '../src/lib/emergencyLinks';
 import {
   canHomecomingItemBeNotApplicable,
   dischargeReadiness,
@@ -129,14 +129,14 @@ function SafetyExceptions() {
       <View accessibilityRole="alert" style={[styles.safetyCard, { borderColor: colors.coral, backgroundColor: colors.coralLight }]}>
         <Text style={[styles.safetyTitle, { color: colors.coral }]}>{t('safety.emergencyTitle')}</Text>
         <Text style={[styles.safetyBody, { color: colors.ink }]}>{t('safety.emergencyBody')}</Text>
-        <TouchableOpacity accessibilityRole="button" onPress={() => void Linking.openURL('tel:911')}>
+        <TouchableOpacity accessibilityRole="button" onPress={() => openEmergencyLink('tel:911')}>
           <Text style={[styles.safetyLink, { color: colors.coral }]}>{t('safety.call911')}</Text>
         </TouchableOpacity>
       </View>
       <View accessibilityRole="alert" style={[styles.safetyCard, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]}>
         <Text style={[styles.safetyTitle, { color: colors.primary }]}>{t('safety.crisisTitle')}</Text>
         <Text style={[styles.safetyBody, { color: colors.ink }]}>{t('safety.crisisBody')}</Text>
-        <TouchableOpacity accessibilityRole="button" onPress={() => void Linking.openURL('tel:988')}>
+        <TouchableOpacity accessibilityRole="button" onPress={() => openEmergencyLink('tel:988')}>
           <Text style={[styles.safetyLink, { color: colors.primary }]}>{t('safety.call988')}</Text>
         </TouchableOpacity>
       </View>

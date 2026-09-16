@@ -9,7 +9,9 @@
     "call911": "Llamar al 911 (EE. UU.)",
     "call988": "Llamar al 988",
     "text988": "Enviar mensaje al 988",
-    "poisonControl": "Control de Envenenamiento EE. UU."
+    "poisonControl": "Control de Envenenamiento EE. UU.",
+    "openErrorTitle": "No se pudo abrir la app Teléfono",
+    "openErrorBody": "Es posible que este dispositivo no pueda llamar ni enviar mensajes. Desde cualquier teléfono, llama o envía un mensaje al {{number}}."
   },
   "triage": {
     "title": "1. Evalúa la situación",

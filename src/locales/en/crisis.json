@@ -9,7 +9,9 @@
     "call911": "Call 911 (U.S.)",
     "call988": "Call 988",
     "text988": "Text 988",
-    "poisonControl": "U.S. Poison Control"
+    "poisonControl": "U.S. Poison Control",
+    "openErrorTitle": "Could not open the phone app",
+    "openErrorBody": "This device may not be able to call or text. From any phone, call or text {{number}}."
   },
   "triage": {
     "title": "1. Triage the situation",

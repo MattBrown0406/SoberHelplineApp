@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   AppState,
-  Linking,
   StyleSheet,
   Text,
   TextInput,
@@ -40,6 +39,7 @@ import {
   type DiyTeamRole,
 } from '../src/lib/diyInterventionPlanner';
 import { leaveTonightProgress, treatmentActionProgress } from '../src/lib/treatmentActionPlan';
+import { openEmergencyLink } from '../src/lib/emergencyLinks';
 
 const LEVELS: Exclude<DiyLevelOfCare, ''>[] = ['detox', 'residential', 'php', 'iop', 'outpatient'];
 const ROLES: Exclude<DiyTeamRole, ''>[] = ['speaker', 'silent_support', 'not_in_room', 'on_call'];
@@ -270,8 +270,8 @@ function SafetyPanel() {
     <Text style={[styles.body, { color: colors.ink }]}>{t('safetyBody')}</Text>
     <PrimaryButton label={t('helpNow')} onPress={() => router.push('/treatment-action-plan' as never)} />
     <View style={styles.safetyActions}>
-      <TextButton label={t('call911')} onPress={() => void Linking.openURL('tel:911')} danger />
-      <TextButton label={t('call988')} onPress={() => void Linking.openURL('tel:988')} danger />
+      <TextButton label={t('call911')} onPress={() => openEmergencyLink('tel:911')} danger />
+      <TextButton label={t('call988')} onPress={() => openEmergencyLink('tel:988')} danger />
     </View>
   </View>;
 }
