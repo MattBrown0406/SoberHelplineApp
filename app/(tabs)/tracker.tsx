@@ -104,9 +104,9 @@ function TrackerContent() {
   const { user, isAttached } = useAccount();
   const { t, i18n } = useTranslation('tracker');
 
-  const { activeWarning, activeRecovery, toggleSign, warningLevel, recoveryMomentum } =
+  const { activeWarning, activeRecovery, toggleSign, warningLevel, recoveryMomentum, isLoading: trackerLoading } =
     useTracker(user?.id ?? null);
-  const { situation, refresh: refreshSituation } = useSituation(user?.id ?? null);
+  const { situation, loading: situationLoading, refresh: refreshSituation } = useSituation(user?.id ?? null);
 
   const warningSigns: Sign[] = useMemo(
     () => t('warning.signs', { returnObjects: true }) as Sign[],
@@ -131,6 +131,9 @@ function TrackerContent() {
       spikeHandledRef.current = false;
       return;
     }
+    // Until both hooks have hydrated, the current status is unknown: writing
+    // 'escalating' against the default would downgrade a real 'crisis'.
+    if (trackerLoading || situationLoading) return;
     if (spikeHandledRef.current) return;
     spikeHandledRef.current = true;
     const current = situation.drivers.loved_one_status;
@@ -141,7 +144,7 @@ function TrackerContent() {
     } else {
       void refreshSituation();
     }
-  }, [warnCount, situation.drivers.loved_one_status, refreshSituation]);
+  }, [warnCount, trackerLoading, situationLoading, situation.drivers.loved_one_status, refreshSituation]);
 
   // A spike always offers at least coaching; sustained crisis offers intervention.
   const spikeDoor: FunnelDoor =
