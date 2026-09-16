@@ -216,6 +216,11 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     if (!user) return;
+    let cancelled = false;
+    // Reset per account: a member with no consent row must not inherit the
+    // previous account's ON state on a shared device.
+    setShareCheckIns(false);
+    setConsentLoading(true);
     supabase
       .from('consents')
       .select('granted_at, revoked_at')
@@ -223,11 +228,15 @@ export default function SettingsScreen() {
       .eq('consent_key', CONSENT_SHARE_CHECKINS)
       .maybeSingle()
       .then(({ data }) => {
+        if (cancelled) return;
         if (data) {
           setShareCheckIns(!!data.granted_at && !data.revoked_at);
         }
         setConsentLoading(false);
+      }, () => {
+        if (!cancelled) setConsentLoading(false);
       });
+    return () => { cancelled = true; };
   }, [user?.id]);
 
   async function handleShareCheckInsToggle(value: boolean) {
