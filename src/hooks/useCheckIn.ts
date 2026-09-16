@@ -7,11 +7,14 @@ import { createCheckInId, persistDailyCheckIn, mergeCheckInDates } from '../lib/
 import { captureAppError } from '../lib/monitoring';
 import { isMoodScore, parseSupportNeed } from '../lib/caregiverCheckIn';
 import { rearmDailyNudge } from './usePushNotifications';
+import { classifyOutboxError, offlineOutbox, subscribeOutboxReplay } from '../lib/offlineOutbox';
 
 export interface UseCheckInResult {
   todayCheckIn: CheckIn | null;
   streak: CheckInStreak;
   isLoading: boolean;
+  /** True while today's signed-in check-in is queued on-device waiting to reach the server. */
+  pendingSync: boolean;
   saveCheckIn: (input: CaregiverCheckInInput) => Promise<CheckInStreak>;
 }
 
@@ -103,6 +106,21 @@ export function useCheckIn(accountId: string | null, timezone?: string): UseChec
     return () => { cancelled = true; };
   }, [accountId, timezone]);
 
+  // A queued check-in flips to synced once the outbox replays it.
+  useEffect(() => {
+    if (!accountId) return;
+    return subscribeOutboxReplay(({ accountId: replayed, result }) => {
+      if (replayed !== accountId) return;
+      const syncedIds = new Set(result.synced.map((item) => item.id));
+      setTodayCheckIn((current) => {
+        if (!current || current.synced || !syncedIds.has(current.id)) return current;
+        const synced = { ...current, synced: true };
+        persistLocal(synced, timezone).catch(captureAppError);
+        return synced;
+      });
+    });
+  }, [accountId, timezone]);
+
   const saveCheckIn = useCallback((input: CaregiverCheckInInput) => {
     if (saveInFlightRef.current) return saveInFlightRef.current;
 
@@ -130,21 +148,22 @@ export function useCheckIn(accountId: string | null, timezone?: string): UseChec
       let updatedStreak: CheckInStreak;
 
       if (accountId) {
+        const row = {
+          id: pending.id,
+          account_id: accountId,
+          mood: pending.moodScore,
+          capacity: pending.capacityScore,
+          pressure: pending.pressureScore,
+          support_need: pending.supportNeed,
+          note: pending.note,
+          created_at: pending.completedAt,
+          checkin_date: checkinDate,
+        };
         const remote = await persistDailyCheckIn(
           async () => {
             const { data, error } = await supabase
               .from('checkins')
-              .insert({
-                id: pending.id,
-                account_id: accountId,
-                mood: pending.moodScore,
-                capacity: pending.capacityScore,
-                pressure: pending.pressureScore,
-                support_need: pending.supportNeed,
-                note: pending.note,
-                created_at: pending.completedAt,
-                checkin_date: checkinDate,
-              })
+              .insert(row)
               .select('id, mood, capacity, pressure, support_need, note, created_at')
               .single();
             return { data, error };
@@ -158,9 +177,18 @@ export function useCheckIn(accountId: string | null, timezone?: string): UseChec
               .maybeSingle();
             return { data, error };
           },
-        );
+        ).catch(async (error: unknown) => {
+          // No radio: queue the row for replay and treat the check-in as
+          // complete at its original timestamp. Only permanent failures
+          // (bad data, permissions) still surface as errors.
+          if (classifyOutboxError(error) !== 'retry') throw error;
+          await offlineOutbox.enqueue(accountId, {
+            id: row.id, kind: 'checkin', queuedAt: now.toISOString(), payload: row,
+          });
+          return null;
+        });
 
-        completed = {
+        completed = remote ? {
           id: remote.id,
           userId: accountId,
           moodScore: remote.mood as MoodScore,
@@ -170,12 +198,13 @@ export function useCheckIn(accountId: string | null, timezone?: string): UseChec
           note: remote.note ?? null,
           completedAt: remote.created_at,
           synced: true,
-        };
+        } : pending;
       }
 
       if (accountId) {
-        // The cloud row is authoritative. Device-cache or reminder housekeeping
-        // must never turn a successful remote save into a user-visible failure.
+        // The cloud row (or its queued replay) is authoritative. Device-cache or
+        // reminder housekeeping must never turn a successful save into a
+        // user-visible failure.
         setTodayCheckIn(completed);
         const knownDates = mergeCheckInDates(knownDatesRef.current, [checkinDate]);
         knownDatesRef.current = knownDates;
@@ -210,7 +239,13 @@ export function useCheckIn(accountId: string | null, timezone?: string): UseChec
     return task;
   }, [accountId, timezone]);
 
-  return { todayCheckIn, streak, isLoading, saveCheckIn };
+  return {
+    todayCheckIn,
+    streak,
+    isLoading,
+    pendingSync: accountId !== null && todayCheckIn !== null && !todayCheckIn.synced,
+    saveCheckIn,
+  };
 }
 
 function computeStreak(datesDesc: string[], timezone?: string): CheckInStreak {

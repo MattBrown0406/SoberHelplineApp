@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
+import { randomUUID } from 'expo-crypto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ScrollView,
@@ -13,6 +14,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { supabase } from '../../src/lib/supabase';
+import { classifyOutboxError, offlineOutbox, subscribeOutboxReplay } from '../../src/lib/offlineOutbox';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -122,39 +124,75 @@ export default function BoundariesScreen() {
     : 'high';
 
   // ── Family journal ────────────────────────────────────────────────────────
-  type JournalEntry = { id: string; note: string; created_at: string; account_id: string; accounts: { first_name: string } | null };
+  type JournalEntry = {
+    id: string; note: string; created_at: string; account_id: string;
+    accounts: { first_name: string } | null;
+    /** Queued on this device; reaches the family once the outbox replays. */
+    pendingSync?: boolean;
+  };
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
   const [journalNote, setJournalNote] = useState('');
   const [journalPosting, setJournalPosting] = useState(false);
 
-  const loadJournal = useCallback(async (spaceId: string) => {
+  const loadJournal = useCallback(async (spaceId: string, accountId: string) => {
+    // Queued notes render first so the author sees their own words even offline.
+    const queued = await offlineOutbox.list(accountId).catch(() => []);
+    const pending: JournalEntry[] = queued.flatMap((item) => item.kind === 'journal' && item.payload.family_space_id === spaceId
+      ? [{ id: item.id, note: item.payload.note, created_at: item.payload.created_at, account_id: accountId, accounts: null, pendingSync: true }]
+      : []);
     const { data } = await supabase
       .from('family_journal_entries')
       .select('id, account_id, note, created_at, accounts(first_name)')
       .eq('family_space_id', spaceId)
       .order('created_at', { ascending: false })
       .limit(5);
-    if (data) setJournalEntries(data as unknown as JournalEntry[]);
+    const remote = (data ?? []) as unknown as JournalEntry[];
+    const pendingIds = new Set(pending.map((entry) => entry.id));
+    setJournalEntries((current) => data
+      ? [...pending, ...remote.filter((entry) => !pendingIds.has(entry.id))]
+      : [...pending, ...current.filter((entry) => !entry.pendingSync && !pendingIds.has(entry.id))]);
   }, []);
 
   const postJournalNote = useCallback(async () => {
     if (!journalNote.trim() || !familySpace?.id || !user?.id) return;
     setJournalPosting(true);
-    const { error } = await supabase.from('family_journal_entries').insert({
+    const row = {
+      id: randomUUID(),
       family_space_id: familySpace.id,
       account_id: user.id,
       note: journalNote.trim(),
-    });
+      created_at: new Date().toISOString(),
+    };
+    const { error } = await supabase.from('family_journal_entries').insert(row);
     if (error) {
-      // Keep the draft so the note is not lost when the insert fails offline.
-      setJournalPosting(false);
-      Alert.alert(content.journal.postErrorTitle, content.journal.postErrorBody);
-      return;
+      if (classifyOutboxError(error) !== 'retry') {
+        // Keep the draft so the note is not lost on a permanent failure.
+        setJournalPosting(false);
+        Alert.alert(content.journal.postErrorTitle, content.journal.postErrorBody);
+        return;
+      }
+      // Offline: queue the note quietly and show it as saved on this device.
+      try {
+        await offlineOutbox.enqueue(user.id, { id: row.id, kind: 'journal', queuedAt: row.created_at, payload: row });
+      } catch {
+        setJournalPosting(false);
+        Alert.alert(content.journal.postErrorTitle, content.journal.postErrorBody);
+        return;
+      }
     }
     setJournalNote('');
-    await loadJournal(familySpace.id);
+    await loadJournal(familySpace.id, user.id);
     setJournalPosting(false);
   }, [journalNote, familySpace?.id, user?.id, loadJournal, content.journal]);
+
+  useEffect(() => {
+    if (!user?.id || !familySpace?.id) return;
+    const accountId = user.id;
+    const spaceId = familySpace.id;
+    return subscribeOutboxReplay(({ accountId: replayed, result }) => {
+      if (replayed === accountId && result.synced.some((item) => item.kind === 'journal')) void loadJournal(spaceId, accountId);
+    });
+  }, [user?.id, familySpace?.id, loadJournal]);
 
   useFocusEffect(
     useCallback(() => {
@@ -168,7 +206,7 @@ export default function BoundariesScreen() {
         .then(({ data }) => {
           if (data) setCheckinDates(new Set(data.map((r) => r.created_at.slice(0, 10))));
         });
-      if (familySpace?.id) void loadJournal(familySpace.id);
+      if (familySpace?.id) void loadJournal(familySpace.id, user.id);
     }, [user?.id, familySpace?.id, loadJournal]),
   );
 
@@ -577,7 +615,9 @@ export default function BoundariesScreen() {
                       </Text>
                       <Text style={[styles.journalNote, { color: colors.ink }]}>{entry.note}</Text>
                       <Text style={[styles.journalDate, { color: colors.inkSoft }]}>
-                        {new Date(entry.created_at).toLocaleDateString()}
+                        {entry.pendingSync
+                          ? content.journal.pendingSync
+                          : new Date(entry.created_at).toLocaleDateString()}
                       </Text>
                     </View>
                   ))

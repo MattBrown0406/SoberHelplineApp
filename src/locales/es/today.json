@@ -58,6 +58,7 @@
     "errorTitle": "No se pudo guardar el registro",
     "errorMessage": "Algo salió mal al guardar tu registro. Por favor, inténtalo de nuevo.",
     "done": "✓ ¡Registro completo!",
+    "pendingSync": "Guardado en este dispositivo: se sincronizará cuando vuelvas a tener conexión.",
     "doneStreak": "✓ Registro completo — ¡{{count}} días seguidos!",
     "doneCoach": "{{orgFirst}} verá tu actualización.",
     "lowSupportTitle": "Una etapa difícil",

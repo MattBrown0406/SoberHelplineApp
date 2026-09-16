@@ -51,7 +51,7 @@ function TodayContent() {
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('today');
   const router = useRouter();
-  const { todayCheckIn, streak, saveCheckIn } = useCheckIn(user?.id ?? null, user?.timezone);
+  const { todayCheckIn, streak, saveCheckIn, pendingSync } = useCheckIn(user?.id ?? null, user?.timezone);
   const { lovedOne, loading: lovedOneLoading, save: saveLovedOne } = useLovedOne(user?.id ?? null);
   const { dayCount, boundariesHeld, groupSessions, quoteIndex, scriptSlot, curriculumWeek, curriculumPhase, situation, primaryDoor, nextFreeCall, rsvpFreeCall } =
     useTodayFeed(user?.id ?? null, user?.joinedAt ?? null);
@@ -138,6 +138,7 @@ function TodayContent() {
       orgName={user?.branding?.orgName ?? null}
       lowMoodDays={situation.drivers.low_mood_days}
       onTalkToCoach={isAttached ? undefined : () => router.push('/book-coaching')}
+      pendingSync={pendingSync}
     />
   );
 

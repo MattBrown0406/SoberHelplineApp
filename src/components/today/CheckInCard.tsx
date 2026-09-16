@@ -43,6 +43,8 @@ interface Props {
   lowMoodDays?: number;
   /** Routes to 1:1 coaching. Only provided for self-guided members. */
   onTalkToCoach?: () => void;
+  /** Today's check-in is queued on-device and will reach the server later. */
+  pendingSync?: boolean;
 }
 
 export function CheckInCard({
@@ -54,6 +56,7 @@ export function CheckInCard({
   orgName,
   lowMoodDays = 0,
   onTalkToCoach,
+  pendingSync = false,
 }: Props) {
   const { colors } = useTheme();
   const { t } = useTranslation('today');
@@ -336,6 +339,11 @@ export function CheckInCard({
             <Text style={[styles.doneText, { color: colors.green }]}>
               {doneText}{doneCoach}
             </Text>
+            {pendingSync && (
+              <Text style={[styles.pendingSyncText, { color: colors.inkSoft }]}>
+                {t('checkIn.pendingSync')}
+              </Text>
+            )}
           </View>
 
         </>
@@ -500,6 +508,7 @@ const styles = StyleSheet.create({
   btnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   doneBanner: { borderRadius: 14, borderWidth: 1, padding: 13, marginTop: 10 },
   doneText: { fontSize: 13.5, fontWeight: '600', lineHeight: 20 },
+  pendingSyncText: { fontSize: 12, lineHeight: 17, marginTop: 4 },
   milestoneText: { fontSize: 13, fontWeight: '600', lineHeight: 19, marginTop: 8 },
   responseBlock: { borderRadius: 14, borderWidth: 1, padding: 14, marginTop: 10 },
   immediateSafety: { borderRadius: 14, borderWidth: 1.5, padding: 14, marginBottom: 18 },

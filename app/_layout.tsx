@@ -9,6 +9,7 @@ import { RouteActivationContext } from '../src/contexts/RouteActivationContext';
 import { initI18n } from '../src/i18n';
 import { PersonalRemindersLifecycle } from '../src/reminders/usePersonalReminders';
 import { usePushNotifications } from '../src/hooks/usePushNotifications';
+import { useOfflineOutbox } from '../src/hooks/useOfflineOutbox';
 import { isOnboarded, subscribeOnboarded } from '../src/onboarding/state';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { SafetyShortcut } from '../src/components/safety/SafetyShortcut';
@@ -84,6 +85,8 @@ function InitialLayout() {
     user?.id ?? null,
     isPushNavigationReady({ layoutState, isAuthenticated, onboarded }),
   );
+  // Replays check-ins and journal notes queued while the device was offline.
+  useOfflineOutbox(user?.id ?? null);
 
   useEffect(() => {
     if (!user?.id) {

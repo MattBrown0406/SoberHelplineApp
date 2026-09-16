@@ -58,6 +58,7 @@
     "errorTitle": "Couldn't save check-in",
     "errorMessage": "Something went wrong saving your check-in. Please try again.",
     "done": "✓ Check-in complete!",
+    "pendingSync": "Saved on this device — it will sync when you're back online.",
     "doneStreak": "✓ Check-in complete — {{count}}-day streak!",
     "doneCoach": "{{orgFirst}} will see your update.",
     "lowSupportTitle": "A heavy stretch",
