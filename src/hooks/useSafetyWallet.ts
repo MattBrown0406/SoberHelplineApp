@@ -56,7 +56,12 @@ function hydrate(id: string, store: Store): Promise<void> {
       if (generation !== store.generation) return;
       store.value = value; store.hydrated = true;
     } catch (error) { if (generation === store.generation) fail(store, error); }
-    finally { if (generation === store.generation) { store.loading = undefined; notify(store); } }
+    finally {
+      // A superseding clear() must not leave this settled promise behind, or a
+      // later reload() would return it and never re-read disk.
+      if (store.loading === loading) store.loading = undefined;
+      if (generation === store.generation) notify(store);
+    }
   });
   store.loading = loading;
   return loading;

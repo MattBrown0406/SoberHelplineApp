@@ -146,6 +146,22 @@ test('failed safety hydration preserves disk records and supports an explicit re
   f.h.unmount();
 });
 
+test('reload still works after a failed clear supersedes hydration', async () => {
+  let removeFails = true;
+  const f = safetyFixture({ async removeItem() { if (removeFails) throw new Error('disk unavailable'); } });
+  await settle();
+  const clearing = f.read().clear().catch((error) => error);
+  f.pending.splice(0).forEach((d) => d.resolve(null));
+  await settle(); assert.ok((await clearing) instanceof Error); await settle();
+  assert.ok(f.read().loadError);
+  removeFails = false;
+  f.read().reload(); f.read(); f.h.effects(); await settle();
+  f.pending.splice(0).forEach((d) => d.resolve(null)); await settle();
+  assert.equal(f.read().hydrated, true);
+  assert.equal(f.read().loadError, null);
+  f.h.unmount();
+});
+
 test('safety autosaves are ordered and clearing waits for older writes', async () => {
   const blocked = deferred(); const disk = new Map(); let block = false;
   const f = safetyFixture({
