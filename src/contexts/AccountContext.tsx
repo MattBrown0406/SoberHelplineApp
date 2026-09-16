@@ -21,6 +21,9 @@ import {
   restoreLastOfflineAccount,
   restoreOfflineAccount,
 } from '../lib/offlineAccountCache';
+import { offlineOutbox } from '../lib/offlineOutbox';
+import { removeSessionLocally, signOutLocally as signOutDeviceLocally } from '../lib/localSignOut';
+import { storePendingPushTokenRevoke } from '../lib/pendingPushTokenRevoke';
 
 const DEFAULT_ENTITLEMENTS: Entitlements = entitlementsForAccountState('direct-free');
 
@@ -36,6 +39,12 @@ interface AccountContextValue {
   isOfflineAccountFallback: boolean;
   refreshAccount: () => Promise<void>;
   completeSignIn: (sessionUser: User) => void;
+  /**
+   * Sign this device out without the server: discards the account's queued
+   * offline writes and cached profile and leaves the push-token revoke pending.
+   * Only for when the normal sign-out cannot reach the server.
+   */
+  signOutLocally: () => Promise<void>;
 }
 
 const AccountContext = createContext<AccountContextValue>({
@@ -50,6 +59,7 @@ const AccountContext = createContext<AccountContextValue>({
   isOfflineAccountFallback: false,
   refreshAccount: async () => {},
   completeSignIn: () => {},
+  signOutLocally: async () => {},
 });
 
 async function withRequiredTimeout<T>(promise: PromiseLike<T>, timeoutMs: number): Promise<T> {
@@ -454,6 +464,25 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     }
   }, [queueAccountCacheWrite]);
 
+  const signOutLocally = useCallback(async () => {
+    const accountId = userRef.current?.id;
+    const authUserId = authUserRef.current?.id ?? null;
+    if (!accountId) return;
+    await signOutDeviceLocally({ accountId, authUserId }, {
+      storePendingRevoke: (id) => storePendingPushTokenRevoke(id),
+      discardOutbox: (id) => offlineOutbox.clear(id),
+      clearOfflineAccount: async (id) => {
+        // Finish any older write before clearing so the profile cannot race
+        // back onto disk (same rule as the SIGNED_OUT handler).
+        await cacheWriteRef.current.catch(() => undefined);
+        await (id ? clearOfflineAccount(id) : clearLastOfflineAccount());
+      },
+      // Emits SIGNED_OUT, so the handler below resets state like a normal sign-out.
+      removeSession: () => removeSessionLocally(supabase.auth),
+    });
+    addAppBreadcrumb('auth.signed_out_locally', 'warning');
+  }, []);
+
   useEffect(() => {
     const initialGeneration = authGenerationRef.current;
 
@@ -577,6 +606,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         isOfflineAccountFallback,
         refreshAccount,
         completeSignIn,
+        signOutLocally,
       }}
     >
       {children}

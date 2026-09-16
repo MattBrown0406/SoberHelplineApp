@@ -87,6 +87,13 @@
   "signOut": "Cerrar sesión",
   "signOutErrorTitle": "No se pudo cerrar la sesión de forma segura",
   "signOutErrorBody": "No pudimos quitar este dispositivo de las notificaciones privadas. Revisa tu conexión e inténtalo de nuevo.",
+  "signOutOffline": {
+    "title": "Sin conexión por ahora",
+    "body": "No podemos contactar el servidor, así que este dispositivo todavía no se puede quitar de las notificaciones. Aun así puedes cerrar sesión en este dispositivo: tus datos de sesión aquí se borrarán, y las notificaciones de esta cuenta se desactivarán para este dispositivo la próxima vez que inicies sesión con conexión.",
+    "bodyWithQueue": "No podemos contactar el servidor, así que este dispositivo todavía no se puede quitar de las notificaciones. Aun así puedes cerrar sesión en este dispositivo: tus datos de sesión aquí se borrarán, y se descartarán {{checkins}} registro(s) diario(s) y {{notes}} nota(s) del diario pendientes de sincronizar. Las notificaciones de esta cuenta se desactivarán para este dispositivo la próxima vez que inicies sesión con conexión.",
+    "cancel": "Seguir con la sesión",
+    "confirm": "Cerrar sesión de todos modos"
+  },
   "deleteAccount": {
     "button": "Eliminar cuenta",
     "confirmTitle": "¿Eliminar tu cuenta?",

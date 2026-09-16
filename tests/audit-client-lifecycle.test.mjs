@@ -74,6 +74,9 @@ function authFixture() {
       cacheSuccessfulAccount: async () => {}, clearLastOfflineAccount: async () => {}, clearOfflineAccount: async () => {},
       isOfflineFallbackError: (error) => error?.message !== 'server_error', restoreOfflineAccount: () => cached.promise, restoreLastOfflineAccount: () => cached.promise,
     },
+    '../lib/offlineOutbox': { offlineOutbox: { clear: async () => {} } },
+    '../lib/localSignOut': { removeSessionLocally: async () => {}, signOutLocally: async () => {} },
+    '../lib/pendingPushTokenRevoke': { storePendingPushTokenRevoke: async () => {} },
   });
   const read = () => h.render(() => AccountProvider({ children: null })).props.value;
   read(); h.effects();

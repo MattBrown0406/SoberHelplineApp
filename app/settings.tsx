@@ -31,6 +31,9 @@ import {
 } from '../src/hooks/usePushNotifications';
 import { PRIVACY_POLICY_URL, SUBSCRIPTION_MANAGEMENT_URL, TERMS_OF_USE_URL } from '../src/config';
 import { openStoreReviewFromSettings } from '../src/lib/reviewPrompt';
+import { isOfflineFallbackError } from '../src/lib/offlineAccountCache';
+import { offlineOutbox } from '../src/lib/offlineOutbox';
+import { hasOutboxImpact, outboxImpact } from '../src/lib/localSignOut';
 
 const CONSENT_SHARE_CHECKINS = '2';
 const CONSENT_VERSION = '1.0';
@@ -64,7 +67,7 @@ const DEFAULT_PRACTICE_PUSH: PracticePushSettings = {
 
 export default function SettingsScreen() {
   const { colors } = useTheme();
-  const { user, isAttached, accountState, refreshAccount } = useAccount();
+  const { user, isAttached, accountState, refreshAccount, signOutLocally } = useAccount();
   const { t } = useTranslation('settings');
   const { current, change, languages } = useLanguage();
   const router = useRouter();
@@ -281,6 +284,26 @@ export default function SettingsScreen() {
     }
   }
 
+  async function offerSignOutAnyway() {
+    if (!user) return;
+    const impact = outboxImpact(await offlineOutbox.list(user.id).catch(() => []));
+    const body = hasOutboxImpact(impact)
+      ? t('signOutOffline.bodyWithQueue', { checkins: impact.checkin, notes: impact.journal })
+      : t('signOutOffline.body');
+    Alert.alert(t('signOutOffline.title'), body, [
+      { text: t('signOutOffline.cancel'), style: 'cancel' },
+      {
+        text: t('signOutOffline.confirm'),
+        style: 'destructive',
+        onPress: () => {
+          void signOutLocally().catch(() => {
+            Alert.alert(t('signOutErrorTitle'), t('signOutErrorBody'));
+          });
+        },
+      },
+    ]);
+  }
+
   async function handleSignOut() {
     if (!await clearRemindersBeforeExit()) return;
     if (user) {
@@ -289,12 +312,16 @@ export default function SettingsScreen() {
         .update({ push_token: null })
         .eq('id', user.id);
       if (error) {
-        Alert.alert(t('signOutErrorTitle'), t('signOutErrorBody'));
+        // No server: the device can still forget the account, with consent.
+        if (isOfflineFallbackError(error)) await offerSignOutAnyway();
+        else Alert.alert(t('signOutErrorTitle'), t('signOutErrorBody'));
         return;
       }
     }
     const { error: signOutError } = await supabase.auth.signOut();
-    if (signOutError) Alert.alert(t('signOutErrorTitle'), t('signOutErrorBody'));
+    if (!signOutError) return;
+    if (user && isOfflineFallbackError(signOutError)) await offerSignOutAnyway();
+    else Alert.alert(t('signOutErrorTitle'), t('signOutErrorBody'));
   }
 
   async function handleRestore() {

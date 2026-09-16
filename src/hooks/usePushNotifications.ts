@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase';
 import { getCheckIn } from '../storage/checkIn';
 import { AsyncWriteBarrier } from '../lib/appFlowGuards';
 import { getPushDestination, shouldHandlePushResponse } from '../lib/pushRouting';
+import { settlePendingPushTokenRevoke } from '../lib/pendingPushTokenRevoke';
 import type { Entitlements } from '../api/types';
 export const LEGACY_NUDGE_PREFIX = 'legacy-daily-nudge:v1:';
 const LEGACY_OPT_IN_KEY = 'legacy-daily-nudge-opt-in:v1:';
@@ -37,6 +38,23 @@ const NUDGE_DAYS = 7; // schedule a week of nudges ahead so non-openers still ge
 const pushWriteBarrier = new AsyncWriteBarrier();
 let activePushAccountId: string | null = null;
 let nudgeRearmQueue: Promise<void> = Promise.resolve();
+
+/** Null this account's server-side push token (used to settle an offline sign-out). */
+export async function revokePushToken(accountId: string): Promise<void> {
+  const { error } = await supabase.from('accounts').update({ push_token: null }).eq('id', accountId);
+  if (error) throw error;
+}
+
+/**
+ * An offline sign-out leaves a revoke pending; settle it before registering
+ * so a fresh registration is never nulled by the late revoke. Returns whether
+ * the device should (re)register afterwards.
+ */
+export async function settleRevokeThenRegister(accountId: string): Promise<boolean> {
+  const settled = await settlePendingPushTokenRevoke(accountId, revokePushToken);
+  if (settled === 'retry') return false;
+  return registerForPushNotifications(accountId, false);
+}
 
 /** Invalidate token acquisition and wait for an already-started write to settle. */
 export async function cancelPushRegistration(accountId: string): Promise<void> {
@@ -215,10 +233,16 @@ export function usePushNotifications(
   useEffect(() => {
     if (!accountId) return;
     // Mount may register an already-authorized device, but never opens a prompt.
-    void registerForPushNotifications(accountId, false).catch(() => false);
+    void settleRevokeThenRegister(accountId).catch(() => false);
 
     const appStateSub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') void rearmDailyNudge().catch(error => console.warn('[push] rearm failed', error));
+      if (state !== 'active') return;
+      void rearmDailyNudge().catch(error => console.warn('[push] rearm failed', error));
+      // A revoke that could not be settled at mount (still offline) is retried
+      // here; a successful late revoke re-registers the device.
+      void settlePendingPushTokenRevoke(accountId, revokePushToken)
+        .then((settled) => (settled === 'revoked' ? registerForPushNotifications(accountId, false) : false))
+        .catch(() => false);
     });
     return () => {
       appStateSub.remove();

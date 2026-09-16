@@ -130,3 +130,68 @@ If this work is resumed after an interruption, continue from the first feature w
   911-988 parity, "translated not copied" for every multi-word string, es crash fallback, no copy ternaries on
   member screens)
 - Manual: Settings → Español → Crisis Mode, Scripts, Book a call, Safety Wallet; force a render error → Spanish fallback.
+
+## 5. Family space survives its creator; sign out works offline — DONE
+
+**What changed**
+
+*(a) Succession on account deletion*
+- `supabase/migrations/20260916120000_family_space_survives_creator.sql` — `BEFORE DELETE` trigger on
+  `public.accounts` (`transfer_family_spaces_before_account_delete`, SECURITY DEFINER, not executable by clients).
+  For every space the account created: hand `created_by` to the **longest-standing remaining member** (earliest
+  `family_members.joined_at`, ties by `id`), mark that member `role = 'owner'`, rename the space to the successor's
+  first name (the UI renders `"<first name>'s Family"`; old name kept if they have none); delete the space only when
+  no other member remains. `family_spaces.created_by` FK switched from `ON DELETE CASCADE` to `ON DELETE RESTRICT`
+  so a dropped trigger fails loudly instead of silently wiping a family.
+- RLS unchanged: `owner update` / `creator select` key on `created_by`, `member select` on membership, so the
+  successor gains owner rights the moment the row moves. `delete_own_account` untouched — it deletes `auth.users`,
+  the cascade reaches `accounts`, and the trigger fires inside that cascade.
+- `supabase/tests/family_space_succession_test.sql` (18 pgTAP assertions, CI only): wiring (trigger, RESTRICT,
+  privileges), creator deletes → space, invite code and shared walls survive, earliest member (not latest) becomes
+  owner, `family_members.role` updated, RLS lets the successor rename and stops a non-owner, lone creator → space
+  removed, non-creator deleting leaves ownership alone.
+
+*(b) Offline sign-out*
+- Finding: `supabase.auth.signOut()` (any scope) calls the server first and, on a network failure, **keeps the local
+  session** — offline members were stuck signed in. Pinned by `tests/local-sign-out.test.ts` against the installed
+  auth-js with an offline `fetch`.
+- `src/lib/localSignOut.ts` — `signOutLocally(target, deps)` ordered: store pending revoke → discard the account's
+  outbox → clear offline account cache → remove session (last, so nothing is replayed/re-cached afterwards; any earlier
+  failure leaves the member signed in). `removeSessionLocally(auth)` uses auth-js's own `_removeSession()` (clears
+  storage + memory, emits `SIGNED_OUT`) with a fallback to `signOut({ scope: 'local' })`. `outboxImpact()` counts what
+  would be discarded.
+- `src/lib/pendingPushTokenRevoke.ts` — versioned record `@sober-helpline/pending-push-token-revoke/v1`
+  `{ version: 1, accountId, requestedAt }`, fail-closed reader; `settlePendingPushTokenRevoke(accountId, revoke)` →
+  `none | revoked | retry | superseded`.
+- `src/hooks/usePushNotifications.ts` — `revokePushToken`, `settleRevokeThenRegister`: on mount the pending revoke is
+  settled **before** device registration (so a fresh token is never nulled by a late revoke); registration is skipped
+  while the revoke is still pending; retried on app foreground, re-registering after a late success. A different
+  account signing in supersedes the record (`register_push_device` already moves the token in one transaction).
+- `src/contexts/AccountContext.tsx` — exposes `signOutLocally()` wired to the lib with the real outbox/cache/auth.
+- `app/settings.tsx` — when clearing `push_token` or `signOut()` fails for an offline reason
+  (`isOfflineFallbackError`), an alert offers **Stay signed in / Sign out anyway**, stating that signed-in details are
+  erased, notifications for the account are turned off on the device at the next connected sign-in, and how many unsent
+  check-ins / journal notes will be discarded. Non-offline failures keep the existing error.
+- Copy (en + es): `settings.signOutOffline.{title,body,bodyWithQueue,cancel,confirm}`.
+
+**Decisions**
+- Longest-standing member over most-recent-activity: deterministic, needs no activity table, and is the person the
+  rest of the family already knows.
+- Space renamed to the successor's first name because the UI shows `"{{name}}'s Family"` (feature 4).
+- Offline sign-out discards that account's queued writes rather than keeping them for a later session — a signed-out
+  device should hold nothing for the account; the alert says so before confirming.
+
+**Verify**
+- CI: `supabase test db` runs `family_space_succession_test.sql` (no Docker locally).
+- `npx tsx --test tests/local-sign-out.test.ts tests/pending-push-token-revoke.test.ts` (5 + 5).
+- Manual: airplane mode → Settings → Sign out → "Sign out anyway" → app returns to sign-in; reconnect and sign in →
+  `accounts.push_token` is nulled then re-registered; owner of a family space deletes account → members still see
+  the space, earliest member is owner.
+
+**Deferred**
+- `shared_walls.proposed_by` still cascades: walls *proposed by* the deleted creator disappear (commitments to them
+  too). Reassigning authorship is a product call.
+- No "leave family space" UI exists; if one is added, the same succession must run when the creator leaves.
+- Push token revoke for a *different* account that later signs in on the same device relies on
+  `register_push_device` transferring the token; if that registration never runs (permission denied), the old
+  account's token stays until its own next connected sign-in.

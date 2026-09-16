@@ -32,6 +32,7 @@ function harness(platform = 'ios') {
       from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: 'A' } }) }) }) }),
     } }, '../storage/checkIn': { getCheckIn: async () => null },
     '../lib/appFlowGuards': { AsyncWriteBarrier }, '../lib/pushRouting': {},
+    '../lib/pendingPushTokenRevoke': { settlePendingPushTokenRevoke: async () => 'none' },
     '../reminders/personalReminders': { REMINDER_PREFIX: 'personal-reminder:' },
   };
   const code = ts.transpileModule(fs.readFileSync('src/hooks/usePushNotifications.ts', 'utf8'), {
