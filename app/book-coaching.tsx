@@ -38,13 +38,13 @@ function getNextDays(count: number): Date[] {
   });
 }
 
-function formatDateChip(d: Date): string {
-  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+function formatDateChip(d: Date, language: string): string {
+  return d.toLocaleDateString(language.startsWith('es') ? 'es' : 'en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
 export default function BookCoachingScreen() {
   const { colors } = useTheme();
-  const { t } = useTranslation('support');
+  const { t, i18n } = useTranslation('support');
   const { user } = useAccount();
   const router = useRouter();
 
@@ -111,12 +111,12 @@ export default function BookCoachingScreen() {
     setSubmitted(false);
     setSubmitError(false);
 
-    const dateStr = formatDateChip(selectedDate!);
+    const dateStr = formatDateChip(selectedDate!, i18n.language);
     const periodStr = t(`coaching.${selectedPeriod}` as const);
     const preferredTimes = `${dateStr} · ${periodStr}`;
 
     const combinedNote = [
-      contact.trim() ? `Contact: ${contact.trim()}` : null,
+      contact.trim() ? t('coaching.contactNotePrefix', { contact: contact.trim() }) : null,
       note.trim() || null,
     ]
       .filter(Boolean)
@@ -204,7 +204,7 @@ export default function BookCoachingScreen() {
                 activeOpacity={0.75}
               >
                 <Text style={[styles.chipText, { color: isSelected ? '#fff' : colors.ink }]}>
-                  {formatDateChip(d)}
+                  {formatDateChip(d, i18n.language)}
                 </Text>
               </TouchableOpacity>
             );

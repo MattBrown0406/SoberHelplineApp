@@ -59,7 +59,7 @@ export default function BoundariesScreen() {
     proposeWall,
     markWavering,
     commitWall,
-  } = useFamilySpace(user?.id ?? null, youLabel);
+  } = useFamilySpace(user?.id ?? null, { you: youLabel, member: content.journal.member });
   const holdLog = useHoldLog(user?.id ?? null, familySpace?.id ?? null);
   const [prefill, setPrefill] = useState('');
   const [lastAnchorTag, setLastAnchorTag] = useState<string | null>(null);
@@ -659,7 +659,7 @@ export default function BoundariesScreen() {
               <TouchableOpacity
                 style={[styles.solidBtn, { backgroundColor: colors.primary }]}
                 onPress={() => {
-                  void createFamilySpace(firstName || 'My').catch((err: unknown) => {
+                  void createFamilySpace(firstName).catch((err: unknown) => {
                     console.error('[BoundariesScreen] createFamilySpace failed:', err);
                     Alert.alert(tAlign('createErrorTitle'), tAlign('createErrorMessage'));
                   });

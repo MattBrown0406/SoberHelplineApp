@@ -8,18 +8,30 @@ import type {
   CommitmentStatus,
 } from '../api/types';
 
+export type FamilySpaceLabels = { you: string; member: string };
+
+/**
+ * `family_spaces.name` stores the owner's first name only (language-neutral);
+ * screens format it with a locale key. Rows written before this change stored
+ * "<name>'s Family", so the legacy suffix is stripped when reading.
+ */
+export function familySpaceOwnerName(storedName: string | null | undefined): string {
+  return (storedName ?? '').replace(/['’]s Family$/i, '').trim();
+}
+
 function memberLabel(
   accountId: string,
   viewerId: string | null,
   firstName: string | null | undefined,
-  youLabel: string,
+  labels: FamilySpaceLabels,
 ): string {
   const name = firstName?.trim();
   if (name) return name;
-  return accountId === viewerId ? youLabel : 'Member';
+  return accountId === viewerId ? labels.you : labels.member;
 }
 
-export function useFamilySpace(accountId: string | null, youLabel = 'You') {
+export function useFamilySpace(accountId: string | null, labels: FamilySpaceLabels) {
+  const { you: youLabel, member: memberFallback } = labels;
   const [space, setSpace] = useState<FamilySpace | null>(null);
   const [backupNotices, setBackupNotices] = useState<FamilyBackupNotice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,7 +71,7 @@ export function useFamilySpace(accountId: string | null, youLabel = 'You') {
         member.account_id,
         accountId,
         firstNameByAccount.get(member.account_id),
-        youLabel,
+        { you: youLabel, member: memberFallback },
       ),
       role: member.role as 'owner' | 'member',
       joinedAt: member.joined_at,
@@ -105,6 +117,7 @@ export function useFamilySpace(accountId: string | null, youLabel = 'You') {
     setSpace({
       id: spaceRes.data.id,
       name: spaceRes.data.name,
+      ownerName: familySpaceOwnerName(spaceRes.data.name),
       createdBy: spaceRes.data.created_by,
       inviteCode: spaceRes.data.invite_code,
       members,
@@ -138,7 +151,7 @@ export function useFamilySpace(accountId: string | null, youLabel = 'You') {
     } finally {
       if (generation === loadGeneration.current) setLoading(false);
     }
-  }, [accountId, youLabel]);
+  }, [accountId, youLabel, memberFallback]);
 
   useEffect(() => {
     void reload();
@@ -148,7 +161,7 @@ export function useFamilySpace(accountId: string | null, youLabel = 'You') {
     if (!accountId) return;
     const generation = ++loadGeneration.current;
     const { data: spaceId, error } = await supabase.rpc('create_family_space', {
-      p_name: `${ownerFirstName}'s Family`,
+      p_name: ownerFirstName.trim(),
     });
     if (error || !spaceId) {
       console.error('[useFamilySpace] create_family_space rpc failed:', error);

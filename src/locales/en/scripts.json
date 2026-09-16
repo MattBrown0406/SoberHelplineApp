@@ -36,5 +36,11 @@
     "FAMILY": "FAMILY",
     "CONVERSATION": "CONVERSATION",
     "ENABLING": "ENABLING"
+  },
+  "inline": {
+    "collapsesThisScript": "Collapses this script",
+    "expandsThisScript": "Expands this script",
+    "practicedTimes": "practiced {{count}} times",
+    "opensPracticeForThisScript": "Opens practice for this script"
   }
 }

@@ -209,6 +209,8 @@
     "post": "Publicar",
     "empty": "Todavía no hay notas. Sé el/la primero/a en compartir algo.",
     "you": "Tú",
+    "member": "Familiar",
+    "spaceTitle": "La familia de {{name}}",
     "postErrorTitle": "No se pudo publicar tu nota",
     "postErrorBody": "Revisa tu conexión e inténtalo de nuevo. Tu nota sigue aquí.",
     "pendingSync": "Guardado en este dispositivo: se publicará cuando vuelvas a tener conexión."

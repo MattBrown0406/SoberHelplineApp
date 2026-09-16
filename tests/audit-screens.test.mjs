@@ -51,7 +51,7 @@ for (const failure of ['database error', 'rejection']) {
     const { state, bindings } = stateBindings({ Submitted: true, SelectedDate: 'kept', Note: 'kept' });
     const handle = action('book-coaching.tsx', 'handleSubmit', {
       ...bindings, user: { id: 'account-a' }, canSubmit: true, submitting: false,
-      selectedDate: new Date(), selectedPeriod: 'morning', formatDateChip: () => 'Sep 7', t: key => key,
+      selectedDate: new Date(), selectedPeriod: 'morning', formatDateChip: () => 'Sep 7', t: key => key, i18n: { language: 'en' },
       contact: '555', note: 'Draft', load: () => assert.fail('Failed insert must not refresh as success'),
       supabase: { from: () => ({ insert: async () => { if (failure === 'rejection') throw Error('offline'); return { error: Error('denied') }; } }) },
     });
@@ -70,7 +70,8 @@ test('coaching successful insert clears form and refreshes bookings', async () =
   let payload;
   await action('book-coaching.tsx', 'handleSubmit', {
     ...bindings, user: { id: 'account-a' }, canSubmit: true, submitting: false,
-    selectedDate: new Date(), selectedPeriod: 'morning', formatDateChip: () => 'Sep 7', t: key => key,
+    selectedDate: new Date(), selectedPeriod: 'morning', formatDateChip: () => 'Sep 7', i18n: { language: 'en' },
+    t: (key, vars) => key === 'coaching.contactNotePrefix' ? `Contact: ${vars.contact}` : key,
     contact: ' 555 ', note: ' Draft ', load: () => { refreshed = true; },
     supabase: { from: () => ({ insert: async value => { payload = value; return { error: null }; } }) },
   })();
@@ -159,7 +160,7 @@ test('late coaching submission cannot clear or reload another account', async ()
   const pending=new Promise(done=>{resolve=done});const submissionScope={current:{accountId:'A'}};
   const work=action('book-coaching.tsx','handleSubmit',{
     ...bindings,submissionScope,user:{id:'A'},canSubmit:true,submitting:false,
-    selectedDate:new Date(),selectedPeriod:'morning',formatDateChip:()=> 'date',t:k=>k,contact:'',note:'old',
+    selectedDate:new Date(),selectedPeriod:'morning',formatDateChip:()=> 'date',t:k=>k,i18n:{ language: 'en' },contact:'',note:'old',
     load:()=>assert.fail('must not load old account'),supabase:{from:()=>({insert:()=>pending})}
   })();
   submissionScope.current={accountId:'B'};state.Note='new account draft';state.Submitted=false;state.Submitting=true;

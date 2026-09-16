@@ -6,8 +6,7 @@ import { openEmergencyLink } from '../../lib/emergencyLinks';
 
 export function EmergencyActions({ prominent = false, offline = false }: { prominent?: boolean; offline?: boolean }) {
   const { colors } = useTheme();
-  const { t, i18n } = useTranslation('crisis');
-  const isSpanish = (i18n.resolvedLanguage ?? i18n.language ?? 'en').startsWith('es');
+  const { t } = useTranslation('crisis');
 
   return (
     <View
@@ -23,31 +22,27 @@ export function EmergencyActions({ prominent = false, offline = false }: { promi
       <Text style={[styles.note, { color: colors.inkSoft }]}>{t('emergency.note')}</Text>
       {offline ? (
         <Text accessibilityLiveRegion="polite" style={[styles.offlineNote, { color: colors.ink }]}>
-          {isSpanish
-            ? 'Aún se requiere servicio telefónico. Si un botón no conecta, ve a un lugar con señal celular o pide a alguien cercano que llame.'
-            : 'Phone service is still required. If a button cannot connect, move to a place with cellular service or ask someone nearby to call.'}
+          {t('emergency.offlineNote')}
         </Text>
       ) : null}
       <View style={styles.buttons}>
-        <EmergencyButton label={t('emergency.call911')} url="tel:911" color={colors.coral} isSpanish={isSpanish} />
-        <EmergencyButton label={t('emergency.call988')} url="tel:988" color={colors.primary} isSpanish={isSpanish} />
-        <EmergencyButton label={t('emergency.text988')} url="sms:988" color={colors.primary} isSpanish={isSpanish} />
-        <EmergencyButton label={t('emergency.poisonControl')} url="tel:18002221222" displayNumber="1-800-222-1222" color={colors.secondary} isSpanish={isSpanish} />
+        <EmergencyButton label={t('emergency.call911')} url="tel:911" color={colors.coral} hint={t('emergency.buttonHint')} />
+        <EmergencyButton label={t('emergency.call988')} url="tel:988" color={colors.primary} hint={t('emergency.buttonHint')} />
+        <EmergencyButton label={t('emergency.text988')} url="sms:988" color={colors.primary} hint={t('emergency.buttonHint')} />
+        <EmergencyButton label={t('emergency.poisonControl')} url="tel:18002221222" displayNumber="1-800-222-1222" color={colors.secondary} hint={t('emergency.buttonHint')} />
       </View>
     </View>
   );
 }
 
-function EmergencyButton({ label, url, displayNumber, color, isSpanish }: { label: string; url: string; displayNumber?: string; color: string; isSpanish: boolean }) {
+function EmergencyButton({ label, url, displayNumber, color, hint }: { label: string; url: string; displayNumber?: string; color: string; hint: string }) {
   return (
     <TouchableOpacity
       style={[styles.button, { borderColor: color }]}
       onPress={() => openEmergencyLink(url, displayNumber)}
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityHint={isSpanish
-        ? 'Abre el teléfono o la aplicación de mensajes; se requiere servicio para conectar'
-        : 'Opens your phone or messaging app; service is required to connect'}
+      accessibilityHint={hint}
     >
       <Text style={[styles.buttonText, { color }]}>{label}</Text>
     </TouchableOpacity>

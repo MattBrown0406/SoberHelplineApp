@@ -1,6 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import * as Localization from 'expo-localization';
+import i18n from '../i18n';
 import { captureAppError } from '../lib/monitoring';
+import { errorBoundaryCopy } from '../lib/errorBoundaryCopy';
 
 /** Root error boundary — last line of defense for render failures. */
 function reportError(error: Error) {
@@ -8,6 +11,15 @@ function reportError(error: Error) {
   if (__DEV__) {
     // eslint-disable-next-line no-console
     console.error('[ErrorBoundary]', error);
+  }
+}
+
+function currentLanguage(): string {
+  try {
+    if (i18n.isInitialized && i18n.language) return i18n.language;
+    return Localization.getLocales()[0]?.languageCode ?? 'en';
+  } catch {
+    return 'en';
   }
 }
 
@@ -31,19 +43,18 @@ export class ErrorBoundary extends React.Component<
 
   render() {
     if (this.state.hasError) {
+      const copy = errorBoundaryCopy(currentLanguage());
       return (
         <View style={styles.container}>
           <Text style={styles.icon}>⚓</Text>
-          <Text style={styles.title}>Something went wrong on our side.</Text>
-          <Text style={styles.body}>
-            Your data is safe. If you need support right now, call 988 or 911.
-          </Text>
+          <Text style={styles.title}>{copy.title}</Text>
+          <Text style={styles.body}>{copy.body}</Text>
           <TouchableOpacity
             style={styles.btn}
             onPress={() => this.setState({ hasError: false })}
             activeOpacity={0.85}
           >
-            <Text style={styles.btnText}>Try again</Text>
+            <Text style={styles.btnText}>{copy.retry}</Text>
           </TouchableOpacity>
         </View>
       );

@@ -55,7 +55,8 @@ function TodayContent() {
   const { lovedOne, loading: lovedOneLoading, save: saveLovedOne } = useLovedOne(user?.id ?? null);
   const { dayCount, boundariesHeld, groupSessions, quoteIndex, scriptSlot, curriculumWeek, curriculumPhase, situation, primaryDoor, nextFreeCall, rsvpFreeCall } =
     useTodayFeed(user?.id ?? null, user?.joinedAt ?? null);
-  const { space: familySpace } = useFamilySpace(user?.id ?? null, user?.firstName || 'You');
+  const youLabel = user?.firstName || t('boundaries:journal.you');
+  const { space: familySpace } = useFamilySpace(user?.id ?? null, { you: youLabel, member: t('boundaries:journal.member') });
   const holdLog = useHoldLog(user?.id ?? null, familySpace?.id ?? null);
   const canAccessFullToday = useFeatureAccess('todayFull');
 
@@ -184,7 +185,7 @@ function TodayContent() {
           shared={holdLog.shared}
           saving={holdLog.saving}
           canShare={!!familySpace}
-          nameFor={(id) => familySpace?.members.find((m) => m.accountId === id)?.displayName ?? (user?.firstName || 'You')}
+          nameFor={(id) => familySpace?.members.find((m) => m.accountId === id)?.displayName ?? youLabel}
           onSave={(result, share) => { void saveBoundaryWin(result, share); }}
         />
         <MoodChart accountId={user?.id ?? null} />
@@ -240,7 +241,7 @@ function TodayContent() {
         shared={holdLog.shared}
         saving={holdLog.saving}
         canShare={!!familySpace}
-        nameFor={(id) => familySpace?.members.find((m) => m.accountId === id)?.displayName ?? (user?.firstName || 'You')}
+        nameFor={(id) => familySpace?.members.find((m) => m.accountId === id)?.displayName ?? youLabel}
         onSave={(result, share) => { void saveBoundaryWin(result, share); }}
       />
 

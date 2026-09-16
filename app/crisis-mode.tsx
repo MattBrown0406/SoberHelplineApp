@@ -173,11 +173,11 @@ export default function CrisisModeScreen() {
   function clearSavedData() {
     if (!user) return;
     Alert.alert(
-      isSpanish ? '¿Borrar datos de crisis guardados?' : 'Clear saved crisis data?',
-      isSpanish ? 'Esto elimina de este dispositivo el plan, incidentes, límites y roles guardados para esta cuenta.' : 'This removes this account’s saved plan, incidents, boundaries, and roles from this device.',
+      t('inline.clearSavedCrisisData'),
+      t('inline.thisRemovesThisAccountS'),
       [
-        { text: isSpanish ? 'Cancelar' : 'Cancel', style: 'cancel' },
-        { text: isSpanish ? 'Borrar' : 'Clear', style: 'destructive', onPress: () => void clearSafetyWallet().catch(() => Alert.alert(t('wallet.storageError'))) },
+        { text: t('inline.cancel'), style: 'cancel' },
+        { text: t('inline.clear'), style: 'destructive', onPress: () => void clearSafetyWallet().catch(() => Alert.alert(t('wallet.storageError'))) },
       ],
     );
   }
@@ -194,13 +194,13 @@ export default function CrisisModeScreen() {
 
   function showUpgrade(tier: 'Essential' | 'Premier') {
     Alert.alert(
-      isSpanish ? `${tier} requerido` : `${tier} required`,
+      t('inline.tierRequired', { tier }),
       tier === 'Essential'
-        ? (isSpanish ? 'Guarda planes, incidentes y seguimiento de 24/72 horas con Essential.' : 'Save plans, incidents, and 24/72-hour follow-up with Essential.')
-        : (isSpanish ? 'El Plan de Comando Familiar está incluido con Premier.' : 'The Family Command Plan is included with Premier.'),
+        ? (t('inline.savePlansIncidentsAnd24'))
+        : (t('inline.theFamilyCommandPlanIs')),
       [
-        { text: isSpanish ? 'Ahora no' : 'Not now', style: 'cancel' },
-        { text: isSpanish ? 'Ver planes' : 'View plans', onPress: () => router.push('/(tabs)/support' as never) },
+        { text: t('inline.notNow'), style: 'cancel' },
+        { text: t('inline.viewPlans'), onPress: () => router.push('/(tabs)/support' as never) },
       ],
     );
   }
@@ -208,11 +208,11 @@ export default function CrisisModeScreen() {
   const summaryExportItems: WalletExportItem[] = situation && canShareWallet && hydrated ? [
     { id: 'guidance', label: t('share.heading'), value: [
       `${t('share.riskLevel')}: ${level}`, situation.label,
-      isSpanish ? 'HACER AHORA' : 'DO NOW', ...immediateActions,
-      isSpanish ? 'DECIR ESTO' : 'SAY THIS', sayThis,
-      isSpanish ? 'NO HACER' : "DON'T DO THIS", ...dontDo,
-      isSpanish ? 'PRÓXIMAS 24 HORAS' : 'NEXT 24 HOURS', ...situation.next24,
-      isSpanish ? 'PRÓXIMAS 72 HORAS' : 'NEXT 72 HOURS', ...situation.next72,
+      t('inline.doNow'), ...immediateActions,
+      t('inline.sayThis'), sayThis,
+      t('inline.donTDoThis'), ...dontDo,
+      t('inline.next24Hours'), ...situation.next24,
+      t('inline.next72Hours'), ...situation.next72,
     ].join('\n') },
     ...walletExportItems(plan, incidents, (key) => t(key as never)),
     ...(Object.values(boundary).some((value) => value.trim())
@@ -221,10 +221,10 @@ export default function CrisisModeScreen() {
   const commandExportItems: WalletExportItem[] = hasPremier && hydrated ? [
     ...summaryExportItems,
     ...([
-      ['coordinator', isSpanish ? 'Coordinador' : 'Coordinator'],
-      ['communicator', isSpanish ? 'Comunicador' : 'Communicator'],
-      ['safetyLead', isSpanish ? 'Responsable de seguridad' : 'Safety lead'],
-      ['unifiedStatement', isSpanish ? 'Posición familiar unificada' : 'Unified family statement'],
+      ['coordinator', t('inline.coordinator')],
+      ['communicator', t('inline.communicator')],
+      ['safetyLead', t('inline.safetyLead')],
+      ['unifiedStatement', t('inline.unifiedFamilyStatement')],
     ] as const).flatMap(([key, label]) => command[key].trim()
       ? [{ id: `command:${key}`, label, value: command[key] }] : []),
   ] : [];
@@ -237,16 +237,16 @@ export default function CrisisModeScreen() {
         </TouchableOpacity>
 
         <View style={[styles.hero, { backgroundColor: colors.white, borderColor: colors.line }]}>
-          <Text style={[styles.kicker, { color: colors.coral }]}>{isSpanish ? 'COPILOTO DE CRISIS' : 'CRISIS COPILOT'}</Text>
+          <Text style={[styles.kicker, { color: colors.coral }]}>{t('inline.crisisCopilot')}</Text>
           <Text accessibilityRole="header" style={[styles.title, { color: colors.ink }]}>{t('title')}</Text>
           <Text style={[styles.body, { color: colors.inkSoft }]}>
-            {isSpanish ? 'Respira. No tienes que resolver toda la adicción esta noche. Vamos a decidir el próximo paso seguro.' : 'Take one breath. You do not have to solve the entire addiction tonight. We will decide the next safe step.'}
+            {t('inline.takeOneBreathYouDo')}
           </Text>
           <View
             style={styles.progressRow}
             accessible
             accessibilityRole="progressbar"
-            accessibilityLabel={isSpanish ? 'Progreso de la evaluación de crisis' : 'Crisis assessment progress'}
+            accessibilityLabel={t('inline.crisisAssessmentProgress')}
             accessibilityValue={{ min: 1, max: 3, now: stage === 'situation' ? 1 : stage === 'safety' ? 2 : 3 }}
           >
             {(['situation', 'safety', 'result'] as Stage[]).map((item, index) => (
@@ -260,12 +260,10 @@ export default function CrisisModeScreen() {
         {isOfflineAccountFallback ? (
           <View accessibilityLiveRegion="polite" style={[styles.offlineBanner, { backgroundColor: colors.secondaryLight, borderColor: colors.secondary }]}>
             <Text accessibilityRole="header" style={[styles.offlineTitle, { color: colors.ink }]}>
-              {isSpanish ? 'Estás usando herramientas sin conexión' : 'You are using offline tools'}
+              {t('inline.youAreUsingOfflineTools')}
             </Text>
             <Text style={[styles.small, { color: colors.ink }]}>
-              {isSpanish
-                ? 'La evaluación, los guiones, las guías de 24/72 horas y la Cartera de Seguridad siguen disponibles. El chat, video y las reservaciones volverán cuando se restablezca la conexión.'
-                : 'Assessment, scripts, 24/72-hour guidance, and the Safety Wallet remain available. Chat, video, and booking return after your connection is restored.'}
+              {t('inline.offlineToolsBody')}
             </Text>
           </View>
         ) : null}
@@ -274,8 +272,8 @@ export default function CrisisModeScreen() {
 
         {stage === 'situation' && (
           <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
-            <Text accessibilityRole="header" style={[styles.sectionTitle, { color: colors.ink }]}>{isSpanish ? '¿Qué está pasando ahora?' : 'What is happening right now?'}</Text>
-            <Text style={[styles.body, { color: colors.inkSoft }]}>{isSpanish ? 'Elige la opción más cercana. Podrás agregar detalles de seguridad después.' : 'Choose the closest situation. You can add safety details next.'}</Text>
+            <Text accessibilityRole="header" style={[styles.sectionTitle, { color: colors.ink }]}>{t('inline.whatIsHappeningRightNow')}</Text>
+            <Text style={[styles.body, { color: colors.inkSoft }]}>{t('inline.chooseTheClosestSituationYou')}</Text>
             {CRISIS_SITUATION_ORDER.map((key) => (
               <TouchableOpacity key={key} style={[styles.situationRow, { borderColor: colors.line }]} onPress={() => chooseSituation(key)} accessibilityRole="button" accessibilityLabel={situations[key].label} accessibilityHint={situations[key].description}>
                 <View style={styles.flexOne}>
@@ -291,21 +289,21 @@ export default function CrisisModeScreen() {
         {stage === 'safety' && situation && (
           <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
             <Text style={[styles.eyebrow, { color: colors.coral }]}>{situation.label}</Text>
-            <Text accessibilityRole="header" style={[styles.sectionTitle, { color: colors.ink }]}>{isSpanish ? '¿Qué más es cierto?' : 'What else is true?'}</Text>
+            <Text accessibilityRole="header" style={[styles.sectionTitle, { color: colors.ink }]}>{t('inline.whatElseIsTrue')}</Text>
             <Text style={[styles.body, { color: colors.inkSoft }]}>{t('intro')}</Text>
             {TRIAGE.map((q) => (
-              <TouchableOpacity key={q.key} style={[styles.checkRow, { borderColor: selected[q.key] ? levelColor(level) : colors.line }]} onPress={() => toggle(q.key)} accessibilityRole="checkbox" accessibilityLabel={t(`triage.items.${q.key}`)} accessibilityHint={isSpanish ? 'Toca dos veces para cambiar' : 'Double tap to toggle'} accessibilityState={{ checked: selected[q.key] }}>
+              <TouchableOpacity key={q.key} style={[styles.checkRow, { borderColor: selected[q.key] ? levelColor(level) : colors.line }]} onPress={() => toggle(q.key)} accessibilityRole="checkbox" accessibilityLabel={t(`triage.items.${q.key}`)} accessibilityHint={t('inline.doubleTapToToggle')} accessibilityState={{ checked: selected[q.key] }}>
                 <View style={[styles.box, { backgroundColor: selected[q.key] ? levelColor(level) : colors.white, borderColor: selected[q.key] ? levelColor(level) : colors.line }]}>
                   <Text style={styles.boxText}>{selected[q.key] ? '✓' : ''}</Text>
                 </View>
                 <Text style={[styles.checkText, { color: colors.ink }]}>{t(`triage.items.${q.key}`)}</Text>
               </TouchableOpacity>
             ))}
-            <TouchableOpacity accessibilityRole="button" accessibilityHint={isSpanish ? 'Muestra el nivel de riesgo y los próximos pasos' : 'Shows the risk level and next steps'} style={[styles.primaryBtn, { backgroundColor: colors.primary }]} onPress={() => setStage('result')}>
-              <Text style={styles.primaryBtnText}>{isSpanish ? 'Muéstrame qué hacer' : 'Show me what to do'}</Text>
+            <TouchableOpacity accessibilityRole="button" accessibilityHint={t('inline.showsTheRiskLevelAnd')} style={[styles.primaryBtn, { backgroundColor: colors.primary }]} onPress={() => setStage('result')}>
+              <Text style={styles.primaryBtnText}>{t('inline.showMeWhatToDo')}</Text>
             </TouchableOpacity>
             <TouchableOpacity accessibilityRole="button" style={styles.textBtn} onPress={() => setStage('situation')}>
-              <Text style={[styles.textBtnText, { color: colors.primary }]}>{isSpanish ? 'Elegir otra situación' : 'Choose a different situation'}</Text>
+              <Text style={[styles.textBtnText, { color: colors.primary }]}>{t('inline.chooseADifferentSituation')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -319,26 +317,26 @@ export default function CrisisModeScreen() {
               <Text style={[styles.riskBody, { color: levelForeground(level) }]}>{t(`risk.${level}.body`)}</Text>
             </View>
 
-            <ActionCard title={isSpanish ? 'Haz esto ahora' : 'Do this now'} items={immediateActions} colors={colors} numbered />
+            <ActionCard title={t('inline.doThisNow')} items={immediateActions} colors={colors} numbered />
             <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
-              <Text accessibilityRole="header" style={[styles.sectionTitle, { color: colors.ink }]}>{isSpanish ? 'Di esto' : 'Say this'}</Text>
+              <Text accessibilityRole="header" style={[styles.sectionTitle, { color: colors.ink }]}>{t('inline.sayThis2')}</Text>
               <View style={[styles.scriptBox, { backgroundColor: colors.primaryLight }]}><Text style={[styles.script, { color: colors.ink }]}>{sayThis}</Text></View>
             </View>
-            <ActionCard title={isSpanish ? 'No hagas esto' : "Don't do this"} items={dontDo} colors={colors} />
+            <ActionCard title={t('inline.donTDoThis2')} items={dontDo} colors={colors} />
 
             {level === 'RED' && <EmergencyActions prominent offline={isOfflineAccountFallback} />}
 
             <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary }]} onPress={startOver}>
-              <Text style={[styles.outlineBtnText, { color: colors.primary }]}>{isSpanish ? 'Iniciar una nueva evaluación' : 'Start a new assessment'}</Text>
+              <Text style={[styles.outlineBtnText, { color: colors.primary }]}>{t('inline.startANewAssessment')}</Text>
             </TouchableOpacity>
 
             <>
                 <View style={[styles.tierBanner, { backgroundColor: colors.secondaryLight }]}>
-                  <Text style={[styles.tierTitle, { color: colors.ink }]}>{isSpanish ? 'Herramientas básicas de seguridad siempre gratuitas' : 'Core safety tools are always free'}</Text>
-                  <Text style={[styles.small, { color: colors.inkSoft }]}>{isSpanish ? 'Se guardan en este dispositivo para esta cuenta y están disponibles sin conexión. Evita usar un dispositivo compartido.' : 'Saved on this device for this account and available offline. Avoid using a shared device.'}</Text>
+                  <Text style={[styles.tierTitle, { color: colors.ink }]}>{t('inline.coreSafetyToolsAreAlways')}</Text>
+                  <Text style={[styles.small, { color: colors.inkSoft }]}>{t('inline.savedOnThisDeviceFor')}</Text>
                 </View>
-                <ActionCard title={isSpanish ? 'Plan para las próximas 24 horas' : 'Next 24-hour plan'} items={situation.next24} colors={colors} numbered />
-                <ActionCard title={isSpanish ? 'Plan para las próximas 72 horas' : 'Next 72-hour plan'} items={situation.next72} colors={colors} numbered />
+                <ActionCard title={t('inline.next24HourPlan')} items={situation.next24} colors={colors} numbered />
+                <ActionCard title={t('inline.next72HourPlan')} items={situation.next72} colors={colors} numbered />
 
                 {!hydrated ? <View style={styles.card}>
                   <Text accessibilityRole="alert">{t(!user ? 'wallet.signInRequired' : loadError ? 'wallet.storageError' : 'wallet.loading')}</Text>
@@ -354,9 +352,9 @@ export default function CrisisModeScreen() {
                   <Field label={t('incident.what')} placeholder={fieldPlaceholder} value={incidentDraft.summary} onChangeText={(summary) => setIncidentDraft((prev) => ({ ...prev, summary }))} multiline />
                   <Field label={t('incident.substances')} placeholder={fieldPlaceholder} value={incidentDraft.substances} onChangeText={(substances) => setIncidentDraft((prev) => ({ ...prev, substances }))} />
                   <Field label={t('incident.threats')} placeholder={fieldPlaceholder} value={incidentDraft.threats} onChangeText={(threats) => setIncidentDraft((prev) => ({ ...prev, threats }))} multiline />
-                  <Toggle label={t('incident.childrenPresent')} value={incidentDraft.childrenPresent} onPress={() => setIncidentDraft((prev) => ({ ...prev, childrenPresent: !prev.childrenPresent }))} isSpanish={isSpanish} />
-                  <Toggle label={t('incident.policeOrEms')} value={incidentDraft.policeOrEms} onPress={() => setIncidentDraft((prev) => ({ ...prev, policeOrEms: !prev.policeOrEms }))} isSpanish={isSpanish} />
-                  <Toggle label={t('incident.boundaryCrossed')} value={incidentDraft.boundaryCrossed} onPress={() => setIncidentDraft((prev) => ({ ...prev, boundaryCrossed: !prev.boundaryCrossed }))} isSpanish={isSpanish} />
+                  <Toggle label={t('incident.childrenPresent')} value={incidentDraft.childrenPresent} onPress={() => setIncidentDraft((prev) => ({ ...prev, childrenPresent: !prev.childrenPresent }))} hint={t('inline.doubleTapToToggle')} />
+                  <Toggle label={t('incident.policeOrEms')} value={incidentDraft.policeOrEms} onPress={() => setIncidentDraft((prev) => ({ ...prev, policeOrEms: !prev.policeOrEms }))} hint={t('inline.doubleTapToToggle')} />
+                  <Toggle label={t('incident.boundaryCrossed')} value={incidentDraft.boundaryCrossed} onPress={() => setIncidentDraft((prev) => ({ ...prev, boundaryCrossed: !prev.boundaryCrossed }))} hint={t('inline.doubleTapToToggle')} />
                   <TouchableOpacity accessibilityRole="button" style={[styles.primaryBtn, { backgroundColor: colors.primary }]} onPress={addIncident}><Text style={styles.primaryBtnText}>{t('incident.save')}</Text></TouchableOpacity>
                   {incidents.slice(0, 5).map((incident) => <View key={incident.id} style={[styles.incident, { borderColor: colors.line }]}><Text style={[styles.incidentDate, { color: colors.inkSoft }]}>{new Date(incident.createdAt).toLocaleString()}</Text><Text style={[styles.body, { color: colors.ink }]}>{incident.summary}</Text></View>)}
                 </View>
@@ -370,29 +368,29 @@ export default function CrisisModeScreen() {
                   <View style={[styles.scriptBox, { backgroundColor: colors.secondaryLight }]}><Text style={[styles.script, { color: colors.ink }]}>{boundaryText}</Text></View>
                 </View>
                 <SafetyWalletExport scope={user?.id ?? 'guest'} items={summaryExportItems} label={t('support.share')} />
-                <TouchableOpacity accessibilityRole="button" style={styles.textBtn} onPress={clearSavedData}><Text style={[styles.textBtnText, { color: colors.coral }]}>{isSpanish ? 'Borrar datos de crisis guardados' : 'Clear saved crisis data'}</Text></TouchableOpacity>
+                <TouchableOpacity accessibilityRole="button" style={styles.textBtn} onPress={clearSavedData}><Text style={[styles.textBtnText, { color: colors.coral }]}>{t('inline.clearSavedCrisisData2')}</Text></TouchableOpacity>
                 </>}
             </>
 
             {hasPremier && hydrated ? (
               <View style={[styles.card, styles.premiumCard, { backgroundColor: colors.ink, borderColor: colors.primary }]}>
                 <Text style={styles.premiumEyebrow}>PREMIER</Text>
-                <Text style={styles.premiumTitle}>{isSpanish ? 'Plan de Comando Familiar' : 'Family Command Plan'}</Text>
-                <Text style={styles.premiumBody}>{isSpanish ? 'Asigna roles y comparte una sola posición familiar. Esta versión crea un plan privado; la sala multiusuario en vivo llegará después.' : 'Assign roles and share one unified family position. This version creates a private command plan; a live multi-user room comes later.'}</Text>
-                <Field dark label={isSpanish ? 'Coordinador de la crisis' : 'Crisis coordinator'} placeholder={fieldPlaceholder} value={command.coordinator} onChangeText={(value) => setCommand((prev) => ({ ...prev, coordinator: value }))} />
-                <Field dark label={isSpanish ? 'Única persona que comunica' : 'Single family communicator'} placeholder={fieldPlaceholder} value={command.communicator} onChangeText={(value) => setCommand((prev) => ({ ...prev, communicator: value }))} />
-                <Field dark label={isSpanish ? 'Responsable de niños/seguridad' : 'Children and safety lead'} placeholder={fieldPlaceholder} value={command.safetyLead} onChangeText={(value) => setCommand((prev) => ({ ...prev, safetyLead: value }))} />
-                <Field dark multiline label={isSpanish ? 'Posición familiar unificada' : 'Unified family statement'} placeholder={boundaryText} value={command.unifiedStatement} onChangeText={(value) => setCommand((prev) => ({ ...prev, unifiedStatement: value }))} />
-                <View style={{ backgroundColor: colors.white, borderRadius: 12, padding: 12 }}><SafetyWalletExport scope={user?.id ?? 'guest'} items={commandExportItems} label={isSpanish ? 'Compartir plan de comando' : 'Share command plan'} /></View>
+                <Text style={styles.premiumTitle}>{t('inline.familyCommandPlan')}</Text>
+                <Text style={styles.premiumBody}>{t('inline.assignRolesAndShareOne')}</Text>
+                <Field dark label={t('inline.crisisCoordinator')} placeholder={fieldPlaceholder} value={command.coordinator} onChangeText={(value) => setCommand((prev) => ({ ...prev, coordinator: value }))} />
+                <Field dark label={t('inline.singleFamilyCommunicator')} placeholder={fieldPlaceholder} value={command.communicator} onChangeText={(value) => setCommand((prev) => ({ ...prev, communicator: value }))} />
+                <Field dark label={t('inline.childrenAndSafetyLead')} placeholder={fieldPlaceholder} value={command.safetyLead} onChangeText={(value) => setCommand((prev) => ({ ...prev, safetyLead: value }))} />
+                <Field dark multiline label={t('inline.unifiedFamilyStatement')} placeholder={boundaryText} value={command.unifiedStatement} onChangeText={(value) => setCommand((prev) => ({ ...prev, unifiedStatement: value }))} />
+                <View style={{ backgroundColor: colors.white, borderRadius: 12, padding: 12 }}><SafetyWalletExport scope={user?.id ?? 'guest'} items={commandExportItems} label={t('inline.shareCommandPlan')} /></View>
               </View>
             ) : !hasPremier && !isOfflineAccountFallback ? (
-              <LockedCard tier="Premier" cta={isSpanish ? 'Ver Premier' : 'View Premier'} title={isSpanish ? 'Mantén a la familia alineada' : 'Keep the family aligned'} body={isSpanish ? 'Premier agrega roles, una posición unificada y apoyo por video privado.' : 'Premier adds role assignments, a unified family position, and private video support.'} colors={colors} onPress={() => showUpgrade('Premier')} />
+              <LockedCard tier="Premier" cta={t('inline.viewPremier')} title={t('inline.keepTheFamilyAligned')} body={t('inline.premierAddsRoleAssignmentsA')} colors={colors} onPress={() => showUpgrade('Premier')} />
             ) : null}
 
             {!isOfflineAccountFallback ? (
               <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
                 <Text accessibilityRole="header" style={[styles.sectionTitle, { color: colors.ink }]}>{t('support.title')}</Text>
-                {entitlements.canMessageOnCallCoach ? <TouchableOpacity accessibilityRole="button" style={[styles.primaryBtn, { backgroundColor: colors.primary }]} onPress={() => router.push('/chat')}><Text style={styles.primaryBtnText}>{t('support.openTextline')}</Text></TouchableOpacity> : <Text style={[styles.body, { color: colors.inkSoft }]}>{isSpanish ? 'El apoyo por texto está disponible con Essential y Premier. Para peligro inmediato, usa 911 o 988.' : 'Text support is available with Essential and Premier. For immediate danger, use 911 or 988.'}</Text>}
+                {entitlements.canMessageOnCallCoach ? <TouchableOpacity accessibilityRole="button" style={[styles.primaryBtn, { backgroundColor: colors.primary }]} onPress={() => router.push('/chat')}><Text style={styles.primaryBtnText}>{t('support.openTextline')}</Text></TouchableOpacity> : <Text style={[styles.body, { color: colors.inkSoft }]}>{t('inline.textSupportIsAvailableWith')}</Text>}
                 {(canAccessPrivateVideo || privateVideo.activeSession?.appointment_type === 'one_off_150') ? <PremierVideoSchedulingCard controller={privateVideo} t={t} translationRoot="premierVideo" compact onJoin={(session) => router.push({ pathname: '/video-session' as never, params: { sessionId: session.id, room: session.room_name } })} /> : null}
                 {hasEssential && hydrated ? <PlanReviewBookingCard controller={privateVideo} hasIncludedPlanReview={hasIncludedPlanReview} source={planReviewSource} t={t} consentLocale={isSpanish ? 'es' : 'en'} onUpgrade={() => router.push('/(tabs)/support' as never)} /> : null}
               </View>
@@ -416,8 +414,8 @@ function Field({ label, value, onChangeText, placeholder, multiline = false, dar
   return <View style={styles.fieldWrap}><Text style={[styles.fieldLabel, dark && styles.darkLabel]}>{label}</Text><TextInput value={value} onChangeText={onChangeText} multiline={multiline} style={[styles.input, multiline && styles.inputMulti, dark && styles.darkInput]} placeholder={placeholder} placeholderTextColor={dark ? '#9fb0ae' : '#8a9695'} accessibilityLabel={label} /></View>;
 }
 
-function Toggle({ label, value, onPress, isSpanish }: { label: string; value: boolean; onPress: () => void; isSpanish: boolean }) {
-  return <TouchableOpacity style={styles.toggleRow} onPress={onPress} accessibilityRole="checkbox" accessibilityLabel={label} accessibilityHint={isSpanish ? 'Toca dos veces para cambiar' : 'Double tap to toggle'} accessibilityState={{ checked: value }}><View style={[styles.toggleBox, value && styles.toggleBoxOn]}><Text style={styles.toggleMark}>{value ? '✓' : ''}</Text></View><Text style={styles.toggleText}>{label}</Text></TouchableOpacity>;
+function Toggle({ label, value, onPress, hint }: { label: string; value: boolean; onPress: () => void; hint: string }) {
+  return <TouchableOpacity style={styles.toggleRow} onPress={onPress} accessibilityRole="checkbox" accessibilityLabel={label} accessibilityHint={hint} accessibilityState={{ checked: value }}><View style={[styles.toggleBox, value && styles.toggleBoxOn]}><Text style={styles.toggleMark}>{value ? '✓' : ''}</Text></View><Text style={styles.toggleText}>{label}</Text></TouchableOpacity>;
 }
 
 const styles = StyleSheet.create({

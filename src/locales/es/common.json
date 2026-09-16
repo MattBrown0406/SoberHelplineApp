@@ -41,5 +41,10 @@
     "boundaries": "Establecer límites acordados",
     "learn": "Herramientas para planificar y aprender",
     "support": "Apoyo: hablar con alguien o buscar tratamiento"
+  },
+  "errorBoundary": {
+    "title": "Algo salió mal de nuestro lado.",
+    "body": "Tus datos están a salvo. Si necesitas apoyo ahora mismo, llama al 988 o al 911.",
+    "retry": "Intentar de nuevo"
   }
 }

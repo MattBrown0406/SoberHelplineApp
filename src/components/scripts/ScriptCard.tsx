@@ -25,8 +25,7 @@ interface Props {
 
 export function ScriptCard({ script }: Props) {
   const { colors } = useTheme();
-  const { t, i18n } = useTranslation('scripts');
-  const isSpanish = (i18n.resolvedLanguage ?? i18n.language ?? 'en').startsWith('es');
+  const { t } = useTranslation('scripts');
   const router = useRouter();
   const { count } = useRehearsalCount(script.id);
   const [open, setOpen] = useState(false);
@@ -48,8 +47,8 @@ export function ScriptCard({ script }: Props) {
         accessibilityRole="button"
         accessibilityLabel={title}
         accessibilityHint={open
-          ? (isSpanish ? 'Contrae este guion' : 'Collapses this script')
-          : (isSpanish ? 'Expande este guion' : 'Expands this script')}
+          ? (t('inline.collapsesThisScript'))
+          : (t('inline.expandsThisScript'))}
         accessibilityState={{ expanded: open }}
       >
         <View style={styles.headLeft}>
@@ -155,8 +154,8 @@ export function ScriptCard({ script }: Props) {
             }
             activeOpacity={0.85}
             accessibilityRole="button"
-            accessibilityLabel={`${t('practice')}${count > 0 ? `, ${isSpanish ? 'practicado' : 'practiced'} ${count} ${isSpanish ? 'veces' : 'times'}` : ''}`}
-            accessibilityHint={isSpanish ? 'Abre la práctica para este guion' : 'Opens practice for this script'}
+            accessibilityLabel={`${t('practice')}${count > 0 ? `, ${t('inline.practicedTimes', { count })}` : ''}`}
+            accessibilityHint={t('inline.opensPracticeForThisScript')}
           >
             <Text style={[styles.practiceBtnText, { color: colors.primary }]}>
               {t('practice')}

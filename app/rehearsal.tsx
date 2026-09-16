@@ -62,7 +62,7 @@ function RehearsalContent() {
     try {
       const { status } = await Audio.requestPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Microphone access needed', t('privacyNote'));
+        Alert.alert(t('microphoneNeededTitle'), t('privacyNote'));
         return;
       }
       await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
@@ -88,7 +88,7 @@ function RehearsalContent() {
         () => Audio.setAudioModeAsync({ allowsRecordingIOS: false }),
       );
     } catch {
-      Alert.alert('Recording error', 'We could not finish that recording. Please try again.');
+      Alert.alert(t('recordingErrorTitle'), t('recordingErrorFinish'));
       return;
     }
     recordingRef.current = null;
@@ -96,7 +96,7 @@ function RehearsalContent() {
     if (result.restoreError) {
       // The recording is already safely unloaded. Do not strand the UI in the
       // recording phase just because restoring the shared audio mode failed.
-      Alert.alert('Recording error', 'The recording finished, but audio could not be reset.');
+      Alert.alert(t('recordingErrorTitle'), t('recordingErrorReset'));
     }
     setSoundUri(result.uri);
     setPhase('playback');

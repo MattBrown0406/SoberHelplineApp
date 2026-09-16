@@ -211,6 +211,7 @@
     "description": "Cuéntanos cuándo puedes y en qué quieres trabajar. Nos comunicaremos para confirmar el horario y coordinar el pago — tu enlace privado de Zoom aparecerá aquí una vez confirmado.",
     "dateLabel": "Fecha preferida",
     "timePeriodLabel": "Horario preferido",
+    "contactNotePrefix": "Contacto: {{contact}}",
     "morning": "Mañana · 9am–12pm",
     "afternoon": "Tarde · 12pm–5pm",
     "evening": "Noche · 5pm–8pm",

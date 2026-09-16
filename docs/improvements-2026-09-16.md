@@ -99,3 +99,34 @@ If this work is resumed after an interruption, continue from the first feature w
 - `npx --yes deno@2.3.7 test --frozen --node-modules-dir=none supabase/functions/_shared/*_test.ts` (29)
 - Manual: send a test push with `{ "kind": "coach_message" }` to an Essential device → Chat opens; to a free device
   → Support opens. `{ "kind": "nonsense" }` → app opens on Today.
+
+## 4. Spanish end-to-end — DONE
+
+**What changed**
+- `app/crisis-mode.tsx` (49 strings), `src/components/scripts/ScriptCard.tsx` (4), `src/components/safety/EmergencyActions.tsx` (2)
+  — every `isSpanish ? 'es' : 'en'` copy ternary moved to `t()` keys (`crisis.inline.*`, `crisis.emergency.offlineNote`/
+  `buttonHint`, `scripts.inline.*`; `{{tier}}` / `{{count}}` interpolation where the string was templated). The only
+  remaining `isSpanish` use is the `consentLocale` value.
+- `src/hooks/useFamilySpace.ts` — takes `{ you, member }` labels (no more `'Member'`/`'You'` defaults);
+  `family_spaces.name` now stores the owner's first name only (language-neutral) and the hook exposes
+  `space.ownerName` (`familySpaceOwnerName` strips the legacy `"'s Family"` suffix). Format with
+  `boundaries:journal.spaceTitle` ("{{name}}'s Family" / "La familia de {{name}}").
+- `app/(tabs)/index.tsx`, `app/(tabs)/boundaries.tsx` — pass localized labels; `createFamilySpace(firstName)`.
+- `app/book-coaching.tsx` — date chips use `es`/`en-US` from `i18n.language`; `Contact:` prefix →
+  `support:coaching.contactNotePrefix`.
+- `src/components/ErrorBoundary.tsx` + `src/lib/errorBoundaryCopy.ts` — crash fallback reads `common.errorBoundary.*`
+  straight from the bundled locale files (works before/without i18n), picks language from i18n or the device locale.
+- `app/rehearsal.tsx` (mic/recording alerts), `app/video-session.web.tsx` (web-only notice) — localized.
+- Locale keys added in en + es: `crisis.inline.*`, `crisis.emergency.{offlineNote,buttonHint}`, `scripts.inline.*`,
+  `boundaries.journal.{member,spaceTitle}`, `support.coaching.contactNotePrefix`, `common.errorBoundary.*`,
+  `rehearsal.{microphoneNeededTitle,recordingErrorTitle,recordingErrorFinish,recordingErrorReset}`.
+
+**Decisions**
+- Admin/coach screens (`app/admin*.tsx`, `src/components/admin/*`) stay English — coach tooling, not member-facing.
+- Locale parity is enforced generically rather than per-namespace: `tests/locale-parity.test.ts`.
+
+**Verify**
+- `npx tsx --test tests/locale-parity.test.ts` (30: file twins, i18next registration, per-file key/type/placeholder/
+  911-988 parity, "translated not copied" for every multi-word string, es crash fallback, no copy ternaries on
+  member screens)
+- Manual: Settings → Español → Crisis Mode, Scripts, Book a call, Safety Wallet; force a render error → Spanish fallback.

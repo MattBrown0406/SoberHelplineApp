@@ -41,5 +41,10 @@
     "boundaries": "Set agreed boundaries",
     "learn": "Tools for planning and learning",
     "support": "Support: talk to someone or find treatment"
+  },
+  "errorBoundary": {
+    "title": "Something went wrong on our side.",
+    "body": "Your data is safe. If you need support right now, call 988 or 911.",
+    "retry": "Try again"
   }
 }

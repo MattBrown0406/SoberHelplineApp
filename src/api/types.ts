@@ -444,7 +444,10 @@ export interface SharedWall {
 
 export interface FamilySpace {
   id: string;
+  /** Stored value; may be a legacy "<name>'s Family". Prefer `ownerName`. */
   name: string;
+  /** Owner's first name, language-neutral; format with `boundaries:journal.spaceTitle`. */
+  ownerName: string;
   createdBy: string;
   inviteCode: string;
   members: FamilyMember[];

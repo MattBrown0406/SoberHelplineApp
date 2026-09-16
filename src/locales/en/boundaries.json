@@ -209,6 +209,8 @@
     "post": "Post",
     "empty": "No notes yet. Be the first to share something.",
     "you": "You",
+    "member": "Family member",
+    "spaceTitle": "{{name}}'s Family",
     "postErrorTitle": "Could not post your note",
     "postErrorBody": "Check your connection and try again. Your note is still here.",
     "pendingSync": "Saved on this device — it will post when you're back online."

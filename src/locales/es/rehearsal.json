@@ -8,6 +8,10 @@
   "recordingLabel": "Grabando… suelta para parar",
   "playButton": "Escuchar",
   "rerecordButton": "Grabar de nuevo",
+  "microphoneNeededTitle": "Se necesita acceso al micrófono",
+  "recordingErrorTitle": "Error de grabación",
+  "recordingErrorFinish": "No pudimos terminar esa grabación. Inténtalo de nuevo.",
+  "recordingErrorReset": "La grabación terminó, pero no se pudo reiniciar el audio.",
   "privacyNote": "Sober Helpline solo graba las sesiones de práctica cuando tú lo activas, y se quedan en tu dispositivo.",
   "selfCheck": {
     "eyebrow": "Autoevaluación",

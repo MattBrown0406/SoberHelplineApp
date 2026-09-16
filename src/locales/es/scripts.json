@@ -36,5 +36,11 @@
     "FAMILY": "FAMILIA",
     "CONVERSATION": "CONVERSACIÓN",
     "ENABLING": "CODEPENDENCIA"
+  },
+  "inline": {
+    "collapsesThisScript": "Contrae este guion",
+    "expandsThisScript": "Expande este guion",
+    "practicedTimes": "practicado {{count}} veces",
+    "opensPracticeForThisScript": "Abre la práctica para este guion"
   }
 }
