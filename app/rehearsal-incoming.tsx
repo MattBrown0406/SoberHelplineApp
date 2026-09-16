@@ -80,6 +80,8 @@ function RehearsalIncomingContent() {
   const [stage, setStage] = useState<Stage>('ring');
   const [declined, setDeclined] = useState(false);
   const answeringRef = useRef(false);
+  // A push event is claimed exactly once; "Again" re-rings the same session.
+  const claimedEventIdRef = useRef<string | null>(null);
   // Scenario is rolled once per call attempt — no setup screen, that's the ambush.
   const [roll, setRoll] = useState(() => ({
     temperament: pinnedParam(params.temperament, TEMPERAMENTS) ?? pickRandom(TEMPERAMENTS),
@@ -126,7 +128,7 @@ function RehearsalIncomingContent() {
   // Ring: pulse the answer button and loop the vibration pattern until
   // answered or declined. Vibration only — no new native deps, OTA-safe.
   useEffect(() => {
-    if (stage !== 'ring') {
+    if (stage !== 'ring' || declined) {
       Vibration.cancel();
       return;
     }
@@ -142,7 +144,7 @@ function RehearsalIncomingContent() {
       Vibration.cancel();
       loop.stop();
     };
-  }, [stage, pulse]);
+  }, [stage, declined, pulse]);
 
   const savedSessionRef = useRef(false);
   useEffect(() => {
@@ -215,7 +217,7 @@ function RehearsalIncomingContent() {
     if (answeringRef.current) return;
     answeringRef.current = true;
     const eventId = typeof params.eventId === 'string' ? params.eventId : '';
-    if (eventId) {
+    if (eventId && claimedEventIdRef.current !== eventId) {
       const validEventId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(eventId);
       if (!validEventId) {
         answeringRef.current = false;
@@ -235,6 +237,7 @@ function RehearsalIncomingContent() {
         Alert.alert(t('rehearsalIncoming:ring.unavailableTitle'), t('rehearsalIncoming:ring.unavailableBody'));
         return;
       }
+      claimedEventIdRef.current = eventId;
     }
     setStage('call');
     // The durable event claim above is the exactly-once boundary. Only now may
@@ -247,6 +250,7 @@ function RehearsalIncomingContent() {
   }
 
   function handleRering() {
+    answeringRef.current = false;
     setDeclined(false);
     setRoll({
       temperament: pinnedParam(params.temperament, TEMPERAMENTS) ?? pickRandom(TEMPERAMENTS),
@@ -329,6 +333,7 @@ function RehearsalIncomingContent() {
   }
 
   function handleAgain() {
+    answeringRef.current = false;
     savedSessionRef.current = false;
     lastSpokenIndex.current = -1;
     reset();

@@ -129,13 +129,18 @@ test('incoming vibration effect cancels native ringing on content teardown', () 
   }
   visit(source);
   const events = [];
-  const effect = compile(`const effect = ${callback};`, {
-    stage: 'ring', pulse: {}, Vibration: { vibrate: () => events.push('ring'), cancel: () => events.push('cancel') },
+  const scope = (declined) => ({
+    stage: 'ring', declined, pulse: {}, Vibration: { vibrate: () => events.push('ring'), cancel: () => events.push('cancel') },
     Animated: { timing() {}, sequence() {}, loop: () => ({ start: () => events.push('animate'), stop: () => events.push('stop') }) },
-  }, 'effect');
+  });
+  const effect = compile(`const effect = ${callback};`, scope(false), 'effect');
   const cleanup = effect();
   assert.deepEqual(events, ['ring', 'animate']);
   cleanup(); assert.deepEqual(events, ['ring', 'animate', 'cancel', 'stop']);
+  // Declining keeps stage at 'ring'; the phone must stop buzzing anyway.
+  events.length = 0;
+  compile(`const effect = ${callback};`, scope(true), 'effect')();
+  assert.deepEqual(events, ['cancel']);
 });
 
 test('layout readiness fails closed until account-owned onboarding and redirects settle', () => {
