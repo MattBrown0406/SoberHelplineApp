@@ -111,6 +111,8 @@ export default function CrisisModeScreen() {
   const hasEssential = useFeatureAccess('planReview');
   const hasPremier = useFeatureAccess('crisisCommandPlan');
   const hasIncludedPlanReview = useFeatureAccess('includedPlanReview');
+  // Sharing the saved plan is a safety feature and free for every account.
+  const canShareWallet = useFeatureAccess('safetyWalletShare');
   const canAccessPrivateVideo = !!user && entitlements.canAccessPrivateVideo;
   const privateVideo = usePrivateVideoSessions(
     isOfflineAccountFallback ? null : user?.id ?? null,
@@ -203,7 +205,7 @@ export default function CrisisModeScreen() {
     );
   }
 
-  const summaryExportItems: WalletExportItem[] = situation && hasEssential && hydrated ? [
+  const summaryExportItems: WalletExportItem[] = situation && canShareWallet && hydrated ? [
     { id: 'guidance', label: t('share.heading'), value: [
       `${t('share.riskLevel')}: ${level}`, situation.label,
       isSpanish ? 'HACER AHORA' : 'DO NOW', ...immediateActions,

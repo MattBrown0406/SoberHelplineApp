@@ -47,7 +47,8 @@ export type ProductFeature =
   | 'practicePush'
   | 'crisisCommandPlan'
   | 'planReview'
-  | 'includedPlanReview';
+  | 'includedPlanReview'
+  | 'safetyWalletShare';
 
 /**
  * Feature gates returned from the API.
@@ -71,6 +72,7 @@ export interface Entitlements {
   canAccessCrisisCommandPlan: boolean; // Premium + attached
   canAccessPlanReview: boolean;      // Essential + Premium + attached
   hasIncludedPlanReview: boolean;    // Premium + attached
+  canShareSafetyWallet: boolean;     // all tiers — sharing an emergency card is a safety feature, never paywalled
 }
 
 // ─── Auth / User ──────────────────────────────────────────────────────────────

@@ -24,6 +24,13 @@ test('central entitlement matrix keeps tracker free', () => {
   }
 });
 
+test('Safety Wallet sharing is free for every account state — it is a safety feature', () => {
+  for (const accountState of ['direct-free', 'direct-essential', 'direct-premium', 'attached'] as const) {
+    const entitlements = entitlementsForAccountState(accountState);
+    assert.equal(canAccessFeature({ feature: 'safetyWalletShare', entitlements }), true, accountState);
+  }
+});
+
 test('central entitlement matrix grants Essential+ product features', () => {
   for (const feature of essentialFeatures) {
     const free = entitlementsForAccountState('direct-free');
@@ -68,7 +75,7 @@ test('admin QA access is expressed through centralized entitlements', () => {
 test('feature-to-entitlement map is complete and immutable', () => {
   assert.deepEqual(Object.keys(FEATURE_ENTITLEMENT_MAP).sort(), [
     'aiRehearsal', 'community', 'crisisCommandPlan', 'diyIntervention',
-    'includedPlanReview', 'planReview', 'practicePush', 'todayFull', 'tracker',
+    'includedPlanReview', 'planReview', 'practicePush', 'safetyWalletShare', 'todayFull', 'tracker',
   ]);
   assert.equal(Object.isFrozen(FEATURE_ENTITLEMENT_MAP), true);
 });

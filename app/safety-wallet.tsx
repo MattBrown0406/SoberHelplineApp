@@ -17,6 +17,7 @@ import { EmergencyActions } from '../src/components/safety/EmergencyActions';
 import { useAccount } from '../src/contexts/AccountContext';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { SafetyWalletExport } from '../src/components/safety/SafetyWalletExport';
+import { FamilyEmergencyCard } from '../src/components/safety/FamilyEmergencyCard';
 import { walletExportItems } from '../src/lib/safetyWalletExport';
 import { walletMembershipCopy } from '../src/content/walletMembershipCopy';
 import { useSafetyWallet } from '../src/hooks/useSafetyWallet';
@@ -33,7 +34,7 @@ type IncidentDraft = Omit<SafetyIncident, 'id' | 'createdAt'>;
 const FIELD_GROUPS: Array<{ key: string; fields: PlanField[] }> = [
   {
     key: 'household',
-    fields: ['lovedOneName', 'householdAddress', 'emergencyContacts', 'preferredHospital'],
+    fields: ['lovedOneName', 'householdAddress', 'emergencyContacts', 'preferredHospital', 'treatmentContact'],
   },
   {
     key: 'overdose',
@@ -194,6 +195,7 @@ function AccountSafetyWallet() {
               <Text selectable style={[styles.body, { color: colors.ink }]}>{item.value}</Text>
             </View>)}
           </View>}
+          <FamilyEmergencyCard scope={user.id} plan={plan} />
           <SafetyWalletExport scope={user.id} items={exportItems} />
           {editing && FIELD_GROUPS.map((group) => (
             <View key={group.key} style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>

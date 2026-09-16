@@ -232,6 +232,7 @@
       "keysAndMedicationPlan": "Keys, cash, and medication safety plan",
       "emergencyContacts": "Emergency contacts",
       "preferredHospital": "Preferred hospital or detox",
+      "treatmentContact": "Treatment program or counselor contact",
       "insurance": "Insurance or policy notes",
       "currentBoundaries": "Current family boundaries",
       "decisionMakers": "Family decision-makers"
@@ -251,11 +252,38 @@
       "keysAndMedicationPlan": "Where they can be secured when safe",
       "emergencyContacts": "Name · relationship · phone",
       "preferredHospital": "Facility name, address, or phone",
+      "treatmentContact": "Program name, admissions line, or counselor phone",
       "insurance": "Carrier and member information you choose to store",
       "currentBoundaries": "What the family will and will not do",
       "decisionMakers": "One coordinator and one backup"
     },
     "recentIncidents": "Recent incident log",
+    "familyCard": {
+      "button": "Share with family",
+      "title": "SOBER HELPLINE FAMILY EMERGENCY CARD",
+      "intro": "A one-screen card with only what a family member needs in the first minutes: where naloxone is, who to call, and what the family agreed to do. Private history is never included. Nothing is preselected.",
+      "empty": "Add naloxone location, emergency contacts, a treatment contact, or the agreed plan to build a card.",
+      "sections": {
+        "naloxone": "Naloxone (Narcan)",
+        "treatmentContact": "Treatment contact",
+        "agreedPlan": "Agreed family plan",
+        "contacts": "Emergency contacts",
+        "boundaries": "Family boundaries"
+      },
+      "crisisHeading": "If it is happening now",
+      "crisisLines": [
+        "Immediate danger or possible overdose: call 911.",
+        "Suicidal crisis: call or text 988."
+      ],
+      "note": "Shared from the Sober Helpline app. Not a medical record and not emergency monitoring.",
+      "preview": "Preview",
+      "share": "Share card",
+      "copy": "Copy to clipboard",
+      "copied": "Card copied",
+      "back": "Change sections",
+      "close": "Close",
+      "shareError": "The share sheet could not open. Use Copy to clipboard instead."
+    },
     "incidentHelp": "Keep entries factual and brief. The newest five appear here; up to 25 remain saved on this device.",
     "noIncidents": "No incidents have been recorded.",
     "addIncident": "Add an incident",

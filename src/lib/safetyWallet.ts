@@ -24,6 +24,8 @@ export type SafetyPlan = {
   keysAndMedicationPlan: string;
   emergencyContacts: string;
   preferredHospital: string;
+  /** Treatment program, counselor, or admissions line the family has agreed to call first. */
+  treatmentContact: string;
   insurance: string;
   currentBoundaries: string;
   decisionMakers: string;
@@ -58,6 +60,7 @@ export const DEFAULT_SAFETY_PLAN: SafetyPlan = {
   keysAndMedicationPlan: '',
   emergencyContacts: '',
   preferredHospital: '',
+  treatmentContact: '',
   insurance: '',
   currentBoundaries: '',
   decisionMakers: '',

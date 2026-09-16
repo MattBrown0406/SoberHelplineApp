@@ -29,3 +29,38 @@ If this work is resumed after an interruption, continue from the first feature w
 - `npx tsx --test tests/offline-outbox.test.ts` (10 tests: enqueue/dedupe, order, partial failure, drop, corruption, isolation, serialization, events)
 - `node --test tests/offline-outbox-checkin.test.mjs` (real `useCheckIn` against an offline Supabase double)
 - Manual: airplane mode → check in → "Saved on this device…" → reconnect/foreground → line disappears, row exists in `checkins`.
+
+## 2. Safety Wallet → shareable family emergency card, free for everyone — DONE
+
+**What changed**
+- `src/api/types.ts`, `src/lib/featureAccess.ts` — new `ProductFeature` `safetyWalletShare` → entitlement
+  `canShareSafetyWallet`, `true` for every account state (and admin). `offlineAccountCache.isEntitlements` accepts
+  caches written before the field existed, so an upgrade never fails closed into the offline fallback.
+- `app/crisis-mode.tsx` — the Share/Export list in the crisis summary is gated on `useFeatureAccess('safetyWalletShare')`
+  (was `hasEssential`), so free members no longer see an empty list. The Premier command-plan export is unchanged.
+- `src/lib/safetyWallet.ts`, `app/safety-wallet.tsx` — new `treatmentContact` field (household group); merges onto
+  defaults so stored plans stay valid.
+- `src/lib/familyEmergencyCard.ts` — pure formatter. Five allowlisted sections (naloxone, treatment contact, agreed plan,
+  contacts, boundaries) mapped to wallet fields; `availableEmergencyCardSections`, `emergencyCardBlocks`,
+  `familyEmergencyCardText` (→ `''` when nothing selected has content). Always ends with localized 911/988 lines and
+  the "not emergency care" note.
+- `src/components/safety/FamilyEmergencyCard.tsx` — "Share with family": tick sections (none preselected) → preview →
+  native share sheet (`Share.share`) or copy (`expo-clipboard`). Remounts on plan/account/locale change so a stale
+  preview can't be shared. Rendered on the wallet screen above the existing selective export.
+- Locale keys: `crisis.wallet.fields.treatmentContact`, `crisis.wallet.placeholders.treatmentContact`,
+  `crisis.wallet.familyCard.*` (en + es).
+
+**Decisions**
+- Real entitlement rather than mapping to an unrelated one: the gate reads API-contract booleans, and "free for all"
+  is a product statement worth encoding where the paid gates live.
+- Private wallet fields (address, substances, overdose/suicide/weapons history, children, insurance, incidents,
+  loved-one name) are excluded by construction — the card only knows the allowlist. Same preview-before-share policy
+  as the selective export.
+- Plain text only (no PDF) — the goal is a message a relative can read from a lock screen.
+
+**Verify**
+- `npx tsx --test tests/family-emergency-card.test.ts` (6: allowlist/no leak, selection, empty sections omitted,
+  crisis footer, full es render with no English labels, ungated wiring)
+- `npx tsx --test tests/feature-access.test.ts tests/safety-wallet-crisis-export.test.ts`
+- Manual (free account): Crisis Mode → summary → Share/Export list is populated; Safety Wallet → "Share with family"
+  → tick Narcan → Preview → Share opens the sheet; switch to Español and repeat — card is fully Spanish, 911/988 intact.

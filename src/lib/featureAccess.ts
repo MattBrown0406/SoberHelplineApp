@@ -14,6 +14,7 @@ export const FEATURE_ENTITLEMENT_MAP: Readonly<Record<ProductFeature, keyof Enti
   crisisCommandPlan: 'canAccessCrisisCommandPlan',
   planReview: 'canAccessPlanReview',
   includedPlanReview: 'hasIncludedPlanReview',
+  safetyWalletShare: 'canShareSafetyWallet',
 });
 
 /** The sole account-state → entitlement resolver, used at account bootstrap. */
@@ -36,6 +37,8 @@ export function entitlementsForAccountState(accountState: AccountState, adminOve
     canAccessCrisisCommandPlan: isPremier,
     canAccessPlanReview: isPaid,
     hasIncludedPlanReview: isPremier,
+    // A family emergency card is safety information, not a membership benefit.
+    canShareSafetyWallet: true,
   };
   if (!adminOverride) return entitlements;
   // Admin QA access is constructed once in the account authority. Consumers
@@ -56,6 +59,7 @@ export function entitlementsForAccountState(accountState: AccountState, adminOve
     canAccessCrisisCommandPlan: true,
     canAccessPlanReview: true,
     hasIncludedPlanReview: true,
+    canShareSafetyWallet: true,
   };
 }
 

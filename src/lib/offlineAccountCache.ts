@@ -33,7 +33,10 @@ function isEntitlements(value: unknown): value is Entitlements {
     'hasAssignedCoach', 'canAccessTracker', 'canAccessFullToday',
     'canAccessAiRehearsal', 'canAccessDiyIntervention', 'canUsePracticePush',
     'canAccessCrisisCommandPlan', 'canAccessPlanReview', 'hasIncludedPlanReview',
-  ].every((key) => typeof record[key] === 'boolean');
+  ].every((key) => typeof record[key] === 'boolean')
+    // Added after caches already existed on devices; restore rebuilds
+    // entitlements from the free baseline, so an older record stays valid.
+    && (record.canShareSafetyWallet === undefined || typeof record.canShareSafetyWallet === 'boolean');
 }
 
 export function isValidCachedAuthUser(value: unknown): value is AuthUser {

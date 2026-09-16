@@ -232,6 +232,7 @@
       "keysAndMedicationPlan": "Plan de seguridad para llaves, efectivo y medicamentos",
       "emergencyContacts": "Contactos de emergencia",
       "preferredHospital": "Hospital o desintoxicación preferida",
+      "treatmentContact": "Contacto del programa de tratamiento o consejero",
       "insurance": "Seguro o notas de póliza",
       "currentBoundaries": "Límites familiares actuales",
       "decisionMakers": "Quiénes toman decisiones en la familia"
@@ -251,11 +252,38 @@
       "keysAndMedicationPlan": "Dónde se pueden guardar cuando sea seguro",
       "emergencyContacts": "Nombre · relación · teléfono",
       "preferredHospital": "Nombre, dirección o teléfono del centro",
+      "treatmentContact": "Nombre del programa, línea de admisiones o teléfono del consejero",
       "insurance": "Aseguradora y datos que elijas guardar",
       "currentBoundaries": "Lo que la familia hará y no hará",
       "decisionMakers": "Una persona coordinadora y un respaldo"
     },
     "recentIncidents": "Registro de incidentes recientes",
+    "familyCard": {
+      "button": "Compartir con la familia",
+      "title": "TARJETA DE EMERGENCIA FAMILIAR DE SOBER HELPLINE",
+      "intro": "Una tarjeta de una sola pantalla con solo lo que un familiar necesita en los primeros minutos: dónde está la naloxona, a quién llamar y qué acordó hacer la familia. El historial privado nunca se incluye. Nada está preseleccionado.",
+      "empty": "Agrega la ubicación de la naloxona, contactos de emergencia, un contacto de tratamiento o el plan acordado para crear una tarjeta.",
+      "sections": {
+        "naloxone": "Naloxona (Narcan)",
+        "treatmentContact": "Contacto de tratamiento",
+        "agreedPlan": "Plan familiar acordado",
+        "contacts": "Contactos de emergencia",
+        "boundaries": "Límites familiares"
+      },
+      "crisisHeading": "Si está pasando ahora",
+      "crisisLines": [
+        "Peligro inmediato o posible sobredosis: llama al 911.",
+        "Crisis suicida: llama o envía un mensaje de texto al 988."
+      ],
+      "note": "Compartido desde la app Sober Helpline. No es un registro médico ni un servicio de monitoreo de emergencias.",
+      "preview": "Vista previa",
+      "share": "Compartir tarjeta",
+      "copy": "Copiar al portapapeles",
+      "copied": "Tarjeta copiada",
+      "back": "Cambiar secciones",
+      "close": "Cerrar",
+      "shareError": "No se pudo abrir la hoja para compartir. Usa Copiar al portapapeles."
+    },
     "incidentHelp": "Mantén las entradas breves y objetivas. Aquí aparecen las cinco más recientes; se guardan hasta 25 en este dispositivo.",
     "noIncidents": "No se han registrado incidentes.",
     "addIncident": "Agregar un incidente",

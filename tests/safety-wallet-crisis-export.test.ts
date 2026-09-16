@@ -6,7 +6,9 @@ test('crisis summary and command cannot bypass the selective exporter', () => {
   assert.doesNotMatch(source, /Share\.share|shareSummary/);
   assert.match(source, /SafetyWalletExport[^>]+items=\{summaryExportItems\}/);
   assert.match(source, /SafetyWalletExport[^>]+items=\{commandExportItems\}/);
-  assert.match(source, /situation && hasEssential && hydrated/);
+  assert.match(source, /situation && canShareWallet && hydrated/);
+  assert.match(source, /useFeatureAccess\('safetyWalletShare'\)/);
+  assert.doesNotMatch(source, /summaryExportItems: WalletExportItem\[\] = situation && hasEssential/);
   assert.match(source, /commandExportItems: WalletExportItem\[\] = hasPremier && hydrated/);
   assert.match(source, /scope=\{user\?\.id/);
 });
