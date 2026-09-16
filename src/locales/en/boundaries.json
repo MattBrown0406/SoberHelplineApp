@@ -208,7 +208,9 @@
     "placeholder": "Leave a note for your family…",
     "post": "Post",
     "empty": "No notes yet. Be the first to share something.",
-    "you": "You"
+    "you": "You",
+    "postErrorTitle": "Could not post your note",
+    "postErrorBody": "Check your connection and try again. Your note is still here."
   },
   "intro": "Castle walls means agreed boundaries: clear limits about what you will and will not do to protect your safety and wellbeing. Write your own first, then invite family to agree. You do not need your loved one’s permission to set a personal limit."
 }

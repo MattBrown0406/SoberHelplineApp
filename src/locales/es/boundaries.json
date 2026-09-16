@@ -208,7 +208,9 @@
     "placeholder": "Deja una nota para tu familia…",
     "post": "Publicar",
     "empty": "Todavía no hay notas. Sé el/la primero/a en compartir algo.",
-    "you": "Tú"
+    "you": "Tú",
+    "postErrorTitle": "No se pudo publicar tu nota",
+    "postErrorBody": "Revisa tu conexión e inténtalo de nuevo. Tu nota sigue aquí."
   },
   "intro": "Los muros del castillo son límites acordados: lo que harás y lo que no harás para proteger tu seguridad y bienestar. Escribe tus límites primero y luego invita a tu familia a acordarlos. No necesitas permiso de tu ser querido para establecer un límite personal."
 }

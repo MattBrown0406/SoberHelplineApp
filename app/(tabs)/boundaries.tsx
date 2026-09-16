@@ -140,15 +140,21 @@ export default function BoundariesScreen() {
   const postJournalNote = useCallback(async () => {
     if (!journalNote.trim() || !familySpace?.id || !user?.id) return;
     setJournalPosting(true);
-    await supabase.from('family_journal_entries').insert({
+    const { error } = await supabase.from('family_journal_entries').insert({
       family_space_id: familySpace.id,
       account_id: user.id,
       note: journalNote.trim(),
     });
+    if (error) {
+      // Keep the draft so the note is not lost when the insert fails offline.
+      setJournalPosting(false);
+      Alert.alert(content.journal.postErrorTitle, content.journal.postErrorBody);
+      return;
+    }
     setJournalNote('');
     await loadJournal(familySpace.id);
     setJournalPosting(false);
-  }, [journalNote, familySpace?.id, user?.id, loadJournal]);
+  }, [journalNote, familySpace?.id, user?.id, loadJournal, content.journal]);
 
   useFocusEffect(
     useCallback(() => {
