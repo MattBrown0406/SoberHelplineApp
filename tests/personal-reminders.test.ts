@@ -43,7 +43,8 @@ test('actual Expo adapter uses discreet payload, fixed local daily trigger and n
   const request = [...scheduled.values()][0];
   assert.deepEqual(request.content, { title: 'Un momento para ti', body: 'Abre la app cuando te venga bien.', sound: false, data: {} });
   assert.deepEqual(request.trigger, { type: 'daily', hour: 18, minute: 30, channelId: 'personal-reminders' });
-  assert.equal(getPushDestination(request.content.data), null);
+  // An empty payload names no screen: the tap simply opens the app on Today.
+  assert.deepEqual(getPushDestination(request.content.data), { pathname: '/(tabs)' });
   assert.equal(JSON.stringify(request).includes('private-account'), false);
   assert.equal(JSON.stringify(request).includes('coaching'), false);
 });

@@ -3,6 +3,7 @@
 // Requires the signed-in user's JWT. Never accepts a name from the request body.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { familyBackupData } from '../_shared/push-data.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -133,7 +134,7 @@ Deno.serve(async (req) => {
           title,
           body,
           sound: 'default',
-          data: { kind: 'family_backup' },
+          data: familyBackupData(waveringEventId),
         }),
       });
       if (res.ok) sent += 1;

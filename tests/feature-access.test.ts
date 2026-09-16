@@ -74,8 +74,8 @@ test('admin QA access is expressed through centralized entitlements', () => {
 
 test('feature-to-entitlement map is complete and immutable', () => {
   assert.deepEqual(Object.keys(FEATURE_ENTITLEMENT_MAP).sort(), [
-    'aiRehearsal', 'community', 'crisisCommandPlan', 'diyIntervention',
-    'includedPlanReview', 'planReview', 'practicePush', 'safetyWalletShare', 'todayFull', 'tracker',
+    'aiRehearsal', 'coachMessaging', 'community', 'crisisCommandPlan', 'diyIntervention',
+    'includedPlanReview', 'planReview', 'practicePush', 'privateVideo', 'safetyWalletShare', 'todayFull', 'tracker',
   ]);
   assert.equal(Object.isFrozen(FEATURE_ENTITLEMENT_MAP), true);
 });

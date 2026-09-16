@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { pushDeliveryPolicy } from "../_shared/push-policy.ts";
+import { sessionReminderData, winbackData } from "../_shared/push-data.ts";
 
 // Engagement push dispatcher. pg_cron invokes it with { job }:
 //   drain            — send queued push_outbox rows (community hearts, etc.)
@@ -299,6 +300,7 @@ serve(async (req) => {
       push_token: string;
       locale: string | null;
     }[];
+    const { data: sessionId } = await supabase.rpc("family_squares_session_id");
     const seen = new Set<string>();
     const messages: PushMessage[] = [];
     for (const target of targets) {
@@ -312,6 +314,7 @@ serve(async (req) => {
           ? "Tu grupo comienza en aproximadamente una hora. Tu lugar está guardado — ven tal como estás."
           : "Your group starts in about an hour. Your seat is saved — come as you are.",
         sound: "default",
+        data: sessionReminderData(sessionId),
       });
     }
     const sent = await sendExpoPush(messages);
@@ -345,6 +348,7 @@ serve(async (req) => {
           title: "Sober Helpline",
           body,
           sound: "default" as const,
+          data: winbackData(),
         };
       }),
     );

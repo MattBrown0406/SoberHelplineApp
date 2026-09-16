@@ -15,6 +15,8 @@ export const FEATURE_ENTITLEMENT_MAP: Readonly<Record<ProductFeature, keyof Enti
   planReview: 'canAccessPlanReview',
   includedPlanReview: 'hasIncludedPlanReview',
   safetyWalletShare: 'canShareSafetyWallet',
+  coachMessaging: 'canMessageOnCallCoach',
+  privateVideo: 'canAccessPrivateVideo',
 });
 
 /** The sole account-state → entitlement resolver, used at account bootstrap. */

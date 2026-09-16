@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { supabase } from '../../src/lib/supabase';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { useTheme } from '../../src/contexts/ThemeContext';
@@ -477,6 +477,8 @@ function StaffChip({
 export default function SupportScreen() {
   const { colors } = useTheme();
   const { user, isAttached, accountState, entitlements, refreshAccount } = useAccount();
+  // A session-reminder push carries the RSVP'd session id so the card it is about stands out.
+  const { sessionId: focusedSessionId } = useLocalSearchParams<{ sessionId?: string }>();
   const { t } = useTranslation('support');
   const { current, change, languages } = useLanguage();
   const copy = walletMembershipCopy(current);
@@ -697,7 +699,7 @@ export default function SupportScreen() {
                 {t('sessions.eyebrow')}
               </Text>
               {sessions.map((sess) => (
-                <View key={sess.id} style={[styles.sessionOuter, { borderBottomColor: colors.line }]}>
+                <View key={sess.id} style={[styles.sessionOuter, { borderBottomColor: colors.line }, sess.id === focusedSessionId && { backgroundColor: colors.primaryLight }]}>
                   <View style={styles.sessionRow}>
                     <View style={styles.sessionInfo}>
                       <Text style={[styles.sessionTitle, { color: colors.ink }]}>{sess.title}</Text>
@@ -775,7 +777,7 @@ export default function SupportScreen() {
                 {t('mondayGroup.sub')}
               </Text>
               {sessions.filter((s) => s.kind === 'group').map((sess) => (
-                <View key={sess.id} style={[styles.sessionOuter, { borderBottomColor: colors.line }]}>
+                <View key={sess.id} style={[styles.sessionOuter, { borderBottomColor: colors.line }, sess.id === focusedSessionId && { backgroundColor: colors.primaryLight }]}>
                   <View style={styles.sessionRow}>
                     <View style={styles.sessionInfo}>
                       <Text style={[styles.sessionTitle, { color: colors.ink }]}>{sess.title}</Text>
@@ -985,7 +987,7 @@ export default function SupportScreen() {
                 {t('sessions.eyebrow')}
               </Text>
               {sessions.map((sess) => (
-                <View key={sess.id} style={[styles.sessionOuter, { borderBottomColor: colors.line }]}>
+                <View key={sess.id} style={[styles.sessionOuter, { borderBottomColor: colors.line }, sess.id === focusedSessionId && { backgroundColor: colors.primaryLight }]}>
                   <View style={styles.sessionRow}>
                     <View style={styles.sessionInfo}>
                       <Text style={[styles.sessionTitle, { color: colors.ink }]}>{sess.title}</Text>

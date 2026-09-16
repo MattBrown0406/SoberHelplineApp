@@ -48,7 +48,9 @@ export type ProductFeature =
   | 'crisisCommandPlan'
   | 'planReview'
   | 'includedPlanReview'
-  | 'safetyWalletShare';
+  | 'safetyWalletShare'
+  | 'coachMessaging'
+  | 'privateVideo';
 
 /**
  * Feature gates returned from the API.

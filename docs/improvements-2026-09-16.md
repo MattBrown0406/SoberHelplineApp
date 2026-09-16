@@ -64,3 +64,38 @@ If this work is resumed after an interruption, continue from the first feature w
 - `npx tsx --test tests/feature-access.test.ts tests/safety-wallet-crisis-export.test.ts`
 - Manual (free account): Crisis Mode → summary → Share/Export list is populated; Safety Wallet → "Share with family"
   → tick Narcan → Preview → Share opens the sheet; switch to Español and repeat — card is fully Spanish, 911/988 intact.
+
+## 3. Every push tap routes to its screen — DONE
+
+**What changed**
+- `src/lib/pushRouting.ts` — the documented `data: { kind, ...ids }` contract lives in the header comment (table of
+  kind → ids → destination). New kinds: `coach_message` → `/chat`, `member_message` → `/admin-thread` (coach device),
+  `session_reminder` → Support with the RSVP'd `sessionId` (or a live room when `room_name` is allowlisted),
+  `morning_note` / `daily_nudge` → a tab from an allowlisted `screen` hint (default Today), `winback` →
+  `/guided-journey`. Existing kinds unchanged (`practice_incoming`, `situation_brief`, `family_backup`, `group_live`,
+  `*_video_*`). `getPushDestination(data, { nowMs, entitlements })` consults `featureAccess` — chat needs
+  `coachMessaging`, live rooms need `community`, private video needs `privateVideo`; otherwise the tap lands on Support.
+  Unknown/legacy payloads (no kind, bad ids, arbitrary `screen`/`deep_link`) open the app on a tab; the only
+  discarded tap is an expired or malformed practice call.
+- `src/api/types.ts`, `src/lib/featureAccess.ts` — `coachMessaging` and `privateVideo` product features so the
+  router reads the same map the screens use.
+- `src/hooks/usePushNotifications.ts`, `app/_layout.tsx` — entitlements are passed into the tap handler.
+- `app/(tabs)/support.tsx` — reads `sessionId` from params and tints that session card.
+- `supabase/functions/_shared/push-data.ts` (+ `_test.ts`) — producers build payloads through typed helpers; ids are
+  attached only when they are uuids. Used by `notify-chat-message` (thread id), `notify-session-reminder` and
+  `send-engagement-push` `session_reminder` (Family Squares session id via `family_squares_session_id()`),
+  `send-engagement-push` `winback`, `notify-daily-morning`, `daily-nudge`, `notify-family-backup` (wavering event id).
+  No edge functions were deployed.
+
+**Decisions**
+- `family_backup` stays on Boundaries (spec suggested crisis-mode/support): the wall and its backup notices live there.
+- SQL-side `push_outbox` metadata for video kinds still carries legacy `screen`/`deep_link` keys; the client ignores
+  them (kind wins) so no migration was needed.
+- Personal (local) reminders keep an empty payload; the tap opens Today.
+
+**Verify**
+- `npx tsx --test tests/push-routing.test.ts` (16, incl. a test that every contract kind is routed and every producer
+  imports the shared builder)
+- `npx --yes deno@2.3.7 test --frozen --node-modules-dir=none supabase/functions/_shared/*_test.ts` (29)
+- Manual: send a test push with `{ "kind": "coach_message" }` to an Essential device → Chat opens; to a free device
+  → Support opens. `{ "kind": "nonsense" }` → app opens on Today.

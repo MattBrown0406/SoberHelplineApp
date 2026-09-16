@@ -16,16 +16,17 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { requireServiceRole } from '../_shared/service-auth.ts';
 import { ADMIN_EMAILS } from '../_shared/admin.ts';
+import { coachMessageData, memberMessageData, type PushData } from '../_shared/push-data.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 
-async function sendExpoPush(to: string, title: string, body: string): Promise<void> {
+async function sendExpoPush(to: string, title: string, body: string, data: PushData): Promise<void> {
   const res = await fetch(EXPO_PUSH_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({ to, title, body, sound: 'default' }),
+    body: JSON.stringify({ to, title, body, sound: 'default', data }),
   });
   if (!res.ok) {
     console.error('[notify-chat-message] Expo push error:', await res.text());
@@ -63,6 +64,7 @@ Deno.serve(async (req: Request) => {
             coachToken,
             `Message from ${name}`,
             'Open Sober Helpline to read this private message.',
+            memberMessageData(message.thread_id),
           );
         } else {
           console.warn(`[notify-chat-message] admin ${email} has no push token yet`);
@@ -75,6 +77,7 @@ Deno.serve(async (req: Request) => {
           member.push_token,
           'New message from your coach',
           'Open Sober Helpline to read this private message.',
+          coachMessageData(message.thread_id),
         );
       } else {
         console.warn('[notify-chat-message] member has no push token');

@@ -84,6 +84,7 @@ function InitialLayout() {
   usePushNotifications(
     user?.id ?? null,
     isPushNavigationReady({ layoutState, isAuthenticated, onboarded }),
+    user?.entitlements ?? null,
   );
   // Replays check-ins and journal notes queued while the device was offline.
   useOfflineOutbox(user?.id ?? null);

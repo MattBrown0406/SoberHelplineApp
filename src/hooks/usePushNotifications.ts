@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase';
 import { getCheckIn } from '../storage/checkIn';
 import { AsyncWriteBarrier } from '../lib/appFlowGuards';
 import { getPushDestination, shouldHandlePushResponse } from '../lib/pushRouting';
+import type { Entitlements } from '../api/types';
 export const LEGACY_NUDGE_PREFIX = 'legacy-daily-nudge:v1:';
 const LEGACY_OPT_IN_KEY = 'legacy-daily-nudge-opt-in:v1:';
 
@@ -204,7 +205,11 @@ export async function registerForPushNotifications(accountId: string, requestPer
   }
 }
 
-export function usePushNotifications(accountId: string | null, navigationReady: boolean): void {
+export function usePushNotifications(
+  accountId: string | null,
+  navigationReady: boolean,
+  entitlements: Entitlements | null = null,
+): void {
   const router = useRouter();
 
   useEffect(() => {
@@ -230,8 +235,8 @@ export function usePushNotifications(accountId: string | null, navigationReady: 
     ): Promise<boolean> => {
       const rawData = response.notification.request.content.data ?? {};
       const data = rawData as Record<string, unknown>;
-      const destination = getPushDestination(data);
-      // Malformed, unsupported, or expired payloads are intentionally discarded.
+      const destination = getPushDestination(data, { entitlements });
+      // Only an expired or malformed practice call is discarded; everything else opens the app.
       if (!destination) return true;
 
       if (destination.pathname === '/rehearsal-incoming') {
@@ -272,5 +277,5 @@ export function usePushNotifications(accountId: string | null, navigationReady: 
       effectActive = false;
       responseSub.remove();
     };
-  }, [accountId, navigationReady, router]);
+  }, [accountId, navigationReady, router, entitlements]);
 }

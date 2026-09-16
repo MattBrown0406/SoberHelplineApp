@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { bandsForAccounts } from '../_shared/situation.ts';
 import { requireServiceRole } from '../_shared/service-auth.ts';
+import { morningNoteData } from '../_shared/push-data.ts';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
@@ -110,13 +111,13 @@ Deno.serve(async (req) => {
     const band = bands.get(a.id) ?? 'calm';
 
     if (isMonday) {
-      return { to: a.push_token, title: c.mondayTitle, body: c.mondayBody, sound: 'default', data: { screen: 'support' } };
+      return { to: a.push_token, title: c.mondayTitle, body: c.mondayBody, sound: 'default', data: morningNoteData('support') };
     }
     if (band === 'elevated' || band === 'crisis') {
-      return { to: a.push_token, title: c.supportTitle, body: c.supportBody, sound: 'default', data: { screen: 'support' } };
+      return { to: a.push_token, title: c.supportTitle, body: c.supportBody, sound: 'default', data: morningNoteData('support') };
     }
     const body = a.language === 'es' ? c.genericMorning : challenge;
-    return { to: a.push_token, title: c.morningTitle, body, sound: 'default', data: { screen: 'boundaries' } };
+    return { to: a.push_token, title: c.morningTitle, body, sound: 'default', data: morningNoteData('boundaries') };
   });
 
   // Expo push limit is 100 messages per request

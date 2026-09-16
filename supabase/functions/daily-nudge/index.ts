@@ -14,6 +14,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { bandsForAccounts, type Band } from '../_shared/situation.ts';
 import { requireServiceRole } from '../_shared/service-auth.ts';
+import { dailyNudgeData } from '../_shared/push-data.ts';
 
 const NUDGE_HOUR_LOCAL = 9;
 
@@ -98,7 +99,7 @@ Deno.serve(async (req) => {
       title: copy.title,
       body: copy.body,
       sound: 'default',
-      data: { screen: band === 'elevated' || band === 'crisis' ? 'support' : 'today' },
+      data: dailyNudgeData(band === 'elevated' || band === 'crisis' ? 'support' : 'today'),
     };
   });
 

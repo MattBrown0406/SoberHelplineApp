@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { requireServiceRole } from '../_shared/service-auth.ts';
+import { sessionReminderData } from '../_shared/push-data.ts';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
@@ -14,12 +15,13 @@ Deno.serve(async (req) => {
   });
 
   if (!tokens?.length) return new Response('no subscribers', { status: 200 });
+  const { data: sessionId } = await supabase.rpc('family_squares_session_id');
 
   const messages = (tokens as { push_token: string }[]).map((row) => ({
     to: row.push_token,
     title: 'Starting in 15 minutes',
     body: 'The Family Squares is tonight at 7:00 PM Pacific — tap to join',
-    data: { screen: 'support' },
+    data: sessionReminderData(sessionId),
   }));
 
   await fetch('https://exp.host/--/api/v2/push/send', {
