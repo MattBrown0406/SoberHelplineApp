@@ -125,6 +125,7 @@
     "shareButton": "Share my trajectory",
     "shareDone": "Shared — your coach will see this.",
     "shareLocked": "Turn on coach sharing in Settings to share your trajectory.",
-    "shareMessage": "I'd like to talk about how things have been trending over the last several weeks. Can we connect?"
+    "shareMessage": "I'd like to talk about how things have been trending over the last several weeks. Can we connect?",
+    "shareError": "Couldn't send to your coach. Check your connection and try again."
   }
 }

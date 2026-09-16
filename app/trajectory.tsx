@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -34,7 +35,7 @@ export default function TrajectoryScreen() {
   const router = useRouter();
 
   const { points, trend, loading } = useTrajectory(user?.id ?? null, 6);
-  const { send } = useThread(user?.id ?? null);
+  const { send, threadId } = useThread(user?.id ?? null);
 
   const [checked, setChecked] = useState<boolean[]>(Array(SELF_CHECK_COUNT).fill(false));
   const [shareConsent, setShareConsent] = useState(false);
@@ -76,8 +77,15 @@ export default function TrajectoryScreen() {
   }
 
   async function shareWithCoach() {
-    setShared(true);
-    await send(t('trajectory.shareMessage'));
+    // send() silently no-ops until the thread has loaded, so only mark shared
+    // once the note actually reached the coach.
+    if (!threadId) return;
+    try {
+      await send(t('trajectory.shareMessage'));
+      setShared(true);
+    } catch {
+      Alert.alert(t('trajectory.shareError'));
+    }
   }
 
   return (
@@ -202,8 +210,9 @@ export default function TrajectoryScreen() {
             </Text>
           ) : (
             <TouchableOpacity
-              style={[styles.shareBtn, { borderColor: colors.primary }]}
+              style={[styles.shareBtn, { borderColor: colors.primary, opacity: threadId ? 1 : 0.5 }]}
               onPress={() => void shareWithCoach()}
+              disabled={!threadId}
               activeOpacity={0.85}
             >
               <Text style={[styles.shareBtnText, { color: colors.primary }]}>

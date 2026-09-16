@@ -215,10 +215,15 @@ export default function LetterScreen() {
     if (!user || !draft) return;
     setSendingLetter(true);
     try {
+      // Same lookup as useThread: the member's own active text-line thread.
       const { data: existing, error: lookupError } = await supabase
         .from('threads')
         .select('id')
+        .eq('account_id', user.id)
         .eq('kind', 'oncall')
+        .is('archived_at', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
       if (lookupError) throw lookupError;
 

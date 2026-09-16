@@ -125,6 +125,7 @@
     "shareButton": "Compartir mi trayectoria",
     "shareDone": "Compartido — tu coach lo verá.",
     "shareLocked": "Activa el compartir con el coach en Configuración para compartir tu trayectoria.",
-    "shareMessage": "Me gustaría hablar sobre cómo han ido las cosas en las últimas semanas. ¿Podemos conectar?"
+    "shareMessage": "Me gustaría hablar sobre cómo han ido las cosas en las últimas semanas. ¿Podemos conectar?",
+    "shareError": "No se pudo enviar a tu coach. Revisa tu conexión e inténtalo de nuevo."
   }
 }

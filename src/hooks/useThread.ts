@@ -183,7 +183,7 @@ export function useThread(accountId: string | null, enabled = true) {
       .subscribe();
   }, []);
 
-  const loadThread = useCallback(async (accId: string): Promise<string | null> => {
+  const loadThread = useCallback(async (accId: string, isCancelled: () => boolean = () => false): Promise<string | null> => {
     const { data: existing } = await supabase
       .from('threads')
       .select('id')
@@ -204,7 +204,7 @@ export function useThread(accountId: string | null, enabled = true) {
       if (error) throw error;
       tid = created?.id;
     }
-    if (!tid) return null;
+    if (!tid || isCancelled()) return null;
 
     const { data: history } = await supabase
       .from('messages')
@@ -214,6 +214,7 @@ export function useThread(accountId: string | null, enabled = true) {
       .limit(200);
 
     const msgs = (history ?? []) as RawMessage[];
+    if (isCancelled()) return null;
     setThreadId(tid);
     setRawMessages(msgs);
 
@@ -230,12 +231,16 @@ export function useThread(accountId: string | null, enabled = true) {
       ]);
       setRawReactions((reactionRes.data ?? []) as RawReaction[]);
       const signed = await Promise.all(((attachmentRes.data ?? []) as RawAttachment[]).map((att) => signedAttachment(att)));
+      if (isCancelled()) return null;
       setAttachments(signed);
     } else {
       setRawReactions([]);
       setAttachments([]);
     }
 
+    // Subscribing after the effect was cleaned up would leak a realtime channel
+    // that cleanup can no longer see.
+    if (isCancelled()) return null;
     setLoading(false);
     subscribeToThread(tid);
     return tid;
@@ -249,13 +254,16 @@ export function useThread(accountId: string | null, enabled = true) {
     let cancelled = false;
     setLoading(true);
 
-    loadThread(accountId).catch(() => {
+    loadThread(accountId, () => cancelled).catch(() => {
       if (!cancelled) setLoading(false);
     });
 
     return () => {
       cancelled = true;
-      if (channelRef.current) supabase.removeChannel(channelRef.current);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
   }, [accountId, enabled, loadThread]);
 
