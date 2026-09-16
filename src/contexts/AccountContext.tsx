@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import type { User } from '@supabase/supabase-js';
 import type { AuthUser, AccountState, Entitlements } from '../api/types';
 import { supabase } from '../lib/supabase';
@@ -259,6 +260,8 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   const [authUser, setAuthUser] = useState<User | null>(null);
   const [accountError, setAccountError] = useState<string | null>(null);
   const [isOfflineAccountFallback, setIsOfflineAccountFallback] = useState(false);
+  const isOfflineAccountFallbackRef = useRef(false);
+  isOfflineAccountFallbackRef.current = isOfflineAccountFallback;
   const authGenerationRef = useRef(0);
   const accountRequestGateRef = useRef(new AccountRequestGate());
   const authUserRef = useRef<User | null>(null);
@@ -487,7 +490,14 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
-        completeSignIn(session.user);
+        // completeSignIn dedups same-user events while a cached profile is
+        // showing, so a token refresh after connectivity returns must re-fetch
+        // explicitly or the offline fallback never recovers.
+        if (isOfflineAccountFallbackRef.current && authUserRef.current?.id === session.user.id) {
+          void refreshAccount().catch(() => undefined);
+        } else {
+          completeSignIn(session.user);
+        }
       } else if (event === 'SIGNED_OUT') {
         const signedOutAuthUserId = authUserRef.current?.id;
         ++authGenerationRef.current;
@@ -521,7 +531,27 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       // Permit Strict Mode's effect re-subscription to bootstrap again.
       authUserRef.current = null;
     };
-  }, [completeSignIn]);
+  }, [completeSignIn, refreshAccount]);
+
+  // The offline fallback fails closed only "until the server is reachable
+  // again": retry the live account whenever the app returns to the foreground.
+  useEffect(() => {
+    if (!isOfflineAccountFallback) return;
+    const retry = () => {
+      if (authUserRef.current) {
+        void refreshAccount().catch(() => undefined);
+        return;
+      }
+      // getSession itself failed offline; the session was never bootstrapped.
+      void supabase.auth.getSession()
+        .then(({ data: { session } }) => { if (session) completeSignIn(session.user); })
+        .catch(() => undefined);
+    };
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') retry();
+    });
+    return () => subscription.remove();
+  }, [isOfflineAccountFallback, refreshAccount, completeSignIn]);
 
   const accountState = user?.accountState ?? 'direct-free';
   const entitlements = user?.entitlements ?? DEFAULT_ENTITLEMENTS;

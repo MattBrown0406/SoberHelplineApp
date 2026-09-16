@@ -160,27 +160,30 @@ function CrisisSheet({
         </View>
 
         <TouchableOpacity
+          accessibilityRole="button"
           style={[styles.sheetRow, { borderBottomColor: colors.line }]}
-          onPress={() => Linking.openURL(CRISIS_LINE_TEL)}
+          onPress={() => openEmergencyLink(CRISIS_LINE_TEL, CRISIS_LINE_DISPLAY)}
         >
           <Text style={[styles.sheetRowName, { color: colors.ink }]}>{t('crisis.lineSh')}</Text>
           <Text style={[styles.sheetRowAction, { color: colors.primary }]}>{t('crisis.callButton')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
+          accessibilityRole="button"
           style={[styles.sheetRow, styles.sheetRowLast, { borderBottomColor: colors.line }]}
-          onPress={() => Linking.openURL('tel:911')}
+          onPress={() => openEmergencyLink('tel:911')}
         >
           <Text style={[styles.sheetRowName, { color: colors.ink }]}>{t('crisis.line911')}</Text>
-          <Text style={[styles.sheetRowAction, { color: colors.coral }]}>Call</Text>
+          <Text style={[styles.sheetRowAction, { color: colors.coral }]}>{t('crisis.callButton')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
+          accessibilityRole="button"
           style={[styles.sheetRow, styles.sheetRowLast]}
-          onPress={() => Linking.openURL('tel:988')}
+          onPress={() => openEmergencyLink('tel:988')}
         >
           <Text style={[styles.sheetRowName, { color: colors.ink }]}>{t('crisis.line988')}</Text>
-          <Text style={[styles.sheetRowAction, { color: colors.primary }]}>Call</Text>
+          <Text style={[styles.sheetRowAction, { color: colors.primary }]}>{t('crisis.callButton')}</Text>
         </TouchableOpacity>
 
         {/* Situation-aware next step — only for an escalated band, and only for
@@ -523,7 +526,9 @@ export default function SupportScreen() {
       ? await purchaseEssential()
       : await purchasePremium();
     if (result === 'success') {
-      await refreshAccount();
+      // The purchase is complete; a failed refresh must not leave the sheet
+      // open inviting a second purchase. Entitlements sync on the next bootstrap.
+      await refreshAccount().catch(() => undefined);
       closeUpgrade();
     } else if (result === 'failed') {
       Alert.alert(t('upgradeSheet.title'), t('upgradeSheet.iapError'));

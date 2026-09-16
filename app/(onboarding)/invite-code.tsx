@@ -36,7 +36,9 @@ export default function InviteCodeScreen() {
         setError(t('invite.errorInvalid'));
         return;
       }
-      await refreshAccount();
+      // The code is already consumed server-side; a failed refresh must not
+      // report it as invalid. The attachment shows on the next bootstrap.
+      await refreshAccount().catch(() => undefined);
       setOrgName(data as string);
       setTimeout(() => router.push('/(onboarding)/consent'), 1200);
     } catch {

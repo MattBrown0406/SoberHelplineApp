@@ -56,11 +56,14 @@ const settle = async () => { for (let i = 0; i < 30; i++) await Promise.resolve(
 const monitoring = { captureAppError() {}, addAppBreadcrumb() {} };
 function authFixture() {
   const h = harness(); const session = deferred(); const accountRead = deferred(); const cached = deferred(); let listener;
+  const reads = { current: accountRead }; const appState = new Set();
   const { AccountProvider } = load('src/contexts/AccountContext.tsx', {
     react: { ...h.react, default: h.react },
+    'react-native': { AppState: { addEventListener(_, fn) { appState.add(fn); return { remove() { appState.delete(fn); } }; } } },
     '../lib/supabase': { supabase: {
       auth: { getSession: () => session.promise, onAuthStateChange(fn) { listener = fn; return { data: { subscription: { unsubscribe() {} } } }; } },
-      from: () => ({ select: () => ({ eq: () => ({ single: () => accountRead.promise }) }) }),
+      from: () => ({ select: () => ({ eq: () => ({ single: () => reads.current.promise }) }) }),
+      rpc: async () => ({ error: null }),
     } },
     '../lib/admin': { isAdminEmail: () => false },
     '../lib/revenueCat': { resetRevenueCatUser: async () => {} },
@@ -74,8 +77,52 @@ function authFixture() {
   });
   const read = () => h.render(() => AccountProvider({ children: null })).props.value;
   read(); h.effects();
-  return { h, read, session, accountRead, cached, event: (...args) => listener(...args) };
+  return {
+    h, read, session, accountRead, cached, event: (...args) => listener(...args),
+    nextRead: (d) => { reads.current = d; }, foreground: () => appState.forEach((fn) => fn('active')),
+  };
 }
+
+test('offline account fallback re-fetches the live account once the app is foregrounded', async () => {
+  const f = authFixture();
+  const cachedAccount = { id: 'account-A', accountState: 'direct-free', entitlements: {} };
+  f.session.resolve({ data: { session: { user: { id: 'principal-A' } } } });
+  f.accountRead.resolve({ data: null, error: new Error('fetch failed') });
+  f.cached.resolve(cachedAccount);
+  await settle(); f.read(); f.h.effects();
+  assert.equal(f.read().isOfflineAccountFallback, true);
+  assert.equal(f.read().user.id, 'account-A');
+
+  const live = deferred(); f.nextRead(live);
+  f.foreground();
+  live.resolve({ data: {
+    id: 'account-A', type: 'attached', org_id: 'org-1', first_name: 'Ada', last_name: '', language: 'en',
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, created_at: '2026-01-01T00:00:00Z',
+  }, error: null });
+  await settle(); f.read(); f.h.effects();
+  assert.equal(f.read().isOfflineAccountFallback, false);
+  assert.equal(f.read().accountState, 'attached');
+  assert.equal(f.read().user.firstName, 'Ada');
+});
+
+test('a same-user auth event during offline fallback refreshes instead of being deduplicated', async () => {
+  const f = authFixture();
+  f.session.resolve({ data: { session: { user: { id: 'principal-A' } } } });
+  f.accountRead.resolve({ data: null, error: new Error('fetch failed') });
+  f.cached.resolve({ id: 'account-A', accountState: 'direct-free', entitlements: {} });
+  await settle(); f.read(); f.h.effects();
+  assert.equal(f.read().isOfflineAccountFallback, true);
+
+  const live = deferred(); f.nextRead(live);
+  f.event('TOKEN_REFRESHED', { user: { id: 'principal-A' } });
+  live.resolve({ data: {
+    id: 'account-A', type: 'attached', org_id: 'org-1', first_name: 'Ada', last_name: '', language: 'en',
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, created_at: '2026-01-01T00:00:00Z',
+  }, error: null });
+  await settle();
+  assert.equal(f.read().isOfflineAccountFallback, false);
+  assert.equal(f.read().accountState, 'attached');
+});
 
 test('offline profile is hidden immediately when a new session signs in', async () => {
   const f = authFixture();
