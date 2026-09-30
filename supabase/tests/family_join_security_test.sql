@@ -3,7 +3,7 @@ BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SET search_path = public, extensions;
 
-SELECT plan(21);
+SELECT plan(29);
 
 INSERT INTO auth.users (id, email, raw_app_meta_data, raw_user_meta_data, aud, role)
 VALUES
@@ -54,7 +54,15 @@ SELECT throws_ok(
     VALUES ('41000000-0000-0000-0000-000000000002', (SELECT id FROM accounts WHERE user_id=auth.uid()), 'owner')$$,
   '42501', NULL, 'caller cannot self-assign owner role');
 SELECT throws_ok($$SELECT public.join_family_space('not-a-code')$$, '22023', 'invalid_invite_code', 'malformed invite is denied');
-SELECT throws_ok($$SELECT public.join_family_space('A1B2-C3D5')$$, '22023', 'invalid_invite_code', 'near-match invite is denied');
+SELECT is(public.join_family_space('A1B2-C3D5'), NULL::uuid, 'near-match invite is denied');
+SELECT throws_ok(
+  $$INSERT INTO public.family_spaces (name, created_by, invite_code)
+    VALUES ('probe', (SELECT id FROM accounts WHERE user_id=auth.uid()), 'DEAD-BEEF')$$,
+  '42501', NULL, 'members cannot insert spaces directly to probe for live codes');
+SELECT ok(
+  NOT has_column_privilege('authenticated', 'public.family_spaces', 'invite_code', 'UPDATE')
+  AND has_column_privilege('authenticated', 'public.family_spaces', 'name', 'UPDATE'),
+  'owners can rename a space but never rewrite its invite code');
 
 RESET ROLE;
 SELECT is((SELECT count(*)::integer FROM family_members WHERE account_id=(SELECT id FROM accounts WHERE user_id='31000000-0000-0000-0000-000000000003')), 0, 'failed invite attacks create no membership');
@@ -68,6 +76,25 @@ RESET ROLE;
 SELECT is((SELECT count(*)::integer FROM family_members WHERE account_id=(SELECT id FROM accounts WHERE user_id='31000000-0000-0000-0000-000000000003')), 1, 'valid invite creates exactly one membership');
 SELECT is((SELECT role FROM family_members WHERE account_id=(SELECT id FROM accounts WHERE user_id='31000000-0000-0000-0000-000000000003')), 'member', 'join role is hard-coded member');
 SELECT is((SELECT count(*)::integer FROM family_members WHERE family_space_id='41000000-0000-0000-0000-000000000002' AND account_id=(SELECT id FROM accounts WHERE user_id='31000000-0000-0000-0000-000000000003')), 0, 'code mismatch cannot join a different family UUID');
+
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims','{"sub":"31000000-0000-0000-0000-000000000003","email":"family-joiner@example.com","role":"authenticated"}',true);
+SELECT throws_ok($$SELECT public.join_family_space('DEAD-BEEF')$$, '23505', 'already_in_family_space', 'a member of one family cannot also join another');
+SELECT is(public.create_family_space('Second family'), '41000000-0000-0000-0000-000000000001'::uuid, 'creating again returns the family the member already belongs to');
+RESET ROLE;
+
+-- Guessing is capped: after 10 failed codes in an hour even a real code is refused.
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims','{"sub":"31000000-0000-0000-0000-000000000004","email":"family-attacker@example.com","role":"authenticated"}',true);
+SELECT is(
+  (SELECT count(*)::integer FROM generate_series(1, 10) g
+   WHERE public.join_family_space(upper(lpad(to_hex(g), 4, '0')) || '-0000') IS NULL),
+  10,
+  'ten wrong guesses are each refused');
+SELECT throws_ok($$SELECT public.join_family_space('DEAD-BEEF')$$, '54000', 'too_many_attempts', 'the eleventh guess is rate limited');
+SELECT is(public.redeem_invite_code('NOT-A-PROVIDER'), NULL, 'unknown provider code is refused');
+RESET ROLE;
+SELECT is((SELECT count(*)::integer FROM family_members WHERE family_space_id='41000000-0000-0000-0000-000000000002' AND account_id=(SELECT id FROM accounts WHERE user_id='31000000-0000-0000-0000-000000000004')), 0, 'rate-limited caller did not join');
 
 -- Tightening invite joins must not break the separate trusted owner-creation path.
 SET LOCAL ROLE authenticated;

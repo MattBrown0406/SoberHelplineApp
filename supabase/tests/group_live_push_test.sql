@@ -3,7 +3,7 @@ BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SET search_path = public, extensions;
 
-SELECT plan(28);
+SELECT plan(31);
 
 INSERT INTO auth.users (id, email, raw_app_meta_data, raw_user_meta_data, aud, role)
 VALUES
@@ -11,6 +11,11 @@ VALUES
   ('51000000-0000-0000-0000-000000000002', 'group-member-a@example.com', '{}', '{}', 'authenticated', 'authenticated'),
   ('51000000-0000-0000-0000-000000000003', 'group-member-b@example.com', '{}', '{}', 'authenticated', 'authenticated'),
   ('51000000-0000-0000-0000-000000000004', 'group-attacker@example.com', '{}', '{}', 'authenticated', 'authenticated');
+
+-- Live groups are a membership benefit: A and B are members, the attacker is free.
+INSERT INTO public.entitlements(account_id, source, tier, expires_at)
+SELECT id, 'scholarship', 'essential', now() + interval '30 days' FROM accounts
+WHERE user_id IN ('51000000-0000-0000-0000-000000000002', '51000000-0000-0000-0000-000000000003');
 
 INSERT INTO public.group_hosts(room_name, account_id)
 VALUES ('shp-parents', (SELECT id FROM accounts WHERE user_id='51000000-0000-0000-0000-000000000001'));
@@ -39,6 +44,7 @@ SELECT lives_ok($$INSERT INTO public.group_rsvps(account_id,room_name) VALUES (p
 
 SELECT set_config('request.jwt.claims','{"sub":"51000000-0000-0000-0000-000000000004","email":"group-attacker@example.com","role":"authenticated"}',true);
 SELECT throws_ok($$SELECT public.set_host_live('shp-parents',true)$$, '42501', 'not_group_host', 'non-host cannot start a group');
+SELECT is(public.set_group_rsvp('shp-parents',true), true, 'a free account can RSVP');
 
 SELECT set_config('request.jwt.claims','{"sub":"51000000-0000-0000-0000-000000000001","email":"matt@soberhelpline.com","role":"authenticated"}',true);
 SELECT lives_ok($$SELECT public.set_host_live('shp-parents',true)$$, 'authorized host starts group');
@@ -64,8 +70,19 @@ SELECT lives_ok($$SELECT public.set_host_live('shp-parents',false); SELECT publi
 RESET ROLE;
 SELECT is((SELECT count(*)::integer FROM push_outbox WHERE kind='group_live'), 3, 'new broadcast queues only the remaining subscriber');
 SELECT is((SELECT count(DISTINCT metadata->>'event_id')::integer FROM push_outbox WHERE kind='group_live'), 2, 'new broadcast receives a distinct event identity');
-SELECT is((SELECT count(*)::integer FROM group_rsvps WHERE room_name='shp-parents'), 1, 'disabled subscriber remains removed');
+SELECT is((SELECT count(*)::integer FROM group_rsvps WHERE room_name='shp-parents' AND account_id=(SELECT id FROM accounts WHERE user_id='51000000-0000-0000-0000-000000000003')), 0, 'disabled subscriber remains removed');
 SELECT is((SELECT count(*)::integer FROM push_outbox WHERE kind='group_live' AND metadata->>'room_name' NOT IN ('shp-parents','shp-spouses','shp-boundaries','shp-treatment')), 0, 'no invalid room notification can be queued');
+
+RESET ROLE;
+SELECT is((SELECT count(*)::integer FROM push_outbox WHERE kind='group_live' AND account_id=(SELECT id FROM accounts WHERE user_id='51000000-0000-0000-0000-000000000004')), 0, 'free accounts are never invited into a live group');
+
+-- A broadcast the host never ended (app killed) must not swallow the next go-live.
+UPDATE group_hosts SET live_started_at = now() - interval '4 hours' WHERE room_name='shp-parents';
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims','{"sub":"51000000-0000-0000-0000-000000000001","email":"matt@soberhelpline.com","role":"authenticated"}',true);
+SELECT public.set_host_live('shp-parents',true);
+RESET ROLE;
+SELECT ok((SELECT count(DISTINCT metadata->>'event_id')::integer FROM push_outbox WHERE kind='group_live') = 3, 'going live over a stale flag starts a new, notified broadcast');
 
 SELECT * FROM finish();
 ROLLBACK;
