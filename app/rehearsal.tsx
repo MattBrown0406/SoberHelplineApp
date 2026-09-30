@@ -88,6 +88,13 @@ function RehearsalContent() {
         () => Audio.setAudioModeAsync({ allowsRecordingIOS: false }),
       );
     } catch {
+      // The recorder is dead (e.g. Android throws when Stop follows Record too
+      // quickly). Tapping Stop again would throw forever, so drop it, restore
+      // the audio mode, and return to the prompt so they can record again.
+      recordingRef.current = null;
+      setRecording(null);
+      void Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(() => undefined);
+      setPhase('prompt');
       Alert.alert(t('recordingErrorTitle'), t('recordingErrorFinish'));
       return;
     }

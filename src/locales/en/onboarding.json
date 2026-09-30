@@ -10,7 +10,7 @@
   "invite": {
     "title": "Enter your invite code",
     "subtitle": "Your provider gave you a code that connects your account to their care team.",
-    "placeholder": "e.g. FREEDOM2026",
+    "placeholder": "Code from your provider",
     "submitButton": "Connect my account",
     "skipButton": "I don't have a code",
     "errorInvalid": "That code didn't match an active provider. Check it and try again, or continue on your own.",

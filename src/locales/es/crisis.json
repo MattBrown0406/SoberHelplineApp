@@ -35,21 +35,25 @@
   "risk": {
     "kicker": "Nivel de riesgo actual",
     "RED": {
+      "label": "Rojo",
       "title": "Riesgo inmediato de seguridad",
       "body": "Esto no es una conversación de coaching. Muévete hacia la seguridad y contacta a los servicios de emergencia ahora.",
       "action": "Llama al 911 o al 988 ahora si hay peligro médico inmediato, violencia o riesgo de suicidio."
     },
     "ORANGE": {
+      "label": "Naranja",
       "title": "Riesgo de crisis activa",
       "body": "No discutas, no debatas el tratamiento ni intentes controlar la situación sola. Enfócate en la seguridad, los niños, las llaves, la distancia y pasos tranquilos.",
       "action": "Usa la lista de abajo y luego la Línea de Texto Urgente, o solicita apoyo por video Premier cuando sea seguro."
     },
     "YELLOW": {
+      "label": "Amarillo",
       "title": "Preocupación en aumento",
       "body": "El patrón necesita una respuesta familiar clara. Es buen momento para poner un límite, documentar lo ocurrido y planear antes de la próxima escalada.",
       "action": "Construye un límite y actualiza el registro de incidentes y el plan de seguridad."
     },
     "GREEN": {
+      "label": "Verde",
       "title": "Preocupación estable",
       "body": "Quizá no haya peligro inmediato, pero la familia igual debe planear, alinearse y frenar los patrones de facilitación temprano.",
       "action": "Usa las herramientas de educación, preparación y límites antes de que las cosas escalen."

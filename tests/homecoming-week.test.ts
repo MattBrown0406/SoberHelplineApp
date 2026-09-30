@@ -183,6 +183,21 @@ test('changing a minor to adult clears inherited family-home details', () => {
   assert.ok(!homecomingHousingOptions(plan).includes('family_home'));
 });
 
+test('editing a minor\'s name, age, or gender keeps the chosen housing', () => {
+  let plan = completeDischarge(false);
+  plan = updateHomecomingDischarge(plan, { housingType: 'other', housingDetails: 'Guardian apartment, Bend' });
+  plan = updateHomecomingIdentity(plan, { preferredName: 'Sammy' });
+  assert.equal(plan.discharge.housingType, 'other');
+  plan = updateHomecomingIdentity(plan, { exactAge: '15', gender: 'woman' });
+  assert.equal(plan.discharge.housingType, 'other');
+  assert.equal(plan.discharge.housingDetails, 'Guardian apartment, Bend');
+  assert.equal(parseHomecomingWeekPlan(JSON.stringify(plan)).discharge.housingType, 'other');
+  // Becoming a minor still defaults to the family home.
+  let adult = completeDischarge(true);
+  adult = updateHomecomingIdentity(adult, { ageBand: 'under_18', exactAge: '16' });
+  assert.equal(adult.discharge.housingType, 'family_home');
+});
+
 test('invalid calendar dates and unknown stored enums fail closed', () => {
   let plan = completeDischarge(true);
   plan = updateHomecomingDischarge(plan, { dischargeDate: '2026-02-31' });

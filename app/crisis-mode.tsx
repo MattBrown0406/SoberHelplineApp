@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { useTheme } from '../src/contexts/ThemeContext';
@@ -129,7 +129,10 @@ export default function CrisisModeScreen() {
     setCommand,
     clear: clearSafetyWallet,
     hydrated, loadError, reload,
-  } = useSafetyWallet(user?.id ?? null, hasPremier);
+  } = useSafetyWallet(user?.id ?? null, hasPremier || isOfflineAccountFallback);
+  // Offline the account falls back to free tier; a family's saved command plan
+  // must still be there in a crisis without signal.
+  const savedCommandPlan = Object.values(command).some((value) => typeof value === 'string' && value.trim().length > 0);
 
   const [stage, setStage] = useState<Stage>('situation');
   const [situationKey, setSituationKey] = useState<CrisisSituationKey | null>(null);
@@ -147,6 +150,10 @@ export default function CrisisModeScreen() {
   const dontDo = situation?.dont ?? [];
   const boundaryText = buildBoundary(boundary, t);
   const fieldPlaceholder = t('field.placeholder');
+  // Opened from a plan-review session notification: show the session first.
+  const { focus } = useLocalSearchParams<{ focus?: string }>();
+  const focusSession = focus === 'session' && !isOfflineAccountFallback;
+
   const planReviewSource = useMemo(() => ({
     situation: { key: situationKey, label: situation?.label ?? null },
     risk: { level, selected },
@@ -207,7 +214,7 @@ export default function CrisisModeScreen() {
 
   const summaryExportItems: WalletExportItem[] = situation && canShareWallet && hydrated ? [
     { id: 'guidance', label: t('share.heading'), value: [
-      `${t('share.riskLevel')}: ${level}`, situation.label,
+      `${t('share.riskLevel')}: ${t(`risk.${level}.label`)}`, situation.label,
       t('inline.doNow'), ...immediateActions,
       t('inline.sayThis'), sayThis,
       t('inline.donTDoThis'), ...dontDo,
@@ -270,6 +277,13 @@ export default function CrisisModeScreen() {
 
         <EmergencyActions offline={isOfflineAccountFallback} />
 
+        {focusSession && hydrated && stage !== 'result' ? (
+          <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
+            {(canAccessPrivateVideo || privateVideo.activeSession?.appointment_type === 'one_off_150') ? <PremierVideoSchedulingCard controller={privateVideo} t={t} translationRoot="premierVideo" compact onJoin={(session) => router.push({ pathname: '/video-session' as never, params: { sessionId: session.id, room: session.room_name } })} /> : null}
+            {hasEssential ? <PlanReviewBookingCard controller={privateVideo} hasIncludedPlanReview={hasIncludedPlanReview} source={planReviewSource} t={t} consentLocale={isSpanish ? 'es' : 'en'} onUpgrade={() => router.push('/(tabs)/support' as never)} /> : null}
+          </View>
+        ) : null}
+
         {stage === 'situation' && (
           <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
             <Text accessibilityRole="header" style={[styles.sectionTitle, { color: colors.ink }]}>{t('inline.whatIsHappeningRightNow')}</Text>
@@ -310,9 +324,9 @@ export default function CrisisModeScreen() {
 
         {stage === 'result' && situation && (
           <>
-            <View style={[styles.riskCard, { backgroundColor: levelColor(level) }]} accessible accessibilityLiveRegion="assertive" accessibilityLabel={`${t('risk.kicker')}: ${level}. ${t(`risk.${level}.title`)}. ${t(`risk.${level}.body`)}`}>
+            <View style={[styles.riskCard, { backgroundColor: levelColor(level) }]} accessible accessibilityLiveRegion="assertive" accessibilityLabel={`${t('risk.kicker')}: ${t(`risk.${level}.label`)}. ${t(`risk.${level}.title`)}. ${t(`risk.${level}.body`)}`}>
               <Text style={[styles.riskKicker, { color: levelForeground(level) }]}>{t('risk.kicker').toUpperCase()}</Text>
-              <Text style={[styles.riskLevel, { color: levelForeground(level) }]}>{level}</Text>
+              <Text style={[styles.riskLevel, { color: levelForeground(level) }]}>{t(`risk.${level}.label`).toUpperCase()}</Text>
               <Text style={[styles.riskTitle, { color: levelForeground(level) }]}>{t(`risk.${level}.title`)}</Text>
               <Text style={[styles.riskBody, { color: levelForeground(level) }]}>{t(`risk.${level}.body`)}</Text>
             </View>
@@ -372,7 +386,7 @@ export default function CrisisModeScreen() {
                 </>}
             </>
 
-            {hasPremier && hydrated ? (
+            {(hasPremier || (isOfflineAccountFallback && savedCommandPlan)) && hydrated ? (
               <View style={[styles.card, styles.premiumCard, { backgroundColor: colors.ink, borderColor: colors.primary }]}>
                 <Text style={styles.premiumEyebrow}>PREMIER</Text>
                 <Text style={styles.premiumTitle}>{t('inline.familyCommandPlan')}</Text>

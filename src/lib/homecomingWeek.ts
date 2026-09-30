@@ -293,9 +293,14 @@ export function updateHomecomingIdentity(
   const identity = { ...plan.identity, ...safe };
   let discharge = plan.discharge;
   if (identity.ageBand === 'under_18') {
+    // Default a minor to the family home only on the switch to under 18 (or when
+    // the saved choice is not a minor option). Editing the name, age, or gender
+    // must not overwrite a housing choice the family already made.
+    const becameMinor = plan.identity.ageBand !== 'under_18';
+    const minorOptionKept = homecomingHousingOptions({ ...plan, identity }).includes(discharge.housingType);
     discharge = {
       ...discharge,
-      housingType: 'family_home',
+      housingType: becameMinor || !minorOptionKept ? 'family_home' : discharge.housingType,
       otherHousingFamilyStatus: '',
       adultReturnHomeConfirmed: false,
       adultReturnHomeQuote: '',

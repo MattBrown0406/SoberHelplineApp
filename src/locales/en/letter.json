@@ -7,6 +7,7 @@
   "recipientPlaceholder": "Their first name",
   "sendErrorTitle": "Letter not sent",
   "sendErrorBody": "Your letter is still here. Check your connection and try sending it again.",
+  "saveFailed": "This draft didn't save to your phone. Keep this screen open and try editing again.",
   "steps": {
     "p1": "Why I'm here",
     "p2": "The impact",
@@ -65,7 +66,13 @@
     "coachButton": "Send to coach for review",
     "coachButtonDirect": "Email a copy",
     "referralCard": "A letter like this is most powerful read with professional support in the room.",
-    "referralButton": "Talk to an interventionist"
+    "referralButton": "Talk to an interventionist",
+    "boundariesHeading": "If you choose not to accept help today:",
+    "shareTitle": "Letter for {{name}}",
+    "emailSubject": "My letter for {{name}}",
+    "referralEmail": "Email {{name}}",
+    "referralWebsite": "Visit website",
+    "referralClose": "Close"
   },
   "defaults": {
     "openerLabel": "Your substance use has affected me in the following ways.",

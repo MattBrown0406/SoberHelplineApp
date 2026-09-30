@@ -5,8 +5,12 @@ import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import type { MoodScore } from '../../api/types';
+import { recentLocalDays } from '../../lib/localDays';
 
-type Row = { created_at: string; mood: MoodScore };
+// checkin_date is the account-local calendar day, derived server-side in the
+// account timezone. Never bucket by created_at (UTC) or evening check-ins in
+// western time zones land on tomorrow's bar.
+type Row = { checkin_date: string; mood: MoodScore };
 
 const BAR_H = 56;
 
@@ -16,7 +20,7 @@ function moodColor(score: MoodScore, coral: string, green: string): string {
   return green;
 }
 
-export function MoodChart({ accountId }: { accountId: string | null }) {
+export function MoodChart({ accountId, timezone }: { accountId: string | null; timezone?: string }) {
   const { colors } = useTheme();
   const { t } = useTranslation('today');
   const [rows, setRows] = useState<Row[]>([]);
@@ -24,26 +28,23 @@ export function MoodChart({ accountId }: { accountId: string | null }) {
   useFocusEffect(
     useCallback(() => {
       if (!accountId) return;
-      const since = new Date(Date.now() - 14 * 86400000).toISOString();
+      const since = recentLocalDays(14, timezone)[0];
       void supabase
         .from('checkins')
-        .select('created_at, mood')
+        .select('checkin_date, mood')
         .eq('account_id', accountId)
-        .gte('created_at', since)
-        .order('created_at', { ascending: true })
+        .gte('checkin_date', since)
+        .order('checkin_date', { ascending: true })
         .then(({ data }) => {
           if (data) setRows(data as Row[]);
         });
-    }, [accountId]),
+    }, [accountId, timezone]),
   );
 
-  const days = Array.from({ length: 14 }, (_, i) => {
-    const d = new Date(Date.now() - (13 - i) * 86400000);
-    return d.toISOString().slice(0, 10);
-  });
+  const days = recentLocalDays(14, timezone);
 
   const byDate = new Map<string, MoodScore>();
-  rows.forEach((r) => byDate.set(r.created_at.slice(0, 10), r.mood));
+  rows.forEach((r) => byDate.set(r.checkin_date, r.mood));
 
   return (
     <View style={[styles.card, { borderColor: colors.line }]}>
@@ -90,11 +91,11 @@ export function MoodChart({ accountId }: { accountId: string | null }) {
 
           <View style={styles.legendRow}>
             <View style={[styles.legendDot, { backgroundColor: colors.coral }]} />
-            <Text style={[styles.legendText, { color: colors.inkSoft }]}>Hard</Text>
+            <Text style={[styles.legendText, { color: colors.inkSoft }]}>{t('moodChart.legendHard')}</Text>
             <View style={[styles.legendDot, { backgroundColor: '#e6c070', marginLeft: 10 }]} />
-            <Text style={[styles.legendText, { color: colors.inkSoft }]}>Okay</Text>
+            <Text style={[styles.legendText, { color: colors.inkSoft }]}>{t('moodChart.legendOkay')}</Text>
             <View style={[styles.legendDot, { backgroundColor: colors.green, marginLeft: 10 }]} />
-            <Text style={[styles.legendText, { color: colors.inkSoft }]}>Good</Text>
+            <Text style={[styles.legendText, { color: colors.inkSoft }]}>{t('moodChart.legendGood')}</Text>
           </View>
         </>
       )}

@@ -10,6 +10,7 @@ import {
   resolveDirectAccountState,
   resolveRefreshedDirectAccountState,
   withTimeoutFallback,
+  withVerifiedPurchase,
 } from '../lib/authBootstrap';
 import { addAppBreadcrumb, captureAppError } from '../lib/monitoring';
 import { entitlementsForAccountState } from '../lib/featureAccess';
@@ -24,6 +25,7 @@ import {
 import { offlineOutbox } from '../lib/offlineOutbox';
 import { removeSessionLocally, signOutLocally as signOutDeviceLocally } from '../lib/localSignOut';
 import { storePendingPushTokenRevoke } from '../lib/pendingPushTokenRevoke';
+import { setDeviceSignedIn, stopDevicePushDelivery } from '../lib/pushDevice';
 
 const DEFAULT_ENTITLEMENTS: Entitlements = entitlementsForAccountState('direct-free');
 
@@ -213,6 +215,7 @@ async function enrichAccount(authUser: User, coreAccount: AuthUser): Promise<Aut
     });
   }
 
+  accountState = withVerifiedPurchase(coreAccount.id, accountState as 'direct-free' | 'direct-essential' | 'direct-premium');
   if (accountState === coreAccount.accountState) return coreAccount;
   return buildAuthUser({
     id: coreAccount.id,
@@ -469,7 +472,10 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     const authUserId = authUserRef.current?.id ?? null;
     if (!accountId) return;
     await signOutDeviceLocally({ accountId, authUserId }, {
-      storePendingRevoke: (id) => storePendingPushTokenRevoke(id),
+      storePendingRevoke: async (id) => {
+        await storePendingPushTokenRevoke(id);
+        await stopDevicePushDelivery().catch(captureAppError);
+      },
       discardOutbox: (id) => offlineOutbox.clear(id),
       clearOfflineAccount: async (id) => {
         // Finish any older write before clearing so the profile cannot race
@@ -589,6 +595,10 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   }, [isOfflineAccountFallback, refreshAccount, completeSignIn]);
 
   const accountState = user?.accountState ?? 'direct-free';
+  useEffect(() => {
+    setDeviceSignedIn(!!user);
+  }, [user]);
+
   const entitlements = user?.entitlements ?? DEFAULT_ENTITLEMENTS;
 
   return (

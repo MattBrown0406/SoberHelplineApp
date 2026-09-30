@@ -10,6 +10,7 @@ import { getCheckIn } from '../storage/checkIn';
 import { AsyncWriteBarrier } from '../lib/appFlowGuards';
 import { getPushDestination, shouldHandlePushResponse } from '../lib/pushRouting';
 import { settlePendingPushTokenRevoke } from '../lib/pendingPushTokenRevoke';
+import { isDeviceSignedIn } from '../lib/pushDevice';
 import type { Entitlements } from '../api/types';
 export const LEGACY_NUDGE_PREFIX = 'legacy-daily-nudge:v1:';
 const LEGACY_OPT_IN_KEY = 'legacy-daily-nudge-opt-in:v1:';
@@ -18,18 +19,29 @@ export async function isDailyNudgeEnabled(accountId: string): Promise<boolean> {
   return (await AsyncStorage.getItem(LEGACY_OPT_IN_KEY + accountId)) === 'true';
 }
 
+/** Mirrors the device's explicit daily-reminder choice to the server morning push. */
+async function setServerDailyOptIn(enabled: boolean): Promise<void> {
+  const { error } = await supabase.rpc('set_daily_push_opt_in', { p_enabled: enabled });
+  if (error) throw error;
+}
+
 export async function disableDailyNudges(accountId: string): Promise<void> {
+  await setServerDailyOptIn(false);
   await AsyncStorage.setItem(LEGACY_OPT_IN_KEY + accountId, 'false');
   await rearmDailyNudge();
 }
 
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
+  handleNotification: async () => {
+    // Nobody signed in on this device: never surface a member's notification.
+    const show = isDeviceSignedIn();
+    return {
+      shouldShowBanner: show,
+      shouldShowList: show,
+      shouldPlaySound: false,
+      shouldSetBadge: false,
+    };
+  },
 });
 
 const REMINDER_HOUR_KEY = 'reminderHour';
@@ -94,6 +106,26 @@ async function performDailyNudgeRearm(): Promise<void> {
   const generation = accountId ? pushWriteBarrier.begin(accountId) : -1;
   const current = () => !!accountId && activePushAccountId === accountId
     && pushWriteBarrier.isCurrent(accountId, generation);
+  // Resolve the account before touching the schedule: offline the lookup
+  // fails, and cancelling first would leave the week with no reminders.
+  const { data: { session } } = await supabase.auth.getSession();
+  let account: { id: string; timezone: string | null; daily_push_opt_in: boolean } | null = null;
+  if (accountId && session?.user.id) {
+    const { data, error } = await supabase
+      .from('accounts')
+      .select('id, timezone, daily_push_opt_in')
+      .eq('user_id', session.user.id)
+      .maybeSingle();
+    if (error) return;
+    account = data;
+    // Only an explicit opt-in on this device consents to the server's daily
+    // push; keep the server in step (older builds never reported it).
+    const optedIn = await isDailyNudgeEnabled(accountId);
+    if (account?.id === accountId && account.daily_push_opt_in !== optedIn && current()) {
+      await setServerDailyOptIn(optedIn).catch(() => undefined);
+    }
+  }
+
   // Only cancel identifiers this scheduler owns; unknown pre-namespace requests
   // cannot safely be attributed to us. Never infer feature consent from OS permission.
   const pending = await Notifications.getAllScheduledNotificationsAsync();
@@ -110,23 +142,11 @@ async function performDailyNudgeRearm(): Promise<void> {
   const hour = await getReminderHour();
   const title = i18n.t('settings:notifications.dailyNudgeTitle');
   const bodies = nudgeBodies();
-  let storageOwner = accountId;
-  let timezone: string | undefined;
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session?.user.id) {
-    const { data: account } = await supabase
-      .from('accounts')
-      .select('id, timezone')
-      .eq('user_id', session.user.id)
-      .maybeSingle();
-    if (account?.id !== accountId) return;
-    if (account?.id) {
-      storageOwner = account.id;
-      // AccountContext normalizes a null timezone to UTC; the check-in date key
-      // must be computed the same way or "checked in today" never matches.
-      timezone = account.timezone || 'UTC';
-    }
-  }
+  if (!account || account.id !== accountId) return;
+  const storageOwner = account.id;
+  // AccountContext normalizes a null timezone to UTC; the check-in date key
+  // must be computed the same way or "checked in today" never matches.
+  const timezone = account.timezone || 'UTC';
   if (!session?.user.id || !current()) return;
   const checkedInToday = (await getCheckIn(storageOwner, new Date(), timezone)) !== null;
   const now = new Date();
@@ -208,6 +228,7 @@ export async function registerForPushNotifications(accountId: string, requestPer
     // Only onboarding/daily-reminder Settings actions pass this third flag.
     // RSVP, practice pushes and automatic device registration are not daily consent.
     if (optInDailyNudges && requestPermission) {
+      await pushWriteBarrier.track(accountId, setServerDailyOptIn(true));
       await pushWriteBarrier.track(accountId, AsyncStorage.setItem(LEGACY_OPT_IN_KEY + accountId, 'true'));
       if (!pushWriteBarrier.isCurrent(accountId, generation) || activePushAccountId !== accountId) return false;
     }

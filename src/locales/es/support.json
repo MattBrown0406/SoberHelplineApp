@@ -284,6 +284,8 @@
     "viewPlans": "Ver planes",
     "sendErrorTitle": "Mensaje no enviado",
     "sendErrorBody": "Por favor inténtalo de nuevo.",
+    "attachmentErrorTitle": "Foto no enviada",
+    "attachmentErrorBody": "Tu mensaje se envió, pero la foto no se subió. Intenta adjuntarla de nuevo.",
     "photosPermTitle": "Se necesita permiso de Fotos",
     "photosPermBody": "Permite el acceso a fotos para adjuntar capturas de pantalla a este hilo privado de apoyo."
   },

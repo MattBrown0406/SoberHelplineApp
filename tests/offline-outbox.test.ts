@@ -126,6 +126,9 @@ test('error classification: duplicates sync, data/permission errors drop, networ
   assert.equal(classifyOutboxError({ code: '42501' }), 'drop');
   assert.equal(classifyOutboxError({ status: 403 }), 'drop');
   assert.equal(classifyOutboxError({ status: 503 }), 'retry');
+  assert.equal(classifyOutboxError({ code: 'PGRST303', message: 'JWT expired' }), 'retry');
+  assert.equal(classifyOutboxError({ code: 'PGRST301' }), 'retry');
+  assert.equal(classifyOutboxError({ status: 401 }), 'retry');
   assert.equal(classifyOutboxError(new TypeError('Network request failed')), 'retry');
   assert.equal(classifyOutboxError({ message: 'fetch failed' }), 'retry');
   assert.equal(classifyOutboxError(new Error('something unexpected')), 'retry');

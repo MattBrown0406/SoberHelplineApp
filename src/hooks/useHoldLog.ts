@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { isNewBoundaryWin } from '../lib/reviewPromptPolicy';
+import { getWeekStart } from '../lib/trackerWeek';
 
 export type HoldResult = 'held' | 'mostly' | 'slipped';
 
@@ -13,15 +14,9 @@ export interface HoldLogEntry {
   updatedAt: string;
 }
 
-function mondayOf(date = new Date()): string {
-  const day = date.getUTCDay();
-  const diffDays = day === 0 ? -6 : 1 - day;
-  const monday = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + diffDays));
-  return monday.toISOString().slice(0, 10);
-}
-
-export function currentHoldWeekStart(): string {
-  return mondayOf();
+/** The member's own week: a Sunday-evening entry belongs to the week ending. */
+export function currentHoldWeekStart(timezone?: string): string {
+  return getWeekStart(new Date(), timezone);
 }
 
 function mapRow(row: {
@@ -42,14 +37,14 @@ function mapRow(row: {
   };
 }
 
-export function useHoldLog(accountId: string | null, familySpaceId: string | null) {
+export function useHoldLog(accountId: string | null, familySpaceId: string | null, timezone?: string) {
   const [own, setOwn] = useState<HoldLogEntry | null>(null);
   const [shared, setShared] = useState<HoldLogEntry[]>([]);
   const [saving, setSaving] = useState(false);
   const saveInFlightRef = useRef(false);
   const accountIdRef = useRef(accountId);
   accountIdRef.current = accountId;
-  const weekStart = currentHoldWeekStart();
+  const weekStart = currentHoldWeekStart(timezone);
 
   const load = useCallback(async () => {
     if (!accountId) {

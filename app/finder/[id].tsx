@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { Button } from '../../src/components/ui/Button';
 import { useTheme } from '../../src/contexts/ThemeContext';
-import { fetchProviderById, translateTag, type Provider } from '../../src/api/providers';
+import { fetchProviderById, translatePrice, translateServiceArea, translateTag, type Provider } from '../../src/api/providers';
 import { TypeBadge } from '../../src/components/finder/TypeBadge';
 import { AvailabilityPill } from '../../src/components/finder/AvailabilityPill';
 
@@ -107,7 +107,7 @@ export default function ProviderDetailScreen() {
       </Section>
 
       <Section label={t('detail.pricing').toUpperCase()}>
-        <Text style={[styles.body, { color: colors.ink }]}>{translateTag(provider.price, t)}</Text>
+        <Text style={[styles.body, { color: colors.ink }]}>{translatePrice(provider.price, t)}</Text>
         <Text style={[styles.disc, { color: colors.inkSoft }]}>{t('detail.confirmDetails')}</Text>
       </Section>
 
@@ -148,7 +148,7 @@ export default function ProviderDetailScreen() {
             <Stat value={provider.years ?? '—'} label={t('detail.statYears')} />
             {provider.cases && <Stat value={provider.cases} label={t('detail.statFamilies')} />}
             <Stat
-              value={(provider.serves ?? '').split(' ')[0] || '—'}
+              value={(provider.serves && translateServiceArea(provider.serves, t, 'short')) || '—'}
               label={provider.type === 'interventionist' ? t('detail.statServiceArea') : t('detail.statAvailability')}
             />
           </View>
@@ -162,7 +162,7 @@ export default function ProviderDetailScreen() {
           </Section>
           {provider.serves && (
             <Section label={t('detail.serves').toUpperCase()}>
-              <Text style={[styles.body, { color: colors.ink }]}>{provider.serves}</Text>
+              <Text style={[styles.body, { color: colors.ink }]}>{translateServiceArea(provider.serves, t, 'full')}</Text>
             </Section>
           )}
         </>

@@ -16,6 +16,7 @@ import { Link } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { supabase } from '../../src/lib/supabase';
+import { EmergencyActions } from '../../src/components/safety/EmergencyActions';
 import { AppLogo } from '../../src/components/ui/AppLogo';
 import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '../../src/config';
 
@@ -240,6 +241,10 @@ export default function SignUpScreen() {
               </TouchableOpacity>
             </Link>
           </View>
+
+          <View style={styles.emergency}>
+            <EmergencyActions />
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -303,6 +308,7 @@ const styles = StyleSheet.create({
   termsCheckbox: { width: 22, height: 22, borderWidth: 1.5, borderRadius: 5, alignItems: 'center', justifyContent: 'center' },
   termsCheckmark: { color: '#fff', fontWeight: '900' },
   termsNote: { flex: 1, fontSize: 11.5, lineHeight: 17 },
+  emergency: { marginTop: 28 },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',

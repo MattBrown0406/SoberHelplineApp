@@ -33,6 +33,7 @@ import esContent from '../../src/locales/es/boundaries.json';
 import { useFamilySpace } from '../../src/hooks/useFamilySpace';
 import { useHoldLog } from '../../src/hooks/useHoldLog';
 import { isWallAligned } from '../../src/content/familyScripts';
+import { recentLocalDays, weekdayOf } from '../../src/lib/localDays';
 import type { BoundaryWall } from '../../src/api/types';
 
 type BoundariesContent = typeof enContent;
@@ -60,7 +61,7 @@ export default function BoundariesScreen() {
     markWavering,
     commitWall,
   } = useFamilySpace(user?.id ?? null, { you: youLabel, member: content.journal.member });
-  const holdLog = useHoldLog(user?.id ?? null, familySpace?.id ?? null);
+  const holdLog = useHoldLog(user?.id ?? null, familySpace?.id ?? null, user?.timezone);
   const [prefill, setPrefill] = useState('');
   const [lastAnchorTag, setLastAnchorTag] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState('');
@@ -197,27 +198,27 @@ export default function BoundariesScreen() {
   useFocusEffect(
     useCallback(() => {
       if (!user?.id) return;
-      const since = new Date(Date.now() - 7 * 86400000).toISOString();
+      // checkin_date is the account-local day (server-derived in the account
+      // timezone); created_at is UTC and lands evening check-ins on tomorrow.
+      const since = recentLocalDays(7, user.timezone)[0];
       void supabase
         .from('checkins')
-        .select('created_at')
+        .select('checkin_date')
         .eq('account_id', user.id)
-        .gte('created_at', since)
+        .gte('checkin_date', since)
         .then(({ data }) => {
-          if (data) setCheckinDates(new Set(data.map((r) => r.created_at.slice(0, 10))));
+          if (data) setCheckinDates(new Set(data.map((r) => r.checkin_date as string)));
         });
       if (familySpace?.id) void loadJournal(familySpace.id, user.id);
-    }, [user?.id, familySpace?.id, loadJournal]),
+    }, [user?.id, user?.timezone, familySpace?.id, loadJournal]),
   );
 
-  const streakDots = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(Date.now() - (6 - i) * 86400000);
-    return {
-      label: ['S', 'M', 'T', 'W', 'T', 'F', 'S'][d.getDay()],
-      filled: checkinDates.has(d.toISOString().slice(0, 10)),
-      isToday: i === 6,
-    };
-  });
+  const streakDots = recentLocalDays(7, user?.timezone).map((date, i) => ({
+    date,
+    label: content.challenge.weekdayLetters[weekdayOf(date)],
+    filled: checkinDates.has(date),
+    isToday: i === 6,
+  }));
 
   const copyInviteCode = useCallback(async (code: string) => {
     await Clipboard.setStringAsync(code);
@@ -306,8 +307,8 @@ export default function BoundariesScreen() {
             {content.challenge.streakEyebrow}
           </Text>
           <View style={styles.dotsRow}>
-            {streakDots.map((dot, i) => (
-              <View key={i} style={styles.dotCol}>
+            {streakDots.map((dot) => (
+              <View key={dot.date} style={styles.dotCol}>
                 <View
                   style={[
                     styles.dot,
@@ -491,9 +492,11 @@ export default function BoundariesScreen() {
                 </Text>
                 <Text style={[styles.alignMeterValue, { color: colors.green }]}>
                   {tAlign('meter', {
-                    held: familySpace.sharedWalls.filter((w) =>
-                      w.commitments.every((c) => c.status === 'committed'),
-                    ).length,
+                    held: familySpace.sharedWalls.filter((w) => isWallAligned(
+                      w.commitments.filter((c) => c.status === 'committed').length,
+                      familySpace.members.length,
+                      w.commitments.some((c) => c.status === 'wavering'),
+                    )).length,
                     total: familySpace.sharedWalls.length,
                   })}
                 </Text>
@@ -611,7 +614,9 @@ export default function BoundariesScreen() {
                       <Text style={[styles.journalAuthor, { color: colors.primary }]}>
                         {entry.account_id === user?.id
                           ? content.journal.you
-                          : (entry.accounts?.first_name ?? 'Family member')}
+                          : (familySpace?.members.find((m) => m.accountId === entry.account_id)?.displayName
+                            ?? entry.accounts?.first_name
+                            ?? content.journal.member)}
                       </Text>
                       <Text style={[styles.journalNote, { color: colors.ink }]}>{entry.note}</Text>
                       <Text style={[styles.journalDate, { color: colors.inkSoft }]}>

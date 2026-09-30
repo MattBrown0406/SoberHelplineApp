@@ -43,7 +43,7 @@ function load(path, mocks = {}) {
     module, exports: module.exports, require(id) {
       if (!(id in mocks)) throw new Error(`Unexpected dependency: ${id}`);
       return mocks[id];
-    }, console, setTimeout, clearTimeout, Intl, Date, Number, JSON, Map, Set, Promise, Error, TypeError, Array, Object, String, RegExp,
+    }, console, setTimeout, clearTimeout, AbortController, Intl, Date, Number, JSON, Map, Set, Promise, Error, TypeError, Array, Object, String, RegExp,
   }, { filename: file.pathname });
   return module.exports;
 }
@@ -74,12 +74,17 @@ function fixture({ online }) {
   });
   const supabase = { from: (table) => ({
     select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: online ? null : new TypeError('Network request failed') }) }), order: async () => ({ data: online ? [] : null, error: online ? null : new TypeError('Network request failed') }) }) }),
-    insert: (row) => { inserts.push({ table, row }); return { select: () => ({ single: async () => online
-      ? { data: { id: row.id, mood: row.mood, capacity: row.capacity, pressure: row.pressure, support_need: row.support_need, note: row.note, created_at: row.created_at }, error: null }
-      : { data: null, error: new TypeError('Network request failed') } }) }; },
+    insert: (row) => {
+      inserts.push({ table, row });
+      const single = async () => online
+        ? { data: { id: row.id, mood: row.mood, capacity: row.capacity, pressure: row.pressure, support_need: row.support_need, note: row.note, created_at: row.created_at }, error: null }
+        : { data: null, error: new TypeError('Network request failed') };
+      return { select: () => ({ abortSignal: () => ({ single }), single }) };
+    },
   }) };
   const { useCheckIn } = load('src/hooks/useCheckIn.ts', {
     react: h.react,
+    'react-native': { AppState: { addEventListener: () => ({ remove() {} }) } },
     'expo-crypto': { randomUUID: () => '11111111-2222-4333-8444-555555555555' },
     '../api/types': {},
     '../storage/checkIn': load('src/storage/checkIn.ts', { '@react-native-async-storage/async-storage': { default: storage } }),

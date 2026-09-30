@@ -70,7 +70,7 @@ export function ContinueLetterCard({ accountId }: { accountId: string | null }) 
     <TouchableOpacity
       style={[styles.card, { borderColor: colors.line }]}
       activeOpacity={0.85}
-      onPress={() => router.push('/letter')}
+      onPress={() => router.push(recipient ? { pathname: '/letter', params: { recipient } } : '/letter')}
     >
       <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
         {t('continueLetter.eyebrow').toUpperCase()}

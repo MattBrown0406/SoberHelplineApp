@@ -23,7 +23,7 @@ import { Gate } from '../src/components/auth/Gate';
 import { RouteActivationGate } from '../src/contexts/RouteActivationContext';
 import { useLovedOne } from '../src/hooks/useLovedOne';
 import { useRehearsalCount } from '../src/hooks/useRehearsalCount';
-import { supabase } from '../src/lib/supabase';
+import { saveRehearsalSession } from '../src/lib/rehearsalSessions';
 import { finalizeRecording } from '../src/lib/appFlowGuards';
 import {
   useRehearsalPartner,
@@ -85,6 +85,7 @@ function RehearsalLiveContent() {
   const [draft, setDraft] = useState('');
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const recordingRef = useRef<Audio.Recording | null>(null);
+  const pressActiveRef = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
 
@@ -136,7 +137,7 @@ function RehearsalLiveContent() {
     // Save the session once so the family can review their reps later.
     if (!savedSessionRef.current && user?.id) {
       savedSessionRef.current = true;
-      void supabase.from('rehearsal_sessions').insert({
+      void saveRehearsalSession({
         account_id: user.id,
         source_id: typeof params.sourceId === 'string' ? params.sourceId : null,
         scenario: {
@@ -149,6 +150,9 @@ function RehearsalLiveContent() {
         },
         transcript: messages.map(({ role, text }) => ({ role, text })),
         debrief,
+      }).then((saved) => {
+        // Allow a later debrief render to retry instead of losing the rep.
+        if (!saved) savedSessionRef.current = false;
       });
     }
   }, [debrief, increment, user?.id, params.sourceId, relationship, temperament, gender, age, language, partnerName, messages]);
@@ -204,6 +208,7 @@ function RehearsalLiveContent() {
   }
 
   async function startTalking() {
+    pressActiveRef.current = true;
     try {
       const { status } = await Audio.requestPermissionsAsync();
       if (status !== 'granted') {
@@ -214,6 +219,14 @@ function RehearsalLiveContent() {
       const { recording: rec } = await Audio.Recording.createAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY,
       );
+      // The finger may have lifted while we awaited the permission prompt or
+      // recorder startup (the iOS permission alert cancels the touch). Never
+      // leave the mic running with nobody holding the button.
+      if (!pressActiveRef.current) {
+        await rec.stopAndUnloadAsync().catch(() => undefined);
+        await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true }).catch(() => undefined);
+        return;
+      }
       recordingRef.current = rec;
       setRecording(rec);
     } catch {
@@ -222,6 +235,7 @@ function RehearsalLiveContent() {
   }
 
   async function stopTalking() {
+    pressActiveRef.current = false;
     const active = recordingRef.current ?? recording;
     if (!active) return;
     let result;
@@ -235,6 +249,9 @@ function RehearsalLiveContent() {
         () => Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true }),
       );
     } catch {
+      // Clear the dead recorder so the next press can start a fresh one.
+      recordingRef.current = null;
+      setRecording(null);
       Alert.alert(t('chat.recordingErrorTitle'), t('chat.recordingErrorBody'));
       return;
     }
@@ -266,6 +283,8 @@ function RehearsalLiveContent() {
 
   function handleAgain() {
     savedSessionRef.current = false;
+    // New session: its replies start at index 1 again and must be voiced.
+    lastSpokenIndex.current = -1;
     reset();
     setStage('setup');
   }
@@ -466,7 +485,7 @@ function RehearsalLiveContent() {
               )}
 
               {error && (
-                <Text style={[styles.errorText, { color: colors.coral }]}>{t('chat.error')}</Text>
+                <Text style={[styles.errorText, { color: colors.coral }]}>{error === 'daily_limit_reached' ? t('chat.dailyLimit') : t('chat.error')}</Text>
               )}
             </ScrollView>
 

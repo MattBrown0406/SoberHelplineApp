@@ -2,7 +2,10 @@
   "greeting": {
     "morning": "Good morning, {{name}}",
     "afternoon": "Good afternoon, {{name}}",
-    "evening": "Good evening, {{name}}"
+    "evening": "Good evening, {{name}}",
+    "morningNoName": "Good morning",
+    "afternoonNoName": "Good afternoon",
+    "eveningNoName": "Good evening"
   },
   "hero": {
     "dayLabel": "DAY {{count}} — {{context}}",
@@ -434,7 +437,10 @@
   },
   "moodChart": {
     "eyebrow": "YOUR LAST 14 DAYS",
-    "noData": "Check in daily to see your emotional arc here."
+    "noData": "Check in daily to see your emotional arc here.",
+    "legendHard": "Hard",
+    "legendOkay": "Okay",
+    "legendGood": "Good"
   },
   "situationCta": {
     "eyebrow": "THIS WEEK",

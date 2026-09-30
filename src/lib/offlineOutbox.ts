@@ -155,12 +155,15 @@ export function classifyOutboxError(error: unknown): OutboxHandlerResult {
     ? String((error as { code?: unknown }).code ?? '')
     : '';
   if (code === '23505') return 'synced';
-  if (/^(22|23|42)/.test(code) || code === 'PGRST301' || code === '401' || code === '403') return 'drop';
+  // An expired or rejected session token is recoverable (the member signs in
+  // again, or the refresh succeeds once online): keep the write queued.
+  if (/^PGRST30[0-3]$/.test(code) || code === '401') return 'retry';
+  if (/^(22|23|42)/.test(code) || code === '403') return 'drop';
   if (isOfflineFallbackError(error)) return 'retry';
   const status = typeof error === 'object' && error !== null && 'status' in error
     ? Number((error as { status?: unknown }).status)
     : NaN;
-  if (Number.isFinite(status) && status >= 500) return 'retry';
+  if (Number.isFinite(status) && (status >= 500 || status === 401)) return 'retry';
   if (Number.isFinite(status) && status >= 400) return 'drop';
   // Unknown failures are kept: losing a member's check-in is worse than one
   // more retry on the next foreground.

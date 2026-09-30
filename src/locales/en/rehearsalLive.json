@@ -67,6 +67,7 @@
     "turnsDone": "Session complete — get your feedback below",
     "finishButton": "End practice & get coaching feedback",
     "error": "Couldn't reach your practice partner. Check your connection and try again.",
+    "dailyLimit": "You've reached today's practice limit. Your practice partner will be ready again tomorrow.",
     "safetyTitle": "Let's pause the practice",
     "safetyBody": "It sounds like you might be carrying something real right now. Tap here for immediate support options — this matters more than rehearsal.",
     "holdToSpeak": "Hold to speak",

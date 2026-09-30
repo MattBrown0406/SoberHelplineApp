@@ -282,6 +282,26 @@
     "Psychiatric Services": "Servicios psiquiátricos",
     "LGBTQ+ affirming": "Afirmativo LGBTQ+",
     "Adolescent (under 18)": "Adolescentes (menores de 18)",
-    "Contact for pricing": "Precio a consultar"
+    "Contact for pricing": "Precio a consultar",
+    "Therapists": "Terapeutas",
+    "Men": "Hombres",
+    "Women": "Mujeres"
+  },
+  "listing": {
+    "genderSpecific": "Atención específica: {{group}}",
+    "perDay": "{{amount}}/día",
+    "perHour": "{{amount}}/hora",
+    "serviceArea": {
+      "international": "Internacional",
+      "nationwide": "Todo el país",
+      "remote": "A distancia (todo el país)",
+      "inPersonRemote": "En persona ({{location}}) y a distancia"
+    },
+    "serviceAreaShort": {
+      "international": "Internacional",
+      "nationwide": "Nacional",
+      "remote": "A distancia",
+      "inPersonRemote": "En persona"
+    }
   }
 }

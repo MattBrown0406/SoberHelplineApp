@@ -4,6 +4,7 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
+  Alert,
 } from 'react-native';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { useRouter } from 'expo-router';
@@ -105,8 +106,8 @@ function TrackerContent() {
   const { t, i18n } = useTranslation('tracker');
 
   const { activeWarning, activeRecovery, toggleSign, warningLevel, recoveryMomentum, isLoading: trackerLoading } =
-    useTracker(user?.id ?? null);
-  const { situation, loading: situationLoading, refresh: refreshSituation } = useSituation(user?.id ?? null);
+    useTracker(user?.id ?? null, user?.timezone);
+  const { situation, loading: situationLoading, loaded: situationLoaded, refresh: refreshSituation } = useSituation(user?.id ?? null);
 
   const warningSigns: Sign[] = useMemo(
     () => t('warning.signs', { returnObjects: true }) as Sign[],
@@ -125,6 +126,10 @@ function TrackerContent() {
   // On a warning spike, escalate the loved-one status (never downgrading from
   // crisis/escalating) so the situation reflects it, then re-read the band.
   // Fires once per rising edge.
+  async function handleToggle(signId: string, kind: 'warning' | 'recovery') {
+    if (!(await toggleSign(signId, kind))) Alert.alert(t('signSaveError'));
+  }
+
   const spikeHandledRef = useRef(false);
   useEffect(() => {
     if (warnCount < ALERT_THRESHOLD) {
@@ -133,7 +138,7 @@ function TrackerContent() {
     }
     // Until both hooks have hydrated, the current status is unknown: writing
     // 'escalating' against the default would downgrade a real 'crisis'.
-    if (trackerLoading || situationLoading) return;
+    if (trackerLoading || situationLoading || !situationLoaded) return;
     if (spikeHandledRef.current) return;
     spikeHandledRef.current = true;
     const current = situation.drivers.loved_one_status;
@@ -144,7 +149,7 @@ function TrackerContent() {
     } else {
       void refreshSituation();
     }
-  }, [warnCount, trackerLoading, situationLoading, situation.drivers.loved_one_status, refreshSituation]);
+  }, [warnCount, trackerLoading, situationLoading, situationLoaded, situation.drivers.loved_one_status, refreshSituation]);
 
   // A spike always offers at least coaching; sustained crisis offers intervention.
   const spikeDoor: FunnelDoor =
@@ -208,7 +213,7 @@ function TrackerContent() {
                 sign={sign}
                 active={activeWarning.has(sign.id)}
                 color={colors.coral}
-                onToggle={() => toggleSign(sign.id, 'warning')}
+                onToggle={() => void handleToggle(sign.id, 'warning')}
               />
             ))}
           </View>
@@ -241,7 +246,7 @@ function TrackerContent() {
                 sign={sign}
                 active={activeRecovery.has(sign.id)}
                 color={colors.green}
-                onToggle={() => toggleSign(sign.id, 'recovery')}
+                onToggle={() => void handleToggle(sign.id, 'recovery')}
               />
             ))}
           </View>

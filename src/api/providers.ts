@@ -15,6 +15,24 @@ export type ProviderType = 'center' | 'interventionist' | 'coach';
 export type ProviderSearchType = ProviderType | 'all';
 export type Availability = 'now' | 'lim' | 'wait' | 'unverified';
 
+/**
+ * Where an interventionist or coach works. Structured so the screen can render
+ * it in the member's language; `location` is directory data and passes through.
+ */
+export type ProviderServiceArea =
+  | { kind: 'international' }
+  | { kind: 'nationwide' }
+  | { kind: 'local'; location: string }
+  | { kind: 'remote' }
+  | { kind: 'inPersonRemote'; location: string };
+
+/** Listed pricing. `listed` is free-form directory text; the rest are ours to translate. */
+export type ProviderPrice =
+  | { kind: 'listed'; value: string }
+  | { kind: 'perDay'; amount: string }
+  | { kind: 'perHour'; amount: string }
+  | { kind: 'contact' };
+
 export interface Provider {
   id: string;
   type: ProviderType;
@@ -25,7 +43,7 @@ export interface Provider {
   availability: Availability;
   insurance: string[];
   tags: string[];
-  price: string;
+  price: ProviderPrice;
   about: string;
   // Treatment-center specific
   levels?: string[];
@@ -35,7 +53,7 @@ export interface Provider {
   years?: string;
   cases?: string;
   approach?: string;
-  serves?: string;
+  serves?: ProviderServiceArea;
   // Contact (shown on detail screen)
   phone?: string;
   email?: string;
@@ -163,17 +181,19 @@ function mapRow(row: any): Provider {
     ? `${new Date().getFullYear() - (row.year_started as number)}+`
     : undefined;
 
-  const serves =
+  const serves: ProviderServiceArea | undefined =
     type === 'interventionist'
       ? row.works_internationally
-        ? 'International'
+        ? { kind: 'international' }
         : row.works_nationally
-          ? 'Nationwide'
+          ? { kind: 'nationwide' }
           : location
+            ? { kind: 'local', location }
+            : undefined
       : type === 'coach'
         ? row.in_person_companion_work
-          ? `In-person (${location}) + remote`
-          : 'Remote (nationwide)'
+          ? { kind: 'inPersonRemote', location }
+          : { kind: 'remote' }
         : undefined;
 
   const approach =
@@ -183,14 +203,14 @@ function mapRow(row: any): Provider {
         ? (row.therapeutic_modalities as string[]).join(', ')
         : undefined;
 
-  const price =
+  const price: ProviderPrice =
     row.cost
-      ? String(row.cost)
+      ? { kind: 'listed', value: String(row.cost) }
       : type === 'coach' && row.daily_companion_fee
-        ? `${row.daily_companion_fee}/day`
+        ? { kind: 'perDay', amount: String(row.daily_companion_fee) }
         : type === 'coach' && row.hourly_coaching_rate
-          ? `${row.hourly_coaching_rate}/hr`
-          : 'Contact for pricing';
+          ? { kind: 'perHour', amount: String(row.hourly_coaching_rate) }
+          : { kind: 'contact' };
 
   return {
     id: row.id as string,
@@ -296,5 +316,29 @@ export function sortByAvailability(list: Provider[]): Provider[] {
  * come back localized via the finder namespace, unknown ones pass through.
  */
 export function translateTag(tag: string, t: TFunction<'finder'>): string {
+  // buildPopulations emits "<group>-specific" for gender-specific programs.
+  const genderSpecific = /^(.+)-specific$/.exec(tag);
+  if (genderSpecific) {
+    const group = t(`tags.${genderSpecific[1]}` as never, { defaultValue: genderSpecific[1] });
+    return t('listing.genderSpecific' as never, { group, defaultValue: tag });
+  }
   return t(`tags.${tag}` as never, { defaultValue: tag });
+}
+
+export function translatePrice(price: ProviderPrice, t: TFunction<'finder'>): string {
+  switch (price.kind) {
+    case 'listed': return translateTag(price.value, t);
+    case 'perDay': return t('listing.perDay' as never, { amount: price.amount });
+    case 'perHour': return t('listing.perHour' as never, { amount: price.amount });
+    case 'contact': return translateTag('Contact for pricing', t);
+  }
+}
+
+/** `short` is the one-word stat on the detail screen; `full` is the Serves section. */
+export function translateServiceArea(area: ProviderServiceArea, t: TFunction<'finder'>, form: 'short' | 'full'): string {
+  if (area.kind === 'local') return form === 'short' ? area.location.split(',')[0].trim() : area.location;
+  if (area.kind === 'inPersonRemote' && form === 'full') {
+    return t('listing.serviceArea.inPersonRemote' as never, { location: area.location });
+  }
+  return t(`listing.${form === 'short' ? 'serviceAreaShort' : 'serviceArea'}.${area.kind}` as never);
 }

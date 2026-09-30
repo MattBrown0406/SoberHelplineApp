@@ -14,6 +14,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { supabase } from '../../src/lib/supabase';
+import { recordVerifiedPurchase, withTimeoutFallback } from '../../src/lib/authBootstrap';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -528,8 +529,14 @@ export default function SupportScreen() {
       ? await purchaseEssential()
       : await purchasePremium();
     if (result === 'success') {
-      // The purchase is complete; a failed refresh must not leave the sheet
-      // open inviting a second purchase. Entitlements sync on the next bootstrap.
+      // The store verified it: unlock now, then let the server mirror catch up.
+      // A failed refresh must not leave the sheet open inviting a second purchase.
+      if (user) recordVerifiedPurchase(user.id, upgradeTier);
+      await withTimeoutFallback(
+        Promise.resolve(supabase.functions.invoke('sync-iap-entitlements')).then(() => undefined),
+        10_000,
+        undefined,
+      );
       await refreshAccount().catch(() => undefined);
       closeUpgrade();
     } else if (result === 'failed') {
@@ -1104,7 +1111,9 @@ export default function SupportScreen() {
                   <TouchableOpacity
                     style={[styles.joinBtn, { borderColor: colors.coral, backgroundColor: '#111111' }]}
                     activeOpacity={0.8}
-                    onPress={() => router.push({ pathname: '/live-room' as never, params: { room: room ?? '' } })}
+                    onPress={() => (hasMembershipAccess
+                      ? router.push({ pathname: '/live-room' as never, params: { room: room ?? '' } })
+                      : openUpgrade('essential'))}
                   >
                     <Text style={[styles.joinBtnText, { color: '#fff' }]}>{t('groups.joinLive')}</Text>
                   </TouchableOpacity>
@@ -1122,6 +1131,10 @@ export default function SupportScreen() {
                     accessibilityRole="button"
                     accessibilityState={{ disabled: isRsvpPending, selected: isRsvped, busy: isRsvpPending }}
                     onPress={async () => {
+                      if (!hasMembershipAccess) {
+                        openUpgrade('essential');
+                        return;
+                      }
                       const saved = await toggleGroupRsvp(room);
                       if (!saved) {
                         Alert.alert(t('groups.rsvpErrorTitle'), t('groups.rsvpErrorBody'));

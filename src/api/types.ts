@@ -436,7 +436,7 @@ export interface SharedWall {
   id: string;
   familySpaceId: string;
   text: string;
-  proposedBy: string;
+  proposedBy: string | null;
   anchor: 'enabling' | 'harm' | 'both' | null;
   createdAt: string;
   commitments: WallCommitment[];

@@ -19,6 +19,8 @@ import { supabase } from '../src/lib/supabase';
 import { isAdminEmail } from '../src/lib/admin';
 import { useFeatureAccess } from '../src/hooks/useFeatureAccess';
 import { restorePurchases } from '../src/lib/revenueCat';
+import { purgeAccountLocalData } from '../src/lib/accountLocalData';
+import { captureAppError } from '../src/lib/monitoring';
 import { cancelPersonalRemindersForLogout } from '../src/reminders/native';
 import {
   cancelPushRegistration,
@@ -349,9 +351,13 @@ export default function SettingsScreen() {
   }
 
   function handleDeleteAccount() {
+    // A store or web subscription keeps billing after the account is gone.
+    const hasOwnSubscription = accountState === 'direct-essential' || accountState === 'direct-premium';
     Alert.alert(
       t('deleteAccount.confirmTitle'),
-      t('deleteAccount.confirmMessage'),
+      hasOwnSubscription
+        ? `${t('deleteAccount.confirmMessage')}\n\n${t('deleteAccount.subscriptionNote')}`
+        : t('deleteAccount.confirmMessage'),
       [
         { text: t('deleteAccount.cancelButton'), style: 'cancel' },
         {
@@ -362,6 +368,8 @@ export default function SettingsScreen() {
             let deletionCompleted = false;
             try {
               if (!await clearRemindersBeforeExit()) return;
+              // Read before deleting: a token refresh for a deleted user fails.
+              const { data: { session: deletingSession } } = await supabase.auth.getSession();
               const { error: deletionError } = await supabase.rpc('delete_own_account');
               if (deletionError) {
                 Alert.alert(t('deleteAccount.errorTitle'), t('deleteAccount.errorMessage'));
@@ -369,6 +377,9 @@ export default function SettingsScreen() {
               }
 
               deletionCompleted = true;
+              if (user) {
+                await purgeAccountLocalData(user.id, deletingSession?.user.id ?? null).catch(captureAppError);
+              }
               const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
               if (signOutError) {
                 Alert.alert(t('deleteAccount.cleanupErrorTitle'), t('deleteAccount.cleanupErrorMessage'));

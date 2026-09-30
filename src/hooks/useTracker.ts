@@ -1,24 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { getWeekStart } from '../lib/trackerWeek';
 
 const WARNING_TOTAL = 7;
 const RECOVERY_TOTAL = 10;
 
-function getWeekStart(): string {
-  const d = new Date();
-  const day = d.getUTCDay();
-  const diffDays = day === 0 ? -6 : 1 - day;
-  const monday = new Date(
-    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + diffDays),
-  );
-  return monday.toISOString().slice(0, 10);
-}
-
-export function useTracker(accountId: string | null) {
+export function useTracker(accountId: string | null, timezone?: string) {
   const [activeWarning, setActiveWarning] = useState<Set<string>>(new Set());
   const [activeRecovery, setActiveRecovery] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
-  const week = getWeekStart();
+  const week = getWeekStart(new Date(), timezone);
 
   useEffect(() => {
     if (!accountId) {
@@ -43,8 +34,9 @@ export function useTracker(accountId: string | null) {
       });
   }, [accountId, week]);
 
+  /** Resolves false (and restores the sign) when the change could not be saved. */
   const toggleSign = useCallback(
-    async (signKey: string, kind: 'warning' | 'recovery') => {
+    async (signKey: string, kind: 'warning' | 'recovery'): Promise<boolean> => {
       const isWarning = kind === 'warning';
       const current = isWarning ? activeWarning : activeRecovery;
       const setActive = isWarning ? setActiveWarning : setActiveRecovery;
@@ -57,23 +49,30 @@ export function useTracker(accountId: string | null) {
         return next;
       });
 
-      if (!accountId) return;
+      if (!accountId) return true;
 
-      if (isActive) {
-        await supabase
+      const { error } = isActive
+        ? await supabase
           .from('tracker_logs')
           .delete()
           .eq('account_id', accountId)
           .eq('sign_key', signKey)
-          .eq('week', week);
-      } else {
-        await supabase
+          .eq('week', week)
+        : await supabase
           .from('tracker_logs')
           .upsert(
             { account_id: accountId, sign_key: signKey, kind, week },
             { onConflict: 'account_id,sign_key,week' },
           );
-      }
+      if (!error) return true;
+
+      setActive((prev) => {
+        const next = new Set(prev);
+        if (isActive) next.add(signKey);
+        else next.delete(signKey);
+        return next;
+      });
+      return false;
     },
     [accountId, activeWarning, activeRecovery, week],
   );

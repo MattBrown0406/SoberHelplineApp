@@ -70,6 +70,27 @@ export function resolveRefreshedDirectAccountState(input: {
   return input.previousState;
 }
 
+// A purchase the store just verified, honored for this app session while the
+// server's entitlement mirror catches up (RevenueCat → sync-iap-entitlements).
+// Display-only: server-side gates still read the entitlements table.
+const VERIFIED_PURCHASE_GRACE_MS = 30 * 60 * 1000;
+let verifiedPurchase: { accountId: string; tier: 'essential' | 'premium'; until: number } | null = null;
+
+export function recordVerifiedPurchase(accountId: string, tier: 'essential' | 'premium', now = Date.now()): void {
+  verifiedPurchase = { accountId, tier, until: now + VERIFIED_PURCHASE_GRACE_MS };
+}
+
+/** Never lets a lagging server read hide a purchase made moments ago. */
+export function withVerifiedPurchase(
+  accountId: string,
+  state: 'direct-free' | 'direct-essential' | 'direct-premium',
+  now = Date.now(),
+): 'direct-free' | 'direct-essential' | 'direct-premium' {
+  if (!verifiedPurchase || verifiedPurchase.accountId !== accountId || verifiedPurchase.until < now) return state;
+  if (verifiedPurchase.tier === 'premium') return 'direct-premium';
+  return state === 'direct-free' ? 'direct-essential' : state;
+}
+
 export async function withTimeoutFallback<T>(
   operation: Promise<T>,
   timeoutMs: number,

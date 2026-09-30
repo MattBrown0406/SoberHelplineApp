@@ -284,6 +284,8 @@
     "viewPlans": "View plans",
     "sendErrorTitle": "Message not sent",
     "sendErrorBody": "Please try again.",
+    "attachmentErrorTitle": "Photo not sent",
+    "attachmentErrorBody": "Your message was sent, but the photo didn't upload. Please try attaching it again.",
     "photosPermTitle": "Photos permission needed",
     "photosPermBody": "Allow photo access to attach screenshots to this private support thread."
   },

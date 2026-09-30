@@ -9,6 +9,9 @@ import { DEFAULT_SITUATION, type Situation } from '../lib/situation';
 export function useSituation(accountId: string | null) {
   const [situation, setSituation] = useState<Situation>(DEFAULT_SITUATION);
   const [loading, setLoading] = useState(true);
+  // False while the band is only the default (not yet read, or the read
+  // failed); callers must not act on the default drivers as if they were real.
+  const [loaded, setLoaded] = useState(false);
 
   const load = useCallback(async (isCancelled: () => boolean = () => false) => {
     if (!accountId) {
@@ -22,6 +25,7 @@ export function useSituation(accountId: string | null) {
     if (isCancelled()) return;
     if (!error && data) {
       setSituation(data as Situation);
+      setLoaded(true);
     }
     setLoading(false);
   }, [accountId]);
@@ -30,9 +34,10 @@ export function useSituation(accountId: string | null) {
     let cancelled = false;
     // Never carry one account's crisis band into another account's session.
     setSituation(DEFAULT_SITUATION);
+    setLoaded(false);
     void load(() => cancelled);
     return () => { cancelled = true; };
   }, [load]);
 
-  return { situation, loading, refresh: load };
+  return { situation, loading, loaded, refresh: load };
 }

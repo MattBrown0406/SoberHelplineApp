@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
-import { translateTag, type Provider } from '../../api/providers';
+import { translatePrice, translateTag, type Provider } from '../../api/providers';
 import { TypeBadge } from './TypeBadge';
 import { AvailabilityPill } from './AvailabilityPill';
 
@@ -57,7 +57,7 @@ export function ProviderCard({
       </View>
 
       <View style={[styles.foot, { borderTopColor: colors.line }]}>
-        <Text style={[styles.price, { color: colors.inkSoft }]}>{translateTag(provider.price, t)}</Text>
+        <Text style={[styles.price, { color: colors.inkSoft }]}>{translatePrice(provider.price, t)}</Text>
         <View style={[styles.go, { backgroundColor: colors.primary }]}>
           <Text style={styles.goText}>{t('view')}</Text>
         </View>

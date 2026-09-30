@@ -20,7 +20,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
-import { useThread, type ChatMessage, type PendingAttachment } from '../src/hooks/useThread';
+import { AttachmentUploadError, useThread, type ChatMessage, type PendingAttachment } from '../src/hooks/useThread';
 import { useSessions } from '../src/hooks/useSessions';
 import { PRIMARY_ON_CALL } from '../src/content/onCall';
 import { MAX_CONTENT_WIDTH } from '../src/components/ui/ScreenContainer';
@@ -33,7 +33,11 @@ export default function ChatScreen() {
   const { user, isAttached, entitlements } = useAccount();
   const router = useRouter();
   const canUseTextLine = !!user && entitlements.canMessageOnCallCoach;
-  const { messages, send, archive, toggleReaction, loading, sending } = useThread(user?.id ?? null, canUseTextLine);
+  const { messages, send, archive, toggleReaction, loading, sending } = useThread(
+    user?.id ?? null,
+    !!user,
+    { readOnly: !canUseTextLine },
+  );
   const { sessions } = useSessions(user?.id ?? null);
   const [draft, setDraft] = useState('');
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
@@ -55,9 +59,14 @@ export default function ChatScreen() {
       await send(body, toSend);
       listRef.current?.scrollToEnd({ animated: true });
     } catch (err) {
+      if (err instanceof AttachmentUploadError) {
+        setPendingAttachments(toSend);
+        Alert.alert(t('textline.attachmentErrorTitle'), t('textline.attachmentErrorBody'));
+        return;
+      }
       setDraft(body);
       setPendingAttachments(toSend);
-      Alert.alert(t('textline.sendErrorTitle'), err instanceof Error ? err.message : t('textline.sendErrorBody'));
+      Alert.alert(t('textline.sendErrorTitle'), t('textline.sendErrorBody'));
     }
   }
 
@@ -121,7 +130,9 @@ export default function ChatScreen() {
     await toggleReaction(pickerMessageId, emoji);
   }
 
-  if (!canUseTextLine) {
+  // Off-plan members with no conversation see the plan prompt; those with
+  // replies (e.g. to a situation brief) can read them but not send.
+  if (!canUseTextLine && !loading && messages.length === 0) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
         <View style={styles.gatedWrap}>
@@ -184,7 +195,8 @@ export default function ChatScreen() {
         <TouchableOpacity
           onPress={confirmArchive}
           hitSlop={12}
-          disabled={archiving || loading}
+          disabled={archiving || loading || !canUseTextLine}
+          style={!canUseTextLine ? styles.hidden : undefined}
         >
           {archiving
             ? <ActivityIndicator size="small" color={colors.inkSoft} />
@@ -301,6 +313,15 @@ export default function ChatScreen() {
             />
           )}
 
+          {!canUseTextLine ? (
+            <View style={[styles.readOnlyBar, { borderTopColor: colors.line }]}>
+              <Text style={[styles.gatedBody, { color: colors.inkSoft }]}>{t('textline.gatedBody')}</Text>
+              <TouchableOpacity style={[styles.gatedButton, { backgroundColor: colors.primary }]} onPress={() => router.push('/(tabs)/support')}>
+                <Text style={styles.gatedButtonText}>{t('textline.viewPlans')}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+          <>
           {pendingAttachments.length > 0 && (
             <View style={[styles.pendingRow, { borderTopColor: colors.line }]}>
               {pendingAttachments.map((att) => (
@@ -340,6 +361,8 @@ export default function ChatScreen() {
               {sending ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.sendText}>➤</Text>}
             </TouchableOpacity>
           </View>
+          </>
+          )}
           <Text style={[styles.crisisNote, { color: colors.inkSoft }]}>
             {t('chat.crisisNote')}
           </Text>
@@ -359,6 +382,8 @@ const styles = StyleSheet.create({
   gatedBody: { fontSize: 15, lineHeight: 22, textAlign: 'center', marginBottom: 18 },
   gatedButton: { borderRadius: 12, paddingVertical: 12, paddingHorizontal: 22 },
   gatedButtonText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  readOnlyBar: { alignItems: 'center', borderTopWidth: 1, paddingHorizontal: 20, paddingTop: 14 },
+  hidden: { opacity: 0 },
 
   header: {
     flexDirection: 'row',

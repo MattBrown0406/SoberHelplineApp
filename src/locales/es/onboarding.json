@@ -10,7 +10,7 @@
   "invite": {
     "title": "Ingresa tu código de invitación",
     "subtitle": "Tu proveedor te dio un código que conecta tu cuenta con su equipo de cuidado.",
-    "placeholder": "p. ej. FREEDOM2026",
+    "placeholder": "Código de tu proveedor",
     "submitButton": "Conectar mi cuenta",
     "skipButton": "No tengo código",
     "errorInvalid": "Ese código no corresponde a un proveedor activo. Revísalo e intenta de nuevo, o continúa por tu cuenta.",

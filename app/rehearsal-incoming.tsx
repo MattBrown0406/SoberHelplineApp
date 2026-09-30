@@ -26,6 +26,7 @@ import { RouteActivationGate } from '../src/contexts/RouteActivationContext';
 import { useLovedOne } from '../src/hooks/useLovedOne';
 import { useRehearsalCount } from '../src/hooks/useRehearsalCount';
 import { supabase } from '../src/lib/supabase';
+import { saveRehearsalSession } from '../src/lib/rehearsalSessions';
 import { finalizeRecording } from '../src/lib/appFlowGuards';
 import {
   useRehearsalPartner,
@@ -80,8 +81,13 @@ function RehearsalIncomingContent() {
   const [stage, setStage] = useState<Stage>('ring');
   const [declined, setDeclined] = useState(false);
   const answeringRef = useRef(false);
-  // A push event is claimed exactly once; "Again" re-rings the same session.
+  // A push event is claimed exactly once and backs only the first answered
+  // call. "Again" is a fresh manual call: reusing the event would replay its
+  // cached opening under a newly rolled crisis, or 409 once it expires.
   const claimedEventIdRef = useRef<string | null>(null);
+  const [sessionEventId, setSessionEventId] = useState<string | undefined>(
+    typeof params.eventId === 'string' ? params.eventId : undefined,
+  );
   // Scenario is rolled once per call attempt — no setup screen, that's the ambush.
   const [roll, setRoll] = useState(() => ({
     temperament: pinnedParam(params.temperament, TEMPERAMENTS) ?? pickRandom(TEMPERAMENTS),
@@ -94,6 +100,7 @@ function RehearsalIncomingContent() {
   const [showTranscript, setShowTranscript] = useState(false);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const recordingRef = useRef<Audio.Recording | null>(null);
+  const pressActiveRef = useRef(false);
   const soundRef = useRef<Audio.Sound | null>(null);
   const pulse = useRef(new Animated.Value(1)).current;
 
@@ -123,7 +130,7 @@ function RehearsalIncomingContent() {
     voice: { gender, age },
     mode: 'incoming_call',
     crisisPreset: roll.crisisPreset,
-  }, typeof params.eventId === 'string' ? params.eventId : undefined);
+  }, sessionEventId);
 
   // Ring: pulse the answer button and loop the vibration pattern until
   // answered or declined. Vibration only — no new native deps, OTA-safe.
@@ -154,7 +161,7 @@ function RehearsalIncomingContent() {
     // Save the session once so the family can review their reps later.
     if (!savedSessionRef.current && user?.id) {
       savedSessionRef.current = true;
-      void supabase.from('rehearsal_sessions').insert({
+      void saveRehearsalSession({
         account_id: user.id,
         source_id: null,
         scenario: {
@@ -169,6 +176,8 @@ function RehearsalIncomingContent() {
         },
         transcript: messages.map(({ role, text }) => ({ role, text })),
         debrief,
+      }).then((saved) => {
+        if (!saved) savedSessionRef.current = false;
       });
     }
   }, [debrief, increment, user?.id, relationship, roll, gender, age, language, partnerName, messages]);
@@ -216,7 +225,7 @@ function RehearsalIncomingContent() {
   async function handleAnswer() {
     if (answeringRef.current) return;
     answeringRef.current = true;
-    const eventId = typeof params.eventId === 'string' ? params.eventId : '';
+    const eventId = sessionEventId ?? '';
     if (eventId && claimedEventIdRef.current !== eventId) {
       const validEventId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(eventId);
       if (!validEventId) {
@@ -269,6 +278,7 @@ function RehearsalIncomingContent() {
   }
 
   async function startTalking() {
+    pressActiveRef.current = true;
     try {
       const { status } = await Audio.requestPermissionsAsync();
       if (status !== 'granted') {
@@ -279,6 +289,14 @@ function RehearsalIncomingContent() {
       const { recording: rec } = await Audio.Recording.createAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY,
       );
+      // The finger may have lifted while we awaited the permission prompt or
+      // recorder startup (the iOS permission alert cancels the touch). Never
+      // leave the mic running with nobody holding the button.
+      if (!pressActiveRef.current) {
+        await rec.stopAndUnloadAsync().catch(() => undefined);
+        await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true }).catch(() => undefined);
+        return;
+      }
       recordingRef.current = rec;
       setRecording(rec);
     } catch {
@@ -287,6 +305,7 @@ function RehearsalIncomingContent() {
   }
 
   async function stopTalking() {
+    pressActiveRef.current = false;
     const active = recordingRef.current ?? recording;
     if (!active) return;
     let result;
@@ -300,6 +319,9 @@ function RehearsalIncomingContent() {
         () => Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true }),
       );
     } catch {
+      // Clear the dead recorder so the next press can start a fresh one.
+      recordingRef.current = null;
+      setRecording(null);
       Alert.alert(t('rehearsalLive:chat.recordingErrorTitle'), t('rehearsalLive:chat.recordingErrorBody'));
       return;
     }
@@ -336,6 +358,7 @@ function RehearsalIncomingContent() {
     answeringRef.current = false;
     savedSessionRef.current = false;
     lastSpokenIndex.current = -1;
+    setSessionEventId(undefined);
     reset();
     setRoll({
       temperament: pinnedParam(params.temperament, TEMPERAMENTS) ?? pickRandom(TEMPERAMENTS),
@@ -470,7 +493,7 @@ function RehearsalIncomingContent() {
               )}
 
               {error && (
-                <Text style={[styles.errorText, { color: colors.coral }]}>{t('rehearsalLive:chat.error')}</Text>
+                <Text style={[styles.errorText, { color: colors.coral }]}>{error === 'daily_limit_reached' ? t('rehearsalLive:chat.dailyLimit') : t('rehearsalLive:chat.error')}</Text>
               )}
 
               {/* Full transcript toggle */}

@@ -35,21 +35,25 @@
   "risk": {
     "kicker": "Current risk level",
     "RED": {
+      "label": "Red",
       "title": "Immediate safety risk",
       "body": "This is not a coaching conversation. Move toward safety and contact emergency services now.",
       "action": "Call 911 or 988 now if there is immediate medical danger, violence, or suicide risk."
     },
     "ORANGE": {
+      "label": "Orange",
       "title": "Active crisis risk",
       "body": "Do not argue, debate treatment, or try to control the situation alone. Focus on safety, children, keys, distance, and calm next steps.",
       "action": "Use the checklist below, then use Urgent Text Line or request Premier video support when safe."
     },
     "YELLOW": {
+      "label": "Yellow",
       "title": "Escalating concern",
       "body": "The pattern needs a clear family response. This is a good time to set a boundary, document what happened, and plan before the next escalation.",
       "action": "Build a boundary and update the incident log/safety plan."
     },
     "GREEN": {
+      "label": "Green",
       "title": "Stable concern",
       "body": "There may not be immediate danger, but the family should still plan, align, and stop enabling patterns early.",
       "action": "Use education, readiness, and boundary tools before things escalate."

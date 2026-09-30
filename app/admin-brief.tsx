@@ -4,6 +4,7 @@ import {
   Text,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
   StyleSheet,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -67,8 +68,9 @@ export default function AdminBriefScreen() {
     const { data, error } = await supabase.rpc('admin_get_situation_brief', { p_id: briefId });
     if (!error && data) {
       setBrief(data as AdminBriefDetail);
-      // Reading it is the "read" event; forward-only server-side.
-      void supabase.rpc('admin_mark_brief', { p_id: briefId, p_status: 'read' });
+      // Reading it is the "read" event; forward-only server-side. Postgrest
+      // builders are lazy — awaiting is what sends the request.
+      await supabase.rpc('admin_mark_brief', { p_id: briefId, p_status: 'read' });
     }
     setLoading(false);
   }, [briefId, isAdmin]);
@@ -84,9 +86,10 @@ export default function AdminBriefScreen() {
       p_account_id: brief.account_id,
     });
     if (!error && threadId) {
-      // Opening the reply channel from a brief counts as replying to it.
-      void supabase.rpc('admin_mark_brief', { p_id: brief.id, p_status: 'replied' });
+      // The brief is marked replied server-side when a reply is actually sent.
       router.push({ pathname: '/admin-thread' as never, params: { threadId: String(threadId) } });
+    } else {
+      Alert.alert('Could not open the conversation', error?.message ?? 'Please try again.');
     }
     setOpeningThread(false);
   }, [brief, openingThread, router]);

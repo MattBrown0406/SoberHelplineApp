@@ -28,7 +28,11 @@ import {
   diyFitResult,
   diyInterventionProgress,
   diySolutionKey,
+  diyLegacySolutionKey,
+  upgradeDiySolutionKeys,
+  diySpeakerOrder,
   diyStageAccess,
+  diyTapLogisticsFingerprint,
   removeDiyTeamMember,
   updateDiyLetter,
   updateDiyPlan,
@@ -90,12 +94,25 @@ function DiyInterventionPlannerContent() {
     bedReconfirmedAt: tap.plan.placementDetails.bedReconfirmedAt,
     departureAt: tap.plan.execution.departureAt,
     revision: tap.plan.updatedAt,
-    logisticsFingerprint: JSON.stringify({ items: tap.plan.items, execution: tap.plan.execution }),
+    logisticsFingerprint: diyTapLogisticsFingerprint(tap.plan),
   }), [leaveTonight.ready, tap, tapProgress.ready]);
   const progress = useMemo(() => diyInterventionProgress(diy.plan, tapSnapshot, now), [diy.plan, now, tapSnapshot]);
   const access = useMemo(() => diyStageAccess(diy.plan, tapSnapshot, now), [diy.plan, now, tapSnapshot]);
   const fit = diyFitResult(diy.plan.fit);
   const solutionKey = diySolutionKey(diy.plan, tapSnapshot);
+  const legacySolutionKey = diyLegacySolutionKey(
+    diy.plan,
+    tapSnapshot,
+    JSON.stringify({ items: tap.plan.items, execution: tap.plan.execution }),
+  );
+  // Sign-offs made before the solution key changed stay valid when nothing
+  // they attested to has changed since.
+  useEffect(() => {
+    if (diy.loadState !== 'ready' || !tapSnapshot.hydrated) return;
+    if (upgradeDiySolutionKeys(diy.plan, legacySolutionKey, solutionKey) === diy.plan) return;
+    diy.update((plan) => upgradeDiySolutionKeys(plan, legacySolutionKey, solutionKey));
+  }, [diy, legacySolutionKey, solutionKey, tapSnapshot.hydrated]);
+  const orderedSpeakers = diySpeakerOrder(diy.plan);
   const finalReady = progress.ready && diy.loadState === 'ready' && diy.saveState === 'saved';
   const update = (transform: (plan: DiyInterventionPlan) => DiyInterventionPlan) => diy.update(transform);
 
@@ -223,9 +240,9 @@ function DiyInterventionPlannerContent() {
             <Label text={t('rehearsal.debateHolder')} /><MemberChoices label={t('rehearsal.debateHolder')} plan={diy.plan} selected={diy.plan.rehearsal.debateHolderId} onChange={(debateHolderId) => update((plan) => updateDiyPlan(plan, { rehearsal: { ...plan.rehearsal, debateHolderId } }))} />
             <Label text={t('rehearsal.speakerOrder')} />
             {diy.plan.team.filter((member) => member.role === 'speaker').map((speaker) => {
-              const index = diy.plan.rehearsal.speakerOrder.indexOf(speaker.id);
+              const index = orderedSpeakers.indexOf(speaker.id);
               return <TouchableOpacity key={speaker.id} accessibilityRole="checkbox" accessibilityState={{ checked: index >= 0 }} style={[styles.orderRow, { borderColor: colors.line }]} onPress={() => update((plan) => {
-                const current = plan.rehearsal.speakerOrder;
+                const current = diySpeakerOrder(plan);
                 const speakerOrder = current.includes(speaker.id) ? current.filter((id) => id !== speaker.id) : [...current, speaker.id];
                 return updateDiyPlan(plan, { rehearsal: { ...plan.rehearsal, speakerOrder } });
               })}><Text style={{ color: colors.ink }}>{index >= 0 ? `${index + 1}. ` : ''}{speaker.name}</Text></TouchableOpacity>;

@@ -8,6 +8,8 @@ interface GroupPresence {
   isLoading: boolean;
 }
 
+const STALE_LIVE_MS = 3 * 60 * 60 * 1000;
+
 export function useGroupPresence(accountId: string | null): GroupPresence {
   const [myRooms, setMyRooms] = useState<string[]>([]);
   const [liveRooms, setLiveRooms] = useState<string[]>([]);
@@ -28,7 +30,9 @@ export function useGroupPresence(accountId: string | null): GroupPresence {
           supabase
             .from('group_hosts')
             .select('room_name')
-            .eq('is_live', true),
+            .eq('is_live', true)
+            // Ignore a broadcast whose host never ended it (app killed mid-session).
+            .gt('live_started_at', new Date(Date.now() - STALE_LIVE_MS).toISOString()),
         ]);
         if (!active) return;
         setMyRooms((mine.data ?? []).map((r) => r.room_name));

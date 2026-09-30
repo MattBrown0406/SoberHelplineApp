@@ -1,4 +1,5 @@
 {
+  "signSaveError": "That sign didn't save. Check your connection and try again.",
   "warning": {
     "eyebrow": "What have you noticed this week?",
     "meterLabel": "Warning pattern",

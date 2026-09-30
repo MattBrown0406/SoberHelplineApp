@@ -116,6 +116,6 @@ test('the settings screen offers "Sign out anyway" only for offline failures and
   assert.match(source, /t\('signOutOffline\.bodyWithQueue', \{ checkins: impact\.checkin, notes: impact\.journal \}\)/);
   const context = readFileSync('src/contexts/AccountContext.tsx', 'utf8');
   assert.match(context, /discardOutbox: \(id\) => offlineOutbox\.clear\(id\)/);
-  assert.match(context, /storePendingRevoke: \(id\) => storePendingPushTokenRevoke\(id\)/);
+  assert.match(context, /storePendingRevoke: async \(id\) => \{\s*await storePendingPushTokenRevoke\(id\);\s*await stopDevicePushDelivery\(\)/);
   assert.match(context, /removeSession: \(\) => removeSessionLocally\(supabase\.auth\)/);
 });

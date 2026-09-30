@@ -71,6 +71,7 @@ export default function AdminThreadScreen() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const listRef = useRef<FlatList<ThreadMessage>>(null);
+  const [channelInstanceId] = useState(() => Math.random().toString(36).slice(2));
 
   useEffect(() => {
     if (user && !isAdmin) router.replace('/');
@@ -96,7 +97,7 @@ export default function AdminThreadScreen() {
       .from('messages')
       .select('id, sender_role, body, created_at')
       .eq('thread_id', threadId)
-      .order('created_at', { ascending: true })
+      .order('created_at', { ascending: false })
       .limit(300);
 
     if (messageError) {
@@ -113,7 +114,13 @@ export default function AdminThreadScreen() {
     const signed = await Promise.all(((attachmentData ?? []) as Omit<Attachment, 'signedUrl'>[]).map(signAttachment));
 
     setThread(threadData as ThreadHeader);
-    setMessages((messageData ?? []) as ThreadMessage[]);
+    // Newest 300, shown oldest-first; merge anything realtime delivered meanwhile.
+    const loaded = ((messageData ?? []) as ThreadMessage[]).reverse();
+    setMessages((prev) => {
+      const byId = new Map(loaded.map((m) => [m.id, m]));
+      for (const m of prev) if (!byId.has(m.id)) byId.set(m.id, m);
+      return Array.from(byId.values()).sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
+    });
     setAttachments(signed);
     await supabase.rpc('admin_mark_thread_read', { p_thread_id: threadId });
     setLoading(false);
@@ -124,14 +131,15 @@ export default function AdminThreadScreen() {
   useEffect(() => {
     if (!threadId) return;
     const channel = supabase
-      .channel(`admin-thread-${threadId}`)
+      .channel(`admin-thread-${threadId}-${channelInstanceId}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages', filter: `thread_id=eq.${threadId}` },
         (payload) => {
           const msg = payload.new as ThreadMessage;
           setMessages((prev) => prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]);
-          void supabase.rpc('admin_mark_thread_read', { p_thread_id: threadId });
+          // Postgrest builders are lazy: .then() is what actually sends the request.
+          void supabase.rpc('admin_mark_thread_read', { p_thread_id: threadId }).then(() => undefined);
         },
       )
       .on(
@@ -146,18 +154,25 @@ export default function AdminThreadScreen() {
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [threadId]);
+  }, [threadId, channelInstanceId]);
 
   async function sendReply() {
     const body = draft.trim();
     if (!threadId || !body) return;
     setSending(true);
     setDraft('');
-    const { error } = await supabase.rpc('admin_send_thread_message', { p_thread_id: threadId, p_body: body });
+    const { data: messageId, error } = await supabase.rpc('admin_send_thread_message', { p_thread_id: threadId, p_body: body });
     setSending(false);
     if (error) {
       setDraft(body);
       Alert.alert('Reply not sent', error.message);
+      return;
+    }
+    // A reply to an archived thread is delivered to the member's current
+    // conversation; follow it there so the reply is visible and not resent.
+    const { data: sent } = await supabase.from('messages').select('thread_id').eq('id', messageId as string).maybeSingle();
+    if (sent?.thread_id && sent.thread_id !== threadId) {
+      router.replace({ pathname: '/admin-thread' as never, params: { threadId: String(sent.thread_id) } });
     }
   }
 

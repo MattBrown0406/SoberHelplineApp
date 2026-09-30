@@ -18,6 +18,7 @@ import { useTheme } from '../../src/contexts/ThemeContext';
 import { supabase } from '../../src/lib/supabase';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { addAppBreadcrumb, captureAppError } from '../../src/lib/monitoring';
+import { EmergencyActions } from '../../src/components/safety/EmergencyActions';
 const LOGO = require('../../assets/images/logo.png');
 
 export default function SignInScreen() {
@@ -44,10 +45,14 @@ export default function SignInScreen() {
 
       if (authError) {
         addAppBreadcrumb('auth.sign_in_rejected', 'warning');
+        const unconfirmed = authError.code === 'email_not_confirmed'
+          || authError.message.toLowerCase().includes('not confirmed');
         setError(
-          authError.message.toLowerCase().includes('invalid') || authError.status === 400
-            ? t('signIn.errorInvalid')
-            : t('signIn.errorGeneric'),
+          unconfirmed
+            ? t('signIn.errorUnconfirmed')
+            : authError.message.toLowerCase().includes('invalid') || authError.status === 400
+              ? t('signIn.errorInvalid')
+              : t('signIn.errorGeneric'),
         );
         return;
       }
@@ -150,6 +155,10 @@ export default function SignInScreen() {
               </TouchableOpacity>
             </Link>
           </View>
+
+          <View style={styles.emergency}>
+            <EmergencyActions />
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -209,6 +218,7 @@ const styles = StyleSheet.create({
   dividerLine: { flex: 1, height: 1 },
   dividerText: { fontSize: 12 },
   appleBtn: { width: '100%', height: 50 },
+  emergency: { marginTop: 28 },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',

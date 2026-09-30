@@ -57,10 +57,10 @@ function TodayContent() {
     useTodayFeed(user?.id ?? null, user?.joinedAt ?? null);
   const youLabel = user?.firstName || t('boundaries:journal.you');
   const { space: familySpace } = useFamilySpace(user?.id ?? null, { you: youLabel, member: t('boundaries:journal.member') });
-  const holdLog = useHoldLog(user?.id ?? null, familySpace?.id ?? null);
+  const holdLog = useHoldLog(user?.id ?? null, familySpace?.id ?? null, user?.timezone);
   const canAccessFullToday = useFeatureAccess('todayFull');
 
-  const firstName = user?.firstName || 'there';
+  const firstName = user?.firstName?.trim() ?? '';
   const greeting = timeGreeting(t, firstName);
   const contextLabel = t(isAttached ? 'hero.contextAttached' : 'hero.contextDirect');
   const dailyQuote = t(`dailyQuote.${quoteIndex}`);
@@ -123,7 +123,7 @@ function TodayContent() {
     <View style={styles.headerRow}>
       <Text style={[styles.greeting, { color: colors.ink }]}>{greeting}</Text>
       <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-        <Text style={styles.avatarText}>{firstName.charAt(0).toUpperCase()}</Text>
+        <Text style={styles.avatarText}>{firstName ? firstName.charAt(0).toUpperCase() : '•'}</Text>
       </View>
     </View>
   );
@@ -188,7 +188,7 @@ function TodayContent() {
           nameFor={(id) => familySpace?.members.find((m) => m.accountId === id)?.displayName ?? youLabel}
           onSave={(result, share) => { void saveBoundaryWin(result, share); }}
         />
-        <MoodChart accountId={user?.id ?? null} />
+        <MoodChart accountId={user?.id ?? null} timezone={user?.timezone} />
         {curriculumPiece && (
           <CurriculumCard
             piece={curriculumPiece}
@@ -249,7 +249,7 @@ function TodayContent() {
 
       <WeekReviewCard accountId={user?.id ?? null} boundariesHeld={boundariesHeld} />
 
-      <MoodChart accountId={user?.id ?? null} />
+      <MoodChart accountId={user?.id ?? null} timezone={user?.timezone} />
 
       {curriculumPiece && (
         <CurriculumCard
@@ -270,9 +270,9 @@ function TodayContent() {
 
 function timeGreeting(t: TFunction<'today'>, name: string): string {
   const h = new Date().getHours();
-  const key =
-    h < 12 ? 'greeting.morning' : h < 17 ? 'greeting.afternoon' : 'greeting.evening';
-  return t(key, { name });
+  const period = h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
+  // No name on file: a complete greeting, not an English placeholder name.
+  return name ? t(`greeting.${period}`, { name }) : t(`greeting.${period}NoName`);
 }
 
 const styles = StyleSheet.create({

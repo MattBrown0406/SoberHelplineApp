@@ -6,6 +6,9 @@
   "endBroadcast": "Finalizar transmisión",
   "leave": "Salir",
   "webFallback": "Los grupos en vivo están disponibles en la aplicación móvil de Sober Helpline.",
+  "joinErrorMembership": "Los grupos en vivo son parte de la membresía. Consulta los planes en la pestaña Apoyo para unirte.",
+  "joinErrorNotLive": "Este grupo no está en vivo ahora. Si confirmaste asistencia, recibirás una notificación cuando comience.",
+  "joinErrorGeneric": "No pudimos conectarte al grupo en vivo. Revisa tu conexión e intenta de nuevo.",
   "host": {
     "eyebrow": "TRANSMISIÓN",
     "watching": "{{count}} viendo",

@@ -157,7 +157,12 @@ export function parseDiyProtectedParts(
     memberId: string(underRow.memberId, 'undercutter_member', DIY_TEAM_ID_LIMIT),
     agreesToSolutionAndLeaveTime: nullableBool(underRow.agreesToSolutionAndLeaveTime, 'undercutter_agreement'),
   };
-  if (undercutter.answer === 'named' && !ids.has(undercutter.memberId)) throw new Error('protected_diy_invalid_undercutter_member');
+  // A 'named' answer with no member picked yet is an in-progress selection, not
+  // corruption: it must save so the rest of the plan is not blocked. Team-stage
+  // readiness still reports it as `undercutterMember`. A non-empty id must match.
+  if (undercutter.answer === 'named' && undercutter.memberId !== '' && !ids.has(undercutter.memberId)) {
+    throw new Error('protected_diy_invalid_undercutter_member');
+  }
   const unityContainer = rows.unity;
   const unityRow = object(unityContainer.unity, 'unity');
   const unity = {

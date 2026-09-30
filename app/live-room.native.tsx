@@ -56,8 +56,24 @@ async function fetchLiveKitToken(room: string): Promise<TokenResult> {
     },
     body: JSON.stringify({ room }),
   });
-  if (!res.ok) throw new Error(`Token fetch failed: ${res.status}`);
+  if (!res.ok) {
+    const body = await res.json().catch(() => null) as { error?: string } | null;
+    throw new TokenError(body?.error ?? `http_${res.status}`);
+  }
   return res.json();
+}
+
+class TokenError extends Error {
+  constructor(readonly code: string) {
+    super(code);
+  }
+}
+
+function joinErrorKey(error: unknown): string {
+  const code = error instanceof TokenError ? error.code : '';
+  if (code === 'membership_required') return 'joinErrorMembership';
+  if (code === 'group_room_not_live') return 'joinErrorNotLive';
+  return 'joinErrorGeneric';
 }
 
 async function removeParticipant(room: string, identity: string): Promise<void> {
@@ -339,7 +355,7 @@ function LiveRoomSession({ roomName }: { roomName: string }) {
         isHostRef.current = result.isHost;
         setTokenResult(result);
       } catch (e) {
-        if (active) setError(String(e));
+        if (active) setError(t(joinErrorKey(e)));
       }
     }
     void init();

@@ -1,4 +1,5 @@
 {
+  "signSaveError": "Esa señal no se guardó. Revisa tu conexión e intenta de nuevo.",
   "warning": {
     "eyebrow": "¿Qué has notado esta semana?",
     "meterLabel": "Señales de alerta",

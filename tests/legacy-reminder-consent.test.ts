@@ -4,9 +4,10 @@ import fs from 'node:fs';
 import ts from 'typescript';
 import { AsyncWriteBarrier } from '../src/lib/appFlowGuards';
 
-function harness(platform = 'ios') {
+function harness(platform = 'ios', serverDailyOptIn = false) {
   const store = new Map<string, string>();
   const scheduled: any[] = []; const canceled: string[] = []; let writes = 0;
+  const rpcCalls: { name: string; args: any }[] = [];
   const notifications = {
     setNotificationHandler() {}, getPermissionsAsync: async () => ({ status: 'granted' }),
     getExpoPushTokenAsync: async () => ({ data: 'token' }),
@@ -27,12 +28,16 @@ function harness(platform = 'ios') {
       setItem: async (key: string, value: string) => { store.set(key, value); },
     }, '../i18n': { t: () => 'copy', language: 'en' },
     '../lib/supabase': { supabase: {
-      rpc: async () => { writes++; return { data: true }; },
+      rpc: async (name: string, args: any) => {
+        writes++; rpcCalls.push({ name, args });
+        if (name === 'set_daily_push_opt_in') serverDailyOptIn = args.p_enabled;
+        return { data: true };
+      },
       auth: { getSession: async () => ({ data: { session: { user: { id: 'auth' } } } }) },
-      from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: 'A' } }) }) }) }),
+      from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: 'A', timezone: null, daily_push_opt_in: serverDailyOptIn } }) }) }) }),
     } }, '../storage/checkIn': { getCheckIn: async () => null },
     '../lib/appFlowGuards': { AsyncWriteBarrier }, '../lib/pushRouting': {},
-    '../lib/pendingPushTokenRevoke': { settlePendingPushTokenRevoke: async () => 'none' },
+    '../lib/pendingPushTokenRevoke': { settlePendingPushTokenRevoke: async () => 'none' }, '../lib/pushDevice': { isDeviceSignedIn: () => true },
     '../reminders/personalReminders': { REMINDER_PREFIX: 'personal-reminder:' },
   };
   const code = ts.transpileModule(fs.readFileSync('src/hooks/usePushNotifications.ts', 'utf8'), {
@@ -40,7 +45,7 @@ function harness(platform = 'ios') {
   }).outputText;
   const exports: any = {};
   new Function('require', 'exports', code)((name: string) => modules[name], exports);
-  return { api: exports, store, scheduled, canceled, writes: () => writes };
+  return { api: exports, store, scheduled, canceled, writes: () => writes, rpcCalls };
 }
 
 test('web logout preserves token barrier without invoking an unavailable native scheduler', async () => {
@@ -58,6 +63,22 @@ test('OS permission and ordinary push registration do not opt into daily nudges'
   assert.equal(h.writes(), 1);
   assert.equal(h.scheduled.length, 0);
 });
+test('a device that never opted in turns off a backfilled server daily push', async () => {
+  const h = harness('ios', true);
+  await h.api.registerForPushNotifications('A', false);
+  await h.api.rearmDailyNudge();
+  assert.deepEqual(
+    h.rpcCalls.filter((c) => c.name === 'set_daily_push_opt_in').map((c) => c.args),
+    [{ p_enabled: false }],
+  );
+});
+
+test('explicit daily consent reaches the server morning push', async () => {
+  const h = harness();
+  assert.equal(await h.api.registerForPushNotifications('A', true, true), true);
+  assert.ok(h.rpcCalls.some((c) => c.name === 'set_daily_push_opt_in' && c.args.p_enabled === true));
+});
+
 test('explicit daily consent schedules owned IDs only and does not cross accounts', async () => {
   const h = harness();
   assert.equal(await h.api.registerForPushNotifications('A', true, true), true);

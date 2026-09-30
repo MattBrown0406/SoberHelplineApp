@@ -129,6 +129,7 @@
   "challenge": {
     "eyebrow": "DESAFÍO DE HOY",
     "streakEyebrow": "RACHA DE CHECK-INS",
+    "weekdayLetters": ["D", "L", "M", "X", "J", "V", "S"],
     "monday": "Es lunes — únete a la reunión de Zoom de Family Squares esta noche a las 7:00 PM, hora del Pacífico. Acompáñate de personas que entienden lo que estás viviendo.",
     "daily": [
       "Practica decir \"no\" una vez hoy — y resiste el impulso de dar explicaciones.",

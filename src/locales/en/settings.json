@@ -98,6 +98,7 @@
     "button": "Delete account",
     "confirmTitle": "Delete your account?",
     "confirmMessage": "Your data will be permanently deleted within 30 days. This cannot be undone.",
+    "subscriptionNote": "Deleting your account does not cancel a subscription. If you subscribed through the App Store or on the web, cancel it there first so you aren't charged again.",
     "confirmButton": "Yes, delete my account",
     "cancelButton": "Cancel",
     "errorTitle": "Account not deleted",

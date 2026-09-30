@@ -2,7 +2,10 @@
   "greeting": {
     "morning": "Buenos días, {{name}}",
     "afternoon": "Buenas tardes, {{name}}",
-    "evening": "Buenas noches, {{name}}"
+    "evening": "Buenas noches, {{name}}",
+    "morningNoName": "Buenos días",
+    "afternoonNoName": "Buenas tardes",
+    "eveningNoName": "Buenas noches"
   },
   "hero": {
     "dayLabel": "DÍA {{count}} — {{context}}",
@@ -434,7 +437,10 @@
   },
   "moodChart": {
     "eyebrow": "TUS ÚLTIMOS 14 DÍAS",
-    "noData": "Regístrate cada día para ver tu arco emocional aquí."
+    "noData": "Regístrate cada día para ver tu arco emocional aquí.",
+    "legendHard": "Difícil",
+    "legendOkay": "Regular",
+    "legendGood": "Bien"
   },
   "situationCta": {
     "eyebrow": "ESTA SEMANA",

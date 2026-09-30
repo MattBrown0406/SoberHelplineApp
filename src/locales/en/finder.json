@@ -282,6 +282,26 @@
     "Psychiatric Services": "Psychiatric Services",
     "LGBTQ+ affirming": "LGBTQ+ affirming",
     "Adolescent (under 18)": "Adolescent (under 18)",
-    "Contact for pricing": "Contact for pricing"
+    "Contact for pricing": "Contact for pricing",
+    "Therapists": "Therapists",
+    "Men": "Men",
+    "Women": "Women"
+  },
+  "listing": {
+    "genderSpecific": "{{group}}-specific",
+    "perDay": "{{amount}}/day",
+    "perHour": "{{amount}}/hr",
+    "serviceArea": {
+      "international": "International",
+      "nationwide": "Nationwide",
+      "remote": "Remote (nationwide)",
+      "inPersonRemote": "In-person ({{location}}) + remote"
+    },
+    "serviceAreaShort": {
+      "international": "International",
+      "nationwide": "Nationwide",
+      "remote": "Remote",
+      "inPersonRemote": "In-person"
+    }
   }
 }

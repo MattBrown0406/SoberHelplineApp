@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import { supabase } from '../lib/supabase';
+import { threadChannelTopic } from '../lib/realtimeTopics';
 
 const ATTACHMENT_BUCKET = 'chat-attachments';
 
 type RawMessage  = { id: string; sender_role: 'member' | 'coach' | 'ai' | 'system'; body: string; created_at: string };
-type RawReaction = { message_id: string; account_id: string; reaction: string };
+type RawReaction = { id: string; message_id: string; account_id: string; reaction: string };
 type RawAttachment = {
   id: string;
   message_id: string;
@@ -59,6 +61,44 @@ function mergeReactions(raw: RawReaction[], msgId: string, myAccountId: string |
     });
   }
   return Array.from(byEmoji.entries()).map(([emoji, { count, byMe }]) => ({ emoji, count, byMe }));
+}
+
+const HISTORY_LIMIT = 200;
+const MESSAGE_COLUMNS = 'id, sender_role, body, created_at';
+
+// Newest HISTORY_LIMIT messages, returned oldest-first for display.
+async function fetchRecentMessages(threadId: string): Promise<RawMessage[] | null> {
+  const { data, error } = await supabase
+    .from('messages')
+    .select(MESSAGE_COLUMNS)
+    .eq('thread_id', threadId)
+    .order('created_at', { ascending: false })
+    .limit(HISTORY_LIMIT);
+  if (error) return null;
+  return ((data ?? []) as RawMessage[]).reverse();
+}
+
+function mergeMessages(prev: RawMessage[], incoming: RawMessage[]): RawMessage[] {
+  const byId = new Map(prev.map((m) => [m.id, m]));
+  for (const m of incoming) byId.set(m.id, m);
+  return Array.from(byId.values()).sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
+}
+
+export class ThreadUnavailableError extends Error {
+  constructor() {
+    super('thread_unavailable');
+    this.name = 'ThreadUnavailableError';
+  }
+}
+
+// The message itself was saved; only its attachments failed. Retrying the whole
+// send would post the text twice.
+export class AttachmentUploadError extends Error {
+  constructor(cause: unknown) {
+    super('attachment_upload_failed');
+    this.name = 'AttachmentUploadError';
+    this.cause = cause;
+  }
 }
 
 function sanitizeFileName(name: string): string {
@@ -118,7 +158,12 @@ async function uploadAttachment(
   return signedAttachment(data as RawAttachment, attachment.uri);
 }
 
-export function useThread(accountId: string | null, enabled = true) {
+/**
+ * readOnly: load the member's existing conversation without creating one and
+ * without sending — members off the Text Line plan can still read replies to
+ * their situation briefs.
+ */
+export function useThread(accountId: string | null, enabled = true, { readOnly = false }: { readOnly?: boolean } = {}) {
   const [threadId, setThreadId]       = useState<string | null>(null);
   const [rawMessages, setRawMessages] = useState<RawMessage[]>([]);
   const [rawReactions, setRawReactions] = useState<RawReaction[]>([]);
@@ -126,6 +171,10 @@ export function useThread(accountId: string | null, enabled = true) {
   const [loading, setLoading]         = useState(true);
   const [sending, setSending]         = useState(false);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  // supabase.channel(topic) returns the existing channel for a topic, so two
+  // screens on the same thread would share (and tear down) one subscription.
+  const [channelInstanceId] = useState(() => Math.random().toString(36).slice(2));
+  const threadIdRef = useRef<string | null>(null);
 
   const messages = useMemo<ChatMessage[]>(
     () => rawMessages.map((msg) => ({
@@ -136,18 +185,24 @@ export function useThread(accountId: string | null, enabled = true) {
     [rawMessages, rawReactions, attachments, accountId],
   );
 
+  // Catches messages that landed between the history fetch and the realtime
+  // join, or while the socket was down or the app was backgrounded.
+  const refreshMessages = useCallback(async (tid: string) => {
+    const recent = await fetchRecentMessages(tid);
+    if (!recent || threadIdRef.current !== tid) return;
+    setRawMessages((prev) => mergeMessages(prev, recent));
+  }, []);
+
   const subscribeToThread = useCallback((tid: string) => {
     if (channelRef.current) supabase.removeChannel(channelRef.current);
     channelRef.current = supabase
-      .channel(`thread-${tid}`)
+      .channel(threadChannelTopic(tid, channelInstanceId))
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages', filter: `thread_id=eq.${tid}` },
         (payload) => {
           const msg = payload.new as RawMessage;
-          setRawMessages((prev) =>
-            prev.some((m) => m.id === msg.id) ? prev : [...prev, msg],
-          );
+          setRawMessages((prev) => mergeMessages(prev, [msg]));
         },
       )
       .on(
@@ -164,24 +219,22 @@ export function useThread(accountId: string | null, enabled = true) {
         { event: 'INSERT', schema: 'public', table: 'message_reactions' },
         (payload) => {
           const r = payload.new as RawReaction;
-          setRawReactions((prev) => {
-            if (prev.some((x) => x.message_id === r.message_id && x.account_id === r.account_id && x.reaction === r.reaction)) return prev;
-            return [...prev, r];
-          });
+          setRawReactions((prev) => (prev.some((x) => x.id === r.id) ? prev : [...prev, r]));
         },
       )
       .on(
         'postgres_changes',
         { event: 'DELETE', schema: 'public', table: 'message_reactions' },
         (payload) => {
-          const r = payload.old as RawReaction;
-          setRawReactions((prev) =>
-            prev.filter((x) => !(x.message_id === r.message_id && x.account_id === r.account_id && x.reaction === r.reaction)),
-          );
+          // With RLS on, DELETE payloads carry only the primary key.
+          const removedId = (payload.old as Partial<RawReaction>).id;
+          if (removedId) setRawReactions((prev) => prev.filter((x) => x.id !== removedId));
         },
       )
-      .subscribe();
-  }, []);
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') void refreshMessages(tid);
+      });
+  }, [channelInstanceId, refreshMessages]);
 
   const loadThread = useCallback(async (accId: string, isCancelled: () => boolean = () => false): Promise<string | null> => {
     const { data: existing } = await supabase
@@ -195,26 +248,43 @@ export function useThread(accountId: string | null, enabled = true) {
       .maybeSingle();
 
     let tid = existing?.id as string | undefined;
+    if (!tid && readOnly) {
+      if (!isCancelled()) {
+        threadIdRef.current = null;
+        setThreadId(null);
+        setRawMessages([]);
+        setLoading(false);
+      }
+      return null;
+    }
     if (!tid) {
       const { data: created, error } = await supabase
         .from('threads')
         .insert({ account_id: accId, kind: 'oncall' })
         .select('id')
         .single();
-      if (error) throw error;
-      tid = created?.id;
+      if (error?.code === '23505') {
+        // Another screen opened the conversation first; use that one.
+        const { data: winner } = await supabase
+          .from('threads')
+          .select('id')
+          .eq('account_id', accId)
+          .eq('kind', 'oncall')
+          .is('archived_at', null)
+          .maybeSingle();
+        tid = winner?.id;
+      } else if (error) {
+        throw error;
+      } else {
+        tid = created?.id;
+      }
     }
     if (!tid || isCancelled()) return null;
 
-    const { data: history } = await supabase
-      .from('messages')
-      .select('id, sender_role, body, created_at')
-      .eq('thread_id', tid)
-      .order('created_at', { ascending: true })
-      .limit(200);
-
-    const msgs = (history ?? []) as RawMessage[];
+    const history = await fetchRecentMessages(tid);
+    const msgs = history ?? [];
     if (isCancelled()) return null;
+    threadIdRef.current = tid;
     setThreadId(tid);
     setRawMessages(msgs);
 
@@ -222,7 +292,7 @@ export function useThread(accountId: string | null, enabled = true) {
       const [reactionRes, attachmentRes] = await Promise.all([
         supabase
           .from('message_reactions')
-          .select('message_id, account_id, reaction')
+          .select('id, message_id, account_id, reaction')
           .in('message_id', msgs.map((m) => m.id)),
         supabase
           .from('message_attachments')
@@ -244,7 +314,7 @@ export function useThread(accountId: string | null, enabled = true) {
     setLoading(false);
     subscribeToThread(tid);
     return tid;
-  }, [subscribeToThread]);
+  }, [subscribeToThread, readOnly]);
 
   useEffect(() => {
     if (!accountId || !enabled) {
@@ -258,26 +328,37 @@ export function useThread(accountId: string | null, enabled = true) {
       if (!cancelled) setLoading(false);
     });
 
+    const appStateSub = AppState.addEventListener('change', (next) => {
+      const tid = threadIdRef.current;
+      if (next === 'active' && tid) void refreshMessages(tid);
+    });
+
     return () => {
       cancelled = true;
+      appStateSub.remove();
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
     };
-  }, [accountId, enabled, loadThread]);
+  }, [accountId, enabled, loadThread, refreshMessages]);
 
   const send = useCallback(async (body: string, pendingAttachments: PendingAttachment[] = []) => {
-    if (!threadId || !accountId) return;
     const trimmed = body.trim();
     if (!trimmed && pendingAttachments.length === 0) return;
+    if (!accountId || readOnly) throw new ThreadUnavailableError();
 
     setSending(true);
     try {
+      // The thread may have failed to load (offline on open, or a transient
+      // error); try once more rather than dropping the member's message.
+      const activeThreadId = threadId ?? (await loadThread(accountId));
+      if (!activeThreadId) throw new ThreadUnavailableError();
+
       const { data, error } = await supabase
         .from('messages')
         .insert({
-          thread_id: threadId,
+          thread_id: activeThreadId,
           sender_role: 'member',
           body: trimmed || 'Attached screenshot/image',
         })
@@ -286,26 +367,27 @@ export function useThread(accountId: string | null, enabled = true) {
       if (error) throw error;
 
       const msg = data as RawMessage;
-      setRawMessages((prev) =>
-        prev.some((m) => m.id === msg.id) ? prev : [...prev, msg],
-      );
+      setRawMessages((prev) => mergeMessages(prev, [msg]));
 
       if (pendingAttachments.length > 0) {
-        const uploaded = await Promise.all(
-          pendingAttachments.map((att) => uploadAttachment(accountId, threadId, msg.id, att)),
+        const results = await Promise.allSettled(
+          pendingAttachments.map((att) => uploadAttachment(accountId, activeThreadId, msg.id, att)),
         );
         setAttachments((prev) => {
           const next = [...prev];
-          for (const att of uploaded) {
+          for (const result of results) {
+            const att = result.status === 'fulfilled' ? result.value : null;
             if (att && !next.some((x) => x.id === att.id)) next.push(att);
           }
           return next;
         });
+        const failed = results.find((r): r is PromiseRejectedResult => r.status === 'rejected');
+        if (failed) throw new AttachmentUploadError(failed.reason);
       }
     } finally {
       setSending(false);
     }
-  }, [threadId, accountId]);
+  }, [threadId, accountId, loadThread, readOnly]);
 
   const archive = useCallback(async (): Promise<void> => {
     if (!threadId || !accountId) return;
@@ -313,6 +395,7 @@ export function useThread(accountId: string | null, enabled = true) {
     // otherwise an offline tap hides the conversation without archiving it.
     const { error } = await supabase.rpc('archive_thread', { p_thread_id: threadId });
     if (error) throw error;
+    threadIdRef.current = null;
     setThreadId(null);
     setRawMessages([]);
     setRawReactions([]);

@@ -46,6 +46,7 @@ const SESSION_KINDS = new Set([
   'member_video_completed',
   'member_video_no_show',
   'premier_video_reminder',
+  'member_plan_update_requested',
 ]);
 
 /** Legacy `screen` hints (morning note, daily nudge) may only pick a tab. */
@@ -72,6 +73,7 @@ export type PushDestination =
   | { pathname: '/admin-thread'; params: { threadId: string } }
   | { pathname: '/admin' }
   | { pathname: '/guided-journey' }
+  | { pathname: '/crisis-mode'; params: { focus: 'session' } }
   | { pathname: '/(tabs)' }
   | { pathname: '/(tabs)/support'; params?: { sessionId: string } }
   | { pathname: '/(tabs)/boundaries' }
@@ -177,10 +179,20 @@ export function getPushDestination(data: PushData, options: PushRoutingOptions |
     if (kind.startsWith('admin_') || kind.startsWith('coach_')) {
       return { pathname: '/admin' };
     }
-    if (kind === 'member_video_live' && sessionId && allowed('privateVideo')) {
+    // A one-off plan review (Essential) joins the same session screen; the
+    // token service checks the session belongs to the member.
+    if (kind === 'member_video_live' && sessionId && (allowed('privateVideo') || allowed('planReview'))) {
       return { pathname: '/video-session', params: { sessionId } };
     }
-    return SUPPORT;
+    // Premier members manage sessions on Support; a one-off plan review is
+    // shown, confirmed and paid for in Crisis Mode, opened on the session.
+    return allowed('privateVideo') ? SUPPORT : { pathname: '/crisis-mode', params: { focus: 'session' } };
+  }
+
+  // Admin-only alerts (refund owed, community report, …) open the dashboard,
+  // which redirects anyone who is not an admin.
+  if (kind.startsWith('admin_')) {
+    return { pathname: '/admin' };
   }
 
   // Unknown or legacy payload: open the app on a tab, never a gated screen.

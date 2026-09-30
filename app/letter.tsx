@@ -11,7 +11,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../src/contexts/ThemeContext';
@@ -24,6 +24,7 @@ import type { LetterDraft, ExperienceBlock } from '../src/api/types';
 import { maybeRequestReview } from '../src/lib/reviewPrompt';
 import {
   INTERVENTION_LETTER_PAGE_CHAR_LIMIT,
+  confirmedBoundaryTexts,
   interventionLetterReadyToFinish,
   interventionLetterText,
 } from '../src/lib/interventionLetter';
@@ -37,6 +38,12 @@ function hasToneFlag(text: string, lang: string): boolean {
   const t = text.toLowerCase();
   const flags = lang.startsWith('es') ? ES_FLAGS : EN_FLAGS;
   return flags.some((f) => t.includes(f));
+}
+
+const MESSAGE_BODY_LIMIT = 4000;
+
+function capMessageBody(text: string): string {
+  return text.length <= MESSAGE_BODY_LIMIT ? text : `${text.slice(0, MESSAGE_BODY_LIMIT - 1)}…`;
 }
 
 // ── Brevity helpers ───────────────────────────────────────────────────────────
@@ -108,12 +115,14 @@ export default function LetterScreen() {
   const { user, isAttached } = useAccount();
   const { t, i18n } = useTranslation('letter');
   const router = useRouter();
+  const { recipient: resumeRecipient } = useLocalSearchParams<{ recipient?: string }>();
   const { walls } = useBoundaries(user?.id ?? null);
 
   const [step, setStep] = useState<Step>('recipient');
   const [recipientName, setRecipientName] = useState('');
   const [draft, setDraft] = useState<LetterDraft | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
   const [sendingLetter, setSendingLetter] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
@@ -126,9 +135,20 @@ export default function LetterScreen() {
     setRecipientName('');
     setDraft(null);
     setSaving(false);
+    setSaveFailed(false);
     setSendingLetter(false);
     setFinishing(false);
   }, [user?.id]);
+
+  // "Continue your letter" on Today opens straight into that draft.
+  const resumedRef = useRef<string | null>(null);
+  useEffect(() => {
+    const name = typeof resumeRecipient === 'string' ? resumeRecipient.trim() : '';
+    if (!user || !name || resumedRef.current === `${user.id}:${name}`) return;
+    resumedRef.current = `${user.id}:${name}`;
+    setRecipientName(name);
+    void loadOrCreateDraft(name);
+  }, [user?.id, resumeRecipient]);
 
   // Load defaults from locale
   useEffect(() => {
@@ -183,6 +203,10 @@ export default function LetterScreen() {
       saveQueueRef.current = write;
       try {
         await write;
+        setSaveFailed(false);
+      } catch {
+        // The text is only in memory now; say so instead of implying it saved.
+        setSaveFailed(true);
       } finally {
         pendingSavesRef.current = Math.max(0, pendingSavesRef.current - 1);
         if (pendingSavesRef.current === 0) setSaving(false);
@@ -209,6 +233,26 @@ export default function LetterScreen() {
       ? draft.p3ConfirmedBoundaryIds.filter((id) => id !== wallId)
       : [...draft.p3ConfirmedBoundaryIds, wallId];
     updateDraft({ p3ConfirmedBoundaryIds: ids });
+  }
+
+  function fullLetterText(current: LetterDraft): string {
+    return interventionLetterText(current, {
+      heading: t('preview.boundariesHeading'),
+      boundaries: confirmedBoundaryTexts(current, walls),
+    });
+  }
+
+  // Direct members: a private copy in their own mail app. The letter never
+  // goes to the Text Line unless they are working with a coach.
+  async function emailCopy() {
+    if (!draft) return;
+    const subject = t('preview.emailSubject', { name: draft.recipientName });
+    const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(fullLetterText(draft))}`;
+    try {
+      await Linking.openURL(url);
+    } catch {
+      await shareExport();
+    }
   }
 
   async function sendToCoach() {
@@ -241,7 +285,9 @@ export default function LetterScreen() {
       const { error: sendError } = await supabase.from('messages').insert({
         thread_id: tid,
         sender_role: 'member',
-        body: interventionLetterText(draft),
+        // messages.body is capped at 4000 characters; a long list of
+        // boundaries must not make the letter unsendable.
+        body: capMessageBody(fullLetterText(draft)),
       });
       if (sendError) throw sendError;
       router.push('/chat');
@@ -254,8 +300,8 @@ export default function LetterScreen() {
 
   async function shareExport() {
     if (!draft) return;
-    const letter = interventionLetterText(draft);
-    await Share.share({ message: letter, title: `Letter for ${draft.recipientName}` });
+    const letter = fullLetterText(draft);
+    await Share.share({ message: letter, title: t('preview.shareTitle', { name: draft.recipientName }) });
   }
 
   async function finishLetter() {
@@ -565,7 +611,7 @@ export default function LetterScreen() {
                 {/* Assembled letter */}
                 <View style={[styles.letterCard, { borderColor: colors.line }]}>
                   <Text style={[styles.letterText, { color: colors.ink }]}>
-                    {interventionLetterText(draft) || '…'}
+                    {fullLetterText(draft) || '…'}
                   </Text>
                 </View>
 
@@ -606,7 +652,7 @@ export default function LetterScreen() {
                 <TouchableOpacity
                   style={[styles.outlineBtn, { borderColor: colors.primary }]}
                   activeOpacity={0.8}
-                  onPress={() => void sendToCoach()}
+                  onPress={() => void (isAttached ? sendToCoach() : emailCopy())}
                   disabled={sendingLetter}
                 >
                   <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
@@ -628,14 +674,14 @@ export default function LetterScreen() {
                           `${FEATURED_PROVIDER.credential} — ${FEATURED_PROVIDER.credentialFull}`,
                           [
                             {
-                              text: `Email ${FEATURED_PROVIDER.name}`,
+                              text: t('preview.referralEmail', { name: FEATURED_PROVIDER.name }),
                               onPress: () => void Linking.openURL(`mailto:${FEATURED_PROVIDER.email}`),
                             },
                             {
-                              text: 'Visit Website',
+                              text: t('preview.referralWebsite'),
                               onPress: () => void Linking.openURL(FEATURED_PROVIDER.web),
                             },
-                            { text: 'Close', style: 'cancel' },
+                            { text: t('preview.referralClose'), style: 'cancel' },
                           ],
                         )
                       }
@@ -652,6 +698,9 @@ export default function LetterScreen() {
             {/* Save indicator */}
             {saving && (
               <Text style={[styles.saveLabel, { color: colors.inkSoft }]}>{t('save')}…</Text>
+            )}
+            {saveFailed && !saving && (
+              <Text accessibilityLiveRegion="polite" style={[styles.saveLabel, { color: colors.coral }]}>{t('saveFailed')}</Text>
             )}
 
             {/* Navigation */}

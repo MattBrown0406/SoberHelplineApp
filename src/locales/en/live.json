@@ -6,6 +6,9 @@
   "endBroadcast": "End Broadcast",
   "leave": "Leave",
   "webFallback": "Live groups are available in the Sober Helpline mobile app.",
+  "joinErrorMembership": "Live groups are part of membership. See plans in the Support tab to join.",
+  "joinErrorNotLive": "This group isn't live right now. You'll get a notification when it starts if you've RSVP'd.",
+  "joinErrorGeneric": "We couldn't connect you to the live group. Check your connection and try again.",
   "host": {
     "eyebrow": "BROADCAST",
     "watching": "{{count}} watching",

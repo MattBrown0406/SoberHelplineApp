@@ -13,6 +13,7 @@ import { useOfflineOutbox } from '../src/hooks/useOfflineOutbox';
 import { isOnboarded, subscribeOnboarded } from '../src/onboarding/state';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { SafetyShortcut } from '../src/components/safety/SafetyShortcut';
+import { EmergencyActions } from '../src/components/safety/EmergencyActions';
 import { getInitialLayoutState, isPushNavigationReady } from '../src/lib/authBootstrap';
 import { addAppBreadcrumb } from '../src/lib/monitoring';
 import { flushQueuedSupportCallReview, setReviewPromptRoute } from '../src/lib/reviewPrompt';
@@ -136,7 +137,9 @@ function InitialLayout() {
     ? user?.id ?? null : null;
   const renderLayout = (overlay: React.ReactNode = null) => (
     <RouteActivationContext.Provider value={activationAccountId}>
-    <PersonalRemindersLifecycle accountId={user?.id ?? null} ready={!isLoading} />
+    {/* An account-load error with a live session is unresolved, not a logout:
+        treating it as logout would cancel every reminder. */}
+    <PersonalRemindersLifecycle accountId={user?.id ?? null} ready={!isLoading && !(isAuthenticated && accountError !== null)} />
     <View style={{ flex: 1 }}>
       <View style={{ flex: 1, display: overlay ? 'none' : 'flex' }}>
         <Stack screenOptions={{ headerShown: false }} />
@@ -159,6 +162,9 @@ function InitialLayout() {
       >
         {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '900' }}>{t('accountLoad.retry')}</Text>}
       </TouchableOpacity>
+      <View style={{ width: '100%', maxWidth: 480, marginTop: 12 }}>
+        <EmergencyActions />
+      </View>
     </View>);
   }
 
@@ -177,6 +183,9 @@ function InitialLayout() {
         <Text style={{ maxWidth: 420, fontSize: 16, lineHeight: 23, textAlign: 'center', color: '#52676A' }}>
           {t('authBootstrap.body')}
         </Text>
+        <View style={{ width: '100%', maxWidth: 480, marginTop: 12 }}>
+          <EmergencyActions />
+        </View>
       </View>
     );
   }

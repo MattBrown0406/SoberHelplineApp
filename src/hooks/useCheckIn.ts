@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { AppState } from 'react-native';
 import { randomUUID } from 'expo-crypto';
 import type { CaregiverCheckInInput, CheckIn, CheckInStreak, MoodScore } from '../api/types';
 import { getCheckIn, saveCheckIn as persistLocal, getCheckedInDates, toDateStr } from '../storage/checkIn';
@@ -8,6 +9,8 @@ import { captureAppError } from '../lib/monitoring';
 import { isMoodScore, parseSupportNeed } from '../lib/caregiverCheckIn';
 import { rearmDailyNudge } from './usePushNotifications';
 import { classifyOutboxError, offlineOutbox, subscribeOutboxReplay } from '../lib/offlineOutbox';
+
+const CHECKIN_SAVE_TIMEOUT_MS = 12_000;
 
 export interface UseCheckInResult {
   todayCheckIn: CheckIn | null;
@@ -28,6 +31,19 @@ export function useCheckIn(accountId: string | null, timezone?: string): UseChec
   const [isLoading, setIsLoading] = useState(true);
   const saveInFlightRef = useRef<Promise<CheckInStreak> | null>(null);
   const knownDatesRef = useRef<string[]>([]);
+  // The Today tab stays mounted for days; when the app returns to the
+  // foreground on a new local date, reload so yesterday's check-in never
+  // blocks today's.
+  const [localDay, setLocalDay] = useState(() => toDateStr(new Date(), timezone));
+
+  useEffect(() => {
+    const refreshDay = () => setLocalDay(toDateStr(new Date(), timezone));
+    refreshDay();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') refreshDay();
+    });
+    return () => sub.remove();
+  }, [timezone]);
 
   useEffect(() => {
     let cancelled = false;
@@ -104,7 +120,7 @@ export function useCheckIn(accountId: string | null, timezone?: string): UseChec
       if (!cancelled) setIsLoading(false);
     });
     return () => { cancelled = true; };
-  }, [accountId, timezone]);
+  }, [accountId, timezone, localDay]);
 
   // A queued check-in flips to synced once the outbox replays it.
   useEffect(() => {
@@ -161,12 +177,21 @@ export function useCheckIn(accountId: string | null, timezone?: string): UseChec
         };
         const remote = await persistDailyCheckIn(
           async () => {
-            const { data, error } = await supabase
-              .from('checkins')
-              .insert(row)
-              .select('id, mood, capacity, pressure, support_need, note, created_at')
-              .single();
-            return { data, error };
+            // React Native's HTTP client has no default timeout; on a stalled
+            // connection fall through to the offline queue instead of spinning.
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), CHECKIN_SAVE_TIMEOUT_MS);
+            try {
+              const { data, error } = await supabase
+                .from('checkins')
+                .insert(row)
+                .select('id, mood, capacity, pressure, support_need, note, created_at')
+                .abortSignal(controller.signal)
+                .single();
+              return { data, error };
+            } finally {
+              clearTimeout(timer);
+            }
           },
           async () => {
             const { data, error } = await supabase

@@ -83,9 +83,10 @@ test('preserves validated private-video routing', () => {
     getPushDestination({ kind: 'member_video_live', session_id: sessionId }, { entitlements: entitlementsForAccountState('direct-premium') }),
     { pathname: '/video-session', params: { sessionId } },
   );
+  // Without Premier video the one-off plan-review card lives in Crisis Mode.
   assert.deepEqual(
     getPushDestination({ kind: 'member_video_live', session_id: 'not-a-uuid' }),
-    { pathname: '/(tabs)/support' },
+    { pathname: '/crisis-mode', params: { focus: 'session' } },
   );
 });
 
@@ -149,7 +150,10 @@ test('gated destinations fall back to Support for accounts without the entitleme
   const sessionId = '123e4567-e89b-42d3-a456-426614174000';
   assert.deepEqual(getPushDestination({ kind: 'group_live', room_name: 'shp-boundaries' }, { entitlements: FREE }), { pathname: '/(tabs)/support' });
   assert.deepEqual(getPushDestination({ kind: 'group_live', room_name: 'shp-boundaries' }, { entitlements: ESSENTIAL }), { pathname: '/live-room', params: { room: 'shp-boundaries' } });
-  assert.deepEqual(getPushDestination({ kind: 'member_video_live', session_id: sessionId }, { entitlements: ESSENTIAL }), { pathname: '/(tabs)/support' });
+  assert.deepEqual(getPushDestination({ kind: 'member_video_live', session_id: sessionId }, { entitlements: ESSENTIAL }), { pathname: '/video-session', params: { sessionId } });
+  assert.deepEqual(getPushDestination({ kind: 'member_video_live', session_id: sessionId }, { entitlements: FREE }), { pathname: '/crisis-mode', params: { focus: 'session' } });
+  assert.deepEqual(getPushDestination({ kind: 'member_plan_update_requested', session_id: sessionId }, { entitlements: ESSENTIAL }), { pathname: '/crisis-mode', params: { focus: 'session' } });
+  assert.deepEqual(getPushDestination({ kind: 'admin_refund_owed', session_id: sessionId }, { entitlements: PREMIER }), { pathname: '/admin' });
   assert.deepEqual(getPushDestination({ kind: 'member_video_live', session_id: sessionId }, { entitlements: PREMIER }), { pathname: '/video-session', params: { sessionId } });
   assert.deepEqual(getPushDestination({ kind: 'premier_video_reminder', session_id: sessionId }, { entitlements: PREMIER }), { pathname: '/(tabs)/support' });
   assert.deepEqual(getPushDestination({ kind: 'coach_video_reminder', session_id: sessionId }), { pathname: '/admin' });

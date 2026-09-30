@@ -1,3 +1,5 @@
+import type { TreatmentActionPlan } from './treatmentActionPlan';
+
 export type DiyAnswer = '' | 'yes' | 'no';
 export type DiyLevelOfCare = '' | 'detox' | 'residential' | 'php' | 'iop' | 'outpatient';
 export type DiyTeamRole = '' | 'speaker' | 'silent_support' | 'not_in_room' | 'on_call';
@@ -199,7 +201,64 @@ function previousDate(value: string): string | null {
   return date.toISOString().slice(0, 10);
 }
 
+/**
+ * Content-only fingerprint of TAP logistics for the DIY solution key. It leaves
+ * out bookkeeping timestamps (per-item `updatedAt`, `yesLoggedAt`, `recantedAt`)
+ * so logging "They said yes" — or any save that only restamps TAP — does not
+ * look like a changed solution and lock the family out of the Execute step.
+ */
+export function diyTapLogisticsFingerprint(tapPlan: Pick<TreatmentActionPlan, 'items' | 'execution'>): string {
+  const items = Object.keys(tapPlan.items).sort().map((id) => {
+    const item = tapPlan.items[id as keyof TreatmentActionPlan['items']];
+    return [id, item.status, item.details];
+  });
+  const { admissionsPhone, driver, departureAt, nightWatch, phoneHolder, bagHolder, sentence } = tapPlan.execution;
+  return JSON.stringify({ items, execution: [admissionsPhone, driver, departureAt, nightWatch, phoneHolder, bagHolder, sentence] });
+}
+
 export function diySolutionKey(plan: DiyInterventionPlan, tap: DiyTapSnapshot): string {
+  // TAP must have been saved at least once, but its revision (TAP `updatedAt`) is
+  // deliberately not hashed: it changes on every TAP save, including logging the
+  // day-of "yes", which would otherwise invalidate every attested stage.
+  if (!tap.revision || !plan.care.indicatedLevel || !plan.care.planLevel || !plan.interventionDate) return '';
+  const facts = JSON.stringify([
+    plan.interventionDate,
+    plan.care.indicatedLevel,
+    plan.care.planLevel,
+    tap.programName,
+    tap.admissionsContactName,
+    tap.admissionsPhone,
+    tap.bedConfirmedFor,
+    tap.bedConfirmationWindow,
+    tap.bedConfirmedBy,
+    tap.bedReconfirmedAt,
+    tap.departureAt,
+    tap.logisticsFingerprint,
+  ]);
+  return `v2:${hashFacts(facts)}`;
+}
+
+function hashFacts(facts: string): string {
+  let first = 0x811c9dc5;
+  let second = 0x9e3779b9;
+  for (let index = 0; index < facts.length; index += 1) {
+    const code = facts.charCodeAt(index);
+    first = Math.imul(first ^ code, 0x01000193) >>> 0;
+    second = Math.imul(second ^ code, 0x85ebca6b) >>> 0;
+  }
+  return `${first.toString(16).padStart(8, '0')}${second.toString(16).padStart(8, '0')}`;
+}
+
+/**
+ * The v1 key families signed off with before the solution key stopped hashing
+ * TAP's revision. `legacyLogisticsFingerprint` is the old raw
+ * JSON.stringify({ items, execution }) of the TAP plan.
+ */
+export function diyLegacySolutionKey(
+  plan: DiyInterventionPlan,
+  tap: DiyTapSnapshot,
+  legacyLogisticsFingerprint: string,
+): string {
   if (!tap.revision || !plan.care.indicatedLevel || !plan.care.planLevel || !plan.interventionDate) return '';
   const facts = JSON.stringify([
     tap.revision,
@@ -214,16 +273,33 @@ export function diySolutionKey(plan: DiyInterventionPlan, tap: DiyTapSnapshot): 
     tap.bedConfirmedBy,
     tap.bedReconfirmedAt,
     tap.departureAt,
-    tap.logisticsFingerprint,
+    legacyLogisticsFingerprint,
   ]);
-  let first = 0x811c9dc5;
-  let second = 0x9e3779b9;
-  for (let index = 0; index < facts.length; index += 1) {
-    const code = facts.charCodeAt(index);
-    first = Math.imul(first ^ code, 0x01000193) >>> 0;
-    second = Math.imul(second ^ code, 0x85ebca6b) >>> 0;
-  }
-  return `v1:${first.toString(16).padStart(8, '0')}${second.toString(16).padStart(8, '0')}`;
+  return `v1:${hashFacts(facts)}`;
+}
+
+/**
+ * Carries sign-offs made under the v1 key over to the current key when nothing
+ * they attested to has changed. Returns the same plan object when there is
+ * nothing to upgrade.
+ */
+export function upgradeDiySolutionKeys(plan: DiyInterventionPlan, legacyKey: string, key: string): DiyInterventionPlan {
+  if (!legacyKey || !key) return plan;
+  const lift = (stored: string) => (stored === legacyKey ? key : stored);
+  let changed = false;
+  const letters = Object.fromEntries(Object.entries(plan.letters).map(([id, letter]) => {
+    if (letter.solutionKey === legacyKey) changed = true;
+    return [id, { ...letter, solutionKey: lift(letter.solutionKey) }];
+  })) as DiyInterventionPlan['letters'];
+  if ([plan.unity.solutionKey, plan.rehearsal.solutionKey, plan.ama.solutionKey].includes(legacyKey)) changed = true;
+  if (!changed) return plan;
+  return {
+    ...plan,
+    unity: { ...plan.unity, solutionKey: lift(plan.unity.solutionKey) },
+    rehearsal: { ...plan.rehearsal, solutionKey: lift(plan.rehearsal.solutionKey) },
+    ama: { ...plan.ama, solutionKey: lift(plan.ama.solutionKey) },
+    letters,
+  };
 }
 
 export function diyFitResult(fit: DiyFit): { outcome: 'incomplete' | 'pass' | 'emergency' | 'professional'; reasons: string[] } {
@@ -270,7 +346,17 @@ export function updateDiyTeamMember(
     ...(patch.name !== undefined ? { name: capTeamText(patch.name) } : {}),
     ...(patch.relationship !== undefined ? { relationship: capTeamText(patch.relationship) } : {}),
   };
-  return { ...plan, team: plan.team.map((member) => member.id === id ? { ...member, ...safePatch } : member), updatedAt: now };
+  const next = { ...plan, team: plan.team.map((member) => member.id === id ? { ...member, ...safePatch } : member), updatedAt: now };
+  // Someone who stops being a speaker leaves the speaking order; otherwise the
+  // stale id can never be removed in the UI and rehearsal never becomes ready.
+  if (patch.role === undefined) return next;
+  return { ...next, rehearsal: { ...next.rehearsal, speakerOrder: diySpeakerOrder(next) } };
+}
+
+/** The speaking order restricted to current speakers, deduplicated, in saved order. */
+export function diySpeakerOrder(plan: DiyInterventionPlan): string[] {
+  const speakers = new Set(plan.team.filter((member) => member.role === 'speaker').map((member) => member.id));
+  return [...new Set(plan.rehearsal.speakerOrder)].filter((id) => speakers.has(id));
 }
 
 export function removeDiyTeamMember(plan: DiyInterventionPlan, id: string, now = new Date().toISOString()): DiyInterventionPlan {
@@ -411,7 +497,8 @@ function lettersStage(plan: DiyInterventionPlan, solutionKey: string): StageResu
 function rehearsalStage(plan: DiyInterventionPlan, solutionKey: string): StageResult {
   const missing: string[] = [];
   const speakers = plan.team.filter((member) => member.role === 'speaker').map((member) => member.id).sort();
-  const order = [...new Set(plan.rehearsal.speakerOrder)].sort();
+  // Plans saved before speaker-order cleanup may still hold ex-speakers; ignore them.
+  const order = diySpeakerOrder(plan).sort();
   const inRoomEligible = (id: string) => plan.team.some((member) => member.id === id && member.aligned === true && (member.role === 'speaker' || member.role === 'silent_support'));
   if (!inRoomEligible(plan.rehearsal.facilitatorId)) missing.push('facilitator');
   if (!inRoomEligible(plan.rehearsal.debateHolderId)) missing.push('debateHolder');

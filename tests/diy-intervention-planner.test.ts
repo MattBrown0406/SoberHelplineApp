@@ -8,14 +8,24 @@ import {
   defaultDiyInterventionPlan,
   diyFitResult,
   diyInterventionProgress,
+  diyLegacySolutionKey,
   diySolutionKey,
+  diySpeakerOrder,
+  upgradeDiySolutionKeys,
   diyStageAccess,
+  diyTapLogisticsFingerprint,
   DIY_TEAM_ID_LIMIT,
   DIY_TEAM_LIMIT,
   DIY_TEAM_TEXT_LIMIT,
   updateDiyTeamMember,
+  type DiyInterventionPlan,
   type DiyTapSnapshot,
 } from '../src/lib/diyInterventionPlanner';
+import {
+  defaultTreatmentActionPlan,
+  updateTreatmentActionExecution,
+  updateTreatmentActionItem,
+} from '../src/lib/treatmentActionPlan';
 import {
   DIY_CURRENT_PROTECTED_PARTS, DIY_PROTECTED_PARTS,
   type DiyCurrentProtectedPart, type DiyProtectedPart,
@@ -198,6 +208,75 @@ test('changed TAP facts invalidate downstream attestations even if its meta revi
   assert.equal(changedLogistics.stages.unity.ready, false);
 });
 
+test('a named undercutter with no member picked yet still saves and stays not ready', () => {
+  const plan = completePlan();
+  plan.undercutter = { answer: 'named', memberId: '', agreesToSolutionAndLeaveTime: null };
+  const records = serializeDiyProtectedParts(plan);
+  assert.doesNotThrow(() => parseCurrentDiyProtectedParts(records));
+  assert.deepEqual(parseCurrentDiyProtectedParts(records).undercutter, plan.undercutter);
+  const team = diyInterventionProgress(plan, readyTap(), TEST_NOW).stages.team;
+  assert.equal(team.ready, false);
+  assert.ok(team.missing.includes('undercutterMember'));
+  // A chosen id that is not on the team is still corruption.
+  const stale = serializeDiyProtectedParts({ ...plan, undercutter: { ...plan.undercutter, memberId: 'gone-member' } });
+  assert.throws(() => parseCurrentDiyProtectedParts(stale), /invalid_undercutter_member/);
+});
+
+test('speaking order drops members who stop being speakers', () => {
+  let plan = completePlan();
+  plan = updateDiyTeamMember(plan, 'support-1', { role: 'speaker' });
+  plan.rehearsal.speakerOrder = ['speaker-1', 'support-1'];
+  plan = updateDiyTeamMember(plan, 'support-1', { role: 'silent_support' });
+  assert.deepEqual(plan.rehearsal.speakerOrder, ['speaker-1']);
+  assert.equal(diyInterventionProgress(plan, readyTap(), TEST_NOW).stages.rehearsal.ready, true);
+  // Name edits leave the order alone.
+  assert.deepEqual(updateDiyTeamMember(plan, 'speaker-1', { name: 'Alexis' }).rehearsal.speakerOrder, ['speaker-1']);
+
+  // Plans saved before the cleanup may still carry an ex-speaker; readiness ignores it.
+  const legacy = completePlan();
+  legacy.rehearsal.speakerOrder = ['support-1', 'speaker-1'];
+  assert.deepEqual(diySpeakerOrder(legacy), ['speaker-1']);
+  assert.equal(diyInterventionProgress(legacy, readyTap(), TEST_NOW).stages.rehearsal.ready, true);
+  assert.deepEqual(parseCurrentDiyProtectedParts(serializeDiyProtectedParts(legacy)).rehearsal.speakerOrder, ['support-1', 'speaker-1']);
+  // Every current speaker still has to be placed in the order.
+  legacy.rehearsal.speakerOrder = ['support-1'];
+  assert.equal(diyInterventionProgress(legacy, readyTap(), TEST_NOW).stages.rehearsal.ready, false);
+});
+
+test('logging "They said yes" in TAP keeps the attested solution and the Execute step open', () => {
+  const attest = (plan: DiyInterventionPlan, solutionKey: string): DiyInterventionPlan => ({
+    ...plan,
+    unity: { ...plan.unity, solutionKey },
+    letters: Object.fromEntries(Object.entries(plan.letters).map(([id, letter]) => [id, { ...letter, solutionKey }])),
+    rehearsal: { ...plan.rehearsal, solutionKey },
+    ama: { ...plan.ama, solutionKey },
+  });
+  const snapshotOf = (tapPlan: ReturnType<typeof defaultTreatmentActionPlan>) =>
+    readyTap({ revision: tapPlan.updatedAt, logisticsFingerprint: diyTapLogisticsFingerprint(tapPlan) });
+  let tapPlan = updateTreatmentActionExecution(defaultTreatmentActionPlan(), {
+    admissionsPhone: '503-555-1212', driver: 'Morgan', departureAt: '2026-08-20T14:00:00.000Z',
+  }, '2026-08-19T18:00:00.000Z');
+  tapPlan = updateTreatmentActionItem(tapPlan, 'transport', { status: 'confirmed', details: 'Morgan drives' }, '2026-08-19T18:00:00.000Z');
+  const before = snapshotOf(tapPlan);
+  const plan = attest(completePlan(), diySolutionKey(completePlan(), before));
+  const yesAt = new Date('2026-08-20T13:00:00.000Z');
+  assert.equal(diyStageAccess(plan, before, yesAt).execute, true);
+
+  const afterYes = updateTreatmentActionExecution(tapPlan, { yesLoggedAt: yesAt.toISOString(), recantedAt: null }, yesAt.toISOString());
+  assert.notEqual(afterYes.updatedAt, tapPlan.updatedAt);
+  assert.equal(diySolutionKey(plan, snapshotOf(afterYes)), diySolutionKey(plan, before));
+  assert.equal(diyStageAccess(plan, snapshotOf(afterYes), yesAt).execute, true);
+  assert.equal(diyInterventionProgress(plan, snapshotOf(afterYes), yesAt).stages.rehearsal.ready, true);
+  // Re-saving identical item content only restamps it.
+  const restamped = updateTreatmentActionItem(afterYes, 'transport', { details: 'Morgan drives' }, '2026-08-20T13:30:00.000Z');
+  assert.equal(diySolutionKey(plan, snapshotOf(restamped)), diySolutionKey(plan, before));
+
+  // Real logistics changes still invalidate attestations.
+  const newDriver = updateTreatmentActionExecution(afterYes, { driver: 'Taylor' }, '2026-08-20T13:10:00.000Z');
+  assert.notEqual(diySolutionKey(plan, snapshotOf(newDriver)), diySolutionKey(plan, before));
+  assert.equal(diyStageAccess(plan, snapshotOf(newDriver), yesAt).execute, false);
+});
+
 test('rehearsal leaders must be aligned participants who will be in the room', () => {
   let plan = completePlan();
   plan.rehearsal.facilitatorId = 'support-1';
@@ -348,4 +427,27 @@ test('localization parity, protected storage, route, Tools, TAP, and CI are wire
   assert.match(workflow, /run: npm test/);
   const scripts = JSON.parse(readFileSync(resolve(TEST_DIR, '../package.json'), 'utf8')).scripts;
   assert.match(scripts.test, /tests\/\*\.test\.ts/);
+});
+
+test('sign-offs made under the v1 solution key carry over when nothing changed', () => {
+  const plan = {
+    ...defaultDiyInterventionPlan(),
+    interventionDate: '2026-10-10',
+    care: { ...defaultDiyInterventionPlan().care, indicatedLevel: 'residential', planLevel: 'residential' },
+  } as ReturnType<typeof defaultDiyInterventionPlan>;
+  const tap = {
+    hydrated: true, saveState: 'saved', logisticsReady: true, dayOfRecordingReady: true,
+    programName: 'Program', admissionsContactName: 'Ana', admissionsPhone: '555', bedConfirmedFor: '2026-10-10',
+    bedConfirmationWindow: 'morning', bedConfirmedBy: 'Ana', bedReconfirmedAt: null, departureAt: null,
+    revision: '2026-10-01T00:00:00.000Z', logisticsFingerprint: 'content-only',
+  } as const;
+  const legacy = diyLegacySolutionKey(plan, tap, '{"items":{},"execution":{}}');
+  const current = diySolutionKey(plan, tap);
+  assert.match(legacy, /^v1:/);
+  const signed = { ...plan, unity: { ...plan.unity, solutionConfirmed: true, solutionKey: legacy } };
+  const upgraded = upgradeDiySolutionKeys(signed, legacy, current);
+  assert.equal(upgraded.unity.solutionKey, current);
+  assert.equal(upgradeDiySolutionKeys(upgraded, legacy, current), upgraded, 'already current plans are untouched');
+  const stale = { ...plan, unity: { ...plan.unity, solutionKey: 'v1:someotherkey' } };
+  assert.equal(upgradeDiySolutionKeys(stale, legacy, current).unity.solutionKey, 'v1:someotherkey', 'a changed solution still needs re-confirmation');
 });

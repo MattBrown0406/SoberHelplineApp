@@ -129,6 +129,7 @@
   "challenge": {
     "eyebrow": "TODAY'S CHALLENGE",
     "streakEyebrow": "CHECK-IN STREAK",
+    "weekdayLetters": ["S", "M", "T", "W", "T", "F", "S"],
     "monday": "It's Monday — join The Family Squares Zoom meeting tonight at 7:00 PM Pacific. Be with people who understand what you're going through.",
     "daily": [
       "Practice saying \"no\" once today — and resist the urge to explain yourself afterward.",

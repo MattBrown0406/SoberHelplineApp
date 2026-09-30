@@ -135,10 +135,15 @@ export function useFamilySpace(accountId: string | null, labels: FamilySpaceLabe
     const generation = ++loadGeneration.current;
     setLoading(true);
     try {
-      const { data, error } = await supabase.from('family_spaces').select('id').limit(1).maybeSingle();
+      // A member belongs to at most one family space (unique membership).
+      const { data, error } = await supabase
+        .from('family_members')
+        .select('family_space_id')
+        .eq('account_id', accountId)
+        .maybeSingle();
       if (generation !== loadGeneration.current) return;
       if (error) throw error;
-      if (data?.id) await loadFull(data.id, generation);
+      if (data?.family_space_id) await loadFull(data.family_space_id, generation);
       else {
         setSpace(null);
         setBackupNotices([]);

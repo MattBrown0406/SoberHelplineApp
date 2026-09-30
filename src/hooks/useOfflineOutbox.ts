@@ -22,6 +22,11 @@ const handlers: OutboxHandlers = {
 
 /** Replays one account's queued writes; safe to call repeatedly. */
 export async function replayOfflineOutbox(accountId: string): Promise<OutboxReplayResult> {
+  // Without a live session the inserts would run as anon and be rejected as
+  // permission errors, which permanently drop queued check-ins. Wait instead.
+  const { data: { session } } = await supabase.auth.getSession();
+  const expired = !session || (session.expires_at != null && session.expires_at * 1000 <= Date.now());
+  if (expired) return { synced: [], dropped: [], remaining: [] };
   const result = await offlineOutbox.replay(accountId, handlers);
   if (result.synced.length || result.dropped.length) {
     addAppBreadcrumb(result.dropped.length ? 'outbox.replay_dropped_items' : 'outbox.replay_synced',
