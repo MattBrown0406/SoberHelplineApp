@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { pushDeliveryPolicy } from "../_shared/push-policy.ts";
 import { sessionReminderData, winbackData } from "../_shared/push-data.ts";
+import { isFamilySquaresReminderHour } from "../_shared/family-squares-time.ts";
 
 // Engagement push dispatcher. pg_cron invokes it with { job }:
 //   drain            — send queued push_outbox rows (community hearts, etc.)
@@ -43,10 +44,14 @@ function safePushError(value: unknown, fallback: string): string {
   return value.replace(/[\r\n]+/g, " ").slice(0, 300);
 }
 
+type DeadTokenSink = (tokens: string[]) => Promise<void>;
+
 async function sendExpoPushResults(
   messages: PushMessage[],
+  clearDeadTokens?: DeadTokenSink,
 ): Promise<PushResult[]> {
   const results: PushResult[] = [];
+  const deadTokens: string[] = [];
   for (let i = 0; i < messages.length; i += CHUNK) {
     const chunk = messages.slice(i, i + CHUNK);
     let resp: Response;
@@ -105,10 +110,11 @@ async function sendExpoPushResults(
       continue;
     }
 
-    for (const ticket of tickets) {
+    for (const [index, ticket] of tickets.entries()) {
       if (ticket?.status === "ok") {
         results.push({ ok: true });
       } else {
+        if (ticket?.details?.error === "DeviceNotRegistered") deadTokens.push(chunk[index].to);
         const errorCode = safePushError(
           ticket?.details?.error,
           "expo_ticket_error",
@@ -121,11 +127,13 @@ async function sendExpoPushResults(
       }
     }
   }
+  // The app was uninstalled or the token rotated: stop pushing to it.
+  if (deadTokens.length && clearDeadTokens) await clearDeadTokens(deadTokens);
   return results;
 }
 
-async function sendExpoPush(messages: PushMessage[]): Promise<number> {
-  const results = await sendExpoPushResults(messages);
+async function sendExpoPush(messages: PushMessage[], clearDeadTokens?: DeadTokenSink): Promise<number> {
+  const results = await sendExpoPushResults(messages, clearDeadTokens);
   return results.filter((result) => result.ok).length;
 }
 
@@ -149,7 +157,12 @@ serve(async (req) => {
   if (authorization !== `Bearer ${serviceKey}`) return json({ error: "unauthorized" }, 401);
 
   const supabase = createClient(supabaseUrl, serviceKey);
-  const { job } = await req.json().catch(() => ({ job: "drain" }));
+  // The app was uninstalled or the token rotated: stop pushing to it.
+  const clearDeadTokens: DeadTokenSink = async (tokens) => {
+    const { error } = await supabase.from("accounts").update({ push_token: null }).in("push_token", tokens);
+    if (error) console.error("[push] clearing dead tokens failed", { count: tokens.length });
+  };
+  const { job, force } = await req.json().catch(() => ({ job: "drain", force: false }));
 
   // ── drain: due, unhandled outbox rows ──────────────────────────────────────
   if (job === "drain" || !job) {
@@ -236,6 +249,7 @@ serve(async (req) => {
 
     const results = await sendExpoPushResults(
       sendable.map(({ message }) => message),
+      clearDeadTokens,
     );
     const successfulIds: string[] = [];
     const failedUpdates: PromiseLike<{ error: { message: string } | null }>[] =
@@ -292,6 +306,10 @@ serve(async (req) => {
 
   // ── session_reminder: RSVP'd members, 1h before the Monday group ───────────
   if (job === "session_reminder") {
+    // Scheduled at both UTC hours that can be 6 PM Pacific; only one is.
+    if (!force && !isFamilySquaresReminderHour(new Date())) {
+      return json({ success: true, job, sent: 0, skipped: "outside_reminder_hour" });
+    }
     // No title arg: the RPC resolves the Family Squares session itself
     // (tolerant to the title mismatch that silently broke earlier queries).
     const { data, error } = await supabase.rpc("get_session_reminder_targets");
@@ -317,7 +335,7 @@ serve(async (req) => {
         data: sessionReminderData(sessionId),
       });
     }
-    const sent = await sendExpoPush(messages);
+    const sent = await sendExpoPush(messages, clearDeadTokens);
     return json({ success: true, job, sent });
   }
 
@@ -333,13 +351,13 @@ serve(async (req) => {
     }[];
     if (!targets.length) return json({ success: true, job, sent: 0 });
 
-    const sent = await sendExpoPush(
+    const results = await sendExpoPushResults(
       targets.map((target) => {
         const es = (target.locale ?? "en").startsWith("es");
         const body = es
           ? target.first_name
-            ? `${target.first_name}, seguimos aquí. 90 segundos para ti cuando estés lista — sin tener que ponerte al día.`
-            : "Seguimos aquí. 90 segundos para ti cuando estés lista — sin tener que ponerte al día."
+            ? `${target.first_name}, seguimos aquí. 90 segundos para ti cuando quieras — sin tener que ponerte al día.`
+            : "Seguimos aquí. 90 segundos para ti cuando quieras — sin tener que ponerte al día."
           : target.first_name
           ? `${target.first_name}, we're still here. 90 seconds for yourself whenever you're ready — no catching up required.`
           : "We're still here. 90 seconds for yourself whenever you're ready — no catching up required.";
@@ -351,11 +369,16 @@ serve(async (req) => {
           data: winbackData(),
         };
       }),
+      clearDeadTokens,
     );
-    await supabase.rpc("mark_winback_sent", {
-      p_account_ids: targets.map((target) => target.account_id),
-    });
-    return json({ success: true, job, sent });
+    // Only a delivered nudge starts the 7-day quiet period; failures retry tomorrow.
+    const delivered = targets.filter((_, index) => results[index]?.ok);
+    if (delivered.length) {
+      await supabase.rpc("mark_winback_sent", {
+        p_account_ids: delivered.map((target) => target.account_id),
+      });
+    }
+    return json({ success: true, job, sent: delivered.length });
   }
 
   return json({ error: `unknown job: ${job}` }, 400);

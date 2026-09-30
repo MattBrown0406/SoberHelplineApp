@@ -1,11 +1,11 @@
 // Rehearsal Partner — Supabase Edge Function
 //
-// The Rehearsal Room's backend. Four modes:
+// The Rehearsal Room's backend. Three modes, each metered per member per day
+// by consume_rehearsal_quota():
 //   reply   — the AI plays the loved one and returns its next line
 //             (optionally with spoken audio via ElevenLabs when `voice` is set)
 //   debrief — coach feedback on the transcript, strict JSON
 //   stt     — transcribe the user's recorded speech (OpenAI Whisper)
-//   tts     — synthesize arbitrary partner text (used for replays)
 //
 // Deploy:  supabase functions deploy rehearsal-partner
 // Secrets: supabase secrets set OPENAI_API_KEY=sk-...          # LLM + speech-to-text
@@ -21,6 +21,7 @@
 // Requires an authenticated user. No API key ever ships to clients.
 
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
+import { CRISIS_BREAK_TEXT, normalizeDebrief, userInCrisis } from '../_shared/rehearsal-safety.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -116,6 +117,38 @@ const CRISIS_PRESETS: Record<string, string> = {
   crisis_blame:
     'You are calling to blame them for everything that is wrong right now. The opening is hostile — this is THEIR fault, they never supported you, the family is against you. You are testing their composure: if they get defensive or argue back, you get louder and more certain. Underneath the anger there is pain, but you lead with the attack.',
 };
+
+const ALLOWED_RELATIONSHIPS = new Set([
+  'spouse', 'partner', 'son', 'daughter', 'sibling', 'parent', 'friend', 'other',
+  'adult family member',
+]);
+
+// Scenario fields are interpolated into the system prompt, so they are data,
+// never instructions: allowlist the enums, cap lengths, and strip characters
+// that could break out of the quoted context or start a new directive line.
+function cleanField(value: unknown, max: number): string {
+  if (typeof value !== 'string') return '';
+  return value.replace(/["`\n\r\t]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
+}
+
+function sanitizeScenario(raw: Scenario): Scenario {
+  const relationship = cleanField(raw.relationship, 30).toLowerCase();
+  const substances = Array.isArray(raw.substances)
+    ? raw.substances.map((sub) => cleanField(sub, 40)).filter(Boolean).slice(0, 5)
+    : undefined;
+  return {
+    ...raw,
+    relationship: ALLOWED_RELATIONSHIPS.has(relationship) ? relationship : undefined,
+    name: cleanField(raw.name, 40) || undefined,
+    substances,
+    scriptText: typeof raw.scriptText === 'string'
+      ? raw.scriptText.replace(/"""/g, '"').slice(0, MAX_SCRIPT_CHARS)
+      : undefined,
+    temperament: raw.temperament && TEMPERAMENTS[raw.temperament] ? raw.temperament : undefined,
+    crisisPreset: raw.crisisPreset && CRISIS_PRESETS[raw.crisisPreset] ? raw.crisisPreset : undefined,
+    language: raw.language === 'es' ? 'es' : 'en',
+  };
+}
 
 function partnerSystemPrompt(s: Scenario): string {
   const relationship = s.relationship || 'adult family member';
@@ -458,7 +491,15 @@ Deno.serve(async (req: Request) => {
     return json(400, { ok: false, code: 'bad_json' });
   }
 
-  const scenario = payload.scenario ?? {};
+  const scenario = sanitizeScenario(payload.scenario ?? {});
+
+  // Server-side daily caps (see consume_rehearsal_quota). The app's 12-turn
+  // limit is a UX guide, not a cost control.
+  const spend = async (mode: 'reply' | 'stt' | 'debrief'): Promise<Response | null> => {
+    const { data: allowed, error } = await supabase.rpc('consume_rehearsal_quota', { p_mode: mode });
+    if (error) throw new Error('quota_check_failed');
+    return allowed === true ? null : json(429, { ok: false, code: 'daily_limit_reached' });
+  };
 
   try {
     // ---- speech-to-text ----
@@ -466,16 +507,10 @@ Deno.serve(async (req: Request) => {
       if (!payload.audio || payload.audio.length > MAX_AUDIO_B64) {
         return json(400, { ok: false, code: 'bad_audio' });
       }
+      const limited = await spend('stt');
+      if (limited) return limited;
       const text = await transcribe(payload.audio, payload.format ?? 'm4a', scenario.language);
       return json(200, { ok: true, text });
-    }
-
-    // ---- standalone synthesis (replay a line) ----
-    if (payload.mode === 'tts') {
-      if (!payload.text?.trim()) return json(400, { ok: false, code: 'no_text' });
-      const audio = await synthesize(payload.text, scenario.voice, scenario.temperament);
-      if (!audio) return json(503, { ok: false, code: 'tts_not_configured' });
-      return json(200, { ok: true, audio });
     }
 
     const turns = (payload.messages ?? [])
@@ -496,6 +531,8 @@ Deno.serve(async (req: Request) => {
 
     // ---- debrief ----
     if (payload.mode === 'debrief') {
+      const limited = await spend('debrief');
+      if (limited) return limited;
       const transcript = turns
         .map((t) => `${t.role === 'user' ? 'FAMILY MEMBER' : 'LOVED ONE'}: ${t.text.slice(0, MAX_MESSAGE_CHARS)}`)
         .join('\n');
@@ -508,7 +545,14 @@ Deno.serve(async (req: Request) => {
       const jsonStart = raw.indexOf('{');
       const jsonEnd = raw.lastIndexOf('}');
       if (jsonStart === -1 || jsonEnd === -1) throw new Error('bad_debrief');
-      const debrief = JSON.parse(raw.slice(jsonStart, jsonEnd + 1));
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(raw.slice(jsonStart, jsonEnd + 1));
+      } catch {
+        throw new Error('bad_debrief');
+      }
+      const debrief = normalizeDebrief(parsed);
+      if (!debrief) throw new Error('bad_debrief');
       return json(200, { ok: true, debrief });
     }
 
@@ -520,6 +564,15 @@ Deno.serve(async (req: Request) => {
       ? [{ role: 'user', text: '[They pick up the phone. Open the call.]' }]
       : turns;
 
+    // A first-person crisis disclosure short-circuits the performance entirely:
+    // no model call, no voice, and the app shows its crisis card.
+    const lastUser = [...turns].reverse().find((t) => t.role === 'user');
+    if (!incomingOpening && lastUser && userInCrisis(lastUser.text)) {
+      const lang = scenario.language === 'es' ? 'es' : 'en';
+      return json(200, { ok: true, text: CRISIS_BREAK_TEXT[lang], breakCharacter: true, audio: null });
+    }
+
+    // Cached push-call openings replay their text for free; voice still spends.
     const eventId = typeof payload.practiceEventId === 'string' ? payload.practiceEventId : '';
     const validEventId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(eventId);
     let admin: SupabaseClient<any> | null = null;
@@ -543,7 +596,14 @@ Deno.serve(async (req: Request) => {
         return json(409, { ok: false, code: 'practice_event_unavailable' });
       }
       if (event.opening_text) {
-        const cachedAudio = !event.break_character && scenario.voice
+        // The text is cached but its voice is synthesized per request, so a
+        // replayed opening still spends quota when it asks for audio.
+        const wantsAudio = !event.break_character && !!scenario.voice;
+        if (wantsAudio) {
+          const limited = await spend('reply');
+          if (limited) return limited;
+        }
+        const cachedAudio = wantsAudio && scenario.voice
           ? await synthesize(event.opening_text, scenario.voice, scenario.temperament)
           : null;
         return json(200, {
@@ -574,9 +634,14 @@ Deno.serve(async (req: Request) => {
     }
 
     try {
+      const limited = await spend('reply');
+      if (limited) return limited;
       const raw = await callModel(partnerSystemPrompt(scenario), replyTurns, 300);
-      const breakCharacter = raw.startsWith(BREAK_TOKEN);
-      const text = breakCharacter ? raw.slice(BREAK_TOKEN.length).trim() : raw;
+      // The model may emit the token after a stray character or line; honor it
+      // anywhere and speak only the out-of-character sentence that follows.
+      const tokenAt = raw.indexOf(BREAK_TOKEN);
+      const breakCharacter = tokenAt !== -1;
+      const text = breakCharacter ? raw.slice(tokenAt + BREAK_TOKEN.length).replace(/^[\s:—-]+/, '').trim() : raw;
       if (admin && eventId && generationLock) {
         const { error: cacheError } = await admin
           .from('practice_push_events')

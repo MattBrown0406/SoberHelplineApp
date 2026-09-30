@@ -43,8 +43,18 @@ Deno.serve(async (req: Request) => {
       return new Response('no record', { status: 400 });
     }
 
-    // Fetch the account's name for context
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // A $150 plan-review booking is paid online and managed in Admin; this
+    // "we'll send payment details" email would invite a second payment request.
+    const { data: planReview } = await supabase
+      .from('video_sessions')
+      .select('id')
+      .eq('coaching_booking_id', booking.id)
+      .maybeSingle();
+    if (planReview) return new Response('plan review booking', { status: 200 });
+
+    // Fetch the account's name for context
     const { data: account } = await supabase
       .from('accounts')
       .select('first_name, last_name')
@@ -77,7 +87,9 @@ Deno.serve(async (req: Request) => {
       body: JSON.stringify({
         from: NOTIFY_FROM,
         to: [NOTIFY_TO],
-        ...(userEmail ? { cc: [userEmail] } : {}),
+        // Reply-to, never CC: the address is typed by the member, and a CC
+        // would send this internal notification to any address they enter.
+        ...(userEmail ? { reply_to: [userEmail] } : {}),
         subject: `New coaching request from ${name}`,
         html,
       }),

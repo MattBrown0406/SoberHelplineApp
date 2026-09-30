@@ -162,6 +162,8 @@ async function privateVideoToken(account: Account, session: PrivateVideoSession,
   });
 }
 
+const STALE_LIVE_MS = 3 * 60 * 60 * 1000;
+
 async function groupRoomToken(
   supabase: EdgeSupabase,
   room: string,
@@ -170,12 +172,24 @@ async function groupRoomToken(
 ) {
   const { data: hostRows, error } = await supabase
     .from('group_hosts')
-    .select('account_id, is_live')
+    .select('account_id, is_live, live_started_at')
     .eq('room_name', room);
   if (error) throw error;
   const isHost = isAdmin && (hostRows ?? []).some((row) => row.account_id === account.id);
-  const isLive = (hostRows ?? []).some((row) => row.is_live === true);
+  // A flag older than a session is a broadcast whose host never ended it.
+  const freshSince = Date.now() - STALE_LIVE_MS;
+  const isLive = (hostRows ?? []).some((row) =>
+    row.is_live === true && !!row.live_started_at && Date.parse(row.live_started_at) > freshSince);
   if (!isHost && !isLive) return json({ error: 'group_room_not_live' }, 403);
+  if (!isHost) {
+    // Live groups are a membership benefit; the app hides them from free
+    // accounts, and a direct call to this function must not bypass that.
+    const { data: member, error: accessError } = await supabase.rpc('has_active_textline_access', {
+      p_account_id: account.id,
+    });
+    if (accessError) throw accessError;
+    if (member !== true) return json({ error: 'membership_required' }, 403);
+  }
   const token = await buildToken({ room, account, canPublish: isHost, roomAdmin: isHost, ttl: '2h' });
   return json({ token, sessionId: null, room, isHost, isPrivateVideo: false, canPublish: isHost, identity: account.id });
 }

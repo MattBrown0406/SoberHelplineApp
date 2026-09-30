@@ -81,18 +81,36 @@ function dayOfYear(d: Date): number {
 interface Acct {
   id: string;
   push_token: string;
-  language: string;
+  locale: string | null;
+}
+
+const PAGE_SIZE = 1000;
+
+// Only members who opted into daily reminders; paged past PostgREST's row cap.
+async function optedInAccounts(): Promise<Acct[] | null> {
+  const rows: Acct[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from('accounts')
+      .select('id, push_token, locale')
+      .not('push_token', 'is', null)
+      .eq('daily_push_opt_in', true)
+      .order('id')
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) return null;
+    rows.push(...((data ?? []) as Acct[]));
+    if (!data || data.length < PAGE_SIZE) return rows;
+  }
 }
 
 Deno.serve(async (req) => {
   const authError = requireServiceRole(req);
   if (authError) return authError;
-  const { data: accounts, error } = await supabase
-    .from('accounts')
-    .select('id, push_token, language')
-    .not('push_token', 'is', null);
-
-  if (error || !accounts?.length) {
+  const accounts = await optedInAccounts();
+  if (accounts === null) {
+    return new Response(JSON.stringify({ error: 'accounts_unavailable' }), { status: 500 });
+  }
+  if (!accounts.length) {
     return new Response(JSON.stringify({ sent: 0 }), { status: 200 });
   }
 
@@ -107,7 +125,8 @@ Deno.serve(async (req) => {
   // Monday: free-call reminder for everyone. Otherwise: a supportive nudge for
   // an elevated/crisis band, else the daily challenge (en) / a gentle line (es).
   const messages = (accounts as Acct[]).map((a) => {
-    const c = COPY[a.language] ?? COPY.en;
+    const lang = a.locale === 'es' ? 'es' : 'en';
+    const c = COPY[lang];
     const band = bands.get(a.id) ?? 'calm';
 
     if (isMonday) {
@@ -116,7 +135,7 @@ Deno.serve(async (req) => {
     if (band === 'elevated' || band === 'crisis') {
       return { to: a.push_token, title: c.supportTitle, body: c.supportBody, sound: 'default', data: morningNoteData('support') };
     }
-    const body = a.language === 'es' ? c.genericMorning : challenge;
+    const body = lang === 'es' ? c.genericMorning : challenge;
     return { to: a.push_token, title: c.morningTitle, body, sound: 'default', data: morningNoteData('boundaries') };
   });
 

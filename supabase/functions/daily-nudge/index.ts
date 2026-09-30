@@ -44,10 +44,12 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   );
 
+  // locale is what the app writes at push registration; language is legacy.
   const { data: accounts, error } = await supabase
     .from('accounts')
-    .select('id, push_token, language, timezone')
-    .not('push_token', 'is', null);
+    .select('id, push_token, locale, timezone')
+    .not('push_token', 'is', null)
+    .eq('daily_push_opt_in', true);
   if (error) return new Response(error.message, { status: 500 });
 
   const now = new Date();
@@ -93,7 +95,7 @@ Deno.serve(async (req) => {
 
   const messages = recipients.map((a) => {
     const band = bands.get(a.id) ?? 'calm';
-    const copy = copyFor(a.language, band);
+    const copy = copyFor(a.locale, band);
     return {
       to: a.push_token,
       title: copy.title,
