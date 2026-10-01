@@ -163,7 +163,7 @@ export function classifyOutboxError(error: unknown): OutboxHandlerResult {
   const status = typeof error === 'object' && error !== null && 'status' in error
     ? Number((error as { status?: unknown }).status)
     : NaN;
-  if (Number.isFinite(status) && (status >= 500 || status === 401)) return 'retry';
+  if (Number.isFinite(status) && (status >= 500 || status === 401 || status === 408 || status === 429)) return 'retry';
   if (Number.isFinite(status) && status >= 400) return 'drop';
   // Unknown failures are kept: losing a member's check-in is worse than one
   // more retry on the next foreground.
@@ -210,10 +210,10 @@ export function createOfflineOutbox(storage: OutboxStorage = AsyncStorage) {
       return serialized(accountId, async () => {
         const { items } = await readEnvelope(accountId);
         if (items.some((existing) => existing.id === item.id)) return false;
-        const next = [...items, item];
-        // Keep the newest work; a queue this deep means the device has been
-        // offline for months and the oldest items are the least useful.
-        await writeItems(accountId, next.slice(-MAX_ITEMS));
+        // Never evict work already reported as saved. Let callers show their
+        // existing save-error/retry UI until sync has freed space.
+        if (items.length >= MAX_ITEMS) throw new Error('outbox_full');
+        await writeItems(accountId, [...items, item]);
         return true;
       });
     },

@@ -193,6 +193,32 @@ test('enqueue during replay is serialized and survives the replay rewrite', asyn
   assert.deepEqual((await outbox.list(ACCOUNT)).map((item) => item.id), [uuid(2)]);
 });
 
+test('a full outbox rejects new work without silently evicting previously saved records', async () => {
+  const storage = new MemoryStorage();
+  const outbox = createOfflineOutbox(storage);
+  for (let n = 1; n <= 200; n++) await outbox.enqueue(ACCOUNT, journal(n));
+  const before = storage.values.get(outboxKeyFor(ACCOUNT));
+  assert.equal(await outbox.enqueue(ACCOUNT, journal(1)), false, 'duplicate retries remain harmless when full');
+  await assert.rejects(outbox.enqueue(ACCOUNT, journal(201)), /outbox_full/);
+  assert.equal(storage.values.get(outboxKeyFor(ACCOUNT)), before);
+  await outbox.remove(ACCOUNT, [uuid(1)]);
+  assert.equal(await outbox.enqueue(ACCOUNT, journal(201)), true, 'space freed by sync permits retry');
+});
+
+test('rate limits and request timeouts retain queued work for a later replay', async () => {
+  for (const status of [408, 429]) {
+    const outbox = createOfflineOutbox(new MemoryStorage());
+    await outbox.enqueue(ACCOUNT, journal(1));
+    await outbox.enqueue(ACCOUNT, checkin(2));
+    const { handlers, calls } = recordingHandlers(() => ({ status }));
+    const result = await outbox.replay(ACCOUNT, handlers);
+    assert.equal(result.dropped.length, 0);
+    assert.equal(result.remaining.length, 2);
+    assert.equal(calls.length, 1);
+    assert.equal((await outbox.list(ACCOUNT)).length, 2);
+  }
+});
+
 test('replay events reach subscribers only when something changed', () => {
   const seen: string[] = [];
   const unsubscribe = subscribeOutboxReplay(({ accountId, result }) => seen.push(`${accountId}:${result.synced.length}`));
