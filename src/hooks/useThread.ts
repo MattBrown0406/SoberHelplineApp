@@ -3,6 +3,7 @@ import { AppState } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import { supabase } from '../lib/supabase';
 import { threadChannelTopic } from '../lib/realtimeTopics';
+import { useAsyncScope } from './useAsyncScope';
 
 const ATTACHMENT_BUCKET = 'chat-attachments';
 
@@ -121,7 +122,9 @@ async function uploadAttachment(
   threadId: string,
   messageId: string,
   attachment: PendingAttachment,
+  isCurrent: () => boolean,
 ): Promise<ChatAttachment | null> {
+  if (!isCurrent()) throw new ThreadUnavailableError();
   const fileName = sanitizeFileName(attachment.fileName);
   const storagePath = `${accountId}/${threadId}/${messageId}/${Date.now()}-${fileName}`;
 
@@ -134,6 +137,7 @@ async function uploadAttachment(
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
 
+  if (!isCurrent()) throw new ThreadUnavailableError();
   const { error: uploadError } = await supabase.storage
     .from(ATTACHMENT_BUCKET)
     .upload(storagePath, bytes.buffer as ArrayBuffer, {
@@ -142,6 +146,7 @@ async function uploadAttachment(
     });
 
   if (uploadError) throw uploadError;
+  if (!isCurrent()) throw new ThreadUnavailableError();
 
   const { data, error } = await supabase
     .from('message_attachments')
@@ -168,6 +173,8 @@ async function uploadAttachment(
  * their situation briefs.
  */
 export function useThread(accountId: string | null, enabled = true, { readOnly = false }: { readOnly?: boolean } = {}) {
+  const { scope, isCurrent } = useAsyncScope(JSON.stringify([accountId, enabled, readOnly]));
+  const loadedScope = useRef<typeof scope | null>(null);
   const [threadId, setThreadId]       = useState<string | null>(null);
   const [rawMessages, setRawMessages] = useState<RawMessage[]>([]);
   const [rawReactions, setRawReactions] = useState<RawReaction[]>([]);
@@ -192,12 +199,14 @@ export function useThread(accountId: string | null, enabled = true, { readOnly =
   // Catches messages that landed between the history fetch and the realtime
   // join, or while the socket was down or the app was backgrounded.
   const refreshMessages = useCallback(async (tid: string) => {
+    if (!isCurrent()) return;
     const recent = await fetchRecentMessages(tid);
-    if (!recent || threadIdRef.current !== tid) return;
+    if (!isCurrent() || !recent || threadIdRef.current !== tid) return;
     setRawMessages((prev) => mergeMessages(prev, recent));
-  }, []);
+  }, [isCurrent]);
 
   const subscribeToThread = useCallback((tid: string) => {
+    if (!isCurrent()) return;
     if (channelRef.current) supabase.removeChannel(channelRef.current);
     channelRef.current = supabase
       .channel(threadChannelTopic(tid, channelInstanceId))
@@ -205,6 +214,7 @@ export function useThread(accountId: string | null, enabled = true, { readOnly =
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages', filter: `thread_id=eq.${tid}` },
         (payload) => {
+          if (!isCurrent()) return;
           const msg = payload.new as RawMessage;
           setRawMessages((prev) => mergeMessages(prev, [msg]));
         },
@@ -213,7 +223,9 @@ export function useThread(accountId: string | null, enabled = true, { readOnly =
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'message_attachments', filter: `thread_id=eq.${tid}` },
         (payload) => {
+          if (!isCurrent()) return;
           void signedAttachment(payload.new as RawAttachment).then((att) => {
+            if (!isCurrent()) return;
             setAttachments((prev) => prev.some((x) => x.id === att.id) ? prev : [...prev, att]);
           });
         },
@@ -222,6 +234,7 @@ export function useThread(accountId: string | null, enabled = true, { readOnly =
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'message_reactions' },
         (payload) => {
+          if (!isCurrent()) return;
           const r = payload.new as RawReaction;
           setRawReactions((prev) => (prev.some((x) => x.id === r.id) ? prev : [...prev, r]));
         },
@@ -230,6 +243,7 @@ export function useThread(accountId: string | null, enabled = true, { readOnly =
         'postgres_changes',
         { event: 'DELETE', schema: 'public', table: 'message_reactions' },
         (payload) => {
+          if (!isCurrent()) return;
           // With RLS on, DELETE payloads carry only the primary key.
           const removedId = (payload.old as Partial<RawReaction>).id;
           if (removedId) setRawReactions((prev) => prev.filter((x) => x.id !== removedId));
@@ -238,9 +252,11 @@ export function useThread(accountId: string | null, enabled = true, { readOnly =
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') void refreshMessages(tid);
       });
-  }, [channelInstanceId, refreshMessages]);
+  }, [channelInstanceId, refreshMessages, isCurrent]);
 
-  const loadThread = useCallback(async (accId: string, isCancelled: () => boolean = () => false): Promise<string | null> => {
+  const loadThread = useCallback(async (accId: string, cancelled: () => boolean = () => false): Promise<string | null> => {
+    const isCancelled = () => !isCurrent() || cancelled();
+    if (isCancelled()) return null;
     const { data: existing } = await supabase
       .from('threads')
       .select('id')
@@ -252,6 +268,7 @@ export function useThread(accountId: string | null, enabled = true, { readOnly =
       .maybeSingle();
 
     let tid = existing?.id as string | undefined;
+    if (isCancelled()) return null;
     if (!tid && readOnly) {
       // Off-plan members only read: if the coach archived the conversation,
       // its replies (e.g. to a situation brief) must stay readable.
@@ -264,6 +281,7 @@ export function useThread(accountId: string | null, enabled = true, { readOnly =
         .limit(1)
         .maybeSingle();
       tid = latest?.id as string | undefined;
+      if (isCancelled()) return null;
     }
     if (!tid && readOnly) {
       if (!isCancelled()) {
@@ -301,6 +319,7 @@ export function useThread(accountId: string | null, enabled = true, { readOnly =
     const history = await fetchRecentMessages(tid);
     const msgs = history ?? [];
     if (isCancelled()) return null;
+    loadedScope.current = scope;
     threadIdRef.current = tid;
     setThreadId(tid);
     setRawMessages(msgs);
@@ -316,6 +335,7 @@ export function useThread(accountId: string | null, enabled = true, { readOnly =
           .select('id, message_id, thread_id, storage_path, mime_type, file_name, width, height, size_bytes, created_at')
           .eq('thread_id', tid),
       ]);
+      if (isCancelled()) return null;
       setRawReactions((reactionRes.data ?? []) as RawReaction[]);
       const signed = await Promise.all(((attachmentRes.data ?? []) as RawAttachment[]).map((att) => signedAttachment(att)));
       if (isCancelled()) return null;
@@ -331,9 +351,16 @@ export function useThread(accountId: string | null, enabled = true, { readOnly =
     setLoading(false);
     subscribeToThread(tid);
     return tid;
-  }, [subscribeToThread, readOnly]);
+  }, [subscribeToThread, readOnly, scope, isCurrent]);
 
   useEffect(() => {
+    loadedScope.current = null;
+    threadIdRef.current = null;
+    setThreadId(null);
+    setRawMessages([]);
+    setRawReactions([]);
+    setAttachments([]);
+    setSending(false);
     if (!accountId || !enabled) {
       setLoading(false);
       return;
@@ -342,7 +369,7 @@ export function useThread(accountId: string | null, enabled = true, { readOnly =
     setLoading(true);
 
     loadThread(accountId, () => cancelled).catch(() => {
-      if (!cancelled) setLoading(false);
+      if (!cancelled && isCurrent()) setLoading(false);
     });
 
     const appStateSub = AppState.addEventListener('change', (next) => {
@@ -358,20 +385,20 @@ export function useThread(accountId: string | null, enabled = true, { readOnly =
         channelRef.current = null;
       }
     };
-  }, [accountId, enabled, loadThread, refreshMessages]);
+  }, [accountId, enabled, loadThread, refreshMessages, isCurrent]);
 
   /** attachmentOnlyBody: localized text stored when a message is photos only. */
   const send = useCallback(async (body: string, pendingAttachments: PendingAttachment[] = [], attachmentOnlyBody = '📷') => {
     const trimmed = body.trim();
     if (!trimmed && pendingAttachments.length === 0) return;
-    if (!accountId || readOnly) throw new ThreadUnavailableError();
+    if (!isCurrent() || !accountId || !enabled || readOnly) throw new ThreadUnavailableError();
 
     setSending(true);
     try {
       // The thread may have failed to load (offline on open, or a transient
       // error); try once more rather than dropping the member's message.
-      let activeThreadId = threadId ?? (await loadThread(accountId));
-      if (!activeThreadId) throw new ThreadUnavailableError();
+      let activeThreadId = (loadedScope.current === scope ? threadId : null) ?? (await loadThread(accountId));
+      if (!isCurrent() || !activeThreadId) throw new ThreadUnavailableError();
 
       const insertInto = (tid: string) => supabase
         .from('messages')
@@ -383,16 +410,18 @@ export function useThread(accountId: string | null, enabled = true, { readOnly =
         .select('id, sender_role, body, created_at')
         .single();
       let { data, error } = await insertInto(activeThreadId);
+      if (!isCurrent()) return;
       if (error?.code === '42501') {
         // The open thread was archived (by the coach or another device) while
         // this screen stayed mounted: move to the current conversation and
         // send there instead of failing every retry.
         threadIdRef.current = null;
         const current = await loadThread(accountId);
-        if (!current) throw new ThreadUnavailableError();
+        if (!isCurrent() || !current) throw new ThreadUnavailableError();
         activeThreadId = current;
         ({ data, error } = await insertInto(current));
       }
+      if (!isCurrent()) return;
       if (error) throw error;
 
       const msg = data as RawMessage;
@@ -400,8 +429,9 @@ export function useThread(accountId: string | null, enabled = true, { readOnly =
 
       if (pendingAttachments.length > 0) {
         const results = await Promise.allSettled(
-          pendingAttachments.map((att) => uploadAttachment(accountId, activeThreadId as string, msg.id, att)),
+          pendingAttachments.map((att) => uploadAttachment(accountId, activeThreadId as string, msg.id, att, isCurrent)),
         );
+        if (!isCurrent()) return;
         setAttachments((prev) => {
           const next = [...prev];
           for (const result of results) {
@@ -415,15 +445,16 @@ export function useThread(accountId: string | null, enabled = true, { readOnly =
         if (failed) throw new AttachmentUploadError(failed.reason, failedAttachments);
       }
     } finally {
-      setSending(false);
+      if (isCurrent()) setSending(false);
     }
-  }, [threadId, accountId, loadThread, readOnly]);
+  }, [threadId, accountId, loadThread, readOnly, enabled, scope, isCurrent]);
 
   const archive = useCallback(async (): Promise<void> => {
-    if (!threadId || !accountId) return;
+    if (!isCurrent() || loadedScope.current !== scope || !enabled || readOnly || !threadId || !accountId) return;
     // Only drop local state once the server actually archived the thread;
     // otherwise an offline tap hides the conversation without archiving it.
     const { error } = await supabase.rpc('archive_thread', { p_thread_id: threadId });
+    if (!isCurrent()) return;
     if (error) throw error;
     threadIdRef.current = null;
     setThreadId(null);
@@ -434,14 +465,18 @@ export function useThread(accountId: string | null, enabled = true, { readOnly =
     try {
       await loadThread(accountId);
     } catch (error) {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
       throw error;
     }
-  }, [threadId, accountId, loadThread]);
+  }, [threadId, accountId, loadThread, enabled, readOnly, scope, isCurrent]);
 
   const toggleReaction = useCallback(async (messageId: string, emoji: string): Promise<void> => {
-    await supabase.rpc('toggle_reaction', { p_message_id: messageId, p_reaction: emoji });
-  }, []);
+    if (!isCurrent() || !accountId || !enabled || readOnly) throw new ThreadUnavailableError();
+    const { error } = await supabase.rpc('toggle_reaction', { p_message_id: messageId, p_reaction: emoji });
+    if (error) throw error;
+  }, [isCurrent, accountId, enabled, readOnly]);
 
-  return { messages, send, archive, toggleReaction, loading, sending, threadId };
+  const visible = loadedScope.current === scope && !!accountId && enabled;
+  return { messages: visible ? messages : [], send, archive, toggleReaction,
+    loading, sending: visible && sending, threadId: visible ? threadId : null };
 }

@@ -3,6 +3,7 @@ import { AppState } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { privateVideoChannelTopic } from '../lib/realtimeTopics';
 import { videoErrorCode } from '../lib/videoErrors';
+import { useAsyncScope } from './useAsyncScope';
 
 export type PrivateVideoStatus = 'requested' | 'scheduled' | 'live' | 'completed' | 'cancelled' | 'no_show';
 
@@ -80,6 +81,8 @@ async function checkoutCode(data: unknown, error: unknown): Promise<string> {
 }
 
 export function usePrivateVideoSessions(accountId: string | null, canAccess: boolean) {
+  const { scope, isCurrent } = useAsyncScope(JSON.stringify([accountId, canAccess]));
+  const stateScope = useRef(scope);
   // Support remains mounted underneath pushed screens. A unique topic prevents
   // Supabase/Phoenix from evicting the existing subscription as a duplicate.
   const [channelInstanceId] = useState(() => Math.random().toString(36).slice(2));
@@ -94,41 +97,57 @@ export function usePrivateVideoSessions(accountId: string | null, canAccess: boo
   const [planReviewIncluded, setPlanReviewIncluded] = useState(false);
   const loadGeneration = useRef(0);
 
-  const clearError = useCallback(() => { setError(null); setErrorKey(null); }, []);
+  const clearError = useCallback(() => {
+    if (isCurrent()) { setError(null); setErrorKey(null); }
+  }, [isCurrent]);
+
+  useEffect(() => {
+    stateScope.current = scope;
+    setActiveSession(null); setHistory([]); setPendingProposal(null);
+    setMutating(false); setPlanReviewIncluded(false); clearError();
+  }, [scope, clearError]);
 
   const load = useCallback(async () => {
+    if (!isCurrent()) return;
     const generation = ++loadGeneration.current;
     if (!accountId || !canAccess) {
       setActiveSession(null); setHistory([]); setPendingProposal(null); setLoading(false); clearError();
       return;
     }
     setLoading(true);
-    const [{ data: activeData, error: activeError }, { data: historyData, error: historyError }] = await Promise.all([
-      supabase.rpc('member_get_active_video_session'),
-      supabase.rpc('member_get_video_session_history', { p_limit: 10, p_before: null, p_before_id: null }),
-    ]);
-    if (generation !== loadGeneration.current) return;
-    const failure = activeError ?? historyError;
-    if (failure) {
-      setError(failure.message); setErrorKey(errorCode(failure));
-    } else {
-      const active = ((activeData ?? [])[0] ?? null) as PrivateVideoSession | null;
-      setActiveSession(active);
-      setHistory((historyData ?? []) as PrivateVideoSession[]);
-      clearError();
-      if (active) {
-        const { data, error: proposalError } = await supabase
-          .from('video_session_proposals')
-          .select('id, session_id, proposed_by_role, starts_at, timezone, duration_minutes, note, status, created_at')
-          .eq('session_id', active.id).eq('status', 'pending').maybeSingle();
-        if (generation !== loadGeneration.current) return;
-        if (proposalError) {
-          setError(proposalError.message); setErrorKey(errorCode(proposalError));
-        } else setPendingProposal((data as VideoSessionProposal | null) ?? null);
-      } else setPendingProposal(null);
+    try {
+      const [{ data: activeData, error: activeError }, { data: historyData, error: historyError }] = await Promise.all([
+        supabase.rpc('member_get_active_video_session'),
+        supabase.rpc('member_get_video_session_history', { p_limit: 10, p_before: null, p_before_id: null }),
+      ]);
+      if (!isCurrent() || generation !== loadGeneration.current) return;
+      const failure = activeError ?? historyError;
+      if (failure) {
+        setError(failure.message); setErrorKey(errorCode(failure));
+      } else {
+        const active = ((activeData ?? [])[0] ?? null) as PrivateVideoSession | null;
+        setActiveSession(active);
+        setHistory((historyData ?? []) as PrivateVideoSession[]);
+        clearError();
+        if (active) {
+          const { data, error: proposalError } = await supabase
+            .from('video_session_proposals')
+            .select('id, session_id, proposed_by_role, starts_at, timezone, duration_minutes, note, status, created_at')
+            .eq('session_id', active.id).eq('status', 'pending').maybeSingle();
+          if (!isCurrent() || generation !== loadGeneration.current) return;
+          if (proposalError) {
+            setError(proposalError.message); setErrorKey(errorCode(proposalError));
+          } else setPendingProposal((data as VideoSessionProposal | null) ?? null);
+        } else setPendingProposal(null);
+      }
+    } catch {
+      if (isCurrent() && generation === loadGeneration.current) {
+        setError('network'); setErrorKey('unknown');
+      }
+    } finally {
+      if (isCurrent() && generation === loadGeneration.current) setLoading(false);
     }
-    if (generation === loadGeneration.current) setLoading(false);
-  }, [accountId, canAccess, clearError]);
+  }, [accountId, canAccess, clearError, isCurrent]);
 
   useEffect(() => { void load(); }, [load]);
   useEffect(() => {
@@ -141,18 +160,25 @@ export function usePrivateVideoSessions(accountId: string | null, canAccess: boo
   }, [accountId, canAccess, channelInstanceId, load]);
 
   const runMutation = useCallback(async (rpc: string, args: Record<string, unknown>) => {
-    if (!accountId || !canAccess) return null;
+    if (!isCurrent() || !accountId || !canAccess) return null;
     setMutating(true); clearError();
-    const { data, error: rpcError } = await supabase.rpc(rpc as never, args as never);
-    setMutating(false);
-    if (rpcError) {
-      setError(rpcError.message); setErrorKey(errorCode(rpcError));
-      if (errorCode(rpcError) === 'version_conflict') await load();
+    try {
+      const { data, error: rpcError } = await supabase.rpc(rpc as never, args as never);
+      if (!isCurrent()) return null;
+      if (rpcError) {
+        setError(rpcError.message); setErrorKey(errorCode(rpcError));
+        if (errorCode(rpcError) === 'version_conflict') await load();
+        return null;
+      }
+      await load();
+      return isCurrent() ? data as PrivateVideoSession : null;
+    } catch {
+      if (isCurrent()) { setError('network'); setErrorKey('unknown'); }
       return null;
+    } finally {
+      if (isCurrent()) setMutating(false);
     }
-    await load();
-    return data as PrivateVideoSession;
-  }, [accountId, canAccess, clearError, load]);
+  }, [accountId, canAccess, clearError, load, isCurrent]);
 
   const requestSession = useCallback((input: SessionRequestInput) => runMutation('request_private_video_session', {
     p_starts_at: input.startsAt.toISOString(), p_timezone: input.timezone,
@@ -180,29 +206,35 @@ export function usePrivateVideoSessions(accountId: string | null, canAccess: boo
   }), [runMutation]);
 
   const invokePlanReviewCheckout = useCallback(async (session: PrivateVideoSession, intent: 'checkout' | 'apply_membership'): Promise<string | null> => {
-    if (!accountId || !canAccess) return null;
+    if (!isCurrent() || !accountId || !canAccess) return null;
     setMutating(true); clearError(); setPlanReviewIncluded(false);
-    const { data, error: functionError } = await supabase.functions.invoke('create-plan-review-checkout', {
-      body: { session_id: session.id, intent },
-    });
-    if (!functionError && data?.ok && data?.included) {
-      // Premier now covers this review: no payment, and the refreshed session
-      // no longer offers one.
-      setPlanReviewIncluded(true);
-      await load();
-      setMutating(false);
+    try {
+      const { data, error: functionError } = await supabase.functions.invoke('create-plan-review-checkout', {
+        body: { session_id: session.id, intent },
+      });
+      if (!isCurrent()) return null;
+      if (!functionError && data?.ok && data?.included) {
+        // Premier now covers this review: no payment, and the refreshed session
+        // no longer offers one.
+        setPlanReviewIncluded(true);
+        await load();
+        return null;
+      }
+      if (functionError || !data?.ok || typeof data?.checkout_url !== 'string') {
+        const code = await checkoutCode(data, functionError);
+        if (!isCurrent()) return null;
+        setError(functionError?.message ?? code); setErrorKey(code);
+        if (code === 'already_paid' || code === 'checkout_not_available') await load();
+        return null;
+      }
+      return data.checkout_url;
+    } catch {
+      if (isCurrent()) { setError('network'); setErrorKey('checkout_unavailable'); }
       return null;
+    } finally {
+      if (isCurrent()) setMutating(false);
     }
-    if (functionError || !data?.ok || typeof data?.checkout_url !== 'string') {
-      const code = await checkoutCode(data, functionError);
-      setMutating(false);
-      setError(functionError?.message ?? code); setErrorKey(code);
-      if (code === 'already_paid' || code === 'checkout_not_available') await load();
-      return null;
-    }
-    setMutating(false);
-    return data.checkout_url;
-  }, [accountId, canAccess, clearError, load]);
+  }, [accountId, canAccess, clearError, load, isCurrent]);
 
   const beginPlanReviewCheckout = useCallback(
     (session: PrivateVideoSession) => invokePlanReviewCheckout(session, 'checkout'),
@@ -225,9 +257,13 @@ export function usePrivateVideoSessions(accountId: string | null, canAccess: boo
   const cancelSession = useCallback((session: PrivateVideoSession, reason?: string) =>
     runMutation('member_cancel_video_session', { p_session_id: session.id, p_expected_version: session.version, p_reason: reason?.trim() || null }), [runMutation]);
 
+  const visible = stateScope.current === scope && !!accountId && canAccess;
   return {
-    sessions: [...(activeSession ? [activeSession] : []), ...history], activeSession, history, pendingProposal,
-    loading, requesting: mutating, mutating, error, errorKey, clearError, load, planReviewIncluded,
+    sessions: visible ? [...(activeSession ? [activeSession] : []), ...history] : [],
+    activeSession: visible ? activeSession : null, history: visible ? history : [], pendingProposal: visible ? pendingProposal : null,
+    loading, requesting: visible && mutating, mutating: visible && mutating,
+    error: visible ? error : null, errorKey: visible ? errorKey : null, clearError, load,
+    planReviewIncluded: visible && planReviewIncluded,
     requestSession, requestPlanReview, submitPlanReviewRevision, beginPlanReviewCheckout, applyPremierToPlanReview, rescheduleSession, acceptProposal, cancelSession,
   };
 }
