@@ -332,9 +332,38 @@ serve(async (req) => {
           ? "Tu grupo comienza en aproximadamente una hora. Tu lugar está guardado — ven tal como estás."
           : "Your group starts in about an hour. Your seat is saved — come as you are.",
         sound: "default",
+        // A phone offline until after the call must not get it late.
+        ttl: 3600,
         data: sessionReminderData(sessionId),
       });
     }
+    const sent = await sendExpoPush(messages, clearDeadTokens);
+    return json({ success: true, job, sent });
+  }
+
+  // ── family_call_30min: everyone not opted out, 30 min before the call ─────
+  if (job === "family_call_30min") {
+    if (!force && !isFamilySquaresReminderHour(new Date())) {
+      return json({ success: true, job, sent: 0, skipped: "outside_reminder_hour" });
+    }
+    const { data, error } = await supabase.rpc("get_family_call_30min_targets");
+    if (error) return json({ error: error.message }, 500);
+    const targets = (data ?? []) as { push_token: string; locale: string | null }[];
+    const { data: sessionId } = await supabase.rpc("family_squares_session_id");
+    const messages: PushMessage[] = targets.map((target) => {
+      const es = (target.locale ?? "en").startsWith("es");
+      return {
+        to: target.push_token,
+        title: es ? "The Family Squares comienza en 30 minutos" : "The Family Squares starts in 30 minutes",
+        body: es
+          ? "Llamada gratuita de apoyo familiar por Zoom a las 7:00 PM (Pacífico). Ven tal como estás — toca para unirte."
+          : "Free family support call on Zoom at 7:00 PM Pacific. Come as you are — tap to join.",
+        sound: "default",
+        // "Starts in 30 minutes" is wrong after the call starts; drop it then.
+        ttl: 1800,
+        data: sessionReminderData(sessionId),
+      };
+    });
     const sent = await sendExpoPush(messages, clearDeadTokens);
     return json({ success: true, job, sent });
   }

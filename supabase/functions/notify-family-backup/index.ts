@@ -114,11 +114,12 @@ Deno.serve(async (req) => {
     .select('id, push_token, locale')
     .in('id', ids);
 
-  const name = (account.first_name ?? '').trim() || 'A family member';
+  const firstName = (account.first_name ?? '').trim();
   let sent = 0;
   for (const target of targets ?? []) {
     if (!target.push_token) continue;
     const es = String(target.locale ?? '').startsWith('es');
+    const name = firstName || (es ? 'Un familiar' : 'A family member');
     const title = es ? 'Espacio familiar' : 'Family space';
     const body = es
       ? `${name} podría usar apoyo en un muro hoy.`

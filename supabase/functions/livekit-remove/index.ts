@@ -51,9 +51,27 @@ Deno.serve(async (req) => {
       Deno.env.get('LIVEKIT_API_KEY')!,
       Deno.env.get('LIVEKIT_API_SECRET')!,
     );
-    await svc.removeParticipant(room, identity);
+    // Removal is a ban: the token service refuses this member for every live
+    // group until an admin lets them back. Ban first so it holds even if they
+    // already left the room. Identities are account ids.
+    let banned = false;
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(identity))) {
+      const { error: banError } = await supabase.rpc('admin_ban_from_live_groups', {
+        p_account_id: identity,
+        p_room_name: room,
+      });
+      if (banError) return json({ ok: false, banned: false, error: banError.message }, 500);
+      banned = true;
+    }
 
-    return json({ ok: true });
+    try {
+      await svc.removeParticipant(room, identity);
+    } catch (error) {
+      // Already gone from the room: the ban is what matters.
+      if (!/not.?found/i.test(String(error))) throw error;
+    }
+
+    return json({ ok: true, banned });
   } catch (e) {
     return json({ error: String(e) }, 500);
   }

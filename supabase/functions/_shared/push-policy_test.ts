@@ -1,4 +1,5 @@
 import {
+  INVITATION_WINDOW_PUSH_TTL_SECONDS,
   PRACTICE_PUSH_TTL_SECONDS,
   pushDeliveryPolicy,
 } from './push-policy.ts';
@@ -17,4 +18,10 @@ Deno.test('practice pushes expire at the provider after four hours', () => {
 Deno.test('existing notification kinds retain their delivery policy', () => {
   assertEquals(pushDeliveryPolicy('group_live'), {}, 'group-live policy');
   assertEquals(pushDeliveryPolicy('premier_video_reminder'), {}, 'video policy');
+});
+
+Deno.test('invitation window pushes expire after four hours so they never arrive the next morning', () => {
+  assertEquals(INVITATION_WINDOW_PUSH_TTL_SECONDS, 14_400, 'TTL constant');
+  assertEquals(pushDeliveryPolicy('invitation_window'), { ttl: 14_400 }, 'window policy');
+  assertEquals(pushDeliveryPolicy('admin_invitation_yes'), {}, 'admin yes alert keeps the default');
 });

@@ -73,10 +73,16 @@ Deno.serve(async (req: Request) => {
     } else if (message.sender_role === 'coach') {
       // Coach replied — notify the member
       if (member?.push_token) {
+        const { data: prefs } = await supabase
+          .from('accounts')
+          .select('locale')
+          .eq('id', member.account_id)
+          .maybeSingle();
+        const es = String(prefs?.locale ?? '').startsWith('es');
         await sendExpoPush(
           member.push_token,
-          'New message from your coach',
-          'Open Sober Helpline to read this private message.',
+          es ? 'Nuevo mensaje de tu coach' : 'New message from your coach',
+          es ? 'Abre Sober Helpline para leer este mensaje privado.' : 'Open Sober Helpline to read this private message.',
           coachMessageData(message.thread_id),
         );
       } else {

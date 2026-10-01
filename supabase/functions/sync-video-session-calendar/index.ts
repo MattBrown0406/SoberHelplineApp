@@ -1,6 +1,14 @@
 // deno-lint-ignore-file no-import-prefix
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { saveCalendarSync } from '../_shared/calendar-sync-state.ts';
+import {
+  ALLOWED_ACTIONS,
+  calendarDeferredUpdate,
+  calendarEventIdFor,
+  calendarFailureUpdate,
+  calendarOperationFor,
+  statusAfterDelete,
+} from '../_shared/calendar-sync-retry.ts';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -9,11 +17,6 @@ const CORS_HEADERS = {
 };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const UPSERT_STATES = new Set(['scheduled']);
-const TERMINAL_STATES = new Set(['cancelled', 'no_show']);
-const UPSERT_ACTIONS = new Set(['upsert', 'create', 'patch', 'confirmed', 'rescheduled']);
-const DELETE_ACTIONS = new Set(['delete', 'cancel', 'cancelled', 'completed', 'no_show']);
-const ALLOWED_ACTIONS = new Set(['auto', ...UPSERT_ACTIONS, ...DELETE_ACTIONS]);
 
 type VideoSession = {
   id: string;
@@ -26,10 +29,11 @@ type VideoSession = {
   version: number;
   calendar_lease_token: string | null;
   calendar_lease_version: number | null;
+  calendar_sync_attempts: number | null;
 };
 
 type AccountName = { id: string; first_name: string | null; last_name: string | null };
-type Operation = 'upsert' | 'delete' | 'noop';
+type Operation = 'upsert' | 'delete' | 'noop' | 'defer';
 
 class HttpError extends Error {
   constructor(public status: number, public code: string, message: string, public details?: unknown) {
@@ -80,7 +84,7 @@ Deno.serve(async (req) => {
 
     const { data: sessionRow, error: sessionError } = await admin
       .from('video_sessions')
-      .select('id, account_id, assigned_coach_id, scheduled_for, duration_minutes, status, calendar_event_id, version, calendar_lease_token, calendar_lease_version')
+      .select('id, account_id, assigned_coach_id, scheduled_for, duration_minutes, status, calendar_event_id, version, calendar_lease_token, calendar_lease_version, calendar_sync_attempts')
       .eq('id', sessionId)
       .eq('version', leaseVersion)
       .eq('calendar_lease_version', leaseVersion)
@@ -94,6 +98,12 @@ Deno.serve(async (req) => {
     const authorizationKind = 'service_role';
 
     const operation = resolveOperation(currentSession, action);
+    if (operation === 'defer') {
+      // A live session is neither created nor removed mid-call; the dispatcher
+      // looks again later (and the completed session then needs no event).
+      await saveSync(admin, currentSession, calendarDeferredUpdate(currentSession.calendar_sync_attempts ?? 0, new Date()));
+      return json({ ok: true, sessionId: currentSession.id, operation, googleResult: 'unchanged', retryLater: true }, 202);
+    }
     const validation = validateSession(currentSession, operation);
     if (!validation.valid) {
       throw new HttpError(422, 'session_not_syncable', 'The video session is not valid for the requested calendar operation.', validation);
@@ -102,19 +112,22 @@ Deno.serve(async (req) => {
     const names = operation === 'upsert' ? await fetchNames(admin, currentSession) : { member: 'Member', coach: 'Coach' };
     const accessToken = operation === 'noop' ? '' : await googleAccessToken(env.clientId, env.clientSecret, env.refreshToken);
     const calendarId = encodeURIComponent(env.calendarId);
-    const eventId = currentSession.calendar_event_id || deterministicEventId(currentSession.id);
+    const eventId = calendarEventIdFor(currentSession);
+    const succeeded = { calendar_sync_error: null, calendar_sync_attempts: 0, calendar_next_attempt_at: null };
 
     let googleResult: 'created' | 'updated' | 'deleted' | 'already_absent' | 'unchanged';
     if (operation === 'upsert') {
       const event = calendarEvent(currentSession, names.member, names.coach);
       googleResult = await upsertGoogleEvent(calendarId, eventId, accessToken, event, Boolean(currentSession.calendar_event_id));
-      await saveSync(admin, currentSession, { calendar_event_id: eventId, calendar_sync_status: 'synced', calendar_sync_error: null, calendar_synced_at: new Date().toISOString() });
+      await saveSync(admin, currentSession, { ...succeeded, calendar_event_id: eventId, calendar_sync_status: 'synced', calendar_synced_at: new Date().toISOString() });
     } else if (operation === 'delete') {
+      // calendar_event_id may be NULL when the creating sync never stored it;
+      // the deterministic id still finds (or harmlessly misses) that event.
       googleResult = await deleteGoogleEvent(calendarId, eventId, accessToken);
-      await saveSync(admin, currentSession, { calendar_event_id: null, calendar_sync_status: 'cancelled', calendar_sync_error: null, calendar_synced_at: new Date().toISOString() });
+      await saveSync(admin, currentSession, { ...succeeded, calendar_event_id: null, calendar_sync_status: statusAfterDelete(currentSession.status), calendar_synced_at: new Date().toISOString() });
     } else {
       googleResult = 'unchanged';
-      await saveSync(admin, currentSession, { calendar_sync_status: currentSession.status === 'completed' && currentSession.calendar_event_id ? 'synced' : 'not_synced', calendar_sync_error: null });
+      await saveSync(admin, currentSession, { ...succeeded, calendar_sync_status: currentSession.status === 'completed' && currentSession.calendar_event_id ? 'synced' : 'not_synced' });
     }
 
     return json({
@@ -133,10 +146,13 @@ Deno.serve(async (req) => {
 
     if (session && admin) {
       try {
-        await saveSync(admin, session, {
-          calendar_sync_status: 'failed',
-          calendar_sync_error: safeErrorForStorage(httpError),
-        });
+        // The dispatcher retries 'failed' rows with exponential backoff until
+        // the attempt limit; the admin video card shows the error meanwhile.
+        await saveSync(admin, session, calendarFailureUpdate(
+          session.calendar_sync_attempts ?? 1,
+          safeErrorForStorage(httpError),
+          new Date(),
+        ));
       } catch (saveError) {
         console.error('Could not store calendar sync failure:', safeLogError(saveError));
       }
@@ -176,22 +192,11 @@ function constantTimeEqual(left: string, right: string): boolean {
 }
 
 function resolveOperation(session: VideoSession, action: string): Operation {
-  const normalizedStatus = session.status.trim().toLowerCase();
-  if (action === 'auto') {
-    if (UPSERT_STATES.has(normalizedStatus)) return 'upsert';
-    if (normalizedStatus === 'requested') return session.calendar_event_id ? 'delete' : 'noop';
-    if (normalizedStatus === 'completed') return 'noop';
-    if (TERMINAL_STATES.has(normalizedStatus)) return 'delete';
-  } else if (UPSERT_ACTIONS.has(action) && UPSERT_STATES.has(normalizedStatus)) {
-    return 'upsert';
-  } else if (DELETE_ACTIONS.has(action) && TERMINAL_STATES.has(normalizedStatus)) {
-    return 'delete';
-  }
+  const operation = calendarOperationFor(session.status, action);
+  if (operation !== 'conflict') return operation;
   throw new HttpError(409, 'action_status_conflict', 'The requested action is not permitted for the current session status.', {
     action,
-    status: normalizedStatus,
-    upsertStatuses: [...UPSERT_STATES],
-    terminalStatuses: [...TERMINAL_STATES],
+    status: session.status.trim().toLowerCase(),
   });
 }
 
@@ -259,12 +264,12 @@ function calendarEvent(session: VideoSession, memberName: string, coachName: str
     start: { dateTime: start.toISOString(), timeZone: 'UTC' },
     end: { dateTime: end.toISOString(), timeZone: 'UTC' },
     visibility: 'private',
+    // Google keeps a deleted event's id reserved (insert answers 409 and the
+    // patch fallback runs); 'confirmed' restores it when a session that went
+    // back to requested is confirmed again.
+    status: 'confirmed',
     extendedProperties: { private: { videoSessionId: session.id } },
   };
-}
-
-function deterministicEventId(sessionId: string): string {
-  return `vsession${sessionId.replaceAll('-', '').toLowerCase()}`;
 }
 
 async function googleAccessToken(clientId: string, clientSecret: string, refreshToken: string): Promise<string> {

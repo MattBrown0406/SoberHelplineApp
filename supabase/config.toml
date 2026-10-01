@@ -394,6 +394,10 @@ verify_jwt = true
 [functions.confirm-landing]
 verify_jwt = false
 
+# Signed-out members request a password reset code (self rate-limited).
+[functions.request-password-reset]
+verify_jwt = false
+
 # Functions used by the website/app payment bridge.
 [functions.create-plan-review-checkout]
 verify_jwt = true

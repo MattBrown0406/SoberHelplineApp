@@ -182,6 +182,9 @@ async function groupRoomToken(
     row.is_live === true && !!row.live_started_at && Date.parse(row.live_started_at) > freshSince);
   if (!isHost && !isLive) return json({ error: 'group_room_not_live' }, 403);
   if (!isHost) {
+    const { data: banned, error: banError } = await supabase.rpc('am_banned_from_live_groups');
+    if (banError) throw banError;
+    if (banned === true) return json({ error: 'removed_from_live_groups' }, 403);
     // Live groups are a membership benefit; the app hides them from free
     // accounts, and a direct call to this function must not bypass that.
     const { data: member, error: accessError } = await supabase.rpc('has_active_textline_access', {
@@ -190,7 +193,9 @@ async function groupRoomToken(
     if (accessError) throw accessError;
     if (member !== true) return json({ error: 'membership_required' }, 403);
   }
-  const token = await buildToken({ room, account, canPublish: isHost, roomAdmin: isHost, ttl: '2h' });
+  // Viewers get a short join window; LiveKit refreshes tokens for anyone still
+  // connected, so a removed member cannot reconnect with an old token.
+  const token = await buildToken({ room, account, canPublish: isHost, roomAdmin: isHost, ttl: isHost ? '2h' : '10m' });
   return json({ token, sessionId: null, room, isHost, isPrivateVideo: false, canPublish: isHost, identity: account.id });
 }
 

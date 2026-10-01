@@ -37,9 +37,13 @@ Deno.serve(async (req: Request) => {
   if (userError || !user) return new Response(JSON.stringify({ ok: false, code: 'not_authenticated' }), { status: 401, headers: corsHeaders });
 
   let sessionId = '';
+  // 'apply_membership' only converts a pending one-off for a member who now
+  // has Premier; it never returns a checkout URL.
+  let intent: 'checkout' | 'apply_membership' = 'checkout';
   try {
     const body = await req.json();
     sessionId = typeof body?.session_id === 'string' ? body.session_id : '';
+    if (body?.intent === 'apply_membership') intent = 'apply_membership';
   } catch { /* handled below */ }
   if (!/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(sessionId)) return new Response(JSON.stringify({ ok: false, code: 'invalid_session' }), { status: 400, headers: corsHeaders });
 
@@ -55,6 +59,22 @@ Deno.serve(async (req: Request) => {
   if (session.payment_status === 'paid') return new Response(JSON.stringify({ ok: false, code: 'already_paid' }), { status: 409, headers: corsHeaders });
   if (session.payment_status !== 'pending_payment' || !['requested', 'proposed'].includes(session.status)) {
     return new Response(JSON.stringify({ ok: false, code: 'checkout_not_available' }), { status: 409, headers: corsHeaders });
+  }
+
+  // A member who upgraded to Premier after booking must not pay $150 for a
+  // review Premier includes: convert it instead of opening checkout. The RPC
+  // re-checks Premier access (has_active_private_video_access) server-side.
+  const { data: conversion, error: conversionError } = await admin.rpc('service_convert_plan_review_to_included', {
+    p_session_id: session.id,
+  });
+  if (conversionError) {
+    return new Response(JSON.stringify({ ok: false, code: 'checkout_unavailable' }), { status: 500, headers: corsHeaders });
+  }
+  if (conversion === 'converted') {
+    return new Response(JSON.stringify({ ok: true, included: true, checkout_url: null }), { status: 200, headers: corsHeaders });
+  }
+  if (intent === 'apply_membership') {
+    return new Response(JSON.stringify({ ok: false, code: 'premier_not_active' }), { status: 200, headers: corsHeaders });
   }
 
   const now = Math.floor(Date.now() / 1000);

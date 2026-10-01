@@ -13,7 +13,11 @@ export type PushData =
   | { kind: "morning_note"; screen: PushTab }
   | { kind: "daily_nudge"; screen: PushTab }
   | { kind: "winback" }
-  | { kind: "family_backup"; wavering_event_id?: string };
+  | { kind: "family_backup"; wavering_event_id?: string }
+  // Invitation Engine: enqueued in SQL (enqueue_invitation_window_push,
+  // log_invitation_attempt) with exactly these payloads.
+  | { kind: "invitation_window" }
+  | { kind: "admin_invitation_yes" };
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -48,4 +52,14 @@ export function winbackData(): PushData {
 export function familyBackupData(waveringEventId: unknown): PushData {
   const id = uuidOrUndefined(waveringEventId);
   return { kind: "family_backup", ...(id ? { wavering_event_id: id } : {}) };
+}
+
+/** "Tonight may be a window" — opens the Invitation Engine. */
+export function invitationWindowData(): PushData {
+  return { kind: "invitation_window" };
+}
+
+/** Admin alert: a member logged a YES to treatment. Opens Admin. */
+export function adminInvitationYesData(): PushData {
+  return { kind: "admin_invitation_yes" };
 }

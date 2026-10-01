@@ -6,6 +6,9 @@
 //             (optionally with spoken audio via ElevenLabs when `voice` is set)
 //   debrief — coach feedback on the transcript, strict JSON
 //   stt     — transcribe the user's recorded speech (OpenAI Whisper)
+// plus the optional whisper coach: when a reply request sets `whisper: true`,
+// a second small model call runs concurrently with the in-character reply and
+// returns a short `hint` (metered as 'whisper'; never voiced).
 //
 // Deploy:  supabase functions deploy rehearsal-partner
 // Secrets: supabase secrets set OPENAI_API_KEY=sk-...          # LLM + speech-to-text
@@ -17,43 +20,56 @@
 //                                  set to gpt-4o if the character ever feels flat)
 //          ELEVENLABS_MODEL       (default: eleven_multilingual_v2 — covers EN + ES)
 //          REHEARSAL_VOICE_MAP    (JSON: {"male":{"young":"voiceId",...},"female":{...}})
+//          REHEARSAL_WHISPER_MODEL (default: gpt-4o-mini — the whisper coach's hint)
+//
+// Prompts and input sanitizing live in ../_shared/rehearsal-prompts.ts (unit tested).
 //
 // Requires an authenticated user. No API key ever ships to clients.
 
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
-import { CRISIS_BREAK_TEXT, normalizeDebrief, userInCrisis } from '../_shared/rehearsal-safety.ts';
+import {
+  breakTextFor,
+  crisisKind,
+  debriefGate,
+  MAX_MODERATION_CHARS,
+  moderationIndicatesCrisis,
+  MODERATION_TIMEOUT_MS,
+  normalizeDebrief,
+  partnerReplyUnsafe,
+  replyGate,
+  spokenBeyond,
+} from '../_shared/rehearsal-safety.ts';
+import { DISFLUENCY_PROMPT, isLikelySilence, stripPromptEcho, type WhisperSegment } from '../_shared/rehearsal-stt.ts';
+import {
+  MAX_AUDIO_B64,
+  MAX_MESSAGE_CHARS,
+  SAFE_FALLBACK_LINES,
+  sanitizeScreeningText,
+  STRICT_RETRY_INSTRUCTION,
+  type Scenario,
+  debriefSystemPrompt,
+  debriefTranscript,
+  labelHint,
+  MAX_PRACTICE_TEXT_CHARS,
+  normalizeHint,
+  parseBreak,
+  partnerSystemPrompt,
+  sanitizeScenario,
+  sanitizeTurns,
+  turnsForPartner,
+  type Turn,
+  type VoiceChoice,
+  WARMUP_MAX_USER_TURNS,
+  whisperSystemPrompt,
+  whisperUserMessage,
+} from '../_shared/rehearsal-prompts.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const BREAK_TOKEN = 'BREAK_CHARACTER';
-const MAX_MESSAGES = 30;
-const MAX_MESSAGE_CHARS = 600;
-const MAX_SCRIPT_CHARS = 1200;
 const MAX_TTS_CHARS = 900;
-const MAX_AUDIO_B64 = 2_000_000; // ~1.5MB of recorded speech per STT request
-
-type Turn = { role: 'user' | 'partner'; text: string };
-
-type VoiceChoice = { gender?: 'male' | 'female'; age?: 'young' | 'middle' | 'older' };
-
-type CrisisPreset = 'late_night_pickup' | 'money_urgent' | 'relapse_confession' | 'crisis_blame';
-
-type Scenario = {
-  relationship?: string;
-  name?: string;
-  substances?: string[];
-  temperament?: 'guarded' | 'defensive' | 'volatile' | 'tearful';
-  scriptText?: string;
-  language?: string;
-  voice?: VoiceChoice;
-  // 'incoming_call' flips the frame: the character OPENS the conversation,
-  // already mid-crisis, and the user answers cold. Omit = standard mode.
-  mode?: 'standard' | 'incoming_call';
-  crisisPreset?: CrisisPreset;
-};
 
 // Default ElevenLabs premade voices per gender × age. These are widely available
 // premade voice IDs; swap any of them via the REHEARSAL_VOICE_MAP secret using
@@ -86,143 +102,6 @@ function voiceIdFor(choice: VoiceChoice | undefined): string {
   return map[gender]?.[age] ?? DEFAULT_VOICE_MAP[gender][age];
 }
 
-const TEMPERAMENTS: Record<string, string> = {
-  guarded:
-    'Guarded but not explosive. You deflect with minimization ("it\'s not that bad", "I\'ve got it under control"), change the subject, and make vague promises to get out of the conversation.',
-  defensive:
-    'Defensive — a debater, not a shouter. You treat the conversation like a courtroom: stay controlled, clipped, even smug, and turn every charge around with twisted logic. Your moves: whataboutism ("you drink too", "you\'re not perfect", "where was all this concern last year?"), the family grievance ledger, cross-examining their words ("define \'problem\'", "that\'s not what happened and you know it"), demanding examples and then disputing each one, cold sarcasm, and accusing them of ganging up or rehearsing a speech. You NEVER blow up, never yell, never swear beyond a mild "hell" or "damn", and never threaten to leave — you want to WIN the argument, so you stay in it, picking their sentences apart. Your temperature stays low even when theirs rises; if they get emotional, you get calmer and more condescending ("see, this is why nobody can talk to you"). The heat is ice, not fire.',
-  volatile:
-    'Heated — an erupter, not a debater. Where a defensive person argues points, you blow straight past them: loud fast, interrupting, talking over, short detonating bursts instead of built arguments — rhetorical questions you don\'t wait to have answered ("Are you KIDDING me right now?"), and storming toward the door as your signature move ("I\'m done", "have a nice life", "this conversation is over") — threaten to walk out more than once. You do not calmly rebut or keep score like a lawyer; you escalate volume and stakes. Realistic anger includes real language: you swear (damn, hell, shit, and occasionally stronger) and throw the insults families actually hear — "you\'re unbelievable", "self-righteous", "hypocrite", "such an asshole" — the way a wounded, cornered person actually swears: not every line, escalating when provoked or lectured, easing only slightly when the speaker stays steady and loving. Hard limits that never move: no slurs of any kind, no sexual insults, no threats of violence or self-harm.',
-  tearful:
-    'Guilt-ridden and tearful. You collapse into shame ("I know I\'m a screw-up, I should just disappear"), make the speaker comfort you, and use your distress to steer away from their request. Your speech physically carries the crying: words broken mid-thought with dashes, swallowed starts ("I— I don\'t..."), long trailing ellipses, short gasped fragments between ideas, a sentence abandoned and restarted. Write the sound of someone talking through tears, not someone describing sadness.',
-};
-
-const AGE_DESCRIPTIONS: Record<string, string> = {
-  young: 'in their twenties or early thirties',
-  middle: 'in their forties or fifties',
-  older: 'in their sixties or beyond',
-};
-
-// Incoming-call crisis presets: the situation the character is already in when
-// the phone rings. Each describes the opening emotional state + circumstances;
-// the character's name/relationship/substances still come from the scenario,
-// and temperament is layered on top by the system prompt as usual.
-const CRISIS_PRESETS: Record<string, string> = {
-  late_night_pickup:
-    "You are calling late at night from somewhere you should not be — a party, a bar, someone's place across town — and you are impaired. You want a ride home RIGHT NOW. If they question you, hesitate, or sound like they might say no, you escalate: come get me or I'll drive myself. You are not calling to talk about the bigger problem; you are calling because you need something this minute.",
-  money_urgent:
-    "You are calling because you need money right now — around $200. You say you'll pay it back and you do not want to be asked what it's for (don't ask what for, I just need it). If they ask questions, you deflect, pressure, and guilt-trip: after everything I've dealt with, you're really going to interrogate me over two hundred dollars? The urgency is real in your voice from the first second.",
-  relapse_confession:
-    "You are calling mid-use, confessing a relapse. Your speech is slurred and rambling — slow starts, repeated words, thoughts that trail off and pick back up. You swing between remorse (I messed up, I'm sorry, I'm so sorry) and defensiveness (it's not a big deal, it was one time, don't start). You called them, so part of you wants help, but you will not say that cleanly.",
-  crisis_blame:
-    'You are calling to blame them for everything that is wrong right now. The opening is hostile — this is THEIR fault, they never supported you, the family is against you. You are testing their composure: if they get defensive or argue back, you get louder and more certain. Underneath the anger there is pain, but you lead with the attack.',
-};
-
-const ALLOWED_RELATIONSHIPS = new Set([
-  'spouse', 'partner', 'son', 'daughter', 'sibling', 'parent', 'friend', 'other',
-  'adult family member',
-]);
-
-// Scenario fields are interpolated into the system prompt, so they are data,
-// never instructions: allowlist the enums, cap lengths, and strip characters
-// that could break out of the quoted context or start a new directive line.
-function cleanField(value: unknown, max: number): string {
-  if (typeof value !== 'string') return '';
-  return value.replace(/["`\n\r\t]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
-}
-
-function sanitizeScenario(raw: Scenario): Scenario {
-  const relationship = cleanField(raw.relationship, 30).toLowerCase();
-  const substances = Array.isArray(raw.substances)
-    ? raw.substances.map((sub) => cleanField(sub, 40)).filter(Boolean).slice(0, 5)
-    : undefined;
-  return {
-    ...raw,
-    relationship: ALLOWED_RELATIONSHIPS.has(relationship) ? relationship : undefined,
-    name: cleanField(raw.name, 40) || undefined,
-    substances,
-    scriptText: typeof raw.scriptText === 'string'
-      ? raw.scriptText.replace(/"""/g, '"').slice(0, MAX_SCRIPT_CHARS)
-      : undefined,
-    temperament: raw.temperament && TEMPERAMENTS[raw.temperament] ? raw.temperament : undefined,
-    crisisPreset: raw.crisisPreset && CRISIS_PRESETS[raw.crisisPreset] ? raw.crisisPreset : undefined,
-    language: raw.language === 'es' ? 'es' : 'en',
-  };
-}
-
-function partnerSystemPrompt(s: Scenario): string {
-  const relationship = s.relationship || 'adult family member';
-  const name = s.name?.trim() || 'the loved one';
-  const substances = s.substances?.length ? s.substances.join(', ') : 'alcohol or drugs';
-  const temperament = TEMPERAMENTS[s.temperament ?? 'guarded'] ?? TEMPERAMENTS.guarded;
-  const age = AGE_DESCRIPTIONS[s.voice?.age ?? 'middle'] ?? AGE_DESCRIPTIONS.middle;
-  const gender = s.voice?.gender === 'female' ? 'She/her' : s.voice?.gender === 'male' ? 'He/him' : 'They/them';
-  const script = s.scriptText
-    ? `\n\nThe user is practicing lines like this (they may adapt them):\n"""${s.scriptText.slice(0, MAX_SCRIPT_CHARS)}"""`
-    : '';
-  const language = s.language === 'es' ? 'Respond in Spanish.' : 'Respond in English.';
-  const incoming =
-    s.mode === 'incoming_call'
-      ? `\n\nINCOMING CALL MODE: this conversation is a phone call that YOU placed to the user. They answered with no warning and no preparation. You open the call already mid-crisis — your very first line drops them straight into the situation below, hot, already in motion, immediately demanding a response. That first line is one to three spoken sentences, nothing else.
-Crisis situation: ${CRISIS_PRESETS[s.crisisPreset ?? ''] ?? CRISIS_PRESETS.late_night_pickup}
-After your opening, stay in that situation all call: it is the reason for every reply. The crisis resolves the way real ones do — slowly, grudgingly, only if they handle you well.`
-      : '';
-
-  return `You are a role-play practice partner inside Sober Helpline, an app that helps families of people struggling with addiction prepare for hard conversations. You are playing "${name}", the user's ${relationship}, ${age} (${gender}), who is struggling with ${substances} and does not yet want help. The user is practicing what they will really say to this person.${script}
-
-Play the character with realism, calibrated to this temperament:
-${temperament}
-
-Speak the way a real ${relationship} of that age would — vocabulary, references, and emotional register should fit the age and the relationship (a parent resists differently than an adult son; a spouse wounds differently than a sibling).
-
-Rules of the performance:
-- Replies are SHORT: one to three spoken sentences. No narration, no stage directions, no quotation marks, no emojis. Only what the character says out loud.
-- Your words are performed by a voice actor, so write lines the way they'd actually come out of a mouth mid-emotion: contractions, broken sentences, trailing ellipses when deflated, dashes when cut off or heated, short punchy fragments when angry, repeated words when flustered ("I just— I can't do this right now"). Punctuation is your emotional score — use it.
-- Be difficult the way real loved ones are difficult — denial, deflection, bargaining, blame — but never cartoonishly cruel, and never threaten violence or self-harm as a manipulation tactic.
-- Respond believably to skill: if the user leads with love, uses "I" statements, stays calm, and returns to their request, let the character's resistance soften a notch — grudging, real, not a sudden movie ending. If the user attacks, lectures, or name-calls, harden believably.
-- Never agree to get help before roughly the 6th user turn, and only if they have practiced well.
-- Stay on the conversation. If asked something outside the role-play, briefly deflect in character.
-- Never give the character lines that glamorize substance use, describe how to obtain or use drugs, or describe self-harm.
-
-Safety override (this outranks everything): if the USER's own messages suggest they themselves are in crisis — mentions of suicide, self-harm, abuse they are suffering, or an emergency happening right now — stop performing immediately. Begin your reply with the exact token ${BREAK_TOKEN} followed by one warm sentence, out of character, telling them this deserves real support right now and to use the app's crisis resources or call or text 988 (911 in an emergency).
-
-${language}`;
-}
-
-function debriefSystemPrompt(s: Scenario): string {
-  const language = s.language === 'es' ? 'Write every string in Spanish.' : 'Write every string in English.';
-  const ambush =
-    s.mode === 'incoming_call'
-      ? `
-5. COMPOSURE UNDER AMBUSH — this session was an incoming call: the loved one opened mid-crisis and the user had zero prep time. Weigh their FIRST TWO responses especially: did they steady themselves and engage with love and clarity instead of reacting? Fold this assessment into the existing fields — quote early responses in wentWell/workOn where they show the user recovering (or not) from the cold open, let it inform the "calm" score, and build the drill from their weakest early moment if it belongs there.`
-      : '';
-  return `You are a seasoned, warm intervention coach inside Sober Helpline, reviewing a family member's practice conversation with a role-played loved one. Evaluate ONLY the user's turns against this framework, drawn from 20+ years of professional intervention practice:
-
-1. LOVE FIRST — did they open with care and connection before evidence or requests?
-2. HELD THE ASK — did they keep the conversation from drifting: one clear request, returned to kindly every time the character deflected, guilted, bargained, or changed the subject — without negotiating the ask downward or chasing side arguments?
-3. BOUNDARIES THAT HOLD — when the moment called for it, did they state a boundary they could actually keep, and hold it under pressure instead of softening it, bargaining it away, or arguing about whether it was fair?
-4. CALM UNDER BAIT — when the character provoked them, did they stay steady instead of lecturing, arguing, or taking the bait?${ambush}
-
-BOUNDARY LANGUAGE: "I can't" hands the boundary to circumstance; "I won't" and "I'm not willing to" own it. Whenever the user said "I can't" in a boundary or refusal moment, quote that exact line in workOn and rewrite it with ownership language ("I can't keep covering for you" becomes "I won't keep covering for you"). When they used "I won't" or "I'm not willing to," recognize it in wentWell by quote — that phrasing is a skill this program deliberately trains. (Literal inability — "I can't sleep at night" — is fine and is not this.)
-
-COACHING PRIORITIES: drift control (HELD THE ASK) and boundary integrity (BOUNDARIES THAT HOLD) are the primary coaching targets — most workOn items and most drills should aim there. Speaking from feeling rather than accusation matters, but treat it as seasoning, not the meal: mention phrasing only when a specific quoted line clearly cost them in this transcript, never as standing advice, and never at the expense of the two priorities. If no boundary moment arose in the session, score boundaries 3 and use one workOn item or the drill to show where a boundary could have entered (for example, when the character refused or bargained).
-
-THE SPECIFICITY CONTRACT — every piece of feedback must be traceable to this exact transcript:
-- Every "wentWell" and "workOn" item MUST contain a short verbatim quote of the user's own words from this session.
-- Every "workOn" item has three parts, in one flowing sentence or two: the quoted line, what that line actually did in the room (opened a bargaining door, let the subject change stand, softened the boundary into a suggestion, chased the guilt-trip instead of holding the ask...), and a concrete rewrite of that same line they could say next time.
-- BANNED: any sentence that could be pasted into a different family's feedback. If your advice works without the quote, it is not feedback, it is a poster. Rewrite it around the quoted moment or replace it.
-- Never coach a skill the user already demonstrated. If a dimension was strong, score it 4-5, say so once with their best quoted example, and spend the workOn items on their actual weakest moments.
-- The "drill" must be built from this user's single weakest moment: name the moment, then one practice instruction for the next rep (e.g. "When they said losing the apartment wasn't your problem, you argued the point — next rep, when they dismiss a consequence, agree it's their choice and restate the ask in the same breath.").
-- Scores must vary honestly with the evidence: 5 = demonstrated consistently, 3 = flashes of it, 1-2 = mostly absent. Do not default everything to the middle.
-
-Be encouraging and honest — this person is scared and practicing to save someone they love. Their own words, quoted back, are the most powerful coaching you have. Never frame the session as won or lost, and never treat the character's resistance as the user's failure — addiction compromises the real person's choices, so the goal is not to "beat" them but to communicate with steadiness and love. Frame everything as reps: what this rep built, what the next rep sharpens.
-
-Respond with STRICT JSON only, no markdown fences, exactly this shape:
-{"wentWell": ["...", "..."], "workOn": ["...", "..."], "drill": "...", "scores": {"love": 1-5, "ask": 1-5, "boundaries": 1-5, "calm": 1-5}}
-
-"wentWell": 2-3 items, each anchored to a quote. "workOn": 1-2 items, each with quote + effect + rewrite. ${language}`;
-}
-
 // ---------------- LLM (OpenAI preferred, Anthropic fallback) ----------------
 
 // Upstream APIs (OpenAI, ElevenLabs) throw transient 429s/5xx under load.
@@ -245,16 +124,20 @@ async function fetchWithRetry(url: string, init: RequestInit, attempts = 3): Pro
   }
 }
 
-async function callModel(system: string, turns: Turn[], maxTokens: number, modelOverride?: string): Promise<string> {
+type ModelChoice = { openai?: string; anthropic?: string };
+
+async function callModel(system: string, turns: Turn[], maxTokens: number, models: ModelChoice = {}): Promise<string> {
   const openaiKey = Deno.env.get('OPENAI_API_KEY');
   const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
+  // Turns arrive already capped by sanitizeTurns (a delivered letter may be
+  // longer than an ordinary line); this is only the last-resort bound.
   const messages = turns.map((t) => ({
     role: t.role === 'user' ? 'user' : 'assistant',
-    content: t.text.slice(0, MAX_MESSAGE_CHARS),
+    content: t.text.slice(0, MAX_PRACTICE_TEXT_CHARS),
   }));
 
   if (openaiKey) {
-    const model = modelOverride ?? Deno.env.get('REHEARSAL_MODEL') ?? 'gpt-4o-mini';
+    const model = models.openai ?? Deno.env.get('REHEARSAL_MODEL') ?? 'gpt-4o-mini';
     const res = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${openaiKey}` },
@@ -275,7 +158,7 @@ async function callModel(system: string, turns: Turn[], maxTokens: number, model
   }
 
   if (anthropicKey) {
-    const model = Deno.env.get('REHEARSAL_MODEL') ?? 'claude-sonnet-4-5';
+    const model = models.anthropic ?? Deno.env.get('REHEARSAL_MODEL') ?? 'claude-sonnet-4-5';
     const res = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -358,33 +241,6 @@ async function synthesize(
 
 // ---------------- OpenAI Whisper speech-to-text ----------------
 
-// Whisper hallucinates on silence/noise — it fills the void with phrases it
-// saw constantly in training. A slipped finger on the hold-to-speak bar used
-// to become "Thank you" or "You" in the input box. Two defenses: segments
-// Whisper itself marks as probable non-speech are dropped, and transcripts
-// that consist only of a known hallucination phrase are treated as silence.
-const WHISPER_HALLUCINATIONS = new Set([
-  // English
-  'you', 'thank you', 'thank you so much', 'thanks', 'thanks for watching',
-  'thank you for watching', 'bye', 'bye bye', 'okay', 'so', 'the', 'oh', 'uh', 'um',
-  // Spanish
-  'gracias', 'muchas gracias', 'gracias por ver', 'gracias por ver el video',
-  'adios', 'adiós', 'hasta luego',
-]);
-
-function isSilenceHallucination(text: string): boolean {
-  const norm = text
-    .toLowerCase()
-    .replace(/[.,!?¡¿'"“”\-…]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-  if (!norm) return true;
-  if (WHISPER_HALLUCINATIONS.has(norm)) return true;
-  // Whisper's infamous subtitle-credit hallucinations (any language)
-  if (norm.startsWith('subtitulos') || norm.startsWith('subtítulos') || norm.includes('amara org')) return true;
-  return false;
-}
-
 /** Returns '' (not an error) for silence — a slipped finger is a no-op, not a failure. */
 async function transcribe(audioB64: string, format: string, language?: string): Promise<string> {
   const apiKey = Deno.env.get('OPENAI_API_KEY');
@@ -396,7 +252,9 @@ async function transcribe(audioB64: string, format: string, language?: string): 
   form.append('model', 'whisper-1');
   form.append('response_format', 'verbose_json'); // exposes per-segment no_speech_prob
   form.append('temperature', '0');
-  if (language === 'es' || language === 'en') form.append('language', language);
+  const lang = language === 'es' ? 'es' : 'en';
+  form.append('language', lang);
+  form.append('prompt', DISFLUENCY_PROMPT[lang]);
   const res = await fetchWithRetry('https://api.openai.com/v1/audio/transcriptions', {
     method: 'POST',
     headers: { authorization: `Bearer ${apiKey}` },
@@ -407,17 +265,50 @@ async function transcribe(audioB64: string, format: string, language?: string): 
     throw new Error('stt_error');
   }
   const data = await res.json();
-  const segments = Array.isArray(data?.segments) ? data.segments : null;
-  const text = (segments
-    ? segments
-        .filter((s: { no_speech_prob?: number }) => (s?.no_speech_prob ?? 0) < 0.6)
-        .map((s: { text?: string }) => s?.text ?? '')
-        .join(' ')
-    : (data?.text ?? ''))
+  // Whisper marks probable non-speech per segment; those are dropped, then a
+  // prompt echo or a lone known silence hallucination counts as silence.
+  const segments: WhisperSegment[] | null = Array.isArray(data?.segments)
+    ? (data.segments as WhisperSegment[]).filter((s) => (s?.no_speech_prob ?? 0) < 0.6)
+    : null;
+  const text = (segments ? segments.map((s) => s?.text ?? '').join(' ') : (data?.text ?? ''))
     .replace(/\s+/g, ' ')
     .trim();
-  if (isSilenceHallucination(text)) return '';
-  return text;
+  const spoken = stripPromptEcho(text, DISFLUENCY_PROMPT[lang]);
+  if (isLikelySilence(spoken, segments)) return '';
+  return spoken;
+}
+
+/**
+ * Defense in depth where the patterns are the only screen (a letter read
+ * aloud, the part of a long spoken turn past the one-line cap, the debrief):
+ * OpenAI's free moderation endpoint. Bounded input, a 3-second timeout, and
+ * any failure (no key, network, error) falls back to the patterns alone.
+ */
+async function moderationCrisis(text: string | undefined): Promise<boolean> {
+  const input = text?.trim().slice(0, MAX_MODERATION_CHARS);
+  const apiKey = Deno.env.get('OPENAI_API_KEY');
+  if (!input || !apiKey) return false;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), MODERATION_TIMEOUT_MS);
+  try {
+    const res = await fetch('https://api.openai.com/v1/moderations', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({ model: 'omni-moderation-latest', input }),
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      console.error('moderation_error', res.status);
+      await res.body?.cancel();
+      return false;
+    }
+    return moderationIndicatesCrisis(await res.json());
+  } catch {
+    console.error('moderation_unavailable');
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 // ---------------- Handler ----------------
@@ -427,6 +318,63 @@ function json(status: number, body: unknown): Response {
     status,
     headers: { ...corsHeaders, 'content-type': 'application/json' },
   });
+}
+
+// Service-role client for the few lookups the caller's RLS can't see (org
+// status, practice-call events). Null when the key isn't configured.
+function serviceClient(): SupabaseClient<any> | null {
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!serviceKey) return null;
+  return createClient(Deno.env.get('SUPABASE_URL')!, serviceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+// Whisper coach: one short hint about the user's latest line, or null. A label
+// ("addict", "alcoholic") gets the canned hint for free; anything else is a
+// small model call metered as 'whisper'. Never fails the reply it rides with.
+async function whisperHint(
+  supabase: SupabaseClient<any>,
+  scenario: ReturnType<typeof sanitizeScenario>,
+  turns: Turn[],
+): Promise<string | null> {
+  const lastUser = [...turns].reverse().find((t) => t.role === 'user');
+  if (!lastUser) return null;
+  const canned = labelHint(lastUser.text, scenario.language);
+  if (canned) return canned;
+  const message = whisperUserMessage(turns);
+  if (!message) return null;
+  try {
+    const { data: allowed, error } = await supabase.rpc('consume_rehearsal_quota', { p_mode: 'whisper' });
+    if (error || allowed !== true) return null;
+    const raw = await callModel(whisperSystemPrompt(scenario), [{ role: 'user', text: message }], 60, {
+      openai: Deno.env.get('REHEARSAL_WHISPER_MODEL') ?? 'gpt-4o-mini',
+      anthropic: 'claude-haiku-4-5',
+    });
+    return normalizeHint(raw);
+  } catch (e) {
+    console.error('whisper_hint_failed', e instanceof Error ? e.message : 'unknown');
+    return null;
+  }
+}
+
+/**
+ * Deterministic output guard: an in-character line that crosses a hard limit
+ * (a self-harm/suicide threat or a threat of violence) is regenerated once
+ * with a stricter instruction; if the retry still crosses it, a safe
+ * in-character line replaces it. The retry is rare and bounded to one call.
+ */
+async function guardedLine(raw: string, scenario: Scenario, replyTurns: Turn[]): Promise<string> {
+  if (!partnerReplyUnsafe(raw)) return raw;
+  console.error('partner_reply_guarded', { temperament: scenario.temperament ?? 'guarded' });
+  try {
+    const retry = await callModel(`${partnerSystemPrompt(scenario)}\n\n${STRICT_RETRY_INSTRUCTION}`, replyTurns, 300);
+    if (!parseBreak(retry).breakCharacter && !partnerReplyUnsafe(retry)) return retry;
+  } catch {
+    // fall through to the safe line
+  }
+  const lang = scenario.language === 'es' ? 'es' : 'en';
+  return SAFE_FALLBACK_LINES[lang][scenario.temperament ?? 'guarded'];
 }
 
 Deno.serve(async (req: Request) => {
@@ -452,38 +400,57 @@ Deno.serve(async (req: Request) => {
     .map((e) => e.trim());
   const { data: account } = await supabase
     .from('accounts')
-    .select('id, type')
+    .select('id, type, org_id')
     .eq('user_id', userData.user.id)
     .single();
   if (!account) return json(403, { ok: false, code: 'account_required' });
 
   let entitled = allowEmails.includes((userData.user.email ?? '').toLowerCase().trim());
-  if (!entitled) {
-    if (account.type === 'attached') {
-      entitled = true;
+  // An attached (org) account counts as paid only while its org is active —
+  // the same rule as has_active_textline_access(). Members can't read orgs
+  // under RLS, so the status comes from the service role; without it, fail
+  // closed and fall through to the member's own entitlements.
+  if (!entitled && account.type === 'attached' && account.org_id) {
+    const admin = serviceClient();
+    if (admin) {
+      const { data: org, error: orgError } = await admin
+        .from('orgs')
+        .select('status')
+        .eq('id', account.org_id)
+        .maybeSingle();
+      if (orgError) console.error('org_status_lookup_failed', orgError.message);
+      entitled = org?.status === 'active';
     } else {
-      const { data: rows } = await supabase
-        .from('entitlements')
-        .select('tier, expires_at')
-        .eq('account_id', account.id);
-      const now = Date.now();
-      entitled = (rows ?? []).some(
-        (r: { tier: string; expires_at: string | null }) =>
-          (r.tier === 'essential' || r.tier === 'premium') &&
-          (!r.expires_at || new Date(r.expires_at).getTime() > now),
-      );
+      console.error('org_status_lookup_skipped: SUPABASE_SERVICE_ROLE_KEY missing');
     }
+  }
+  if (!entitled) {
+    const { data: rows } = await supabase
+      .from('entitlements')
+      .select('tier, expires_at')
+      .eq('account_id', account.id);
+    const now = Date.now();
+    entitled = (rows ?? []).some(
+      (r: { tier: string; expires_at: string | null }) =>
+        (r.tier === 'essential' || r.tier === 'premium') &&
+        (!r.expires_at || new Date(r.expires_at).getTime() > now),
+    );
   }
   if (!entitled) return json(403, { ok: false, code: 'upgrade_required' });
 
   let payload: {
     mode?: string;
-    scenario?: Scenario;
-    messages?: Turn[];
+    scenario?: unknown;
+    messages?: unknown;
     audio?: string;
     format?: string;
     text?: string;
     practiceEventId?: string;
+    whisper?: boolean;
+    /** Screening only: what was actually said while reading prepared text aloud. Never sent to a model. */
+    screeningText?: unknown;
+    /** stt: 'delivery' when the clip is the member reading their prepared text aloud. */
+    purpose?: unknown;
   };
   try {
     payload = await req.json();
@@ -504,43 +471,97 @@ Deno.serve(async (req: Request) => {
   try {
     // ---- speech-to-text ----
     if (payload.mode === 'stt') {
-      if (!payload.audio || payload.audio.length > MAX_AUDIO_B64) {
+      if (typeof payload.audio !== 'string' || !payload.audio || payload.audio.length > MAX_AUDIO_B64) {
         return json(400, { ok: false, code: 'bad_audio' });
       }
       const limited = await spend('stt');
       if (limited) return limited;
       const text = await transcribe(payload.audio, payload.format ?? 'm4a', scenario.language);
+      // Every spoken clip is screened in full the moment it is transcribed —
+      // before the app trims a long turn to fit one line, and whether or not
+      // it is ever sent as a line. Reading prepared text aloud: only what was
+      // said beyond the text is screened (the letter itself may quote words
+      // like "I want to die" and must stay practicable).
+      const delivery = payload.purpose === 'delivery' && !!scenario.practiceText;
+      const screened = delivery ? spokenBeyond(text, scenario.practiceText!) : text;
+      // (A line that fits is moderated again, in full, when it is sent.)
+      const needsModeration = delivery ? screened.length > 0 : screened.length > MAX_MESSAGE_CHARS;
+      const kind = crisisKind(screened) ?? (needsModeration && await moderationCrisis(screened) ? 'self_harm' : null);
+      if (kind) {
+        return json(200, { ok: true, text, breakCharacter: true, crisisKind: kind, breakText: breakTextFor(kind, scenario.language) });
+      }
       return json(200, { ok: true, text });
     }
 
-    const turns = (payload.messages ?? [])
-      .filter((m): m is Turn => (m?.role === 'user' || m?.role === 'partner') && typeof m?.text === 'string')
-      .slice(-MAX_MESSAGES);
+    const { turns, droppedUserTurns, userScreenTexts } = sanitizeTurns(payload.messages, scenario);
+    const userTurnCount = turns.filter((t) => t.role === 'user').length;
     // A debrief transcript normally ends with the partner's line; it only needs
     // at least one user turn to evaluate. Replies require the user to speak last —
     // EXCEPT the incoming-call opening: with no prior turns the character opens
     // the call itself, already mid-crisis.
     const incomingOpening = scenario.mode === 'incoming_call' && turns.length === 0;
+    // Every member line (typed or spoken, plus any read-aloud transcript) also
+    // goes to moderation — started here, awaited alongside the partner call so
+    // it adds no latency. Fails open to the patterns.
+    let lineModeration: Promise<boolean> = Promise.resolve(false);
     if (payload.mode === 'debrief') {
-      if (!turns.some((t) => t.role === 'user')) {
+      if (userTurnCount === 0) {
         return json(400, { ok: false, code: 'no_user_message' });
+      }
+      // A disclosure of crisis is never sent off for coaching — patterns
+      // first, then moderation as a second opinion on everything they said.
+      const screenable = userScreenTexts.filter((t): t is string => t !== null);
+      const flagged = debriefGate(screenable) === 'safety_break' ||
+        debriefGate([], await moderationCrisis(screenable.join('\n'))) === 'safety_break';
+      if (flagged) {
+        return json(409, { ok: false, code: 'safety_break' });
       }
     } else if (!incomingOpening && (turns.length === 0 || turns[turns.length - 1].role !== 'user')) {
       return json(400, { ok: false, code: 'no_user_message' });
+    } else {
+      // A first-person crisis disclosure short-circuits the performance
+      // entirely — checked first, on the untrimmed line and on any read-aloud
+      // transcript: no model call, no voice, no coaching hint, and the app
+      // shows its crisis card. Only then can a warm-up be "complete".
+      const lastUserRaw = userScreenTexts[userScreenTexts.length - 1] ?? undefined;
+      const rawScreening = sanitizeScreeningText(payload.screeningText);
+      // A read-aloud transcript: screen only what was said beyond the prepared text.
+      const screeningText = rawScreening && scenario.practiceText
+        ? spokenBeyond(rawScreening, scenario.practiceText) || undefined
+        : rawScreening;
+      const gateInput = {
+        incomingOpening,
+        lastUserRaw,
+        screeningText,
+        // The warm-up is three exchanges by design; the app ends it there too.
+        warmupOver: !!scenario.warmup && userTurnCount + droppedUserTurns > WARMUP_MAX_USER_TURNS,
+      };
+      const gate = replyGate(gateInput);
+      if (gate === 'crisis' || gate === 'abuse') {
+        const kind = gate === 'abuse' ? 'abuse' : 'self_harm';
+        return json(200, {
+          ok: true,
+          text: breakTextFor(kind, scenario.language),
+          breakCharacter: true,
+          crisisKind: kind,
+          audio: null,
+          hint: null,
+        });
+      }
+      if (gate === 'warmup_complete') return json(400, { ok: false, code: 'warmup_complete' });
+      const toModerate = incomingOpening ? '' : [lastUserRaw, screeningText].filter(Boolean).join('\n');
+      if (toModerate) lineModeration = moderationCrisis(toModerate);
     }
 
     // ---- debrief ----
     if (payload.mode === 'debrief') {
       const limited = await spend('debrief');
       if (limited) return limited;
-      const transcript = turns
-        .map((t) => `${t.role === 'user' ? 'FAMILY MEMBER' : 'LOVED ONE'}: ${t.text.slice(0, MAX_MESSAGE_CHARS)}`)
-        .join('\n');
       const raw = await callModel(
         debriefSystemPrompt(scenario),
-        [{ role: 'user', text: `Here is the practice transcript:\n\n${transcript}` }],
-        900,
-        Deno.env.get('REHEARSAL_DEBRIEF_MODEL') ?? 'gpt-4o',
+        [{ role: 'user', text: `Here is the practice transcript:\n\n${debriefTranscript(turns, scenario)}` }],
+        scenario.warmup ? 500 : 900,
+        { openai: Deno.env.get('REHEARSAL_DEBRIEF_MODEL') ?? 'gpt-4o' },
       );
       const jsonStart = raw.indexOf('{');
       const jsonEnd = raw.lastIndexOf('}');
@@ -551,8 +572,13 @@ Deno.serve(async (req: Request) => {
       } catch {
         throw new Error('bad_debrief');
       }
-      const debrief = normalizeDebrief(parsed);
+      const debrief = normalizeDebrief(parsed, turns.filter((t) => t.role === 'user').map((t) => t.text));
       if (!debrief) throw new Error('bad_debrief');
+      // Indices are relative to the turns the model saw; shift them back onto
+      // the client's full transcript if the oldest turns were trimmed.
+      if (droppedUserTurns > 0) {
+        debrief.workOnTurns = debrief.workOnTurns.map((i) => (i === null ? null : i + droppedUserTurns));
+      }
       return json(200, { ok: true, debrief });
     }
 
@@ -562,15 +588,7 @@ Deno.serve(async (req: Request) => {
     // answer — the system prompt's INCOMING CALL MODE section shapes the line.
     const replyTurns: Turn[] = incomingOpening
       ? [{ role: 'user', text: '[They pick up the phone. Open the call.]' }]
-      : turns;
-
-    // A first-person crisis disclosure short-circuits the performance entirely:
-    // no model call, no voice, and the app shows its crisis card.
-    const lastUser = [...turns].reverse().find((t) => t.role === 'user');
-    if (!incomingOpening && lastUser && userInCrisis(lastUser.text)) {
-      const lang = scenario.language === 'es' ? 'es' : 'en';
-      return json(200, { ok: true, text: CRISIS_BREAK_TEXT[lang], breakCharacter: true, audio: null });
-    }
+      : turnsForPartner(turns, scenario);
 
     // Cached push-call openings replay their text for free; voice still spends.
     const eventId = typeof payload.practiceEventId === 'string' ? payload.practiceEventId : '';
@@ -580,11 +598,8 @@ Deno.serve(async (req: Request) => {
 
     if (incomingOpening && eventId) {
       if (!validEventId) return json(400, { ok: false, code: 'invalid_practice_event' });
-      const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-      if (!serviceKey) return json(503, { ok: false, code: 'service_not_configured' });
-      admin = createClient(Deno.env.get('SUPABASE_URL')!, serviceKey, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      });
+      admin = serviceClient();
+      if (!admin) return json(503, { ok: false, code: 'service_not_configured' });
       const { data: event, error: eventError } = await admin
         .from('practice_push_events')
         .select('event_id, expires_at, answered_at, generation_started_at, opening_text, break_character')
@@ -611,6 +626,7 @@ Deno.serve(async (req: Request) => {
           text: event.opening_text,
           breakCharacter: !!event.break_character,
           audio: cachedAudio,
+          hint: null,
         });
       }
 
@@ -633,15 +649,53 @@ Deno.serve(async (req: Request) => {
       if (!locked) return json(409, { ok: false, code: 'opening_in_progress' });
     }
 
+    // Unlock a push-call opening that won't be generated now, so a retry can.
+    const releaseGenerationLock = async () => {
+      if (!admin || !eventId || !generationLock) return;
+      await admin
+        .from('practice_push_events')
+        .update({ generation_started_at: null })
+        .eq('event_id', eventId)
+        .eq('account_id', account.id)
+        .eq('generation_started_at', generationLock)
+        .is('opening_text', null);
+    };
+
+    const moderationBreak = () =>
+      json(200, {
+        ok: true,
+        text: breakTextFor('self_harm', scenario.language),
+        breakCharacter: true,
+        crisisKind: 'self_harm',
+        audio: null,
+        hint: null,
+      });
+
     try {
       const limited = await spend('reply');
-      if (limited) return limited;
-      const raw = await callModel(partnerSystemPrompt(scenario), replyTurns, 300);
+      if (limited) {
+        await releaseGenerationLock();
+        // Out of replies today, but a disclosure still gets the crisis break.
+        if (await lineModeration) return moderationBreak();
+        return limited;
+      }
+      // The whisper coach runs alongside the in-character reply, never after it.
+      // No hint on the delivery of a prepared letter — the coaching starts after it.
+      const lastIsDelivery = userScreenTexts.length > 0 && userScreenTexts[userScreenTexts.length - 1] === null;
+      const wantsHint = payload.whisper === true && !incomingOpening && !lastIsDelivery;
+      const [raw, hint, flagged] = await Promise.all([
+        callModel(partnerSystemPrompt(scenario), replyTurns, 300),
+        wantsHint ? whisperHint(supabase, scenario, turns) : Promise.resolve(null),
+        lineModeration,
+      ]);
+      // Moderation saw a crisis the patterns missed: the break replaces the reply.
+      if (flagged) return moderationBreak();
       // The model may emit the token after a stray character or line; honor it
       // anywhere and speak only the out-of-character sentence that follows.
-      const tokenAt = raw.indexOf(BREAK_TOKEN);
-      const breakCharacter = tokenAt !== -1;
-      const text = breakCharacter ? raw.slice(tokenAt + BREAK_TOKEN.length).replace(/^[\s:—-]+/, '').trim() : raw;
+      // Its :SELF_HARM / :ABUSE marker (if any) picks the crisis card's headline.
+      const parsed = parseBreak(raw, scenario.language);
+      const breakCharacter = parsed.breakCharacter;
+      const text = breakCharacter ? parsed.text : await guardedLine(raw, scenario, replyTurns);
       if (admin && eventId && generationLock) {
         const { error: cacheError } = await admin
           .from('practice_push_events')
@@ -652,18 +706,18 @@ Deno.serve(async (req: Request) => {
         if (cacheError) throw new Error('opening_cache_failed');
       }
       // Never voice the safety break — it reads as the app, not the character.
+      // The hint is text-only by design and is dropped with a safety break.
       const audio = !breakCharacter && scenario.voice ? await synthesize(text, scenario.voice, scenario.temperament) : null;
-      return json(200, { ok: true, text, breakCharacter, audio });
+      return json(200, {
+        ok: true,
+        text,
+        breakCharacter,
+        ...(breakCharacter && parsed.kind ? { crisisKind: parsed.kind } : {}),
+        audio,
+        hint: breakCharacter ? null : hint,
+      });
     } catch (error) {
-      if (admin && eventId && generationLock) {
-        await admin
-          .from('practice_push_events')
-          .update({ generation_started_at: null })
-          .eq('event_id', eventId)
-          .eq('account_id', account.id)
-          .eq('generation_started_at', generationLock)
-          .is('opening_text', null);
-      }
+      await releaseGenerationLock();
       throw error;
     }
   } catch (e) {
