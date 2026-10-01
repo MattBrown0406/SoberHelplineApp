@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -10,8 +9,12 @@ import {
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
+import { appAlert } from '../../lib/appAlert';
 import { useTreatmentActionPlan } from '../../hooks/useTreatmentActionPlan';
 import { useWillingnessWindow } from '../../hooks/useWillingnessWindow';
+import { useInvitationSafety } from '../../hooks/useInvitationSafety';
+import { WindowSafetyNotice } from '../invitation/WindowSafetyNotice';
+import { windowInviteAllowed } from '../../lib/invitationSafetyGate';
 import { treatmentActionProgress } from '../../lib/treatmentActionPlan';
 import {
   CONSEQUENCE_EVENT_TYPES,
@@ -34,6 +37,11 @@ export function WillingnessWindowCard({
   const router = useRouter();
   const windowData = useWillingnessWindow(accountId);
   const actionPlan = useTreatmentActionPlan(accountId);
+  // The member's own Invitation Engine safety answer (never a relative's),
+  // refetched on focus. Fails closed: only a confirmed non-serious answer may
+  // show the window's headline, "say this" box and leave-now readiness.
+  const safety = useInvitationSafety(accountId);
+  const inviteAllowed = windowInviteAllowed(safety.gate);
   const [selectedType, setSelectedType] = useState<ConsequenceEventType | null>(null);
   const [timing, setTiming] = useState<ConsequenceTiming>('now');
   const [showLogger, setShowLogger] = useState(false);
@@ -64,7 +72,7 @@ export function WillingnessWindowCard({
   }
 
   function confirmRemove() {
-    Alert.alert(t('window.removeTitle'), t('window.removeBody'), [
+    appAlert(t('window.removeTitle'), t('window.removeBody'), [
       { text: t('window.cancel'), style: 'cancel' },
       {
         text: t('window.removeConfirm'),
@@ -118,8 +126,12 @@ export function WillingnessWindowCard({
       {activeEvent ? (
         <>
           <Text style={[styles.kicker, { color: colors.coral }]}>{t('window.openKicker')}</Text>
-          <Text style={[styles.title, { color: colors.ink }]}>{t('window.openTitle')}</Text>
-          <Text style={[styles.body, { color: colors.ink }]}>{t('window.openBody')}</Text>
+          {inviteAllowed && (
+            <>
+              <Text style={[styles.title, { color: colors.ink }]}>{t('window.openTitle')}</Text>
+              <Text style={[styles.body, { color: colors.ink }]}>{t('window.openBody')}</Text>
+            </>
+          )}
           <View style={styles.metaRow}>
             <Text style={[styles.metaBadge, { color: colors.primary, borderColor: colors.primary }]}>
               {t(`window.types.${activeEvent.eventType}` as never)}
@@ -131,46 +143,55 @@ export function WillingnessWindowCard({
 
           <SafetyNote />
 
-          <View style={[styles.sayBox, { backgroundColor: colors.white, borderColor: colors.secondary }]}>
-            <Text style={[styles.sayLabel, { color: colors.inkSoft }]}>{t('window.sayLabel')}</Text>
-            <Text style={[styles.sayText, { color: colors.ink }]}>{t('window.sayText')}</Text>
-          </View>
+          {safety.gate === 'safety_first' ? (
+            // On her safety-first path: no "say this / leave now" invitation.
+            <WindowSafetyNotice />
+          ) : safety.gate === 'unknown' ? (
+            <WindowSafetyNotice unknown onRetry={() => { void safety.reload(); }} />
+          ) : !inviteAllowed ? null : (
+            <>
+            <View style={[styles.sayBox, { backgroundColor: colors.white, borderColor: colors.secondary }]}>
+              <Text style={[styles.sayLabel, { color: colors.inkSoft }]}>{t('window.sayLabel')}</Text>
+              <Text style={[styles.sayText, { color: colors.ink }]}>{t('window.sayText')}</Text>
+            </View>
 
-          <View style={[styles.readiness, { borderColor: planGreen ? colors.green : colors.coral }]}>
-            <Text style={[styles.readinessTitle, { color: planGreen ? colors.green : colors.coral }]}>
-              {actionPlan.loadState === 'loading'
-                ? t('window.readinessChecking')
-                : actionPlan.loadState === 'error'
-                  ? t('window.readinessUnavailable')
-                  : actionPlan.saveState === 'saving'
-                    ? t('window.readinessSaving')
-                    : actionPlan.saveState === 'error'
-                      ? t('window.readinessUnsaved')
-                      : planGreen
-                  ? t('window.readinessReady')
-                  : t('window.readinessNotReady', { percentage: progress.percentage })}
-            </Text>
-            <Text style={[styles.readinessBody, { color: colors.inkSoft }]}>
-              {actionPlan.loadState === 'loading'
-                ? t('window.readinessChecking')
-                : actionPlan.loadState === 'error'
-                  ? t('window.readinessUnavailableBody')
-                  : actionPlan.saveState === 'saving'
-                    ? t('window.readinessSavingBody')
-                    : actionPlan.saveState === 'error'
-                      ? t('window.readinessUnsavedBody')
-                      : planGreen
-                        ? t('window.readinessReadyBody')
-                        : t('window.readinessBody')}
-            </Text>
-            <TouchableOpacity
-              accessibilityRole="button"
-              style={[styles.primaryButton, { backgroundColor: planGreen ? colors.green : colors.primary }]}
-              onPress={() => router.push('/treatment-action-plan' as never)}
-            >
-              <Text style={styles.primaryButtonText}>{t('window.openPlan')}</Text>
-            </TouchableOpacity>
-          </View>
+            <View style={[styles.readiness, { borderColor: planGreen ? colors.green : colors.coral }]}>
+              <Text style={[styles.readinessTitle, { color: planGreen ? colors.green : colors.coral }]}>
+                {actionPlan.loadState === 'loading'
+                  ? t('window.readinessChecking')
+                  : actionPlan.loadState === 'error'
+                    ? t('window.readinessUnavailable')
+                    : actionPlan.saveState === 'saving'
+                      ? t('window.readinessSaving')
+                      : actionPlan.saveState === 'error'
+                        ? t('window.readinessUnsaved')
+                        : planGreen
+                    ? t('window.readinessReady')
+                    : t('window.readinessNotReady', { percentage: progress.percentage })}
+              </Text>
+              <Text style={[styles.readinessBody, { color: colors.inkSoft }]}>
+                {actionPlan.loadState === 'loading'
+                  ? t('window.readinessChecking')
+                  : actionPlan.loadState === 'error'
+                    ? t('window.readinessUnavailableBody')
+                    : actionPlan.saveState === 'saving'
+                      ? t('window.readinessSavingBody')
+                      : actionPlan.saveState === 'error'
+                        ? t('window.readinessUnsavedBody')
+                        : planGreen
+                          ? t('window.readinessReadyBody')
+                          : t('window.readinessBody')}
+              </Text>
+              <TouchableOpacity
+                accessibilityRole="button"
+                style={[styles.primaryButton, { backgroundColor: planGreen ? colors.green : colors.primary }]}
+                onPress={() => router.push('/treatment-action-plan' as never)}
+              >
+                <Text style={styles.primaryButtonText}>{t('window.openPlan')}</Text>
+              </TouchableOpacity>
+            </View>
+            </>
+          )}
 
           <View style={styles.linkRow}>
             <TouchableOpacity accessibilityRole="button" onPress={() => setShowLogger((value) => !value)}>

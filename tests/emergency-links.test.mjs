@@ -15,7 +15,8 @@ function loadHelper({ openURL }) {
   const module = { exports: {} };
   vm.runInNewContext(output, {
     module, exports: module.exports, require(id) {
-      if (id === 'react-native') return { Linking: { openURL }, Alert: { alert: (...args) => alerts.push(args) } };
+      if (id === 'react-native') return { Linking: { openURL } };
+      if (id === './appAlert') return { appAlert: (...args) => alerts.push(args) };
       if (id === 'i18next') return { default: { t: (key, options) => `${key}${options?.number ? `:${options.number}` : ''}` } };
       throw new Error(`Unexpected dependency: ${id}`);
     },

@@ -9,10 +9,16 @@
   "joinErrorMembership": "Live groups are part of membership. See plans in the Support tab to join.",
   "joinErrorNotLive": "This group isn't live right now. You'll get a notification when it starts if you've RSVP'd.",
   "joinErrorGeneric": "We couldn't connect you to the live group. Check your connection and try again.",
+  "joinErrorRemoved": "You were removed from live groups by the host, so you can't join. If you think this was a mistake, message Matt from the Support tab.",
   "host": {
     "eyebrow": "BROADCAST",
     "watching": "{{count}} watching",
     "remove": "Remove",
+    "removeConfirm": "Remove {{name}} from this broadcast? They won't be able to join any live group again unless you let them back in from Admin.",
+    "thisPerson": "this person",
+    "cancel": "Cancel",
+    "removeErrorTitle": "Couldn't remove",
+    "removeErrorBody": "The removal didn't go through. Check your connection and try again.",
     "startError": "The broadcast could not be marked live. No notifications were sent. Please leave and try again.",
     "endErrorTitle": "Couldn't end broadcast",
     "endErrorBody": "The live status could not be cleared. Check your connection and try again."
@@ -30,5 +36,6 @@
     "line911": "Emergency — 911",
     "line988": "Crisis line — 988"
   },
-  "privacyNote": "You are anonymous — first name only. Attendees cannot see each other."
+  "privacyNote": "You are anonymous — first name only. Attendees cannot see each other.",
+  "removedTitle": "You were removed from this group"
 }

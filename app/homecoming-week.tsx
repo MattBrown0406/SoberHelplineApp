@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import {
   ActivityIndicator,
-  Alert,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -16,6 +16,8 @@ import { useAccount } from '../src/contexts/AccountContext';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useHomecomingWeek } from '../src/hooks/useHomecomingWeek';
 import { openEmergencyLink } from '../src/lib/emergencyLinks';
+import { appAlert } from '../src/lib/appAlert';
+import { isSessionOnlyPlanStorage } from '../src/lib/webSessionPlanStore';
 import {
   canHomecomingItemBeNotApplicable,
   dischargeReadiness,
@@ -42,7 +44,7 @@ export default function HomecomingWeekScreen() {
   const progress = useMemo(() => homecomingProgress(plan), [plan]);
   const savedReady = progress.ready && saveState === 'saved';
 
-  const confirmClear = () => Alert.alert(t('clearTitle'), t('clearBody'), [
+  const confirmClear = () => appAlert(t('clearTitle'), t('clearBody'), [
     { text: t('cancel'), style: 'cancel' },
     { text: t('clearConfirm'), style: 'destructive', onPress: () => void clear().catch(() => undefined) },
   ]);
@@ -56,6 +58,9 @@ export default function HomecomingWeekScreen() {
       <Text style={[styles.title, { color: colors.ink }]}>{t('title')}</Text>
       <Text style={[styles.intro, { color: colors.inkSoft }]}>{t('intro')}</Text>
       <Text style={[styles.privacy, { color: colors.primary }]}>{t('privacy')}</Text>
+      {isSessionOnlyPlanStorage(Platform.OS) ? (
+        <Text style={[styles.privacy, { color: colors.inkSoft }]}>{t('webSessionNotice')}</Text>
+      ) : null}
 
       {loadState === 'loading' ? (
         <>

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Alert, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { supabase } from '../../src/lib/supabase';
+import { appAlert } from '../../src/lib/appAlert';
 
 const COACH_SHARING_CONSENT_KEY = '2'; // per docs/legal/consent-architecture.md
 
@@ -18,7 +19,7 @@ export default function ConsentScreen() {
 
   async function record(granted: boolean) {
     if (!user) {
-      Alert.alert(t('saveError.title'), t('saveError.body'));
+      appAlert(t('saveError.title'), t('saveError.body'));
       return;
     }
     setSaving(true);
@@ -36,7 +37,7 @@ export default function ConsentScreen() {
       if (error) throw error;
       router.push('/(onboarding)/loved-one');
     } catch {
-      Alert.alert(t('saveError.title'), t('saveError.body'));
+      appAlert(t('saveError.title'), t('saveError.body'));
     } finally {
       setSaving(false);
     }

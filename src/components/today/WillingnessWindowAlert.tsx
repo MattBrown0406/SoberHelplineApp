@@ -4,6 +4,8 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useTreatmentActionPlan } from '../../hooks/useTreatmentActionPlan';
+import { useInvitationSafety } from '../../hooks/useInvitationSafety';
+import { WindowSafetyNotice } from '../invitation/WindowSafetyNotice';
 import type { Situation } from '../../lib/situation';
 import { treatmentActionProgress } from '../../lib/treatmentActionPlan';
 import { willingnessWindowState } from '../../lib/willingnessWindow';
@@ -45,6 +47,9 @@ function ActiveWillingnessWindow({
   const { t } = useTranslation('tracker');
   const router = useRouter();
   const actionPlan = useTreatmentActionPlan(accountId);
+  // The member's own Invitation Engine safety answer (never a relative's),
+  // refetched on focus and failing closed.
+  const safety = useInvitationSafety(accountId);
   const [clock, setClock] = useState(() => new Date());
 
   useEffect(() => {
@@ -63,6 +68,11 @@ function ActiveWillingnessWindow({
     && progress.ready;
 
   if (!windowState.active) return null;
+  // Only a confirmed non-serious answer may show "say this / leave now": wait
+  // while it loads, and treat an unreadable answer as safety-first.
+  if (safety.gate === 'loading') return null;
+  if (safety.gate === 'safety_first') return <WindowSafetyNotice />;
+  if (safety.gate === 'unknown') return <WindowSafetyNotice unknown onRetry={() => { void safety.reload(); }} />;
 
   const readinessTitle = actionPlan.loadState === 'loading'
     ? t('window.readinessChecking')

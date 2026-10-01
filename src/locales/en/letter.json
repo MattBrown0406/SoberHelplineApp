@@ -72,7 +72,10 @@
     "emailSubject": "My letter for {{name}}",
     "referralEmail": "Email {{name}}",
     "referralWebsite": "Visit website",
-    "referralClose": "Close"
+    "referralClose": "Close",
+    "practiceButton": "Practice reading this letter",
+    "shareCopied": "Sharing isn't available in this browser, so your letter was copied. Paste it into a message or document.",
+    "shareError": "Could not share the letter. Please try again."
   },
   "defaults": {
     "openerLabel": "Your substance use has affected me in the following ways.",

@@ -10,6 +10,9 @@
   "joinPlaceholder": "Enter invite code",
   "joinButton": "Join",
   "joinError": "That code wasn't found. Please check and try again.",
+  "joinErrorTooManyAttempts": "Too many codes were tried. Please wait an hour, then try again with the code your family shared.",
+  "joinErrorNetwork": "We couldn't reach Sober Helpline. Check your connection and try again.",
+  "joinErrorAlreadyInFamily": "You're already part of another family space. To use this code, first leave that space from the bottom of its family card.",
   "noFamilyTitle": "Families recover together.",
   "noFamilyBody": "Create a shared space to agree on boundaries — the castle walls that protect your family — and support each other in keeping them.",
   "createButton": "Create a family space",
@@ -60,5 +63,19 @@
     "familyLine": "{{name}} — {{result}}",
     "errorTitle": "Could not save hold log",
     "errorMessage": "Check your connection and try again."
-  }
+  },
+  "leaveButton": "Leave this family space",
+  "leaveTitle": "Leave this family space?",
+  "leaveBody": "You'll stop seeing your family's shared boundaries and journal. Boundaries you proposed and journal notes you wrote stay with your family. If you started this space, it passes to the longest-standing member.",
+  "leaveAloneTitle": "Delete this family space?",
+  "leaveAloneBody": "No one else has joined yet, so leaving deletes this space for good, including its journal and shared boundaries. This can't be undone.",
+  "leaveAloneConfirm": "Delete and leave",
+  "leaveCancel": "Stay",
+  "leaveConfirm": "Leave",
+  "leaveErrorTitle": "Couldn't leave",
+  "leaveErrorBody": "Check your connection and try again.",
+  "actionErrorTitle": "That didn't save",
+  "actionErrorBody": "Check your connection and try again.",
+  "letterCardTitle": "Intervention letter",
+  "letterCardSub": "Matt's three-paragraph guided structure"
 }

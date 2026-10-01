@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   AppState,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -44,6 +44,8 @@ import {
 } from '../src/lib/diyInterventionPlanner';
 import { leaveTonightProgress, treatmentActionProgress } from '../src/lib/treatmentActionPlan';
 import { openEmergencyLink } from '../src/lib/emergencyLinks';
+import { appAlert } from '../src/lib/appAlert';
+import { isSessionOnlyPlanStorage } from '../src/lib/webSessionPlanStore';
 
 const LEVELS: Exclude<DiyLevelOfCare, ''>[] = ['detox', 'residential', 'php', 'iop', 'outpatient'];
 const ROLES: Exclude<DiyTeamRole, ''>[] = ['speaker', 'silent_support', 'not_in_room', 'on_call'];
@@ -117,7 +119,7 @@ function DiyInterventionPlannerContent() {
   const update = (transform: (plan: DiyInterventionPlan) => DiyInterventionPlan) => diy.update(transform);
 
   function confirmClear() {
-    Alert.alert(t('clearTitle'), t('clearBody'), [
+    appAlert(t('clearTitle'), t('clearBody'), [
       { text: t('cancel'), style: 'cancel' },
       { text: t('clearConfirm'), style: 'destructive', onPress: () => void diy.clear().catch(() => undefined) },
     ]);
@@ -132,6 +134,7 @@ function DiyInterventionPlannerContent() {
       <View style={[styles.hero, { backgroundColor: colors.primaryDark }]}>
         <Text style={styles.kicker}>{t('kicker')}</Text><Text style={styles.title}>{t('title')}</Text>
         <Text style={styles.intro}>{t('intro')}</Text><Text style={styles.privacy}>{t('privacy')}</Text>
+        {isSessionOnlyPlanStorage(Platform.OS) ? <Text style={styles.intro}>{t('webSessionNotice')}</Text> : null}
       </View>
       <SafetyPanel />
       {diy.loadState === 'error' ? (

@@ -54,7 +54,11 @@
     "practiceRetry": "Intentar de nuevo",
     "pauseDaily": "Pausar recordatorios diarios",
     "dailyErrorTitle": "Cambio no confirmado",
-    "dailyErrorBody": "Comprueba el permiso en los ajustes del dispositivo y reintenta. No se garantiza la entrega."
+    "dailyErrorBody": "Comprueba el permiso en los ajustes del dispositivo y reintenta. No se garantiza la entrega.",
+    "familyCallTitle": "Recordatorio de la llamada familiar del lunes",
+    "familyCallDesc": "Un recordatorio 30 minutos antes de The Family Squares, nuestra llamada gratuita de apoyo familiar por Zoom (lunes, 7:00 PM, hora del Pacífico).",
+    "familyCallErrorTitle": "No se pudo actualizar el recordatorio",
+    "familyCallErrorBody": "Revisa tu conexión e intenta de nuevo."
   },
   "membership": {
     "eyebrow": "Membresía",
@@ -69,7 +73,8 @@
     "restoreNoneTitle": "Nada que restaurar",
     "restoreNoneBody": "No encontramos compras previas para este Apple ID.",
     "restoreErrorTitle": "No se pudo restaurar",
-    "restoreErrorBody": "Algo salió mal al restaurar tus compras. Inténtalo de nuevo."
+    "restoreErrorBody": "Algo salió mal al restaurar tus compras. Inténtalo de nuevo.",
+    "attachedStoreNote": "Tu proveedor cubre tu acceso. Si también te suscribiste por la App Store o Google Play, cancélala aquí para que no te cobren dos veces."
   },
   "review": {
     "eyebrow": "Apoya la app",

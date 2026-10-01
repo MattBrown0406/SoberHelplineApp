@@ -6,10 +6,10 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { appAlert } from '../../src/lib/appAlert';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { useAccount } from '../../src/contexts/AccountContext';
@@ -50,7 +50,7 @@ export default function LovedOneScreen() {
       });
       router.push('/(onboarding)/notifications');
     } catch {
-      Alert.alert(t('saveError.title'), t('saveError.body'));
+      appAlert(t('saveError.title'), t('saveError.body'));
     } finally {
       setSaving(false);
     }

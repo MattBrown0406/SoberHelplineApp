@@ -1,4 +1,6 @@
-import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
+import * as NativeSecureStore from 'expo-secure-store';
+import { choosePlanStore } from '../lib/webSessionPlanStore';
 import type { DiyInterventionPlan } from '../lib/diyInterventionPlanner';
 import {
   DIY_CURRENT_PROTECTED_PARTS,
@@ -16,7 +18,13 @@ import {
   serializeDiyProtectedParts,
 } from '../lib/diyInterventionProtectedRecord';
 
-const OPTIONS: SecureStore.SecureStoreOptions = { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY };
+// Native: the protected Keychain/Keystore store. expo-secure-store has no web
+// implementation, so on web the plan is kept in sessionStorage for this
+// browser session only (the screen says so).
+const SecureStore = choosePlanStore(Platform.OS, NativeSecureStore, globalThis);
+const OPTIONS: NativeSecureStore.SecureStoreOptions = {
+  keychainAccessible: NativeSecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+};
 
 async function requireProtectedStorage(): Promise<void> {
   if (!(await SecureStore.isAvailableAsync())) throw new Error('protected_storage_unavailable');

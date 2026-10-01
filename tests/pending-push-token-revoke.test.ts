@@ -106,6 +106,8 @@ test('the push hook settles a pending revoke before re-registering, and skips re
     '../storage/checkIn': { getCheckIn: async () => null }, '../lib/appFlowGuards': { AsyncWriteBarrier: Barrier },
     '../lib/pushRouting': {}, '../reminders/personalReminders': { REMINDER_PREFIX: 'personal-reminder:' },
     '../lib/pushDevice': { isDeviceSignedIn: () => true },
+    '../lib/pushColdStart': { shouldDeferPushRouting: () => false },
+    '../contexts/AccountContext': { useAccount: () => ({ entitlementsSettled: true }) },
     '../lib/pendingPushTokenRevoke': {
       settlePendingPushTokenRevoke: async (_id: string, revoke: (id: string) => Promise<void>) => {
         calls.push('settle');

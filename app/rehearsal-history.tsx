@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -15,7 +14,17 @@ import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
 import { Gate } from '../src/components/auth/Gate';
 import { supabase } from '../src/lib/supabase';
-import type { PartnerDebrief, PartnerTurn } from '../src/hooks/useRehearsalPartner';
+import { appAlert } from '../src/lib/appAlert';
+import { DeliverySummary } from '../src/components/rehearsal/DeliverySummary';
+import { ScoreTrendChart } from '../src/components/rehearsal/ScoreTrendChart';
+import { readDeliveryReport } from '../src/lib/practiceDelivery';
+import { scoreTrend, SCORE_KEYS } from '../src/lib/practiceTrends';
+import { INCOMING_PRESETS, PRACTICE_SITUATIONS } from '../src/lib/practiceScenarios';
+import type { PartnerDebrief } from '../src/hooks/useRehearsalPartner';
+
+// Every dialog here goes through appAlert (react-native-web's Alert.alert is
+// a no-op). Kept under the `Alert` name the screen-audit test substitutes.
+const Alert = { alert: appAlert };
 
 type SessionRow = {
   id: string;
@@ -24,12 +33,28 @@ type SessionRow = {
     relationship?: string;
     temperament?: string;
     partnerName?: string;
+    mode?: string;
+    situation?: string;
+    crisisPreset?: string;
+    warmup?: boolean;
+    practiceSource?: string;
+    speakers?: unknown[];
+    redoFromTurn?: number;
   } | null;
-  transcript: PartnerTurn[] | null;
+  transcript: { role: string; text: string; speaker?: string }[] | null;
   debrief: PartnerDebrief | null;
 };
 
-const SCORE_KEYS = ['love', 'ask', 'boundaries', 'calm'] as const;
+/** Short labels under each card's title: what kind of rep this was. */
+function sessionTags(scenario: SessionRow['scenario']): string[] {
+  if (!scenario) return [];
+  const tags: string[] = [];
+  if (scenario.warmup) tags.push('warmup');
+  if (Array.isArray(scenario.speakers) && scenario.speakers.length >= 2) tags.push('family');
+  if (scenario.practiceSource === 'letter' || scenario.practiceSource === 'invitation') tags.push(scenario.practiceSource);
+  if (typeof scenario.redoFromTurn === 'number') tags.push('redo');
+  return tags;
+}
 
 export default function RehearsalHistoryScreen() {
   return <Gate feature="aiRehearsal"><RehearsalHistoryContent /></Gate>;
@@ -46,6 +71,7 @@ function RehearsalHistoryContent() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState(false);
   const loadRequest = useRef(0);
+  const trend = useMemo(() => scoreTrend(sessions), [sessions]);
 
   const load = useCallback(async () => {
     const request = ++loadRequest.current;
@@ -90,7 +116,7 @@ function RehearsalHistoryContent() {
             if (error) throw error;
             setSessions((prev) => prev.filter((s) => s.id !== id));
           } catch {
-            Alert.alert(t('history.deleteError', { defaultValue: 'This session could not be deleted. Please try again.' }));
+            Alert.alert(t('history.deleteError'));
           }
         },
       },
@@ -100,7 +126,7 @@ function RehearsalHistoryContent() {
 
   return (
     <ScreenContainer backgroundColor={colors.ink}>
-      <TouchableOpacity onPress={() => router.back()} style={styles.backRow} hitSlop={12}>
+      <TouchableOpacity onPress={() => router.back()} style={styles.backRow} hitSlop={12} accessibilityRole="button">
         <Text style={[styles.backText, { color: colors.inkSoft }]}>‹ {t('history.title')}</Text>
       </TouchableOpacity>
 
@@ -112,7 +138,7 @@ function RehearsalHistoryContent() {
       ) : loadError ? (
         <View style={[styles.emptyCard, { backgroundColor: colors.primaryDark }]}>
           <Text accessibilityRole="alert" style={[styles.emptyText, { color: colors.inkSoft }]}>
-            {t('history.loadError', { defaultValue: 'Your practice history could not be loaded. Please try again.' })}
+            {t('history.loadError')}
           </Text>
           <TouchableOpacity onPress={() => void load()} accessibilityRole="button" style={styles.deleteBtn}>
             <Text style={{ color: colors.white }}>{t('common:accountLoad.retry')}</Text>
@@ -124,9 +150,21 @@ function RehearsalHistoryContent() {
         </View>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false}>
+          <ScoreTrendChart trend={trend} />
           {sessions.map((session) => {
             const expanded = expandedId === session.id;
             const temperamentKey = session.scenario?.temperament ?? 'guarded';
+            const situationKey = session.scenario?.mode === 'incoming_call'
+              ? null
+              : (PRACTICE_SITUATIONS as readonly string[]).includes(session.scenario?.situation ?? '')
+                ? session.scenario?.situation
+                : null;
+            const presetKey = session.scenario?.mode === 'incoming_call' &&
+              (INCOMING_PRESETS as readonly string[]).includes(session.scenario?.crisisPreset ?? '')
+              ? session.scenario?.crisisPreset
+              : null;
+            const tags = sessionTags(session.scenario);
+            const delivery = readDeliveryReport((session.debrief as { delivery?: unknown } | null)?.delivery);
             const date = new Date(session.created_at).toLocaleDateString(
               i18n.language?.startsWith('es') ? 'es' : 'en-US',
               { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' },
@@ -135,6 +173,8 @@ function RehearsalHistoryContent() {
               <View key={session.id} style={[styles.card, { backgroundColor: colors.primaryDark }]}>
                 <TouchableOpacity
                   onPress={() => setExpandedId(expanded ? null : session.id)}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded }}
                   activeOpacity={0.85}
                 >
                   <View style={styles.cardHeader}>
@@ -146,6 +186,15 @@ function RehearsalHistoryContent() {
                           : ''}
                       </Text>
                       <Text style={[styles.cardDate, { color: colors.inkSoft }]}>{date}</Text>
+                      {(situationKey || presetKey || tags.length > 0) && (
+                        <Text style={[styles.cardTags, { color: colors.inkSoft }]} numberOfLines={2}>
+                          {[
+                            situationKey ? t(`situations.${situationKey}`) : null,
+                            presetKey ? t(`history.presets.${presetKey}`) : null,
+                            ...tags.map((tag) => t(`history.tags.${tag}`)),
+                          ].filter(Boolean).join(' · ')}
+                        </Text>
+                      )}
                     </View>
                     <Text style={[styles.chevron, { color: colors.inkSoft }]}>{expanded ? '▾' : '▸'}</Text>
                   </View>
@@ -177,6 +226,9 @@ function RehearsalHistoryContent() {
                             : [styles.bubblePartner, { backgroundColor: colors.ink }],
                         ]}
                       >
+                        {turn.role === 'user' && !!turn.speaker && (
+                          <Text style={[styles.speakerTag, { color: colors.primaryLight }]}>{turn.speaker}</Text>
+                        )}
                         <Text style={styles.bubbleText}>{turn.text}</Text>
                       </View>
                     ))}
@@ -198,10 +250,16 @@ function RehearsalHistoryContent() {
                             {t('debrief.drillLabel')}: {session.debrief.drill}
                           </Text>
                         )}
+                        {delivery && (
+                          <View style={styles.deliveryBox}>
+                            <Text style={[styles.deliveryTitle, { color: colors.secondary }]}>{t('debrief.delivery.title')}</Text>
+                            <DeliverySummary report={delivery} compact />
+                          </View>
+                        )}
                       </View>
                     )}
 
-                    <TouchableOpacity onPress={() => confirmDelete(session.id)} style={styles.deleteBtn} hitSlop={8}>
+                    <TouchableOpacity onPress={() => confirmDelete(session.id)} style={styles.deleteBtn} hitSlop={8} accessibilityRole="button">
                       <Text style={[styles.deleteText, { color: colors.coral }]}>{t('history.delete')}</Text>
                     </TouchableOpacity>
                   </View>
@@ -229,6 +287,10 @@ const styles = StyleSheet.create({
   cardHeaderText: { flex: 1 },
   cardTitle: { fontSize: 15, fontWeight: '700' },
   cardDate: { fontSize: 12, marginTop: 2 },
+  cardTags: { fontSize: 11, marginTop: 3 },
+  speakerTag: { fontSize: 9, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 2 },
+  deliveryBox: { marginTop: 10 },
+  deliveryTitle: { fontSize: 11, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 },
   chevron: { fontSize: 16, marginLeft: 8 },
   scoreRow: { flexDirection: 'row', gap: 6, marginTop: 12 },
   scorePill: { flex: 1, borderRadius: 10, paddingVertical: 6, alignItems: 'center' },

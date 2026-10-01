@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { ActivityIndicator, Linking, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import type { TFunction } from 'i18next';
 import type { usePrivateVideoSessions } from '../../hooks/usePrivateVideoSessions';
 import { useTheme } from '../../contexts/ThemeContext';
 import { detectedTimeZone, formatInTimeZone } from '../../lib/videoScheduling';
 import { buildPlanReviewSnapshot, planReviewSectionKeysForTier, stableStringify, type PlanReviewSectionKey, type PlanReviewSource } from '../../lib/planReview';
-import { togglePickerMode, type PickerMode } from '../../lib/appFlowGuards';
+import { appAlert } from '../../lib/appAlert';
+import { videoErrorText } from '../../lib/videoErrors';
+import { DateTimeField } from '../ui/DateTimeField';
 
 type Props = { controller: ReturnType<typeof usePrivateVideoSessions>; hasIncludedPlanReview: boolean; source: PlanReviewSource; t: TFunction<'crisis'>; consentLocale: 'en' | 'es'; onUpgrade: () => void };
 
@@ -18,7 +19,6 @@ export function PlanReviewBookingCard({ controller, hasIncludedPlanReview, sourc
   const [focus, setFocus] = useState('');
   const [questions, setQuestions] = useState('');
   const [startsAt, setStartsAt] = useState(() => { const d = new Date(Date.now() + 86400000); d.setMinutes(0, 0, 0); return d; });
-  const [pickerMode, setPickerMode] = useState<PickerMode>(null);
   const [consented, setConsented] = useState(false);
   const [preview, setPreview] = useState(false);
   const [previewFingerprint, setPreviewFingerprint] = useState<string | null>(null);
@@ -63,25 +63,15 @@ export function PlanReviewBookingCard({ controller, hasIncludedPlanReview, sourc
   };
   const togglePreview = () => {
     if (preview) { setPreview(false); return; }
-    if (!selected.length) { Alert.alert(k('checkTitle'), k('selectBeforePreview')); return; }
+    if (!selected.length) { appAlert(k('checkTitle'), k('selectBeforePreview')); return; }
     setPreview(true); setPreviewFingerprint(fingerprint); setConsented(false); setConsentFingerprint(null);
   };
   const toggleConsent = () => {
-    if (!consented && (!preview || previewFingerprint !== fingerprint)) { Alert.alert(k('checkTitle'), k('previewBeforeConsent')); return; }
+    if (!consented && (!preview || previewFingerprint !== fingerprint)) { appAlert(k('checkTitle'), k('previewBeforeConsent')); return; }
     const next = !consented; setConsented(next); setConsentFingerprint(next ? fingerprint : null);
   };
-  const changeDate = (mode: 'date' | 'time') => (_event: DateTimePickerEvent, picked?: Date) => {
-    setPickerMode(null);
-    if (!picked) return;
-    setStartsAt((current) => {
-      const next = new Date(current);
-      if (mode === 'date') next.setFullYear(picked.getFullYear(), picked.getMonth(), picked.getDate());
-      else next.setHours(picked.getHours(), picked.getMinutes(), 0, 0);
-      return next;
-    });
-  };
   async function submit() {
-    if (!selected.length || !consented || !preview || previewFingerprint !== fingerprint || consentFingerprint !== fingerprint || startsAt <= new Date()) { Alert.alert(k('checkTitle'), k('checkBody')); return; }
+    if (!selected.length || !consented || !preview || previewFingerprint !== fingerprint || consentFingerprint !== fingerprint || startsAt <= new Date()) { appAlert(k('checkTitle'), k('checkBody')); return; }
     const result = await controller.requestPlanReview({ startsAt, timezone: detectedTimeZone(), durationMinutes: 60, purpose: 'plan_review',
       focusReason: requestFocusReason,
       questions: requestQuestions, selectedSections: selected,
@@ -92,7 +82,7 @@ export function PlanReviewBookingCard({ controller, hasIncludedPlanReview, sourc
   }
 
   async function submitRevision() {
-    if (!existing || !selected.length || !consented || !preview || previewFingerprint !== fingerprint || consentFingerprint !== fingerprint) { Alert.alert(k('checkTitle'), k('updateCheckBody')); return; }
+    if (!existing || !selected.length || !consented || !preview || previewFingerprint !== fingerprint || consentFingerprint !== fingerprint) { appAlert(k('checkTitle'), k('updateCheckBody')); return; }
     const result = await controller.submitPlanReviewRevision(existing, {
       selectedSections: selected, snapshot: snapshot as unknown as Record<string, unknown>,
       consentText: k('consent'), consentLocale,
@@ -104,20 +94,31 @@ export function PlanReviewBookingCard({ controller, hasIncludedPlanReview, sourc
     <Text style={[styles.title, { color: colors.ink }]}>{k('submittedTitle')}</Text>
     <Text style={{ color: colors.inkSoft }}>{existing.appointment_type === 'membership_included' ? k('includedStatus') : k(`payment.${existing.payment_status}`)}</Text>
     <Text style={{ color: colors.inkSoft }}>{k('snapshotTime', { date: existing.snapshot_created_at ? new Date(existing.snapshot_created_at).toLocaleString() : '—' })}</Text>
-    {existing.appointment_type === 'one_off_150' && existing.payment_status === 'pending_payment' ? (
-      <TouchableOpacity disabled={controller.mutating} onPress={() => void (async () => {
+    {existing.appointment_type === 'one_off_150' && existing.payment_status === 'pending_payment' && isPremier ? (
+      // Upgraded to Premier after booking: the review is included, never paid for.
+      <>
+        <Text style={{ color: colors.ink }}>{k('includedNowBody')}</Text>
+        <TouchableOpacity accessibilityRole="button" disabled={controller.mutating} onPress={() => void controller.applyPremierToPlanReview(existing)} style={[styles.submit, { backgroundColor: colors.primary }]}>
+          {controller.mutating ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '900' }}>{k('applyPremier')}</Text>}
+        </TouchableOpacity>
+      </>
+    ) : existing.appointment_type === 'one_off_150' && existing.payment_status === 'pending_payment' ? (
+      <TouchableOpacity accessibilityRole="button" disabled={controller.mutating} onPress={() => void (async () => {
         const url = await controller.beginPlanReviewCheckout(existing);
+        // null: an error is shown below, or the server found Premier access and
+        // made the review included (the card refreshes without a Pay button).
         if (!url) return;
         try {
           if (!await Linking.canOpenURL(url)) throw new Error('cannot_open_checkout');
           await Linking.openURL(url);
         } catch {
-          Alert.alert(k('checkoutOpenErrorTitle'), k('checkoutOpenErrorBody'));
+          appAlert(k('checkoutOpenErrorTitle'), k('checkoutOpenErrorBody'));
         }
       })()} style={[styles.submit, { backgroundColor: colors.primary }]}>
         {controller.mutating ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '900' }}>{k('payNow')}</Text>}
       </TouchableOpacity>
     ) : null}
+    {controller.planReviewIncluded ? <Text accessibilityRole="alert" style={{ color: colors.green, fontWeight: '700' }}>{k('convertedToIncluded')}</Text> : null}
     {existing.update_requested_at ? <>
       <Text style={{ color: colors.coral, fontWeight: '700' }}>{k('updateRequested')}</Text>
       <Text style={[styles.label, { color: colors.ink }]}>{k('share')}</Text>
@@ -127,7 +128,7 @@ export function PlanReviewBookingCard({ controller, hasIncludedPlanReview, sourc
       <TouchableOpacity accessibilityRole="checkbox" accessibilityState={{ checked: consented }} onPress={toggleConsent} style={styles.check}><Text style={{ color: colors.primary, fontWeight: '900' }}>{consented ? '☑' : '☐'}</Text><Text style={{ color: colors.ink, flex: 1 }}>{k('consent')}</Text></TouchableOpacity>
       <TouchableOpacity disabled={controller.mutating} onPress={() => void submitRevision()} style={[styles.submit, { backgroundColor: colors.primary }]}>{controller.mutating ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '900' }}>{k('submitUpdate')}</Text>}</TouchableOpacity>
     </> : null}
-    {controller.error ? <Text accessibilityRole="alert" style={{ color: colors.coral }}>{k(`errors.${controller.errorKey ?? 'unknown'}`)}</Text> : null}
+    {controller.error || controller.errorKey ? <Text accessibilityRole="alert" style={{ color: colors.coral }}>{videoErrorText(k, controller.errorKey)}</Text> : null}
   </View>;
   if (existing) return <View style={[styles.box, { borderColor: colors.line }]}>
     <Text style={[styles.title, { color: colors.ink }]}>{k('blockedTitle')}</Text>
@@ -152,18 +153,16 @@ export function PlanReviewBookingCard({ controller, hasIncludedPlanReview, sourc
     </View> : null}
     <Text style={[styles.label, { color: colors.ink }]}>{k('date')}</Text>
     <View style={styles.row}>
-      <TouchableOpacity accessibilityRole="button" onPress={() => setPickerMode((current) => togglePickerMode(current, 'date'))} style={[styles.choice, { borderColor: colors.primary }]}><Text style={{ color: colors.ink }}>{startsAt.toLocaleDateString()}</Text></TouchableOpacity>
-      <TouchableOpacity accessibilityRole="button" onPress={() => setPickerMode((current) => togglePickerMode(current, 'time'))} style={[styles.choice, { borderColor: colors.primary }]}><Text style={{ color: colors.ink }}>{startsAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</Text></TouchableOpacity>
+      <DateTimeField mode="date" value={startsAt} onChange={setStartsAt} minimumDate={new Date()} label={startsAt.toLocaleDateString()} accessibilityLabel={k('dateField')} />
+      <DateTimeField mode="time" value={startsAt} onChange={setStartsAt} minuteInterval={5} label={startsAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} accessibilityLabel={k('timeField')} />
     </View>
-    {pickerMode === 'date' ? <DateTimePicker value={startsAt} mode="date" minimumDate={new Date()} onChange={changeDate('date')} /> : null}
-    {pickerMode === 'time' ? <DateTimePicker value={startsAt} mode="time" minuteInterval={5} onChange={changeDate('time')} /> : null}
     <Text style={{ color: colors.inkSoft }}>{formatInTimeZone(startsAt, detectedTimeZone())}</Text>
     <TextInput value={focus} onChangeText={setFocus} multiline placeholder={k('focus')} placeholderTextColor={colors.inkSoft} style={[styles.input, { color: colors.ink, borderColor: colors.line }]} />
     <TextInput value={questions} onChangeText={setQuestions} multiline placeholder={k('questions')} placeholderTextColor={colors.inkSoft} style={[styles.input, { color: colors.ink, borderColor: colors.line }]} />
     <TouchableOpacity accessibilityRole="checkbox" accessibilityState={{ checked: consented }} onPress={toggleConsent} style={styles.check}><Text style={{ color: colors.primary, fontWeight: '900' }}>{consented ? '☑' : '☐'}</Text><Text style={{ color: colors.ink, flex: 1 }}>{k('consent')}</Text></TouchableOpacity>
     {!isPremier ? <Text style={{ color: colors.coral, fontWeight: '700' }}>{k('pendingPayment')}</Text> : null}
     <TouchableOpacity disabled={controller.mutating} onPress={() => void submit()} style={[styles.submit, { backgroundColor: colors.primary }]}>{controller.mutating ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '900' }}>{k('submit')}</Text>}</TouchableOpacity>
-    {controller.error ? <Text accessibilityRole="alert" style={{ color: colors.coral }}>{k(`errors.${controller.errorKey ?? 'unknown'}`)}</Text> : null}
+    {controller.error || controller.errorKey ? <Text accessibilityRole="alert" style={{ color: colors.coral }}>{videoErrorText(k, controller.errorKey)}</Text> : null}
   </View>;
 }
 const styles = StyleSheet.create({ box:{borderWidth:1,borderRadius:14,padding:14,marginTop:14,gap:8},title:{fontSize:18,fontWeight:'900'},body:{fontSize:13,lineHeight:19},label:{fontSize:13,fontWeight:'800',marginTop:8},row:{flexDirection:'row',flexWrap:'wrap',gap:6},choice:{borderWidth:1,borderRadius:8,padding:8},check:{flexDirection:'row',gap:8,alignItems:'flex-start',paddingVertical:5},outline:{borderWidth:1,borderRadius:9,padding:10,alignItems:'center'},preview:{padding:10,borderRadius:9,gap:10},input:{borderWidth:1,borderRadius:9,minHeight:60,padding:10,textAlignVertical:'top'},submit:{borderRadius:10,padding:13,alignItems:'center'} });

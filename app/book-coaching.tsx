@@ -17,6 +17,7 @@ import { useAccount } from '../src/contexts/AccountContext';
 import { supabase } from '../src/lib/supabase';
 import { MAX_CONTENT_WIDTH } from '../src/components/ui/ScreenContainer';
 import { COACHING_RATE_LABEL } from '../src/config';
+import { formatInTimeZone } from '../src/lib/videoScheduling';
 
 interface Booking {
   id: string;
@@ -40,6 +41,16 @@ function getNextDays(count: number): Date[] {
 
 function formatDateChip(d: Date, language: string): string {
   return d.toLocaleDateString(language.startsWith('es') ? 'es' : 'en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+/** A confirmed coaching time in the member's own timezone (not the device's raw UTC string). */
+function formatBookingTime(value: string, timeZone: string | undefined, language: string): string {
+  const locale = language.startsWith('es') ? 'es' : 'en-US';
+  try {
+    return formatInTimeZone(value, timeZone || 'UTC', locale);
+  } catch {
+    return new Date(value).toLocaleString(locale);
+  }
 }
 
 export default function BookCoachingScreen() {
@@ -70,12 +81,9 @@ export default function BookCoachingScreen() {
     if (!user?.id) return;
     setLoadError(false);
     try {
-      const { data, error } = await supabase
-        .from('coaching_bookings')
-        .select('id, preferred_times, status, payment_status, scheduled_at, zoom_url')
-        .eq('account_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(10);
+      // Plan-review payment records live on the plan-review card (Crisis Mode)
+      // with their real status; the RPC leaves them out of this list.
+      const { data, error } = await supabase.rpc('member_get_coaching_bookings', { p_limit: 10 });
       if (error) throw error;
       if (request === loadRequest.current) setBookings((data as Booking[]) ?? []);
     } catch {
@@ -306,7 +314,7 @@ export default function BookCoachingScreen() {
                 <View style={styles.bookingInfo}>
                   <Text style={[styles.bookingTimes, { color: colors.ink }]} numberOfLines={1}>
                     {b.scheduled_at
-                      ? new Date(b.scheduled_at).toLocaleString()
+                      ? formatBookingTime(b.scheduled_at, user?.timezone, i18n.language)
                       : b.preferred_times}
                   </Text>
                   <Text style={[styles.bookingStatus, { color: colors.inkSoft }]}>

@@ -1,10 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { ActivityIndicator, Linking, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import type { TFunction } from 'i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import type { usePrivateVideoSessions, PrivateVideoSession } from '../../hooks/usePrivateVideoSessions';
 import { detectedTimeZone, formatInTimeZone, googleCalendarUrl } from '../../lib/videoScheduling';
+import { appAlert } from '../../lib/appAlert';
+import { videoErrorText } from '../../lib/videoErrors';
+import { DateTimeField } from '../ui/DateTimeField';
 
 type Controller = ReturnType<typeof usePrivateVideoSessions>;
 type Props = { controller: Controller; t: TFunction<any>; translationRoot: string; onJoin: (session: PrivateVideoSession) => void; compact?: boolean };
@@ -18,23 +20,10 @@ export function PremierVideoSchedulingCard({ controller, t, translationRoot, onJ
   const [editing, setEditing] = useState(false);
   const [startsAt, setStartsAt] = useState(initialDate);
   const [note, setNote] = useState('');
-  const [showDate, setShowDate] = useState(false);
-  const [showTime, setShowTime] = useState(false);
   const { activeSession: session, pendingProposal: proposal } = controller;
 
-  const changeDate = (mode: 'date' | 'time') => (_event: DateTimePickerEvent, picked?: Date) => {
-    if (Platform.OS !== 'ios') mode === 'date' ? setShowDate(false) : setShowTime(false);
-    if (!picked) return;
-    setStartsAt((current) => {
-      const next = new Date(current);
-      if (mode === 'date') next.setFullYear(picked.getFullYear(), picked.getMonth(), picked.getDate());
-      else next.setHours(picked.getHours(), picked.getMinutes(), 0, 0);
-      return next;
-    });
-  };
-
   async function submit() {
-    if (startsAt.getTime() <= Date.now()) { Alert.alert(k('errors.invalidTitle'), k('errors.future')); return; }
+    if (startsAt.getTime() <= Date.now()) { appAlert(k('errors.invalidTitle'), k('errors.future')); return; }
     const input = { startsAt, timezone: zone, durationMinutes: 60, note };
     const result = session ? await controller.rescheduleSession(session, input) : await controller.requestSession(input);
     if (result) { setEditing(false); setNote(''); }
@@ -42,16 +31,17 @@ export function PremierVideoSchedulingCard({ controller, t, translationRoot, onJ
 
   function confirmCancel() {
     if (!session) return;
-    Alert.alert(k('cancelTitle'), k('cancelBody'), [
+    appAlert(k('cancelTitle'), k('cancelBody'), [
       { text: k('keep'), style: 'cancel' },
       { text: k('cancel'), style: 'destructive', onPress: () => void controller.cancelSession(session) },
     ]);
   }
 
-  const displayedError = controller.errorKey ? k(`errors.${controller.errorKey}`) : controller.error;
+  // Only this card's own localized errors; a raw server/network message is never shown.
+  const displayedError = controller.error || controller.errorKey ? videoErrorText(k, controller.errorKey) : null;
   const proposedByCoach = proposal?.proposed_by_role === 'coach';
   const requestedValue = proposal?.starts_at ?? session?.requested_start;
-  const calendarUrl = session ? googleCalendarUrl(session) : null;
+  const calendarUrl = session ? googleCalendarUrl(session, { title: k('calendarTitle'), details: k('calendarDetails') }) : null;
 
   return <View>
     <Text style={[styles.timezone, { color: colors.inkSoft }]}>{k('timezone', { timezone: zone })}</Text>
@@ -77,9 +67,10 @@ export function PremierVideoSchedulingCard({ controller, t, translationRoot, onJ
 
     {editing ? <View style={[styles.form, { borderColor: colors.line }]}>
       <Text style={[styles.label, { color: colors.ink }]}>{k('dateTimeLabel')}</Text>
-      <View style={styles.row}><Secondary label={formatInTimeZone(startsAt, zone).split(',').slice(0, 2).join(',')} onPress={() => setShowDate(true)} colors={colors} /><Secondary label={startsAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} onPress={() => setShowTime(true)} colors={colors} /></View>
-      {showDate ? <DateTimePicker value={startsAt} mode="date" minimumDate={new Date()} onChange={changeDate('date')} /> : null}
-      {showTime ? <DateTimePicker value={startsAt} mode="time" minuteInterval={5} onChange={changeDate('time')} /> : null}
+      <View style={styles.row}>
+        <DateTimeField mode="date" value={startsAt} onChange={setStartsAt} minimumDate={new Date()} label={formatInTimeZone(startsAt, zone).split(',').slice(0, 2).join(',')} accessibilityLabel={k('dateField')} style={styles.field} />
+        <DateTimeField mode="time" value={startsAt} onChange={setStartsAt} minuteInterval={5} label={startsAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} accessibilityLabel={k('timeField')} style={styles.field} />
+      </View>
       <Text style={[styles.hint, { color: colors.inkSoft }]}>{k('durationAndZone', { timezone: zone })}</Text>
       <Text style={[styles.label, { color: colors.ink }]}>{k('noteLabel')}</Text>
       <TextInput accessibilityLabel={k('noteLabel')} value={note} onChangeText={setNote} maxLength={2000} multiline placeholder={k('notePlaceholder')} placeholderTextColor={colors.inkSoft} style={[styles.input, { borderColor: colors.line, color: colors.ink }]} />
@@ -94,4 +85,4 @@ export function PremierVideoSchedulingCard({ controller, t, translationRoot, onJ
 
 function Action({ label, onPress, colors, busy }: { label: string; onPress: () => void; colors: any; busy?: boolean }) { return <TouchableOpacity accessibilityRole="button" accessibilityLabel={label} disabled={busy} onPress={onPress} style={[styles.action, { backgroundColor: colors.primary }]}>{busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.actionText}>{label}</Text>}</TouchableOpacity>; }
 function Secondary({ label, onPress, colors, danger }: { label: string; onPress: () => void; colors: any; danger?: boolean }) { return <TouchableOpacity accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={[styles.secondary, { borderColor: danger ? colors.coral : colors.primary }]}><Text style={{ color: danger ? colors.coral : colors.primary, fontWeight: '800' }}>{label}</Text></TouchableOpacity>; }
-const styles = StyleSheet.create({ timezone: { fontSize: 12, marginBottom: 8 }, status: { padding: 12, borderRadius: 12, borderWidth: 1, marginTop: 10 }, statusTitle: { fontSize: 15, fontWeight: '900', marginBottom: 5 }, body: { fontSize: 13, lineHeight: 19, marginTop: 2 }, action: { borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginTop: 10 }, actionText: { color: '#fff', fontWeight: '900' }, secondary: { borderWidth: 1, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 12, alignItems: 'center', marginTop: 8 }, form: { borderWidth: 1, borderRadius: 12, padding: 12, marginTop: 10 }, label: { fontSize: 13, fontWeight: '900', marginTop: 4, marginBottom: 6 }, row: { flexDirection: 'row', gap: 8 }, hint: { fontSize: 12, lineHeight: 17, marginTop: 5 }, input: { minHeight: 80, borderWidth: 1, borderRadius: 10, padding: 10, textAlignVertical: 'top' }, count: { fontSize: 11, textAlign: 'right' }, error: { borderWidth: 1, borderRadius: 10, padding: 10, gap: 7 }, history: { marginTop: 16 }, historyRow: { flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, paddingVertical: 9 }, });
+const styles = StyleSheet.create({ timezone: { fontSize: 12, marginBottom: 8 }, status: { padding: 12, borderRadius: 12, borderWidth: 1, marginTop: 10 }, statusTitle: { fontSize: 15, fontWeight: '900', marginBottom: 5 }, body: { fontSize: 13, lineHeight: 19, marginTop: 2 }, action: { borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginTop: 10 }, actionText: { color: '#fff', fontWeight: '900' }, secondary: { borderWidth: 1, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 12, alignItems: 'center', marginTop: 8 }, form: { borderWidth: 1, borderRadius: 12, padding: 12, marginTop: 10 }, label: { fontSize: 13, fontWeight: '900', marginTop: 4, marginBottom: 6 }, row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }, field: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10 }, hint: { fontSize: 12, lineHeight: 17, marginTop: 5 }, input: { minHeight: 80, borderWidth: 1, borderRadius: 10, padding: 10, textAlignVertical: 'top' }, count: { fontSize: 11, textAlign: 'right' }, error: { borderWidth: 1, borderRadius: 10, padding: 10, gap: 7 }, history: { marginTop: 16 }, historyRow: { flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, paddingVertical: 9 }, });

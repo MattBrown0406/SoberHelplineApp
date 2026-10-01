@@ -10,6 +10,9 @@
   "joinPlaceholder": "Ingresa el código de invitación",
   "joinButton": "Unirse",
   "joinError": "Ese código no fue encontrado. Por favor verifica e intenta de nuevo.",
+  "joinErrorTooManyAttempts": "Se probaron demasiados códigos. Espera una hora y vuelve a intentarlo con el código que te compartió tu familia.",
+  "joinErrorNetwork": "No pudimos conectar con Sober Helpline. Revisa tu conexión e inténtalo de nuevo.",
+  "joinErrorAlreadyInFamily": "Ya formas parte de otro espacio familiar. Para usar este código, primero sal de ese espacio desde la parte inferior de su tarjeta familiar.",
   "noFamilyTitle": "Las familias se recuperan juntas.",
   "noFamilyBody": "Crea un espacio para acordar límites — los muros del castillo que protegen a tu familia — y apoyarse para mantenerlos.",
   "createButton": "Crear un espacio familiar",
@@ -60,5 +63,19 @@
     "familyLine": "{{name}} — {{result}}",
     "errorTitle": "No se pudo guardar el registro",
     "errorMessage": "Revisa tu conexión e inténtalo de nuevo."
-  }
+  },
+  "leaveButton": "Salir de este espacio familiar",
+  "leaveTitle": "¿Salir de este espacio familiar?",
+  "leaveBody": "Dejarás de ver los límites y el diario compartidos de tu familia. Los límites que propusiste y las notas que escribiste en el diario se quedan con tu familia. Si tú creaste este espacio, pasará al miembro con más tiempo en él.",
+  "leaveAloneTitle": "¿Eliminar este espacio familiar?",
+  "leaveAloneBody": "Nadie más se ha unido todavía, así que al salir se eliminará este espacio para siempre, junto con su diario y sus límites compartidos. No se puede deshacer.",
+  "leaveAloneConfirm": "Eliminar y salir",
+  "leaveCancel": "Quedarme",
+  "leaveConfirm": "Salir",
+  "leaveErrorTitle": "No se pudo salir",
+  "leaveErrorBody": "Revisa tu conexión e intenta de nuevo.",
+  "actionErrorTitle": "No se guardó",
+  "actionErrorBody": "Revisa tu conexión e intenta de nuevo.",
+  "letterCardTitle": "Carta de intervención",
+  "letterCardSub": "Estructura guiada de tres párrafos del manual de Matt"
 }

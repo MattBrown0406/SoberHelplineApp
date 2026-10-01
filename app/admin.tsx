@@ -6,11 +6,14 @@ import {
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
-  Alert,
   StyleSheet,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '../src/components/ui/ScreenContainer';
+import { LiveGroupBansCard } from '../src/components/admin/LiveGroupBansCard';
+import { InvitationStatsCard } from '../src/components/admin/InvitationStatsCard';
+import { CommunityModerationCard } from '../src/components/admin/CommunityModerationCard';
+import { appAlert } from '../src/lib/appAlert';
 import { VideoSessionManager } from '../src/components/admin/VideoSessionManager';
 import { useAccount } from '../src/contexts/AccountContext';
 import { useTheme } from '../src/contexts/ThemeContext';
@@ -149,7 +152,7 @@ export default function AdminScreen() {
     });
     setSaving(false);
     if (error) {
-      Alert.alert('Error', error.message);
+      appAlert('Error', error.message);
     } else {
       setZoomUrl(editingUrl.trim());
       setIsEditing(false);
@@ -179,6 +182,8 @@ export default function AdminScreen() {
       </TouchableOpacity>
 
       <Text style={[styles.heading, { color: colors.ink }]}>Admin</Text>
+
+      <InvitationStatsCard />
 
       {/* ── Funnel & family health ── */}
       <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
@@ -485,7 +490,7 @@ export default function AdminScreen() {
                     disabled={archivingThread === item.thread_id}
                     onPress={(event) => {
                       event.stopPropagation();
-                      Alert.alert(
+                      appAlert(
                         'Archive conversation?',
                         `This will archive ${item.first_name}'s current thread and start a fresh one for them.`,
                         [
@@ -518,6 +523,10 @@ export default function AdminScreen() {
           <Text style={[styles.refreshText, { color: colors.primary }]}>Refresh</Text>
         </TouchableOpacity>
       </View>
+
+      <CommunityModerationCard />
+
+      <LiveGroupBansCard />
     </ScreenContainer>
   );
 }

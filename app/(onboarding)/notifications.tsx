@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -7,6 +7,7 @@ import { registerForPushNotifications } from '../../src/hooks/usePushNotificatio
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { supabase } from '../../src/lib/supabase';
+import { appAlert } from '../../src/lib/appAlert';
 import { markOnboarded } from '../../src/onboarding/state';
 
 export default function NotificationsScreen() {
@@ -47,8 +48,8 @@ export default function NotificationsScreen() {
   async function finish(askPermission: boolean) {
     if (askPermission && Platform.OS !== 'web' && user?.id) {
       try {
-        if (!await registerForPushNotifications(user.id, true, true)) Alert.alert(t('notifications.unavailable'));
-      } catch { Alert.alert(t('notifications.unavailable')); }
+        if (!await registerForPushNotifications(user.id, true, true)) appAlert(t('notifications.unavailable'));
+      } catch { appAlert(t('notifications.unavailable')); }
     }
     if (!user?.id) return;
     await markOnboarded(user.id);

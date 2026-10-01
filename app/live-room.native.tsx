@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   FlatList,
   StyleSheet,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -20,14 +19,16 @@ import {
   useRemoteParticipants,
   useTracks,
   useChat,
+  useRoomContext,
   registerGlobals,
 } from '@livekit/react-native';
-import { Track } from 'livekit-client';
+import { DisconnectReason, RoomEvent, Track } from 'livekit-client';
 
 import { useTheme } from '../src/contexts/ThemeContext';
 import { RouteActivationGate } from '../src/contexts/RouteActivationContext';
 import { useAccount } from '../src/contexts/AccountContext';
 import { supabase } from '../src/lib/supabase';
+import { appAlert } from '../src/lib/appAlert';
 import { openEmergencyLink } from '../src/lib/emergencyLinks';
 import { LIVEKIT_URL, SUPABASE_URL } from '../src/config';
 import { useResponsive } from '../src/hooks/useResponsive';
@@ -73,21 +74,39 @@ function joinErrorKey(error: unknown): string {
   const code = error instanceof TokenError ? error.code : '';
   if (code === 'membership_required') return 'joinErrorMembership';
   if (code === 'group_room_not_live') return 'joinErrorNotLive';
+  if (code === 'removed_from_live_groups') return 'joinErrorRemoved';
   return 'joinErrorGeneric';
 }
 
-async function removeParticipant(room: string, identity: string): Promise<void> {
+/** Removes and bans the participant; resolves false if either step failed. */
+async function removeParticipant(room: string, identity: string): Promise<boolean> {
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return;
+  if (!session) return false;
 
-  await fetch(`${SUPABASE_URL}/functions/v1/livekit-remove`, {
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/livekit-remove`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${session.access_token}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ room, identity }),
-  });
+  }).catch(() => null);
+  if (!res?.ok) return false;
+  const body = await res.json().catch(() => null) as { banned?: boolean } | null;
+  return body?.banned === true;
+}
+
+/** Records when the server removed this participant (the host's Remove = ban). */
+function RemovalWatcher({ onRemoved }: { onRemoved: () => void }) {
+  const room = useRoomContext();
+  useEffect(() => {
+    const handler = (reason?: DisconnectReason) => {
+      if (reason === DisconnectReason.PARTICIPANT_REMOVED) onRemoved();
+    };
+    room.on(RoomEvent.Disconnected, handler);
+    return () => { room.off(RoomEvent.Disconnected, handler); };
+  }, [room, onRemoved]);
+  return null;
 }
 
 // ── Host view ─────────────────────────────────────────────────────────────────
@@ -109,16 +128,21 @@ function HostView({
   const { isLandscape } = useResponsive();
   const myTrack = tracks.find((tr) => tr.participant.isLocal);
 
-  async function handleRemove(identity: string) {
-    Alert.alert(
+  async function handleRemove(identity: string, name: string) {
+    if (!identity) return;
+    appAlert(
       t('host.remove'),
-      identity,
+      t('host.removeConfirm', { name: name || t('host.thisPerson') }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('host.cancel'), style: 'cancel' },
         {
           text: t('host.remove'),
           style: 'destructive',
-          onPress: () => removeParticipant(roomName, identity),
+          onPress: async () => {
+            if (!(await removeParticipant(roomName, identity))) {
+              appAlert(t('host.removeErrorTitle'), t('host.removeErrorBody'));
+            }
+          },
         },
       ],
     );
@@ -148,7 +172,7 @@ function HostView({
           </View>
           <TouchableOpacity
             style={[styles.removeBtn, { borderColor: colors.coral }]}
-            onPress={() => handleRemove(item.from?.identity ?? '')}
+            onPress={() => handleRemove(item.from?.identity ?? '', item.from?.name ?? '')}
           >
             <Text style={[styles.removeBtnText, { color: colors.coral }]}>
               {t('host.remove')}
@@ -336,6 +360,7 @@ function LiveRoomSession({ roomName }: { roomName: string }) {
   const liveMarkedRef = useRef(false);
   const hostStartAttemptedRef = useRef(false);
   const isHostRef = useRef(false);
+  const removedRef = useRef(false);
   const liveTransitionRef = useRef<Promise<boolean> | null>(null);
   const navigatedBackRef = useRef(false);
   const mountedRef = useRef(true);
@@ -425,7 +450,7 @@ function LiveRoomSession({ roomName }: { roomName: string }) {
   async function handleLeaveOrEnd() {
     if (!await transitionHostLive(false)) {
       if (mountedRef.current && !tearingDownRef.current) {
-        Alert.alert(t('host.endErrorTitle'), t('host.endErrorBody'));
+        appAlert(t('host.endErrorTitle'), t('host.endErrorBody'));
       }
       return;
     }
@@ -434,6 +459,10 @@ function LiveRoomSession({ roomName }: { roomName: string }) {
 
   async function handleDisconnected() {
     await transitionHostLive(false);
+    // A member the host removed is banned from live groups; say why they left.
+    if (removedRef.current && !isHostRef.current) {
+      appAlert(t('removedTitle'), t('joinErrorRemoved'));
+    }
     if (!startErrorRef.current) navigateBackOnce();
   }
 
@@ -468,6 +497,7 @@ function LiveRoomSession({ roomName }: { roomName: string }) {
       onConnected={() => void handleConnected()}
       onDisconnected={() => void handleDisconnected()}
     >
+      <RemovalWatcher onRemoved={() => { removedRef.current = true; }} />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         {tokenResult.isHost ? (
           <HostView roomName={roomName} onEnd={handleLeaveOrEnd} />

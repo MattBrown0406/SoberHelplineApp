@@ -126,6 +126,9 @@
     "shareButton": "Compartir mi trayectoria",
     "shareDone": "Compartido — tu coach lo verá.",
     "shareLocked": "Activa el compartir con el coach en Configuración para compartir tu trayectoria.",
+    "shareNotIncluded": "Escribirle a tu coach es parte de Essential y Premier. Aún puedes enviar gratis un resumen de tu situación o ver los planes.",
+    "shareBriefLink": "Enviar un resumen de tu situación",
+    "sharePlansLink": "Ver planes",
     "shareMessage": "Me gustaría hablar sobre cómo han ido las cosas en las últimas semanas. ¿Podemos conectar?",
     "shareError": "No se pudo enviar a tu coach. Revisa tu conexión e inténtalo de nuevo."
   }

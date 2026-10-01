@@ -14,6 +14,12 @@
     "submitButton": "Conectar mi cuenta",
     "skipButton": "No tengo código",
     "errorInvalid": "Ese código no corresponde a un proveedor activo. Revísalo e intenta de nuevo, o continúa por tu cuenta.",
+    "errorNetwork": "No pudimos conectar con Sober Helpline. Revisa tu conexión e inténtalo de nuevo.",
+    "errorTooManyAttempts": "Se probaron demasiados códigos. Espera una hora y vuelve a intentarlo, o continúa por tu cuenta.",
+    "subscriptionWarningTitle": "Tu suscripción propia se sigue cobrando",
+    "subscriptionWarningBody": "Ya pagas Sober Helpline por medio de la App Store o Google Play. Conectarte con tu proveedor no la cancela. Cancélala en Administrar suscripción para que no te cobren dos veces.",
+    "manageSubscription": "Administrar suscripción",
+    "continueAnyway": "Conectar mi cuenta de todos modos",
     "success": "Conectado con {{org}}"
   },
   "consent": {

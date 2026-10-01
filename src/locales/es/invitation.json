@@ -1,0 +1,686 @@
+{
+  "common": {
+    "back": "← Atrás",
+    "retry": "Intentar de nuevo",
+    "loadErrorTitle": "No se pudo abrir el Motor de Invitación",
+    "loadErrorBody": "Revisa tu conexión e inténtalo de nuevo. No se ha perdido nada de lo que guardaste.",
+    "saving": "Guardando…",
+    "next": "Siguiente",
+    "previous": "Pregunta anterior",
+    "notPromise": "Es un pronóstico, no una promesa: tú conoces mejor que nadie a tu ser querido."
+  },
+  "engine": {
+    "kicker": "MOTOR DE INVITACIÓN",
+    "title": "Ayúdale a decir que sí",
+    "titleNamed": "Ayuda a {{name}} a decir que sí",
+    "subtitle": "Pequeños pasos diarios que hacen más fácil decir que sí al tratamiento, basados en CRAFT, el enfoque más estudiado para familias de alguien que rechaza la ayuda.",
+    "introTitle": "Empieza con lo que ya sabes",
+    "introBody": "Primero vas a trazar sus patrones: cuándo consume, qué le da el consumo, qué le está costando y cuándo es más fácil hablar. Luego el motor lo convierte en dos pequeños pasos al día, un pronóstico de buenos momentos y palabras para invitarle, con tu propia voz.",
+    "evidence": "En un estudio muy conocido (Miller, Meyers y Tonigan, 1999), cerca de 2 de cada 3 familias que usaron CRAFT vieron a su ser querido, que rechazaba la ayuda, empezar tratamiento: más o menos el doble que con una intervención confrontativa. Nada puede prometerlo, pero las probabilidades son reales, y las familias suelen sentirse mejor en el camino.",
+    "startMap": "Traza sus patrones (unos 10 minutos)",
+    "continueMap": "Termina tu mapa de patrones",
+    "finishSetupTitle": "Un último paso",
+    "finishSetupBody": "Elige si quieres un aviso discreto cuando esta noche pueda ser una buena ventana. Después, tus dos primeros pasos estarán listos.",
+    "finishSetupButton": "Terminar la configuración",
+    "paywallTitle": "Tu mapa de patrones está guardado",
+    "paywallBody": "La membresía abre el resto del motor: dos pasos diarios para toda tu familia, un pronóstico de receptividad, frases para invitarle con tus propias palabras y un registro sencillo de lo que funciona.",
+    "prepare": "Prepara la invitación",
+    "logOutcome": "Lo intenté: registrar cómo fue",
+    "progress": "Tu progreso",
+    "editMap": "Editar el mapa de patrones",
+    "lastAttempt": {
+      "yes": "La última vez: dijo que sí.",
+      "not_yet": "La última vez: todavía no. Quedó sembrada una semilla.",
+      "angry": "La última vez: terminó en conflicto. Primero repara, luego vuelve a intentarlo.",
+      "didnt_get_to_it": "La última vez: no llegó el momento."
+    },
+    "nextWindow": "Próxima ventana sugerida: {{date}}",
+    "familyPlan_one": "Tu plan familiar · {{count}} persona",
+    "familyPlan_other": "Tu plan familiar · {{count}} personas",
+    "alertsTitle": "Avisos de “Esta noche puede ser una ventana”",
+    "alertsBody": "Una notificación discreta alrededor de las 5 p. m. de tu hora cuando el pronóstico se vea bien. En la pantalla de bloqueo solo dice “Tienes una nota para hoy”, nunca nada sobre tu ser querido. Como máximo una vez cada dos días, y nunca en el camino de seguridad primero.",
+    "alertsToggle": "Envíame avisos de ventana",
+    "alertsError": "No se guardó ese ajuste. Inténtalo de nuevo.",
+    "alertsNoDevice": "Las notificaciones de esta app están desactivadas en este teléfono. Actívalas en los ajustes del teléfono para recibir avisos."
+  },
+  "forecast": {
+    "kicker": "PRONÓSTICO DE RECEPTIVIDAD",
+    "level": {
+      "low": "Hoy no",
+      "possible": "Ventana posible",
+      "good": "Buena ventana"
+    },
+    "levelBody": {
+      "low": "Concéntrate en los dos pasos de hoy. Las ventanas vuelven.",
+      "possible": "Mantenlo ligero. Si se abre un momento tranquilo y sin consumo, estás lista.",
+      "good": "Las cosas se ven más abiertas que de costumbre. Si no ha consumido y está en calma, hoy podría ser el día para invitarle."
+    },
+    "safetyHold": "En pausa mientras tu seguridad va primero.",
+    "reasons": {
+      "safetyHold": "Tu seguridad va primero: el motor no sugerirá ventanas para invitar.",
+      "consequenceWindow_one": "Pasó algo hace poco. Queda cerca de {{count}} hora de la ventana de 72 horas en la que muchas personas están más abiertas.",
+      "consequenceWindow_other": "Pasó algo hace poco. Quedan cerca de {{count}} horas de la ventana de 72 horas en la que muchas personas están más abiertas.",
+      "trendImproving": "Tu registro muestra más señales de recuperación o menos señales de alerta que la semana pasada.",
+      "trendWorsening": "Tu registro muestra más señales de alerta que la semana pasada.",
+      "soberTimeNow": {
+        "morning": "Es de mañana: según tus notas, cuando más a menudo está sin consumir y se puede hablar.",
+        "afternoon": "Es de tarde: según tus notas, cuando más a menudo está sin consumir y se puede hablar.",
+        "evening": "Es de noche: según tus notas, cuando más a menudo está sin consumir y se puede hablar.",
+        "weekend": "Es fin de semana: según tus notas, cuando más a menudo está sin consumir y se puede hablar."
+      },
+      "soberTimeLater": {
+        "morning": "Todavía viene la mañana, cuando suele ser más fácil hablar.",
+        "afternoon": "Todavía viene la tarde, cuando suele ser más fácil hablar.",
+        "evening": "Todavía viene la noche, cuando suele ser más fácil hablar.",
+        "weekend": "Se acerca el fin de semana, cuando suele ser más fácil hablar."
+      },
+      "soberTimeOther": {
+        "morning": "Tus notas dicen que las mañanas son mejores: mañana temprano puede ser el momento.",
+        "afternoon": "Tus notas dicen que las tardes son mejores: mañana por la tarde puede ser el momento.",
+        "evening": "Tus notas dicen que las noches son mejores.",
+        "weekend": "Tus notas dicen que los fines de semana son mejores: el fin de semana puede ser el momento."
+      },
+      "soberTimeUnknown": "Agrega a tu mapa cuándo suele estar sin consumir para afinar este pronóstico.",
+      "consistent_one": "Hiciste tus pasos {{count}} de los últimos 7 días: esa constancia cambia el ambiente.",
+      "consistent_other": "Hiciste tus pasos {{count}} de los últimos 7 días: esa constancia cambia el ambiente.",
+      "buildingConsistency_one": "{{count}} día con pasos en la última semana: sigue así.",
+      "buildingConsistency_other": "{{count}} días con pasos en la última semana: sigue así.",
+      "noMovesYet": "Los dos pasos de hoy son la forma más segura de hacer más probable un sí.",
+      "calmToday": "Dijiste que hoy se ve en calma.",
+      "okayToday": "Dijiste que hoy está más o menos bien.",
+      "roughToday": "Dijiste que hoy es un día difícil. Hoy no es el día, y está bien.",
+      "noCheckToday": "Cuéntanos cómo se ve hoy para afinar el pronóstico.",
+      "restingUntil_one": "Se lo pediste hace poco. Dale {{count}} día más antes de volver a pedírselo, y sigue con los pasos diarios.",
+      "restingUntil_other": "Se lo pediste hace poco. Dale {{count}} días más antes de volver a pedírselo, y sigue con los pasos diarios.",
+      "inTreatment": "Está en tratamiento, así que el motor no sugiere ventanas para invitar.",
+      "afterYes": "Alguien de tu familia escuchó un sí hace poco, así que las ventanas para invitar están en pausa.",
+      "returningHome": "Está regresando a casa del tratamiento, así que el motor no sugiere ventanas para invitar.",
+      "inRecovery": "Está en recuperación, así que el motor no sugiere ventanas para invitar."
+    },
+    "checkTitle": "¿Cómo está hoy?",
+    "checkHint": "Opcional: tu percepción importa más que cualquier puntuación.",
+    "check": {
+      "calm": "En calma",
+      "okay": "Regular",
+      "rough": "Difícil"
+    },
+    "checkError": "No se guardó. Inténtalo de nuevo."
+  },
+  "moves": {
+    "kicker": "TUS DOS PASOS DE HOY",
+    "familyNote": "Todas las personas de tu espacio familiar ven estos mismos dos pasos hoy.",
+    "exampleLabel": "Prueba",
+    "markDone": "Marcar como hecho",
+    "done": "Hecho ✓",
+    "doneA11y": "Marcar “{{title}}” como hecho",
+    "undoA11y": "Marcar “{{title}}” como no hecho",
+    "allDone": "Los dos están hechos. Así cambia el ambiente: un día a la vez.",
+    "error": "No se guardó. Revisa tu conexión e inténtalo de nuevo.",
+    "category": {
+      "reward": "Premia el tiempo sin consumo",
+      "consequences": "Da un paso atrás",
+      "communication": "Habla para que te escuche",
+      "timing": "El momento",
+      "selfcare": "Cuídate tú",
+      "safety": "Seguridad"
+    },
+    "hint": {
+      "soberMoments": "Tus notas: “{{item}}”",
+      "triggers": "Tus notas: “{{item}}”",
+      "costs": "Tus notas: “{{item}}”",
+      "phrases": "Suele decir: “{{item}}”"
+    },
+    "reward_name_it": {
+      "title": "Nombra en voz alta un momento sin consumo",
+      "body": "Cuando hoy le veas sin haber consumido, aunque sea una hora, dile lo que notaste en ese mismo momento. Sé específica y déjalo ahí: sin “pero” y sin “por fin”.",
+      "example": "“Me encantó tomar café contigo esta mañana. Estabas tan presente.”"
+    },
+    "reward_sober_plan": {
+      "title": "Que el tiempo sin consumo sea el tiempo bueno",
+      "body": "Planea algo pequeño que disfrute y que solo pase cuando no ha consumido: su comida favorita, un paseo en auto, un juego, una serie juntos. Si ha consumido, simplemente no pasa, sin discursos.",
+      "example": "“Esta noche hago tu guiso favorito, ¿cenamos juntos?”"
+    },
+    "reward_best_hour": {
+      "title": "Está presente en su mejor hora",
+      "body": "Ya sabes cuándo suele estar sin consumir y más accesible. Está cerca hoy en ese momento: cálida, sin prisa, sin agenda y sin hablar del consumo.",
+      "example": "Acompáñale en ese rato y hablen de cualquier otra cosa."
+    },
+    "reward_thank_effort": {
+      "title": "Agradece el esfuerzo en el momento",
+      "body": "Si deja pasar un trago, llega a tiempo o cumple una pequeña promesa, agradéceselo en ese mismo minuto. Algo pequeño y específico vale más que algo grande y tarde.",
+      "example": "“Gracias por avisarme que llegabas tarde. Me ayudó mucho.”"
+    },
+    "reward_warm_moment": {
+      "title": "Que el tiempo sin consumo se sienta bien",
+      "body": "Cuando no ha consumido, ofrece el cariño que encaje en su relación: un abrazo, una risa, una broma de ustedes. Le muestras cómo puede sentirse la vida sin consumir.",
+      "example": "“Qué bueno es pasar un rato contigo así.”"
+    },
+    "step_back_when_using": {
+      "title": "Apártate mientras consume",
+      "body": "Si hoy está bebiendo o drogado, sal de la habitación con calma o termina la llamada. Sin discutir, sin sermones. El cariño vuelve cuando no ha consumido.",
+      "example": "“Me voy a dormir. Me encantaría hablar mañana.”"
+    },
+    "let_it_land": {
+      "title": "No amortigües una consecuencia",
+      "body": "Elige algo que sueles arreglar después de que consume —una llamada al trabajo, un desorden, una multa— y deja que hoy siga siendo su responsabilidad. En silencio, sin anunciarlo.",
+      "example": "Deja las botellas donde las dejó."
+    },
+    "no_cover_story": {
+      "title": "No le inventes excusas",
+      "body": "Si alguien pregunta por qué faltó a algo, no tienes que cubrirle ni dar explicaciones. Basta con desviar la pregunta con amabilidad.",
+      "example": "“Eso tendrías que preguntárselo a él.”"
+    },
+    "money_line": {
+      "title": "Mantén tu límite con el dinero",
+      "body": "Si hoy te pide dinero, puedes decir que no con cariño, o pagar directamente algo específico, como una factura o la compra, en lugar de darle efectivo.",
+      "example": "“No te voy a dar efectivo, pero con gusto te compro la comida.”"
+    },
+    "morning_after": {
+      "title": "Que la mañana siguiente sea suya",
+      "body": "Después de una noche de consumo, no cargues con las consecuencias: la alarma que no sonó, las disculpas con otros, los planes cancelados. Sé amable y sigue con tu día.",
+      "example": "“Espero que te sientas mejor. Tengo pendientes, nos vemos luego.”"
+    },
+    "i_statement": {
+      "title": "Cambia un “tú” por un “yo”",
+      "body": "Di cómo te afecta algo en lugar de lo que hizo mal. Empieza con “yo siento” o “te quiero”. Es mucho más difícil discutir con eso.",
+      "example": "“Siento miedo cuando manejas después de beber, porque te quiero.”"
+    },
+    "understanding": {
+      "title": "Di que entiendes una cosa",
+      "body": "Nombra algo real de su lado: el estrés, el dolor, lo difícil que le parece dejarlo. Entender no es estar de acuerdo.",
+      "example": "“Sé que el trabajo ha sido durísimo y que beber parece tu único respiro.”"
+    },
+    "partial_responsibility": {
+      "title": "Asume una pequeña parte",
+      "body": "Hazte responsable de una pequeña parte de cómo han ido las conversaciones. Baja sus defensas sin justificar el consumo.",
+      "example": "“Sé que he gritado cuando tenía miedo. Ya no quiero hacerlo.”"
+    },
+    "offer_help": {
+      "title": "Ofrece ayuda",
+      "body": "Ofrece algo concreto y sin presión que le haga la vida más fácil, y deja la puerta abierta para una ayuda mayor.",
+      "example": "“Si algún día quieres hablar con alguien, yo busco a la persona indicada y te llevo.”"
+    },
+    "positive_request": {
+      "title": "Pide lo que sí quieres",
+      "body": "Convierte una queja en una petición clara y positiva. A una petición se le puede decir que sí; de una queja solo se puede defender.",
+      "example": "En lugar de “Deja de beber todas las noches”, prueba “¿Caminamos un rato después de cenar?”"
+    },
+    "listen_first": {
+      "title": "Escucha durante dos minutos",
+      "body": "En una conversación de hoy, solo escucha. Devuélvele lo que oyes antes de decir algo sobre ti.",
+      "example": "“Parece que sientes que todo el mundo está encima de ti.”"
+    },
+    "keep_it_short": {
+      "title": "Dilo en menos de 30 segundos",
+      "body": "Elige una sola cosa y dila brevemente. Las charlas largas se sienten como sermones, y los sermones levantan defensas.",
+      "example": "“Te quiero. Estoy preocupada. Aquí estoy.”"
+    },
+    "their_costs": {
+      "title": "Conéctalo con lo que le importa",
+      "body": "Tu mapa de patrones incluye costos que ha sentido en carne propia. Si uno sale de forma natural, refléjaselo con suavidad, sin “te lo dije”.",
+      "example": "“Te he visto muy desanimado con lo del trabajo.”"
+    },
+    "answer_their_line": {
+      "title": "Ten lista una respuesta tranquila",
+      "body": "Piensa en lo que suele decir cuando se habla de ayuda. Prepara una respuesta corta y tranquila que no discuta, y luego suéltalo.",
+      "example": "“Puede que tengas razón. Solo te quiero, y la oferta sigue en pie.”"
+    },
+    "pick_the_moment": {
+      "title": "Fíjate en los momentos abiertos",
+      "body": "Las conversaciones difíciles salen mejor cuando no ha consumido, está en calma y sin prisa, y cuando tú también lo estás. Hoy solo fíjate en cuándo pasan esos momentos.",
+      "example": "Anota un momento de hoy en que se veía más abierto."
+    },
+    "not_while_using": {
+      "title": "Nunca durante ni justo después del consumo",
+      "body": "Si ha consumido, o tiene resaca y está irritable, no es el momento. Esperar no es rendirse: es elegir el momento.",
+      "example": "“Hablemos mañana.”"
+    },
+    "after_a_consequence": {
+      "title": "Está lista cuando algo sale mal",
+      "body": "Después de una consecuencia —una multa, una pelea, un día perdido— suele abrirse una ventana corta en la que está más abierto. Mantén la calma y el cariño; evita el “te lo dije”.",
+      "example": "“Eso sonó horrible. Aquí estoy si quieres ayuda para resolverlo.”"
+    },
+    "plan_around_trigger": {
+      "title": "Planea algo alrededor de un detonante",
+      "body": "Tu mapa de patrones nombra situaciones en las que suele consumir. Planea algo agradable en una de ellas: una alternativa, no una confrontación.",
+      "example": "“¿Cenamos el viernes antes del partido?”"
+    },
+    "selfcare_one_thing": {
+      "title": "Una cosa solo para ti",
+      "body": "Haz hoy algo que te recargue: una caminata, una llamada con una amiga, una siesta, una serie. No es egoísmo; es mantenerte fuerte para el largo camino.",
+      "example": "Aparta 20 minutos en tu calendario y protégelos."
+    },
+    "selfcare_support": {
+      "title": "Habla con alguien de tu lado",
+      "body": "Busca a una persona que te apoye: una amiga, un grupo, tu coach. No tienes que cargar con esto sola.",
+      "example": "Escríbele a una amiga o únete a la llamada familiar del lunes."
+    },
+    "selfcare_sleep": {
+      "title": "Cuida tu sueño",
+      "body": "Esta noche no le esperes despierta ni revises su teléfono. Descansar es parte del plan.",
+      "example": "“Me voy a dormir. Escríbeme cuando llegues.”"
+    },
+    "selfcare_good_thing": {
+      "title": "Fíjate en algo bueno de tu vida",
+      "body": "Dedica cinco minutos a algo que te va bien: un pasatiempo, una amistad, un trabajo del que estás orgullosa. Tu vida importa más allá de su consumo.",
+      "example": "Escribe una cosa por la que hoy estás agradecida."
+    },
+    "selfcare_breathe": {
+      "title": "Respira antes de responder",
+      "body": "Cuando sientas ganas de discutir o suplicar, respira lento tres veces primero. Tu calma es tu herramienta más fuerte.",
+      "example": "Inhala en 4, sostén 4, exhala en 6."
+    },
+    "safety_plan": {
+      "title": "Haz un plan de seguridad",
+      "body": "Decide adónde irías y a quién llamarías si las cosas escalan: una habitación con llave, la casa de una amiga, tus llaves y tu teléfono a mano.",
+      "example": "Prepara una bolsa pequeña con identificación, medicinas y un cargador, y guárdala en un lugar seguro."
+    },
+    "safety_code_word": {
+      "title": "Elige una palabra clave",
+      "body": "Acuerda con alguien de confianza una palabra que signifique “pide ayuda ya”.",
+      "example": "Envía tu palabra clave a una amiga si necesitas que llame al 911."
+    },
+    "safety_talk_pro": {
+      "title": "Habla primero con una persona experta en seguridad",
+      "body": "Antes de cualquier conversación sobre tratamiento, háblalo con alguien capacitado en planes de seguridad. Es gratis y confidencial.",
+      "example": "Llama al 1-800-799-7233 o envía START al 88788."
+    },
+    "safety_not_alone": {
+      "title": "No hables del tratamiento a solas",
+      "body": "Si quieres invitarle a buscar ayuda, hazlo solo con la guía de un profesional y con otras personas presentes: nunca a solas y nunca mientras está consumiendo.",
+      "example": "Pídele a Matt o a un consejero que te ayude a planearlo."
+    }
+  },
+  "safety": {
+    "kicker": "LA SEGURIDAD PRIMERO",
+    "title": "Tu seguridad va primero",
+    "body": "Como ha habido violencia, amenazas o miedo, por favor no le invites a tratamiento tú sola. El motor no sugerirá ventanas para invitar. Te ayudará a mantenerte segura y a planear el siguiente paso con un profesional.",
+    "danger": "Si estás en peligro ahora mismo, llama al 911.",
+    "call911": "Llamar al 911",
+    "hotlineTitle": "Línea Nacional contra la Violencia Doméstica: gratis, confidencial, 24/7",
+    "callHotline": "Llamar al 1-800-799-7233",
+    "textHotline": "Envía START al 88788",
+    "mattTitle": "Planéalo con un profesional",
+    "mattBody": "Cuéntale a Matt tu situación. Te ayudará a encontrar un siguiente paso seguro, incluso si conviene hablar del tratamiento y cómo hacerlo.",
+    "mattButton": "Háblalo con Matt"
+  },
+  "setup": {
+    "kicker": "MAPA DE PATRONES",
+    "progress": "Paso {{step}} de {{total}}",
+    "privacy": "Solo lo ves tú. Tu familia nunca ve tus respuestas.",
+    "saveError": "No se guardó. Revisa tu conexión e inténtalo de nuevo; tus respuestas siguen aquí.",
+    "loadErrorTitle": "No se pudo abrir tu mapa de patrones",
+    "loadErrorBody": "No pudimos cargar lo que guardaste antes. Inténtalo de nuevo: no vamos a empezar de cero ni a sobrescribir tus respuestas.",
+    "fromTracker": "De tu registro",
+    "addPlaceholder": "Agrégalo con tus palabras",
+    "add": "Agregar",
+    "addA11y": "Agregar “{{item}}”",
+    "removeA11y": "Quitar “{{item}}”",
+    "listFull": "Es suficiente: hasta 6 es lo ideal.",
+    "added": "Agregado",
+    "skipHint": "¿No estás segura? Sáltalo; puedes volver cuando quieras.",
+    "intro": {
+      "title": "Tracemos sus patrones",
+      "body": "CRAFT empieza por entender cuándo consume, qué le da el consumo y cuándo es más fácil hablar. Usa tus propias palabras: no hay respuestas incorrectas.",
+      "note": "Unos 10 minutos. Guardamos sobre la marcha, así que puedes parar cuando quieras.",
+      "start": "Empecemos"
+    },
+    "basics": {
+      "title": "¿A quién estamos ayudando?",
+      "nameLabel": "¿Cómo le llamas?",
+      "namePlaceholder": "Nombre o apodo",
+      "relationshipLabel": "Es mi…",
+      "substancesLabel": "¿Qué está consumiendo?"
+    },
+    "safety": {
+      "title": "Primero, tu seguridad",
+      "body": "Cuando has sacado el tema de su consumo, ¿ha habido violencia, amenazas, o has sentido miedo?",
+      "none": "No",
+      "noneBody": "Quizás discusiones, pero nunca me he sentido en peligro.",
+      "some": "Algo",
+      "someBody": "Gritos, portazos o cosas rotas: me he sentido intranquila.",
+      "serious": "Sí, algo serio",
+      "seriousBody": "Golpes, amenazas, armas, o tengo miedo de lo que pueda hacer.",
+      "someNote": "Gracias por contárnoslo. Mantén las conversaciones cortas, quédate cerca de una salida y nunca hables mientras está consumiendo. Si eso cambia, actualiza esta respuesta.",
+      "seriousNote": "Esto cambia solo tu plan: el motor no te sugerirá invitarle, no te enviará avisos de ventana y se enfocará en mantenerte segura. Nadie de tu espacio familiar se entera, y sus planes no cambian.",
+      "required": "Elige una opción para continuar."
+    },
+    "triggers": {
+      "title": "¿Cuándo suele consumir?",
+      "body": "Momentos, lugares, personas o sentimientos; por ejemplo, “los viernes en la noche”, “después del trabajo con Dani” o “después de que discutimos”."
+    },
+    "gives": {
+      "title": "¿Qué parece darle el consumo?",
+      "body": "No para justificarlo, sino para entenderlo. La ayuda funciona mejor cuando ofrece algo real a cambio."
+    },
+    "costs": {
+      "title": "¿Qué le ha costado, a sus propios ojos?",
+      "body": "Costos que ha sentido o de los que se ha quejado. Son las cosas que quizá quiera cambiar."
+    },
+    "sober": {
+      "title": "¿Cuándo está sin consumir y se puede hablar?",
+      "body": "Los momentos en que una conversación de verdad puede llegarle.",
+      "timesLabel": "Normalmente en…",
+      "times": {
+        "morning": "Las mañanas",
+        "afternoon": "Las tardes",
+        "evening": "Las noches",
+        "weekend": "Los fines de semana"
+      }
+    },
+    "phrases": {
+      "title": "¿Qué dice cuando se habla de ayuda?",
+      "body": "Sus palabras, tan parecidas como las recuerdes. La práctica de conversación las usa para que ensayes respuestas tranquilas."
+    },
+    "incidents": {
+      "title": "¿Algo reciente que podrías mencionar?",
+      "body": "Opcional. Un momento específico y reciente al que podrías referirte con cuidado, nunca como prueba en su contra.",
+      "placeholder": "p. ej., faltó al partido de Sam el sábado"
+    },
+    "review": {
+      "title": "Este es tu mapa de patrones",
+      "body": "Léelo con calma. Puedes cambiar cualquier cosa después.",
+      "empty": "Nada agregado",
+      "save": "Guardar mi mapa de patrones",
+      "edit": "Editar",
+      "safetyLabel": "Seguridad",
+      "timesLabel": "Suele estar accesible"
+    },
+    "alerts": {
+      "title": "¿Quieres un aviso?",
+      "body": "Cuando el pronóstico parezca una buena ventana, podemos enviarte una notificación discreta alrededor de las 5 p. m. En la pantalla de bloqueo solo dice “Tienes una nota para hoy”; abre la app para ver por qué. Como máximo una vez cada dos días. Puedes desactivarla cuando quieras.",
+      "toggle": "Envíame avisos de ventana",
+      "finish": "Terminar y ver los pasos de hoy"
+    },
+    "doneTitle": "Tu mapa de patrones está guardado",
+    "doneBody": "Ya hiciste la parte más difícil de CRAFT. Lo siguiente: dos pequeños pasos al día.",
+    "openEngine": "Abrir el Motor de Invitación",
+    "suggestions": {
+      "useTriggers": {
+        "afterWork": "Después del trabajo",
+        "weekends": "Los fines de semana",
+        "payday": "El día de pago",
+        "oldFriends": "Con amigos con los que consumía",
+        "stress": "Cuando está estresado",
+        "arguments": "Después de discutir",
+        "lateNight": "Tarde en la noche",
+        "alone": "Cuando está a solas",
+        "games": "Viendo partidos",
+        "pain": "Cuando tiene dolor"
+      },
+      "whatUseGives": {
+        "relief": "Alivio del estrés",
+        "sleep": "Le ayuda a dormir",
+        "confidence": "Confianza",
+        "numb": "Adormecer dolor o recuerdos",
+        "belonging": "Sentirse parte del grupo",
+        "fun": "Diversión",
+        "escape": "Escapar de los problemas",
+        "energy": "Energía"
+      },
+      "costsTheyFeel": {
+        "health": "La salud",
+        "job": "El trabajo",
+        "money": "El dinero",
+        "relationship": "Una relación",
+        "kids": "Tiempo con los hijos",
+        "legal": "Problemas legales",
+        "sleep": "El sueño",
+        "respect": "El respeto por sí mismo"
+      },
+      "soberMoments": {
+        "mornings": "Las mañanas",
+        "weekendMornings": "Las mañanas del fin de semana",
+        "drives": "En el auto",
+        "meals": "En las comidas",
+        "kids": "Con los niños cerca",
+        "goodDay": "Después de un buen día",
+        "outdoors": "Al aire libre",
+        "beforeWork": "Antes del trabajo"
+      },
+      "usualPhrases": {
+        "canStop": "Puedo dejarlo cuando quiera.",
+        "overreacting": "Estás exagerando.",
+        "everyone": "Todo el mundo bebe.",
+        "cutBack": "Voy a tomar menos.",
+        "leaveMe": "Déjame en paz.",
+        "notNow": "Ahora no.",
+        "notThatBad": "No es para tanto.",
+        "onMyCase": "¿Por qué siempre estás encima de mí?"
+      }
+    }
+  },
+  "kit": {
+    "kicker": "KIT DE INVITACIÓN",
+    "title": "Prepárate para pedírselo",
+    "body": "Tres cosas antes de invitarle: un siguiente paso listo, palabras que suenen a ti y un calentamiento rápido.",
+    "nextStepTitle": "1. Ten listo el siguiente paso",
+    "nextStepBody": "Un sí es frágil. Ten un siguiente paso concreto preparado para que pueda pasar hoy mismo.",
+    "program": "Programa: {{program}}",
+    "phone": "Admisiones: {{phone}}",
+    "openPlan": "Abrir tu Plan de Acción para el Tratamiento",
+    "noPlanBody": "Todavía no tienes un programa listo. Busca uno primero, para que un sí pueda convertirse en una llamada de inmediato.",
+    "findProgram": "Buscar un programa",
+    "linesTitle": "2. Tres formas de decirlo",
+    "linesBody": "Cada una dice: te quiero, esto es lo que he notado, ¿buscarías ayuda?, y yo te ayudo a llegar. Edítalas hasta que suenen a ti.",
+    "observationLabel": "Algo específico que notaste hace poco (opcional)",
+    "observationPlaceholder": "p. ej., te he visto muy cansado después del trabajo",
+    "personalize": "Redactar frases con mis palabras",
+    "personalizing": "Redactando…",
+    "aiNote": "Redactadas a partir de tu mapa de patrones. Edítalas con libertad.",
+    "aiUnavailable": "No pudimos redactar frases nuevas ahora; estas plantillas también funcionan bien.",
+    "aiLimit": "Hoy ya redactaste muchas. Usa estas plantillas o edita tu favorita.",
+    "style": {
+      "warm": "Empieza con cariño",
+      "observation": "Empieza con lo que notaste",
+      "help": "Empieza con tu oferta de ayuda"
+    },
+    "lineA11y": "Frase de invitación: {{style}}",
+    "choose": "Usar esta",
+    "chosen": "Usando esta ✓",
+    "softenTip": "Consejo: deja fuera las etiquetas y el “siempre/nunca”; suelen levantar defensas.",
+    "rehearse": "Ensayar esta",
+    "warmupTitle": "3. Calienta",
+    "warmupBody": "Un calentamiento de 90 segundos ayuda a que tu voz se mantenga firme cuando importa.",
+    "warmup": "Calentamiento de 90 segundos",
+    "rehearseAll": "Ensayar todo el kit",
+    "tipsTitle": "Antes de pedírselo",
+    "tips": {
+      "1": "Elige un momento tranquilo en que no haya consumido; nunca mientras consume ni justo después.",
+      "2": "Sé breve. Di tu frase y luego escucha.",
+      "3": "Si dice que no, mantén el cariño: “Está bien. La oferta sigue en pie.” Es una semilla, no un fracaso.",
+      "4": "Si algo empieza a sentirse inseguro, detente y apártate."
+    },
+    "log": "Ya se lo pedí: registrar cómo fue",
+    "planLoading": "Revisando tu Plan de Acción para el Tratamiento…"
+  },
+  "lines": {
+    "love": {
+      "open": "Te quiero, y he estado pensando mucho en ti.",
+      "openNamed": "{{name}}, te quiero, y he estado pensando mucho en ti.",
+      "close": "Te quiero, y eso no va a cambiar.",
+      "closeNamed": "Te quiero, {{name}}, y eso no va a cambiar."
+    },
+    "observe": {
+      "own": "Me he dado cuenta de que {{observation}}.",
+      "generic": "He notado que las cosas se te han hecho muy pesadas últimamente.",
+      "impact": "Se ve muy difícil, y no creo que sea lo que tú quieres tampoco."
+    },
+    "invite": {
+      "program": "¿Te animarías a hablar con alguien de {{program}}? Solo una conversación.",
+      "generic": "¿Te animarías a hablar con alguien que ayuda con esto? Solo una conversación."
+    },
+    "help": {
+      "drive": "Yo te llevo y te espero.",
+      "call": "Hago la llamada contigo, ahora mismo si quieres.",
+      "lead": "Quiero ayudarte de la forma que de verdad te lo haga más fácil.",
+      "sit": "Yo lo organizo, te llevo y me quedo contigo."
+    }
+  },
+  "outcome": {
+    "kicker": "¿CÓMO TE FUE?",
+    "title": "Registra cómo fue",
+    "body": "Un toque. Cada resultado le enseña al motor algo sobre tu familia.",
+    "options": {
+      "yes": "Dijo que sí",
+      "not_yet": "Todavía no",
+      "angry": "Se enojó",
+      "didnt_get_to_it": "No llegué a hacerlo"
+    },
+    "optionBody": {
+      "yes": "Movámonos ahora.",
+      "not_yet": "No aceptó, pero la puerta no está cerrada.",
+      "angry": "Terminó en conflicto.",
+      "didnt_get_to_it": "No llegó el momento."
+    },
+    "noteLabel": "Agrega una nota (opcional)",
+    "notePlaceholder": "Qué pasó, qué dijo…",
+    "whenLabel": "¿Cuándo se lo pediste?",
+    "when": {
+      "today": "Hoy",
+      "yesterday": "Ayer"
+    },
+    "styleLabel": "¿Qué frase usaste? (opcional)",
+    "style": {
+      "warm": "Empezar con cariño",
+      "observation": "Lo que noté",
+      "help": "Oferta de ayuda",
+      "own": "Mis propias palabras"
+    },
+    "save": "Guardar",
+    "saveError": "No se guardó. Revisa tu conexión e inténtalo de nuevo; tu respuesta sigue aquí.",
+    "yesTitle": "Este es el momento. Muévete ahora.",
+    "yesBody": "Abre tu plan y sigue los pasos de Dijo Que Sí: llama a admisiones, mantén la calma y vayan juntos. Si quieres la ayuda de Matt, escríbele desde la pestaña de Apoyo.",
+    "yesFocusBody": "Sigue los pasos de Dijo Que Sí aquí abajo: llama a admisiones, mantén la calma y vayan juntos.",
+    "openYes": "Abrir Dijo Que Sí",
+    "repairTitles": {
+      "not_yet": "Siembra la semilla",
+      "angry": "Primero, reparar",
+      "didnt_get_to_it": "Las ventanas vuelven"
+    },
+    "nextWindowLabel": "Próxima ventana sugerida",
+    "repair": {
+      "not_yet": {
+        "1": "Agradécele por escucharte, hoy y de forma específica.",
+        "2": "Sigue con los pasos diarios. Premia cada momento sin consumo que veas.",
+        "3": "No vuelvas a sacar el tema hasta la próxima ventana. La oferta sigue en pie."
+      },
+      "angry": {
+        "1": "Dale espacio. Nada de conversaciones de seguimiento hoy.",
+        "2": "Cuando las cosas estén en calma, asume tu parte: “Sé que te lo dije en un mal momento.”",
+        "3": "Vuelve a premiar el tiempo sin consumo, y vuelve a intentarlo después de una racha tranquila."
+      },
+      "didnt_get_to_it": {
+        "1": "Está bien. Esperar el momento adecuado es parte del trabajo.",
+        "2": "Sigue haciendo tus dos pasos de hoy.",
+        "3": "Revisa el pronóstico mañana y ten tu kit a mano."
+      }
+    },
+    "angrySafety": "Si alguien está en peligro ahora mismo, llama al 911.",
+    "backToEngine": "Volver al Motor de Invitación",
+    "yesBodyAlerted": "Le avisamos a Matt para que pueda comunicarse contigo. Por ahora, abre tu plan y sigue los pasos de Dijo Que Sí: llama a admisiones, mantén la calma y vayan juntos."
+  },
+  "progress": {
+    "kicker": "TU PROGRESO",
+    "title": "Lo que has hecho",
+    "body": "Cada paso cuenta, haya dicho que sí o todavía no.",
+    "stats": {
+      "movesDone": "Pasos hechos",
+      "moveDays": "Días con pasos",
+      "attempts": "Invitaciones",
+      "yes": "Síes",
+      "goodDays": "Días de buena ventana"
+    },
+    "attemptsTitle": "Invitaciones recientes",
+    "attemptsNone": "Todavía no registras invitaciones, y está bien. Los pasos diarios son el trabajo.",
+    "outcome": {
+      "yes": "Sí",
+      "not_yet": "Todavía no",
+      "angry": "Se enojó",
+      "didnt_get_to_it": "No llegué a hacerlo"
+    },
+    "forecastTitle": "Historial del pronóstico",
+    "forecastNone": "Tu historial empieza el primer día que abras el motor.",
+    "forecastA11y": "{{date}}: {{level}}",
+    "pushedNote": "Se envió un aviso de ventana",
+    "learningTitle": "Lo que le funciona a tu familia",
+    "learningBody": "Conteos sencillos de lo que pasaba antes de cada invitación. Los patrones se aclaran después de algunos intentos.",
+    "learningNone": "Registra algunas invitaciones para ver patrones aquí.",
+    "learningFamily": "Incluye invitaciones registradas por tu espacio familiar.",
+    "bySource": "Antes de la invitación",
+    "byStyle": "Frase que usaste",
+    "sources": {
+      "consequence": "Después de una consecuencia",
+      "trend": "El registro iba mejorando",
+      "sober_time": "Su momento sin consumo",
+      "consistency": "Pasos diarios constantes",
+      "calm": "Un día en calma",
+      "none": "Sin una señal clara"
+    },
+    "row": "{{asks}} intentos · {{yes}} sí · {{notYet}} todavía no · {{angry}} enojo",
+    "loadError": "No se pudo cargar tu progreso. Inténtalo de nuevo."
+  },
+  "today": {
+    "kicker": "MOTOR DE INVITACIÓN",
+    "hookTitle": "Ayúdale a decir que sí",
+    "hookBody": "Traza sus patrones en unos 10 minutos: el primer paso de CRAFT, la forma más estudiada en que las familias ayudan a un ser querido que rechaza la ayuda a llegar a tratamiento.",
+    "hookButton": "Empezar el mapa de patrones",
+    "continueButton": "Terminar tu mapa de patrones",
+    "safetyTitle": "La seguridad primero",
+    "safetyBody": "Tu plan está en modo de seguridad primero. La ayuda y las líneas de apoyo están a un toque.",
+    "paywallBody": "Tu mapa de patrones está guardado. La membresía abre dos pasos diarios, el pronóstico de receptividad y tu kit de invitación.",
+    "finishSetupBody": "Tu mapa de patrones está guardado. Un paso más y tus dos primeros pasos estarán listos.",
+    "finishSetup": "Terminar la configuración",
+    "forecastLabel": "Hoy: {{level}}",
+    "open": "Abrir el motor",
+    "prepare": "Prepara la invitación"
+  },
+  "paused": {
+    "kicker": "INVITACIONES EN PAUSA",
+    "in_treatment": {
+      "title": "Está en tratamiento",
+      "body": "El motor deja de sugerir ventanas para invitar mientras está en tratamiento. Sigue cuidándote y sigue notando y premiando cada paso sin consumo. Si eso cambia, actualiza su etapa en Hoy."
+    },
+    "after_yes": {
+      "title": "Se registró un sí",
+      "body": "Alguien de tu familia escuchó un sí, así que las ventanas para invitar están en pausa por ahora. Mantén firmes los siguientes pasos con tu Plan de Acción para el Tratamiento. Si algo cambia, registra una actualización."
+    },
+    "openPlan": "Abrir tu Plan de Acción para el Tratamiento",
+    "logUpdate": "¿Cambiaron las cosas? Registra una actualización",
+    "returning_home": {
+      "title": "Está regresando a casa",
+      "body": "Por ahora no hacen falta más invitaciones. Enfócate en un regreso tranquilo: rutinas estables, límites claros y notar cada paso sin consumo."
+    },
+    "in_recovery": {
+      "title": "Está en recuperación",
+      "body": "El motor dejó de sugerir ventanas para invitar. Sigue premiando la recuperación que ves y sigue cuidándote. Si vuelve a consumir, actualiza su etapa en Hoy y el motor volverá a ponerse en marcha."
+    },
+    "openHomecoming": "Abrir la semana de regreso a casa",
+    "updateStage": "¿Cambió su etapa? Actualízala en Hoy"
+  },
+  "windowSafety": {
+    "title": "Pasó algo: primero, tu seguridad",
+    "body": "Una consecuencia puede hacer que alguien esté más abierto, pero como nos contaste de violencia o amenazas, por favor no hables del tratamiento tú sola ahora. Planea cualquier siguiente paso con un profesional.",
+    "options": "Ver tus opciones de seguridad",
+    "unknownTitle": "Pasó algo hace poco",
+    "unknownBody": "No pudimos revisar tu configuración de seguridad ahora mismo, así que no te sugerimos qué decir. Si algo se siente inseguro, no hables del tratamiento tú sola.",
+    "retry": "Intentar de nuevo"
+  },
+  "crisis": {
+    "kicker": "HAGAMOS UNA PAUSA",
+    "title": "Hagamos una pausa con la invitación",
+    "body": "Lo que escribiste suena a que alguien podría estar en peligro: tú o tu ser querido. Antes de cualquier invitación, busca apoyo real. Nada de tu plan cambió; esto es solo por ahora.",
+    "danger": "Si alguien está en peligro ahora mismo, llama al 911. Si habló de suicidio, llama o envía un mensaje al 988.",
+    "call911": "Llamar al 911",
+    "call988": "Llamar al 988",
+    "text988": "Enviar mensaje al 988",
+    "editHint": "Si no quisiste decir eso, cambia lo que escribiste arriba.",
+    "mapHint": "Esto viene de tu mapa de patrones. Si no es lo que quisiste decir, puedes revisarlo ahí.",
+    "editMap": "Editar tu mapa",
+    "planHint": "Esto viene del nombre del programa en tu Plan de Acción para el Tratamiento.",
+    "editPlan": "Abrir tu Plan de Acción para el Tratamiento",
+    "acknowledge": "Estoy a salvo ahora — mostrar mis frases",
+    "reviewSafety": "Revisar tu respuesta de seguridad",
+    "acknowledgedNote": "Dijiste que estás a salvo ahora. Si eso cambia, detente y llama al 911."
+  }
+}

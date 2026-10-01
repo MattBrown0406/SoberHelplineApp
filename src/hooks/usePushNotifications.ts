@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { AppState, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
@@ -11,6 +11,8 @@ import { AsyncWriteBarrier } from '../lib/appFlowGuards';
 import { getPushDestination, shouldHandlePushResponse } from '../lib/pushRouting';
 import { settlePendingPushTokenRevoke } from '../lib/pendingPushTokenRevoke';
 import { isDeviceSignedIn } from '../lib/pushDevice';
+import { shouldDeferPushRouting } from '../lib/pushColdStart';
+import { useAccount } from '../contexts/AccountContext';
 import type { Entitlements } from '../api/types';
 export const LEGACY_NUDGE_PREFIX = 'legacy-daily-nudge:v1:';
 const LEGACY_OPT_IN_KEY = 'legacy-daily-nudge-opt-in:v1:';
@@ -250,6 +252,9 @@ export function usePushNotifications(
   entitlements: Entitlements | null = null,
 ): void {
   const router = useRouter();
+  const { entitlementsSettled } = useAccount();
+  // A tap held back until entitlements settle (see shouldDeferPushRouting).
+  const deferredResponse = useRef<Notifications.NotificationResponse | null>(null);
 
   useEffect(() => {
     if (!accountId) return;
@@ -280,6 +285,13 @@ export function usePushNotifications(
     ): Promise<boolean> => {
       const rawData = response.notification.request.content.data ?? {};
       const data = rawData as Record<string, unknown>;
+      // During a cold start the entitlements may still be the free-tier
+      // fallback. Leave a gated tap unhandled (not de-duplicated, not cleared);
+      // this effect re-runs when the account finishes enriching.
+      if (shouldDeferPushRouting(data, entitlements, entitlementsSettled)) {
+        deferredResponse.current = response;
+        return false;
+      }
       const destination = getPushDestination(data, { entitlements });
       // Only an expired or malformed practice call is discarded; everything else opens the app.
       if (!destination) return true;
@@ -310,6 +322,9 @@ export function usePushNotifications(
     const responseSub = Notifications.addNotificationResponseReceivedListener((response) => {
       void openNotification(response);
     });
+    const deferred = deferredResponse.current;
+    deferredResponse.current = null;
+    if (deferred) void openNotification(deferred);
     void Notifications.getLastNotificationResponseAsync()
       .then(async (response) => {
         if (!response) return;
@@ -322,5 +337,5 @@ export function usePushNotifications(
       effectActive = false;
       responseSub.remove();
     };
-  }, [accountId, navigationReady, router, entitlements]);
+  }, [accountId, navigationReady, router, entitlements, entitlementsSettled]);
 }

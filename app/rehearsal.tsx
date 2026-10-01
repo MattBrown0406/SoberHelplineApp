@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Alert,
 } from 'react-native';
 import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import { useRouter, useLocalSearchParams, type Href } from 'expo-router';
@@ -15,6 +14,7 @@ import { RouteActivationGate } from '../src/contexts/RouteActivationContext';
 import { useRehearsalCount } from '../src/hooks/useRehearsalCount';
 import { useFeatureAccess } from '../src/hooks/useFeatureAccess';
 import { finalizeRecording } from '../src/lib/appFlowGuards';
+import { appAlert } from '../src/lib/appAlert';
 
 type Phase = 'prompt' | 'recording' | 'playback' | 'selfcheck' | 'done';
 
@@ -51,24 +51,41 @@ function RehearsalContent() {
     };
   }, [sound]);
 
-  useEffect(() => () => {
-    const active = recordingRef.current;
-    recordingRef.current = null;
-    if (active) void active.stopAndUnloadAsync().catch(() => undefined);
-    void Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(() => undefined);
+  // Privacy: once this screen is gone, no recorder may start or keep running —
+  // even if a permission prompt was still open when she navigated away.
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      const active = recordingRef.current;
+      recordingRef.current = null;
+      if (active) void active.stopAndUnloadAsync().catch(() => undefined);
+      void Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(() => undefined);
+    };
   }, []);
 
   async function startRecording() {
     try {
       const { status } = await Audio.requestPermissionsAsync();
+      if (!mountedRef.current) return;
       if (status !== 'granted') {
-        Alert.alert(t('microphoneNeededTitle'), t('privacyNote'));
+        appAlert(t('microphoneNeededTitle'), t('privacyNote'));
         return;
       }
       await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      if (!mountedRef.current) {
+        await Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(() => undefined);
+        return;
+      }
       const { recording: rec } = await Audio.Recording.createAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY,
       );
+      if (!mountedRef.current) {
+        await rec.stopAndUnloadAsync().catch(() => undefined);
+        await Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(() => undefined);
+        return;
+      }
       recordingRef.current = rec;
       setRecording(rec);
       setPhase('recording');
@@ -95,7 +112,7 @@ function RehearsalContent() {
       setRecording(null);
       void Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(() => undefined);
       setPhase('prompt');
-      Alert.alert(t('recordingErrorTitle'), t('recordingErrorFinish'));
+      appAlert(t('recordingErrorTitle'), t('recordingErrorFinish'));
       return;
     }
     recordingRef.current = null;
@@ -103,7 +120,7 @@ function RehearsalContent() {
     if (result.restoreError) {
       // The recording is already safely unloaded. Do not strand the UI in the
       // recording phase just because restoring the shared audio mode failed.
-      Alert.alert(t('recordingErrorTitle'), t('recordingErrorReset'));
+      appAlert(t('recordingErrorTitle'), t('recordingErrorReset'));
     }
     setSoundUri(result.uri);
     setPhase('playback');
@@ -269,6 +286,21 @@ function RehearsalContent() {
             <Text style={[styles.liveBtnText, { color: colors.coral }]}>{t('liveButton')}</Text>
             <Text style={[styles.liveBtnSub, { color: colors.inkSoft }]}>
               {liveLocked ? `🔒 ${t('liveButtonLocked')}` : t('liveButtonSub')}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Warm-up — 90 seconds against the partner before the real conversation */}
+        {(phase === 'prompt' || phase === 'done') && (
+          <TouchableOpacity
+            style={[styles.liveBtn, { borderColor: colors.coral }]}
+            onPress={() => router.push({ pathname: '/rehearsal-live', params: { warmup: '1', sourceId } })}
+            accessibilityRole="button"
+            activeOpacity={0.85}
+          >
+            <Text style={[styles.liveBtnText, { color: colors.coral }]}>{t('warmupButton')}</Text>
+            <Text style={[styles.liveBtnSub, { color: colors.inkSoft }]}>
+              {liveLocked ? `🔒 ${t('liveButtonLocked')}` : t('warmupButtonSub')}
             </Text>
           </TouchableOpacity>
         )}

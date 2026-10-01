@@ -14,7 +14,18 @@
     "startButton": "Start practicing",
     "whyTitle": "This is practice — and practice is the point",
     "whyBody": "This isn't a game you win. Addiction has compromised your loved one's ability to make healthy choices, so the person you'll really face may deflect, bargain, or lash out no matter how well you speak. The partner here won't just give in either — because the real one won't. What changes with every rep is you: steadier nerves, cleaner words, a calmer hold on your ask. That's what walks into the real room.",
-    "pastSessions": "View past sessions"
+    "pastSessions": "View past sessions",
+    "profileToggleOn": "✓  Practicing with the real {{name}} — tap to use a generic partner",
+    "profileToggleOff": "Use what I've told you about {{name}}",
+    "profileToggleHint": "Their own phrases, triggers, and recent incidents shape how the partner pushes back.",
+    "situationLabel": "What's going on right now?",
+    "familyToggleOn": "👥  Practicing as a family — tap to practice alone",
+    "familyToggleOff": "👥  Practice as a family (2–4 people)",
+    "whisperToggleOn": "💬  Whisper coach on — quiet tips while you talk",
+    "whisperToggleOff": "💬  Whisper coach off — tap for quiet tips while you talk",
+    "suggestedLevel": "Suggested from your recent reps: {{level}} — tap to use it",
+    "warmupLink": "Short on time? Do a 90-second warm-up",
+    "fullPracticeLink": "Want the full practice instead?"
   },
   "relationships": {
     "spouse": "Spouse",
@@ -49,7 +60,7 @@
     },
     "tearful": {
       "title": "Guilt-ridden",
-      "desc": "Collapses into shame and self-blame — \"I'm a screw-up, I should just disappear\" — and pulls you into comforting them instead of answering your ask."
+      "desc": "Collapses into shame and self-blame — \"I'm a screw-up, I ruin everything\" — and pulls you into comforting them instead of answering your ask."
     }
   },
   "chat": {
@@ -69,10 +80,32 @@
     "error": "Couldn't reach your practice partner. Check your connection and try again.",
     "dailyLimit": "You've reached today's practice limit. Your practice partner will be ready again tomorrow.",
     "safetyTitle": "Let's pause the practice",
-    "safetyBody": "It sounds like you might be carrying something real right now. Tap here for immediate support options — this matters more than rehearsal.",
+    "safetyBody": "It sounds like you might be carrying something real right now. This matters more than rehearsal — reach out now, any time of day:",
     "holdToSpeak": "Hold to speak",
     "releaseWhenDone": "Listening — release when done",
-    "openingLabel": "Your opening line — tap to use it"
+    "openingLabel": "Your opening line — tap to use it",
+    "introFamily": "Take turns talking to {{name}}. Tap who's speaking before each line — hold the mic to speak, or type.",
+    "coachHintLabel": "Coach:",
+    "redoLabel": "Take this moment again — last time:",
+    "lineTrimmed": "That was a lot for one line, so we kept the first part. Shorter lines land better anyway — say the rest next.",
+    "voiceUnavailableTitle": "Couldn't use that recording",
+    "voiceUnavailableBody": "Your recording couldn't be read on this device. Try again, or type your words instead.",
+    "recordingTooLongTitle": "That recording is too long",
+    "recordingTooLongBody": "Keep each recording under about two and a half minutes. Try again in shorter pieces, or type your words instead.",
+    "abuseTitle": "Let's pause the practice — your safety comes first",
+    "abuseBody": "What you just shared sounds like you're being hurt. You deserve to be safe. If you're in danger right now, call 911. The National Domestic Violence Hotline is free and confidential, 24/7.",
+    "call911": "Call 911",
+    "callHotline": "Call 1-800-799-7233",
+    "textHotline": "Text START to 88788",
+    "moreSupport": "More support options",
+    "thirtySecondsLeft": "About 30 seconds left in this recording.",
+    "safetyUnknownTitle": "Let's pause the practice",
+    "safetyUnknownBody": "What you shared matters more than any rehearsal. If you're in danger, call 911. Help is here right now, day or night:",
+    "call988": "Call 988 (Suicide & Crisis Lifeline)",
+    "text988": "Text 988",
+    "keepPracticing": "I'm safe — keep practicing",
+    "keepPracticingHint": "Removes that line and goes back to the practice. Help stays one tap away.",
+    "getHelpNow": "Get help now"
   },
   "debrief": {
     "heading": "Coach's feedback",
@@ -87,7 +120,50 @@
     "drillLabel": "Your next drill",
     "againButton": "Practice again",
     "doneButton": "Done for now",
-    "encouragement": "There's no winning or losing here — there's only getting readier. Run it again with a different mood, or a harder one. Every rep makes the real conversation better."
+    "encouragement": "There's no winning or losing here — there's only getting readier. Run it again with a different mood, or a harder one. Every rep makes the real conversation better.",
+    "redoButton": "↺ Redo from here",
+    "redoLabel": "Go back to just before this line and say it again",
+    "delivery": {
+      "title": "Delivery",
+      "pace": "Pace",
+      "paceValue": "{{wpm}} wpm",
+      "fillers": "Filler words",
+      "iYou": "\"I\" / \"you\"",
+      "questions": "Questions",
+      "avgTurn": "Avg. turn",
+      "avgTurnValue": "{{words}} words",
+      "typedNote": "Say your lines out loud next time to get feedback on pace, filler words, and volume.",
+      "tips": {
+        "paceFast": "You averaged {{wpm}} words a minute — fast for a hard conversation. Slow down; pauses help your words land.",
+        "fillersHigh_one": "{{count}} filler word ({{examples}}). A short silence sounds surer than \"um\" — let yourself pause.",
+        "fillersHigh_other": "{{count}} filler words ({{examples}}). A short silence sounds surer than \"um\" — let yourself pause.",
+        "youHeavy": "{{you}} of your sentences started with \"you\" and {{i}} with \"I.\" \"You\" sentences land as blame — try \"I feel… when…\" instead.",
+        "longTurns": "Your turns averaged {{words}} words. Long turns start to sound like a lecture — two or three sentences is plenty.",
+        "loudPeaks_one": "Your voice spiked in {{count}} of {{total}} spoken turns. When they push, try getting quieter, not louder.",
+        "loudPeaks_other": "Your voice spiked in {{count}} of {{total}} spoken turns. When they push, try getting quieter, not louder.",
+        "noQuestions": "You didn't ask a single question. One honest question — \"What would help?\" — invites them in.",
+        "paceSteady": "Your pace ({{wpm}} words a minute) was calm and easy to follow.",
+        "fillersLow": "Hardly any filler words — you sounded sure of what you were saying.",
+        "iStrong_one": "You spoke from \"I\" {{count}} time — that's how you keep them listening.",
+        "iStrong_other": "You spoke from \"I\" {{count}} times — that's how you keep them listening.",
+        "questionsAsked_one": "You asked a question — questions invite them in instead of pushing.",
+        "questionsAsked_other": "You asked {{count}} questions — questions invite them in instead of pushing.",
+        "steadyVolume": "Your volume stayed steady even when they pushed.",
+        "shortTurns": "Short, clear turns (about {{words}} words) — easy for them to take in."
+      }
+    },
+    "difficulty": {
+      "upTitle": "Ready for a tougher conversation?",
+      "upBody": "You've held steady against {{current}}. Try {{level}} next — same skills, more pressure.",
+      "upButton": "Try {{level}}",
+      "stayTitle": "Stay here for another rep",
+      "stayBody": "One more rep against {{current}} locks in what you're building.",
+      "topTitle": "You're practicing at the hardest level",
+      "topBody": "Keep repping against {{current}} — or switch to a different mood to keep it fresh.",
+      "downTitle": "Step down for a rep?",
+      "downBody": "That one was rough — that's exactly what practice is for. A rep against {{level}} rebuilds your footing.",
+      "downButton": "Try {{level}}"
+    }
   },
   "history": {
     "loadError": "Your practice history could not be loaded. Please try again.",
@@ -100,6 +176,94 @@
     "deleteBody": "This removes the transcript and coaching feedback permanently.",
     "deleteCancel": "Keep",
     "deleteConfirm": "Delete",
-    "privacyNote": "Sessions are visible only to you. Audio is never saved."
+    "privacyNote": "Sessions are visible only to you. Audio is never saved.",
+    "trendTitle": "Your trend",
+    "trendBody_one": "Your last full practice.",
+    "trendBody_other": "Your last {{count}} full practices, oldest to newest.",
+    "trendUp": "+{{value}} since your first",
+    "trendDown": "−{{value}} since your first",
+    "trendSame": "steady",
+    "trendRowLabel": "{{label}}: scores {{scores}}, {{change}}",
+    "tags": {
+      "warmup": "Warm-up",
+      "family": "Family",
+      "letter": "Letter",
+      "invitation": "Invitation",
+      "redo": "Redo"
+    },
+    "presets": {
+      "late_night_pickup": "Late-night call",
+      "money_urgent": "Asking for money",
+      "relapse_confession": "Relapse call",
+      "crisis_blame": "Blame call",
+      "relapse_after_treatment": "Relapse after treatment",
+      "er_aftermath": "Call from the ER",
+      "arrest_aftermath": "Call after an arrest"
+    }
+  },
+  "situations": {
+    "none": "A regular day",
+    "said_no": "They already said no",
+    "money_urgent": "Asking for money",
+    "relapse_after_treatment": "Relapse after treatment",
+    "er_aftermath": "After an ER visit",
+    "arrest_aftermath": "After an arrest"
+  },
+  "situationDesc": {
+    "none": "Nothing just happened — you're the one bringing it up.",
+    "said_no": "You invited them to get help and they refused. Practice staying warm, accepting the no for now, and planting a seed.",
+    "money_urgent": "They asked you for money — again. Practice a warm, clear no that still offers help that isn't cash.",
+    "relapse_after_treatment": "They came home from treatment and used again. Practice responding without shame and naming the next step.",
+    "er_aftermath": "A scare that ended in the emergency room, and now they're minimizing it. Practice meeting the moment with love, not \"I told you so.\"",
+    "arrest_aftermath": "They were arrested and want it to go away. Practice letting the consequence stand while you point toward help."
+  },
+  "family": {
+    "heading": "Who's in the room?",
+    "body": "Add up to four people. Before each line, tap who's speaking — {{name}} will react to all of you.",
+    "namePlaceholder": "Name",
+    "nameLabel": "Name of person {{number}}",
+    "me": "Me",
+    "add": "+ Add a person",
+    "remove": "Remove",
+    "removeLabel": "Remove {{name}}",
+    "needTwoTitle": "Add one more person",
+    "needTwo": "A family practice needs at least two names. Add another person, or turn family practice off to practice alone.",
+    "speaking": "Speaking:",
+    "speakerLabel": "{{name}} is speaking",
+    "relationships": {
+      "mother": "Mom",
+      "father": "Dad",
+      "spouse": "Spouse",
+      "partner": "Partner",
+      "sibling": "Sibling",
+      "child": "Their child",
+      "grandparent": "Grandparent",
+      "friend": "Friend",
+      "other": "Other"
+    }
+  },
+  "practice": {
+    "letterLabel": "Your letter — read it the way you will on the day",
+    "invitationLabel": "Your invitation — say it the way you will for real",
+    "textLabel": "Practice saying this",
+    "instructions": "Read it out loud. Tap the button to start and again when you're done — {{name}} will react to what they just heard.",
+    "readAloud": "🎤  Read it aloud",
+    "doneReading": "■  Done — send it",
+    "sendAsWritten": "Send it as written instead",
+    "truncated": "This is longer than one practice delivery can hold, so we'll use the first part. A shorter version will land better on the day, too.",
+    "paused": "Paused at the time limit — what you read so far is kept. Pick up where you left off, then tap Done.",
+    "keepReading": "🎤  Keep reading",
+    "doneSendParts": "Done — send what I've read"
+  },
+  "warmup": {
+    "heading": "Warm up before you talk tonight",
+    "body": "Ninety seconds, three exchanges, one quick tip. Say your first line to {{name}} out loud — that's the whole warm-up.",
+    "start": "Start the 90-second warm-up",
+    "timer": "{{time}} left in your warm-up",
+    "timeUp": "Time's up — finish this exchange and get your tip.",
+    "debriefHeading": "You're warmed up",
+    "encouragement": "That's the warm-up. Take a breath — you've already said the hardest first words once today.",
+    "againButton": "Warm up again",
+    "readyButton": "I'm ready"
   }
 }

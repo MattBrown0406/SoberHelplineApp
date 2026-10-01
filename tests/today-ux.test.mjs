@@ -20,6 +20,7 @@ function mount(name, props = {}) {
     if (id === 'expo-router') return { useRouter: () => ({ push: route => { routes.push(route); } }) };
     if (id === 'react-i18next') return { useTranslation: () => ({ t: (key, params) => params ? `${key}:${JSON.stringify(params)}` : key }) };
     if (id.includes('ThemeContext')) return { useTheme: () => ({ colors: {} }) };
+    if (id.endsWith('lib/appAlert')) return { appAlert: (...args) => alerts.push(args) };
     if (id.includes('caregiverCheckIn')) return { CAREGIVER_SUPPORT_NEEDS: ['rest', 'safety'], CAREGIVER_RESPONSE_ROUTE: {}, caregiverResponseKey: () => null };
     throw Error(id);
   };

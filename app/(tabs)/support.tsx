@@ -7,7 +7,6 @@ import {
   Modal,
   Linking,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
@@ -15,6 +14,7 @@ import {
 } from 'react-native';
 import { supabase } from '../../src/lib/supabase';
 import { recordVerifiedPurchase, withTimeoutFallback } from '../../src/lib/authBootstrap';
+import { appAlert } from '../../src/lib/appAlert';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -517,7 +517,7 @@ export default function SupportScreen() {
         setQuestionSubmitted(false);
       }, 1500);
     } catch {
-      Alert.alert(t('questionModal.errorTitle'), t('questionModal.errorBody'));
+      appAlert(t('questionModal.errorTitle'), t('questionModal.errorBody'));
     } finally {
       setQuestionSubmitting(false);
     }
@@ -540,7 +540,7 @@ export default function SupportScreen() {
       await refreshAccount().catch(() => undefined);
       closeUpgrade();
     } else if (result === 'failed') {
-      Alert.alert(t('upgradeSheet.title'), t('upgradeSheet.iapError'));
+      appAlert(t('upgradeSheet.title'), t('upgradeSheet.iapError'));
     }
   }
 
@@ -551,13 +551,32 @@ export default function SupportScreen() {
   const { sessions, toggleRsvp } = useSessions(user?.id ?? null);
   const handleSessionRsvp = async (session: DbSession) => {
     const saved = await toggleRsvp(session);
-    if (!saved) Alert.alert(t('sessions.rsvpErrorTitle'), t('sessions.rsvpErrorBody'));
+    if (!saved) appAlert(t('sessions.rsvpErrorTitle'), t('sessions.rsvpErrorBody'));
   };
   const groups = getSupportGroups();
   const { myRooms, liveRooms } = useGroupPresence(user?.id ?? null);
   const { rsvpedRooms, pendingRooms, toggleRsvp: toggleGroupRsvp } = useGroupRsvps(user?.id ?? null);
   const canAccessPrivateVideo = !!user && entitlements.canAccessPrivateVideo;
   const hasMembershipAccess = entitlements.canAccessGroups;
+  // Members off the Text Line plan can still read Matt's replies to their
+  // situation briefs; give them a lasting way back to them.
+  const [hasCoachReplies, setHasCoachReplies] = useState(false);
+  useEffect(() => {
+    if (!user || hasMembershipAccess) {
+      setHasCoachReplies(false);
+      return;
+    }
+    let active = true;
+    void supabase
+      .from('messages')
+      .select('id, threads!inner(kind)', { count: 'exact', head: true })
+      .eq('sender_role', 'coach')
+      .eq('threads.kind', 'oncall')
+      .then(({ count }) => {
+        if (active) setHasCoachReplies((count ?? 0) > 0);
+      });
+    return () => { active = false; };
+  }, [user?.id, hasMembershipAccess]);
   const privateVideo = usePrivateVideoSessions(user?.id ?? null, canAccessPrivateVideo);
   const isAdmin = isAdminEmail(user?.email);
 
@@ -660,8 +679,8 @@ export default function SupportScreen() {
 
         <View style={[styles.card, { borderColor: colors.line, backgroundColor: colors.white }]}>
           <Text accessibilityRole="header" style={[styles.referralTitle, { color: colors.ink }]}>{copy.benefits}</Text>
-          <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={() => router.push('/membership-guide')}><Text style={{ color: colors.primary }}>{current === 'es' ? 'Cómo funciona el apoyo de coaching' : 'What coaching support looks like'}</Text></TouchableOpacity>
-          <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={() => router.push('/free-practice')}><Text style={{ color: colors.primary }}>{current === 'es' ? 'Practica una conversación gratis' : 'Try a free conversation practice'}</Text></TouchableOpacity>
+          <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={() => router.push('/membership-guide')}><Text style={{ color: colors.primary }}>{t('coachingGuideLink')}</Text></TouchableOpacity>
+          <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={() => router.push('/free-practice')}><Text style={{ color: colors.primary }}>{t('freePracticeLink')}</Text></TouchableOpacity>
           <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{copy.free}</Text>
           <Text style={[styles.referralBody, { color: colors.inkSoft, marginTop: 10 }]}>{copy.essential}</Text>
           <Text style={[styles.referralBody, { color: colors.inkSoft, marginTop: 10 }]}>{copy.premier}</Text>
@@ -773,6 +792,17 @@ export default function SupportScreen() {
         {/* Free tier: Monday group + upgrade card */}
         {!isAttached && !hasMembershipAccess && (
           <>
+            {hasCoachReplies ? (
+              <TouchableOpacity
+                accessibilityRole="button"
+                style={[styles.card, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]}
+                onPress={() => router.push('/chat')}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.referralTitle, { color: colors.ink }]}>{t('coachReplies.title')}</Text>
+                <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{t('coachReplies.body')}</Text>
+              </TouchableOpacity>
+            ) : null}
             <View style={[styles.card, { borderColor: colors.line }]}>
               <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
                 {t('mondayGroup.eyebrow')}
@@ -1136,8 +1166,10 @@ export default function SupportScreen() {
                         return;
                       }
                       const saved = await toggleGroupRsvp(room);
-                      if (!saved) {
-                        Alert.alert(t('groups.rsvpErrorTitle'), t('groups.rsvpErrorBody'));
+                      if (saved === 'removed') {
+                        appAlert(t('groups.rsvpErrorTitle'), t('groups.removedBody'));
+                      } else if (!saved) {
+                        appAlert(t('groups.rsvpErrorTitle'), t('groups.rsvpErrorBody'));
                       }
                     }}
                   >

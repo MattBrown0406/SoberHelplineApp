@@ -4,9 +4,9 @@ import {
   Text,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   StyleSheet,
 } from 'react-native';
+import { appAlert } from '../src/lib/appAlert';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from '../src/components/ui/ScreenContainer';
@@ -89,7 +89,7 @@ export default function AdminBriefScreen() {
       // The brief is marked replied server-side when a reply is actually sent.
       router.push({ pathname: '/admin-thread' as never, params: { threadId: String(threadId) } });
     } else {
-      Alert.alert('Could not open the conversation', error?.message ?? 'Please try again.');
+      appAlert('Could not open the conversation', error?.message ?? 'Please try again.');
     }
     setOpeningThread(false);
   }, [brief, openingThread, router]);

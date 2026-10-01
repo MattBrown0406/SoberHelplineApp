@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import {
   ActivityIndicator,
-  Alert,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -14,6 +14,8 @@ import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import { useAccount } from '../src/contexts/AccountContext';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useFamilyVisitationPlan } from '../src/hooks/useFamilyVisitationPlan';
+import { appAlert } from '../src/lib/appAlert';
+import { isSessionOnlyPlanStorage } from '../src/lib/webSessionPlanStore';
 import {
   familyVisitationProgress,
   VISITATION_COMMITMENTS,
@@ -33,7 +35,7 @@ export default function FamilyVisitationPlanScreen() {
   const progress = useMemo(() => familyVisitationProgress(plan), [plan]);
   const savedReady = progress.ready && saveState === 'saved';
 
-  const confirmClear = () => Alert.alert(t('clearTitle'), t('clearBody'), [
+  const confirmClear = () => appAlert(t('clearTitle'), t('clearBody'), [
     { text: t('cancel'), style: 'cancel' },
     { text: t('clearConfirm'), style: 'destructive', onPress: () => void clear().catch(() => undefined) },
   ]);
@@ -73,6 +75,9 @@ export default function FamilyVisitationPlanScreen() {
       <Text style={[styles.title, { color: colors.ink }]}>{t('title')}</Text>
       <Text style={[styles.intro, { color: colors.inkSoft }]}>{t('intro')}</Text>
       <Text style={[styles.privacy, { color: colors.primary }]}>{t('privacy')}</Text>
+      {isSessionOnlyPlanStorage(Platform.OS) ? (
+        <Text style={[styles.privacy, { color: colors.inkSoft }]}>{t('webSessionNotice')}</Text>
+      ) : null}
 
       <View accessibilityRole="alert" style={[styles.messageCard, { backgroundColor: colors.primaryDark }]}> 
         <Text style={styles.messageQuote}>{t('coreMessage')}</Text>

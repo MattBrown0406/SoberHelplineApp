@@ -29,7 +29,11 @@
     "visitationBadge": "Free · Visit planning",
     "learningEyebrow": "LEARN · FREE RESOURCES",
     "diyIncluded": "Included with your current access.",
-    "diyPaid": "Paid feature · Essential or Premier membership required."
+    "diyPaid": "Paid feature · Essential or Premier membership required.",
+    "invitationBadge": "New",
+    "invitationTitle": "Invitation Engine",
+    "invitationBody": "A day-by-day plan built on CRAFT, the most proven way families help a resistant loved one say yes to treatment: understand their pattern, reward sober moments, spot the right window and ask well.",
+    "invitationButton": "Open the Invitation Engine"
   },
   "education": {
     "title": "Family Education",
@@ -153,7 +157,9 @@
         "q": "When is it an emergency?",
         "a": "Call 911 for overdose signs — unresponsive, blue lips, slow or stopped breathing, gurgling. Call or text 988 for any talk of suicide or self-harm. Don't wait to be sure; being wrong and safe beats being right and late. Save both numbers in your phone now, and if opioids are involved, keep naloxone (Narcan) at home — no prescription needed in most states."
       }
-    ]
+    ],
+    "collapseHint": "Collapses this answer",
+    "expandHint": "Expands this answer"
   },
   "intro": "Practice is for what to say. Boundaries is for the limits you will hold. Use these tools to plan next steps, or open Support to connect with people.",
   "destinations": {

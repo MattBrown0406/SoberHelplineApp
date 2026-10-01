@@ -6,7 +6,6 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -16,6 +15,7 @@ import { useAccount } from '../src/contexts/AccountContext';
 import { useTrajectory, type WeekPoint } from '../src/hooks/useTrajectory';
 import { useThread } from '../src/hooks/useThread';
 import { supabase } from '../src/lib/supabase';
+import { appAlert } from '../src/lib/appAlert';
 import { MAX_CONTENT_WIDTH } from '../src/components/ui/ScreenContainer';
 
 const CONSENT_SHARE_CHECKINS = '2';
@@ -31,11 +31,17 @@ function weekLabel(week: string): string {
 export default function TrajectoryScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation('tracker');
-  const { user } = useAccount();
+  const { user, entitlements } = useAccount();
   const router = useRouter();
+  // Messaging the coach is a paid Text Line feature. Opening this screen must
+  // not load or create a Text Line thread; the first share does (send() opens
+  // it on demand), and only then does the hook keep — and clean up — its
+  // realtime subscription.
+  const canMessageCoach = !!user && entitlements.canMessageOnCallCoach;
+  const [threadWanted, setThreadWanted] = useState(false);
 
   const { points, trend, loading } = useTrajectory(user?.id ?? null, 6);
-  const { send, threadId } = useThread(user?.id ?? null);
+  const { send, sending } = useThread(user?.id ?? null, threadWanted && canMessageCoach, { readOnly: !canMessageCoach });
 
   const [checked, setChecked] = useState<boolean[]>(Array(SELF_CHECK_COUNT).fill(false));
   const [shareConsent, setShareConsent] = useState(false);
@@ -77,14 +83,15 @@ export default function TrajectoryScreen() {
   }
 
   async function shareWithCoach() {
-    // send() silently no-ops until the thread has loaded, so only mark shared
-    // once the note actually reached the coach.
-    if (!threadId) return;
+    // send() opens (or creates) the Text Line thread on demand; only mark
+    // shared once the note actually reached the coach.
+    if (!canMessageCoach || sending) return;
+    setThreadWanted(true);
     try {
       await send(t('trajectory.shareMessage'));
       setShared(true);
     } catch {
-      Alert.alert(t('trajectory.shareError'));
+      appAlert(t('trajectory.shareError'));
     }
   }
 
@@ -198,7 +205,19 @@ export default function TrajectoryScreen() {
           <Text style={[styles.cardSub, { color: colors.inkSoft }]}>
             {t('trajectory.shareBody')}
           </Text>
-          {!shareConsent ? (
+          {!canMessageCoach ? (
+            <View>
+              <Text style={[styles.lockedNote, { color: colors.inkSoft }]}>
+                {t('trajectory.shareNotIncluded')}
+              </Text>
+              <TouchableOpacity accessibilityRole="link" onPress={() => router.push('/situation-brief' as never)} activeOpacity={0.8} style={styles.shareLink}>
+                <Text style={[styles.shareBtnText, { color: colors.primary }]}>{t('trajectory.shareBriefLink')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity accessibilityRole="link" onPress={() => router.push('/(tabs)/support' as never)} activeOpacity={0.8} style={styles.shareLink}>
+                <Text style={[styles.shareBtnText, { color: colors.primary }]}>{t('trajectory.sharePlansLink')}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : !shareConsent ? (
             <TouchableOpacity onPress={() => router.push('/settings')} activeOpacity={0.8}>
               <Text style={[styles.lockedNote, { color: colors.inkSoft }]}>
                 🔒 {t('trajectory.shareLocked')}
@@ -210,9 +229,11 @@ export default function TrajectoryScreen() {
             </Text>
           ) : (
             <TouchableOpacity
-              style={[styles.shareBtn, { borderColor: colors.primary, opacity: threadId ? 1 : 0.5 }]}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: sending, busy: sending }}
+              style={[styles.shareBtn, { borderColor: colors.primary, opacity: sending ? 0.5 : 1 }]}
               onPress={() => void shareWithCoach()}
-              disabled={!threadId}
+              disabled={sending}
               activeOpacity={0.85}
             >
               <Text style={[styles.shareBtnText, { color: colors.primary }]}>
@@ -321,6 +342,7 @@ const styles = StyleSheet.create({
   resultBtnText: { color: '#fff', fontSize: 14.5, fontWeight: '700' },
   lockedNote: { fontSize: 13, lineHeight: 19 },
   sharedNote: { fontSize: 14, fontWeight: '600' },
+  shareLink: { minHeight: 44, justifyContent: 'center' },
   shareBtn: {
     borderRadius: 99,
     borderWidth: 1.5,

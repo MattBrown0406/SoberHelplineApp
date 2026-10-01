@@ -126,6 +126,9 @@
     "shareButton": "Share my trajectory",
     "shareDone": "Shared — your coach will see this.",
     "shareLocked": "Turn on coach sharing in Settings to share your trajectory.",
+    "shareNotIncluded": "Messaging your coach is part of Essential and Premier. You can still send a free situation brief, or see the plans.",
+    "shareBriefLink": "Send a situation brief",
+    "sharePlansLink": "See plans",
     "shareMessage": "I'd like to talk about how things have been trending over the last several weeks. Can we connect?",
     "shareError": "Couldn't send to your coach. Check your connection and try again."
   }

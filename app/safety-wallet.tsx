@@ -27,6 +27,7 @@ import {
   type SafetyIncident,
   type SafetyPlan,
 } from '../src/lib/safetyWallet';
+import { appAlert } from '../src/lib/appAlert';
 
 type PlanField = keyof SafetyPlan;
 type IncidentDraft = Omit<SafetyIncident, 'id' | 'createdAt'>;
@@ -97,7 +98,7 @@ function AccountSafetyWallet() {
 
   function saveIncident() {
     if (!incidentDraft.summary.trim()) {
-      Alert.alert(t('incident.alertTitle'), t('incident.alertBody'));
+      appAlert(t('incident.alertTitle'), t('incident.alertBody'));
       return;
     }
     addIncident({
@@ -113,7 +114,7 @@ function AccountSafetyWallet() {
   function clearSavedWallet() {
     setIncidentDraft(EMPTY_INCIDENT);
     setShowIncidentForm(false);
-    void clear().catch(() => Alert.alert(t('wallet.storageError')));
+    void clear().catch(() => appAlert(t('wallet.storageError')));
   }
 
   function confirmClear() {

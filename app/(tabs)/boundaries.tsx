@@ -8,7 +8,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Alert,
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
@@ -34,6 +33,8 @@ import { useFamilySpace } from '../../src/hooks/useFamilySpace';
 import { useHoldLog } from '../../src/hooks/useHoldLog';
 import { isWallAligned } from '../../src/content/familyScripts';
 import { recentLocalDays, weekdayOf } from '../../src/lib/localDays';
+import { appAlert } from '../../src/lib/appAlert';
+import { familyJoinErrorKey } from '../../src/lib/inviteCodeErrors';
 import type { BoundaryWall } from '../../src/api/types';
 
 type BoundariesContent = typeof enContent;
@@ -60,6 +61,7 @@ export default function BoundariesScreen() {
     proposeWall,
     markWavering,
     commitWall,
+    leave: leaveFamilySpace,
   } = useFamilySpace(user?.id ?? null, { you: youLabel, member: content.journal.member });
   const holdLog = useHoldLog(user?.id ?? null, familySpace?.id ?? null, user?.timezone);
   const [prefill, setPrefill] = useState('');
@@ -169,7 +171,7 @@ export default function BoundariesScreen() {
       if (classifyOutboxError(error) !== 'retry') {
         // Keep the draft so the note is not lost on a permanent failure.
         setJournalPosting(false);
-        Alert.alert(content.journal.postErrorTitle, content.journal.postErrorBody);
+        appAlert(content.journal.postErrorTitle, content.journal.postErrorBody);
         return;
       }
       // Offline: queue the note quietly and show it as saved on this device.
@@ -177,7 +179,7 @@ export default function BoundariesScreen() {
         await offlineOutbox.enqueue(user.id, { id: row.id, kind: 'journal', queuedAt: row.created_at, payload: row });
       } catch {
         setJournalPosting(false);
-        Alert.alert(content.journal.postErrorTitle, content.journal.postErrorBody);
+        appAlert(content.journal.postErrorTitle, content.journal.postErrorBody);
         return;
       }
     }
@@ -252,26 +254,34 @@ export default function BoundariesScreen() {
           anchorTag: wall.anchorTag,
           sourceWallId: wall.id,
         });
-        Alert.alert(tAlign('proposeSuccess'));
+        appAlert(tAlign('proposeSuccess'));
       } catch {
-        Alert.alert(tAlign('proposeErrorTitle'), tAlign('proposeErrorMessage'));
+        appAlert(tAlign('proposeErrorTitle'), tAlign('proposeErrorMessage'));
       }
     },
     [proposeWall, tAlign],
   );
 
+  const recordWavering = useCallback(async (sharedWallId: string, share: boolean) => {
+    try {
+      await markWavering(sharedWallId, share);
+    } catch {
+      appAlert(tAlign('actionErrorTitle'), tAlign('actionErrorBody'));
+    }
+  }, [markWavering, tAlign]);
+
   const handleWavering = useCallback(
     (sharedWallId: string) => {
-      Alert.alert(
+      appAlert(
         tAlign('waveringTitle'),
         `${tAlign('waveringBody')}\n\n${tAlign('waveringShareQ')}`,
         [
-          { text: tAlign('waveringKeepPrivate'), onPress: () => void markWavering(sharedWallId, false) },
-          { text: tAlign('waveringConfirm'), onPress: () => void markWavering(sharedWallId, true) },
+          { text: tAlign('waveringKeepPrivate'), onPress: () => void recordWavering(sharedWallId, false) },
+          { text: tAlign('waveringConfirm'), onPress: () => void recordWavering(sharedWallId, true) },
         ],
       );
     },
-    [markWavering, tAlign],
+    [recordWavering, tAlign],
   );
 
   const firstName = user?.firstName ?? '';
@@ -438,7 +448,7 @@ export default function BoundariesScreen() {
         <WallsList
           walls={walls}
           accountId={user?.id}
-          onDelete={(id) => { void removeWall(id).catch(() => Alert.alert(followCopy.wallError)); }}
+          onDelete={(id) => { void removeWall(id).catch(() => appAlert(followCopy.wallError)); }}
           isAttached={isAttached}
           hasFamilySpace={!!familySpace}
           onPropose={(wall) => void handlePropose(wall)}
@@ -449,10 +459,11 @@ export default function BoundariesScreen() {
           shared={holdLog.shared}
           saving={holdLog.saving}
           canShare={!!familySpace}
-          nameFor={(id) => familySpace?.members.find((m) => m.accountId === id)?.displayName ?? youLabel}
+          nameFor={(id) => familySpace?.members.find((m) => m.accountId === id)?.displayName
+            ?? (id === user?.id ? youLabel : content.journal.member)}
           onSave={(result, share) => {
             void holdLog.save(result, share).catch(() => {
-              Alert.alert(tAlign('holdLog.errorTitle'), tAlign('holdLog.errorMessage'));
+              appAlert(tAlign('holdLog.errorTitle'), tAlign('holdLog.errorMessage'));
             });
           }}
         />
@@ -466,12 +477,10 @@ export default function BoundariesScreen() {
           <Text style={styles.letterIcon}>✉️</Text>
           <View style={styles.letterBody}>
             <Text style={[styles.letterTitle, { color: colors.ink }]}>
-              {i18n.language.startsWith('es') ? 'Carta de intervención' : 'Intervention letter'}
+              {tAlign('letterCardTitle')}
             </Text>
             <Text style={[styles.letterSub, { color: colors.inkSoft }]}>
-              {i18n.language.startsWith('es')
-                ? 'Estructura guiada de tres párrafos del manual de Matt'
-                : 'Matt\'s three-paragraph guided structure'}
+              {tAlign('letterCardSub')}
             </Text>
           </View>
           <Text style={[styles.letterArrow, { color: colors.secondary }]}>›</Text>
@@ -563,7 +572,9 @@ export default function BoundariesScreen() {
                     </Text>
                     {myStatus !== 'committed' ? (
                       <TouchableOpacity
-                        onPress={() => void commitWall(sw.id)}
+                        onPress={() => void commitWall(sw.id).catch(() => {
+                          appAlert(tAlign('actionErrorTitle'), tAlign('actionErrorBody'));
+                        })}
                         style={[styles.waveringBtn, { borderColor: colors.green, marginBottom: 8 }]}
                       >
                         <Text style={[styles.waveringBtnText, { color: colors.green }]}>
@@ -596,6 +607,31 @@ export default function BoundariesScreen() {
                 <Text style={[styles.inviteLabel, { color: colors.inkSoft }]}>
                   {codeCopied ? tAlign('inviteCodeCopied') : tAlign('inviteCode')}
                 </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                accessibilityRole="button"
+                style={styles.leaveFamilyBtn}
+                // Leaving as the only member deletes the space (and its journal
+                // and shared boundaries) for good; say so plainly.
+                onPress={() => appAlert(
+                  familySpace.members.length <= 1 ? tAlign('leaveAloneTitle') : tAlign('leaveTitle'),
+                  familySpace.members.length <= 1 ? tAlign('leaveAloneBody') : tAlign('leaveBody'), [
+                  { text: tAlign('leaveCancel'), style: 'cancel' },
+                  {
+                    text: familySpace.members.length <= 1 ? tAlign('leaveAloneConfirm') : tAlign('leaveConfirm'),
+                    style: 'destructive',
+                    onPress: async () => {
+                      try {
+                        await leaveFamilySpace();
+                      } catch {
+                        appAlert(tAlign('leaveErrorTitle'), tAlign('leaveErrorBody'));
+                      }
+                    },
+                  },
+                ])}
+              >
+                <Text style={[styles.leaveFamilyText, { color: colors.inkSoft }]}>{tAlign('leaveButton')}</Text>
               </TouchableOpacity>
 
               {/* Family Journal */}
@@ -666,7 +702,7 @@ export default function BoundariesScreen() {
                 onPress={() => {
                   void createFamilySpace(firstName).catch((err: unknown) => {
                     console.error('[BoundariesScreen] createFamilySpace failed:', err);
-                    Alert.alert(tAlign('createErrorTitle'), tAlign('createErrorMessage'));
+                    appAlert(tAlign('createErrorTitle'), tAlign('createErrorMessage'));
                   });
                 }}
                 activeOpacity={0.85}
@@ -687,8 +723,8 @@ export default function BoundariesScreen() {
                   style={[styles.joinBtn, { backgroundColor: joinCode.trim() ? colors.primary : colors.line }]}
                   disabled={!joinCode.trim()}
                   onPress={async () => {
-                    const ok = await joinByCode(joinCode);
-                    if (!ok) Alert.alert(tAlign('joinError'));
+                    const result = await joinByCode(joinCode);
+                    if (!result.ok) appAlert(tAlign(familyJoinErrorKey(result.reason)));
                   }}
                   activeOpacity={0.85}
                 >
@@ -804,6 +840,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   inviteCode: { fontSize: 20, fontWeight: '800', letterSpacing: 2 },
+  leaveFamilyBtn: { alignSelf: 'center', paddingVertical: 10, minHeight: 44, justifyContent: 'center' },
+  leaveFamilyText: { fontSize: 13, fontWeight: '700', textDecorationLine: 'underline' },
   inviteLabel: { fontSize: 11, marginTop: 2 },
   noFamilyTitle: { fontSize: 15, fontWeight: '700', marginBottom: 6 },
   noFamilyBody: { fontSize: 13, lineHeight: 19, marginBottom: 16 },

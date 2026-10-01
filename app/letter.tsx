@@ -6,10 +6,13 @@ import {
   TouchableOpacity,
   ScrollView,
   Share,
-  Alert,
   Linking,
+  Platform,
   StyleSheet,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import { appAlert } from '../src/lib/appAlert';
+import { shareOrCopy, webCanShare } from '../src/lib/webShare';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -22,6 +25,7 @@ import { supabase } from '../src/lib/supabase';
 import { FEATURED_PROVIDER } from '../src/config';
 import type { LetterDraft, ExperienceBlock } from '../src/api/types';
 import { maybeRequestReview } from '../src/lib/reviewPrompt';
+import { stashPracticeText } from '../src/lib/practiceHandoffAuth';
 import {
   INTERVENTION_LETTER_PAGE_CHAR_LIMIT,
   confirmedBoundaryTexts,
@@ -292,7 +296,7 @@ export default function LetterScreen() {
       if (sendError) throw sendError;
       router.push('/chat');
     } catch {
-      Alert.alert(t('sendErrorTitle'), t('sendErrorBody'));
+      appAlert(t('sendErrorTitle'), t('sendErrorBody'));
     } finally {
       setSendingLetter(false);
     }
@@ -301,7 +305,15 @@ export default function LetterScreen() {
   async function shareExport() {
     if (!draft) return;
     const letter = fullLetterText(draft);
-    await Share.share({ message: letter, title: t('preview.shareTitle', { name: draft.recipientName }) });
+    const title = t('preview.shareTitle', { name: draft.recipientName });
+    // Browsers without a share sheet reject Share.share: copy instead.
+    const outcome = await shareOrCopy(letter, {
+      canShare: Platform.OS !== 'web' || webCanShare(globalThis),
+      share: (message) => Share.share({ message, title }),
+      copy: (message) => Clipboard.setStringAsync(message),
+    });
+    if (outcome === 'copied') appAlert(t('preview.shareCopied'));
+    else if (outcome === 'failed') appAlert(t('preview.shareError'));
   }
 
   async function finishLetter() {
@@ -319,7 +331,7 @@ export default function LetterScreen() {
         });
       }, 750);
     } catch {
-      Alert.alert(t('preview.finishErrorTitle'), t('preview.finishErrorBody'));
+      appAlert(t('preview.finishErrorTitle'), t('preview.finishErrorBody'));
     } finally {
       setFinishing(false);
     }
@@ -615,6 +627,29 @@ export default function LetterScreen() {
                   </Text>
                 </View>
 
+                {/* Rehearse the real thing: read it aloud to the AI practice partner */}
+                {!!user && !!fullLetterText(draft).trim() && (
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    style={[styles.outlineBtn, { borderColor: colors.primary }]}
+                    activeOpacity={0.8}
+                    onPress={() =>
+                      // The letter travels in memory, not in the URL (browser history, length limits).
+                      router.push({
+                        pathname: '/rehearsal-live',
+                        params: {
+                          handoff: stashPracticeText(fullLetterText(draft), 'letter', user.id),
+                          sourceId: 'intervention-letter',
+                        },
+                      })
+                    }
+                  >
+                    <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
+                      {t('preview.practiceButton')}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
                 {/* Actions */}
                 <TouchableOpacity
                   accessibilityRole="button"
@@ -669,7 +704,7 @@ export default function LetterScreen() {
                     <TouchableOpacity
                       activeOpacity={0.8}
                       onPress={() =>
-                        Alert.alert(
+                        appAlert(
                           `${FEATURED_PROVIDER.name} · ${FEATURED_PROVIDER.org}`,
                           `${FEATURED_PROVIDER.credential} — ${FEATURED_PROVIDER.credentialFull}`,
                           [

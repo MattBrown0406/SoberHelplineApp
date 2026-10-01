@@ -83,15 +83,35 @@ export function useCommunity(accountId: string | null) {
     [],
   );
 
-  const reportPost = useCallback(async (postId: string, reason?: string): Promise<void> => {
-    await supabase.rpc('report_community_post', { p_post_id: postId, p_reason: reason ?? '' });
-    // Optimistically drop it from view; the server auto-holds at threshold.
+  /** Resolves false (nothing hidden) when the report didn't reach the server. */
+  const reportPost = useCallback(async (postId: string, reason?: string): Promise<boolean> => {
+    const { error } = await supabase.rpc('report_community_post', { p_post_id: postId, p_reason: reason ?? '' });
+    if (error) return false;
+    // Drop it from this member's view; the server auto-holds at threshold.
     setPosts((prev) => prev.filter((p) => p.id !== postId));
+    return true;
   }, []);
 
-  const deletePost = useCallback(async (postId: string): Promise<void> => {
-    setPosts((prev) => prev.filter((p) => p.id !== postId));
-    await supabase.from('community_posts').delete().eq('id', postId);
+  /** Resolves false and restores the post when the delete didn't go through. */
+  const deletePost = useCallback(async (postId: string): Promise<boolean> => {
+    let removed: CommunityPost | undefined;
+    let index = -1;
+    setPosts((prev) => {
+      index = prev.findIndex((p) => p.id === postId);
+      removed = prev[index];
+      return prev.filter((p) => p.id !== postId);
+    });
+    const { error } = await supabase.from('community_posts').delete().eq('id', postId);
+    if (!error) return true;
+    if (removed) {
+      const restored = removed;
+      setPosts((prev) => {
+        const next = [...prev];
+        next.splice(Math.max(0, Math.min(index, next.length)), 0, restored);
+        return next;
+      });
+    }
+    return false;
   }, []);
 
   /** Send a ❤️ on someone's post. Optimistic; server enforces one per member. */

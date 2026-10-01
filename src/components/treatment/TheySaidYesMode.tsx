@@ -1,18 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
   Linking,
-  Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
+import { appAlert } from '../../lib/appAlert';
+import { DateTimeField } from '../ui/DateTimeField';
+import { composeDateAndTime } from '../../lib/dateTimeInput';
 import type { useTreatmentActionPlan } from '../../hooks/useTreatmentActionPlan';
 import {
   admissionsDialNumber,
@@ -30,33 +30,36 @@ export function TheySaidYesMode({ controller }: { controller: Controller }) {
   const router = useRouter();
   const { plan, updateExecution, saveState } = controller;
   const [clock, setClock] = useState(() => new Date());
-  const [showDate, setShowDate] = useState(false);
-  const [showTime, setShowTime] = useState(false);
   const state = treatmentYesState(plan, clock);
   const leaveProgress = useMemo(() => leaveTonightProgress(plan, clock), [plan, clock]);
   const execution = plan.execution;
   const dialNumber = admissionsDialNumber(execution.admissionsPhone);
   const departure = execution.departureAt ? new Date(execution.departureAt) : null;
   const departureLocked = state.mode !== 'idle' && !!departure && Number.isFinite(departure.getTime());
-  const pickerValue = departure && Number.isFinite(departure.getTime())
-    ? departure
-    : new Date(clock.getTime() + 2 * 60 * 60 * 1000);
+  const savedDeparture = departure && Number.isFinite(departure.getTime()) ? departure : null;
+  // Picking a date or time only edits this draft. The leave time is saved (and,
+  // once a yes is logged, locked) only by the explicit Lock/Save action, so a
+  // half-picked date with a placeholder time is never stored or locked.
+  const [draft, setDraft] = useState<{ date: Date | null; time: Date | null }>(() => ({ date: savedDeparture, time: savedDeparture }));
+  useEffect(() => {
+    const saved = execution.departureAt ? new Date(execution.departureAt) : null;
+    const valid = saved && Number.isFinite(saved.getTime()) ? saved : null;
+    setDraft({ date: valid, time: valid });
+  }, [execution.departureAt]);
+  const suggestedDeparture = new Date(clock.getTime() + 2 * 60 * 60 * 1000);
+  const draftDeparture = composeDateAndTime(draft.date, draft.time);
+  const draftInPast = !!draftDeparture && draftDeparture.getTime() <= clock.getTime();
+  const draftSaved = !!draftDeparture && !!savedDeparture && draftDeparture.getTime() === savedDeparture.getTime();
 
   useEffect(() => {
     const timer = setInterval(() => setClock(new Date()), 30_000);
     return () => clearInterval(timer);
   }, []);
 
-  function changeDeparture(mode: 'date' | 'time') {
-    return (_event: DateTimePickerEvent, picked?: Date) => {
-      if (Platform.OS !== 'ios') mode === 'date' ? setShowDate(false) : setShowTime(false);
-      if (!picked) return;
-      const current = pickerValue;
-      const next = mode === 'date'
-        ? new Date(picked.getFullYear(), picked.getMonth(), picked.getDate(), current.getHours(), current.getMinutes())
-        : new Date(current.getFullYear(), current.getMonth(), current.getDate(), picked.getHours(), picked.getMinutes());
-      updateExecution({ departureAt: next.toISOString() });
-    };
+  function lockDeparture() {
+    const next = composeDateAndTime(draft.date, draft.time);
+    if (!next || next.getTime() <= Date.now()) return;
+    updateExecution({ departureAt: next.toISOString() });
   }
 
   function logYes() {
@@ -69,7 +72,7 @@ export function TheySaidYesMode({ controller }: { controller: Controller }) {
   }
 
   function confirmRecant() {
-    Alert.alert(t('yesMode.recantTitle'), t('yesMode.recantConfirmBody'), [
+    appAlert(t('yesMode.recantTitle'), t('yesMode.recantConfirmBody'), [
       { text: t('cancel'), style: 'cancel' },
       {
         text: t('yesMode.recantConfirm'),
@@ -82,7 +85,7 @@ export function TheySaidYesMode({ controller }: { controller: Controller }) {
   function callAdmissions() {
     if (!dialNumber) return;
     void Linking.openURL(`tel:${dialNumber}`).catch(() => {
-      Alert.alert(t('yesMode.callErrorTitle'), t('yesMode.callErrorBody'));
+      appAlert(t('yesMode.callErrorTitle'), t('yesMode.callErrorBody'));
     });
   }
 
@@ -191,17 +194,44 @@ export function TheySaidYesMode({ controller }: { controller: Controller }) {
       ) : (
         <>
           <View style={styles.buttonRow}>
-            <SmallButton
-              label={departure ? departure.toLocaleDateString() : t('yesMode.setDate')}
-              onPress={() => setShowDate(true)}
+            <DateTimeField
+              mode="date"
+              value={draft.date}
+              fallbackValue={suggestedDeparture}
+              minimumDate={new Date()}
+              onChange={(date) => setDraft((current) => ({ ...current, date }))}
+              label={draft.date ? draft.date.toLocaleDateString() : t('yesMode.setDate')}
+              accessibilityLabel={t('yesMode.setDate')}
+              style={styles.smallButton}
             />
-            <SmallButton
-              label={departure ? departure.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : t('yesMode.setTime')}
-              onPress={() => setShowTime(true)}
+            <DateTimeField
+              mode="time"
+              value={draft.time}
+              fallbackValue={suggestedDeparture}
+              minuteInterval={5}
+              onChange={(time) => setDraft((current) => ({ ...current, time }))}
+              label={draft.time ? draft.time.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : t('yesMode.setTime')}
+              accessibilityLabel={t('yesMode.setTime')}
+              style={styles.smallButton}
             />
           </View>
-          {showDate && <DateTimePicker value={pickerValue} mode="date" minimumDate={new Date()} onChange={changeDeparture('date')} />}
-          {showTime && <DateTimePicker value={pickerValue} mode="time" minuteInterval={5} onChange={changeDeparture('time')} />}
+          {draftInPast ? (
+            <Text accessibilityRole="alert" style={[styles.lockedHint, { color: colors.coral }]}>{t('yesMode.leaveTimePast')}</Text>
+          ) : null}
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !draftDeparture || draftInPast || draftSaved }}
+            disabled={!draftDeparture || draftInPast || draftSaved}
+            onPress={lockDeparture}
+            style={[styles.secondaryButton, styles.lockButton, {
+              borderColor: colors.primary,
+              opacity: !draftDeparture || draftInPast || draftSaved ? 0.5 : 1,
+            }]}
+          >
+            <Text style={[styles.secondaryText, { color: colors.primary }]}>
+              {state.mode === 'idle' ? t('yesMode.saveLeaveTime') : t('yesMode.lockLeaveTime')}
+            </Text>
+          </TouchableOpacity>
         </>
       )}
 
@@ -298,15 +328,6 @@ function RoleField({ label, value, onChange }: { label: string; value: string; o
   );
 }
 
-function SmallButton({ label, onPress }: { label: string; onPress: () => void }) {
-  const { colors } = useTheme();
-  return (
-    <TouchableOpacity accessibilityRole="button" style={[styles.smallButton, { borderColor: colors.primary }]} onPress={onPress}>
-      <Text style={[styles.smallButtonText, { color: colors.primary }]}>{label}</Text>
-    </TouchableOpacity>
-  );
-}
-
 const styles = StyleSheet.create({
   card: { borderWidth: 2, borderRadius: 20, padding: 18, marginBottom: 14 },
   kicker: { fontSize: 10.5, fontWeight: '900', letterSpacing: 1.2 },
@@ -326,7 +347,6 @@ const styles = StyleSheet.create({
   sentenceInput: { minHeight: 68, borderWidth: 1, borderRadius: 10, paddingHorizontal: 11, paddingVertical: 9, fontSize: 13.5, textAlignVertical: 'top' },
   buttonRow: { flexDirection: 'row', gap: 8 },
   smallButton: { flex: 1, borderWidth: 1, borderRadius: 10, paddingVertical: 11, alignItems: 'center' },
-  smallButtonText: { fontSize: 12.5, fontWeight: '800' },
   lockedDeparture: { borderWidth: 1, borderRadius: 11, padding: 11 },
   lockedTime: { fontSize: 14, fontWeight: '900' },
   lockedHint: { fontSize: 11.5, lineHeight: 16, marginTop: 3 },
@@ -343,6 +363,7 @@ const styles = StyleSheet.create({
   callButton: { borderRadius: 999, paddingVertical: 11, alignItems: 'center', marginTop: 8 },
   primaryText: { color: '#fff', fontSize: 14, fontWeight: '900' },
   secondaryButton: { borderWidth: 1.5, borderRadius: 999, paddingVertical: 12, alignItems: 'center' },
+  lockButton: { marginTop: 10, minHeight: 44, justifyContent: 'center' },
   secondaryText: { fontSize: 13, fontWeight: '900' },
   outcomeButton: { borderWidth: 1.5, borderRadius: 999, paddingVertical: 12, alignItems: 'center', marginTop: 10 },
 });

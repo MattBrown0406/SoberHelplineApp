@@ -17,6 +17,7 @@ export const FEATURE_ENTITLEMENT_MAP: Readonly<Record<ProductFeature, keyof Enti
   safetyWalletShare: 'canShareSafetyWallet',
   coachMessaging: 'canMessageOnCallCoach',
   privateVideo: 'canAccessPrivateVideo',
+  invitationEngine: 'canAccessInvitationEngine',
 });
 
 /** The sole account-state → entitlement resolver, used at account bootstrap. */
@@ -41,6 +42,8 @@ export function entitlementsForAccountState(accountState: AccountState, adminOve
     hasIncludedPlanReview: isPremier,
     // A family emergency card is safety information, not a membership benefit.
     canShareSafetyWallet: true,
+    // The pattern map is the free hook; daily moves, forecast and kit are paid.
+    canAccessInvitationEngine: isPaid,
   };
   if (!adminOverride) return entitlements;
   // Admin QA access is constructed once in the account authority. Consumers
@@ -62,6 +65,7 @@ export function entitlementsForAccountState(accountState: AccountState, adminOve
     canAccessPlanReview: true,
     hasIncludedPlanReview: true,
     canShareSafetyWallet: true,
+    canAccessInvitationEngine: true,
   };
 }
 

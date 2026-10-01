@@ -50,7 +50,8 @@ export type ProductFeature =
   | 'includedPlanReview'
   | 'safetyWalletShare'
   | 'coachMessaging'
-  | 'privateVideo';
+  | 'privateVideo'
+  | 'invitationEngine';
 
 /**
  * Feature gates returned from the API.
@@ -75,6 +76,7 @@ export interface Entitlements {
   canAccessPlanReview: boolean;      // Essential + Premium + attached
   hasIncludedPlanReview: boolean;    // Premium + attached
   canShareSafetyWallet: boolean;     // all tiers — sharing an emergency card is a safety feature, never paywalled
+  canAccessInvitationEngine: boolean; // Essential + Premium + attached (the pattern map itself is free)
 }
 
 // ─── Auth / User ──────────────────────────────────────────────────────────────

@@ -37,13 +37,14 @@ function stateBindings(initial = {}) {
 }
 function query(result) {
   const filters = [];
+  const rpcs = [];
   const chain = {
     select() { return chain; }, order() { return chain; }, delete() { return chain; },
     eq(...args) { filters.push(args); return chain; },
     limit() { return chain; },
     then(resolve, reject) { return Promise.resolve().then(() => typeof result === 'function' ? result() : result).then(resolve, reject); },
   };
-  return { supabase: { from: () => chain }, filters };
+  return { supabase: { from: () => chain, rpc: (name, args) => { rpcs.push([name, args]); return chain; } }, filters, rpcs };
 }
 
 for (const failure of ['database error', 'rejection']) {
@@ -91,7 +92,12 @@ for (const file of ['book-coaching.tsx', 'rehearsal-history.tsx']) {
     assert.equal(state.LoadError, true);
     assert.deepEqual(state.Bookings, ['existing']);
     assert.deepEqual(state.Sessions, ['existing']);
-    assert.deepEqual(db.filters, [['account_id', 'account-a']]);
+    if (file === 'book-coaching.tsx') {
+      // My bookings is scoped server-side (my_account_id) and excludes plan-review payment records.
+      assert.deepEqual(db.rpcs, [['member_get_coaching_bookings', { p_limit: 10 }]]);
+    } else {
+      assert.deepEqual(db.filters, [['account_id', 'account-a']]);
+    }
     if (file === 'rehearsal-history.tsx') assert.equal(state.Loading, false);
   });
   test(`${file}: invalidated request cannot replace newer account data`, async () => {

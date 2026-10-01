@@ -32,7 +32,8 @@ export function useGroupRsvps(accountId: string | null) {
   );
 
   const toggleRsvp = useCallback(
-    async (roomName: string): Promise<boolean> => {
+    /** true = saved; false = failed; 'removed' = the host removed this member from live groups. */
+    async (roomName: string): Promise<boolean | 'removed'> => {
       if (!accountId || pendingRooms.has(roomName)) return false;
       const nextEnabled = !rsvpedRooms.has(roomName);
       setPendingRooms((prev) => new Set(prev).add(roomName));
@@ -56,7 +57,10 @@ export function useGroupRsvps(accountId: string | null) {
         }
         return true;
       } catch (error) {
-        console.warn('[group-rsvp] update failed', error instanceof Error ? error.message : 'unknown');
+        const message = error instanceof Error ? error.message
+          : typeof error === 'object' && error !== null && 'message' in error ? String((error as { message: unknown }).message) : 'unknown';
+        if (message.includes('removed_from_live_groups')) return 'removed';
+        console.warn('[group-rsvp] update failed', message);
         return false;
       } finally {
         setPendingRooms((prev) => {

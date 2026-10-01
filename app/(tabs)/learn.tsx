@@ -18,6 +18,7 @@ const SECTIONS: ContentSection[] = [
 ];
 
 function FaqRow({ item, colors }: { item: FaqItem; colors: ReturnType<typeof useTheme>['colors'] }) {
+  const { t } = useTranslation('learn');
   const [open, setOpen] = useState(false);
   return (
     <View style={[styles.faqRow, { borderBottomColor: colors.line }]}>
@@ -27,7 +28,7 @@ function FaqRow({ item, colors }: { item: FaqItem; colors: ReturnType<typeof use
         onPress={() => setOpen((v) => !v)}
         accessibilityRole="button"
         accessibilityLabel={item.q}
-        accessibilityHint={open ? 'Collapses this answer' : 'Expands this answer'}
+        accessibilityHint={open ? t('faq.collapseHint') : t('faq.expandHint')}
         accessibilityState={{ expanded: open }}
       >
         <Text style={[styles.faqQ, { color: colors.ink }]}>{item.q}</Text>
@@ -78,6 +79,24 @@ export default function LearnScreen() {
         ))}
       </View>
       <Text accessibilityRole="header" style={[styles.sectionEyebrow, { color: colors.inkSoft }]}>{t('tools.eyebrow')}</Text>
+
+      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.coral }]}>
+        <View style={styles.toolTopRow}>
+          <Text style={styles.toolIcon}>💌</Text>
+          <Text style={[styles.toolBadge, { backgroundColor: colors.coral }]}>{t('tools.invitationBadge')}</Text>
+        </View>
+        <Text style={[styles.cardTitle, { color: colors.ink }]}>{t('tools.invitationTitle')}</Text>
+        <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t('tools.invitationBody')}</Text>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={t('tools.invitationButton')}
+          style={[styles.cardButton, { backgroundColor: colors.coral }]}
+          onPress={() => router.push('/invitation-engine' as never)}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.cardButtonText}>{t('tools.invitationButton')}</Text>
+        </TouchableOpacity>
+      </View>
 
       <View style={[styles.featuredTool, { backgroundColor: colors.primaryDark }]}>
         <View style={styles.toolTopRow}>

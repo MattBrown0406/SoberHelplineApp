@@ -13,7 +13,7 @@ import {
 const here = dirname(fileURLToPath(import.meta.url));
 const states: AccountState[] = ['direct-free', 'direct-essential', 'direct-premium', 'attached'];
 const essentialFeatures: ProductFeature[] = [
-  'todayFull', 'aiRehearsal', 'community', 'diyIntervention', 'practicePush', 'planReview',
+  'todayFull', 'aiRehearsal', 'community', 'diyIntervention', 'practicePush', 'planReview', 'invitationEngine',
 ];
 const premierFeatures: ProductFeature[] = ['crisisCommandPlan', 'includedPlanReview'];
 
@@ -75,7 +75,8 @@ test('admin QA access is expressed through centralized entitlements', () => {
 test('feature-to-entitlement map is complete and immutable', () => {
   assert.deepEqual(Object.keys(FEATURE_ENTITLEMENT_MAP).sort(), [
     'aiRehearsal', 'coachMessaging', 'community', 'crisisCommandPlan', 'diyIntervention',
-    'includedPlanReview', 'planReview', 'practicePush', 'privateVideo', 'safetyWalletShare', 'todayFull', 'tracker',
+    'includedPlanReview', 'invitationEngine', 'planReview', 'practicePush', 'privateVideo', 'safetyWalletShare',
+    'todayFull', 'tracker',
   ]);
   assert.equal(Object.isFrozen(FEATURE_ENTITLEMENT_MAP), true);
 });
@@ -88,6 +89,9 @@ test('gated route shells use Gate and do not re-derive paid access', async () =>
     ['app/rehearsal-live.tsx', 'aiRehearsal'],
     ['app/rehearsal-incoming.tsx', 'aiRehearsal'],
     ['app/rehearsal-history.tsx', 'aiRehearsal'],
+    ['app/invitation-kit.tsx', 'invitationEngine'],
+    ['app/invitation-outcome.tsx', 'invitationEngine'],
+    ['app/invitation-progress.tsx', 'invitationEngine'],
   ];
   for (const [path, feature] of routes) {
     const source = await readFile(resolve(here, '..', path), 'utf8');
@@ -95,4 +99,24 @@ test('gated route shells use Gate and do not re-derive paid access', async () =>
     assert.doesNotMatch(source, /isAdminEmail\s*\(/, path);
     assert.doesNotMatch(source, /accountState\s*[!=]==?\s*['"]direct-free['"]/, path);
   }
+});
+
+test('Invitation Engine: paid for every state but direct-free, admin override on', () => {
+  assert.equal(entitlementsForAccountState('direct-free').canAccessInvitationEngine, false);
+  for (const accountState of ['direct-essential', 'direct-premium', 'attached'] as const) {
+    assert.equal(entitlementsForAccountState(accountState).canAccessInvitationEngine, true, accountState);
+  }
+  assert.equal(entitlementsForAccountState('direct-free', true).canAccessInvitationEngine, true);
+  assert.equal(
+    canAccessFeature({ feature: 'invitationEngine', entitlements: entitlementsForAccountState('direct-free') }),
+    false,
+  );
+});
+
+test('the free pattern map route stays outside the paid Gate', async () => {
+  const engine = await readFile(resolve(here, '..', 'app/invitation-engine.tsx'), 'utf8');
+  const setup = await readFile(resolve(here, '..', 'app/invitation-setup.tsx'), 'utf8');
+  assert.doesNotMatch(engine, /<Gate\s+feature=["']invitationEngine["']\s*>\s*<InvitationEngineContent/);
+  assert.match(engine, /useFeatureAccess\('invitationEngine'\)|snapshot\.hasAccess|stage === 'paywall'/);
+  assert.doesNotMatch(setup, /<Gate\s/);
 });

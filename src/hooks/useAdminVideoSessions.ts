@@ -40,6 +40,11 @@ export type AdminVideoSession = {
   update_requested_at: string | null;
   update_request_note: string | null;
   latestPlanRevision?: PlanReviewRevision;
+  calendar_sync_status: 'not_synced' | 'pending' | 'processing' | 'synced' | 'failed' | 'cancelled';
+  calendar_sync_error: string | null;
+  calendar_synced_at: string | null;
+  calendar_sync_attempts: number;
+  calendar_next_attempt_at: string | null;
 };
 
 export type PlanReviewRevision = {
@@ -88,6 +93,12 @@ function messageForError(error: { message?: string; details?: string } | null): 
   if (raw.includes('version_conflict')) return 'This session changed on another device. The latest details have been refreshed.';
   if (raw.includes('not_assigned_coach')) return 'Only the assigned coach (or an owner) can perform that action.';
   if (raw.includes('not_authorized')) return 'You do not have permission to manage Premier video sessions.';
+  if (raw.includes('start_time_in_past')) return 'That start time has already passed. Send a counteroffer with a future time instead.';
+  if (raw.includes('calendar_sync_in_progress')) return 'A calendar sync is running right now. Refresh in a minute.';
+  if (raw.includes('nothing_to_sync')) return 'This session has nothing on the calendar to sync.';
+  if (raw.includes('manual_payment_note_required')) return 'Add a short note (3–500 characters) saying how the $150 was paid.';
+  if (raw.includes('already_paid')) return 'This plan review is already marked paid.';
+  if (raw.includes('invalid_payment_transition')) return 'Only an active plan review awaiting payment can be marked paid.';
   return raw.replace(/_/g, ' ');
 }
 
@@ -105,6 +116,7 @@ export function useAdminVideoSessions() {
   const [historyHasMore, setHistoryHasMore] = useState(true);
   const [accessLoading, setAccessLoading] = useState(true);
   const [isVideoStaff, setIsVideoStaff] = useState(false);
+  const [isVideoOwner, setIsVideoOwner] = useState(false);
 
   const checkAccess = useCallback(async () => {
     setAccessLoading(true);
@@ -122,12 +134,14 @@ export function useAdminVideoSessions() {
     }
     const { data, error } = await supabase
       .from('video_staff_roles')
-      .select('account_id')
+      .select('account_id, role')
       .eq('account_id', accountId)
       .eq('active', true)
       .maybeSingle();
     const authorized = !error && Boolean(data);
     setIsVideoStaff(authorized);
+    // Only gates owner-only buttons; every RPC re-checks on the server.
+    setIsVideoOwner(authorized && (data as { role?: string } | null)?.role === 'owner');
     setAccessLoading(false);
     return authorized;
   }, []);
@@ -243,6 +257,28 @@ export function useAdminVideoSessions() {
     return !error;
   }, [historyLoaded, loadHistory, refreshActive]);
 
+  /** RPCs that take only the session id (no optimistic version). */
+  const runSessionRpc = useCallback(async (session: AdminVideoSession, rpc: string, params: Record<string, unknown> = {}) => {
+    setActingId(session.id);
+    setActionError(null);
+    const { error } = await supabase.rpc(rpc, { p_session_id: session.id, ...params });
+    if (error) setActionError(messageForError(error));
+    await refreshActive();
+    if (historyLoaded && terminalStatuses.includes(session.status)) await loadHistory(true);
+    setActingId(null);
+    return !error;
+  }, [historyLoaded, loadHistory, refreshActive]);
+
+  const retryCalendarSync = useCallback(
+    (session: AdminVideoSession) => runSessionRpc(session, 'admin_retry_video_calendar_sync'),
+    [runSessionRpc],
+  );
+
+  const markPlanReviewPaid = useCallback(
+    (session: AdminVideoSession, note: string) => runSessionRpc(session, 'admin_mark_plan_review_paid', { p_note: note.trim() }),
+    [runSessionRpc],
+  );
+
   const sections = useMemo(() => ({
     needsAction: active.filter((session) => session.status === 'requested'),
     upcoming: active.filter((session) => session.status === 'scheduled'),
@@ -263,9 +299,12 @@ export function useAdminVideoSessions() {
     historyHasMore,
     accessLoading,
     isVideoStaff,
+    isVideoOwner,
     refreshActive,
     loadHistory,
     runAction,
+    retryCalendarSync,
+    markPlanReviewPaid,
     clearActionError: () => setActionError(null),
   };
 }

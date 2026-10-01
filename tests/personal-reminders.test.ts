@@ -70,6 +70,8 @@ test('actual existing nudge rearm preserves personal schedules; automatic regist
     '../lib/pushRouting': {}, '../reminders/personalReminders': core,
     '../lib/pendingPushTokenRevoke': { settlePendingPushTokenRevoke: async () => 'none' },
     '../lib/pushDevice': { isDeviceSignedIn: () => true },
+    '../lib/pushColdStart': { shouldDeferPushRouting: () => false },
+    '../contexts/AccountContext': { useAccount: () => ({ entitlementsSettled: true }) },
   });
   await exports.rearmDailyNudge();
   assert.deepEqual(canceled, []); assert.ok(pending.has('legacy-nudge')); assert.ok(pending.has(`${core.REMINDER_PREFIX}keep`));

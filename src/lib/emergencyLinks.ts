@@ -1,4 +1,5 @@
-import { Alert, Linking } from 'react-native';
+import { Linking } from 'react-native';
+import { appAlert } from './appAlert';
 import i18n from 'i18next';
 
 /**
@@ -9,7 +10,7 @@ import i18n from 'i18next';
 export function openEmergencyLink(url: string, displayNumber?: string): void {
   const number = displayNumber ?? url.replace(/^(tel|sms):/, '');
   void Linking.openURL(url).catch(() => {
-    Alert.alert(
+    appAlert(
       i18n.t('crisis:emergency.openErrorTitle'),
       i18n.t('crisis:emergency.openErrorBody', { number }),
     );

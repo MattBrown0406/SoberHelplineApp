@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { familyJoinFailure, type FamilyJoinResult } from '../lib/inviteCodeErrors';
 import type {
   FamilyBackupNotice,
   FamilySpace,
@@ -106,7 +107,8 @@ export function useFamilySpace(accountId: string | null, labels: FamilySpaceLabe
       .map((row) => ({
         id: row.id,
         accountId: row.account_id,
-        displayName: nameByAccount.get(row.account_id) ?? youLabel,
+        // Someone who has since left the space is "a family member", never "You".
+        displayName: nameByAccount.get(row.account_id) ?? (row.account_id === accountId ? youLabel : memberFallback),
         sharedWallId: row.shared_wall_id,
         wallText: wallTextById.get(row.shared_wall_id) ?? '',
         createdAt: row.created_at,
@@ -176,16 +178,29 @@ export function useFamilySpace(accountId: string | null, labels: FamilySpaceLabe
     await loadFull(spaceId as string, generation);
   }, [accountId]);
 
-  const joinByCode = useCallback(async (code: string): Promise<boolean> => {
-    if (!accountId) return false;
+  /**
+   * Join with a family invite code. A refusal says why (unknown code, too many
+   * attempts, already in another family space, or a network/server error) so
+   * the screen can say something more useful than "invalid code".
+   */
+  const joinByCode = useCallback(async (code: string): Promise<FamilyJoinResult> => {
+    if (!accountId) return { ok: false, reason: 'error' };
     const generation = ++loadGeneration.current;
-    const { data: spaceId, error } = await supabase.rpc('join_family_space', {
-      p_invite_code: code,
-    });
-    if (error || !spaceId) return false;
-    if (generation !== loadGeneration.current) return false;
+    let spaceId: unknown = null;
+    try {
+      const result = await supabase.rpc('join_family_space', {
+        p_invite_code: code,
+      });
+      const failure = familyJoinFailure(result.error, result.data);
+      if (failure) return { ok: false, reason: failure };
+      spaceId = result.data;
+    } catch {
+      return { ok: false, reason: 'error' };
+    }
+    // The join itself succeeded; a newer load owns the visible state now.
+    if (generation !== loadGeneration.current) return { ok: true };
     await loadFull(spaceId as string, generation);
-    return generation === loadGeneration.current;
+    return { ok: true };
   }, [accountId]);
 
   const proposeWall = useCallback(async (
@@ -198,6 +213,13 @@ export function useFamilySpace(accountId: string | null, labels: FamilySpaceLabe
       p_anchor_tag: opts?.anchorTag ?? null,
       p_source_wall_id: opts?.sourceWallId ?? null,
     });
+    if (error) throw error;
+    await reload();
+  }, [reload]);
+
+  /** Leaves the current family space (an owner hands it to the next member). */
+  const leave = useCallback(async (): Promise<void> => {
+    const { error } = await supabase.rpc('leave_family_space');
     if (error) throw error;
     await reload();
   }, [reload]);
@@ -240,6 +262,7 @@ export function useFamilySpace(accountId: string | null, labels: FamilySpaceLabe
     proposeWall,
     markWavering,
     commitWall,
+    leave,
     reload,
   };
 }

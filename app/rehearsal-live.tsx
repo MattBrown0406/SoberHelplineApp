@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -17,16 +16,59 @@ import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
 import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import { RehearsalDebrief } from '../src/components/rehearsal/RehearsalDebrief';
+import { useSpeechCapture } from '../src/components/rehearsal/useSpeechCapture';
+import { PracticeHandoffPaywall } from '../src/components/rehearsal/PracticeHandoffPaywall';
+import { SafetyBreakCard } from '../src/components/rehearsal/SafetyBreakCard';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
 import { Gate } from '../src/components/auth/Gate';
 import { RouteActivationGate } from '../src/contexts/RouteActivationContext';
 import { useLovedOne } from '../src/hooks/useLovedOne';
+import { useLovedOneProfile } from '../src/hooks/useLovedOneProfile';
 import { useRehearsalCount } from '../src/hooks/useRehearsalCount';
-import { saveRehearsalSession } from '../src/lib/rehearsalSessions';
-import { finalizeRecording } from '../src/lib/appFlowGuards';
+import { appAlert } from '../src/lib/appAlert';
+import { loadRecentRehearsalScores, saveRehearsalSession } from '../src/lib/rehearsalSessions';
+import { practiceRelationship, toPracticeProfile, type PracticeProfile } from '../src/lib/practiceProfile';
+import { peekPracticeText, releasePracticeText } from '../src/lib/practiceHandoffAuth';
+import {
+  activeFamilySpeakers,
+  addSpeaker,
+  memberRelationshipFor,
+  MAX_FAMILY_SPEAKERS,
+  removeSpeaker,
+  SPEAKER_NAME_MAX,
+  SPEAKER_RELATIONSHIPS,
+  updateSpeaker,
+  type FamilySpeaker,
+} from '../src/lib/practiceFamily';
+import { analyzeDelivery, clipsForText, type DeliveryReport, type VoiceClip } from '../src/lib/practiceDelivery';
+import {
+  recommendDifficulty,
+  sessionScoresFromRows,
+  suggestedStartingLevel,
+  type DifficultyAdvice,
+  type SessionScore,
+} from '../src/lib/practiceDifficulty';
+import { transcriptBeforeUserTurn } from '../src/lib/practiceReplay';
+import { leavesConversation, stageAfterSafetyBreak } from '../src/lib/practiceSafety';
+import {
+  clampLine,
+  cleanUrlText,
+  formatCountdown,
+  MAX_CLIP_MS,
+  MAX_LINE_CHARS,
+  MAX_READ_ALOUD_MS,
+  parsePracticeParams,
+  PARTNER_TEMPERAMENTS,
+  PRACTICE_SITUATIONS,
+  WARMUP_MAX_USER_TURNS,
+  WARMUP_SECONDS,
+  warmupShouldFinish,
+  type PracticeSituation,
+} from '../src/lib/practiceScenarios';
 import {
   useRehearsalPartner,
+  type PartnerDebrief,
   type PartnerTemperament,
   type PartnerGender,
   type PartnerAge,
@@ -35,7 +77,24 @@ import {
 
 type Stage = 'setup' | 'chat' | 'debrief';
 
-const TEMPERAMENTS: PartnerTemperament[] = ['guarded', 'defensive', 'volatile', 'tearful'];
+/** Everything that defines the partner for one session, frozen when it starts. */
+type SessionSetup = {
+  relationship: PartnerRelationship;
+  gender: PartnerGender;
+  age: PartnerAge;
+  voiceOn: boolean;
+  temperament: PartnerTemperament;
+  warmup: boolean;
+  whisper: boolean;
+  name: string;
+  partnerName: string;
+  substances?: string[];
+  profile?: PracticeProfile;
+  situation?: PracticeSituation;
+  speakers: FamilySpeaker[];
+};
+
+const TEMPERAMENTS: readonly PartnerTemperament[] = PARTNER_TEMPERAMENTS;
 const RELATIONSHIPS: PartnerRelationship[] = ['spouse', 'partner', 'son', 'daughter', 'sibling', 'parent', 'friend'];
 const GENDERS: PartnerGender[] = ['male', 'female'];
 const AGES: PartnerAge[] = ['young', 'middle', 'older'];
@@ -53,53 +112,139 @@ function defaultGender(relationship: PartnerRelationship): PartnerGender {
 }
 
 export default function RehearsalLiveScreen() {
-  return <RouteActivationGate><Gate feature="aiRehearsal"><RehearsalLiveContent /></Gate></RouteActivationGate>;
+  return <RouteActivationGate><Gate feature="aiRehearsal" fallback={<PracticeHandoffPaywall />}><RehearsalLiveContent /></Gate></RouteActivationGate>;
 }
 
 function RehearsalLiveContent() {
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('rehearsalLive');
   const router = useRouter();
-  const params = useLocalSearchParams<{ text?: string; sourceId?: string; temperament?: string }>();
+  const params = useLocalSearchParams<{
+    text?: string;
+    sourceId?: string;
+    temperament?: string;
+    practiceText?: string;
+    source?: string;
+    warmup?: string;
+    situation?: string;
+    handoff?: string;
+  }>();
   const { user } = useAccount();
+  // Long practice text (the letter) arrives through an in-memory handoff, not
+  // the URL — only for the account that stashed it. Read once, then released.
+  const [handoff] = useState(() => peekPracticeText(params.handoff, user?.id));
+  useEffect(() => {
+    releasePracticeText(params.handoff);
+  }, [params.handoff]);
+  // Route params are untrusted strings (deep links, other screens): URL text is
+  // capped and flattened to plain words before it can reach a prompt.
+  const route = useMemo(
+    () => parsePracticeParams(params, handoff),
+    [params.practiceText, params.source, params.warmup, params.situation, params.temperament, handoff],
+  );
+  const scriptLine = useMemo(() => cleanUrlText(params.text).text, [params.text]);
   const { lovedOne } = useLovedOne(user?.id ?? null);
+  const { profile } = useLovedOneProfile(user?.id ?? null);
+  const practiceProfile = useMemo(() => toPracticeProfile(profile), [profile]);
   const { increment } = useRehearsalCount(params.sourceId ?? 'live-rehearsal');
 
   const [stage, setStage] = useState<Stage>('setup');
+  const [warmup, setWarmup] = useState(route.warmup);
   // Scripts can suggest the mood that best matches their situation (e.g. the
   // relapse script opens against a Guilt-ridden partner). Still user-changeable.
-  const suggestedTemperament =
-    typeof params.temperament === 'string' &&
-    ['guarded', 'defensive', 'volatile', 'tearful'].includes(params.temperament)
-      ? (params.temperament as PartnerTemperament)
-      : null;
-  const [temperament, setTemperament] = useState<PartnerTemperament>(
-    suggestedTemperament ?? 'guarded',
-  );
+  const [temperament, setTemperament] = useState<PartnerTemperament>(route.temperament ?? 'guarded');
   const [relationship, setRelationship] = useState<PartnerRelationship>(
     defaultRelationship(lovedOne?.relationship),
   );
   const [gender, setGender] = useState<PartnerGender>(defaultGender(defaultRelationship(lovedOne?.relationship)));
   const [age, setAge] = useState<PartnerAge>('middle');
   const [voiceOn, setVoiceOn] = useState(true);
+  // "Use what I've told you about <name>" — on by default whenever a profile exists.
+  const [useProfile, setUseProfile] = useState(true);
+  const [situation, setSituation] = useState<PracticeSituation | null>(route.situation);
+  const [familyOn, setFamilyOn] = useState(false);
+  const [speakerDrafts, setSpeakerDrafts] = useState<FamilySpeaker[]>([]);
+  const [currentSpeaker, setCurrentSpeaker] = useState(0);
+  const [whisperOn, setWhisperOn] = useState(false);
+  // Frozen at Start: who the partner is (persona, profile, voice, family) can't
+  // change mid-session, e.g. when the profile finishes loading after Start.
+  const [session, setSession] = useState<SessionSetup | null>(null);
+  const [recentSessions, setRecentSessions] = useState<SessionScore[]>([]);
+  const [secondsLeft, setSecondsLeft] = useState(WARMUP_SECONDS);
+  const [redo, setRedo] = useState<{ turn: number; item: string } | null>(null);
+  const [delivery, setDelivery] = useState<DeliveryReport | null>(null);
+  const [difficulty, setDifficulty] = useState<DifficultyAdvice | null>(null);
+  const [recordTarget, setRecordTarget] = useState<'draft' | 'practice'>('draft');
   const [draft, setDraft] = useState('');
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
-  const recordingRef = useRef<Audio.Recording | null>(null);
-  const pressActiveRef = useRef(false);
+  const [lineTrimmed, setLineTrimmed] = useState(false);
+  // A letter read aloud in more than one recording (the time limit paused her).
+  const practicePartsRef = useRef<VoiceClip[]>([]);
+  const [practiceParts, setPracticeParts] = useState(0);
+  const draftRef = useRef('');
+  draftRef.current = draft;
   const scrollRef = useRef<ScrollView>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
+  const recordTargetRef = useRef<'draft' | 'practice'>('draft');
+  // Voice clips recorded since the last send; attached to the line they became.
+  const pendingClipsRef = useRef<VoiceClip[]>([]);
+  const redoFromRef = useRef<number | null>(null);
+  const autoFinishRef = useRef(false);
 
-  // Follow the profile once it loads (the hooks load async).
+  const profileActive = useProfile && !!practiceProfile;
+  const profileRelationship = practiceRelationship(practiceProfile?.relationship);
+  const preferredRelationship = (profileActive ? profileRelationship : null) ?? lovedOne?.relationship ?? null;
+
+  // Follow the profile once it loads (the hooks load async) — setup only.
   useEffect(() => {
-    if (lovedOne?.relationship) {
-      const rel = defaultRelationship(lovedOne.relationship);
+    if (preferredRelationship && stage === 'setup') {
+      const rel = defaultRelationship(preferredRelationship);
       setRelationship(rel);
       setGender(defaultGender(rel));
     }
-  }, [lovedOne?.relationship]);
+  }, [preferredRelationship]); // only the profile's arrival re-defaults the picker
+
+  // Recent full sessions drive the difficulty suggestion (best-effort).
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    void loadRecentRehearsalScores(user.id).then((rows) => {
+      if (!cancelled) setRecentSessions(sessionScoresFromRows(rows));
+    });
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   const language = i18n.language?.startsWith('es') ? 'es' : 'en';
-  const partnerName = lovedOne?.first_name?.trim() || t('defaultName');
+  const realName = (profileActive ? practiceProfile?.name : undefined) || lovedOne?.first_name?.trim() || '';
+  const profileName = practiceProfile?.name || lovedOne?.first_name?.trim() || t('defaultName');
+  const practiceText = route.practiceText;
+  const startSuggestion = useMemo(
+    () => (route.temperament ? null : suggestedStartingLevel(recentSessions)),
+    [route.temperament, recentSessions],
+  );
+
+  /** The setup as currently chosen on screen. */
+  function currentSetup(speakers: FamilySpeaker[] = []): SessionSetup {
+    return {
+      relationship,
+      gender,
+      age,
+      voiceOn,
+      temperament,
+      warmup,
+      whisper: whisperOn,
+      name: realName,
+      partnerName: realName || t('defaultName'),
+      substances: lovedOne?.substances ?? undefined,
+      profile: profileActive && practiceProfile ? practiceProfile : undefined,
+      situation: situation ?? undefined,
+      speakers,
+    };
+  }
+  // Before Start nothing is sent, so the live setup stands in; from Start on, the frozen one.
+  const active = session ?? currentSetup();
+  const partnerName = active.partnerName;
+  const familyActive = active.speakers.length >= 2;
+  const sessionSpeakers = active.speakers;
 
   const {
     messages,
@@ -107,55 +252,104 @@ function RehearsalLiveContent() {
     transcribing,
     error,
     safetyBreak,
+    safetyKind,
+    canKeepPracticing,
+    hadSafetyBreak,
+    keepPracticing,
     debrief,
     debriefLoading,
     turnsLeft,
+    hint,
     send,
     transcribeClip,
     requestDebrief,
     reset,
-  } = useRehearsalPartner({
-    relationship,
-    name: lovedOne?.first_name ?? undefined,
-    substances: lovedOne?.substances ?? undefined,
-    temperament,
-    scriptText: typeof params.text === 'string' ? params.text : undefined,
-    language,
-    voice: voiceOn ? { gender, age } : undefined,
-  });
+    restore,
+  } = useRehearsalPartner(
+    {
+      relationship: active.relationship,
+      name: active.name || undefined,
+      substances: active.substances,
+      temperament: active.temperament,
+      scriptText: scriptLine ?? undefined,
+      language,
+      voice: active.voiceOn ? { gender: active.gender, age: active.age } : undefined,
+      // The character keeps the chosen age and gender even when it isn't spoken.
+      persona: { gender: active.gender, age: active.age },
+      situation: active.situation,
+      profile: active.profile,
+      speakers: familyActive ? active.speakers : undefined,
+      practiceText: practiceText ?? undefined,
+      practiceSource: route.source ?? undefined,
+      warmup: active.warmup,
+    },
+    undefined,
+    { maxUserTurns: active.warmup ? WARMUP_MAX_USER_TURNS : undefined, whisper: active.whisper },
+  );
+
+  const userTurns = messages.filter((m) => m.role === 'user');
+  const userTurnCount = userTurns.length;
 
   useEffect(() => {
     const id = setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
     return () => clearTimeout(id);
   }, [messages.length, sending]);
 
-  const savedSessionRef = useRef(false);
+  async function persistSession(finished: PartnerDebrief, report: DeliveryReport | null) {
+    if (!user?.id) return;
+    // Save the session so the family can review their reps later.
+    await saveRehearsalSession({
+      account_id: user.id,
+      source_id: typeof params.sourceId === 'string' ? params.sourceId : null,
+      scenario: {
+        relationship: active.relationship,
+        temperament: active.temperament,
+        gender: active.gender,
+        age: active.age,
+        language,
+        partnerName: active.partnerName,
+        ...(active.situation ? { situation: active.situation } : {}),
+        ...(active.profile ? { profileUsed: true } : {}),
+        ...(familyActive ? { speakers: active.speakers } : {}),
+        ...(practiceText ? { practiceSource: route.source ?? 'script' } : {}),
+        ...(active.warmup ? { warmup: true } : {}),
+        ...(active.whisper ? { whisper: true } : {}),
+        ...(redoFromRef.current !== null ? { redoFromTurn: redoFromRef.current } : {}),
+      },
+      transcript: messages.map(({ role, text, speaker }) =>
+        role === 'user' && familyActive && typeof speaker === 'number'
+          ? { role, text, speaker: active.speakers[speaker]?.name ?? '' }
+          : { role, text }),
+      debrief: { ...finished, delivery: report },
+    });
+  }
+
+  // Each debrief is handled exactly once: count the rep, compute delivery and
+  // the difficulty suggestion, show it, and save it.
+  const handledDebriefRef = useRef<PartnerDebrief | null>(null);
   useEffect(() => {
-    if (!debrief) return;
-    increment();
-    setStage('debrief');
-    // Save the session once so the family can review their reps later.
-    if (!savedSessionRef.current && user?.id) {
-      savedSessionRef.current = true;
-      void saveRehearsalSession({
-        account_id: user.id,
-        source_id: typeof params.sourceId === 'string' ? params.sourceId : null,
-        scenario: {
-          relationship,
-          temperament,
-          gender,
-          age,
-          language,
-          partnerName,
-        },
-        transcript: messages.map(({ role, text }) => ({ role, text })),
-        debrief,
-      }).then((saved) => {
-        // Allow a later debrief render to retry instead of losing the rep.
-        if (!saved) savedSessionRef.current = false;
-      });
+    if (!debrief || handledDebriefRef.current === debrief) return;
+    // Never coach — or save — a conversation that hit a crisis break.
+    if (safetyBreak) return;
+    handledDebriefRef.current = debrief;
+    void increment();
+    const spoken = messages.filter((m) => m.role === 'user');
+    const report = analyzeDelivery(
+      spoken.map((m) => ({ text: m.text, clips: m.clips })),
+      language,
+      { deliveredFirst: !!practiceText && spoken[0]?.text === practiceText.trim() },
+    );
+    setDelivery(report);
+    if (active.warmup) {
+      setDifficulty(null);
+    } else {
+      const current: SessionScore = { temperament: active.temperament, scores: debrief.scores };
+      setDifficulty(recommendDifficulty(active.temperament, [current, ...recentSessions]));
+      setRecentSessions((prev) => [current, ...prev]);
     }
-  }, [debrief, increment, user?.id, params.sourceId, relationship, temperament, gender, age, language, partnerName, messages]);
+    setStage('debrief');
+    void persistSession(debrief, report);
+  }, [debrief]); // once per debrief: the session state it reads is final by then
 
   useEffect(() => {
     // Prime the audio session once so the first reply speaks without delay,
@@ -163,9 +357,6 @@ function RehearsalLiveContent() {
     void Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
     return () => {
       void soundRef.current?.unloadAsync();
-      const active = recordingRef.current;
-      recordingRef.current = null;
-      if (active) void active.stopAndUnloadAsync().catch(() => undefined);
       void Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true }).catch(() => undefined);
     };
   }, []);
@@ -174,11 +365,17 @@ function RehearsalLiveContent() {
   const playAudio = useCallback(async (audioB64: string) => {
     try {
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
-      clipCounter.current += 1;
-      const path = `${FileSystem.cacheDirectory}rehearsal-reply-${clipCounter.current}.mp3`;
-      await FileSystem.writeAsStringAsync(path, audioB64, { encoding: FileSystem.EncodingType.Base64 });
+      let uri: string;
+      if (Platform.OS === 'web') {
+        // No file system on web: play the clip straight from memory.
+        uri = `data:audio/mpeg;base64,${audioB64}`;
+      } else {
+        clipCounter.current += 1;
+        uri = `${FileSystem.cacheDirectory}rehearsal-reply-${clipCounter.current}.mp3`;
+        await FileSystem.writeAsStringAsync(uri, audioB64, { encoding: FileSystem.EncodingType.Base64 });
+      }
       if (soundRef.current) await soundRef.current.unloadAsync();
-      const { sound } = await Audio.Sound.createAsync({ uri: path }, { shouldPlay: true });
+      const { sound } = await Audio.Sound.createAsync({ uri }, { shouldPlay: true });
       soundRef.current = sound;
     } catch {
       // Voice is a layer, never a blocker — the text is already on screen.
@@ -186,111 +383,269 @@ function RehearsalLiveContent() {
   }, []);
 
   // Speak each partner reply the moment it lands on screen — this is a dialogue.
+  // (The whisper coach's hint is text-only and never spoken.)
   const lastSpokenIndex = useRef(-1);
   useEffect(() => {
-    if (stage !== 'chat' || !voiceOn || messages.length === 0) return;
+    if (stage !== 'chat' || !active.voiceOn || messages.length === 0) return;
     const lastIndex = messages.length - 1;
     const last = messages[lastIndex];
     if (last.role === 'partner' && last.audio && lastIndex > lastSpokenIndex.current) {
       lastSpokenIndex.current = lastIndex;
       void playAudio(last.audio);
     }
-  }, [messages, stage, voiceOn, playAudio]);
+  }, [messages, stage, active.voiceOn, playAudio]);
 
-  async function handleSend(text?: string) {
-    const outgoing = (text ?? draft).trim();
-    if (!outgoing) return;
+  // Warm-up: a 90-second clock that ends the rep on its own — stopped for good
+  // by a crisis break, so the crisis card stays on screen.
+  useEffect(() => {
+    if (!active.warmup || stage !== 'chat' || safetyBreak) return;
+    const id = setInterval(() => setSecondsLeft((s) => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(id);
+  }, [active.warmup, stage, safetyBreak]);
+
+  const capture = useSpeechCapture({
+    // A clip recorded from the practice card is the member reading their letter.
+    transcribe: (b64, format) => transcribeClip(b64, format, recordTargetRef.current === 'practice' ? 'delivery' : undefined),
+    onPermissionDenied: () => appAlert(t('chat.micPermissionTitle'), t('chat.micPermissionBody')),
+    onRecordingError: () => appAlert(t('chat.recordingErrorTitle'), t('chat.recordingErrorBody')),
+    onAutoStop: (clip) => handleClip(clip, true),
+    onUnavailable: () => appAlert(t('chat.voiceUnavailableTitle'), t('chat.voiceUnavailableBody')),
+    onTooLong: () => appAlert(t('chat.recordingTooLongTitle'), t('chat.recordingTooLongBody')),
+  });
+
+  // Leaving the chat (coaching appears): no live mic, no stray transcript, no
+  // leftover draft — the hold bar may unmount mid-press without a release.
+  useEffect(() => {
+    if (!leavesConversation(stage, 'chat')) return;
+    void capture.cancel();
+    pendingClipsRef.current = [];
+    practicePartsRef.current = [];
+    setPracticeParts(0);
     setDraft('');
-    const result = await send(outgoing);
-    // If the send failed, put their words back — never make someone retype
-    // a sentence that was hard to say the first time.
-    if (!result.ok) setDraft((prev) => (prev ? prev : outgoing));
+    setLineTrimmed(false);
+  }, [stage]); // capture.cancel is stable
+
+  // A pause that lands while coaching is showing brings the crisis card back.
+  useEffect(() => {
+    const next = stageAfterSafetyBreak(stage, safetyBreak, 'debrief', 'chat');
+    if (next !== stage) setStage(next);
+  }, [safetyBreak, stage]);
+
+  const lastRole = messages.length ? messages[messages.length - 1].role : null;
+  useEffect(() => {
+    if (!active.warmup || stage !== 'chat' || autoFinishRef.current) return;
+    const busy = sending || transcribing || capture.recording || debriefLoading || draft.trim().length > 0;
+    if (warmupShouldFinish({ secondsLeft, userTurns: userTurnCount, lastRole, busy, safetyBreak })) {
+      autoFinishRef.current = true;
+      void requestDebrief();
+    }
+  }, [active.warmup, stage, secondsLeft, userTurnCount, lastRole, sending, transcribing, capture.recording, debriefLoading, draft, safetyBreak, requestDebrief]);
+
+  function speakerMeta(): { speaker?: number } {
+    return familyActive ? { speaker: Math.min(currentSpeaker, sessionSpeakers.length - 1) } : {};
   }
 
-  async function startTalking() {
-    pressActiveRef.current = true;
-    try {
-      const { status } = await Audio.requestPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(t('chat.micPermissionTitle'), t('chat.micPermissionBody'));
-        return;
-      }
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
-      const { recording: rec } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY,
-      );
-      // The finger may have lifted while we awaited the permission prompt or
-      // recorder startup (the iOS permission alert cancels the touch). Never
-      // leave the mic running with nobody holding the button.
-      if (!pressActiveRef.current) {
-        await rec.stopAndUnloadAsync().catch(() => undefined);
-        await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true }).catch(() => undefined);
-        return;
-      }
-      recordingRef.current = rec;
-      setRecording(rec);
-    } catch {
-      // no mic (simulator) — typing still works
+  async function handleSend() {
+    const outgoing = draft.trim();
+    if (!outgoing) return;
+    const pending = pendingClipsRef.current;
+    pendingClipsRef.current = [];
+    setDraft('');
+    setLineTrimmed(false);
+    setRedo(null);
+    const result = await send(outgoing, { ...speakerMeta(), clips: clipsForText(pending, outgoing) });
+    // If the send failed, put their words back — never make someone retype
+    // a sentence that was hard to say the first time.
+    if (!result.ok) {
+      setDraft((prev) => (prev ? prev : outgoing));
+      pendingClipsRef.current = pending;
     }
+  }
+
+  /**
+   * The prepared letter/invitation goes out exactly as written. When it was
+   * read aloud, what was actually said rides along as screening-only text, so
+   * anything said mid-reading is still checked for a crisis.
+   */
+  async function deliverPracticeText(clips: VoiceClip[] = []) {
+    if (!practiceText) return;
+    setRedo(null);
+    const spoken = clips.map((c) => c.transcript).join(' ').trim();
+    const result = await send(practiceText, { ...speakerMeta(), clips, ...(spoken ? { screeningText: spoken } : {}) });
+    if (result.ok) {
+      practicePartsRef.current = [];
+      setPracticeParts(0);
+    }
+  }
+
+  /**
+   * "Done — send it": every part she has read so far goes out together. The
+   * last part is kept first, so a failed send never loses what she just read.
+   */
+  function deliverReadParts(lastClip?: VoiceClip) {
+    if (lastClip) {
+      practicePartsRef.current = [...practicePartsRef.current, lastClip];
+      setPracticeParts(practicePartsRef.current.length);
+    }
+    void deliverPracticeText([...practicePartsRef.current]);
+  }
+
+  function handleClip(clip: VoiceClip, autoStopped = false) {
+    if (recordTargetRef.current === 'practice') {
+      if (autoStopped) {
+        // The time limit cut her off mid-reading: keep what she read as a part
+        // and let her carry on. Nothing is sent until she taps Done.
+        practicePartsRef.current = [...practicePartsRef.current, clip];
+        setPracticeParts(practicePartsRef.current.length);
+        return;
+      }
+      deliverReadParts(clip);
+      return;
+    }
+    pendingClipsRef.current.push(clip);
+    // A long recording can run past one line: keep the first part and say so.
+    // (The server already screened the whole transcript when it was made.)
+    const current = draftRef.current;
+    const fitted = clampLine(current ? `${current} ${clip.transcript}` : clip.transcript, MAX_LINE_CHARS);
+    if (fitted.clamped) setLineTrimmed(true);
+    setDraft(fitted.text);
+  }
+
+  async function startTalking(target: 'draft' | 'practice' = 'draft') {
+    recordTargetRef.current = target;
+    setRecordTarget(target);
+    await capture.start(target === 'practice' ? MAX_READ_ALOUD_MS : MAX_CLIP_MS);
   }
 
   async function stopTalking() {
-    pressActiveRef.current = false;
-    const active = recordingRef.current ?? recording;
-    if (!active) return;
-    let result;
-    let durationMillis = 0;
-    try {
-      const status = await active.getStatusAsync();
-      durationMillis = status.durationMillis ?? 0;
-      result = await finalizeRecording(
-        () => active.stopAndUnloadAsync(),
-        () => active.getURI(),
-        () => Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true }),
-      );
-    } catch {
-      // Clear the dead recorder so the next press can start a fresh one.
-      recordingRef.current = null;
-      setRecording(null);
-      Alert.alert(t('chat.recordingErrorTitle'), t('chat.recordingErrorBody'));
-      return;
-    }
-    recordingRef.current = null;
-    setRecording(null);
-    if (result.restoreError) {
-      // The capture is already unloaded; keep the UI usable and surface the
-      // audio-session problem without pretending recording is still active.
-      Alert.alert(t('chat.recordingErrorTitle'), t('chat.recordingErrorBody'));
-    }
-    if (!result.uri) return;
-    // A slipped finger produces a fraction-of-a-second clip of near-silence.
-    // Whisper hallucinates filler ("Thank you", "You") on clips like that —
-    // don't even send them.
-    if (durationMillis < 700) return;
-    try {
-      const b64 = await FileSystem.readAsStringAsync(result.uri, { encoding: FileSystem.EncodingType.Base64 });
-      const format = result.uri.split('.').pop() ?? 'm4a';
-      const text = await transcribeClip(b64, format);
-      if (text) setDraft((prev) => (prev ? `${prev} ${text}` : text));
-    } catch {
-      // transcription failed — the error state from the hook shows the message
-    }
+    const clip = await capture.stop();
+    if (clip) handleClip(clip);
   }
 
+  function handleStart() {
+    const speakers = familyOn ? activeFamilySpeakers(speakerDrafts) : [];
+    if (familyOn && speakers.length < 2) {
+      appAlert(t('family.needTwoTitle'), t('family.needTwo'));
+      return;
+    }
+    setSession(currentSetup(speakers));
+    setCurrentSpeaker(0);
+    setSecondsLeft(WARMUP_SECONDS);
+    autoFinishRef.current = false;
+    redoFromRef.current = null;
+    setStage('chat');
+  }
+
+  function toggleFamily() {
+    if (!familyOn && speakerDrafts.length === 0) {
+      setSpeakerDrafts([
+        { name: user?.firstName?.trim() || t('family.me'), relationship: memberRelationshipFor(relationship) },
+        { name: '', relationship: 'other' },
+      ]);
+    }
+    setFamilyOn((on) => !on);
+  }
+
+  // Coaching only once nothing is in flight: a last line still being answered
+  // or transcribed may yet turn out to be a crisis disclosure.
+  const finishBlocked = safetyBreak || sending || transcribing || capture.recording || debriefLoading;
+
   function handleFinish() {
+    if (finishBlocked) return;
     void requestDebrief();
   }
 
-  function handleAgain() {
-    savedSessionRef.current = false;
+  function clearSessionState() {
     // New session: its replies start at index 1 again and must be voiced.
     lastSpokenIndex.current = -1;
+    redoFromRef.current = null;
+    pendingClipsRef.current = [];
+    autoFinishRef.current = false;
+    setRedo(null);
+    setDelivery(null);
+    setDifficulty(null);
+    setDraft('');
+    setLineTrimmed(false);
+    practicePartsRef.current = [];
+    setPracticeParts(0);
+    setSecondsLeft(WARMUP_SECONDS);
+    setCurrentSpeaker(0);
     reset();
+  }
+
+  /**
+   * "I'm safe — keep practicing": the flagged line leaves the conversation,
+   * input reopens, and replies already heard aren't replayed.
+   */
+  function handleKeepPracticing() {
+    const kept = keepPracticing();
+    if (kept === null) return;
+    lastSpokenIndex.current = kept - 1;
+    pendingClipsRef.current = [];
+    autoFinishRef.current = false;
+    setLineTrimmed(false);
+  }
+
+  function handleAgain() {
+    // A crisis break is never cleared out from under the member: back to the card.
+    if (safetyBreak) {
+      setStage('chat');
+      return;
+    }
+    clearSessionState();
+    setSession(null);
     setStage('setup');
   }
 
-  const inputLocked = sending || turnsLeft === 0 || safetyBreak;
+  /** "Ready for a tougher conversation?" — same setup, new level, straight back in. */
+  function handleChangeDifficulty(level: PartnerTemperament) {
+    if (safetyBreak) {
+      setStage('chat');
+      return;
+    }
+    clearSessionState();
+    setTemperament(level);
+    setSession((s) => ({ ...(s ?? currentSetup()), temperament: level }));
+    setStage('chat');
+  }
 
+  /** "Redo from here": rewind to just before the line the coaching is about. */
+  function handleRedo(userTurnIndex: number, item: string) {
+    const before = transcriptBeforeUserTurn(messages, userTurnIndex);
+    if (!before) return;
+    const original = messages.filter((m) => m.role === 'user')[userTurnIndex];
+    pendingClipsRef.current = [];
+    autoFinishRef.current = false;
+    // Replies already heard are not replayed when the conversation resumes.
+    lastSpokenIndex.current = before.length - 1;
+    redoFromRef.current = userTurnIndex;
+    restore(before);
+    practicePartsRef.current = [];
+    setPracticeParts(0);
+    setRedo({ turn: userTurnIndex, item });
+    setDraft('');
+    setLineTrimmed(false);
+    setDelivery(null);
+    setDifficulty(null);
+    if (active.warmup) setSecondsLeft(WARMUP_SECONDS);
+    if (familyActive && typeof original?.speaker === 'number') setCurrentSpeaker(original.speaker);
+    setStage('chat');
+  }
+
+  // Nothing new can be said while the coach is reading the conversation.
+  const inputLocked = sending || turnsLeft === 0 || safetyBreak || debriefLoading;
+  const practiceRecording = capture.recording && recordTarget === 'practice';
+  const showPracticeCard = !!practiceText && userTurnCount === 0 && !safetyBreak;
+  const practiceLabel = route.source === 'letter'
+    ? t('practice.letterLabel')
+    : route.source === 'invitation'
+      ? t('practice.invitationLabel')
+      : t('practice.textLabel');
+
+  const chip = (selected: boolean) => [
+    styles.chip,
+    { backgroundColor: selected ? colors.primary : colors.primaryDark, borderColor: selected ? colors.coral : 'transparent' },
+  ];
 
   return (
     <ScreenContainer backgroundColor={colors.ink}>
@@ -300,15 +655,76 @@ function RehearsalLiveContent() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
       >
         {/* Back */}
-        <TouchableOpacity onPress={() => router.back()} style={styles.backRow} hitSlop={12}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backRow} hitSlop={12} accessibilityRole="button">
           <Text style={[styles.backText, { color: colors.inkSoft }]}>‹ {t('title')}</Text>
         </TouchableOpacity>
 
-        {/* ---------- SETUP ---------- */}
-        {stage === 'setup' && (
+        {/* ---------- SETUP: WARM-UP ---------- */}
+        {stage === 'setup' && warmup && (
           <ScrollView showsVerticalScrollIndicator={false}>
+            <Text style={styles.heading}>{t('warmup.heading')}</Text>
+            <Text style={[styles.subheading, { color: colors.inkSoft }]}>{t('warmup.body', { name: partnerName })}</Text>
+
+            {practiceProfile && (
+              <TouchableOpacity
+                style={[styles.voiceToggle, { backgroundColor: profileActive ? colors.primary : colors.primaryDark }]}
+                onPress={() => setUseProfile((v) => !v)}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: profileActive }}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.voiceToggleText, { color: colors.white }]}>
+                  {profileActive ? t('setup.profileToggleOn', { name: profileName }) : t('setup.profileToggleOff', { name: profileName })}
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              style={[styles.bigBtn, { backgroundColor: colors.coral, marginTop: 12 }]}
+              onPress={handleStart}
+              accessibilityRole="button"
+              activeOpacity={0.85}
+            >
+              <Text style={styles.bigBtnText}>{t('warmup.start')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setWarmup(false)} style={styles.historyLink} hitSlop={8} accessibilityRole="button">
+              <Text style={[styles.historyLinkText, { color: colors.inkSoft }]}>{t('setup.fullPracticeLink')} →</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        )}
+
+        {/* ---------- SETUP ---------- */}
+        {stage === 'setup' && !warmup && (
+          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             <Text style={styles.heading}>{t('setup.heading', { name: partnerName })}</Text>
             <Text style={[styles.subheading, { color: colors.inkSoft }]}>{t('setup.body')}</Text>
+
+            {/* Their loved one, in their own words */}
+            {practiceProfile && (
+              <TouchableOpacity
+                style={[styles.profileCard, { backgroundColor: profileActive ? colors.primary : colors.primaryDark, borderColor: profileActive ? colors.coral : 'transparent' }]}
+                onPress={() => setUseProfile((v) => !v)}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: profileActive }}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.profileTitle, { color: colors.white }]}>
+                  {profileActive ? t('setup.profileToggleOn', { name: profileName }) : t('setup.profileToggleOff', { name: profileName })}
+                </Text>
+                <Text style={[styles.profileHint, { color: colors.inkSoft }]}>{t('setup.profileToggleHint')}</Text>
+              </TouchableOpacity>
+            )}
+
+            {/* What they'll practice delivering */}
+            {practiceText && (
+              <View style={[styles.openingCard, { backgroundColor: colors.primaryDark, borderLeftColor: colors.coral }]}>
+                <Text style={[styles.openingLabel, { color: colors.inkSoft }]}>{practiceLabel}</Text>
+                <Text style={[styles.openingText, { color: colors.white }]} numberOfLines={4}>{practiceText}</Text>
+                {route.practiceTextTruncated && (
+                  <Text style={[styles.truncatedNote, { color: colors.secondary }]}>{t('practice.truncated')}</Text>
+                )}
+              </View>
+            )}
 
             {/* Relationship */}
             <Text style={[styles.sectionLabel, { color: colors.inkSoft }]}>{t('setup.relationshipLabel')}</Text>
@@ -316,17 +732,13 @@ function RehearsalLiveContent() {
               {RELATIONSHIPS.map((key) => (
                 <TouchableOpacity
                   key={key}
-                  style={[
-                    styles.chip,
-                    {
-                      backgroundColor: relationship === key ? colors.primary : colors.primaryDark,
-                      borderColor: relationship === key ? colors.coral : 'transparent',
-                    },
-                  ]}
+                  style={chip(relationship === key)}
                   onPress={() => {
                     setRelationship(key);
                     setGender(defaultGender(key));
                   }}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: relationship === key }}
                   activeOpacity={0.85}
                 >
                   <Text style={styles.chipText}>{t(`relationships.${key}`)}</Text>
@@ -340,14 +752,10 @@ function RehearsalLiveContent() {
               {GENDERS.map((key) => (
                 <TouchableOpacity
                   key={key}
-                  style={[
-                    styles.chip,
-                    {
-                      backgroundColor: gender === key ? colors.primary : colors.primaryDark,
-                      borderColor: gender === key ? colors.coral : 'transparent',
-                    },
-                  ]}
+                  style={chip(gender === key)}
                   onPress={() => setGender(key)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: gender === key }}
                   activeOpacity={0.85}
                 >
                   <Text style={styles.chipText}>{t(`genders.${key}`)}</Text>
@@ -356,14 +764,10 @@ function RehearsalLiveContent() {
               {AGES.map((key) => (
                 <TouchableOpacity
                   key={key}
-                  style={[
-                    styles.chip,
-                    {
-                      backgroundColor: age === key ? colors.primary : colors.primaryDark,
-                      borderColor: age === key ? colors.coral : 'transparent',
-                    },
-                  ]}
+                  style={chip(age === key)}
                   onPress={() => setAge(key)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: age === key }}
                   activeOpacity={0.85}
                 >
                   <Text style={styles.chipText}>{t(`ages.${key}`)}</Text>
@@ -375,6 +779,8 @@ function RehearsalLiveContent() {
             <TouchableOpacity
               style={[styles.voiceToggle, { backgroundColor: colors.primaryDark }]}
               onPress={() => setVoiceOn((v) => !v)}
+              accessibilityRole="switch"
+              accessibilityState={{ checked: voiceOn }}
               activeOpacity={0.85}
             >
               <Text style={[styles.voiceToggleText, { color: colors.white }]}>
@@ -382,8 +788,20 @@ function RehearsalLiveContent() {
               </Text>
             </TouchableOpacity>
 
-            {/* Temperament */}
+            {/* Temperament — the difficulty ladder */}
             <Text style={[styles.sectionLabel, { color: colors.inkSoft }]}>{t('setup.temperamentLabel')}</Text>
+            {startSuggestion && startSuggestion.suggested !== temperament && (
+              <TouchableOpacity
+                onPress={() => setTemperament(startSuggestion.suggested)}
+                style={[styles.suggestion, { borderColor: colors.coral }]}
+                accessibilityRole="button"
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.suggestionText, { color: colors.white }]}>
+                  {t('setup.suggestedLevel', { level: t(`temperaments.${startSuggestion.suggested}.title`) })}
+                </Text>
+              </TouchableOpacity>
+            )}
             {TEMPERAMENTS.map((key) => (
               <TouchableOpacity
                 key={key}
@@ -395,6 +813,8 @@ function RehearsalLiveContent() {
                   },
                 ]}
                 onPress={() => setTemperament(key)}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: temperament === key }}
                 activeOpacity={0.85}
               >
                 <Text style={styles.temperamentTitle}>{t(`temperaments.${key}.title`)}</Text>
@@ -403,6 +823,116 @@ function RehearsalLiveContent() {
                 </Text>
               </TouchableOpacity>
             ))}
+
+            {/* Situation */}
+            <Text style={[styles.sectionLabel, { color: colors.inkSoft }]}>{t('setup.situationLabel')}</Text>
+            <View style={styles.chipWrap}>
+              <TouchableOpacity
+                style={chip(situation === null)}
+                onPress={() => setSituation(null)}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: situation === null }}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.chipText}>{t('situations.none')}</Text>
+              </TouchableOpacity>
+              {PRACTICE_SITUATIONS.map((key) => (
+                <TouchableOpacity
+                  key={key}
+                  style={chip(situation === key)}
+                  onPress={() => setSituation(key)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: situation === key }}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.chipText}>{t(`situations.${key}`)}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={[styles.situationDesc, { color: colors.inkSoft }]}>
+              {t(`situationDesc.${situation ?? 'none'}`)}
+            </Text>
+
+            {/* Family rehearsal */}
+            <TouchableOpacity
+              style={[styles.voiceToggle, { backgroundColor: familyOn ? colors.primary : colors.primaryDark }]}
+              onPress={toggleFamily}
+              accessibilityRole="switch"
+              accessibilityState={{ checked: familyOn }}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.voiceToggleText, { color: colors.white }]}>
+                {familyOn ? t('setup.familyToggleOn') : t('setup.familyToggleOff')}
+              </Text>
+            </TouchableOpacity>
+            {familyOn && (
+              <View style={[styles.familyCard, { backgroundColor: colors.primaryDark }]}>
+                <Text style={[styles.familyHeading, { color: colors.white }]}>{t('family.heading')}</Text>
+                <Text style={[styles.familyBody, { color: colors.inkSoft }]}>{t('family.body', { name: partnerName })}</Text>
+                {speakerDrafts.map((speaker, index) => (
+                  <View key={index} style={[styles.speakerRow, { borderTopColor: colors.ink }]}>
+                    <View style={styles.speakerNameRow}>
+                      <TextInput
+                        style={[styles.speakerInput, { backgroundColor: colors.ink, color: colors.white }]}
+                        value={speaker.name}
+                        onChangeText={(name) => setSpeakerDrafts((list) => updateSpeaker(list, index, { name }))}
+                        placeholder={t('family.namePlaceholder')}
+                        placeholderTextColor={colors.inkSoft}
+                        maxLength={SPEAKER_NAME_MAX}
+                        accessibilityLabel={t('family.nameLabel', { number: index + 1 })}
+                      />
+                      {speakerDrafts.length > 1 && (
+                        <TouchableOpacity
+                          onPress={() => setSpeakerDrafts((list) => removeSpeaker(list, index))}
+                          accessibilityRole="button"
+                          accessibilityLabel={t('family.removeLabel', { name: speaker.name || t('family.namePlaceholder') })}
+                          hitSlop={8}
+                        >
+                          <Text style={[styles.removeText, { color: colors.coral }]}>{t('family.remove')}</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    <View style={styles.chipWrapTight}>
+                      {SPEAKER_RELATIONSHIPS.map((key) => (
+                        <TouchableOpacity
+                          key={key}
+                          style={[styles.smallChip, { backgroundColor: speaker.relationship === key ? colors.primary : colors.ink, borderColor: speaker.relationship === key ? colors.coral : 'transparent' }]}
+                          onPress={() => setSpeakerDrafts((list) => updateSpeaker(list, index, { relationship: key }))}
+                          accessibilityRole="radio"
+                          accessibilityState={{ selected: speaker.relationship === key }}
+                          activeOpacity={0.85}
+                        >
+                          <Text style={styles.smallChipText}>{t(`family.relationships.${key}`)}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                ))}
+                {speakerDrafts.length < MAX_FAMILY_SPEAKERS && (
+                  <TouchableOpacity
+                    onPress={() => setSpeakerDrafts((list) => addSpeaker(list, { name: '', relationship: 'other' }))}
+                    style={styles.addSpeaker}
+                    accessibilityRole="button"
+                    hitSlop={8}
+                  >
+                    <Text style={[styles.addSpeakerText, { color: colors.coral }]}>{t('family.add')}</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+
+            {/* Whisper coach */}
+            <TouchableOpacity
+              style={[styles.voiceToggle, { backgroundColor: whisperOn ? colors.primary : colors.primaryDark }]}
+              onPress={() => setWhisperOn((v) => !v)}
+              accessibilityRole="switch"
+              accessibilityState={{ checked: whisperOn }}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.voiceToggleText, { color: colors.white }]}>
+                {whisperOn ? t('setup.whisperToggleOn') : t('setup.whisperToggleOff')}
+              </Text>
+            </TouchableOpacity>
 
             {/* Why practice works — the heart of the tool */}
             <View style={[styles.whyCard, { backgroundColor: colors.primaryDark, borderLeftColor: colors.coral }]}>
@@ -414,12 +944,16 @@ function RehearsalLiveContent() {
 
             <TouchableOpacity
               style={[styles.bigBtn, { backgroundColor: colors.coral }]}
-              onPress={() => setStage('chat')}
+              onPress={handleStart}
+              accessibilityRole="button"
               activeOpacity={0.85}
             >
               <Text style={styles.bigBtnText}>{t('setup.startButton')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.push('/rehearsal-history')} style={styles.historyLink} hitSlop={8}>
+            <TouchableOpacity onPress={() => setWarmup(true)} style={styles.historyLink} hitSlop={8} accessibilityRole="button">
+              <Text style={[styles.historyLinkText, { color: colors.inkSoft }]}>{t('setup.warmupLink')} →</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push('/rehearsal-history')} style={styles.historyLink} hitSlop={8} accessibilityRole="button">
               <Text style={[styles.historyLinkText, { color: colors.inkSoft }]}>{t('setup.pastSessions')} →</Text>
             </TouchableOpacity>
           </ScrollView>
@@ -428,24 +962,92 @@ function RehearsalLiveContent() {
         {/* ---------- CHAT ---------- */}
         {stage === 'chat' && (
           <View style={styles.flex}>
+            {active.warmup && (
+              <Text
+                style={[styles.timer, { color: secondsLeft > 0 ? colors.white : colors.coral }]}
+                accessibilityLiveRegion="polite"
+              >
+                {secondsLeft > 0 ? t('warmup.timer', { time: formatCountdown(secondsLeft) }) : t('warmup.timeUp')}
+              </Text>
+            )}
             <ScrollView
               ref={scrollRef}
               style={styles.flex}
               contentContainerStyle={styles.chatContent}
               showsVerticalScrollIndicator={false}
             >
-              {typeof params.text === 'string' && params.text.trim().length > 0 && (
+              {redo && (
+                <View style={[styles.redoBanner, { backgroundColor: colors.primaryDark, borderLeftColor: colors.green }]}>
+                  <Text style={[styles.openingLabel, { color: colors.inkSoft }]}>{t('chat.redoLabel')}</Text>
+                  <Text style={[styles.redoBannerText, { color: colors.white }]}>{redo.item}</Text>
+                </View>
+              )}
+              {!!scriptLine && (
                 <TouchableOpacity
                   style={[styles.openingCard, { backgroundColor: colors.primaryDark, borderLeftColor: colors.coral }]}
-                  onPress={() => setDraft(String(params.text))}
+                  onPress={() => setDraft(scriptLine)}
+                  accessibilityRole="button"
                   activeOpacity={0.85}
                 >
                   <Text style={[styles.openingLabel, { color: colors.inkSoft }]}>{t('chat.openingLabel')}</Text>
-                  <Text style={[styles.openingText, { color: colors.white }]}>"{params.text}"</Text>
+                  <Text style={[styles.openingText, { color: colors.white }]}>"{scriptLine}"</Text>
                 </TouchableOpacity>
               )}
+
+              {/* Rehearse the real thing: deliver the exact words */}
+              {showPracticeCard && practiceText && (
+                <View style={[styles.practiceCard, { backgroundColor: colors.primaryDark, borderLeftColor: colors.coral }]}>
+                  <Text style={[styles.openingLabel, { color: colors.inkSoft }]}>{practiceLabel}</Text>
+                  <ScrollView style={styles.practiceScroll} nestedScrollEnabled>
+                    <Text style={[styles.practiceText, { color: colors.white }]}>{practiceText}</Text>
+                  </ScrollView>
+                  {route.practiceTextTruncated && (
+                    <Text style={[styles.practiceHelp, { color: colors.secondary }]}>{t('practice.truncated')}</Text>
+                  )}
+                  <Text style={[styles.practiceHelp, { color: colors.inkSoft }]}>
+                    {practiceParts > 0 ? t('practice.paused') : t('practice.instructions', { name: partnerName })}
+                  </Text>
+                  {practiceRecording && capture.nearLimit && (
+                    <Text style={[styles.practiceHelp, { color: colors.secondary }]} accessibilityLiveRegion="polite">
+                      {t('chat.thirtySecondsLeft')}
+                    </Text>
+                  )}
+                  <TouchableOpacity
+                    style={[
+                      styles.practiceBtn,
+                      { backgroundColor: practiceRecording ? colors.coral : colors.primary, opacity: inputLocked || (transcribing && recordTarget === 'practice') ? 0.5 : 1 },
+                    ]}
+                    onPress={() => void (practiceRecording ? stopTalking() : startTalking('practice'))}
+                    disabled={inputLocked || transcribing || (capture.recording && !practiceRecording)}
+                    accessibilityRole="button"
+                    activeOpacity={0.85}
+                  >
+                    {transcribing && recordTarget === 'practice' ? (
+                      <ActivityIndicator color="#fff" size="small" />
+                    ) : (
+                      <Text style={styles.practiceBtnText}>
+                        {practiceRecording
+                          ? t('practice.doneReading')
+                          : practiceParts > 0 ? t('practice.keepReading') : t('practice.readAloud')}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => (practiceParts > 0 ? deliverReadParts() : void deliverPracticeText())}
+                    disabled={inputLocked || capture.recording || transcribing}
+                    style={styles.practiceSecondary}
+                    accessibilityRole="button"
+                    hitSlop={8}
+                  >
+                    <Text style={[styles.historyLinkText, { color: colors.inkSoft }]}>
+                      {practiceParts > 0 ? t('practice.doneSendParts') : t('practice.sendAsWritten')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
               <Text style={[styles.chatIntro, { color: colors.inkSoft }]}>
-                {t('chat.intro', { name: partnerName })}
+                {familyActive ? t('chat.introFamily', { name: partnerName }) : t('chat.intro', { name: partnerName })}
               </Text>
 
               {messages.map((m, i) => (
@@ -458,9 +1060,14 @@ function RehearsalLiveContent() {
                       : [styles.bubblePartner, { backgroundColor: colors.primaryDark }],
                   ]}
                 >
+                  {m.role === 'user' && familyActive && typeof m.speaker === 'number' && (
+                    <Text style={[styles.speakerTag, { color: colors.primaryLight }]}>
+                      {sessionSpeakers[m.speaker]?.name}
+                    </Text>
+                  )}
                   <Text style={styles.bubbleText}>{m.text}</Text>
                   {m.role === 'partner' && m.audio && (
-                    <TouchableOpacity onPress={() => void playAudio(m.audio!)} hitSlop={8}>
+                    <TouchableOpacity onPress={() => void playAudio(m.audio!)} hitSlop={8} accessibilityRole="button">
                       <Text style={[styles.replayText, { color: colors.inkSoft }]}>{t('chat.replay')}</Text>
                     </TouchableOpacity>
                   )}
@@ -474,14 +1081,7 @@ function RehearsalLiveContent() {
               )}
 
               {safetyBreak && (
-                <TouchableOpacity
-                  style={[styles.safetyCard, { backgroundColor: colors.coralLight }]}
-                  onPress={() => router.push('/crisis-mode')}
-                  activeOpacity={0.9}
-                >
-                  <Text style={[styles.safetyTitle, { color: colors.coral }]}>{t('chat.safetyTitle')}</Text>
-                  <Text style={[styles.safetyBody, { color: colors.ink }]}>{t('chat.safetyBody')}</Text>
-                </TouchableOpacity>
+                <SafetyBreakCard kind={safetyKind} onKeepPracticing={canKeepPracticing ? handleKeepPracticing : undefined} />
               )}
 
               {error && (
@@ -493,16 +1093,65 @@ function RehearsalLiveContent() {
               {turnsLeft > 0 ? t('chat.turnsLeft', { count: turnsLeft }) : t('chat.turnsDone')}
             </Text>
 
+            {/* After a pause she chose to continue from, help stays one tap away. */}
+            {hadSafetyBreak && !safetyBreak && (
+              <TouchableOpacity onPress={() => router.push('/crisis-mode')} style={styles.getHelp} accessibilityRole="button" hitSlop={8}>
+                <Text style={[styles.getHelpText, { color: colors.coral }]}>{t('chat.getHelpNow')} →</Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Whisper coach — quiet, text only, never spoken */}
+            {active.whisper && !!hint && !safetyBreak && (
+              <Text
+                style={[styles.hint, { color: colors.inkSoft, borderLeftColor: colors.secondary }]}
+                accessibilityLiveRegion="polite"
+              >
+                <Text style={styles.hintLabel}>{t('chat.coachHintLabel')} </Text>
+                {hint}
+              </Text>
+            )}
+
+            {lineTrimmed && (
+              <Text style={[styles.lineNotice, { color: colors.secondary }]} accessibilityLiveRegion="polite">
+                {t('chat.lineTrimmed')}
+              </Text>
+            )}
+
+            {/* Family rehearsal: who is speaking this line */}
+            {familyActive && (
+              <View style={styles.speakerBar}>
+                <Text style={[styles.speakerBarLabel, { color: colors.inkSoft }]}>{t('family.speaking')}</Text>
+                {sessionSpeakers.map((speaker, index) => (
+                  <TouchableOpacity
+                    key={`${speaker.name}-${index}`}
+                    style={[styles.smallChip, { backgroundColor: currentSpeaker === index ? colors.primary : colors.primaryDark, borderColor: currentSpeaker === index ? colors.coral : 'transparent' }]}
+                    onPress={() => setCurrentSpeaker(index)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: currentSpeaker === index }}
+                    accessibilityLabel={t('family.speakerLabel', { name: speaker.name })}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.smallChipText}>{speaker.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
             <View style={styles.inputRow}>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.primaryDark, color: colors.white }]}
-                placeholder={recording ? t('chat.listening') : t('chat.placeholder')}
+                placeholder={capture.recording && !practiceRecording ? t('chat.listening') : t('chat.placeholder')}
                 placeholderTextColor={colors.inkSoft}
                 value={draft}
-                onChangeText={setDraft}
+                onChangeText={(value) => {
+                  if (!value.trim()) pendingClipsRef.current = [];
+                  if (lineTrimmed) setLineTrimmed(false);
+                  setDraft(value);
+                }}
                 multiline
                 maxLength={600}
                 editable={!inputLocked}
+                accessibilityLabel={t('chat.placeholder')}
               />
               <TouchableOpacity
                 style={[
@@ -511,6 +1160,7 @@ function RehearsalLiveContent() {
                 ]}
                 onPress={() => void handleSend()}
                 disabled={!draft.trim() || inputLocked}
+                accessibilityRole="button"
                 activeOpacity={0.85}
               >
                 <Text style={styles.sendBtnText}>{t('chat.send')}</Text>
@@ -519,10 +1169,12 @@ function RehearsalLiveContent() {
             <TouchableOpacity
               style={[
                 styles.finishBtn,
-                { borderColor: colors.inkSoft, opacity: messages.length > 0 && !debriefLoading ? 1 : 0.4 },
+                { borderColor: colors.inkSoft, opacity: userTurnCount > 0 && !finishBlocked ? 1 : 0.4 },
               ]}
               onPress={handleFinish}
-              disabled={messages.length === 0 || debriefLoading}
+              // After a crisis break there is no coaching: the crisis card stays the focus.
+              disabled={userTurnCount === 0 || finishBlocked}
+              accessibilityRole="button"
               activeOpacity={0.85}
             >
               {debriefLoading ? (
@@ -532,28 +1184,36 @@ function RehearsalLiveContent() {
               )}
             </TouchableOpacity>
 
+            {capture.recording && !practiceRecording && capture.nearLimit && (
+              <Text style={[styles.lineNotice, { color: colors.secondary, textAlign: 'center' }]} accessibilityLiveRegion="polite">
+                {t('chat.thirtySecondsLeft')}
+              </Text>
+            )}
+
             {/* Hold to speak — pinned to the bottom where the thumb lives */}
             <TouchableOpacity
               style={[
                 styles.holdBar,
                 {
-                  backgroundColor: recording ? colors.coral : colors.primaryDark,
+                  backgroundColor: capture.recording && !practiceRecording ? colors.coral : colors.primaryDark,
                   borderColor: colors.coral,
-                  opacity: inputLocked || transcribing ? 0.4 : 1,
+                  opacity: inputLocked || transcribing || practiceRecording ? 0.4 : 1,
                 },
               ]}
-              onPressIn={startTalking}
-              onPressOut={stopTalking}
-              disabled={inputLocked || transcribing}
+              onPressIn={() => void startTalking('draft')}
+              onPressOut={() => void stopTalking()}
+              disabled={inputLocked || transcribing || practiceRecording}
+              accessibilityRole="button"
+              accessibilityLabel={t('chat.holdToSpeak')}
               activeOpacity={0.9}
               pressRetentionOffset={{ top: 200, bottom: 200, left: 200, right: 200 }}
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             >
-              {transcribing ? (
+              {transcribing && recordTarget === 'draft' ? (
                 <ActivityIndicator color="#fff" size="small" />
               ) : (
                 <Text style={styles.holdBarText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
-                  {recording ? `●  ${t('chat.releaseWhenDone')}` : `🎤  ${t('chat.holdToSpeak')}`}
+                  {capture.recording && !practiceRecording ? `●  ${t('chat.releaseWhenDone')}` : `🎤  ${t('chat.holdToSpeak')}`}
                 </Text>
               )}
             </TouchableOpacity>
@@ -562,7 +1222,17 @@ function RehearsalLiveContent() {
 
         {/* ---------- DEBRIEF ---------- */}
         {stage === 'debrief' && debrief && (
-          <RehearsalDebrief debrief={debrief} onAgain={handleAgain} onDone={() => router.back()} />
+          <RehearsalDebrief
+            debrief={debrief}
+            onAgain={handleAgain}
+            onDone={() => router.back()}
+            onRedo={safetyBreak ? undefined : handleRedo}
+            userTurnCount={userTurnCount}
+            delivery={delivery}
+            difficulty={difficulty}
+            onChangeDifficulty={handleChangeDifficulty}
+            variant={active.warmup ? 'warmup' : 'standard'}
+          />
         )}
 
         {/* Privacy / reality note (setup and debrief — the chat keeps the bar at the very bottom) */}
@@ -589,6 +1259,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
+  chipWrapTight: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
   chip: {
     borderRadius: 20,
     borderWidth: 1.5,
@@ -596,8 +1267,25 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   chipText: { color: '#fff', fontWeight: '600', fontSize: 13 },
-  voiceToggle: { borderRadius: 12, paddingVertical: 10, alignItems: 'center', marginBottom: 14 },
-  voiceToggleText: { fontSize: 13, fontWeight: '600' },
+  smallChip: { borderRadius: 16, borderWidth: 1.5, paddingHorizontal: 10, paddingVertical: 5 },
+  smallChipText: { color: '#fff', fontWeight: '600', fontSize: 12 },
+  voiceToggle: { borderRadius: 12, paddingVertical: 10, paddingHorizontal: 12, alignItems: 'center', marginBottom: 14 },
+  voiceToggleText: { fontSize: 13, fontWeight: '600', textAlign: 'center' },
+  profileCard: { borderRadius: 14, borderWidth: 1.5, padding: 14, marginBottom: 16 },
+  profileTitle: { fontSize: 14, fontWeight: '700', marginBottom: 4 },
+  profileHint: { fontSize: 12, lineHeight: 17 },
+  suggestion: { borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', paddingVertical: 9, paddingHorizontal: 12, marginBottom: 10 },
+  suggestionText: { fontSize: 13, fontWeight: '600' },
+  situationDesc: { fontSize: 12, lineHeight: 18, marginTop: -6, marginBottom: 16 },
+  familyCard: { borderRadius: 14, padding: 14, marginTop: -6, marginBottom: 14 },
+  familyHeading: { fontSize: 14, fontWeight: '700', marginBottom: 4 },
+  familyBody: { fontSize: 12, lineHeight: 17, marginBottom: 6 },
+  speakerRow: { borderTopWidth: 1, paddingTop: 10, marginTop: 8 },
+  speakerNameRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  speakerInput: { flex: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14 },
+  removeText: { fontSize: 12, fontWeight: '600' },
+  addSpeaker: { paddingTop: 12, alignItems: 'flex-start' },
+  addSpeakerText: { fontSize: 13, fontWeight: '700' },
   temperamentCard: {
     borderRadius: 14,
     borderWidth: 1.5,
@@ -609,6 +1297,7 @@ const styles = StyleSheet.create({
   reassurance: { fontSize: 12, lineHeight: 18, marginTop: 12, marginBottom: 16 },
   bigBtn: { borderRadius: 16, paddingVertical: 18, alignItems: 'center', marginBottom: 12 },
   bigBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  timer: { fontSize: 13, fontWeight: '700', textAlign: 'center', marginBottom: 8 },
   chatContent: { paddingBottom: 12 },
   chatIntro: { fontSize: 13, lineHeight: 19, marginBottom: 16, textAlign: 'center' },
   openingCard: {
@@ -625,16 +1314,31 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   openingText: { fontSize: 15, lineHeight: 22, fontStyle: 'italic' },
+  redoBanner: { borderRadius: 14, borderLeftWidth: 3, padding: 12, marginBottom: 12 },
+  redoBannerText: { fontSize: 13, lineHeight: 19 },
+  practiceCard: { borderRadius: 14, borderLeftWidth: 3, padding: 14, marginBottom: 12 },
+  practiceScroll: { maxHeight: 220, marginBottom: 8 },
+  practiceText: { fontSize: 15, lineHeight: 23 },
+  practiceHelp: { fontSize: 12, lineHeight: 18, marginBottom: 10 },
+  practiceBtn: { borderRadius: 12, paddingVertical: 13, alignItems: 'center' },
+  practiceBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  practiceSecondary: { alignItems: 'center', paddingTop: 10 },
   bubble: { borderRadius: 16, padding: 12, marginBottom: 8, maxWidth: '85%' },
   bubbleUser: { alignSelf: 'flex-end', borderBottomRightRadius: 4 },
   bubblePartner: { alignSelf: 'flex-start', borderBottomLeftRadius: 4 },
   bubbleText: { color: '#fff', fontSize: 15, lineHeight: 21 },
+  speakerTag: { fontSize: 10, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 3 },
   replayText: { fontSize: 11, marginTop: 6 },
-  safetyCard: { borderRadius: 14, padding: 16, marginTop: 8, marginBottom: 8 },
-  safetyTitle: { fontWeight: '700', fontSize: 14, marginBottom: 4 },
-  safetyBody: { fontSize: 13, lineHeight: 19 },
   errorText: { fontSize: 12, textAlign: 'center', marginTop: 6 },
   turnsNote: { fontSize: 11, textAlign: 'center', marginBottom: 6 },
+  lineNotice: { fontSize: 12, lineHeight: 17, marginBottom: 6 },
+  getHelp: { alignItems: 'center', paddingBottom: 6 },
+  getHelpText: { fontSize: 12, fontWeight: '700' },
+  truncatedNote: { fontSize: 12, lineHeight: 17, marginTop: 8 },
+  hint: { fontSize: 12, lineHeight: 17, fontStyle: 'italic', borderLeftWidth: 2, paddingLeft: 8, marginBottom: 6 },
+  hintLabel: { fontWeight: '700', fontStyle: 'normal' },
+  speakerBar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginBottom: 6 },
+  speakerBarLabel: { fontSize: 11, fontWeight: '700' },
   inputRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-end', marginBottom: 4 },
   holdBar: {
     borderRadius: 16,
@@ -656,7 +1360,6 @@ const styles = StyleSheet.create({
   },
   whyTitle: { fontWeight: '700', fontSize: 15, marginBottom: 6 },
   whyBody: { fontSize: 13, lineHeight: 20 },
-  encouragement: { fontSize: 13, lineHeight: 20, marginTop: 16, textAlign: 'center', fontStyle: 'italic' },
   input: {
     flex: 1,
     borderRadius: 14,
@@ -675,28 +1378,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   finishBtnText: { fontWeight: '700', fontSize: 14 },
-  scoreRow: { flexDirection: 'row', gap: 8, marginBottom: 20, marginTop: 8 },
-  scorePill: { flex: 1, borderRadius: 12, paddingVertical: 10, alignItems: 'center' },
-  scoreValue: { fontWeight: '700', fontSize: 16 },
-  scoreLabel: { fontSize: 10, marginTop: 2, textAlign: 'center' },
-  debriefSection: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginTop: 14,
-    marginBottom: 8,
-  },
-  debriefItem: { fontSize: 15, lineHeight: 22, marginBottom: 8 },
-  drillCard: { borderRadius: 14, padding: 16, marginTop: 14 },
-  drillLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    marginBottom: 6,
-  },
-  drillText: { fontSize: 15, lineHeight: 22 },
   privacyNote: { fontSize: 10, textAlign: 'center', lineHeight: 15, marginTop: 6 },
   historyLink: { alignItems: 'center', paddingVertical: 10 },
   historyLinkText: { fontSize: 13, fontWeight: '600' },

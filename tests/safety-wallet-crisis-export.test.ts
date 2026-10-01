@@ -9,6 +9,9 @@ test('crisis summary and command cannot bypass the selective exporter', () => {
   assert.match(source, /situation && canShareWallet && hydrated/);
   assert.match(source, /useFeatureAccess\('safetyWalletShare'\)/);
   assert.doesNotMatch(source, /summaryExportItems: WalletExportItem\[\] = situation && hasEssential/);
-  assert.match(source, /commandExportItems: WalletExportItem\[\] = hasPremier && hydrated/);
+  // The offline command plan card (saved plan, offline fallback) shares too.
+  assert.match(source, /commandPlanVisible = \(hasPremier \|\| \(isOfflineAccountFallback && savedCommandPlan\)\) && hydrated/);
+  assert.match(source, /commandExportItems: WalletExportItem\[\] = commandPlanVisible \?/);
+  assert.match(source, /\{commandPlanVisible \? \(/);
   assert.match(source, /scope=\{user\?\.id/);
 });

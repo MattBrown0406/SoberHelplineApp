@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
+  AppState,
   FlatList,
   Image,
   KeyboardAvoidingView,
@@ -18,6 +18,7 @@ import { useAccount } from '../src/contexts/AccountContext';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { isAdminEmail } from '../src/lib/admin';
 import { supabase } from '../src/lib/supabase';
+import { appAlert } from '../src/lib/appAlert';
 import { MAX_CONTENT_WIDTH } from '../src/components/ui/ScreenContainer';
 
 type ThreadMessage = {
@@ -67,6 +68,8 @@ export default function AdminThreadScreen() {
   const [thread, setThread] = useState<ThreadHeader | null>(null);
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const attachmentsRef = useRef<Attachment[]>([]);
+  attachmentsRef.current = attachments;
   const [draft, setDraft] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -89,7 +92,7 @@ export default function AdminThreadScreen() {
 
     if (threadError) {
       setLoading(false);
-      Alert.alert('Could not load thread', threadError.message);
+      appAlert('Could not load thread', threadError.message);
       return;
     }
 
@@ -102,7 +105,7 @@ export default function AdminThreadScreen() {
 
     if (messageError) {
       setLoading(false);
-      Alert.alert('Could not load messages', messageError.message);
+      appAlert('Could not load messages', messageError.message);
       return;
     }
 
@@ -128,6 +131,45 @@ export default function AdminThreadScreen() {
 
   useEffect(() => { void loadThread(); }, [loadThread]);
 
+  // Realtime drops events while the socket is down or the app is in the
+  // background; catch up from the server whenever it (re)connects or returns.
+  const refreshRecent = useCallback(async () => {
+    if (!threadId) return;
+    const { data } = await supabase
+      .from('messages')
+      .select('id, sender_role, body, created_at')
+      .eq('thread_id', threadId)
+      .order('created_at', { ascending: false })
+      .limit(300);
+    if (!data) return;
+    const recent = (data as ThreadMessage[]).reverse();
+    setMessages((prev) => {
+      const byId = new Map(prev.map((m) => [m.id, m]));
+      for (const m of recent) byId.set(m.id, m);
+      return Array.from(byId.values()).sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
+    });
+    // Photos sent while disconnected arrive as their own rows; sign the new ones.
+    const { data: attachmentData } = await supabase
+      .from('message_attachments')
+      .select('id, message_id, storage_path, mime_type, file_name')
+      .eq('thread_id', threadId);
+    const known = new Set(attachmentsRef.current.map((a) => a.id));
+    const missing = ((attachmentData ?? []) as Omit<Attachment, 'signedUrl'>[]).filter((a) => !known.has(a.id));
+    if (missing.length === 0) return;
+    const signed = await Promise.all(missing.map(signAttachment));
+    setAttachments((prev) => {
+      const ids = new Set(prev.map((a) => a.id));
+      return [...prev, ...signed.filter((a) => !ids.has(a.id))];
+    });
+  }, [threadId]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void refreshRecent();
+    });
+    return () => sub.remove();
+  }, [refreshRecent]);
+
   useEffect(() => {
     if (!threadId) return;
     const channel = supabase
@@ -152,9 +194,11 @@ export default function AdminThreadScreen() {
           });
         },
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') void refreshRecent();
+      });
     return () => { supabase.removeChannel(channel); };
-  }, [threadId, channelInstanceId]);
+  }, [threadId, channelInstanceId, refreshRecent]);
 
   async function sendReply() {
     const body = draft.trim();
@@ -165,27 +209,36 @@ export default function AdminThreadScreen() {
     setSending(false);
     if (error) {
       setDraft(body);
-      Alert.alert('Reply not sent', error.message);
+      appAlert('Reply not sent', error.message);
       return;
     }
     // A reply to an archived thread is delivered to the member's current
     // conversation; follow it there so the reply is visible and not resent.
-    const { data: sent } = await supabase.from('messages').select('thread_id').eq('id', messageId as string).maybeSingle();
+    const { data: sent } = await supabase
+      .from('messages')
+      .select('id, sender_role, body, created_at, thread_id')
+      .eq('id', messageId as string)
+      .maybeSingle();
     if (sent?.thread_id && sent.thread_id !== threadId) {
       router.replace({ pathname: '/admin-thread' as never, params: { threadId: String(sent.thread_id) } });
+      return;
+    }
+    if (sent) {
+      const row = { id: sent.id, sender_role: sent.sender_role, body: sent.body, created_at: sent.created_at } as ThreadMessage;
+      setMessages((prev) => prev.some((m) => m.id === row.id) ? prev : [...prev, row]);
     }
   }
 
   async function archiveThread() {
     if (!threadId) return;
-    Alert.alert('Archive conversation?', 'This archives this thread and starts a fresh one for the member next time they message.', [
+    appAlert('Archive conversation?', 'This archives this thread and starts a fresh one for the member next time they message.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Archive',
         style: 'destructive',
         onPress: async () => {
           const { error } = await supabase.rpc('archive_thread', { p_thread_id: threadId });
-          if (error) Alert.alert('Archive failed', error.message);
+          if (error) appAlert('Archive failed', error.message);
           else router.back();
         },
       },

@@ -79,7 +79,7 @@ export function FreePracticeScreen({ userId, language }: {
       {busy && <><ActivityIndicator color={colors.primary} />{body(practice ? c.saving : c.loading)}</>}
       {error && <View accessibilityRole="alert" style={[styles.card, { backgroundColor: colors.coralLight }]}>
         {body(c.error)}{button(c.retry, () => void retry.current(), busy)}
-        {button(language === 'es' ? 'Recargar lo guardado (descartar cambios sin guardar)' : 'Reload saved practice (discard unsaved edits)', () => { setCompletedHere(false); void run(() => loadPractice(AsyncStorage, userId)); }, busy)}
+        {button(c.reloadSaved, () => { setCompletedHere(false); void run(() => loadPractice(AsyncStorage, userId)); }, busy)}
       </View>}
       {practice && !error && <>
         <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line, borderWidth: 1 }]}>

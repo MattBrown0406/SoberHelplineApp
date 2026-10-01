@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import {
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -22,6 +21,7 @@ import { PlanReviewBookingCard } from '../src/components/video/PlanReviewBooking
 import { EmergencyActions } from '../src/components/safety/EmergencyActions';
 import { SafetyWalletExport } from '../src/components/safety/SafetyWalletExport';
 import { walletExportItems, type WalletExportItem } from '../src/lib/safetyWalletExport';
+import { appAlert } from '../src/lib/appAlert';
 import type { SafetyBoundary, SafetyIncident, SafetyPlan } from '../src/lib/safetyWallet';
 import {
   CRISIS_SITUATION_ORDER,
@@ -133,6 +133,9 @@ export default function CrisisModeScreen() {
   // Offline the account falls back to free tier; a family's saved command plan
   // must still be there in a crisis without signal.
   const savedCommandPlan = Object.values(command).some((value) => typeof value === 'string' && value.trim().length > 0);
+  // One condition for showing the command plan card and for what it can share,
+  // so the offline copy of a saved plan is shareable too.
+  const commandPlanVisible = (hasPremier || (isOfflineAccountFallback && savedCommandPlan)) && hydrated;
 
   const [stage, setStage] = useState<Stage>('situation');
   const [situationKey, setSituationKey] = useState<CrisisSituationKey | null>(null);
@@ -179,12 +182,12 @@ export default function CrisisModeScreen() {
 
   function clearSavedData() {
     if (!user) return;
-    Alert.alert(
+    appAlert(
       t('inline.clearSavedCrisisData'),
       t('inline.thisRemovesThisAccountS'),
       [
         { text: t('inline.cancel'), style: 'cancel' },
-        { text: t('inline.clear'), style: 'destructive', onPress: () => void clearSafetyWallet().catch(() => Alert.alert(t('wallet.storageError'))) },
+        { text: t('inline.clear'), style: 'destructive', onPress: () => void clearSafetyWallet().catch(() => appAlert(t('wallet.storageError'))) },
       ],
     );
   }
@@ -192,7 +195,7 @@ export default function CrisisModeScreen() {
   function addIncident() {
     if (!hydrated) return;
     if (!incidentDraft.summary.trim()) {
-      Alert.alert(t('incident.alertTitle'), t('incident.alertBody')); return;
+      appAlert(t('incident.alertTitle'), t('incident.alertBody')); return;
     }
     const next: SafetyIncident = { ...incidentDraft, id: `${Date.now()}`, createdAt: new Date().toISOString() };
     storeIncident(next);
@@ -200,7 +203,7 @@ export default function CrisisModeScreen() {
   }
 
   function showUpgrade(tier: 'Essential' | 'Premier') {
-    Alert.alert(
+    appAlert(
       t('inline.tierRequired', { tier }),
       tier === 'Essential'
         ? (t('inline.savePlansIncidentsAnd24'))
@@ -225,7 +228,7 @@ export default function CrisisModeScreen() {
     ...(Object.values(boundary).some((value) => value.trim())
       ? [{ id: 'boundary', label: t('share.boundary'), value: boundaryText }] : []),
   ] : [];
-  const commandExportItems: WalletExportItem[] = hasPremier && hydrated ? [
+  const commandExportItems: WalletExportItem[] = commandPlanVisible ? [
     ...summaryExportItems,
     ...([
       ['coordinator', t('inline.coordinator')],
@@ -386,7 +389,7 @@ export default function CrisisModeScreen() {
                 </>}
             </>
 
-            {(hasPremier || (isOfflineAccountFallback && savedCommandPlan)) && hydrated ? (
+            {commandPlanVisible ? (
               <View style={[styles.card, styles.premiumCard, { backgroundColor: colors.ink, borderColor: colors.primary }]}>
                 <Text style={styles.premiumEyebrow}>PREMIER</Text>
                 <Text style={styles.premiumTitle}>{t('inline.familyCommandPlan')}</Text>

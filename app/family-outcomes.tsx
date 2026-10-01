@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   StyleSheet,
   Text,
   TextInput,
@@ -13,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import { useAccount } from '../src/contexts/AccountContext';
 import { useTheme } from '../src/contexts/ThemeContext';
+import { appAlert } from '../src/lib/appAlert';
 import { useFamilyOutcomes } from '../src/hooks/useFamilyOutcomes';
 import {
   defaultFamilyOutcomeDraft,
@@ -75,7 +75,7 @@ export default function FamilyOutcomesScreen() {
     setValidationKey(null);
   };
 
-  const confirmDelete = (outcome: FamilyOutcome) => Alert.alert(
+  const confirmDelete = (outcome: FamilyOutcome) => appAlert(
     t('deleteTitle'),
     t('deleteBody'),
     [

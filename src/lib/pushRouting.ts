@@ -20,6 +20,8 @@ import { canAccessFeature } from './featureAccess';
  * | family_backup              | wavering_event_id?     | Boundaries (where the family wall lives)       |
  * | group_live                 | room_name              | /live-room (community) else Support            |
  * | situation_brief            | —                      | /admin                                         |
+ * | invitation_window          | —                      | /invitation-engine (paid) else Today           |
+ * | admin_invitation_yes       | —                      | /admin (a member logged a YES to treatment)    |
  * | *_video_* (see below)      | session_id             | /video-session (private video), /admin, Support|
  * | anything else / no kind    | screen? (tab name)     | that tab, default Today — never a crash        |
  *
@@ -70,9 +72,11 @@ export type PushDestination =
   | { pathname: '/live-room'; params: { room: string } }
   | { pathname: '/video-session'; params: { sessionId: string } }
   | { pathname: '/chat' }
+  | { pathname: '/community' }
   | { pathname: '/admin-thread'; params: { threadId: string } }
   | { pathname: '/admin' }
   | { pathname: '/guided-journey' }
+  | { pathname: '/invitation-engine' }
   | { pathname: '/crisis-mode'; params: { focus: 'session' } }
   | { pathname: '/(tabs)' }
   | { pathname: '/(tabs)/support'; params?: { sessionId: string } }
@@ -130,8 +134,10 @@ export function getPushDestination(data: PushData, options: PushRoutingOptions |
     return { pathname: '/rehearsal-incoming', params: { eventId } };
   }
 
+  // Chat handles every tier: members off the Text Line plan read replies to
+  // their situation briefs there, read-only.
   if (kind === 'coach_message') {
-    return allowed('coachMessaging') ? { pathname: '/chat' } : SUPPORT;
+    return { pathname: '/chat' };
   }
 
   if (kind === 'member_message') {
@@ -162,10 +168,26 @@ export function getPushDestination(data: PushData, options: PushRoutingOptions |
     return { pathname: '/admin' };
   }
 
+  // Invitation Engine: "Tonight may be a window". Opens the engine for members
+  // who can use it; anyone else lands on Today rather than a paywall.
+  if (kind === 'invitation_window') {
+    return allowed('invitationEngine') ? { pathname: '/invitation-engine' } : HOME;
+  }
+
+  // Admin-only: a member logged that their loved one said yes to treatment.
+  if (kind === 'admin_invitation_yes') {
+    return { pathname: '/admin' };
+  }
+
   // A relative opted in to share that they are wavering on a wall; the wall
   // and its backup notices live on Boundaries.
   if (kind === 'family_backup') {
     return { pathname: '/(tabs)/boundaries' };
+  }
+
+  // Someone supported the member's community post.
+  if (kind === 'community_support') {
+    return allowed('community') ? { pathname: '/community' } : SUPPORT;
   }
 
   if (kind === 'group_live') {
@@ -187,6 +209,12 @@ export function getPushDestination(data: PushData, options: PushRoutingOptions |
     // Premier members manage sessions on Support; a one-off plan review is
     // shown, confirmed and paid for in Crisis Mode, opened on the session.
     return allowed('privateVideo') ? SUPPORT : { pathname: '/crisis-mode', params: { focus: 'session' } };
+  }
+
+  // A member's Urgent Text Line message still unread: open that thread.
+  if (kind === 'admin_textline_message') {
+    const threadId = uuidField(data, 'thread_id');
+    return threadId ? { pathname: '/admin-thread', params: { threadId } } : { pathname: '/admin' };
   }
 
   // Admin-only alerts (refund owed, community report, …) open the dashboard,

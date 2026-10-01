@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
   StyleSheet,
   Text,
   TextInput,
@@ -10,6 +9,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
+import { appAlert } from '../../lib/appAlert';
 import {
   CAREGIVER_SUPPORT_NEEDS,
 } from '../../lib/caregiverCheckIn';
@@ -111,7 +111,7 @@ export function CheckInCard({
   async function handleComplete() {
     if (isSaving) return;
     if (!isComplete) {
-      Alert.alert(t('checkIn.incompleteTitle'), t('checkIn.incompleteMessage'));
+      appAlert(t('checkIn.incompleteTitle'), t('checkIn.incompleteMessage'));
       return;
     }
     setIsSaving(true);
@@ -125,7 +125,7 @@ export function CheckInCard({
       });
     } catch {
       // Do not log provider errors that may contain private check-in values.
-      Alert.alert(t('checkIn.errorTitle'), t('checkIn.errorMessage'));
+      appAlert(t('checkIn.errorTitle'), t('checkIn.errorMessage'));
     } finally {
       setIsSaving(false);
     }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { privateVideoChannelTopic } from '../lib/realtimeTopics';
+import { videoErrorCode } from '../lib/videoErrors';
 
 export type PrivateVideoStatus = 'requested' | 'scheduled' | 'live' | 'completed' | 'cancelled' | 'no_show';
 
@@ -54,9 +55,28 @@ export type SessionRequestInput = {
 };
 
 function errorCode(error: { message: string; code?: string } | null): string | null {
-  if (!error) return null;
-  const known = ['version_conflict', 'active_session_exists', 'invalid_request', 'invalid_plan_review_request', 'invalid_plan_review_revision', 'plan_update_not_requested', 'invalid_timezone', 'proposal_not_found', 'session_not_found', 'premium_video_access_required', 'premier_upgrade_or_payment_required', 'essential_or_premier_required', 'payment_not_verified', 'invalid_transition'];
-  return known.find((code) => error.message.includes(code)) ?? error.code ?? 'unknown';
+  // Network failures have code '' — never a translation key or raw message.
+  return videoErrorCode(error);
+}
+
+const CHECKOUT_CODES = ['bridge_not_configured', 'checkout_not_available', 'already_paid', 'checkout_unavailable', 'account_not_found', 'premier_not_active', 'not_authenticated', 'invalid_session'];
+
+/**
+ * functions.invoke returns `data: null` for any non-2xx answer; the function's
+ * own `{ code }` is only on the error's Response. Read it so the card shows
+ * the specific reason instead of a generic failure.
+ */
+async function checkoutCode(data: unknown, error: unknown): Promise<string> {
+  const fromData = (data as { code?: unknown } | null)?.code;
+  if (typeof fromData === 'string' && CHECKOUT_CODES.includes(fromData)) return fromData;
+  const context = (error as { context?: { clone?: () => { json: () => Promise<unknown> }; json?: () => Promise<unknown> } } | null)?.context;
+  try {
+    const body = (await (context?.clone ? context.clone().json() : context?.json?.())) as { code?: unknown } | undefined;
+    if (typeof body?.code === 'string' && CHECKOUT_CODES.includes(body.code)) return body.code;
+  } catch {
+    // Not a JSON response (network failure); fall through.
+  }
+  return 'checkout_unavailable';
 }
 
 export function usePrivateVideoSessions(accountId: string | null, canAccess: boolean) {
@@ -70,6 +90,8 @@ export function usePrivateVideoSessions(accountId: string | null, canAccess: boo
   const [mutating, setMutating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorKey, setErrorKey] = useState<string | null>(null);
+  // Set when the server made a pending one-off review included with Premier.
+  const [planReviewIncluded, setPlanReviewIncluded] = useState(false);
   const loadGeneration = useRef(0);
 
   const clearError = useCallback(() => { setError(null); setErrorKey(null); }, []);
@@ -157,19 +179,40 @@ export function usePrivateVideoSessions(accountId: string | null, canAccess: boo
     p_consent_text: input.consentText, p_consent_locale: input.consentLocale,
   }), [runMutation]);
 
-  const beginPlanReviewCheckout = useCallback(async (session: PrivateVideoSession): Promise<string | null> => {
+  const invokePlanReviewCheckout = useCallback(async (session: PrivateVideoSession, intent: 'checkout' | 'apply_membership'): Promise<string | null> => {
     if (!accountId || !canAccess) return null;
-    setMutating(true); clearError();
+    setMutating(true); clearError(); setPlanReviewIncluded(false);
     const { data, error: functionError } = await supabase.functions.invoke('create-plan-review-checkout', {
-      body: { session_id: session.id },
+      body: { session_id: session.id, intent },
     });
-    setMutating(false);
-    if (functionError || !data?.ok || typeof data?.checkout_url !== 'string') {
-      const message = functionError?.message ?? data?.code ?? 'checkout_unavailable';
-      setError(message); setErrorKey(data?.code ?? 'checkout_unavailable'); return null;
+    if (!functionError && data?.ok && data?.included) {
+      // Premier now covers this review: no payment, and the refreshed session
+      // no longer offers one.
+      setPlanReviewIncluded(true);
+      await load();
+      setMutating(false);
+      return null;
     }
+    if (functionError || !data?.ok || typeof data?.checkout_url !== 'string') {
+      const code = await checkoutCode(data, functionError);
+      setMutating(false);
+      setError(functionError?.message ?? code); setErrorKey(code);
+      if (code === 'already_paid' || code === 'checkout_not_available') await load();
+      return null;
+    }
+    setMutating(false);
     return data.checkout_url;
-  }, [accountId, canAccess, clearError]);
+  }, [accountId, canAccess, clearError, load]);
+
+  const beginPlanReviewCheckout = useCallback(
+    (session: PrivateVideoSession) => invokePlanReviewCheckout(session, 'checkout'),
+    [invokePlanReviewCheckout],
+  );
+
+  /** For a member who upgraded after booking: make the pending one-off included. */
+  const applyPremierToPlanReview = useCallback(async (session: PrivateVideoSession): Promise<void> => {
+    await invokePlanReviewCheckout(session, 'apply_membership');
+  }, [invokePlanReviewCheckout]);
 
   const rescheduleSession = useCallback((session: PrivateVideoSession, input: SessionRequestInput) => runMutation('member_reschedule_video_session', {
     p_session_id: session.id, p_expected_version: session.version, p_starts_at: input.startsAt.toISOString(),
@@ -184,7 +227,7 @@ export function usePrivateVideoSessions(accountId: string | null, canAccess: boo
 
   return {
     sessions: [...(activeSession ? [activeSession] : []), ...history], activeSession, history, pendingProposal,
-    loading, requesting: mutating, mutating, error, errorKey, clearError, load,
-    requestSession, requestPlanReview, submitPlanReviewRevision, beginPlanReviewCheckout, rescheduleSession, acceptProposal, cancelSession,
+    loading, requesting: mutating, mutating, error, errorKey, clearError, load, planReviewIncluded,
+    requestSession, requestPlanReview, submitPlanReviewRevision, beginPlanReviewCheckout, applyPremierToPlanReview, rescheduleSession, acceptProposal, cancelSession,
   };
 }

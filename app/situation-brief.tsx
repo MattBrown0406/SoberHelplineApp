@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { appAlert } from '../src/lib/appAlert';
 import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
@@ -36,6 +37,7 @@ export default function SituationBriefScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation('brief');
   const { t: tTracker } = useTranslation('tracker');
+  const { t: tOnboarding } = useTranslation('onboarding');
   const router = useRouter();
   const { user } = useAccount();
   const { preview, briefs, loading, sending, send } = useSituationBrief(user?.id ?? null);
@@ -82,8 +84,10 @@ export default function SituationBriefScreen() {
       setPhase('sent');
     } else if (result.code === 'too_soon') {
       setPhase('tooSoon');
+    } else {
+      // The note stays in the compose box so she can send again.
+      appAlert(t('errorTitle'), t('errorBody'));
     }
-    // generic errors keep the compose phase; the button stays available
   }
 
   function statusLabel(status: BriefStatus): string {
@@ -215,7 +219,11 @@ export default function SituationBriefScreen() {
               <Text style={[styles.body, { color: colors.inkSoft }]}>
                 {[
                   sections.loved_one.first_name,
-                  sections.loved_one.relationship,
+                  sections.loved_one.relationship
+                    ? tOnboarding(`lovedOne.relationship.${sections.loved_one.relationship}`, {
+                      defaultValue: tOnboarding('lovedOne.relationship.other'),
+                    })
+                    : null,
                   t(`lovedOneStatus.${sections.loved_one.status}` as never),
                 ]
                   .filter(Boolean)

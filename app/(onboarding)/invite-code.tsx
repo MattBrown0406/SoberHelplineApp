@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -13,27 +14,39 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { supabase } from '../../src/lib/supabase';
 import { useAccount } from '../../src/contexts/AccountContext';
+import { SUBSCRIPTION_MANAGEMENT_URL } from '../../src/config';
+import { hasOwnStoreSubscription, providerCodeErrorKey, providerCodeFailure } from '../../src/lib/inviteCodeErrors';
 
 export default function InviteCodeScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation('onboarding');
   const router = useRouter();
-  const { refreshAccount } = useAccount();
+  const { refreshAccount, accountState } = useAccount();
 
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [orgName, setOrgName] = useState<string | null>(null);
+  // Members already paying through the App Store / Google Play must hear,
+  // before connecting, that the provider does not cancel that subscription.
+  const [subscriptionWarning, setSubscriptionWarning] = useState(false);
+  const [subscriptionAcknowledged, setSubscriptionAcknowledged] = useState(false);
 
-  async function handleRedeem() {
+  async function handleRedeem(acknowledged = subscriptionAcknowledged) {
+    if (hasOwnStoreSubscription(accountState) && !acknowledged) {
+      setSubscriptionWarning(true);
+      return;
+    }
+    setSubscriptionWarning(false);
     setError(null);
     setLoading(true);
     try {
       const { data, error: err } = await supabase.rpc('redeem_invite_code', {
         invite_code: code,
       });
-      if (err || !data) {
-        setError(t('invite.errorInvalid'));
+      const failure = providerCodeFailure(err, data);
+      if (failure) {
+        setError(t(providerCodeErrorKey(failure)));
         return;
       }
       // The code is already consumed server-side; a failed refresh must not
@@ -42,7 +55,7 @@ export default function InviteCodeScreen() {
       setOrgName(data as string);
       setTimeout(() => router.push('/(onboarding)/consent'), 1200);
     } catch {
-      setError(t('invite.errorInvalid'));
+      setError(t('invite.errorNetwork'));
     } finally {
       setLoading(false);
     }
@@ -65,8 +78,34 @@ export default function InviteCodeScreen() {
         ) : (
           <>
             {error && (
-              <View style={[styles.errorBox, { backgroundColor: colors.coralLight }]}>
+              <View accessibilityRole="alert" style={[styles.errorBox, { backgroundColor: colors.coralLight }]}>
                 <Text style={[styles.errorText, { color: colors.coral }]}>{error}</Text>
+              </View>
+            )}
+            {subscriptionWarning && (
+              <View accessibilityRole="alert" style={[styles.warningBox, { backgroundColor: colors.secondaryLight, borderColor: colors.secondary }]}>
+                <Text style={[styles.warningTitle, { color: colors.ink }]}>{t('invite.subscriptionWarningTitle')}</Text>
+                <Text style={[styles.errorText, { color: colors.ink }]}>{t('invite.subscriptionWarningBody')}</Text>
+                <TouchableOpacity
+                  accessibilityRole="link"
+                  accessibilityLabel={t('invite.manageSubscription')}
+                  onPress={() => void Linking.openURL(SUBSCRIPTION_MANAGEMENT_URL).catch(() => undefined)}
+                  style={[styles.warningButton, { borderColor: colors.primary }]}
+                >
+                  <Text style={[styles.warningButtonText, { color: colors.primary }]}>{t('invite.manageSubscription')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel={t('invite.continueAnyway')}
+                  disabled={loading}
+                  onPress={() => {
+                    setSubscriptionAcknowledged(true);
+                    void handleRedeem(true);
+                  }}
+                  style={[styles.warningButton, { borderColor: colors.inkSoft }]}
+                >
+                  <Text style={[styles.warningButtonText, { color: colors.ink }]}>{t('invite.continueAnyway')}</Text>
+                </TouchableOpacity>
               </View>
             )}
             <TextInput
@@ -80,7 +119,8 @@ export default function InviteCodeScreen() {
             />
             <TouchableOpacity
               style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
-              onPress={handleRedeem}
+              onPress={() => void handleRedeem()}
+              accessibilityRole="button"
               disabled={loading || code.trim().length < 4}
               activeOpacity={0.85}
             >
@@ -127,6 +167,10 @@ const styles = StyleSheet.create({
   skipText: { fontSize: 14, fontWeight: '600' },
   errorBox: { borderRadius: 10, padding: 12, marginBottom: 14 },
   errorText: { fontSize: 13, lineHeight: 18 },
+  warningBox: { borderRadius: 12, borderWidth: 1, padding: 14, marginBottom: 14, gap: 8 },
+  warningTitle: { fontSize: 15, fontWeight: '700' },
+  warningButton: { minHeight: 44, borderWidth: 1.5, borderRadius: 99, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
+  warningButtonText: { fontSize: 14, fontWeight: '700' },
   successBox: { borderRadius: 14, padding: 18, alignItems: 'center' },
   successText: { fontSize: 16, fontWeight: '700' },
 });

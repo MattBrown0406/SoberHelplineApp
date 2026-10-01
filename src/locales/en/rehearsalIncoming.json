@@ -32,6 +32,8 @@
     "placeholder": "Say it the way you would answer…",
     "showTranscript": "Show full transcript",
     "hideTranscript": "Hide full transcript",
-    "hangUp": "End call & get feedback"
+    "hangUp": "End call & get feedback",
+    "endCall": "End call",
+    "retryOpening": "Try again"
   }
 }

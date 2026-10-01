@@ -94,10 +94,14 @@ export class ThreadUnavailableError extends Error {
 // The message itself was saved; only its attachments failed. Retrying the whole
 // send would post the text twice.
 export class AttachmentUploadError extends Error {
-  constructor(cause: unknown) {
+  /** Only the attachments that did not upload; the rest are already sent. */
+  readonly failed: PendingAttachment[];
+
+  constructor(cause: unknown, failed: PendingAttachment[] = []) {
     super('attachment_upload_failed');
     this.name = 'AttachmentUploadError';
     this.cause = cause;
+    this.failed = failed;
   }
 }
 
@@ -249,6 +253,19 @@ export function useThread(accountId: string | null, enabled = true, { readOnly =
 
     let tid = existing?.id as string | undefined;
     if (!tid && readOnly) {
+      // Off-plan members only read: if the coach archived the conversation,
+      // its replies (e.g. to a situation brief) must stay readable.
+      const { data: latest } = await supabase
+        .from('threads')
+        .select('id')
+        .eq('account_id', accId)
+        .eq('kind', 'oncall')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      tid = latest?.id as string | undefined;
+    }
+    if (!tid && readOnly) {
       if (!isCancelled()) {
         threadIdRef.current = null;
         setThreadId(null);
@@ -343,7 +360,8 @@ export function useThread(accountId: string | null, enabled = true, { readOnly =
     };
   }, [accountId, enabled, loadThread, refreshMessages]);
 
-  const send = useCallback(async (body: string, pendingAttachments: PendingAttachment[] = []) => {
+  /** attachmentOnlyBody: localized text stored when a message is photos only. */
+  const send = useCallback(async (body: string, pendingAttachments: PendingAttachment[] = [], attachmentOnlyBody = '📷') => {
     const trimmed = body.trim();
     if (!trimmed && pendingAttachments.length === 0) return;
     if (!accountId || readOnly) throw new ThreadUnavailableError();
@@ -352,18 +370,29 @@ export function useThread(accountId: string | null, enabled = true, { readOnly =
     try {
       // The thread may have failed to load (offline on open, or a transient
       // error); try once more rather than dropping the member's message.
-      const activeThreadId = threadId ?? (await loadThread(accountId));
+      let activeThreadId = threadId ?? (await loadThread(accountId));
       if (!activeThreadId) throw new ThreadUnavailableError();
 
-      const { data, error } = await supabase
+      const insertInto = (tid: string) => supabase
         .from('messages')
         .insert({
-          thread_id: activeThreadId,
+          thread_id: tid,
           sender_role: 'member',
-          body: trimmed || 'Attached screenshot/image',
+          body: trimmed || attachmentOnlyBody,
         })
         .select('id, sender_role, body, created_at')
         .single();
+      let { data, error } = await insertInto(activeThreadId);
+      if (error?.code === '42501') {
+        // The open thread was archived (by the coach or another device) while
+        // this screen stayed mounted: move to the current conversation and
+        // send there instead of failing every retry.
+        threadIdRef.current = null;
+        const current = await loadThread(accountId);
+        if (!current) throw new ThreadUnavailableError();
+        activeThreadId = current;
+        ({ data, error } = await insertInto(current));
+      }
       if (error) throw error;
 
       const msg = data as RawMessage;
@@ -371,7 +400,7 @@ export function useThread(accountId: string | null, enabled = true, { readOnly =
 
       if (pendingAttachments.length > 0) {
         const results = await Promise.allSettled(
-          pendingAttachments.map((att) => uploadAttachment(accountId, activeThreadId, msg.id, att)),
+          pendingAttachments.map((att) => uploadAttachment(accountId, activeThreadId as string, msg.id, att)),
         );
         setAttachments((prev) => {
           const next = [...prev];
@@ -381,8 +410,9 @@ export function useThread(accountId: string | null, enabled = true, { readOnly =
           }
           return next;
         });
+        const failedAttachments = pendingAttachments.filter((_, index) => results[index].status === 'rejected');
         const failed = results.find((r): r is PromiseRejectedResult => r.status === 'rejected');
-        if (failed) throw new AttachmentUploadError(failed.reason);
+        if (failed) throw new AttachmentUploadError(failed.reason, failedAttachments);
       }
     } finally {
       setSending(false);

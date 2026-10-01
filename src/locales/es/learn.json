@@ -29,7 +29,11 @@
     "visitationBadge": "Gratis · Plan de visita",
     "learningEyebrow": "APRENDE · RECURSOS GRATUITOS",
     "diyIncluded": "Incluido con tu acceso actual.",
-    "diyPaid": "Función de pago · requiere membresía Essential o Premier."
+    "diyPaid": "Función de pago · requiere membresía Essential o Premier.",
+    "invitationBadge": "Nuevo",
+    "invitationTitle": "Motor de Invitación",
+    "invitationBody": "Un plan día a día basado en CRAFT, la forma más comprobada en que las familias ayudan a un ser querido que se resiste a decir sí al tratamiento: entiende su patrón, refuerza los momentos sobrios, detecta el momento adecuado y pide bien.",
+    "invitationButton": "Abrir el Motor de Invitación"
   },
   "education": {
     "title": "Educación familiar",
@@ -153,7 +157,9 @@
         "q": "¿Cuándo es una emergencia?",
         "a": "Llama al 911 ante señales de sobredosis — no responde, labios azules, respiración lenta o detenida, gorgoteo. Llama o envía un mensaje al 988 ante cualquier mención de suicidio o autolesión. No esperes a estar segura; equivocarse y estar a salvo es mejor que tener razón y llegar tarde. Guarda ambos números en tu teléfono ahora, y si hay opioides, ten naloxona (Narcan) en casa — en la mayoría de los estados no requiere receta."
       }
-    ]
+    ],
+    "collapseHint": "Oculta esta respuesta",
+    "expandHint": "Muestra esta respuesta"
   },
   "intro": "Práctica te ayuda a saber qué decir. Límites te ayuda a decidir qué vas a mantener. Usa estas herramientas para planificar, o abre Apoyo para conectar con otras personas.",
   "destinations": {

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { Button } from '../../src/components/ui/Button';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { submitProviderInquiry } from '../../src/api/providers';
+import { appAlert } from '../../src/lib/appAlert';
 
 // Canonical values sent to the navigator team (always English); display labels
 // come from the finder namespace by index.
@@ -46,7 +47,7 @@ export default function InquiryScreen() {
       });
       setSubmitted(true);
     } catch {
-      Alert.alert(t('inquiry.errorTitle'), t('inquiry.errorBody'));
+      appAlert(t('inquiry.errorTitle'), t('inquiry.errorBody'));
     } finally {
       setSending(false);
     }

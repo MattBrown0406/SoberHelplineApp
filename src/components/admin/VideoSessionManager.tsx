@@ -1,17 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../contexts/ThemeContext';
 import { supabase } from '../../lib/supabase';
+import { calendarSyncSummary } from '../../lib/calendarSyncStatus';
+import { DateTimeField } from '../ui/DateTimeField';
 import {
   AdminVideoSession,
   AdminVideoSessionsState,
@@ -19,7 +19,7 @@ import {
 } from '../../hooks/useAdminVideoSessions';
 
 type Segment = 'needsAction' | 'upcoming' | 'live' | 'history';
-type EditorMode = 'counteroffer' | 'reschedule' | 'cancel' | null;
+type EditorMode = 'counteroffer' | 'reschedule' | 'cancel' | 'markPaid' | null;
 const SEGMENTS: { key: Segment; label: string }[] = [
   { key: 'needsAction', label: 'Needs Action' },
   { key: 'upcoming', label: 'Upcoming' },
@@ -95,6 +95,9 @@ export function VideoSessionManager({ sessions }: { sessions: AdminVideoSessions
           onJoin={() => router.push({ pathname: '/video-session' as never, params: { sessionId: session.id } })}
           runAction={sessions.runAction}
           refreshActive={sessions.refreshActive}
+          isOwner={sessions.isVideoOwner}
+          retryCalendarSync={sessions.retryCalendarSync}
+          markPlanReviewPaid={sessions.markPlanReviewPaid}
         />
       ))}
 
@@ -111,7 +114,7 @@ export function VideoSessionManager({ sessions }: { sessions: AdminVideoSessions
   );
 }
 
-function SessionCard({ session, staff, busy, history, expanded, onToggle, onJoin, runAction, refreshActive }: {
+function SessionCard({ session, staff, busy, history, expanded, onToggle, onJoin, runAction, refreshActive, isOwner, retryCalendarSync, markPlanReviewPaid }: {
   session: AdminVideoSession;
   staff: VideoStaff[];
   busy: boolean;
@@ -121,6 +124,9 @@ function SessionCard({ session, staff, busy, history, expanded, onToggle, onJoin
   onJoin: () => void;
   runAction: (session: AdminVideoSession, rpc: string, params?: Record<string, unknown>) => Promise<boolean>;
   refreshActive: () => Promise<void>;
+  isOwner: boolean;
+  retryCalendarSync: (session: AdminVideoSession) => Promise<boolean>;
+  markPlanReviewPaid: (session: AdminVideoSession, note: string) => Promise<boolean>;
 }) {
   const { colors } = useTheme();
   const [editor, setEditor] = useState<EditorMode>(null);
@@ -145,6 +151,8 @@ function SessionCard({ session, staff, busy, history, expanded, onToggle, onJoin
   }, [session.assigned_coach_id]);
 
   const memberTime = formatInTimezone(session.requested_start, session.requested_timezone);
+  // The server refuses to confirm a time that has passed (start_time_in_past).
+  const requestedTimePassed = new Date(session.requested_start).getTime() <= Date.now();
   const localTime = new Date(session.requested_start).toLocaleString([], DATE_OPTIONS);
   const scheduledLocal = session.scheduled_for ? new Date(session.scheduled_for).toLocaleString([], DATE_OPTIONS) : null;
 
@@ -196,6 +204,7 @@ function SessionCard({ session, staff, busy, history, expanded, onToggle, onJoin
       <Text style={[styles.meta, { color: colors.inkSoft }]}>Duration: {session.duration_minutes} minutes · Version {session.version}</Text>
       {scheduledLocal ? <Text style={[styles.scheduled, { color: colors.primary }]}>Scheduled (coach local): {scheduledLocal}</Text> : null}
       {coach ? <Text style={[styles.meta, { color: colors.inkSoft }]}>Assigned: {coach.name}</Text> : session.assigned_coach_id ? <Text style={[styles.meta, { color: colors.inkSoft }]}>Assigned coach: {session.assigned_coach_id}</Text> : null}
+      <CalendarSyncRow session={session} busy={busy} onRetry={() => void retryCalendarSync(session)} />
       {session.member_note ? <Text style={[styles.note, { color: colors.ink }]}>Member note: {session.member_note}</Text> : null}
       {session.booking_purpose === 'plan_review' ? (
         <View style={[styles.prep, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]}>
@@ -216,6 +225,7 @@ function SessionCard({ session, staff, busy, history, expanded, onToggle, onJoin
             <ActionButton label="Save private prep notes" disabled={busy || prepBusy} color={colors.primary} onPress={() => void runPrepAction('admin_update_plan_review_prep', { p_session_id: session.id, p_notes: prepNotes }, 'Private prep notes saved.')} />
             <ActionButton label="Request updated plan" disabled={busy || prepBusy} color={colors.primary} onPress={() => void runPrepAction('admin_request_plan_review_update', { p_session_id: session.id, p_note: 'Please review your local plan before the meeting. The original submitted snapshot remains unchanged.' }, 'Member notified to review their plan.')} />
             {session.appointment_type === 'one_off_150' && session.payment_status === 'pending_payment' ? <ActionButton label="Refresh verified payment" disabled={busy || prepBusy} color={colors.coral} onPress={() => void runPrepAction('sync_plan_review_payment', { p_session_id: session.id }, 'Payment verified.')} /> : null}
+            {isOwner && !history && session.appointment_type === 'one_off_150' && session.payment_status === 'pending_payment' ? <ActionButton label="Mark paid (manual)" disabled={busy || prepBusy} color={colors.coral} onPress={() => { setNote(''); setEditor('markPaid'); }} /> : null}
           </View>
           {prepMessage ? <Text accessibilityRole="alert" style={[styles.meta, { color: prepMessage.includes('saved') || prepMessage.includes('verified') || prepMessage.includes('notified') ? colors.green : colors.coral }]}>{prepMessage}</Text> : null}
           {session.update_requested_at ? <Text style={[styles.meta, { color: colors.coral }]}>Update requested {new Date(session.update_requested_at).toLocaleString()}</Text> : null}
@@ -237,7 +247,7 @@ function SessionCard({ session, staff, busy, history, expanded, onToggle, onJoin
       ) : (
         <>
           <View style={styles.actions}>
-            {session.status === 'requested' ? <ActionButton label="Confirm requested time" disabled={busy || !coachId || session.payment_status === 'pending_payment'} onPress={() => void runAction(session, 'coach_confirm_video_session', { p_coach_id: coachId || null })} color={colors.green} filled /> : null}
+            {session.status === 'requested' ? <ActionButton label="Confirm requested time" disabled={busy || !coachId || session.payment_status === 'pending_payment' || requestedTimePassed} onPress={() => void runAction(session, 'coach_confirm_video_session', { p_coach_id: coachId || null })} color={colors.green} filled /> : null}
             {session.status === 'requested' ? <ActionButton label="Counteroffer" disabled={busy} onPress={() => setEditor('counteroffer')} color={colors.primary} /> : null}
             {session.status === 'scheduled' ? <ActionButton label="Reschedule" disabled={busy} onPress={() => {
               setCoachId(session.assigned_coach_id ?? '');
@@ -251,36 +261,48 @@ function SessionCard({ session, staff, busy, history, expanded, onToggle, onJoin
             {session.status === 'scheduled' || session.status === 'live' ? <ActionButton label="Coach no-show" disabled={busy} onPress={() => void runAction(session, 'coach_mark_coach_no_show')} color={colors.coral} /> : null}
             {session.status === 'requested' || session.status === 'scheduled' ? <ActionButton label="Cancel" disabled={busy} onPress={() => setEditor('cancel')} color={colors.coral} /> : null}
           </View>
+          {session.status === 'requested' && requestedTimePassed ? <Text style={[styles.meta, { color: colors.coral }]}>The requested time has passed. Send a counteroffer with a future time.</Text> : null}
           {session.status === 'requested' ? <CoachPicker staff={staff} selected={coachId} onSelect={setCoachId} /> : null}
           {busy ? <ActivityIndicator color={colors.primary} /> : null}
           {editor ? (
             <View style={[styles.editor, { borderColor: colors.line }]}>
-              {editor !== 'cancel' ? (
+              {editor === 'counteroffer' || editor === 'reschedule' ? (
                 <>
                   <Text style={[styles.editorTitle, { color: colors.ink }]}>{editor === 'counteroffer' ? 'Propose another time' : 'Reschedule session'}</Text>
                   {editor === 'reschedule' ? (
                     <Text style={[styles.assignmentNotice, { color: colors.ink }]}>Assigned coach remains: {coach?.name ?? session.assigned_coach_id ?? 'Unassigned'}</Text>
                   ) : null}
-                  <Picker value={date} onChange={setDate} />
+                  <View style={styles.pickers}>
+                    <DateTimeField mode="date" value={date} onChange={setDate} minimumDate={new Date()} label={date.toLocaleDateString()} accessibilityLabel="Proposed date" />
+                    <DateTimeField mode="time" value={date} onChange={setDate} minuteInterval={5} label={date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} accessibilityLabel="Proposed time" />
+                  </View>
                   <Text style={[styles.meta, { color: colors.inkSoft }]}>Coach local: {date.toLocaleString([], DATE_OPTIONS)}</Text>
+                </>
+              ) : editor === 'markPaid' ? (
+                <>
+                  <Text style={[styles.editorTitle, { color: colors.ink }]}>Mark the $150 plan review paid</Text>
+                  <Text style={[styles.meta, { color: colors.inkSoft }]}>Records a manual payment (owner only). Use when the member paid outside the app checkout. Say how and when.</Text>
                 </>
               ) : <Text style={[styles.editorTitle, { color: colors.ink }]}>Cancellation reason</Text>}
               <TextInput
                 value={note}
                 onChangeText={setNote}
-                placeholder={editor === 'cancel' ? 'Reason (required)' : 'Optional note for member'}
+                placeholder={editor === 'cancel' ? 'Reason (required)' : editor === 'markPaid' ? 'Payment note (required), e.g. "Zelle 9/30"' : 'Optional note for member'}
                 placeholderTextColor={colors.inkSoft}
                 multiline
+                maxLength={editor === 'markPaid' ? 500 : undefined}
                 style={[styles.input, { borderColor: colors.line, color: colors.ink }]}
               />
               <View style={styles.actions}>
                 <ActionButton
-                  label={editor === 'cancel' ? 'Cancel session' : 'Send proposal'}
-                  disabled={busy || (editor === 'cancel' && !note.trim())}
+                  label={editor === 'cancel' ? 'Cancel session' : editor === 'markPaid' ? 'Mark paid' : 'Send proposal'}
+                  disabled={busy || ((editor === 'cancel' || editor === 'markPaid') && note.trim().length < (editor === 'markPaid' ? 3 : 1))}
                   onPress={() => editor === 'cancel'
                     ? void runAction(session, 'coach_cancel_video_session', { p_reason: note.trim() }).then((ok) => { if (ok) setEditor(null); })
-                    : void scheduleAction()}
-                  color={editor === 'cancel' ? colors.coral : colors.primary}
+                    : editor === 'markPaid'
+                      ? void markPlanReviewPaid(session, note).then((ok) => { if (ok) { setEditor(null); setNote(''); } })
+                      : void scheduleAction()}
+                  color={editor === 'cancel' || editor === 'markPaid' ? colors.coral : colors.primary}
                   filled
                 />
                 <ActionButton label="Close" disabled={busy} onPress={() => setEditor(null)} color={colors.inkSoft} />
@@ -316,16 +338,19 @@ function CoachPicker({ staff, selected, onSelect }: { staff: VideoStaff[]; selec
   );
 }
 
-function Picker({ value, onChange }: { value: Date; onChange: (date: Date) => void }) {
-  if (Platform.OS === 'android') {
-    return (
-      <View style={styles.pickers}>
-        <DateTimePicker value={value} mode="date" minimumDate={new Date()} onChange={(_event, date) => date && onChange(date)} />
-        <DateTimePicker value={value} mode="time" onChange={(_event, date) => date && onChange(date)} />
+function CalendarSyncRow({ session, busy, onRetry }: { session: AdminVideoSession; busy: boolean; onRetry: () => void }) {
+  const { colors } = useTheme();
+  const summary = calendarSyncSummary(session);
+  const color = summary.tone === 'failed' ? colors.coral : summary.tone === 'ok' ? colors.green : colors.inkSoft;
+  return (
+    <View style={styles.calendarRow}>
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.meta, { color, fontWeight: '700' }]}>{summary.label}</Text>
+        {summary.detail ? <Text selectable style={[styles.meta, { color: colors.inkSoft }]}>{summary.detail}</Text> : null}
       </View>
-    );
-  }
-  return <DateTimePicker value={value} mode="datetime" minimumDate={new Date()} onChange={(_event, date) => date && onChange(date)} />;
+      {summary.canRetry ? <ActionButton label="Retry sync" disabled={busy} onPress={onRetry} color={colors.primary} /> : null}
+    </View>
+  );
 }
 
 function Status({ status }: { status: AdminVideoSession['status'] }) {
@@ -401,6 +426,7 @@ const styles = StyleSheet.create({
   editorTitle: { fontSize: 14, fontWeight: '700', marginBottom: 8 },
   assignmentNotice: { fontSize: 13, lineHeight: 18, fontWeight: '700', marginBottom: 8 },
   pickers: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  calendarRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
   input: { minHeight: 44, borderWidth: 1, borderRadius: 8, padding: 10, marginTop: 8, textAlignVertical: 'top' },
   prep: { borderWidth: 1, borderRadius: 10, padding: 10, marginTop: 8 },
   snapshotSection: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#9fb7b2', paddingTop: 6, marginTop: 6 },

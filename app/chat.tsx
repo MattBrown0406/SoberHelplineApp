@@ -9,11 +9,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
   Modal,
   Pressable,
   Image,
 } from 'react-native';
+import { appAlert } from '../src/lib/appAlert';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -56,24 +56,24 @@ export default function ChatScreen() {
     const toSend = pendingAttachments;
     setPendingAttachments([]);
     try {
-      await send(body, toSend);
+      await send(body, toSend, t('textline.photoOnlyBody'));
       listRef.current?.scrollToEnd({ animated: true });
     } catch (err) {
       if (err instanceof AttachmentUploadError) {
-        setPendingAttachments(toSend);
-        Alert.alert(t('textline.attachmentErrorTitle'), t('textline.attachmentErrorBody'));
+        setPendingAttachments(err.failed);
+        appAlert(t('textline.attachmentErrorTitle'), t('textline.attachmentErrorBody'));
         return;
       }
       setDraft(body);
       setPendingAttachments(toSend);
-      Alert.alert(t('textline.sendErrorTitle'), t('textline.sendErrorBody'));
+      appAlert(t('textline.sendErrorTitle'), t('textline.sendErrorBody'));
     }
   }
 
   async function pickAttachment() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert(t('textline.photosPermTitle'), t('textline.photosPermBody'));
+      appAlert(t('textline.photosPermTitle'), t('textline.photosPermBody'));
       return;
     }
 
@@ -101,7 +101,7 @@ export default function ChatScreen() {
   }
 
   function confirmArchive() {
-    Alert.alert(
+    appAlert(
       t('chat.archiveTitle'),
       t('chat.archiveBody'),
       [
@@ -114,7 +114,7 @@ export default function ChatScreen() {
             try {
               await archive();
             } catch {
-              Alert.alert(t('chat.archiveTitle'), t('chat.archiveError'));
+              appAlert(t('chat.archiveTitle'), t('chat.archiveError'));
             } finally {
               setArchiving(false);
             }

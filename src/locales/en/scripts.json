@@ -42,5 +42,9 @@
     "expandsThisScript": "Expands this script",
     "practicedTimes": "practiced {{count}} times",
     "opensPracticeForThisScript": "Opens practice for this script"
+  },
+  "shelf": {
+    "collapseHint": "Collapses this script category",
+    "expandHint": "Expands this script category"
   }
 }

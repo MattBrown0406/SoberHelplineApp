@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Alert, Share, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, Share, Text, TouchableOpacity, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
+import { appAlert } from '../../lib/appAlert';
+import { shareOrCopy, webCanShare } from '../../lib/webShare';
 import type { SafetyPlan } from '../../lib/safetyWallet';
 import {
   availableEmergencyCardSections,
@@ -45,9 +47,18 @@ function CardSession({ plan }: { plan: SafetyPlan }) {
     if (!preview || busy) return;
     setBusy(true);
     try {
-      await Share.share({ message: preview, title: t('wallet.familyCard.title') });
-    } catch {
-      Alert.alert(t('wallet.familyCard.shareError'));
+      // Browsers without a share sheet reject Share.share: copy instead.
+      const outcome = await shareOrCopy(preview, {
+        canShare: Platform.OS !== 'web' || webCanShare(globalThis),
+        share: (message) => Share.share({ message, title: t('wallet.familyCard.title') }),
+        copy: (message) => Clipboard.setStringAsync(message),
+      });
+      if (outcome === 'copied') {
+        setCopied(true);
+        appAlert(t('wallet.copiedToClipboard'));
+      } else if (outcome === 'failed') {
+        appAlert(t('wallet.familyCard.shareError'));
+      }
     } finally {
       setBusy(false);
     }
@@ -59,7 +70,7 @@ function CardSession({ plan }: { plan: SafetyPlan }) {
       await Clipboard.setStringAsync(preview);
       setCopied(true);
     } catch {
-      Alert.alert(t('wallet.familyCard.shareError'));
+      appAlert(t('wallet.familyCard.shareError'));
     } finally {
       setBusy(false);
     }

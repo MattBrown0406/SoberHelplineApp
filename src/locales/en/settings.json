@@ -54,7 +54,11 @@
     "practiceRetry": "Try again",
     "pauseDaily": "Pause daily check-in reminders",
     "dailyErrorTitle": "Reminder change not confirmed",
-    "dailyErrorBody": "Check notification permission in device Settings and retry. No reminder delivery is guaranteed."
+    "dailyErrorBody": "Check notification permission in device Settings and retry. No reminder delivery is guaranteed.",
+    "familyCallTitle": "Monday family call reminder",
+    "familyCallDesc": "A reminder 30 minutes before The Family Squares, our free family support call on Zoom (Mondays, 7:00 PM Pacific).",
+    "familyCallErrorTitle": "Couldn't update the reminder",
+    "familyCallErrorBody": "Check your connection and try again."
   },
   "membership": {
     "eyebrow": "Membership",
@@ -69,7 +73,8 @@
     "restoreNoneTitle": "Nothing to restore",
     "restoreNoneBody": "We couldn't find any previous purchases for this Apple ID.",
     "restoreErrorTitle": "Couldn't restore",
-    "restoreErrorBody": "Something went wrong restoring your purchases. Please try again."
+    "restoreErrorBody": "Something went wrong restoring your purchases. Please try again.",
+    "attachedStoreNote": "Your provider covers your access. If you also subscribed through the App Store or Google Play, cancel it here so you are not charged twice."
   },
   "review": {
     "eyebrow": "Support the app",

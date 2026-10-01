@@ -1,4 +1,5 @@
 {
+  "webSessionNotice": "On the web, this plan is kept only for this browser session. Closing the tab clears it; use the app to keep it on your device.",
   "back": "‹ Tools",
   "kicker": "PREPARE BEFORE THE CONVERSATION",
   "title": "Treatment Action Plan",
@@ -82,6 +83,9 @@
     "leaveLocked": "Locked for this yes. Keep the family moving toward this time instead of renegotiating the night.",
     "setDate": "Set departure date",
     "setTime": "Set departure time",
+    "saveLeaveTime": "Save leave time",
+    "lockLeaveTime": "Lock leave time",
+    "leaveTimePast": "That time has already passed. Choose a later leave time.",
     "nightWatch": "Who stays up",
     "phoneHolder": "Who holds the phone",
     "bagHolder": "Who holds the bag",

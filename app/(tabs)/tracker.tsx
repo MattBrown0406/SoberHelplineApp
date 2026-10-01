@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Alert,
 } from 'react-native';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { useRouter } from 'expo-router';
@@ -16,6 +15,7 @@ import { useSituation } from '../../src/hooks/useSituation';
 import { SituationOffRamp } from '../../src/components/situation/SituationOffRamp';
 import type { FunnelDoor } from '../../src/lib/situation';
 import { supabase } from '../../src/lib/supabase';
+import { appAlert } from '../../src/lib/appAlert';
 import { WillingnessWindowCard } from '../../src/components/tracker/WillingnessWindowCard';
 import { Gate } from '../../src/components/auth/Gate';
 
@@ -127,7 +127,7 @@ function TrackerContent() {
   // crisis/escalating) so the situation reflects it, then re-read the band.
   // Fires once per rising edge.
   async function handleToggle(signId: string, kind: 'warning' | 'recovery') {
-    if (!(await toggleSign(signId, kind))) Alert.alert(t('signSaveError'));
+    if (!(await toggleSign(signId, kind))) appAlert(t('signSaveError'));
   }
 
   const spikeHandledRef = useRef(false);

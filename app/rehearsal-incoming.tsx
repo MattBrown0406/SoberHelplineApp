@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
   Vibration,
   Animated,
 } from 'react-native';
@@ -19,17 +18,26 @@ import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
 import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import { RehearsalDebrief } from '../src/components/rehearsal/RehearsalDebrief';
+import { useSpeechCapture } from '../src/components/rehearsal/useSpeechCapture';
+import { SafetyBreakCard } from '../src/components/rehearsal/SafetyBreakCard';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
 import { Gate } from '../src/components/auth/Gate';
 import { RouteActivationGate } from '../src/contexts/RouteActivationContext';
 import { useLovedOne } from '../src/hooks/useLovedOne';
+import { useLovedOneProfile } from '../src/hooks/useLovedOneProfile';
 import { useRehearsalCount } from '../src/hooks/useRehearsalCount';
 import { supabase } from '../src/lib/supabase';
+import { appAlert } from '../src/lib/appAlert';
 import { saveRehearsalSession } from '../src/lib/rehearsalSessions';
-import { finalizeRecording } from '../src/lib/appFlowGuards';
+import { practiceRelationship, toPracticeProfile, type PracticeProfile } from '../src/lib/practiceProfile';
+import { analyzeDelivery, clipsForText, type DeliveryReport, type VoiceClip } from '../src/lib/practiceDelivery';
+import { transcriptBeforeUserTurn } from '../src/lib/practiceReplay';
+import { leavesConversation, stageAfterSafetyBreak } from '../src/lib/practiceSafety';
+import { clampLine, INCOMING_PRESETS, MAX_LINE_CHARS, PARTNER_TEMPERAMENTS } from '../src/lib/practiceScenarios';
 import {
   useRehearsalPartner,
+  type PartnerDebrief,
   type PartnerTemperament,
   type PartnerGender,
   type PartnerAge,
@@ -39,8 +47,16 @@ import {
 
 type Stage = 'ring' | 'call' | 'debrief';
 
-const TEMPERAMENTS: PartnerTemperament[] = ['guarded', 'defensive', 'volatile', 'tearful'];
-const PRESETS: CrisisPreset[] = ['late_night_pickup', 'money_urgent', 'relapse_confession', 'crisis_blame'];
+/** Who is calling — frozen when the call is answered so a late-loading profile can't swap the caller mid-call. */
+type CallPersona = {
+  relationship: PartnerRelationship;
+  gender: PartnerGender;
+  name: string;
+  profile?: PracticeProfile;
+};
+
+const TEMPERAMENTS: PartnerTemperament[] = [...PARTNER_TEMPERAMENTS];
+const PRESETS: CrisisPreset[] = [...INCOMING_PRESETS];
 const RELATIONSHIPS: PartnerRelationship[] = ['spouse', 'partner', 'son', 'daughter', 'sibling', 'parent', 'friend'];
 
 /** Map the loved-one profile relationship onto the partner options (mirrors rehearsal-live). */
@@ -76,6 +92,10 @@ function RehearsalIncomingContent() {
   const params = useLocalSearchParams<{ temperament?: string; crisisPreset?: string; eventId?: string }>();
   const { user } = useAccount();
   const { lovedOne } = useLovedOne(user?.id ?? null);
+  // An ambush has no setup screen: when the family has described their loved
+  // one, the caller is always *their* person.
+  const { profile } = useLovedOneProfile(user?.id ?? null);
+  const practiceProfile = useMemo(() => toPracticeProfile(profile), [profile]);
   const { increment } = useRehearsalCount('incoming-call');
 
   const [stage, setStage] = useState<Stage>('ring');
@@ -93,19 +113,33 @@ function RehearsalIncomingContent() {
     temperament: pinnedParam(params.temperament, TEMPERAMENTS) ?? pickRandom(TEMPERAMENTS),
     crisisPreset: pinnedParam(params.crisisPreset, PRESETS) ?? pickRandom(PRESETS),
   }));
-  const relationship = defaultRelationship(lovedOne?.relationship);
-  const gender = defaultGender(relationship);
+  const liveRelationship = defaultRelationship(practiceRelationship(practiceProfile?.relationship) ?? lovedOne?.relationship);
+  const livePersona: CallPersona = {
+    relationship: liveRelationship,
+    gender: defaultGender(liveRelationship),
+    name: practiceProfile?.name || lovedOne?.first_name?.trim() || '',
+    profile: practiceProfile ?? undefined,
+  };
+  const [persona, setPersona] = useState<CallPersona | null>(null);
+  const caller = persona ?? livePersona;
+  const relationship = caller.relationship;
+  const gender = caller.gender;
   const age: PartnerAge = 'middle';
   const [draft, setDraft] = useState('');
+  const [lineTrimmed, setLineTrimmed] = useState(false);
+  const draftRef = useRef('');
+  draftRef.current = draft;
   const [showTranscript, setShowTranscript] = useState(false);
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
-  const recordingRef = useRef<Audio.Recording | null>(null);
-  const pressActiveRef = useRef(false);
+  const [delivery, setDelivery] = useState<DeliveryReport | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
+  // Voice clips recorded since the last send; attached to the line they became.
+  const pendingClipsRef = useRef<VoiceClip[]>([]);
+  const redoFromRef = useRef<number | null>(null);
   const pulse = useRef(new Animated.Value(1)).current;
 
   const language = i18n.language?.startsWith('es') ? 'es' : 'en';
-  const partnerName = lovedOne?.first_name?.trim() || t('rehearsalLive:defaultName');
+  const realName = caller.name;
+  const partnerName = realName || t('rehearsalLive:defaultName');
 
   const {
     messages,
@@ -113,6 +147,10 @@ function RehearsalIncomingContent() {
     transcribing,
     error,
     safetyBreak,
+    safetyKind,
+    canKeepPracticing,
+    hadSafetyBreak,
+    keepPracticing,
     debrief,
     debriefLoading,
     turnsLeft,
@@ -121,15 +159,18 @@ function RehearsalIncomingContent() {
     open,
     requestDebrief,
     reset,
+    restore,
   } = useRehearsalPartner({
     relationship,
-    name: lovedOne?.first_name ?? undefined,
+    name: realName || undefined,
     substances: lovedOne?.substances ?? undefined,
     temperament: roll.temperament,
     language,
     voice: { gender, age },
+    persona: { gender, age },
     mode: 'incoming_call',
     crisisPreset: roll.crisisPreset,
+    profile: caller.profile,
   }, sessionEventId);
 
   // Ring: pulse the answer button and loop the vibration pattern until
@@ -153,14 +194,22 @@ function RehearsalIncomingContent() {
     };
   }, [stage, declined, pulse]);
 
-  const savedSessionRef = useRef(false);
+  // Each debrief is handled exactly once: count the rep, compute delivery,
+  // show it, and save it so the family can review their reps later.
+  const handledDebriefRef = useRef<PartnerDebrief | null>(null);
   useEffect(() => {
-    if (!debrief) return;
-    increment();
+    if (!debrief || handledDebriefRef.current === debrief) return;
+    // Never coach — or save — a call that hit a crisis break.
+    if (safetyBreak) return;
+    handledDebriefRef.current = debrief;
+    void increment();
+    const report = analyzeDelivery(
+      messages.filter((m) => m.role === 'user').map((m) => ({ text: m.text, clips: m.clips })),
+      language,
+    );
+    setDelivery(report);
     setStage('debrief');
-    // Save the session once so the family can review their reps later.
-    if (!savedSessionRef.current && user?.id) {
-      savedSessionRef.current = true;
+    if (user?.id) {
       void saveRehearsalSession({
         account_id: user.id,
         source_id: null,
@@ -173,14 +222,14 @@ function RehearsalIncomingContent() {
           partnerName,
           mode: 'incoming_call',
           crisisPreset: roll.crisisPreset,
+          ...(caller.profile ? { profileUsed: true } : {}),
+          ...(redoFromRef.current !== null ? { redoFromTurn: redoFromRef.current } : {}),
         },
         transcript: messages.map(({ role, text }) => ({ role, text })),
-        debrief,
-      }).then((saved) => {
-        if (!saved) savedSessionRef.current = false;
+        debrief: { ...debrief, delivery: report },
       });
     }
-  }, [debrief, increment, user?.id, relationship, roll, gender, age, language, partnerName, messages]);
+  }, [debrief]); // once per debrief: the session state it reads is final by then
 
   useEffect(() => {
     // Prime the audio session once so the opening line speaks without delay,
@@ -188,9 +237,6 @@ function RehearsalIncomingContent() {
     void Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
     return () => {
       void soundRef.current?.unloadAsync();
-      const active = recordingRef.current;
-      recordingRef.current = null;
-      if (active) void active.stopAndUnloadAsync().catch(() => undefined);
       void Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true }).catch(() => undefined);
     };
   }, []);
@@ -199,11 +245,17 @@ function RehearsalIncomingContent() {
   const playAudio = useCallback(async (audioB64: string) => {
     try {
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
-      clipCounter.current += 1;
-      const path = `${FileSystem.cacheDirectory}rehearsal-reply-${clipCounter.current}.mp3`;
-      await FileSystem.writeAsStringAsync(path, audioB64, { encoding: FileSystem.EncodingType.Base64 });
+      let uri: string;
+      if (Platform.OS === 'web') {
+        // No file system on web: play the clip straight from memory.
+        uri = `data:audio/mpeg;base64,${audioB64}`;
+      } else {
+        clipCounter.current += 1;
+        uri = `${FileSystem.cacheDirectory}rehearsal-reply-${clipCounter.current}.mp3`;
+        await FileSystem.writeAsStringAsync(uri, audioB64, { encoding: FileSystem.EncodingType.Base64 });
+      }
       if (soundRef.current) await soundRef.current.unloadAsync();
-      const { sound } = await Audio.Sound.createAsync({ uri: path }, { shouldPlay: true });
+      const { sound } = await Audio.Sound.createAsync({ uri }, { shouldPlay: true });
       soundRef.current = sound;
     } catch {
       // Voice is a layer, never a blocker — the text is already on screen.
@@ -230,7 +282,7 @@ function RehearsalIncomingContent() {
       const validEventId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(eventId);
       if (!validEventId) {
         answeringRef.current = false;
-        Alert.alert(t('rehearsalIncoming:ring.unavailableTitle'), t('rehearsalIncoming:ring.unavailableBody'));
+        appAlert(t('rehearsalIncoming:ring.unavailableTitle'), t('rehearsalIncoming:ring.unavailableBody'));
         return;
       }
       const { data: claimed, error } = await supabase.rpc('claim_practice_push_event', {
@@ -238,16 +290,17 @@ function RehearsalIncomingContent() {
       });
       if (error) {
         answeringRef.current = false;
-        Alert.alert(t('rehearsalIncoming:ring.tryAgainTitle'), t('rehearsalIncoming:ring.tryAgainBody'));
+        appAlert(t('rehearsalIncoming:ring.tryAgainTitle'), t('rehearsalIncoming:ring.tryAgainBody'));
         return;
       }
       if (claimed !== true) {
         answeringRef.current = false;
-        Alert.alert(t('rehearsalIncoming:ring.unavailableTitle'), t('rehearsalIncoming:ring.unavailableBody'));
+        appAlert(t('rehearsalIncoming:ring.unavailableTitle'), t('rehearsalIncoming:ring.unavailableBody'));
         return;
       }
       claimedEventIdRef.current = eventId;
     }
+    setPersona(livePersona);
     setStage('call');
     // The durable event claim above is the exactly-once boundary. Only now may
     // the authenticated rehearsal backend generate the character's opening.
@@ -267,85 +320,74 @@ function RehearsalIncomingContent() {
     });
   }
 
-  async function handleSend(text?: string) {
-    const outgoing = (text ?? draft).trim();
-    if (!outgoing) return;
+  const capture = useSpeechCapture({
+    transcribe: transcribeClip,
+    onPermissionDenied: () => appAlert(t('rehearsalLive:chat.micPermissionTitle'), t('rehearsalLive:chat.micPermissionBody')),
+    onRecordingError: () => appAlert(t('rehearsalLive:chat.recordingErrorTitle'), t('rehearsalLive:chat.recordingErrorBody')),
+    onAutoStop: (clip) => handleClip(clip),
+    onUnavailable: () => appAlert(t('rehearsalLive:chat.voiceUnavailableTitle'), t('rehearsalLive:chat.voiceUnavailableBody')),
+    onTooLong: () => appAlert(t('rehearsalLive:chat.recordingTooLongTitle'), t('rehearsalLive:chat.recordingTooLongBody')),
+  });
+
+  // Leaving the call (coaching appears): no live mic, no stray transcript, no
+  // leftover draft — the hold bar may unmount mid-press without a release.
+  useEffect(() => {
+    if (!leavesConversation(stage, 'call')) return;
+    void capture.cancel();
+    pendingClipsRef.current = [];
     setDraft('');
-    const result = await send(outgoing);
+    setLineTrimmed(false);
+  }, [stage]); // capture.cancel is stable
+
+  // A pause that lands while coaching is showing brings the crisis card back.
+  useEffect(() => {
+    const next = stageAfterSafetyBreak(stage, safetyBreak, 'debrief', 'call');
+    if (next !== stage) setStage(next);
+  }, [safetyBreak, stage]);
+
+  async function handleSend() {
+    const outgoing = draft.trim();
+    if (!outgoing) return;
+    const pending = pendingClipsRef.current;
+    pendingClipsRef.current = [];
+    setDraft('');
+    setLineTrimmed(false);
+    const result = await send(outgoing, { clips: clipsForText(pending, outgoing) });
     // If the send failed, put their words back — never make someone retype
     // a sentence that was hard to say the first time.
-    if (!result.ok) setDraft((prev) => (prev ? prev : outgoing));
+    if (!result.ok) {
+      setDraft((prev) => (prev ? prev : outgoing));
+      pendingClipsRef.current = pending;
+    }
+  }
+
+  function handleClip(clip: VoiceClip) {
+    pendingClipsRef.current.push(clip);
+    // A long recording can run past one line: keep the first part and say so.
+    // (The server already screened the whole transcript when it was made.)
+    const current = draftRef.current;
+    const fitted = clampLine(current ? `${current} ${clip.transcript}` : clip.transcript, MAX_LINE_CHARS);
+    if (fitted.clamped) setLineTrimmed(true);
+    setDraft(fitted.text);
   }
 
   async function startTalking() {
-    pressActiveRef.current = true;
-    try {
-      const { status } = await Audio.requestPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(t('rehearsalLive:chat.micPermissionTitle'), t('rehearsalLive:chat.micPermissionBody'));
-        return;
-      }
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
-      const { recording: rec } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY,
-      );
-      // The finger may have lifted while we awaited the permission prompt or
-      // recorder startup (the iOS permission alert cancels the touch). Never
-      // leave the mic running with nobody holding the button.
-      if (!pressActiveRef.current) {
-        await rec.stopAndUnloadAsync().catch(() => undefined);
-        await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true }).catch(() => undefined);
-        return;
-      }
-      recordingRef.current = rec;
-      setRecording(rec);
-    } catch {
-      // no mic (simulator) — typing still works
-    }
+    await capture.start();
   }
 
   async function stopTalking() {
-    pressActiveRef.current = false;
-    const active = recordingRef.current ?? recording;
-    if (!active) return;
-    let result;
-    let durationMillis = 0;
-    try {
-      const status = await active.getStatusAsync();
-      durationMillis = status.durationMillis ?? 0;
-      result = await finalizeRecording(
-        () => active.stopAndUnloadAsync(),
-        () => active.getURI(),
-        () => Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true }),
-      );
-    } catch {
-      // Clear the dead recorder so the next press can start a fresh one.
-      recordingRef.current = null;
-      setRecording(null);
-      Alert.alert(t('rehearsalLive:chat.recordingErrorTitle'), t('rehearsalLive:chat.recordingErrorBody'));
-      return;
-    }
-    recordingRef.current = null;
-    setRecording(null);
-    if (result.restoreError) {
-      Alert.alert(t('rehearsalLive:chat.recordingErrorTitle'), t('rehearsalLive:chat.recordingErrorBody'));
-    }
-    if (!result.uri) return;
-    // A slipped finger produces a fraction-of-a-second clip of near-silence.
-    // Whisper hallucinates filler ("Thank you", "You") on clips like that —
-    // don't even send them.
-    if (durationMillis < 700) return;
-    try {
-      const b64 = await FileSystem.readAsStringAsync(result.uri, { encoding: FileSystem.EncodingType.Base64 });
-      const format = result.uri.split('.').pop() ?? 'm4a';
-      const text = await transcribeClip(b64, format);
-      if (text) setDraft((prev) => (prev ? `${prev} ${text}` : text));
-    } catch {
-      // transcription failed — the error state from the hook shows the message
-    }
+    const clip = await capture.stop();
+    if (clip) handleClip(clip);
   }
 
   function handleHangUp() {
+    // After a crisis break the call just ends — no coaching on a disclosure.
+    if (safetyBreak) {
+      router.back();
+      return;
+    }
+    // A last line still being answered or transcribed may yet be a crisis disclosure.
+    if (hangUpBlocked) return;
     if (messages.some((m) => m.role === 'user')) {
       void requestDebrief();
     } else {
@@ -354,10 +396,42 @@ function RehearsalIncomingContent() {
     }
   }
 
+  /** "Redo from here": back onto the call just before the line the coaching is about. */
+  function handleRedo(userTurnIndex: number) {
+    const before = transcriptBeforeUserTurn(messages, userTurnIndex);
+    if (!before) return;
+    pendingClipsRef.current = [];
+    // Lines already heard are not replayed when the call resumes.
+    lastSpokenIndex.current = before.length - 1;
+    redoFromRef.current = userTurnIndex;
+    restore(before);
+    setDraft('');
+    setDelivery(null);
+    setStage('call');
+  }
+
+  /** "I'm safe — keep practicing": the flagged line leaves the call and input reopens. */
+  function handleKeepPracticing() {
+    const kept = keepPracticing();
+    if (kept === null) return;
+    lastSpokenIndex.current = kept - 1;
+    pendingClipsRef.current = [];
+    setLineTrimmed(false);
+  }
+
   function handleAgain() {
+    // A crisis break is never cleared out from under the member: back to the card.
+    if (safetyBreak) {
+      setStage('call');
+      return;
+    }
     answeringRef.current = false;
-    savedSessionRef.current = false;
     lastSpokenIndex.current = -1;
+    redoFromRef.current = null;
+    pendingClipsRef.current = [];
+    setDelivery(null);
+    setLineTrimmed(false);
+    setPersona(null);
     setSessionEventId(undefined);
     reset();
     setRoll({
@@ -368,7 +442,13 @@ function RehearsalIncomingContent() {
     setStage('ring');
   }
 
-  const inputLocked = sending || turnsLeft === 0 || safetyBreak;
+  // Nothing new can be said while the coach is reading the call.
+  const inputLocked = sending || turnsLeft === 0 || safetyBreak || debriefLoading;
+  const recording = capture.recording;
+  const hangUpBlocked = !safetyBreak && (sending || transcribing || recording || debriefLoading);
+  // The opening never arrived (network, quota): the claimed push call can be
+  // retried — the server replays its cached opening or generates it again.
+  const openingFailed = stage === 'call' && messages.length === 0 && !sending && !!error && !safetyBreak;
   const lastPartner = [...messages].reverse().find((m) => m.role === 'partner');
   const lastUser = [...messages].reverse().find((m) => m.role === 'user');
 
@@ -482,18 +562,21 @@ function RehearsalIncomingContent() {
               )}
 
               {safetyBreak && (
-                <TouchableOpacity
-                  style={[styles.safetyCard, { backgroundColor: colors.coralLight }]}
-                  onPress={() => router.push('/crisis-mode')}
-                  activeOpacity={0.9}
-                >
-                  <Text style={[styles.safetyTitle, { color: colors.coral }]}>{t('rehearsalLive:chat.safetyTitle')}</Text>
-                  <Text style={[styles.safetyBody, { color: colors.ink }]}>{t('rehearsalLive:chat.safetyBody')}</Text>
-                </TouchableOpacity>
+                <SafetyBreakCard kind={safetyKind} onKeepPracticing={canKeepPracticing ? handleKeepPracticing : undefined} />
               )}
 
               {error && (
                 <Text style={[styles.errorText, { color: colors.coral }]}>{error === 'daily_limit_reached' ? t('rehearsalLive:chat.dailyLimit') : t('rehearsalLive:chat.error')}</Text>
+              )}
+              {openingFailed && error !== 'daily_limit_reached' && (
+                <TouchableOpacity
+                  style={[styles.retryBtn, { borderColor: colors.coral }]}
+                  onPress={() => void open()}
+                  accessibilityRole="button"
+                  activeOpacity={0.85}
+                >
+                  <Text style={[styles.retryText, { color: colors.coral }]}>{t('rehearsalIncoming:call.retryOpening')}</Text>
+                </TouchableOpacity>
               )}
 
               {/* Full transcript toggle */}
@@ -518,6 +601,19 @@ function RehearsalIncomingContent() {
                 ))}
             </ScrollView>
 
+            {lineTrimmed && (
+              <Text style={[styles.lineNotice, { color: colors.secondary }]} accessibilityLiveRegion="polite">
+                {t('rehearsalLive:chat.lineTrimmed')}
+              </Text>
+            )}
+
+            {/* After a pause she chose to continue from, help stays one tap away. */}
+            {hadSafetyBreak && !safetyBreak && (
+              <TouchableOpacity onPress={() => router.push('/crisis-mode')} style={styles.getHelp} accessibilityRole="button" hitSlop={8}>
+                <Text style={[styles.getHelpText, { color: colors.coral }]}>{t('rehearsalLive:chat.getHelpNow')} →</Text>
+              </TouchableOpacity>
+            )}
+
             {/* Typed fallback — same affordance as rehearsal-live */}
             <View style={styles.inputRow}>
               <TextInput
@@ -525,7 +621,11 @@ function RehearsalIncomingContent() {
                 placeholder={recording ? t('rehearsalLive:chat.listening') : t('rehearsalIncoming:call.placeholder')}
                 placeholderTextColor={colors.inkSoft}
                 value={draft}
-                onChangeText={setDraft}
+                onChangeText={(value) => {
+                  if (!value.trim()) pendingClipsRef.current = [];
+                  if (lineTrimmed) setLineTrimmed(false);
+                  setDraft(value);
+                }}
                 multiline
                 maxLength={600}
                 editable={!inputLocked}
@@ -543,6 +643,12 @@ function RehearsalIncomingContent() {
               </TouchableOpacity>
             </View>
 
+            {recording && capture.nearLimit && (
+              <Text style={[styles.lineNotice, { color: colors.secondary, textAlign: 'center' }]} accessibilityLiveRegion="polite">
+                {t('rehearsalLive:chat.thirtySecondsLeft')}
+              </Text>
+            )}
+
             {/* Hold to speak — pinned to the bottom where the thumb lives */}
             <TouchableOpacity
               style={[
@@ -553,8 +659,8 @@ function RehearsalIncomingContent() {
                   opacity: inputLocked || transcribing ? 0.4 : 1,
                 },
               ]}
-              onPressIn={startTalking}
-              onPressOut={stopTalking}
+              onPressIn={() => void startTalking()}
+              onPressOut={() => void stopTalking()}
               disabled={inputLocked || transcribing}
               activeOpacity={0.9}
               pressRetentionOffset={{ top: 200, bottom: 200, left: 200, right: 200 }}
@@ -571,15 +677,18 @@ function RehearsalIncomingContent() {
 
             {/* Hang up */}
             <TouchableOpacity
-              style={[styles.hangupBtn, { backgroundColor: colors.coral, opacity: debriefLoading ? 0.5 : 1 }]}
+              style={[styles.hangupBtn, { backgroundColor: colors.coral, opacity: hangUpBlocked ? 0.5 : 1 }]}
               onPress={handleHangUp}
-              disabled={debriefLoading}
+              disabled={hangUpBlocked}
+              accessibilityRole="button"
               activeOpacity={0.85}
             >
               {debriefLoading ? (
                 <ActivityIndicator color="#fff" size="small" />
               ) : (
-                <Text style={styles.hangupText}>{t('rehearsalIncoming:call.hangUp')}</Text>
+                <Text style={styles.hangupText}>
+                  {safetyBreak ? t('rehearsalIncoming:call.endCall') : t('rehearsalIncoming:call.hangUp')}
+                </Text>
               )}
             </TouchableOpacity>
           </View>
@@ -587,7 +696,14 @@ function RehearsalIncomingContent() {
 
         {/* ---------- DEBRIEF ---------- */}
         {stage === 'debrief' && debrief && (
-          <RehearsalDebrief debrief={debrief} onAgain={handleAgain} onDone={() => router.back()} />
+          <RehearsalDebrief
+            debrief={debrief}
+            onAgain={handleAgain}
+            onDone={() => router.back()}
+            onRedo={safetyBreak ? undefined : handleRedo}
+            userTurnCount={messages.filter((m) => m.role === 'user').length}
+            delivery={delivery}
+          />
         )}
       </KeyboardAvoidingView>
     </ScreenContainer>
@@ -633,9 +749,6 @@ const styles = StyleSheet.create({
   bubbleUser: { alignSelf: 'flex-end', borderBottomRightRadius: 4 },
   bubblePartner: { alignSelf: 'flex-start', borderBottomLeftRadius: 4 },
   bubbleText: { color: '#fff', fontSize: 15, lineHeight: 21 },
-  safetyCard: { borderRadius: 14, padding: 16, marginTop: 8, marginBottom: 8 },
-  safetyTitle: { fontWeight: '700', fontSize: 14, marginBottom: 4 },
-  safetyBody: { fontSize: 13, lineHeight: 19 },
   errorText: { fontSize: 12, textAlign: 'center', marginTop: 6 },
   transcriptToggle: { alignItems: 'center', paddingVertical: 10 },
   transcriptToggleText: { fontSize: 12, fontWeight: '600' },
@@ -663,4 +776,9 @@ const styles = StyleSheet.create({
   holdBarText: { fontSize: 16, fontWeight: '700', color: '#fff' },
   hangupBtn: { borderRadius: 16, paddingVertical: 14, alignItems: 'center', marginTop: 10 },
   hangupText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  lineNotice: { fontSize: 12, lineHeight: 17, marginBottom: 6 },
+  getHelp: { alignItems: 'center', paddingBottom: 6 },
+  getHelpText: { fontSize: 12, fontWeight: '700' },
+  retryBtn: { alignSelf: 'center', borderWidth: 1.5, borderRadius: 999, paddingHorizontal: 18, paddingVertical: 9, marginTop: 10 },
+  retryText: { fontSize: 14, fontWeight: '700' },
 });

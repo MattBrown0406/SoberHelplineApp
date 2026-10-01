@@ -72,7 +72,10 @@
     "emailSubject": "Mi carta para {{name}}",
     "referralEmail": "Escribir a {{name}}",
     "referralWebsite": "Visitar sitio web",
-    "referralClose": "Cerrar"
+    "referralClose": "Cerrar",
+    "practiceButton": "Practica leer esta carta",
+    "shareCopied": "Compartir no está disponible en este navegador, así que copiamos tu carta. Pégala en un mensaje o documento.",
+    "shareError": "No se pudo compartir la carta. Inténtalo de nuevo."
   },
   "defaults": {
     "openerLabel": "Tu consumo de sustancias me ha afectado de las siguientes maneras.",

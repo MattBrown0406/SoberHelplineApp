@@ -130,6 +130,15 @@ export default function SignInScreen() {
                 secureTextEntry
                 autoComplete="current-password"
               />
+              <Link
+                // On web the query string lands in browser history; prefill natively only.
+                href={{ pathname: '/(auth)/reset-password', params: email.trim() && Platform.OS !== 'web' ? { email: email.trim() } : {} }}
+                asChild
+              >
+                <TouchableOpacity accessibilityRole="link" hitSlop={8} style={styles.forgotLink}>
+                  <Text style={[styles.forgotText, { color: colors.primary }]}>{t('signIn.forgotPassword')}</Text>
+                </TouchableOpacity>
+              </Link>
             </View>
 
             <TouchableOpacity
@@ -219,6 +228,8 @@ const styles = StyleSheet.create({
   dividerText: { fontSize: 12 },
   appleBtn: { width: '100%', height: 50 },
   emergency: { marginTop: 28 },
+  forgotLink: { alignSelf: 'flex-end', marginTop: 8, minHeight: 32, justifyContent: 'center' },
+  forgotText: { fontSize: 14, fontWeight: '700' },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',

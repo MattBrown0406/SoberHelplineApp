@@ -98,10 +98,15 @@ const PREMIER = entitlementsForAccountState('direct-premium');
 const SESSION_ID = '123e4567-e89b-42d3-a456-426614174222';
 const THREAD_ID = '123e4567-e89b-42d3-a456-426614174333';
 
-test('coach reply opens the thread for members who can message, Support otherwise', () => {
+test('coach reply always opens Chat (read-only for members off the Text Line plan)', () => {
   assert.deepEqual(getPushDestination({ kind: 'coach_message', thread_id: THREAD_ID }, { entitlements: ESSENTIAL }), { pathname: '/chat' });
-  assert.deepEqual(getPushDestination({ kind: 'coach_message' }, { entitlements: FREE }), { pathname: '/(tabs)/support' });
-  assert.deepEqual(getPushDestination({ kind: 'coach_message' }), { pathname: '/(tabs)/support' });
+  // Free members read replies to their situation briefs in Chat (read-only).
+  assert.deepEqual(getPushDestination({ kind: 'coach_message' }, { entitlements: FREE }), { pathname: '/chat' });
+  assert.deepEqual(
+    getPushDestination({ kind: 'admin_textline_message', thread_id: THREAD_ID }, { entitlements: PREMIER }),
+    { pathname: '/admin-thread', params: { threadId: THREAD_ID } },
+  );
+  assert.deepEqual(getPushDestination({ kind: 'coach_message' }), { pathname: '/chat' });
 });
 
 test('member message opens the admin thread when the id is a uuid, the admin home otherwise', () => {
@@ -170,4 +175,25 @@ test('every producer kind in supabase/functions is routed by the client', () => 
     assert.match(source, /_shared\/push-data\.ts/, fn);
     assert.doesNotMatch(source, /data: \{ (screen|kind):/, `${fn} builds data by hand`);
   }
+});
+
+test('Invitation Engine window push opens the engine for paid members and Today otherwise', () => {
+  assert.deepEqual(getPushDestination({ kind: 'invitation_window' }, { entitlements: ESSENTIAL }), { pathname: '/invitation-engine' });
+  assert.deepEqual(getPushDestination({ kind: 'invitation_window' }, { entitlements: PREMIER }), { pathname: '/invitation-engine' });
+  assert.deepEqual(getPushDestination({ kind: 'invitation_window' }, { entitlements: FREE }), { pathname: '/(tabs)' });
+  assert.deepEqual(getPushDestination({ kind: 'invitation_window' }), { pathname: '/(tabs)' });
+  assert.deepEqual(getPushDestination({ kind: 'invitation_window', screen: '/admin' }, { entitlements: FREE }), { pathname: '/(tabs)' });
+});
+
+test('an admin YES alert opens the admin dashboard', () => {
+  assert.deepEqual(getPushDestination({ kind: 'admin_invitation_yes' }), { pathname: '/admin' });
+  assert.deepEqual(getPushDestination({ kind: 'admin_invitation_yes' }, { entitlements: FREE }), { pathname: '/admin' });
+});
+
+test('the invitation SQL producers enqueue exactly the routed kinds', () => {
+  const sql = readFileSync('supabase/migrations/20261001100000_invitation_engine.sql', 'utf8');
+  const kinds = [...sql.matchAll(/jsonb_build_object\('kind', '([a-z_]+)'\)/g)].map((m) => m[1]).sort();
+  assert.deepEqual(kinds, ['admin_invitation_yes', 'invitation_window']);
+  const router = readFileSync('src/lib/pushRouting.ts', 'utf8');
+  for (const kind of kinds) assert.match(router, new RegExp(`'${kind}'`), kind);
 });

@@ -1,10 +1,12 @@
 import { supabase } from './supabase';
+import type { SavedSessionRow } from './practiceTrends';
 
 export type RehearsalSessionRow = {
   account_id: string;
   source_id: string | null;
   scenario: Record<string, unknown>;
-  transcript: { role: string; text: string }[];
+  /** {role, text} plus, in a family rehearsal, the speaker's name on user lines. */
+  transcript: { role: string; text: string; speaker?: string }[];
   debrief: unknown;
 };
 
@@ -22,4 +24,23 @@ export async function saveRehearsalSession(row: RehearsalSessionRow): Promise<bo
     else console.warn('[rehearsal] session save failed:', error.message);
   }
   return false;
+}
+
+/**
+ * The member's most recent sessions (newest first), just enough to recommend
+ * a difficulty level. Best-effort: an empty list simply means "no suggestion".
+ */
+export async function loadRecentRehearsalScores(accountId: string, limit = 12): Promise<SavedSessionRow[]> {
+  try {
+    const { data, error } = await supabase
+      .from('rehearsal_sessions')
+      .select('created_at, scenario, debrief')
+      .eq('account_id', accountId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (error) return [];
+    return (data as SavedSessionRow[] | null) ?? [];
+  } catch {
+    return [];
+  }
 }

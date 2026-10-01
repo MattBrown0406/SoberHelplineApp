@@ -5,7 +5,6 @@ import {
   Switch,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   Linking,
   StyleSheet,
 } from 'react-native';
@@ -21,6 +20,7 @@ import { useFeatureAccess } from '../src/hooks/useFeatureAccess';
 import { restorePurchases } from '../src/lib/revenueCat';
 import { purgeAccountLocalData } from '../src/lib/accountLocalData';
 import { captureAppError } from '../src/lib/monitoring';
+import { appAlert } from '../src/lib/appAlert';
 import { cancelPersonalRemindersForLogout } from '../src/reminders/native';
 import {
   cancelPushRegistration,
@@ -83,6 +83,8 @@ export default function SettingsScreen() {
   const [reminderHour, setReminderHourState] = useState(DEFAULT_REMINDER_HOUR);
   const [dailyEnabled, setDailyEnabled] = useState(false);
   const [dailyBusy, setDailyBusy] = useState(false);
+  const [familyCallReminders, setFamilyCallReminders] = useState(true);
+  const [familyCallBusy, setFamilyCallBusy] = useState(false);
   const dailyBusyRef = useRef(false);
   const [practicePush, setPracticePush] = useState<PracticePushSettings>(DEFAULT_PRACTICE_PUSH);
   const [practicePushLoading, setPracticePushLoading] = useState(true);
@@ -102,6 +104,35 @@ export default function SettingsScreen() {
     return () => { active = false; };
   }, [user?.id]);
 
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    void supabase
+      .from('accounts')
+      .select('family_call_reminders')
+      .eq('id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (active && data) setFamilyCallReminders(data.family_call_reminders !== false);
+      });
+    return () => { active = false; };
+  }, [user?.id]);
+
+  async function toggleFamilyCallReminders(enabled: boolean) {
+    if (!user || familyCallBusy) return;
+    const previous = familyCallReminders;
+    setFamilyCallReminders(enabled);
+    setFamilyCallBusy(true);
+    const { error } = await supabase.rpc('set_family_call_reminders', { p_enabled: enabled });
+    // The reminder is a remote push: make sure this device is registered.
+    if (!error && enabled) await registerForPushNotifications(user.id).catch(() => false);
+    setFamilyCallBusy(false);
+    if (error) {
+      setFamilyCallReminders(previous);
+      appAlert(t('notifications.familyCallErrorTitle'), t('notifications.familyCallErrorBody'));
+    }
+  }
+
   async function chooseReminderHour(hour: number | null) {
     if (!user || dailyBusyRef.current) return;
     const accountId = user.id;
@@ -118,7 +149,7 @@ export default function SettingsScreen() {
         if (hour !== null) setReminderHourState(hour);
       }
     } catch {
-      if (practiceAccountRef.current === accountId) Alert.alert(t('notifications.dailyErrorTitle'), t('notifications.dailyErrorBody'));
+      if (practiceAccountRef.current === accountId) appAlert(t('notifications.dailyErrorTitle'), t('notifications.dailyErrorBody'));
     } finally { dailyBusyRef.current = false; setDailyBusy(false); }
   }
 
@@ -191,7 +222,7 @@ export default function SettingsScreen() {
       console.warn('[practice-push] preference save failed', error);
       if (practiceAccountRef.current === accountId) {
         setPracticePush(previous);
-        Alert.alert(t('notifications.practiceSaveErrorTitle'), t('notifications.practiceSaveErrorBody'));
+        appAlert(t('notifications.practiceSaveErrorTitle'), t('notifications.practiceSaveErrorBody'));
       }
       return false;
     } finally {
@@ -212,7 +243,7 @@ export default function SettingsScreen() {
       }
       if (practiceAccountRef.current !== accountId) return;
       if (!registered) {
-        Alert.alert(t('notifications.practicePermissionTitle'), t('notifications.practicePermissionBody'));
+        appAlert(t('notifications.practicePermissionTitle'), t('notifications.practicePermissionBody'));
         return;
       }
     }
@@ -269,7 +300,7 @@ export default function SettingsScreen() {
       if (result.error) throw result.error;
     } catch {
       setShareCheckIns(previous);
-      Alert.alert(t('privacy.updateErrorTitle'), t('privacy.updateErrorBody'));
+      appAlert(t('privacy.updateErrorTitle'), t('privacy.updateErrorBody'));
     } finally {
       setConsentLoading(false);
     }
@@ -281,7 +312,7 @@ export default function SettingsScreen() {
       if (user) await cancelPushRegistration(user.id);
       return true;
     } catch {
-      Alert.alert(t('personalReminders.cleanupTitle'), t('personalReminders.cleanupBody'));
+      appAlert(t('personalReminders.cleanupTitle'), t('personalReminders.cleanupBody'));
       return false;
     }
   }
@@ -292,14 +323,14 @@ export default function SettingsScreen() {
     const body = hasOutboxImpact(impact)
       ? t('signOutOffline.bodyWithQueue', { checkins: impact.checkin, notes: impact.journal })
       : t('signOutOffline.body');
-    Alert.alert(t('signOutOffline.title'), body, [
+    appAlert(t('signOutOffline.title'), body, [
       { text: t('signOutOffline.cancel'), style: 'cancel' },
       {
         text: t('signOutOffline.confirm'),
         style: 'destructive',
         onPress: () => {
           void signOutLocally().catch(() => {
-            Alert.alert(t('signOutErrorTitle'), t('signOutErrorBody'));
+            appAlert(t('signOutErrorTitle'), t('signOutErrorBody'));
           });
         },
       },
@@ -316,14 +347,14 @@ export default function SettingsScreen() {
       if (error) {
         // No server: the device can still forget the account, with consent.
         if (isOfflineFallbackError(error)) await offerSignOutAnyway();
-        else Alert.alert(t('signOutErrorTitle'), t('signOutErrorBody'));
+        else appAlert(t('signOutErrorTitle'), t('signOutErrorBody'));
         return;
       }
     }
     const { error: signOutError } = await supabase.auth.signOut();
     if (!signOutError) return;
     if (user && isOfflineFallbackError(signOutError)) await offerSignOutAnyway();
-    else Alert.alert(t('signOutErrorTitle'), t('signOutErrorBody'));
+    else appAlert(t('signOutErrorTitle'), t('signOutErrorBody'));
   }
 
   async function handleRestore() {
@@ -331,12 +362,12 @@ export default function SettingsScreen() {
     try {
       const hasEntitlement = await restorePurchases();
       await refreshAccount();
-      Alert.alert(
+      appAlert(
         hasEntitlement ? t('membership.restoreSuccessTitle') : t('membership.restoreNoneTitle'),
         hasEntitlement ? t('membership.restoreSuccessBody') : t('membership.restoreNoneBody'),
       );
     } catch {
-      Alert.alert(t('membership.restoreErrorTitle'), t('membership.restoreErrorBody'));
+      appAlert(t('membership.restoreErrorTitle'), t('membership.restoreErrorBody'));
     } finally {
       setRestoring(false);
     }
@@ -347,13 +378,13 @@ export default function SettingsScreen() {
     setOpeningReview(true);
     const opened = await openStoreReviewFromSettings();
     setOpeningReview(false);
-    if (!opened) Alert.alert(t('review.unavailableTitle'), t('review.unavailableBody'));
+    if (!opened) appAlert(t('review.unavailableTitle'), t('review.unavailableBody'));
   }
 
   function handleDeleteAccount() {
     // A store or web subscription keeps billing after the account is gone.
     const hasOwnSubscription = accountState === 'direct-essential' || accountState === 'direct-premium';
-    Alert.alert(
+    appAlert(
       t('deleteAccount.confirmTitle'),
       hasOwnSubscription
         ? `${t('deleteAccount.confirmMessage')}\n\n${t('deleteAccount.subscriptionNote')}`
@@ -370,9 +401,16 @@ export default function SettingsScreen() {
               if (!await clearRemindersBeforeExit()) return;
               // Read before deleting: a token refresh for a deleted user fails.
               const { data: { session: deletingSession } } = await supabase.auth.getSession();
+              // Stored photos don't cascade with the account; remove them first so
+              // nothing is left behind if the deletion goes through.
+              const { error: purgeError } = await supabase.functions.invoke('purge-account-files');
+              if (purgeError) {
+                appAlert(t('deleteAccount.errorTitle'), t('deleteAccount.errorMessage'));
+                return;
+              }
               const { error: deletionError } = await supabase.rpc('delete_own_account');
               if (deletionError) {
-                Alert.alert(t('deleteAccount.errorTitle'), t('deleteAccount.errorMessage'));
+                appAlert(t('deleteAccount.errorTitle'), t('deleteAccount.errorMessage'));
                 return;
               }
 
@@ -382,10 +420,10 @@ export default function SettingsScreen() {
               }
               const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
               if (signOutError) {
-                Alert.alert(t('deleteAccount.cleanupErrorTitle'), t('deleteAccount.cleanupErrorMessage'));
+                appAlert(t('deleteAccount.cleanupErrorTitle'), t('deleteAccount.cleanupErrorMessage'));
               }
             } catch {
-              Alert.alert(
+              appAlert(
                 t(deletionCompleted ? 'deleteAccount.cleanupErrorTitle' : 'deleteAccount.errorTitle'),
                 t(deletionCompleted ? 'deleteAccount.cleanupErrorMessage' : 'deleteAccount.errorMessage'),
               );
@@ -453,6 +491,18 @@ export default function SettingsScreen() {
                 thumbColor="#fff"
               />
             </View>
+          </View>
+        )}
+
+        {/* Provider-covered members may still have their own store subscription
+            billing; keep the way to cancel it reachable. */}
+        {isAttached && (
+          <View style={[styles.card, { borderColor: colors.line }]}>
+            <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>{t('membership.eyebrow')}</Text>
+            <Text style={[styles.infoLabel, { color: colors.inkSoft, marginBottom: 12 }]}>{t('membership.attachedStoreNote')}</Text>
+            <TouchableOpacity accessibilityRole="link" onPress={() => void Linking.openURL(SUBSCRIPTION_MANAGEMENT_URL)} activeOpacity={0.8}>
+              <Text style={[styles.manageLink, { color: colors.primary }]}>{t('membership.manage')}</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -590,6 +640,27 @@ export default function SettingsScreen() {
         <TouchableOpacity accessibilityRole="button" disabled={dailyBusy || !dailyEnabled} onPress={() => void chooseReminderHour(null)} style={styles.restoreBtn}>
           <Text style={{ color: colors.primary }}>{t('notifications.pauseDaily')}</Text>
         </TouchableOpacity>
+
+        <View style={[styles.card, { borderColor: colors.line }]}>
+          <View style={styles.toggleRow}>
+            <View style={styles.toggleTextWrap}>
+              <Text style={[styles.toggleLabel, { color: colors.ink }]}>
+                {t('notifications.familyCallTitle')}
+              </Text>
+              <Text style={[styles.toggleDesc, { color: colors.inkSoft }]}>
+                {t('notifications.familyCallDesc')}
+              </Text>
+            </View>
+            <Switch
+              value={familyCallReminders}
+              onValueChange={(value) => void toggleFamilyCallReminders(value)}
+              disabled={familyCallBusy}
+              trackColor={{ false: colors.line, true: colors.primary }}
+              thumbColor="#fff"
+              accessibilityLabel={t('notifications.familyCallTitle')}
+            />
+          </View>
+        </View>
 
         {/* Opt-in AI-initiated practice calls. Remote pushes contain no family
             details and only route to the fixed Incoming Practice screen. */}

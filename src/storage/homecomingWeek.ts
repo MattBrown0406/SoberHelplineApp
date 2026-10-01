@@ -1,4 +1,6 @@
-import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
+import * as NativeSecureStore from 'expo-secure-store';
+import { choosePlanStore } from '../lib/webSessionPlanStore';
 import {
   HOMECOMING_ITEMS,
   parseHomecomingWeekPlan,
@@ -20,8 +22,12 @@ import {
   type HomecomingDischargeSection,
 } from '../lib/homecomingStorageKeys';
 
-const OPTIONS: SecureStore.SecureStoreOptions = {
-  keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+// Native: the protected Keychain/Keystore store. expo-secure-store has no web
+// implementation, so on web the plan is kept in sessionStorage for this
+// browser session only (the screen says so).
+const SecureStore = choosePlanStore(Platform.OS, NativeSecureStore, globalThis);
+const OPTIONS: NativeSecureStore.SecureStoreOptions = {
+  keychainAccessible: NativeSecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
 };
 const SECTIONS: HomecomingDischargeSection[] = ['core', 'housing', 'sober', 'outpatient', 'recovery'];
 

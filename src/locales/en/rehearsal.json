@@ -27,5 +27,7 @@
   "scriptSource": "From your scripts",
   "liveButton": "Practice with a partner",
   "liveButtonSub": "An AI plays your loved one and talks back",
-  "liveButtonLocked": "Unlocks with Essentials or Premium"
+  "liveButtonLocked": "Unlocks with Essentials or Premium",
+  "warmupButton": "90-second warm-up",
+  "warmupButtonSub": "A quick rep with the AI partner before you talk tonight"
 }

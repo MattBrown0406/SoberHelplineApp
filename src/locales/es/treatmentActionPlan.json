@@ -1,4 +1,5 @@
 {
+  "webSessionNotice": "En la web, este plan se guarda solo durante esta sesión del navegador. Si cierras la pestaña, se borra; usa la app para conservarlo en tu dispositivo.",
   "back": "‹ Herramientas",
   "kicker": "PREPÁRALO ANTES DE LA CONVERSACIÓN",
   "title": "Plan de acción para el tratamiento",
@@ -82,6 +83,9 @@
     "leaveLocked": "Fijada para este sí. Mantén a la familia avanzando hacia esta hora en lugar de renegociar la noche.",
     "setDate": "Fijar fecha de salida",
     "setTime": "Fijar hora de salida",
+    "saveLeaveTime": "Guardar hora de salida",
+    "lockLeaveTime": "Confirmar y bloquear la hora de salida",
+    "leaveTimePast": "Esa hora ya pasó. Elige una hora de salida más tarde.",
     "nightWatch": "Quién permanece despierto",
     "phoneHolder": "Quién sostiene el teléfono",
     "bagHolder": "Quién sostiene la maleta",

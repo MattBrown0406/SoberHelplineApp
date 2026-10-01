@@ -32,6 +32,8 @@
     "placeholder": "Dilo como responderías de verdad…",
     "showTranscript": "Ver transcripción completa",
     "hideTranscript": "Ocultar transcripción",
-    "hangUp": "Colgar y recibir retroalimentación"
+    "hangUp": "Colgar y recibir retroalimentación",
+    "endCall": "Terminar la llamada",
+    "retryOpening": "Intentar de nuevo"
   }
 }

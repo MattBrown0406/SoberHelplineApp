@@ -39,6 +39,13 @@ interface AccountContextValue {
   isAttached: boolean;
   isAdmin: boolean;
   isOfflineAccountFallback: boolean;
+  /**
+   * False while sign-in's subscription enrichment (RevenueCat / store bridges)
+   * may still upgrade the first-render entitlements, which fall back to
+   * direct-free when the 1s entitlement read is slow. Gated push routing
+   * waits for this so a cold-start tap is not routed with free-tier access.
+   */
+  entitlementsSettled: boolean;
   refreshAccount: () => Promise<void>;
   completeSignIn: (sessionUser: User) => void;
   /**
@@ -59,6 +66,7 @@ const AccountContext = createContext<AccountContextValue>({
   isAttached: false,
   isAdmin: false,
   isOfflineAccountFallback: false,
+  entitlementsSettled: true,
   refreshAccount: async () => {},
   completeSignIn: () => {},
   signOutLocally: async () => {},
@@ -114,9 +122,22 @@ async function fetchCoreAccount(authUser: User): Promise<AuthUser | null> {
     if (consentError) addAppBreadcrumb('auth.consent_persistence_failed', 'warning');
   });
 
-  let accountState: AccountState = data.type === 'attached' ? 'attached' : 'direct-free';
+  // A suspended provider no longer grants access; show the tier the server
+  // enforces. If the check can't answer quickly, keep the attached view — the
+  // server still refuses anything the provider no longer covers.
+  let providerActive = data.type === 'attached';
+  if (data.type === 'attached' && !isAdmin) {
+    const providerResult = await withTimeoutFallback(
+      Promise.resolve(supabase.rpc('my_provider_access_active')),
+      1000,
+      null,
+    );
+    providerActive = !providerResult || !!providerResult.error || providerResult.data !== false;
+  }
 
-  if (data.type === 'direct' && !isAdmin) {
+  let accountState: AccountState = providerActive ? 'attached' : 'direct-free';
+
+  if (!providerActive && !isAdmin) {
     // Database entitlements are immediately available and safe to use for the
     // first render. External subscription reconciliation happens after entry.
     const entitlementResult = await withTimeoutFallback(
@@ -273,6 +294,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   const [authUser, setAuthUser] = useState<User | null>(null);
   const [accountError, setAccountError] = useState<string | null>(null);
   const [isOfflineAccountFallback, setIsOfflineAccountFallback] = useState(false);
+  const [entitlementsSettled, setEntitlementsSettled] = useState(true);
   const isOfflineAccountFallbackRef = useRef(false);
   isOfflineAccountFallbackRef.current = isOfflineAccountFallback;
   const authGenerationRef = useRef(0);
@@ -313,6 +335,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     isLoadingRef.current = true;
     setAuthUser(sessionUser);
     setIsLoading(true);
+    setEntitlementsSettled(false);
     setAccountError(null);
     setIsOfflineAccountFallback(false);
     addAppBreadcrumb('auth.account_bootstrap_started');
@@ -342,6 +365,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
             ) return;
             userRef.current = enriched;
             setUser(enriched);
+            setEntitlementsSettled(true);
             queueAccountCacheWrite(sessionUser.id, enriched);
             addAppBreadcrumb('auth.account_enrichment_completed');
           })
@@ -350,6 +374,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
               authGenerationRef.current !== generation ||
               !accountRequestGateRef.current.isCurrent(requestId)
             ) return;
+            setEntitlementsSettled(true);
             addAppBreadcrumb('auth.account_enrichment_failed', 'warning');
             captureAppError(error);
           });
@@ -371,6 +396,8 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
             setUser(cached);
             isLoadingRef.current = false;
             setIsLoading(false);
+            // The cached profile is all there is until the server is reachable.
+            setEntitlementsSettled(true);
             setIsOfflineAccountFallback(true);
             setAccountError(null);
             addAppBreadcrumb('auth.offline_account_fallback_restored', 'warning');
@@ -384,6 +411,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         ) return;
         isLoadingRef.current = false;
         setIsLoading(false);
+        setEntitlementsSettled(true);
         setIsOfflineAccountFallback(false);
         setAccountError(error instanceof Error ? error.message : 'account_load_failed');
         addAppBreadcrumb('auth.account_bootstrap_failed', 'error');
@@ -421,6 +449,8 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       ) {
         userRef.current = enriched;
         setUser(enriched);
+        // A refresh supersedes a sign-in enrichment still in flight.
+        setEntitlementsSettled(true);
         queueAccountCacheWrite(currentAuthUser.id, enriched);
       }
     } catch (error) {
@@ -428,6 +458,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         authGenerationRef.current === generation &&
         accountRequestGateRef.current.isCurrent(requestId)
       ) {
+        setEntitlementsSettled(true);
         if (isOfflineFallbackError(error)) {
           const cached = await restoreOfflineAccount(currentAuthUser.id);
           if (
@@ -550,6 +581,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         setAccountError(null);
         setIsOfflineAccountFallback(false);
+        setEntitlementsSettled(true);
         setIsLoading(false);
         // Finish any older write before clearing so logout cannot race a stale
         // profile back onto disk.
@@ -614,6 +646,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         // Admin is an online QA bypass, never an offline authorization cache.
         isAdmin: !isOfflineAccountFallback && isAdminEmail(authUser?.email),
         isOfflineAccountFallback,
+        entitlementsSettled,
         refreshAccount,
         completeSignIn,
         signOutLocally,

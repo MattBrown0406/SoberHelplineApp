@@ -1,20 +1,22 @@
 import React, { useMemo } from 'react';
 import {
   ActivityIndicator,
-  Alert,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import { useAccount } from '../src/contexts/AccountContext';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useTreatmentActionPlan } from '../src/hooks/useTreatmentActionPlan';
 import { TheySaidYesMode } from '../src/components/treatment/TheySaidYesMode';
+import { appAlert } from '../src/lib/appAlert';
+import { isSessionOnlyPlanStorage } from '../src/lib/webSessionPlanStore';
 import {
   isTreatmentActionItemComplete,
   TREATMENT_ACTION_DETAIL_LIMIT,
@@ -32,13 +34,19 @@ export default function TreatmentActionPlanScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation('treatmentActionPlan');
   const { user } = useAccount();
+  // focus=yes (e.g. from the Invitation Engine's outcome loop) opens straight
+  // into They Said Yes mode at the top of the plan.
+  const params = useLocalSearchParams<{ focus?: string; source?: string; alerted?: string }>();
+  const focusYes = params.focus === 'yes';
   const controller = useTreatmentActionPlan(user?.id ?? null);
   const { plan, hydrated, loadState, saveState, updateItem, updatePlacementDetails, retrySave, reload, clear } = controller;
   const progress = useMemo(() => treatmentActionProgress(plan), [plan]);
   const plannedReady = progress.ready && saveState === 'saved';
 
+  const yesMode = <TheySaidYesMode controller={controller} />;
+
   function confirmClear() {
-    Alert.alert(t('clearTitle'), t('clearBody'), [
+    appAlert(t('clearTitle'), t('clearBody'), [
       { text: t('cancel'), style: 'cancel' },
       { text: t('clearConfirm'), style: 'destructive', onPress: () => void clear().catch(() => undefined) },
     ]);
@@ -54,6 +62,7 @@ export default function TreatmentActionPlanScreen() {
         <Text style={styles.kicker}>{t('kicker')}</Text>
         <Text style={styles.title}>{t('title')}</Text>
         <Text style={styles.intro}>{t('intro')}</Text>
+        {isSessionOnlyPlanStorage(Platform.OS) ? <Text style={styles.intro}>{t('webSessionNotice')}</Text> : null}
         <View style={[styles.privateBadge, { backgroundColor: colors.secondary }]}>
           <Text style={styles.privateText}>{t('privacy')}</Text>
         </View>
@@ -82,9 +91,14 @@ export default function TreatmentActionPlanScreen() {
         </>
       ) : (
         <>
+          {focusYes && (
+            <YesFocusBanner fromInvitation={params.source === 'invitation'} coachAlerted={params.alerted === '1'} />
+          )}
+          {focusYes && yesMode}
+
           <SafetyExceptions />
 
-          <TheySaidYesMode controller={controller} />
+          {!focusYes && yesMode}
 
           <View
             accessibilityRole="summary"
@@ -232,6 +246,27 @@ export default function TreatmentActionPlanScreen() {
   );
 }
 
+function YesFocusBanner({ fromInvitation, coachAlerted }: { fromInvitation: boolean; coachAlerted: boolean }) {
+  const { colors } = useTheme();
+  const { t } = useTranslation('invitation');
+  return (
+    <View
+      accessibilityRole="alert"
+      accessibilityLiveRegion="polite"
+      style={[styles.yesBanner, { backgroundColor: colors.greenLight, borderColor: colors.green }]}
+    >
+      <Text style={[styles.readinessTitle, { color: colors.green }]}>{t('outcome.yesTitle')}</Text>
+      <Text style={[styles.readinessBody, { color: colors.ink }]}>
+        {!fromInvitation
+          ? t('outcome.yesFocusBody')
+          : coachAlerted
+            ? t('outcome.yesBodyAlerted')
+            : t('outcome.yesBody')}
+      </Text>
+    </View>
+  );
+}
+
 function SafetyExceptions() {
   const { colors } = useTheme();
   const { t } = useTranslation('treatmentActionPlan');
@@ -333,6 +368,7 @@ const styles = StyleSheet.create({
   privateText: { color: '#fff', fontSize: 11, fontWeight: '800' },
   loading: { paddingVertical: 48 },
   loadError: { borderWidth: 1.5, borderRadius: 18, padding: 17, marginBottom: 12 },
+  yesBanner: { borderWidth: 1.5, borderRadius: 18, padding: 17, marginBottom: 12 },
   readiness: { borderWidth: 1.5, borderRadius: 18, padding: 17, marginBottom: 12 },
   readinessTitle: { fontSize: 18, lineHeight: 23, fontWeight: '900' },
   readinessBody: { fontSize: 14, lineHeight: 21, marginTop: 6 },

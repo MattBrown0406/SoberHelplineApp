@@ -125,7 +125,8 @@
     "online_one": "{{count}} online",
     "online_other": "{{count}} online",
     "moreIntro": "More groups and topics at",
-    "moreLink": "SoberHelpline.com"
+    "moreLink": "SoberHelpline.com",
+    "removedBody": "The host removed you from live groups, so you can't RSVP. If you think this was a mistake, message Matt from the Support tab."
   },
   "membership": {
     "eyebrow": "Membership",
@@ -166,7 +167,9 @@
     "timeDays": "{{count}}d ago",
     "support": "Send support",
     "supported": "Support sent",
-    "supportReceived": "{{count}} families sent you support"
+    "supportReceived": "{{count}} families sent you support",
+    "actionError": "That didn't go through. Check your connection and try again.",
+    "anonymousAuthor": "A family member"
   },
   "chat": {
     "headerSub": "On-call coach · replies as soon as available · not for emergencies",
@@ -287,7 +290,8 @@
     "attachmentErrorTitle": "Photo not sent",
     "attachmentErrorBody": "Your message was sent, but the photo didn't upload. Please try attaching it again.",
     "photosPermTitle": "Photos permission needed",
-    "photosPermBody": "Allow photo access to attach screenshots to this private support thread."
+    "photosPermBody": "Allow photo access to attach screenshots to this private support thread.",
+    "photoOnlyBody": "📷 Shared a photo"
   },
   "privateVideo": {
     "eyebrow": "Private video support",
@@ -334,6 +338,8 @@
       "cancelBody": "Your coach will be notified.",
       "keep": "Keep session",
       "dateTimeLabel": "Exact day and time",
+      "dateField": "Session date",
+      "timeField": "Session time",
       "durationAndZone": "60 minutes · {{timezone}}",
       "noteLabel": "Note for your coach (optional)",
       "notePlaceholder": "What would be helpful for your coach to know?",
@@ -352,11 +358,20 @@
         "session_not_found": "This session is no longer available.",
         "premium_video_access_required": "Premier video access is required.",
         "invalid_transition": "That action is no longer available for this session.",
+        "start_time_in_past": "That time has already passed. Request a new time and your coach will confirm it.",
         "unknown": "We couldn't update your session. Please refresh and try again."
-      }
+      },
+      "calendarTitle": "Sober Helpline video session",
+      "calendarDetails": "Open the Sober Helpline app at the confirmed time to join your private video session."
     }
   },
   "intro": "Connect with people here. For words to say, open Practice; for plans and worksheets, open Tools.",
   "peopleHeading": "TALK TO SOMEONE",
-  "peopleAccess": "Coach messaging requires Essential or Premier; private video is included with Premier, subject to scheduling. Separate 1:1 coaching is $150/hour."
+  "peopleAccess": "Coach messaging requires Essential or Premier; private video is included with Premier, subject to scheduling. Separate 1:1 coaching is $150/hour.",
+  "coachingGuideLink": "What coaching support looks like",
+  "freePracticeLink": "Try a free conversation practice",
+  "coachReplies": {
+    "title": "Messages from Matt",
+    "body": "You have a reply to your situation brief. Tap to read it."
+  }
 }

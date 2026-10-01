@@ -1,0 +1,686 @@
+{
+  "common": {
+    "back": "← Back",
+    "retry": "Try again",
+    "loadErrorTitle": "The Invitation Engine couldn't load",
+    "loadErrorBody": "Check your connection and try again. Nothing you saved is lost.",
+    "saving": "Saving…",
+    "next": "Next",
+    "previous": "Previous question",
+    "notPromise": "A forecast, not a promise — you know your person best."
+  },
+  "engine": {
+    "kicker": "INVITATION ENGINE",
+    "title": "Help them say yes",
+    "titleNamed": "Help {{name}} say yes",
+    "subtitle": "Small daily moves that make treatment easier to say yes to — built on CRAFT, the most-studied approach for families of someone who refuses help.",
+    "introTitle": "Start with what you already know",
+    "introBody": "First you'll map their patterns: when use happens, what it gives them, what it's costing them, and when they're most reachable. Then the engine turns that into two small moves a day, a forecast of good moments, and words to invite them — in your own voice.",
+    "evidence": "In a well-known study (Miller, Meyers & Tonigan, 1999), about 2 in 3 families using CRAFT saw a loved one who refused help start treatment — roughly double a confrontational intervention. Nothing can promise that, but the odds are real, and families tend to feel better along the way.",
+    "startMap": "Map their patterns (about 10 minutes)",
+    "continueMap": "Finish your pattern map",
+    "finishSetupTitle": "One last step",
+    "finishSetupBody": "Choose whether you'd like a quiet heads-up when tonight may be a good window. Then your first two moves are ready.",
+    "finishSetupButton": "Finish setup",
+    "paywallTitle": "Your pattern map is saved",
+    "paywallBody": "Membership unlocks the rest of the engine: two daily moves for your whole family, a receptivity forecast, invitation lines in your own words, and a simple record of what's working.",
+    "prepare": "Prepare the invitation",
+    "logOutcome": "I tried — log how it went",
+    "progress": "Your progress",
+    "editMap": "Edit pattern map",
+    "lastAttempt": {
+      "yes": "Last time: they said yes.",
+      "not_yet": "Last time: not yet. A seed was planted.",
+      "angry": "Last time: it turned into conflict. Repair first, then try again.",
+      "didnt_get_to_it": "Last time: the moment didn't come."
+    },
+    "nextWindow": "Next suggested window: {{date}}",
+    "familyPlan_one": "Your family plan · {{count}} person",
+    "familyPlan_other": "Your family plan · {{count}} people",
+    "alertsTitle": "“Tonight may be a window” alerts",
+    "alertsBody": "One discreet notification around 5 PM your time when the forecast looks good. On your lock screen it only says “You have a note for today” — never anything about your loved one. At most once every two days, and never on the safety-first path.",
+    "alertsToggle": "Send me window alerts",
+    "alertsError": "That setting didn't save. Try again.",
+    "alertsNoDevice": "Notifications are off for this app on this phone. Turn them on in your phone's settings to get alerts."
+  },
+  "forecast": {
+    "kicker": "RECEPTIVITY FORECAST",
+    "level": {
+      "low": "Not today",
+      "possible": "Possible window",
+      "good": "Good window"
+    },
+    "levelBody": {
+      "low": "Focus on today's two moves. Windows come back.",
+      "possible": "Keep it light. If a calm, sober moment opens up, you're ready.",
+      "good": "Things look more open than usual. If they're sober and calm, today could be the day to invite them."
+    },
+    "safetyHold": "On hold while safety comes first.",
+    "reasons": {
+      "safetyHold": "Safety comes first — the engine won't suggest an invitation window.",
+      "consequenceWindow_one": "Something happened recently. About {{count}} hour is left in the 72-hour window when people are often more open.",
+      "consequenceWindow_other": "Something happened recently. About {{count}} hours are left in the 72-hour window when people are often more open.",
+      "trendImproving": "Your tracker shows more recovery signs or fewer warning signs than last week.",
+      "trendWorsening": "Your tracker shows more warning signs than last week.",
+      "soberTimeNow": {
+        "morning": "It's morning — when your notes say they're most often sober and reachable.",
+        "afternoon": "It's afternoon — when your notes say they're most often sober and reachable.",
+        "evening": "It's evening — when your notes say they're most often sober and reachable.",
+        "weekend": "It's the weekend — when your notes say they're most often sober and reachable."
+      },
+      "soberTimeLater": {
+        "morning": "The morning is still ahead — when they're usually most reachable.",
+        "afternoon": "This afternoon is still ahead — when they're usually most reachable.",
+        "evening": "This evening is still ahead — when they're usually most reachable.",
+        "weekend": "The weekend is coming — when they're usually most reachable."
+      },
+      "soberTimeOther": {
+        "morning": "Your notes say mornings are better — tomorrow morning may be the time.",
+        "afternoon": "Your notes say afternoons are better — tomorrow afternoon may be the time.",
+        "evening": "Your notes say evenings are better.",
+        "weekend": "Your notes say weekends are better — the weekend may be the time."
+      },
+      "soberTimeUnknown": "Add when they're usually sober to your pattern map to sharpen this forecast.",
+      "consistent_one": "You've done your moves on {{count}} of the last 7 days — that steadiness changes the climate.",
+      "consistent_other": "You've done your moves on {{count}} of the last 7 days — that steadiness changes the climate.",
+      "buildingConsistency_one": "{{count}} day of moves in the last week — keep building.",
+      "buildingConsistency_other": "{{count}} days of moves in the last week — keep building.",
+      "noMovesYet": "Today's two moves are the surest way to make a yes more likely.",
+      "calmToday": "You said they seem calm today.",
+      "okayToday": "You said today seems okay.",
+      "roughToday": "You said today is rough. Today isn't the day — and that's okay.",
+      "noCheckToday": "Tell us how they seem today to sharpen the forecast.",
+      "restingUntil_one": "You asked recently. Give it {{count}} more day before asking again — keep up the daily moves.",
+      "restingUntil_other": "You asked recently. Give it {{count}} more days before asking again — keep up the daily moves.",
+      "inTreatment": "They're in treatment, so the engine isn't suggesting invitation windows.",
+      "afterYes": "Someone in your family heard a yes recently, so invitation windows are paused.",
+      "returningHome": "They're coming home from treatment, so the engine isn't suggesting invitation windows.",
+      "inRecovery": "They're in recovery, so the engine isn't suggesting invitation windows."
+    },
+    "checkTitle": "How are they today?",
+    "checkHint": "Optional — your read matters more than any score.",
+    "check": {
+      "calm": "Calm",
+      "okay": "Okay",
+      "rough": "Rough"
+    },
+    "checkError": "That didn't save. Try again."
+  },
+  "moves": {
+    "kicker": "TODAY'S TWO MOVES",
+    "familyNote": "Everyone in your family space sees these same two moves today.",
+    "exampleLabel": "Try",
+    "markDone": "Mark done",
+    "done": "Done ✓",
+    "doneA11y": "Mark “{{title}}” as done",
+    "undoA11y": "Mark “{{title}}” as not done",
+    "allDone": "Both done. This is how the climate changes — one day at a time.",
+    "error": "That didn't save. Check your connection and try again.",
+    "category": {
+      "reward": "Reward sober time",
+      "consequences": "Step back",
+      "communication": "Talk so they can hear it",
+      "timing": "Timing",
+      "selfcare": "Care for you",
+      "safety": "Safety"
+    },
+    "hint": {
+      "soberMoments": "Your notes: “{{item}}”",
+      "triggers": "Your notes: “{{item}}”",
+      "costs": "Your notes: “{{item}}”",
+      "phrases": "They often say: “{{item}}”"
+    },
+    "reward_name_it": {
+      "title": "Name one sober moment out loud",
+      "body": "When you see them sober today — even for an hour — tell them what you noticed, right then. Be specific and leave it there: no “but,” no “finally.”",
+      "example": "“I really liked having coffee with you this morning. You were so present.”"
+    },
+    "reward_sober_plan": {
+      "title": "Make sober time the good time",
+      "body": "Plan one small thing they enjoy that only happens when they're sober: a favorite meal, a drive, a game, a show together. If they've been using, it quietly doesn't happen — no speech needed.",
+      "example": "“I'm making your chili tonight — want to eat together?”"
+    },
+    "reward_best_hour": {
+      "title": "Show up for their best hour",
+      "body": "You know when they're most often sober and reachable. Be around then today — warm, unhurried, no agenda, and no talk about their use.",
+      "example": "Sit with them during that time and talk about anything else."
+    },
+    "reward_thank_effort": {
+      "title": "Thank the effort, right away",
+      "body": "If they skip a drink, come home on time, or keep a small promise, thank them within the minute. Small and specific beats big and late.",
+      "example": "“Thanks for calling to say you'd be late. That really helped me.”"
+    },
+    "reward_warm_moment": {
+      "title": "Let sober time feel good",
+      "body": "When they're sober, offer the kind of warmth that fits your relationship — a hug, a laugh, an inside joke. You're showing them what life without using can feel like.",
+      "example": "“It's really good to just hang out with you.”"
+    },
+    "step_back_when_using": {
+      "title": "Step away while they're using",
+      "body": "If they're drinking or high today, calmly leave the room or end the call. No arguing, no lecture. Warmth comes back when they're sober.",
+      "example": "“I'm going to head to bed. I'd love to talk tomorrow.”"
+    },
+    "let_it_land": {
+      "title": "Don't cushion one consequence",
+      "body": "Pick one thing you usually fix after their use — a call to work, a mess, a late fee — and let it stay theirs today. Quietly, without announcing it.",
+      "example": "Leave the bottles where they left them."
+    },
+    "no_cover_story": {
+      "title": "Don't make the excuse",
+      "body": "If someone asks why they missed something, you don't have to cover for them — or explain. A simple, kind deflection is enough.",
+      "example": "“You'd have to ask him.”"
+    },
+    "money_line": {
+      "title": "Hold the money line",
+      "body": "If they ask for money today, you can say no warmly — or pay for something specific directly, like a bill or groceries, instead of handing over cash.",
+      "example": "“I'm not going to give cash, but I'm happy to pick up groceries.”"
+    },
+    "morning_after": {
+      "title": "Let the morning after be theirs",
+      "body": "After a night of use, don't absorb the fallout — the missed alarm, the apologies to others, the cancelled plans. Be kind, and get on with your own day.",
+      "example": "“I hope you feel better. I've got errands — see you later.”"
+    },
+    "i_statement": {
+      "title": "Trade one “you” for an “I”",
+      "body": "Say how something affects you instead of what they did wrong. Start with “I feel” or “I love.” It's much harder to argue with.",
+      "example": "“I feel scared when you drive after drinking, because I love you.”"
+    },
+    "understanding": {
+      "title": "Say you understand one thing",
+      "body": "Name something real about their side — the stress, the pain, how hard stopping seems. Understanding isn't agreeing.",
+      "example": "“I know work has been brutal, and drinking feels like the only break you get.”"
+    },
+    "partial_responsibility": {
+      "title": "Own one small piece",
+      "body": "Take responsibility for a small part of how past talks have gone. It lowers their guard without excusing their use.",
+      "example": "“I know I've yelled when I was scared. I don't want to do that anymore.”"
+    },
+    "offer_help": {
+      "title": "Make an offer of help",
+      "body": "Offer something concrete and low-pressure that would make their life easier — and keep the door open for bigger help.",
+      "example": "“If you ever want to talk to someone, I'll find the right person and drive you.”"
+    },
+    "positive_request": {
+      "title": "Ask for what you want",
+      "body": "Turn one complaint into a clear, positive request. People can say yes to a request; they can only defend against a complaint.",
+      "example": "Instead of “Stop drinking every night,” try “Would you take a walk with me after dinner?”"
+    },
+    "listen_first": {
+      "title": "Listen for two minutes",
+      "body": "In one conversation today, just listen. Reflect back what you hear before you say anything about yourself.",
+      "example": "“Sounds like you feel like everyone's on your case.”"
+    },
+    "keep_it_short": {
+      "title": "Keep it under 30 seconds",
+      "body": "Pick one thing to say and say it briefly. Long talks feel like lectures, and lectures raise defenses.",
+      "example": "“I love you. I'm worried. I'm here.”"
+    },
+    "their_costs": {
+      "title": "Connect to what they care about",
+      "body": "Your pattern map lists costs they themselves have felt. If one comes up naturally, reflect it back gently — no “I told you so.”",
+      "example": "“You've seemed really down about things at work.”"
+    },
+    "answer_their_line": {
+      "title": "Have a calm answer ready",
+      "body": "Think of what they usually say when help comes up. Prepare one calm, short reply that doesn't argue — then let it go.",
+      "example": "“Maybe you're right. I just love you, and the offer's always open.”"
+    },
+    "pick_the_moment": {
+      "title": "Notice the open moments",
+      "body": "Hard conversations go best when they're sober, calm and not rushed — and when you are too. Today, just notice when those moments happen.",
+      "example": "Jot down one time today they seemed most open."
+    },
+    "not_while_using": {
+      "title": "Never during or right after use",
+      "body": "If they've been using, or they're hungover and irritable, it's not the time. Waiting isn't giving up — it's choosing the moment.",
+      "example": "“Let's talk tomorrow.”"
+    },
+    "after_a_consequence": {
+      "title": "Be ready after something goes wrong",
+      "body": "After a consequence — a ticket, a fight, a missed day — there's often a short window when they're more open. Stay calm and kind; skip the “I told you so.”",
+      "example": "“That sounded awful. I'm here if you want help figuring it out.”"
+    },
+    "plan_around_trigger": {
+      "title": "Plan around one trigger",
+      "body": "Your pattern map names situations when use tends to happen. Plan something enjoyable during one of them — an alternative, not a confrontation.",
+      "example": "“Want to grab dinner Friday before the game?”"
+    },
+    "selfcare_one_thing": {
+      "title": "One thing just for you",
+      "body": "Do one thing today that refills you — a walk, a call with a friend, a nap, a show. You're not being selfish; you're staying strong for the long haul.",
+      "example": "Put 20 minutes on your calendar and protect it."
+    },
+    "selfcare_support": {
+      "title": "Talk to someone on your side",
+      "body": "Reach out to one person who supports you — a friend, a group, your coach. You don't have to carry this alone.",
+      "example": "Text a friend, or join the Monday family call."
+    },
+    "selfcare_sleep": {
+      "title": "Guard your sleep",
+      "body": "Don't wait up or check their phone tonight. Rest is part of the plan.",
+      "example": "“I'm going to bed. Text me when you're home.”"
+    },
+    "selfcare_good_thing": {
+      "title": "Notice one good thing in your life",
+      "body": "Spend five minutes on something going right for you — a hobby, a friendship, work you're proud of. Your life matters beyond their use.",
+      "example": "Write down one thing you're grateful for today."
+    },
+    "selfcare_breathe": {
+      "title": "Breathe before you respond",
+      "body": "When you feel the urge to argue or plead, take three slow breaths first. A calm you is your strongest tool.",
+      "example": "In for 4, hold for 4, out for 6."
+    },
+    "safety_plan": {
+      "title": "Make a safety plan",
+      "body": "Decide where you'd go and who you'd call if things escalate: a room with a lock, a friend's house, your keys and phone where you can grab them.",
+      "example": "Pack a small bag with ID, medications and a charger, and keep it somewhere safe."
+    },
+    "safety_code_word": {
+      "title": "Choose a code word",
+      "body": "Agree on a word with someone you trust that means “call for help now.”",
+      "example": "Text your code word to a friend if you need them to call 911."
+    },
+    "safety_talk_pro": {
+      "title": "Talk with a safety advocate first",
+      "body": "Before any conversation about treatment, talk it through with someone trained in safety planning. It's free and confidential.",
+      "example": "Call 1-800-799-7233 or text START to 88788."
+    },
+    "safety_not_alone": {
+      "title": "Don't raise treatment alone",
+      "body": "If you want to invite them to get help, do it only with a professional's guidance and other people present — never alone, and never while they're using.",
+      "example": "Ask Matt or a counselor to help you plan it."
+    }
+  },
+  "safety": {
+    "kicker": "SAFETY FIRST",
+    "title": "Your safety comes first",
+    "body": "Because there has been violence, threats or fear, please don't invite them to treatment on your own. The engine won't suggest invitation windows. It will help you stay safe and plan the next step with a professional.",
+    "danger": "If you're in danger right now, call 911.",
+    "call911": "Call 911",
+    "hotlineTitle": "National Domestic Violence Hotline — free, confidential, 24/7",
+    "callHotline": "Call 1-800-799-7233",
+    "textHotline": "Text START to 88788",
+    "mattTitle": "Plan it with a professional",
+    "mattBody": "Send Matt your situation. He'll help you work out a safe next step — including whether and how to raise treatment.",
+    "mattButton": "Talk it through with Matt"
+  },
+  "setup": {
+    "kicker": "PATTERN MAP",
+    "progress": "Step {{step}} of {{total}}",
+    "privacy": "Private to you. Family members never see your answers.",
+    "saveError": "That didn't save. Check your connection and try again — your answers are still here.",
+    "loadErrorTitle": "Your pattern map couldn't be opened",
+    "loadErrorBody": "We couldn't load what you saved before. Try again — we won't start over and overwrite your answers.",
+    "fromTracker": "From your tracker",
+    "addPlaceholder": "Add in your own words",
+    "add": "Add",
+    "addA11y": "Add “{{item}}”",
+    "removeA11y": "Remove “{{item}}”",
+    "listFull": "That's plenty — up to 6 is best.",
+    "added": "Added",
+    "skipHint": "Not sure? Skip it — you can come back anytime.",
+    "intro": {
+      "title": "Let's map their patterns",
+      "body": "CRAFT starts by understanding when use happens, what it does for them, and when they're most reachable. Use your own words — there are no wrong answers.",
+      "note": "About 10 minutes. We save as you go, so you can stop anytime.",
+      "start": "Let's start"
+    },
+    "basics": {
+      "title": "Who are we helping?",
+      "nameLabel": "What do you call them?",
+      "namePlaceholder": "First name or nickname",
+      "relationshipLabel": "They are my…",
+      "substancesLabel": "What are they using?"
+    },
+    "safety": {
+      "title": "First, your safety",
+      "body": "When you've brought up their use, has there been violence, threats, or have you felt afraid?",
+      "none": "No",
+      "noneBody": "Arguments maybe, but I've never felt unsafe.",
+      "some": "Some",
+      "someBody": "Yelling, slammed doors or broken things — I've felt uneasy.",
+      "serious": "Yes, serious",
+      "seriousBody": "Hitting, threats, weapons, or I'm afraid of what they could do.",
+      "someNote": "Thank you for telling us. Keep conversations short, stay near an exit, and never talk while they're using. If that ever changes, update this answer.",
+      "seriousNote": "This changes only your plan: the engine won't suggest inviting them, won't send window alerts, and will focus on keeping you safe. Nobody in your family space is told, and their plans don't change.",
+      "required": "Choose one to continue."
+    },
+    "triggers": {
+      "title": "When does use tend to happen?",
+      "body": "Times, places, people or feelings — for example “Friday nights,” “after work with Dan,” or “after we argue.”"
+    },
+    "gives": {
+      "title": "What does using seem to give them?",
+      "body": "Not to excuse it — to understand it. Help works better when it offers something real in its place."
+    },
+    "costs": {
+      "title": "What has it cost them — in their eyes?",
+      "body": "Costs they themselves have felt or complained about. These are the things they may want to change."
+    },
+    "sober": {
+      "title": "When are they sober and reachable?",
+      "body": "The moments when a conversation could actually land.",
+      "timesLabel": "Usually in the…",
+      "times": {
+        "morning": "Mornings",
+        "afternoon": "Afternoons",
+        "evening": "Evenings",
+        "weekend": "Weekends"
+      }
+    },
+    "phrases": {
+      "title": "What do they say when help comes up?",
+      "body": "Their words, as close as you can remember. Conversation practice uses them so you can rehearse calm answers."
+    },
+    "incidents": {
+      "title": "Anything recent you might mention?",
+      "body": "Optional. One specific, recent moment you could gently refer to — said with care, never as evidence.",
+      "placeholder": "e.g. missed Sam's game on Saturday"
+    },
+    "review": {
+      "title": "Here's your pattern map",
+      "body": "Read it over. You can change anything later.",
+      "empty": "Nothing added",
+      "save": "Save my pattern map",
+      "edit": "Edit",
+      "safetyLabel": "Safety",
+      "timesLabel": "Usually reachable"
+    },
+    "alerts": {
+      "title": "Would you like a heads-up?",
+      "body": "When the forecast looks like a good window, we can send one discreet notification around 5 PM. On your lock screen it only says “You have a note for today” — open the app to see why. At most once every two days. You can turn it off anytime.",
+      "toggle": "Send me window alerts",
+      "finish": "Finish and see today's moves"
+    },
+    "doneTitle": "Your pattern map is saved",
+    "doneBody": "That's the hardest part of CRAFT done. Next: two small moves a day.",
+    "openEngine": "Open the Invitation Engine",
+    "suggestions": {
+      "useTriggers": {
+        "afterWork": "After work",
+        "weekends": "Weekends",
+        "payday": "Payday",
+        "oldFriends": "With old using friends",
+        "stress": "When stressed",
+        "arguments": "After arguments",
+        "lateNight": "Late at night",
+        "alone": "When alone",
+        "games": "Watching games",
+        "pain": "When in pain"
+      },
+      "whatUseGives": {
+        "relief": "Stress relief",
+        "sleep": "Help sleeping",
+        "confidence": "Confidence",
+        "numb": "Numbing pain or memories",
+        "belonging": "Fitting in",
+        "fun": "Fun",
+        "escape": "Escape from problems",
+        "energy": "Energy"
+      },
+      "costsTheyFeel": {
+        "health": "Health",
+        "job": "Job or work",
+        "money": "Money",
+        "relationship": "A relationship",
+        "kids": "Time with the kids",
+        "legal": "Legal trouble",
+        "sleep": "Sleep",
+        "respect": "Self-respect"
+      },
+      "soberMoments": {
+        "mornings": "Mornings",
+        "weekendMornings": "Weekend mornings",
+        "drives": "On drives",
+        "meals": "Over meals",
+        "kids": "Around the kids",
+        "goodDay": "After a good day",
+        "outdoors": "Outdoors",
+        "beforeWork": "Before work"
+      },
+      "usualPhrases": {
+        "canStop": "I can stop whenever I want.",
+        "overreacting": "You're overreacting.",
+        "everyone": "Everyone drinks.",
+        "cutBack": "I'll cut back.",
+        "leaveMe": "Leave me alone.",
+        "notNow": "Not now.",
+        "notThatBad": "It's not that bad.",
+        "onMyCase": "Why are you always on my case?"
+      }
+    }
+  },
+  "kit": {
+    "kicker": "INVITATION KIT",
+    "title": "Get ready to ask",
+    "body": "Three things before you invite them: a next step that's ready, words that sound like you, and a quick warm-up.",
+    "nextStepTitle": "1. Have the next step ready",
+    "nextStepBody": "A yes is fragile. Have one concrete next step lined up so it can happen today.",
+    "program": "Program: {{program}}",
+    "phone": "Admissions: {{phone}}",
+    "openPlan": "Open your Treatment Action Plan",
+    "noPlanBody": "You don't have a program lined up yet. Find one first, so a yes can turn into a phone call right away.",
+    "findProgram": "Find a program",
+    "linesTitle": "2. Three ways to say it",
+    "linesBody": "Each one says: I love you, here's what I've noticed, would you get help, and I'll help you get there. Edit until it sounds like you.",
+    "observationLabel": "Something specific you noticed recently (optional)",
+    "observationPlaceholder": "e.g. you've seemed so tired after work",
+    "personalize": "Draft lines in my own words",
+    "personalizing": "Drafting…",
+    "aiNote": "Drafted from your pattern map. Edit freely.",
+    "aiUnavailable": "Couldn't draft new lines right now — these templates work well too.",
+    "aiLimit": "You've drafted a lot today. Use these templates, or edit your favorite.",
+    "style": {
+      "warm": "Lead with love",
+      "observation": "Lead with what you noticed",
+      "help": "Lead with your offer of help"
+    },
+    "lineA11y": "Invitation line: {{style}}",
+    "choose": "Use this one",
+    "chosen": "Using this one ✓",
+    "softenTip": "Tip: leave out labels and “always/never” — they tend to raise defenses.",
+    "rehearse": "Rehearse this",
+    "warmupTitle": "3. Warm up",
+    "warmupBody": "A 90-second warm-up helps your voice stay steady when it counts.",
+    "warmup": "90-second warm-up",
+    "rehearseAll": "Rehearse the whole kit",
+    "tipsTitle": "Before you ask",
+    "tips": {
+      "1": "Choose a calm moment when they're sober — never while they're using or right after.",
+      "2": "Keep it short. Say your line, then listen.",
+      "3": "If they say no, stay warm: “Okay. The offer stands.” That's a seed, not a failure.",
+      "4": "If anything starts to feel unsafe, stop and step away."
+    },
+    "log": "I asked — log how it went",
+    "planLoading": "Checking your Treatment Action Plan…"
+  },
+  "lines": {
+    "love": {
+      "open": "I love you, and I've been thinking about you a lot.",
+      "openNamed": "{{name}}, I love you, and I've been thinking about you a lot.",
+      "close": "I love you — that's not going to change.",
+      "closeNamed": "I love you, {{name}} — that's not going to change."
+    },
+    "observe": {
+      "own": "I noticed {{observation}}.",
+      "generic": "I've noticed things have felt really heavy for you lately.",
+      "impact": "That looks really hard, and I don't think it's what you want either."
+    },
+    "invite": {
+      "program": "Would you be willing to talk with someone at {{program}} — just a conversation?",
+      "generic": "Would you be willing to talk with someone who helps with this — just a conversation?"
+    },
+    "help": {
+      "drive": "I'll drive you and wait for you.",
+      "call": "I'll make the call with you, right now if you want.",
+      "lead": "I want to help in whatever way would actually make this easier for you.",
+      "sit": "I'll set it up, drive you, and sit with you."
+    }
+  },
+  "outcome": {
+    "kicker": "HOW DID IT GO?",
+    "title": "Log how it went",
+    "body": "One tap. Every outcome teaches the engine something about your family.",
+    "options": {
+      "yes": "They said yes",
+      "not_yet": "Not yet",
+      "angry": "They got angry",
+      "didnt_get_to_it": "I didn't get to it"
+    },
+    "optionBody": {
+      "yes": "Let's move now.",
+      "not_yet": "They didn't agree — but the door isn't closed.",
+      "angry": "It turned into conflict.",
+      "didnt_get_to_it": "The moment didn't come."
+    },
+    "noteLabel": "Add a note (optional)",
+    "notePlaceholder": "What happened, what they said…",
+    "whenLabel": "When did you ask?",
+    "when": {
+      "today": "Today",
+      "yesterday": "Yesterday"
+    },
+    "styleLabel": "Which line did you use? (optional)",
+    "style": {
+      "warm": "Lead with love",
+      "observation": "What I noticed",
+      "help": "Offer of help",
+      "own": "My own words"
+    },
+    "save": "Save",
+    "saveError": "That didn't save. Check your connection and try again — your answer is still here.",
+    "yesTitle": "This is the moment. Move now.",
+    "yesBody": "Open your plan and follow the They Said Yes steps: call admissions, keep things calm, and go together. If you'd like Matt's help, message him from the Support tab.",
+    "yesFocusBody": "Follow the They Said Yes steps below: call admissions, keep things calm, and go together.",
+    "openYes": "Open They Said Yes",
+    "repairTitles": {
+      "not_yet": "Plant the seed",
+      "angry": "Repair first",
+      "didnt_get_to_it": "Windows come back"
+    },
+    "nextWindowLabel": "Next suggested window",
+    "repair": {
+      "not_yet": {
+        "1": "Thank them for listening — today, specifically.",
+        "2": "Keep the daily moves going. Reward every sober moment you see.",
+        "3": "Don't bring it up again until the next window. The offer stands."
+      },
+      "angry": {
+        "1": "Give it space. No follow-up talk today.",
+        "2": "When things are calm, own your part: “I know that came at a hard time.”",
+        "3": "Go back to rewarding sober time, and try again after a calm stretch."
+      },
+      "didnt_get_to_it": {
+        "1": "That's okay. Waiting for the right moment is part of the work.",
+        "2": "Keep doing today's two moves.",
+        "3": "Check the forecast tomorrow, and keep your kit handy."
+      }
+    },
+    "angrySafety": "If anyone is in danger right now, call 911.",
+    "backToEngine": "Back to the Invitation Engine",
+    "yesBodyAlerted": "We've let Matt know, so he can reach out. For now, open your plan and follow the They Said Yes steps: call admissions, keep things calm, and go together."
+  },
+  "progress": {
+    "kicker": "YOUR PROGRESS",
+    "title": "What you've done",
+    "body": "Every move counts, whether or not they've said yes yet.",
+    "stats": {
+      "movesDone": "Moves done",
+      "moveDays": "Days with moves",
+      "attempts": "Invitations",
+      "yes": "Yeses",
+      "goodDays": "Good-window days"
+    },
+    "attemptsTitle": "Recent invitations",
+    "attemptsNone": "No invitations logged yet — that's okay. The daily moves are the work.",
+    "outcome": {
+      "yes": "Yes",
+      "not_yet": "Not yet",
+      "angry": "Angry",
+      "didnt_get_to_it": "Didn't get to it"
+    },
+    "forecastTitle": "Forecast history",
+    "forecastNone": "Your forecast history starts the first day you open the engine.",
+    "forecastA11y": "{{date}}: {{level}}",
+    "pushedNote": "Window alert sent",
+    "learningTitle": "What's working for your family",
+    "learningBody": "Simple counts of what was true before each invitation. Patterns get clearer after a few tries.",
+    "learningNone": "Log a few invitations to see patterns here.",
+    "learningFamily": "Includes invitations logged by your family space.",
+    "bySource": "Before the invitation",
+    "byStyle": "Line you used",
+    "sources": {
+      "consequence": "After a consequence",
+      "trend": "Tracker trending better",
+      "sober_time": "Their sober time",
+      "consistency": "Steady daily moves",
+      "calm": "A calm day",
+      "none": "No clear signal"
+    },
+    "row": "{{asks}} tried · {{yes}} yes · {{notYet}} not yet · {{angry}} angry",
+    "loadError": "Your progress couldn't load. Try again."
+  },
+  "today": {
+    "kicker": "INVITATION ENGINE",
+    "hookTitle": "Help them say yes",
+    "hookBody": "Map their patterns in about 10 minutes — the first step of CRAFT, the most-studied way families help a loved one who refuses help into treatment.",
+    "hookButton": "Start the pattern map",
+    "continueButton": "Finish your pattern map",
+    "safetyTitle": "Safety comes first",
+    "safetyBody": "Your plan is in safety-first mode. Help and hotlines are one tap away.",
+    "paywallBody": "Your pattern map is saved. Membership unlocks two daily moves, the receptivity forecast and your invitation kit.",
+    "finishSetupBody": "Your pattern map is saved. One more step and your first two moves are ready.",
+    "finishSetup": "Finish setup",
+    "forecastLabel": "Today: {{level}}",
+    "open": "Open the engine",
+    "prepare": "Prepare the invitation"
+  },
+  "paused": {
+    "kicker": "INVITATIONS PAUSED",
+    "in_treatment": {
+      "title": "They're in treatment",
+      "body": "The engine stops suggesting invitation windows while they're in treatment. Keep caring for yourself, and keep noticing and rewarding every sober step. If that changes, update their stage on Today."
+    },
+    "after_yes": {
+      "title": "A yes was logged",
+      "body": "Someone in your family heard a yes, so invitation windows are paused for now. Keep the next steps steady with your Treatment Action Plan. If things change, log an update."
+    },
+    "openPlan": "Open your Treatment Action Plan",
+    "logUpdate": "Things changed? Log an update",
+    "returning_home": {
+      "title": "They're coming home",
+      "body": "No more invitations needed for now. Focus on a calm homecoming: steady routines, clear boundaries, and noticing every sober step."
+    },
+    "in_recovery": {
+      "title": "They're in recovery",
+      "body": "The engine has stopped suggesting invitation windows. Keep rewarding the recovery you see and keep caring for yourself. If use returns, update their stage on Today and the engine will pick back up."
+    },
+    "openHomecoming": "Open the homecoming week",
+    "updateStage": "Their stage changed? Update it on Today"
+  },
+  "windowSafety": {
+    "title": "Something happened — stay safe first",
+    "body": "A consequence can make people more open, but because you told us about violence or threats, please don't raise treatment on your own right now. Plan any next step with a professional.",
+    "options": "See your safety options",
+    "unknownTitle": "Something happened recently",
+    "unknownBody": "We couldn't check your safety settings just now, so we're not suggesting what to say. If anything feels unsafe, don't raise treatment on your own.",
+    "retry": "Try again"
+  },
+  "crisis": {
+    "kicker": "LET'S PAUSE",
+    "title": "Let's pause the invitation",
+    "body": "What you wrote sounds like someone may be in danger — you, or them. Before any invitation, please reach out for real support. Nothing in your plan has changed; this is just for right now.",
+    "danger": "If anyone is in danger right now, call 911. If they've talked about suicide, call or text 988.",
+    "call911": "Call 911",
+    "call988": "Call 988",
+    "text988": "Text 988",
+    "editHint": "If that's not what you meant, change what you typed above.",
+    "mapHint": "This came from your pattern map. If it isn't what you meant, you can review it there.",
+    "editMap": "Edit your map",
+    "planHint": "This came from the program name in your Treatment Action Plan.",
+    "editPlan": "Open your Treatment Action Plan",
+    "acknowledge": "I'm safe right now — show my lines",
+    "reviewSafety": "Review your safety answer",
+    "acknowledgedNote": "You said you're safe right now. If that changes, stop and call 911."
+  }
+}

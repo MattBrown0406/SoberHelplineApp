@@ -22,6 +22,7 @@ import { HoldLogCard } from '../../src/components/boundaries/HoldLogCard';
 import { CurriculumCard } from '../../src/components/today/CurriculumCard';
 import { WillingnessWindowAlert } from '../../src/components/today/WillingnessWindowAlert';
 import { PassItOnCard } from '../../src/components/today/PassItOnCard';
+import { InvitationTodayCard } from '../../src/components/invitation/InvitationTodayCard';
 import { useCheckIn } from '../../src/hooks/useCheckIn';
 import { useTodayFeed } from '../../src/hooks/useTodayFeed';
 import { useLovedOne } from '../../src/hooks/useLovedOne';
@@ -115,6 +116,11 @@ function TodayContent() {
   const willingnessWindowAlert = (
     <WillingnessWindowAlert accountId={user?.id ?? null} situation={situation} />
   );
+  // Invitation Engine: the free pattern-map hook for every tier; daily moves
+  // and the receptivity forecast once a member is set up.
+  const invitationCard = (
+    <InvitationTodayCard accountId={user?.id ?? null} timezone={user?.timezone} />
+  );
   // Null when the band is elevated/crisis and no crisis-safe piece fits: a
   // family whose week is on fire gets the support surface, not an exercise.
   const curriculumPiece = selectCurriculumPiece(curriculumWeek, situation.band, i18n.language);
@@ -154,6 +160,7 @@ function TodayContent() {
         {willingnessWindowAlert}
         {checkInCard}
         <CheckInFeedbackCard checkIn={todayCheckIn} />
+        {invitationCard}
         <GuidedStartPanel />
         <TodayDisclosure title={t('disclosure.pathway')}>
           {pathwayCard}
@@ -211,6 +218,7 @@ function TodayContent() {
       {willingnessWindowAlert}
       {checkInCard}
       <CheckInFeedbackCard checkIn={todayCheckIn} />
+      {invitationCard}
         <GuidedStartPanel />
       <TodayDisclosure title={t('disclosure.pathway')}>
         {pathwayCard}

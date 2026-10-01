@@ -148,8 +148,8 @@ export default function ScriptsScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={`${t(`categories.${shelf.key}`)}, ${shelf.scripts.length}`}
                   accessibilityHint={isOpen
-                    ? (i18n.language.startsWith('es') ? 'Contrae esta categoría de guiones' : 'Collapses this script category')
-                    : (i18n.language.startsWith('es') ? 'Expande esta categoría de guiones' : 'Expands this script category')}
+                    ? t('shelf.collapseHint')
+                    : t('shelf.expandHint')}
                   accessibilityState={{ expanded: isOpen }}
                 >
                   <Text style={[styles.shelfTitle, { color: colors.ink }]}>

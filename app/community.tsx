@@ -7,7 +7,6 @@ import {
   FlatList,
   StyleSheet,
   Modal,
-  Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
@@ -18,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
 import { openEmergencyLink } from '../src/lib/emergencyLinks';
+import { appAlert } from '../src/lib/appAlert';
 import { Gate } from '../src/components/auth/Gate';
 import { useCommunity, CrisisContentError, type CommunityPost } from '../src/hooks/useCommunity';
 import { MAX_CONTENT_WIDTH } from '../src/components/ui/ScreenContainer';
@@ -59,7 +59,7 @@ function CommunityContent() {
       if (err instanceof CrisisContentError) {
         setCrisisOpen(true);
       } else {
-        Alert.alert(t('community.postError'));
+        appAlert(t('community.postError'));
       }
     } finally {
       setPosting(false);
@@ -67,16 +67,28 @@ function CommunityContent() {
   }
 
   function confirmReport(post: CommunityPost) {
-    Alert.alert(t('community.reportConfirmTitle'), t('community.reportConfirmBody'), [
+    appAlert(t('community.reportConfirmTitle'), t('community.reportConfirmBody'), [
       { text: t('community.cancel'), style: 'cancel' },
-      { text: t('community.reportConfirm'), style: 'destructive', onPress: () => void reportPost(post.id) },
+      {
+        text: t('community.reportConfirm'),
+        style: 'destructive',
+        onPress: async () => {
+          if (!(await reportPost(post.id))) appAlert(t('community.actionError'));
+        },
+      },
     ]);
   }
 
   function confirmDelete(post: CommunityPost) {
-    Alert.alert(t('community.deleteConfirmTitle'), '', [
+    appAlert(t('community.deleteConfirmTitle'), '', [
       { text: t('community.cancel'), style: 'cancel' },
-      { text: t('community.delete'), style: 'destructive', onPress: () => void deletePost(post.id) },
+      {
+        text: t('community.delete'),
+        style: 'destructive',
+        onPress: async () => {
+          if (!(await deletePost(post.id))) appAlert(t('community.actionError'));
+        },
+      },
     ]);
   }
 
@@ -155,7 +167,11 @@ function CommunityContent() {
               renderItem={({ item }) => (
                 <View style={[styles.postCard, { backgroundColor: colors.white, borderColor: colors.line }]}>
                   <View style={styles.postHead}>
-                    <Text style={[styles.postAuthor, { color: colors.ink }]}>{item.author_display}</Text>
+                    <Text style={[styles.postAuthor, { color: colors.ink }]}>
+                      {!item.author_display || item.author_display === 'A family member'
+                        ? t('community.anonymousAuthor')
+                        : item.author_display}
+                    </Text>
                     <Text style={[styles.postTime, { color: colors.inkSoft }]}>
                       {relativeTime(item.created_at, t)}
                     </Text>
