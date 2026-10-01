@@ -282,7 +282,11 @@ test('every crisis card shows 911, 988 and the DV hotline; the kind only orders 
   const fn = readFileSync('supabase/functions/rehearsal-partner/index.ts', 'utf8');
   // Every member line is moderated alongside the partner call, and a flag replaces the reply.
   assert.match(fn, /if \(toModerate\) lineModeration = moderationCrisis\(toModerate\);/);
-  assert.match(fn, /const \[raw, hint, flagged\] = await Promise\.all\(\[[\s\S]{0,200}lineModeration,\n\s+\]\);\n\s+\/\/[^\n]*\n\s+if \(flagged\) return moderationBreak\(\);/);
+  assert.match(fn, /const \[modelResult, hintResult, moderationResult\] = await Promise\.allSettled\(/);
+  const safetyDecision = fn.indexOf("if (moderationResult.status === 'fulfilled' && moderationResult.value)");
+  const modelFailure = fn.indexOf("if (modelResult.status === 'rejected') throw modelResult.reason;");
+  assert.ok(safetyDecision >= 0 && modelFailure > safetyDecision, 'affirmative moderation must win before a model error');
+  assert.match(fn.slice(safetyDecision, modelFailure), /return moderationBreak\(\);/);
   // The model's :SELF_HARM / :ABUSE marker is passed through as the kind.
   assert.match(fn, /const parsed = parseBreak\(raw, scenario\.language\);/);
   assert.match(fn, /if \(!parseBreak\(retry\)\.breakCharacter && !partnerReplyUnsafe\(retry\)\) return retry;/);

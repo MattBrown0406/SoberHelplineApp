@@ -19,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../src/contexts/ThemeContext';
+import { useAsyncScope } from '../src/hooks/useAsyncScope';
 import { useAccount } from '../src/contexts/AccountContext';
 import { AttachmentUploadError, useThread, type ChatMessage, type PendingAttachment } from '../src/hooks/useThread';
 import { useSessions } from '../src/hooks/useSessions';
@@ -28,9 +29,15 @@ import { MAX_CONTENT_WIDTH } from '../src/components/ui/ScreenContainer';
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😢', '😮', '👎'] as const;
 
 export default function ChatScreen() {
+  const { user } = useAccount();
+  return <ChatContent key={user?.id ?? 'signed-out'} />;
+}
+
+function ChatContent() {
   const { colors } = useTheme();
   const { t } = useTranslation('support');
   const { user, isAttached, entitlements } = useAccount();
+  const { isCurrent } = useAsyncScope(user?.id ?? null);
   const router = useRouter();
   const canUseTextLine = !!user && entitlements.canMessageOnCallCoach;
   const { messages, send, archive, toggleReaction, loading, sending } = useThread(
@@ -50,6 +57,7 @@ export default function ChatScreen() {
   const nextSchedule = sessions.find((s) => s.kind === 'group')?.schedule_label ?? null;
 
   async function handleSend() {
+    if (!isCurrent() || sending) return;
     const body = draft.trim();
     if (!body && pendingAttachments.length === 0) return;
     setDraft('');
@@ -57,8 +65,10 @@ export default function ChatScreen() {
     setPendingAttachments([]);
     try {
       await send(body, toSend, t('textline.photoOnlyBody'));
+      if (!isCurrent()) return;
       listRef.current?.scrollToEnd({ animated: true });
     } catch (err) {
+      if (!isCurrent()) return;
       if (err instanceof AttachmentUploadError) {
         setPendingAttachments(err.failed);
         appAlert(t('textline.attachmentErrorTitle'), t('textline.attachmentErrorBody'));
@@ -71,29 +81,35 @@ export default function ChatScreen() {
   }
 
   async function pickAttachment() {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      appAlert(t('textline.photosPermTitle'), t('textline.photosPermBody'));
-      return;
+    if (!isCurrent()) return;
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!isCurrent()) return;
+      if (!permission.granted) {
+        appAlert(t('textline.photosPermTitle'), t('textline.photosPermBody'));
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.82,
+        allowsMultipleSelection: true,
+        selectionLimit: 3,
+      });
+
+      if (!isCurrent() || result.canceled) return;
+      const picked = result.assets.slice(0, 3).map((asset, idx) => ({
+        uri: asset.uri,
+        mimeType: asset.mimeType ?? 'image/jpeg',
+        fileName: asset.fileName ?? `screenshot-${Date.now()}-${idx}.jpg`,
+        width: asset.width,
+        height: asset.height,
+        sizeBytes: asset.fileSize ?? null,
+      }));
+      setPendingAttachments((prev) => [...prev, ...picked].slice(0, 3));
+    } catch {
+      if (isCurrent()) appAlert(t('textline.attachmentErrorTitle'), t('textline.attachmentErrorBody'));
     }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.82,
-      allowsMultipleSelection: true,
-      selectionLimit: 3,
-    });
-
-    if (result.canceled) return;
-    const picked = result.assets.slice(0, 3).map((asset, idx) => ({
-      uri: asset.uri,
-      mimeType: asset.mimeType ?? 'image/jpeg',
-      fileName: asset.fileName ?? `screenshot-${Date.now()}-${idx}.jpg`,
-      width: asset.width,
-      height: asset.height,
-      sizeBytes: asset.fileSize ?? null,
-    }));
-    setPendingAttachments((prev) => [...prev, ...picked].slice(0, 3));
   }
 
   function removePendingAttachment(uri: string) {
@@ -110,13 +126,14 @@ export default function ChatScreen() {
           text: t('chat.archiveConfirm'),
           style: 'destructive',
           onPress: async () => {
+            if (!isCurrent()) return;
             setArchiving(true);
             try {
               await archive();
             } catch {
-              appAlert(t('chat.archiveTitle'), t('chat.archiveError'));
+              if (isCurrent()) appAlert(t('chat.archiveTitle'), t('chat.archiveError'));
             } finally {
-              setArchiving(false);
+              if (isCurrent()) setArchiving(false);
             }
           },
         },
@@ -125,9 +142,11 @@ export default function ChatScreen() {
   }
 
   async function handleReaction(emoji: string) {
-    if (!pickerMessageId) return;
+    if (!isCurrent() || !pickerMessageId) return;
     setPickerMessageId(null);
-    await toggleReaction(pickerMessageId, emoji);
+    try { await toggleReaction(pickerMessageId, emoji); } catch {
+      if (isCurrent()) appAlert(t('textline.sendErrorTitle'), t('textline.sendErrorBody'));
+    }
   }
 
   // Off-plan members with no conversation see the plan prompt; those with
@@ -135,8 +154,14 @@ export default function ChatScreen() {
   if (!canUseTextLine && !loading && messages.length === 0) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
+        <TouchableOpacity accessibilityRole="button" style={{ minHeight: 44, justifyContent: 'center', paddingHorizontal: 20 }} onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(tabs)/support'); }}>
+          <Text style={{ color: colors.primary }}>‹ {t('textline.back')}</Text>
+        </TouchableOpacity>
         <View style={styles.gatedWrap}>
           <Text style={[styles.gatedTitle, { color: colors.ink }]}>{t('textline.gatedTitle')}</Text>
+          <TouchableOpacity accessibilityRole="button" style={{ minHeight: 44, justifyContent: 'center', padding: 12 }} onPress={() => router.push('/crisis-mode')}>
+            <Text style={{ color: colors.primary }}>{t('textline.freeUrgentHelp')}</Text>
+          </TouchableOpacity>
           <Text style={[styles.gatedBody, { color: colors.inkSoft }]}>{t('textline.gatedBody')}</Text>
           <TouchableOpacity style={[styles.gatedButton, { backgroundColor: colors.primary }]} onPress={() => router.push('/(tabs)/support')}>
             <Text style={styles.gatedButtonText}>{t('textline.viewPlans')}</Text>

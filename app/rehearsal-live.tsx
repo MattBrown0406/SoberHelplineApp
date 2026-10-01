@@ -150,6 +150,7 @@ function RehearsalLiveContent() {
 
   const [stage, setStage] = useState<Stage>('setup');
   const [warmup, setWarmup] = useState(route.warmup);
+  const [whyExpanded, setWhyExpanded] = useState(false);
   // Scripts can suggest the mood that best matches their situation (e.g. the
   // relapse script opens against a Guilt-ridden partner). Still user-changeable.
   const [temperament, setTemperament] = useState<PartnerTemperament>(route.temperament ?? 'guarded');
@@ -347,37 +348,70 @@ function RehearsalLiveContent() {
       setDifficulty(recommendDifficulty(active.temperament, [current, ...recentSessions]));
       setRecentSessions((prev) => [current, ...prev]);
     }
+    // Invalidate before the stage update commits (including pending creates).
+    audioBlocked.current = true;
+    stopAudio();
     setStage('debrief');
     void persistSession(debrief, report);
   }, [debrief]); // once per debrief: the session state it reads is final by then
 
-  useEffect(() => {
-    // Prime the audio session once so the first reply speaks without delay,
-    // even with the iPhone mute switch on.
-    void Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
-    return () => {
-      void soundRef.current?.unloadAsync();
-      void Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true }).catch(() => undefined);
-    };
+  const audioGeneration = useRef(0);
+  const audioActive = useRef(true);
+  // Gate retained callbacks as well as the effect that starts each reply.
+  const playbackBlocked = safetyBreak || stage !== 'chat' || !active.voiceOn;
+  const audioBlocked = useRef(playbackBlocked);
+  audioBlocked.current = playbackBlocked;
+  const stopAudio = useCallback(() => {
+    audioGeneration.current += 1;
+    const sound = soundRef.current;
+    soundRef.current = null;
+    if (sound) void sound.unloadAsync().catch(() => undefined);
   }, []);
+  useEffect(() => {
+    audioActive.current = true;
+    return () => {
+      audioActive.current = false;
+      stopAudio();
+    };
+  }, [stopAudio]);
+  useEffect(() => {
+    if (playbackBlocked) stopAudio();
+  }, [playbackBlocked, stopAudio]);
 
   const clipCounter = useRef(0);
   const playAudio = useCallback(async (audioB64: string) => {
+    if (!audioActive.current || audioBlocked.current) return;
+    const generation = ++audioGeneration.current;
+    const current = () => audioActive.current && !audioBlocked.current && generation === audioGeneration.current;
+    let created: Audio.Sound | null = null;
     try {
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+      if (!current()) return;
       let uri: string;
       if (Platform.OS === 'web') {
-        // No file system on web: play the clip straight from memory.
         uri = `data:audio/mpeg;base64,${audioB64}`;
       } else {
         clipCounter.current += 1;
         uri = `${FileSystem.cacheDirectory}rehearsal-reply-${clipCounter.current}.mp3`;
         await FileSystem.writeAsStringAsync(uri, audioB64, { encoding: FileSystem.EncodingType.Base64 });
       }
-      if (soundRef.current) await soundRef.current.unloadAsync();
-      const { sound } = await Audio.Sound.createAsync({ uri }, { shouldPlay: true });
+      if (!current()) return;
+      const previous = soundRef.current;
+      soundRef.current = null;
+      if (previous) await previous.unloadAsync();
+      if (!current()) return;
+      // Never autoplay: native loading can finish after teardown or a crisis break.
+      const { sound } = await Audio.Sound.createAsync({ uri }, { shouldPlay: false });
+      created = sound;
+      if (!current()) { await sound.unloadAsync(); return; }
       soundRef.current = sound;
+      await sound.playAsync();
+      if (!current()) await sound.unloadAsync();
     } catch {
+      if (created) {
+        if (soundRef.current === created) soundRef.current = null;
+        await created.unloadAsync().catch(() => undefined);
+      }
       // Voice is a layer, never a blocker — the text is already on screen.
     }
   }, []);
@@ -386,14 +420,14 @@ function RehearsalLiveContent() {
   // (The whisper coach's hint is text-only and never spoken.)
   const lastSpokenIndex = useRef(-1);
   useEffect(() => {
-    if (stage !== 'chat' || !active.voiceOn || messages.length === 0) return;
+    if (safetyBreak || stage !== 'chat' || !active.voiceOn || messages.length === 0) return;
     const lastIndex = messages.length - 1;
     const last = messages[lastIndex];
     if (last.role === 'partner' && last.audio && lastIndex > lastSpokenIndex.current) {
       lastSpokenIndex.current = lastIndex;
       void playAudio(last.audio);
     }
-  }, [messages, stage, active.voiceOn, playAudio]);
+  }, [messages, stage, active.voiceOn, playAudio, safetyBreak]);
 
   // Warm-up: a 90-second clock that ends the rep on its own — stopped for good
   // by a crisis break, so the crisis card stays on screen.
@@ -556,6 +590,7 @@ function RehearsalLiveContent() {
   }
 
   function clearSessionState() {
+    stopAudio();
     // New session: its replies start at index 1 again and must be voiced.
     lastSpokenIndex.current = -1;
     redoFromRef.current = null;
@@ -613,6 +648,7 @@ function RehearsalLiveContent() {
   function handleRedo(userTurnIndex: number, item: string) {
     const before = transcriptBeforeUserTurn(messages, userTurnIndex);
     if (!before) return;
+    stopAudio();
     const original = messages.filter((m) => m.role === 'user')[userTurnIndex];
     pendingClipsRef.current = [];
     autoFinishRef.current = false;
@@ -698,6 +734,10 @@ function RehearsalLiveContent() {
           <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             <Text style={styles.heading}>{t('setup.heading', { name: partnerName })}</Text>
             <Text style={[styles.subheading, { color: colors.inkSoft }]}>{t('setup.body')}</Text>
+            <TouchableOpacity onPress={() => setWarmup(true)} style={styles.historyLink} hitSlop={8} accessibilityRole="button">
+              <Text style={[styles.historyLinkText, { color: colors.inkSoft }]}>{t('setup.warmupLink')} →</Text>
+            </TouchableOpacity>
+
 
             {/* Their loved one, in their own words */}
             {practiceProfile && (
@@ -738,7 +778,8 @@ function RehearsalLiveContent() {
                     setGender(defaultGender(key));
                   }}
                   accessibilityRole="radio"
-                  accessibilityState={{ selected: relationship === key }}
+                  accessibilityState={{ checked: relationship === key }}
+                  aria-checked={relationship === key}
                   activeOpacity={0.85}
                 >
                   <Text style={styles.chipText}>{t(`relationships.${key}`)}</Text>
@@ -755,7 +796,8 @@ function RehearsalLiveContent() {
                   style={chip(gender === key)}
                   onPress={() => setGender(key)}
                   accessibilityRole="radio"
-                  accessibilityState={{ selected: gender === key }}
+                  accessibilityState={{ checked: gender === key }}
+                  aria-checked={gender === key}
                   activeOpacity={0.85}
                 >
                   <Text style={styles.chipText}>{t(`genders.${key}`)}</Text>
@@ -767,7 +809,8 @@ function RehearsalLiveContent() {
                   style={chip(age === key)}
                   onPress={() => setAge(key)}
                   accessibilityRole="radio"
-                  accessibilityState={{ selected: age === key }}
+                  accessibilityState={{ checked: age === key }}
+                  aria-checked={age === key}
                   activeOpacity={0.85}
                 >
                   <Text style={styles.chipText}>{t(`ages.${key}`)}</Text>
@@ -814,7 +857,8 @@ function RehearsalLiveContent() {
                 ]}
                 onPress={() => setTemperament(key)}
                 accessibilityRole="radio"
-                accessibilityState={{ selected: temperament === key }}
+                accessibilityState={{ checked: temperament === key }}
+                aria-checked={temperament === key}
                 activeOpacity={0.85}
               >
                 <Text style={styles.temperamentTitle}>{t(`temperaments.${key}.title`)}</Text>
@@ -831,7 +875,8 @@ function RehearsalLiveContent() {
                 style={chip(situation === null)}
                 onPress={() => setSituation(null)}
                 accessibilityRole="radio"
-                accessibilityState={{ selected: situation === null }}
+                accessibilityState={{ checked: situation === null }}
+                aria-checked={situation === null}
                 activeOpacity={0.85}
               >
                 <Text style={styles.chipText}>{t('situations.none')}</Text>
@@ -842,7 +887,8 @@ function RehearsalLiveContent() {
                   style={chip(situation === key)}
                   onPress={() => setSituation(key)}
                   accessibilityRole="radio"
-                  accessibilityState={{ selected: situation === key }}
+                  accessibilityState={{ checked: situation === key }}
+                  aria-checked={situation === key}
                   activeOpacity={0.85}
                 >
                   <Text style={styles.chipText}>{t(`situations.${key}`)}</Text>
@@ -886,6 +932,7 @@ function RehearsalLiveContent() {
                           onPress={() => setSpeakerDrafts((list) => removeSpeaker(list, index))}
                           accessibilityRole="button"
                           accessibilityLabel={t('family.removeLabel', { name: speaker.name || t('family.namePlaceholder') })}
+                          style={styles.removeButton}
                           hitSlop={8}
                         >
                           <Text style={[styles.removeText, { color: colors.coral }]}>{t('family.remove')}</Text>
@@ -899,7 +946,8 @@ function RehearsalLiveContent() {
                           style={[styles.smallChip, { backgroundColor: speaker.relationship === key ? colors.primary : colors.ink, borderColor: speaker.relationship === key ? colors.coral : 'transparent' }]}
                           onPress={() => setSpeakerDrafts((list) => updateSpeaker(list, index, { relationship: key }))}
                           accessibilityRole="radio"
-                          accessibilityState={{ selected: speaker.relationship === key }}
+                          accessibilityState={{ checked: speaker.relationship === key }}
+                          aria-checked={speaker.relationship === key}
                           activeOpacity={0.85}
                         >
                           <Text style={styles.smallChipText}>{t(`family.relationships.${key}`)}</Text>
@@ -936,8 +984,10 @@ function RehearsalLiveContent() {
 
             {/* Why practice works — the heart of the tool */}
             <View style={[styles.whyCard, { backgroundColor: colors.primaryDark, borderLeftColor: colors.coral }]}>
-              <Text style={[styles.whyTitle, { color: colors.white }]}>{t('setup.whyTitle')}</Text>
-              <Text style={[styles.whyBody, { color: colors.inkSoft }]}>{t('setup.whyBody')}</Text>
+              <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: whyExpanded }} aria-expanded={whyExpanded} onPress={() => setWhyExpanded((value) => !value)} style={styles.disclosureButton}>
+                <Text style={[styles.whyTitle, { color: colors.white }]}>{t('setup.whyTitle')} {whyExpanded ? '−' : '+'}</Text>
+              </TouchableOpacity>
+              {whyExpanded && <Text style={[styles.whyBody, { color: colors.inkSoft }]}>{t('setup.whyBody')}</Text>}
             </View>
 
             <Text style={[styles.reassurance, { color: colors.inkSoft }]}>{t('setup.reassurance')}</Text>
@@ -949,9 +999,6 @@ function RehearsalLiveContent() {
               activeOpacity={0.85}
             >
               <Text style={styles.bigBtnText}>{t('setup.startButton')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setWarmup(true)} style={styles.historyLink} hitSlop={8} accessibilityRole="button">
-              <Text style={[styles.historyLinkText, { color: colors.inkSoft }]}>{t('setup.warmupLink')} →</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => router.push('/rehearsal-history')} style={styles.historyLink} hitSlop={8} accessibilityRole="button">
               <Text style={[styles.historyLinkText, { color: colors.inkSoft }]}>{t('setup.pastSessions')} →</Text>
@@ -1127,7 +1174,8 @@ function RehearsalLiveContent() {
                     style={[styles.smallChip, { backgroundColor: currentSpeaker === index ? colors.primary : colors.primaryDark, borderColor: currentSpeaker === index ? colors.coral : 'transparent' }]}
                     onPress={() => setCurrentSpeaker(index)}
                     accessibilityRole="radio"
-                    accessibilityState={{ selected: currentSpeaker === index }}
+                    accessibilityState={{ checked: currentSpeaker === index }}
+                    aria-checked={currentSpeaker === index}
                     accessibilityLabel={t('family.speakerLabel', { name: speaker.name })}
                     activeOpacity={0.85}
                   >
@@ -1246,7 +1294,7 @@ function RehearsalLiveContent() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  backRow: { marginBottom: 16 },
+  backRow: { minHeight: 44, minWidth: 44, justifyContent: 'center', marginBottom: 16 },
   backText: { fontSize: 15 },
   heading: { fontSize: 24, fontWeight: '700', color: '#fff', marginBottom: 8, lineHeight: 31 },
   subheading: { fontSize: 15, lineHeight: 22, marginBottom: 20 },
@@ -1258,23 +1306,24 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginTop: 6,
   },
+  disclosureButton: { minHeight: 44, justifyContent: 'center' },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
   chipWrapTight: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
-  chip: {
+  chip: { minHeight: 44, justifyContent: 'center',
     borderRadius: 20,
     borderWidth: 1.5,
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
   chipText: { color: '#fff', fontWeight: '600', fontSize: 13 },
-  smallChip: { borderRadius: 16, borderWidth: 1.5, paddingHorizontal: 10, paddingVertical: 5 },
+  smallChip: { minHeight: 44, justifyContent: 'center', borderRadius: 16, borderWidth: 1.5, paddingHorizontal: 10, paddingVertical: 5 },
   smallChipText: { color: '#fff', fontWeight: '600', fontSize: 12 },
-  voiceToggle: { borderRadius: 12, paddingVertical: 10, paddingHorizontal: 12, alignItems: 'center', marginBottom: 14 },
+  voiceToggle: { minHeight: 44, justifyContent: 'center', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 12, alignItems: 'center', marginBottom: 14 },
   voiceToggleText: { fontSize: 13, fontWeight: '600', textAlign: 'center' },
   profileCard: { borderRadius: 14, borderWidth: 1.5, padding: 14, marginBottom: 16 },
   profileTitle: { fontSize: 14, fontWeight: '700', marginBottom: 4 },
   profileHint: { fontSize: 12, lineHeight: 17 },
-  suggestion: { borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', paddingVertical: 9, paddingHorizontal: 12, marginBottom: 10 },
+  suggestion: { minHeight: 44, justifyContent: 'center', borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', paddingVertical: 9, paddingHorizontal: 12, marginBottom: 10 },
   suggestionText: { fontSize: 13, fontWeight: '600' },
   situationDesc: { fontSize: 12, lineHeight: 18, marginTop: -6, marginBottom: 16 },
   familyCard: { borderRadius: 14, padding: 14, marginTop: -6, marginBottom: 14 },
@@ -1283,8 +1332,9 @@ const styles = StyleSheet.create({
   speakerRow: { borderTopWidth: 1, paddingTop: 10, marginTop: 8 },
   speakerNameRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   speakerInput: { flex: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14 },
+  removeButton: { minHeight: 44, minWidth: 44, justifyContent: 'center', alignItems: 'center' },
   removeText: { fontSize: 12, fontWeight: '600' },
-  addSpeaker: { paddingTop: 12, alignItems: 'flex-start' },
+  addSpeaker: { minHeight: 44, justifyContent: 'center', paddingTop: 12, alignItems: 'flex-start' },
   addSpeakerText: { fontSize: 13, fontWeight: '700' },
   temperamentCard: {
     borderRadius: 14,
@@ -1295,7 +1345,7 @@ const styles = StyleSheet.create({
   temperamentTitle: { color: '#fff', fontWeight: '700', fontSize: 15, marginBottom: 4 },
   temperamentDesc: { fontSize: 13, lineHeight: 18 },
   reassurance: { fontSize: 12, lineHeight: 18, marginTop: 12, marginBottom: 16 },
-  bigBtn: { borderRadius: 16, paddingVertical: 18, alignItems: 'center', marginBottom: 12 },
+  bigBtn: { minHeight: 44, justifyContent: 'center', borderRadius: 16, paddingVertical: 18, alignItems: 'center', marginBottom: 12 },
   bigBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   timer: { fontSize: 13, fontWeight: '700', textAlign: 'center', marginBottom: 8 },
   chatContent: { paddingBottom: 12 },
@@ -1379,6 +1429,6 @@ const styles = StyleSheet.create({
   },
   finishBtnText: { fontWeight: '700', fontSize: 14 },
   privacyNote: { fontSize: 10, textAlign: 'center', lineHeight: 15, marginTop: 6 },
-  historyLink: { alignItems: 'center', paddingVertical: 10 },
+  historyLink: { minHeight: 44, justifyContent: 'center', alignItems: 'center', paddingVertical: 10 },
   historyLinkText: { fontSize: 13, fontWeight: '600' },
 });

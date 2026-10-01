@@ -13,5 +13,5 @@ export function PracticeHandoffPaywall() {
   useEffect(() => {
     releasePracticeText(handoff);
   }, [handoff]);
-  return <FreeTierPaywall />;
+  return <FreeTierPaywall feature="aiRehearsal" />;
 }

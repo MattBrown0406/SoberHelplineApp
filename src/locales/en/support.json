@@ -52,6 +52,11 @@
     "openPlanReview": "Open Crisis Guide & Plan Review",
     "current": "Current plan"
   },
+  "practiceGate": {
+    "heading": "AI conversation practice",
+    "body": "AI conversation practice is included with Essential and Premier. Rehearse a conversation with a simulated partner; this is not a live coach or emergency care.",
+    "freeAction": "Try free guided practice"
+  },
   "paywall": {
     "eyebrow": "COACHING & GROUPS",
     "heading": "Coach messaging and live video stay with a plan",
@@ -183,7 +188,7 @@
     "archiveError": "Couldn't archive this conversation. Check your connection and try again.",
     "reactionDone": "Done",
     "presenceTitle": "Ask {{coach}} anything",
-    "presenceBody": "No question is too small or too messy — insurance, a hard conversation, something you saw last night. {{coach}} reads every message and a real coach replies within a few hours during business hours.",
+    "presenceBody": "No question is too small or too messy — insurance, a hard conversation, something you saw last night. You can write to {{coach}}; a coach replies as soon as available. This is not emergency care.",
     "presenceNextSession": "Next live session · {{schedule}}"
   },
   "intervention": {
@@ -282,8 +287,10 @@
     "sub": "Browse treatment centers, interventionists, and sober coaches. Directory access is free; provider services may have costs. Confirm availability and fees directly."
   },
   "textline": {
-    "gatedTitle": "Urgent Text Line",
-    "gatedBody": "Text support is included with Essential and Premier. Upgrade to send private support messages and screenshots from inside the app.",
+    "back": "Back",
+    "freeUrgentHelp": "Free urgent help",
+    "gatedTitle": "Message your coach",
+    "gatedBody": "Private messaging is included with Essential and Premier. A coach replies as soon as available; this is not emergency care.",
     "viewPlans": "View plans",
     "sendErrorTitle": "Message not sent",
     "sendErrorBody": "Please try again.",
@@ -296,7 +303,7 @@
   "privateVideo": {
     "eyebrow": "Private video support",
     "title": "Premier private video session",
-    "body": "Included for Premier members. Request a private in-app video support session; this is not an emergency service.",
+    "body": "Included for Premier members, subject to scheduling and staff availability. Request a private in-app video support session; this is not an emergency service.",
     "requestedOn": "Requested {{date}}",
     "join": "Join private video",
     "received": "Request received",

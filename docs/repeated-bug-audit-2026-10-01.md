@@ -1,90 +1,60 @@
-# Repeated bug audit — implementation handoff (2026-10-01)
+# Repeated bug audit — reviewed release closure (2026-10-01)
 
-## Status and boundary
+## Scope and disposition
 
-**Partial first implementation audit, not a repository-wide all-clear.** The repaired client flows below have deterministic failing-baseline/passing-fix evidence and final application gates. Independent review and the remaining backend/media/product-flow audit are still required before the parent agent's final handoff.
+The parent completed three independent, scoped reviews and accepted the final pagination review (delegation `65d99ca4`) against the final backend tree. No unresolved significant finding remains in that reviewed scope. This is not a claim of exhaustive correctness, native-device validation, or production deployment.
 
-- Repository: `MattBrown0406/SoberHelplineApp`; branch: `fix/repeated-bug-audit`.
-- Starting revision: `5e45c837d06a37e2226b411641d7dfb6fb61be1f`, clean at start, already updated by the parent.
-- Read the existing `docs/audit-fixes-and-ux.md` first. Its earlier verification is historical evidence, not a new execution claim.
-- No push, deploy, production database/function mutation, private-record inspection, EAS, OTA, or native release performed.
-- Existing QA containers were inventoried but not reset or changed.
+Starting main: `5e45c837d06a37e2226b411641d7dfb6fb61be1f`. Release packaging retains marketing version **4.0**, increments only iOS build **2 → 3**, and adds `release-4-0-3` extending production with `autoIncrement: false`. The refreshed EAS iOS build list showed 4.0(2) latest and no 4.0(3). Android and package versions are unchanged.
 
-### Deployment holds inspected before edits
+## Completed repairs
 
-`deploy-web.yml` automatically deploys Pages on main pushes. `supabase-functions.yml` automatically migrates/deploys on matching main changes. Both honor `[hold deployment]` on the **head commit of that push**. Manual dispatch bypasses the hold. `migration-drift.yml` can perform read-only linked history checks; no linked command was run here. Workflows were left unchanged and every local audit commit includes the hold marker. Preserve it on the final main head if the handoff must remain code-only; the marker is not a permanent production lock.
+- Offline queue: reject capacity overflow without deleting saved work; retain HTTP 408/429 retries, including numeric error-code strings; fence hydration, replay, and callbacks across account changes.
+- Account isolation: mask stale chat/appointment state on the first account render; fence history/realtime/mutations, attachment continuations, checkout URLs, drafts and caller effects; recover rejected asynchronous operations.
+- Invitation continuity: refresh account-local day snapshots and guard late callbacks, forecast writes, and stale-day actions.
+- Rehearsal/media/membership: guard asynchronous identity lifetimes, audio/stage transitions and cleanup, prevent stale purchase continuations, and retain deterministic crisis guidance when the model fails.
+- Notifications/backend: enforce consent and legacy sender boundaries, retry-safe per-recipient reservation/lease semantics, accurate delivery accounting, constrained authorization, family deletion behavior, and complete keyset pagination. Short API pages drain to empty; malformed/repeated/error pages terminate safely.
+- All seven approved UI areas are implemented: support hierarchy, safe urgent support access, plan/review/booking clarity, practice setup and disclosure, invitation/trajectory clarity, navigation/accessibility/localization, and touch-target/error-retry polish. Changes include EN/ES copy and selection/expanded state contracts; no new product scope was added during packaging.
 
-## Finding and closure ledger
+## Verification evidence and limitations
 
-| ID | Severity | Confirmed defect | Repair and executable evidence |
-|---|---|---|---|
-| A1 | High/data loss | Enqueuing item 201 silently deleted the oldest work previously reported as saved. | Reject `outbox_full` without modifying the stored envelope. Duplicate retries at capacity remain idempotent; freeing a slot permits retry. `tests/offline-outbox.test.ts`. |
-| A2 | High/data loss | HTTP 408/429 replay failures were classified as permanent and deleted pending items. The code-string `429` also matched the broad SQL `42` prefix. | Treat numeric HTTP timeout/throttle statuses and code strings as retryable. Assert ordered queue retention and no dropped records. Same test file. |
-| A3 | Medium/data integrity | Invitation engine clock advanced but its daily snapshot did not. Yesterday's moves/check remained active and writes used yesterday's date. Late checks could contaminate a new day; retained callbacks could submit after an account switch. | Reload on account-local date changes; hide expired snapshots; fence callbacks, completions and forecast writes by account/day lifetime. `tests/invitation-engine-lifecycle.test.mjs`: midnight, stale callbacks and delayed checks. |
-| A4 | High/privacy | `useThread` returned A's private messages/thread on the first render for B. Old history, realtime callbacks and send completions could repopulate the next account. | Mask state before identity effects, reset scoped state, fence reads/realtime/mutations and attachment continuation; reject stale/disabled send and reaction callbacks. `tests/account-sensitive-hooks.test.mjs`. |
-| A5 | High/privacy | `usePrivateVideoSessions` returned A's appointment notes on B's first render. A's mutation could call its old loader under B's current session; late checkout URLs could escape to the new account. | Account/access lifetime tokens, immediate output masking, guarded reloads/mutations/checkout URLs and unmount invalidation. Same lifecycle suite. |
-| A6 | Medium/reliability | Rejected appointment RPC/checkout promises left loading/mutating true, and effect-driven loads could reject without handling. | Catch rejected promises separately from returned Supabase errors, expose existing localized retryable error keys, settle flags in scoped finally blocks. Same lifecycle suite. |
-
-These are client-state repairs, not replacements for server RLS or proof that a request already in flight was canceled. Native rendering, account-transition caller UI, real purchase providers and live attachment transport require independent/device checks.
-
-## Iterations and evidence
-
-1. **Baseline:** `npm ci` succeeded; original complete app suite passed. Initial typecheck failed because this existing clone's ignored `.expo/types` declarations were stale. Web export did not regenerate them. `npx expo customize tsconfig.json` regenerated the declarations; typecheck then passed without a tracked tsconfig change. This was local generated-state drift, not a source-code repair.
-2. **Offline queue audit:** two new regressions failed before changes (missing capacity rejection; two records dropped on transient failure). Both passed after repair. A second classification review found the numeric `429`/SQL-prefix overlap and expanded coverage to status and code shapes.
-3. **Invitation daily lifecycle:** all three new tests failed before repair; all passed after repair. Follow-up review added unmount/identity and real-current-date guards to late callbacks and forecast writes.
-4. **Sensitive account transitions:** a standalone deterministic probe reproduced both chat and appointment first-render disclosure with dummy A/B records. The committed seven-test suite was then run against pre-fix source via `AUDIT_BASELINE_REF=7064cbe`; all seven tests failed. The final source passes all seven, including late realtime/history/send, stale mutation/checkout, and rejection cleanup.
-5. **Final local gate:** reran the complete application tests and typecheck after the last hook edit, then exported a fresh web bundle. No additional significant defect was confirmed in this final bounded review of the repaired paths. This does **not** mean every requested domain has been exhaustively audited.
-
-The hook tests execute transpiled real modules with deterministic React/IO doubles. They are lifecycle-contract tests, not rendered browser/native UI tests. Regression fixtures contain no real member data.
-
-## Gate results
-
-| Gate | Actual result |
+| Gate / evidence | Reviewed result |
 |---|---|
-| `npm ci` | PASS; no package/lockfile changes |
-| `npm test` after final hook edits | PASS: 486 TypeScript tests and 110 JavaScript tests, zero failures |
-| `npm run typecheck` after final hook edits | PASS |
-| `npm run doctor` | PASS: 18/18 checks |
-| `npm run audit:release` | PASS under existing accepted-advisory policy; not zero advisories |
-| Web export after final hook edits | PASS; fresh artifact at `/root/.hermes/cache/scratch/sh-audit-web-final` |
-| Deno 2.3.7 `check --frozen --node-modules-dir=none supabase/functions/*/index.ts` | PASS; 26 entrypoints, backend source unchanged afterward |
-| Deno 2.3.7 `test --frozen --node-modules-dir=none supabase/functions/_shared/*_test.ts` | PASS: 133 tests, zero failures |
-| Full migration replay and pgTAP | **NOT RUN.** The proposed isolated local-stack preparation/start command was held for tool security approval before execution; no existing stack was reset. |
-| Native builds, device media/push/purchases, browser interaction | NOT RUN in this pass |
-| Git whitespace checks | PASS before each implementation commit; rerun for the final staged report |
+| Complete final application suite | 595 TypeScript + 227 JavaScript tests = 822 passed; zero failures |
+| TypeScript | PASS |
+| Expo Doctor | 18/18 checks passed in audit; repeated in packaging gate |
+| Dependency release audit | PASS under existing accepted-advisory policy, not zero advisories |
+| Web export | PASS; synthetic/local test configuration, not production deployment |
+| Deno 2.3.7 edge entrypoint check | PASS, 26 entrypoints |
+| Deno shared contract suite | 133 passed, zero failures |
+| Actual dispatcher handler regressions | 228/228 passed, synthetic IO |
+| Legacy sender boundary suite | 109/109 passed |
+| Isolated migration replay | All 94 repository migrations applied in disposable local stack |
+| pgTAP | 34 files, 823 assertions, PASS |
+| Concurrent database reservations | Four real two-session lock-contention cases; one claim only, fixtures removed |
+| PostgREST boundary probes | 15 boundary cases plus 9 failure cases, per independent review |
+| Browser UI | Core 48 checks; expanded 64 and 52 checks after touch-target repairs, all passing; EN/ES, 320/375 widths, synthetic free/Premier accounts |
+| Independent review | Three scoped independent checks accepted by parent; final pagination tree cleared |
 
-Logs are local under `/root/.hermes/cache/scratch/sh-*.log` (not committed). Key files: `sh-outbox-red.log`, `sh-invitation-red.log`, `sh-account-hooks-red.log`, `sh-final-test.log`, `sh-final-typecheck.log`, `sh-final-web.log`, `sh-doctor.log`, `sh-audit-deps.log`, `sh-deno-check.log`, `sh-deno-test.log`.
+Evidence resides outside Git in `/root/.hermes/cache/scratch/`: `pagination-fix/` (handler, legacy, Deno, pgTAP and concurrency logs, snapshot hashes); `sh-ui7-touch-close/`, `sh-ui7-touch-close-extra/`, `sh-ui7-touch-close-edge/`; and `sh-release-*` packaging logs/receipt. Earlier failing browser logs are baseline evidence superseded by the touch-close results, not unexplained final failures.
 
-## Reproduction
+Hook suites execute real transpiled modules with deterministic React/IO doubles. Browser requests are intercepted with synthetic fixtures. No real member records were inspected. No physical-device proof exists for VoiceOver/Dynamic Type, microphone/audio interruptions, camera/LiveKit, native push delivery, purchase/restore, or account transitions under native scheduling. These remain post-rollout device acceptance checks, not claims established by passing unit/browser tests. At-least-once transport/provider failures cannot be represented as exactly-once delivered notifications merely because reservations pass.
 
-```sh
-export PATH=/root/.hermes/node/bin:$PATH
-npm ci
-# Needed in this reused clone to refresh ignored stale route declarations:
-npx expo customize tsconfig.json
-npm run typecheck
-npm test
-npm run doctor
-npm run audit:release
-CI=1 EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 \
-  EXPO_PUBLIC_SUPABASE_ANON_KEY=ci-placeholder \
-  npx expo export --platform web --output-dir /root/.hermes/cache/scratch/sh-audit-web-final
-npx --yes deno@2.3.7 check --frozen --node-modules-dir=none supabase/functions/*/index.ts
-npx --yes deno@2.3.7 test --frozen --node-modules-dir=none supabase/functions/_shared/*_test.ts
-# Expected NONZERO: validates the regression tests against pre-fix hook source
-AUDIT_BASELINE_REF=7064cbe node --test tests/account-sensitive-hooks.test.mjs
-```
+## Required coordinated backend rollout — NOT performed
 
-## Independent-review checklist / unfinished scope
+Before production acceptance testing, an explicitly authorized operator must apply these migrations in order and deploy the corresponding handlers from the same reviewed release:
 
-- [ ] Review `useAsyncScope` render/effect/unmount lifecycle and both consumers under real React/native scheduling, same-user refresh, A→B→A, access revocation, and delayed storage/network/realtime responses.
-- [ ] Audit **callers' local form state and post-await effects**, not only repaired hooks: chat drafts/attachments, appointment forms, success alerts/navigation. Hook isolation alone does not establish screen-wide account isolation.
-- [ ] Audit same-account overlapping loads/mutations and thread archive/reopen subscription callbacks; account lifetime fencing does not inherently serialize all same-account operations.
-- [ ] Review invitation focus/midnight/timezone transitions, same-day concurrent edits from multiple mounted screens, safety freshness, and provider error behavior. Its five-minute clock remains the existing refresh cadence, with actions additionally checking the real current date.
-- [ ] Rehearsal/media: inspect `invokeRehearsal` transient/401 retry loop across unmount/account changes, auth identity binding, microphone/audio teardown and continuation after safety pauses. This was source-reviewed but not exhaustively reproduced or closed here.
-- [ ] Auth/offline/local storage: broader AccountContext bootstrap, protected multi-part stores, corrupt envelope recovery, queue deduplication constraints, and logout/reminder sequencing beyond existing tests.
-- [ ] Notifications/reminders: real permission-dialog/foreground overlap, device token transfer, opt-in synchronization, delivery/read-back and privacy.
-- [ ] Membership/payments: end-to-end source/provider lifecycle, checkout binding, refunds/revocations and sandbox/reviewer policy; this pass only reran existing contracts and fixed appointment checkout lifecycle.
-- [ ] Backend authorization/SQL: create a new isolated project/database after approval, replay all 91 repository migrations, run all 29 pgTAP files, inspect final privilege/RLS/security-definer catalogs and test null/foreign principals and concurrent RPCs. Existing QA containers and linked production remain out of scope for reset.
-- [ ] Complete independent invitation/AI-safety, admin/chat, scheduling/payment and backend reviews; rerun gates after any follow-up edits. Do not declare the requested repeated comprehensive audit complete from these passing tests alone.
-- [ ] Parent owns final main reconciliation/push. Preserve the deployment hold and separately authorize any live release.
+1. `20261001165431_audit_push_delivery_and_family_delete.sql`
+2. `20261001174032_dispatcher_delivery_contract.sql`
+3. `20261001183355_notification_recipient_leases.sql`
+
+Handlers: `daily-nudge`, `notify-chat-message`, `notify-daily-morning`, `notify-family-backup`, `notify-session-reminder`, `rehearsal-partner`, `send-engagement-push`, with their shared helper changes. Verify linked migration history, RPC privilege/response contracts, scheduled delivery/lease configuration and synthetic authorized smoke results before enabling production testing. A new iOS binary alone does not deploy these changes. Do not claim production is repaired until rollout and read-back succeed.
+
+Pages and Supabase automatic deployment workflows honor `[hold deployment]` on the final pushed head commit. Preserve that marker; manual dispatch bypasses the hold and is not authorized here. No manual backend deployment, OTA publication, public App Store submission, legal agreement acceptance, or key replacement is authorized in this release task.
+
+## Packaging and release receipt
+
+Packaging reruns the exact app/CI gates after metadata and this report change: clean dependency installation, release dependency policy, production-mock exclusion, typecheck, full app tests, Doctor, web export, Deno checks/contracts, and whitespace validation. Database evidence is from the independently verified identical backend tree and remote CI additionally exercises a clean stack. Any reproduced release blocker requires review rather than unreviewed code repair.
+
+The release operator records final gate exit codes, exact independently read-back main SHA, EAS build ID/source SHA/profile, artifact/status, and submission ID/Apple state in an **external** `sh-release-receipt.json` and companion report. This avoids changing the clean build source during cloud execution. At report commit time, a build and submission are not yet claimed. A finished IPA, scheduled upload, successful upload and Apple/TestFlight processing are separate states requiring separate evidence. Submit only the exact new build ID; do not rebuild to fix Apple credentials or agreements.
+
+All changed/untracked paths were inventoried and classified as approved implementation, tests, migrations, or release metadata. Scratch artifacts, credentials, private keys and environment files are excluded. The report and final external receipt are queued using the user's output-backup helper; queueing is not proof of remote backup completion.

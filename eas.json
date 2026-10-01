@@ -25,6 +25,10 @@
     "release-4-0-2": {
       "extends": "production",
       "autoIncrement": false
+    },
+    "release-4-0-3": {
+      "extends": "production",
+      "autoIncrement": false
     }
   },
   "submit": {

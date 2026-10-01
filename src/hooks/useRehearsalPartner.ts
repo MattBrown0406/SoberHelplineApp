@@ -1,4 +1,5 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { useAccount } from '../contexts/AccountContext';
 import { supabase } from '../lib/supabase';
 import type { PracticeProfile } from '../lib/practiceProfile';
 import type { FamilySpeaker } from '../lib/practiceFamily';
@@ -119,11 +120,22 @@ const TRANSIENT = new Set(['network', 'model_error', 'opening_in_progress', 'htt
  * - a stale login (401) refreshes the session and retries once
  * - a transient failure (network blip, upstream model error) retries once
  */
-async function invokeRehearsal(body: Record<string, unknown>): Promise<InvokeResult> {
+async function invokeRehearsal(body: Record<string, unknown>, isActive: () => boolean, expectedAuth: string): Promise<InvokeResult> {
+  const cancelled: InvokeResult = { ok: false, code: 'session_changed' };
+  const sessionForOwner = async () => {
+    if (!isActive()) return null;
+    const { data: { session } } = await supabase.auth.getSession();
+    return isActive() && session?.user.id === expectedAuth ? session : null;
+  };
   let lastCode = 'network';
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('rehearsal-partner', { body });
+      const session = await sessionForOwner();
+      if (!session || !isActive()) return cancelled;
+      const { data, error: fnError } = await supabase.functions.invoke('rehearsal-partner', {
+        body, headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (!(await sessionForOwner())) return cancelled;
       const result = data as InvokeResult | null;
       if (!fnError && result) return result;
       lastCode = fnError ? await extractErrorCode(fnError) : 'network';
@@ -132,7 +144,10 @@ async function invokeRehearsal(body: Record<string, unknown>): Promise<InvokeRes
     }
     if (attempt === 0) {
       if (lastCode === 'unauthorized' || lastCode === 'http_401') {
-        await supabase.auth.refreshSession().catch(() => {});
+        const session = await sessionForOwner();
+        if (!session || !isActive()) return cancelled;
+        await supabase.auth.refreshSession({ refresh_token: session.refresh_token }).catch(() => {});
+        if (!(await sessionForOwner())) return cancelled;
         continue;
       }
       if (TRANSIENT.has(lastCode)) {
@@ -162,6 +177,35 @@ export function useRehearsalPartner(
   practiceEventId?: string,
   options: RehearsalPartnerOptions = {},
 ) {
+  const { user } = useAccount();
+  // A mounted rehearsal belongs to one account. It never migrates private history.
+  const ownerRef = useRef(user?.id);
+  const lifetimeRef = useRef({ active: true, authId: null as string | null, generation: 0, ready: null as Promise<void> | null });
+  if (ownerRef.current !== user?.id) lifetimeRef.current.active = false;
+  const isActive = () => lifetimeRef.current.active && !!ownerRef.current;
+  useEffect(() => {
+    const life = lifetimeRef.current;
+    life.active = ownerRef.current === user?.id;
+    const generation = ++life.generation;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session || (life.authId && session.user.id !== life.authId)) life.active = false;
+      else if (!life.authId) life.authId = session.user.id;
+    });
+    life.ready = supabase.auth.getSession().then(({ data: { session } }) => {
+      if (generation !== life.generation) return;
+      if (!session || (life.authId && life.authId !== session.user.id)) life.active = false;
+      else life.authId = session.user.id;
+    }).catch(() => { if (generation === life.generation) life.active = false; });
+    return () => { life.active = false; life.generation += 1; epochRef.current += 1; subscription.unsubscribe(); };
+  }, []);
+  const invoke = async (body: Record<string, unknown>) => {
+    const life = lifetimeRef.current;
+    const generation = life.generation;
+    await life.ready;
+    const current = () => isActive() && generation === life.generation;
+    if (!current() || !life.authId) return { ok: false as const, code: 'session_changed' };
+    return invokeRehearsal(body, current, life.authId);
+  };
   const [messages, setMessages] = useState<PartnerTurn[]>([]);
   const messagesRef = useRef<PartnerTurn[]>([]);
   messagesRef.current = messages;
@@ -227,7 +271,7 @@ export function useRehearsalPartner(
     } = {},
   ): Promise<{ ok: boolean; audio: string | null }> => {
     const trimmed = text.trim();
-    if (!trimmed || sending || safetyBreakRef.current) return { ok: false, audio: null };
+    if (!isActive() || !trimmed || sending || safetyBreakRef.current) return { ok: false, audio: null };
     setError(null);
     setHint(null);
     const outgoing: PartnerTurn = {
@@ -243,7 +287,7 @@ export function useRehearsalPartner(
     setMessages((prev) => [...prev, outgoing]);
     setSending(true);
     try {
-      const result = await invokeRehearsal({
+      const result = await invoke({
         mode: 'reply',
         scenario: scenarioRef.current,
         messages: history,
@@ -252,6 +296,7 @@ export function useRehearsalPartner(
       });
       // A pause (or "keep practicing") happened while this reply was in
       // flight — e.g. a spoken clip was a disclosure: it never lands or plays.
+      if (!isActive()) return { ok: false, audio: null };
       if (isStale(epoch, epochRef.current) || safetyBreakRef.current) {
         return { ok: true, audio: null };
       }
@@ -270,11 +315,12 @@ export function useRehearsalPartner(
       }
       return { ok: true, audio: null };
     } catch {
+      if (!isActive()) return { ok: false, audio: null };
       setError('network');
       setMessages(messages);
       return { ok: false, audio: null };
     } finally {
-      setSending(false);
+      if (isActive()) setSending(false);
     }
   }, [messages, sending, markSafetyBreak]);
 
@@ -290,19 +336,19 @@ export function useRehearsalPartner(
     /** 'delivery': the member reading their prepared text aloud — only what they add to it is screened. */
     purpose?: 'delivery',
   ): Promise<string | null> => {
-    if (transcribing || safetyBreakRef.current) return null;
+    if (!isActive() || transcribing || safetyBreakRef.current) return null;
     setError(null);
     setTranscribing(true);
     const epoch = epochRef.current;
     try {
-      const result = await invokeRehearsal({
+      const result = await invoke({
         mode: 'stt',
         scenario: scenarioRef.current,
         audio: audioB64,
         format,
         ...(purpose ? { purpose } : {}),
       });
-      if (isStale(epoch, epochRef.current)) return null;
+      if (!isActive() || isStale(epoch, epochRef.current)) return null;
       if (result.ok === false || !('text' in result)) {
         setError(result.ok === false ? result.code : 'network');
         return null;
@@ -320,10 +366,11 @@ export function useRehearsalPartner(
       }
       return result.text;
     } catch {
+      if (!isActive()) return null;
       setError('network');
       return null;
     } finally {
-      setTranscribing(false);
+      if (isActive()) setTranscribing(false);
     }
   }, [transcribing, markSafetyBreak]);
 
@@ -333,39 +380,42 @@ export function useRehearsalPartner(
    * server handles the empty-turns case when scenario.mode is incoming_call.
    */
   const open = useCallback(async (): Promise<{ ok: boolean; audio: string | null }> => {
-    if (sending || messages.length > 0) return { ok: false, audio: null };
+    if (!isActive() || sending || messages.length > 0) return { ok: false, audio: null };
     setError(null);
     setSending(true);
     const epoch = epochRef.current;
     try {
-      const result = await invokeRehearsal({
+      const result = await invoke({
         mode: 'reply',
         scenario: scenarioRef.current,
         messages: [],
         ...(practiceEventIdRef.current ? { practiceEventId: practiceEventIdRef.current } : {}),
       });
       if (isStale(epoch, epochRef.current) || safetyBreakRef.current) return { ok: false, audio: null };
+      if (!isActive()) return { ok: false, audio: null };
       if (result.ok === false) {
         setError(result.code);
         return { ok: false, audio: null };
       }
       if ('text' in result) {
-        const audio = result.audio ?? null;
+        const audio = result.breakCharacter ? null : result.audio ?? null;
         setMessages([{ role: 'partner', text: result.text, audio }]);
         if (result.breakCharacter) markSafetyBreak(result.crisisKind);
         return { ok: true, audio };
       }
       return { ok: false, audio: null };
     } catch {
+      if (!isActive()) return { ok: false, audio: null };
       setError('network');
       return { ok: false, audio: null };
     } finally {
-      setSending(false);
+      if (isActive()) setSending(false);
     }
   }, [messages.length, sending]);
 
   const requestDebrief = useCallback(async () => {
     // A conversation that hit a crisis break is never sent for coaching.
+    if (!isActive()) return;
     if (safetyBreakRef.current || debriefLoading || messages.filter((m) => m.role === 'user').length === 0) return;
     setError(null);
     setHint(null);
@@ -373,8 +423,8 @@ export function useRehearsalPartner(
     const epoch = epochRef.current;
     try {
       const history = messages.map(wireTurn);
-      const result = await invokeRehearsal({ mode: 'debrief', scenario: scenarioRef.current, messages: history });
-      if (isStale(epoch, epochRef.current)) return;
+      const result = await invoke({ mode: 'debrief', scenario: scenarioRef.current, messages: history });
+      if (!isActive() || isStale(epoch, epochRef.current)) return;
       if (result.ok === false || !('debrief' in result)) {
         if (result.ok === false && result.code === 'safety_break') {
           // The server found a crisis disclosure in the transcript: show the crisis card.
@@ -388,9 +438,10 @@ export function useRehearsalPartner(
       if (safetyBreakRef.current) return;
       setDebrief(result.debrief);
     } catch {
+      if (!isActive()) return;
       setError('network');
     } finally {
-      setDebriefLoading(false);
+      if (isActive()) setDebriefLoading(false);
     }
   }, [messages, debriefLoading, markSafetyBreak]);
 
@@ -446,19 +497,19 @@ export function useRehearsalPartner(
   }, [messages]);
 
   return {
-    messages,
-    sending,
-    transcribing,
-    error,
+    messages: isActive() ? messages : [],
+    sending: isActive() && sending,
+    transcribing: isActive() && transcribing,
+    error: isActive() ? error : null,
     safetyBreak,
     safetyKind,
     canKeepPracticing: safetyBreak && breakLine !== null,
     hadSafetyBreak,
     keepPracticing,
-    debrief,
-    debriefLoading,
+    debrief: isActive() ? debrief : null,
+    debriefLoading: isActive() && debriefLoading,
     turnsLeft,
-    hint,
+    hint: isActive() ? hint : null,
     send,
     transcribeClip,
     open,

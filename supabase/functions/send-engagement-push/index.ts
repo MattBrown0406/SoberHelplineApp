@@ -26,13 +26,17 @@ type PushMessage = {
   body: string;
   sound: "default";
   ttl?: number;
+  expiration?: number;
+  // Internal deadline, stripped before the provider request.
+  expiresAt?: string;
   data?: Record<string, unknown>;
 };
 
 type PushResult = { ok: true } | { ok: false; error: string };
-type OutboxRow = { id: string; account_id: string; kind: string; title: string; body: string; metadata: Record<string, unknown> | null; attempt_count: number; processing_token: string };
+type OutboxRow = { id: string; account_id: string; kind: string; title: string; body: string; metadata: Record<string, unknown> | null; expires_at?: string | null; attempt_count: number; processing_token: string };
 
 type ExpoTicket = {
+  id?: string;
   status?: string;
   message?: string;
   details?: { error?: string };
@@ -45,15 +49,81 @@ function safePushError(value: unknown, fallback: string): string {
 }
 
 type DeadTokenSink = (tokens: string[]) => Promise<void>;
+type DeliveryGuard = (index: number) => Promise<({ ok: true; ttl?: number; to?: string; expiresAt?: string }) | { ok: false; error: string }>;
+
+function deliveryDecision(data: unknown): Awaited<ReturnType<DeliveryGuard>> {
+  if (data === null) return { ok: false, error: "push_ineligible" };
+  if (!data || typeof data !== "object") return { ok: false, error: "eligibility_lookup_failed" };
+  const value = data as Record<string, unknown>;
+  if (typeof value.push_token !== "string" || !value.push_token ||
+      (value.ttl != null && (typeof value.ttl !== "number" || !Number.isFinite(value.ttl))) ||
+      (value.expires_at != null && (typeof value.expires_at !== "string" || !Number.isFinite(Date.parse(value.expires_at))))) {
+    return { ok: false, error: "eligibility_lookup_failed" };
+  }
+  return { ok: true, to: value.push_token,
+    ...(typeof value.ttl === "number" ? { ttl: value.ttl } : {}),
+    ...(typeof value.expires_at === "string" ? { expiresAt: value.expires_at } : {}) };
+}
 
 async function sendExpoPushResults(
   messages: PushMessage[],
   clearDeadTokens?: DeadTokenSink,
+  revalidate?: DeliveryGuard,
 ): Promise<PushResult[]> {
   const results: PushResult[] = [];
   const deadTokens: string[] = [];
   for (let i = 0; i < messages.length; i += CHUNK) {
-    const chunk = messages.slice(i, i + CHUNK);
+    const originalChunk = messages.slice(i, i + CHUNK);
+    // Refresh claim-bound eligibility for this chunk, not the entire backlog.
+    // No database writes or other awaited work intervene before the provider call.
+    // Withdrawal after this check / during fetch cannot recall an in-flight request.
+    const eligibility = revalidate
+      ? await Promise.all(originalChunk.map((_, index) => revalidate(i + index)))
+      : originalChunk.map(() => ({ ok: true as const }));
+    const skipped = new Map<number, PushResult>();
+    const chunk = originalChunk.flatMap((message, index) => {
+      const guard = eligibility[index];
+      if (!guard.ok) {
+        skipped.set(index, guard);
+        return [];
+      }
+      const { expiresAt: originalExpiry, ...payload } = message;
+      if ("to" in guard && guard.to) payload.to = guard.to;
+      const expiresAt = "expiresAt" in guard && guard.expiresAt
+        ? (originalExpiry && Date.parse(originalExpiry) < Date.parse(guard.expiresAt) ? originalExpiry : guard.expiresAt)
+        : originalExpiry;
+      if ("ttl" in guard && typeof guard.ttl === "number") {
+        payload.ttl = Math.min(payload.ttl ?? guard.ttl, guard.ttl);
+      }
+      if (expiresAt) {
+        const remaining = Math.floor((Date.parse(expiresAt) - Date.now()) / 1000);
+        if (!Number.isFinite(remaining) || remaining < 1) {
+          skipped.set(index, { ok: false, error: "push_expired" });
+          return [];
+        }
+        payload.ttl = Math.min(payload.ttl ?? remaining, remaining);
+      }
+      if (payload.ttl !== undefined) {
+        if (!Number.isFinite(payload.ttl) || payload.ttl < 1) {
+          skipped.set(index, { ok: false, error: "push_expired" });
+          return [];
+        }
+        // Expo gives ttl precedence over expiration. Send only an absolute
+        // deadline so transport/provider delay cannot restart the lifetime.
+        payload.expiration = Math.floor(Date.now() / 1000 + payload.ttl);
+        delete payload.ttl;
+      }
+      return [payload];
+    });
+    const appendResults = (activeResults: PushResult[]) => {
+      let next = 0;
+      results.push(...originalChunk.map((_, index): PushResult =>
+        skipped.get(index) ?? activeResults[next++]));
+    };
+    if (!chunk.length) {
+      appendResults([]);
+      continue;
+    }
     let resp: Response;
     try {
       resp = await fetch(EXPO_PUSH_URL, {
@@ -66,8 +136,8 @@ async function sendExpoPushResults(
       console.error("[push] Expo request failed", {
         messageCount: chunk.length,
       });
-      results.push(
-        ...chunk.map(() => ({
+      appendResults(
+        chunk.map(() => ({
           ok: false as const,
           error: safePushError(reason, "expo_request_failed"),
         })),
@@ -80,8 +150,8 @@ async function sendExpoPushResults(
         status: resp.status,
         messageCount: chunk.length,
       });
-      results.push(
-        ...chunk.map(() => ({
+      appendResults(
+        chunk.map(() => ({
           ok: false as const,
           error: `expo_http_${resp.status}`,
         })),
@@ -101,8 +171,8 @@ async function sendExpoPushResults(
       console.error("[push] Invalid Expo response", {
         messageCount: chunk.length,
       });
-      results.push(
-        ...chunk.map(() => ({
+      appendResults(
+        chunk.map(() => ({
           ok: false as const,
           error: "expo_invalid_response",
         })),
@@ -110,9 +180,10 @@ async function sendExpoPushResults(
       continue;
     }
 
+    const chunkResults: PushResult[] = [];
     for (const [index, ticket] of tickets.entries()) {
-      if (ticket?.status === "ok") {
-        results.push({ ok: true });
+      if (ticket?.status === "ok" && typeof ticket.id === "string" && ticket.id.trim()) {
+        chunkResults.push({ ok: true });
       } else {
         if (ticket?.details?.error === "DeviceNotRegistered") deadTokens.push(chunk[index].to);
         const errorCode = safePushError(
@@ -120,21 +191,17 @@ async function sendExpoPushResults(
           "expo_ticket_error",
         );
         const message = safePushError(ticket?.message, "");
-        results.push({
+        chunkResults.push({
           ok: false,
           error: message ? `${errorCode}: ${message}`.slice(0, 300) : errorCode,
         });
       }
     }
+    appendResults(chunkResults);
   }
   // The app was uninstalled or the token rotated: stop pushing to it.
   if (deadTokens.length && clearDeadTokens) await clearDeadTokens(deadTokens);
   return results;
-}
-
-async function sendExpoPush(messages: PushMessage[], clearDeadTokens?: DeadTokenSink): Promise<number> {
-  const results = await sendExpoPushResults(messages, clearDeadTokens);
-  return results.filter((result) => result.ok).length;
 }
 
 function json(payload: unknown, status = 200): Response {
@@ -159,8 +226,10 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, serviceKey);
   // The app was uninstalled or the token rotated: stop pushing to it.
   const clearDeadTokens: DeadTokenSink = async (tokens) => {
-    const { error } = await supabase.from("accounts").update({ push_token: null }).in("push_token", tokens);
-    if (error) console.error("[push] clearing dead tokens failed", { count: tokens.length });
+    try {
+      const { error } = await supabase.from("accounts").update({ push_token: null }).in("push_token", tokens);
+      if (error) console.error("[push] clearing dead tokens failed", { count: tokens.length });
+    } catch { console.error("[push] clearing dead tokens failed", { count: tokens.length }); }
   };
   const { job, force } = await req.json().catch(() => ({ job: "drain", force: false }));
 
@@ -187,6 +256,8 @@ serve(async (req) => {
     );
     const tokenlessIds: string[] = [];
     const canceledPracticeIds: string[] = [];
+    const canceledInvitationIds: string[] = [];
+    const eligibilityRetryRows: OutboxRow[] = [];
     const sendable: { row: typeof rows[number]; message: PushMessage }[] = [];
 
     // Every outbox row remains distinct. In particular, separate session
@@ -197,24 +268,50 @@ serve(async (req) => {
         tokenlessIds.push(row.id);
         continue;
       }
-      let deliveryPolicy = pushDeliveryPolicy(row.kind);
-      if (row.kind === "practice_incoming") {
-        const eventId = row.metadata && typeof row.metadata === "object"
-          ? (row.metadata as Record<string, unknown>).event_id
-          : null;
-        if (typeof eventId !== "string") {
-          canceledPracticeIds.push(row.id);
+      // Legacy practice rows also retain their original deadline in metadata;
+      // the delivery RPC caps it by the immutable outbox deadline.
+      const expiresAt = row.kind === "practice_incoming"
+        ? (typeof row.metadata?.expires_at === "string" ? row.metadata.expires_at : undefined)
+        : row.expires_at;
+      let deliveryPolicy = pushDeliveryPolicy(row.kind, expiresAt);
+      if (row.kind === "practice_incoming" || row.kind === "invitation_window") {
+        const invitation = row.kind === "invitation_window";
+        const canceledIds = invitation ? canceledInvitationIds : canceledPracticeIds;
+        const eventId = row.metadata?.event_id;
+        if (invitation ? !deliveryPolicy.ttl : typeof eventId !== "string" ||
+          !expiresAt || !Number.isFinite(Date.parse(expiresAt)) || Date.parse(expiresAt) <= Date.now()) {
+          canceledIds.push(row.id);
           continue;
         }
-        const { data: remainingTtl, error: eligibilityError } = await supabase.rpc(
-          "practice_push_delivery_ttl",
-          { p_event_id: eventId, p_account_id: row.account_id },
-        );
-        if (eligibilityError || typeof remainingTtl !== "number" || remainingTtl < 1) {
-          canceledPracticeIds.push(row.id);
+        try {
+          const { data: remainingTtl, error: eligibilityError } = invitation
+            ? await supabase.rpc("invitation_push_delivery_ttl", {
+              p_outbox_id: row.id, p_processing_token: row.processing_token,
+            })
+            : await supabase.rpc("practice_push_delivery_ttl", {
+              p_event_id: eventId, p_account_id: row.account_id,
+            });
+          if (eligibilityError) throw new Error("eligibility_lookup_failed");
+          if (remainingTtl === null || (typeof remainingTtl === "number" && Number.isFinite(remainingTtl) && remainingTtl < 1)) {
+            canceledIds.push(row.id);
+            continue;
+          }
+          if (typeof remainingTtl !== "number" || !Number.isFinite(remainingTtl)) {
+            throw new Error("invalid_eligibility_response");
+          }
+          deliveryPolicy = { ttl: invitation
+            ? Math.min(remainingTtl, pushDeliveryPolicy(row.kind, row.expires_at).ttl ?? 0)
+            : remainingTtl };
+          if (deliveryPolicy.ttl! < 1) {
+            canceledIds.push(row.id);
+            continue;
+          }
+        } catch {
+          // A failed read is not evidence of withdrawal/expiry. Bound retries
+          // and release the lease, retaining the original absolute expiry.
+          eligibilityRetryRows.push(row);
           continue;
         }
-        deliveryPolicy = { ttl: remainingTtl };
       }
       sendable.push({
         row,
@@ -224,11 +321,33 @@ serve(async (req) => {
           body: row.body,
           sound: "default",
           ...deliveryPolicy,
+          ...(expiresAt ? { expiresAt } : {}),
           data: row.metadata && typeof row.metadata === "object"
             ? row.metadata
             : {},
         },
       });
+    }
+
+    for (const row of eligibilityRetryRows) {
+      const attemptCount = (row.attempt_count ?? 0) + 1;
+      const { error: retryError } = await supabase.from("push_outbox").update({
+        attempt_count: attemptCount,
+        last_error: "eligibility_lookup_failed",
+        failed_at: attemptCount >= MAX_ATTEMPTS ? now : null,
+        scheduled_for: new Date(Date.now() + Math.min(3600, 60 * 2 ** (attemptCount - 1)) * 1000).toISOString(),
+        processing_at: null,
+        processing_token: null,
+      }).eq("id", row.id).eq("processing_token", row.processing_token)
+        .is("sent_at", null).is("failed_at", null);
+      if (retryError) return json({ error: retryError.message }, 500);
+    }
+
+    if (canceledInvitationIds.length) {
+      const { error: canceledError } = await supabase.from("push_outbox")
+        .update({ failed_at: now, last_error: "invitation_expired_or_ineligible", processing_at: null, processing_token: null })
+        .in("id", canceledInvitationIds).eq("processing_token", claimToken);
+      if (canceledError) return json({ error: canceledError.message }, 500);
     }
 
     if (canceledPracticeIds.length) {
@@ -250,6 +369,40 @@ serve(async (req) => {
     const results = await sendExpoPushResults(
       sendable.map(({ message }) => message),
       clearDeadTokens,
+      async (index) => {
+        const row = sendable[index].row;
+        if (row.kind === "practice_incoming" || row.kind === "invitation_window") {
+        const invitation = row.kind === "invitation_window";
+        try {
+          const { data: ttl, error } = invitation
+            ? await supabase.rpc("invitation_push_delivery_ttl", {
+              p_outbox_id: row.id, p_processing_token: row.processing_token,
+            })
+            : await supabase.rpc("practice_push_delivery_ttl", {
+              p_event_id: row.metadata?.event_id, p_account_id: row.account_id,
+            });
+          if (error) throw new Error("eligibility_lookup_failed");
+          if (ttl === null || (typeof ttl === "number" && Number.isFinite(ttl) && ttl < 1)) {
+            return { ok: false, error: invitation ? "invitation_expired_or_ineligible" : "practice_expired_or_ineligible" };
+          }
+          if (typeof ttl !== "number" || !Number.isFinite(ttl)) {
+            throw new Error("invalid_eligibility_response");
+          }
+          sendable[index].message.ttl = Math.min(sendable[index].message.ttl ?? ttl, ttl);
+        } catch {
+          return { ok: false, error: "eligibility_lookup_failed" };
+        }
+        }
+        // Final authority is claim-bound and returns the current destination.
+        try {
+          const { data, error } = await supabase.rpc("dispatcher_outbox_delivery", {
+            p_outbox_id: row.id, p_processing_token: row.processing_token,
+          });
+          return error ? { ok: false, error: "eligibility_lookup_failed" } : deliveryDecision(data);
+        } catch {
+          return { ok: false, error: "eligibility_lookup_failed" };
+        }
+      },
     );
     const successfulIds: string[] = [];
     const failedUpdates: PromiseLike<{ error: { message: string } | null }>[] =
@@ -268,12 +421,15 @@ serve(async (req) => {
           .update({
             attempt_count: attemptCount,
             last_error: result.error,
-            failed_at: attemptCount >= MAX_ATTEMPTS ? now : null,
+            failed_at: result.error === "push_ineligible" || result.error === "push_expired" || result.error === "invitation_expired_or_ineligible" || result.error === "practice_expired_or_ineligible" || attemptCount >= MAX_ATTEMPTS ? now : null,
+            ...(result.error === "eligibility_lookup_failed" ? {
+              scheduled_for: new Date(Date.now() + Math.min(3600, 60 * 2 ** (attemptCount - 1)) * 1000).toISOString(),
+            } : {}),
             processing_at: null,
             processing_token: null,
           })
           .eq("id", row.id)
-          .eq("processing_token", claimToken)
+          .eq("processing_token", row.processing_token)
           .is("sent_at", null)
           .is("failed_at", null),
       );
@@ -304,110 +460,103 @@ serve(async (req) => {
     });
   }
 
-  // ── session_reminder: RSVP'd members, 1h before the Monday group ───────────
-  if (job === "session_reminder") {
-    // Scheduled at both UTC hours that can be 6 PM Pacific; only one is.
-    if (!force && !isFamilySquaresReminderHour(new Date())) {
+  if (["session_reminder", "family_call_30min", "winback"].includes(job)) {
+    if (job !== "winback" && !force && !isFamilySquaresReminderHour(new Date())) {
       return json({ success: true, job, sent: 0, skipped: "outside_reminder_hour" });
     }
-    // No title arg: the RPC resolves the Family Squares session itself
-    // (tolerant to the title mismatch that silently broke earlier queries).
-    const { data, error } = await supabase.rpc("get_session_reminder_targets");
-    if (error) return json({ error: error.message }, 500);
-    const targets = (data ?? []) as {
-      push_token: string;
-      locale: string | null;
-    }[];
-    const { data: sessionId } = await supabase.rpc("family_squares_session_id");
-    const seen = new Set<string>();
-    const messages: PushMessage[] = [];
-    for (const target of targets) {
-      if (seen.has(target.push_token)) continue;
-      seen.add(target.push_token);
-      const es = (target.locale ?? "en").startsWith("es");
-      messages.push({
-        to: target.push_token,
-        title: "The Family Squares",
-        body: es
-          ? "Tu grupo comienza en aproximadamente una hora. Tu lugar está guardado — ven tal como estás."
-          : "Your group starts in about an hour. Your seat is saved — come as you are.",
-        sound: "default",
-        // A phone offline until after the call must not get it late.
-        ttl: 3600,
-        data: sessionReminderData(sessionId),
-      });
-    }
-    const sent = await sendExpoPush(messages, clearDeadTokens);
-    return json({ success: true, job, sent });
-  }
-
-  // ── family_call_30min: everyone not opted out, 30 min before the call ─────
-  if (job === "family_call_30min") {
-    if (!force && !isFamilySquaresReminderHour(new Date())) {
-      return json({ success: true, job, sent: 0, skipped: "outside_reminder_hour" });
-    }
-    const { data, error } = await supabase.rpc("get_family_call_30min_targets");
-    if (error) return json({ error: error.message }, 500);
-    const targets = (data ?? []) as { push_token: string; locale: string | null }[];
-    const { data: sessionId } = await supabase.rpc("family_squares_session_id");
-    const messages: PushMessage[] = targets.map((target) => {
-      const es = (target.locale ?? "en").startsWith("es");
-      return {
-        to: target.push_token,
-        title: es ? "The Family Squares comienza en 30 minutos" : "The Family Squares starts in 30 minutes",
-        body: es
-          ? "Llamada gratuita de apoyo familiar por Zoom a las 7:00 PM (Pacífico). Ven tal como estás — toca para unirte."
-          : "Free family support call on Zoom at 7:00 PM Pacific. Come as you are — tap to join.",
-        sound: "default",
-        // "Starts in 30 minutes" is wrong after the call starts; drop it then.
-        ttl: 1800,
-        data: sessionReminderData(sessionId),
-      };
-    });
-    const sent = await sendExpoPush(messages, clearDeadTokens);
-    return json({ success: true, job, sent });
-  }
-
-  // ── winback: members silent 5+ days, max once per 7 days ───────────────────
-  if (job === "winback") {
-    const { data, error } = await supabase.rpc("get_winback_push_targets");
-    if (error) return json({ error: error.message }, 500);
-    const targets = (data ?? []) as {
-      account_id: string;
-      first_name: string | null;
-      push_token: string;
-      locale: string | null;
-    }[];
-    if (!targets.length) return json({ success: true, job, sent: 0 });
-
-    const results = await sendExpoPushResults(
-      targets.map((target) => {
+    // Database selection supplies stable account + occurrence identities; force
+    // previews the next real occurrence, never bypassing consent or source checks.
+    const asOf = new Date().toISOString();
+    let afterAccountId: string | null = null;
+    let sent = 0;
+    let retryable = 0;
+    // Drain a stable UUID keyset, including past accepted/leased recipients.
+    // OFFSET skips winback rows as acknowledgments remove them from eligibility.
+    // Continue until empty, even when PostgREST caps below our SQL page size.
+    while (true) {
+      let data;
+      try {
+        const page = await supabase.rpc("dispatcher_job_targets", {
+          p_job: job, p_force: force === true,
+          p_after_account_id: afterAccountId, p_as_of: asOf,
+        });
+        if (page.error) throw page.error;
+        data = page.data;
+      } catch {
+        return json({ success: false, job, sent, retryable: retryable + 1, error: "candidate_lookup_failed" }, 503);
+      }
+      if (!Array.isArray(data)) {
+        return json({ success: false, job, sent, retryable: retryable + 1, error: "invalid_candidate_page" }, 503);
+      }
+      const targets = data as { account_id: string; first_name: string | null;
+        push_token: string; locale: string | null; session_id: string | null; expires_at: string }[];
+      if (!targets.length) break;
+      // Fail closed instead of spinning/repeating if the SQL cursor contract drifts.
+      let previous: string | null = afterAccountId;
+      for (const target of targets) {
+        if (typeof target.account_id !== "string" || (previous !== null && target.account_id <= previous)) {
+          return json({ success: false, job, sent, retryable: retryable + 1, error: "invalid_candidate_order" }, 503);
+        }
+        previous = target.account_id;
+      }
+      afterAccountId = previous;
+      const leases = new Map<number, { processing_token: string; reservation_kind: string; event_key: string }>();
+      const results = await sendExpoPushResults(targets.map((target): PushMessage => {
         const es = (target.locale ?? "en").startsWith("es");
-        const body = es
-          ? target.first_name
-            ? `${target.first_name}, seguimos aquí. 90 segundos para ti cuando quieras — sin tener que ponerte al día.`
-            : "Seguimos aquí. 90 segundos para ti cuando quieras — sin tener que ponerte al día."
-          : target.first_name
-          ? `${target.first_name}, we're still here. 90 seconds for yourself whenever you're ready — no catching up required.`
-          : "We're still here. 90 seconds for yourself whenever you're ready — no catching up required.";
+        const winback = job === "winback";
+        const halfHour = job === "family_call_30min";
         return {
           to: target.push_token,
-          title: "Sober Helpline",
-          body,
-          sound: "default" as const,
-          data: winbackData(),
+          title: winback ? "Sober Helpline" : halfHour
+            ? (es ? "The Family Squares comienza en 30 minutos" : "The Family Squares starts in 30 minutes")
+            : "The Family Squares",
+          body: winback
+            ? (es ? "Seguimos aquí. 90 segundos para ti cuando quieras — sin tener que ponerte al día."
+              : "We're still here. 90 seconds for yourself whenever you're ready — no catching up required.")
+            : halfHour
+            ? (es ? "Llamada gratuita de apoyo familiar por Zoom a las 7:00 PM (Pacífico). Ven tal como estás — toca para unirte."
+              : "Free family support call on Zoom at 7:00 PM Pacific. Come as you are — tap to join.")
+            : (es ? "Tu grupo comienza en aproximadamente una hora. Tu lugar está guardado — ven tal como estás."
+              : "Your group starts in about an hour. Your seat is saved — come as you are."),
+          sound: "default", expiresAt: force === true && !winback
+            ? new Date(Math.min(Date.parse(target.expires_at), Date.now() + (halfHour ? 1800 : 3600) * 1000)).toISOString()
+            : target.expires_at,
+          data: winback ? winbackData() : sessionReminderData(target.session_id),
         };
-      }),
-      clearDeadTokens,
-    );
-    // Only a delivered nudge starts the 7-day quiet period; failures retry tomorrow.
-    const delivered = targets.filter((_, index) => results[index]?.ok);
-    if (delivered.length) {
-      await supabase.rpc("mark_winback_sent", {
-        p_account_ids: delivered.map((target) => target.account_id),
+      }), clearDeadTokens, async (index) => {
+        const target = targets[index];
+        try {
+          const { data, error } = await supabase.rpc("claim_dispatcher_job", {
+            p_job: job, p_account_id: target.account_id,
+            p_session_id: target.session_id, p_expires_at: target.expires_at, p_force: force === true,
+          });
+          if (error) return { ok: false, error: "eligibility_lookup_failed" };
+          if (data !== null) {
+            if (!data || typeof data.processing_token !== "string" ||
+                typeof data.reservation_kind !== "string" || typeof data.event_key !== "string") {
+              return { ok: false, error: "eligibility_lookup_failed" };
+            }
+            leases.set(index, data);
+          }
+          return deliveryDecision(data);
+        } catch { return { ok: false, error: "eligibility_lookup_failed" }; }
       });
+      const delivered = targets.filter((_, index) => results[index]?.ok);
+      let ackFailures = 0;
+      for (const [index, lease] of leases) {
+        try {
+          const { data, error } = await supabase.rpc("finish_push_recipient", {
+            p_kind: lease.reservation_kind, p_event_key: lease.event_key,
+            p_account_id: targets[index].account_id, p_processing_token: lease.processing_token,
+            p_accepted: results[index]?.ok === true,
+          });
+          if (error || data !== true) ackFailures++;
+        } catch { ackFailures++; }
+      }
+      sent += delivered.length;
+      retryable += ackFailures + results.filter((result) => !result.ok && result.error !== "push_ineligible" && result.error !== "push_expired").length;
     }
-    return json({ success: true, job, sent: delivered.length });
+    return json({ success: retryable === 0, job, sent, retryable }, retryable ? 503 : 200);
   }
 
   return json({ error: `unknown job: ${job}` }, 400);

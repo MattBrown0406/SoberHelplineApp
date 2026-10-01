@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Linking, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import type { TFunction } from 'i18next';
+import { useAccount } from '../../contexts/AccountContext';
+import { useAsyncScope } from '../../hooks/useAsyncScope';
 import { useTheme } from '../../contexts/ThemeContext';
 import type { usePrivateVideoSessions, PrivateVideoSession } from '../../hooks/usePrivateVideoSessions';
 import { detectedTimeZone, formatInTimeZone, googleCalendarUrl } from '../../lib/videoScheduling';
@@ -13,8 +15,15 @@ type Props = { controller: Controller; t: TFunction<any>; translationRoot: strin
 
 function initialDate() { const d = new Date(Date.now() + 24 * 60 * 60 * 1000); d.setMinutes(0, 0, 0); return d; }
 
-export function PremierVideoSchedulingCard({ controller, t, translationRoot, onJoin, compact }: Props) {
+export function PremierVideoSchedulingCard(props: Props) {
+  const { user } = useAccount();
+  return <PremierVideoSchedulingCardContent key={user?.id ?? 'signed-out'} {...props} />;
+}
+
+function PremierVideoSchedulingCardContent({ controller, t, translationRoot, onJoin, compact }: Props) {
   const { colors } = useTheme();
+  const { user } = useAccount();
+  const { isCurrent } = useAsyncScope(user?.id ?? null);
   const k = (key: string, options?: Record<string, unknown>) => t(`${translationRoot}.${key}`, options);
   const zone = useMemo(detectedTimeZone, []);
   const [editing, setEditing] = useState(false);
@@ -23,17 +32,18 @@ export function PremierVideoSchedulingCard({ controller, t, translationRoot, onJ
   const { activeSession: session, pendingProposal: proposal } = controller;
 
   async function submit() {
+    if (!isCurrent() || !user) return;
     if (startsAt.getTime() <= Date.now()) { appAlert(k('errors.invalidTitle'), k('errors.future')); return; }
     const input = { startsAt, timezone: zone, durationMinutes: 60, note };
     const result = session ? await controller.rescheduleSession(session, input) : await controller.requestSession(input);
-    if (result) { setEditing(false); setNote(''); }
+    if (isCurrent() && result) { setEditing(false); setNote(''); }
   }
 
   function confirmCancel() {
     if (!session) return;
     appAlert(k('cancelTitle'), k('cancelBody'), [
       { text: k('keep'), style: 'cancel' },
-      { text: k('cancel'), style: 'destructive', onPress: () => void controller.cancelSession(session) },
+      { text: k('cancel'), style: 'destructive', onPress: () => { if (isCurrent()) void controller.cancelSession(session); } },
     ]);
   }
 
@@ -46,7 +56,7 @@ export function PremierVideoSchedulingCard({ controller, t, translationRoot, onJ
   return <View>
     <Text style={[styles.timezone, { color: colors.inkSoft }]}>{k('timezone', { timezone: zone })}</Text>
     {controller.loading && !session ? <ActivityIndicator color={colors.primary} accessibilityLabel={k('loading')} /> : null}
-    {displayedError ? <View style={[styles.error, { borderColor: colors.coral }]}><Text accessibilityRole="alert" style={{ color: colors.coral }}>{displayedError}</Text><TouchableOpacity accessibilityRole="button" onPress={() => void controller.load()}><Text style={{ color: colors.primary, fontWeight: '800' }}>{k('retry')}</Text></TouchableOpacity></View> : null}
+    {displayedError ? <View style={[styles.error, { borderColor: colors.coral }]}><Text accessibilityRole="alert" style={{ color: colors.coral }}>{displayedError}</Text><TouchableOpacity accessibilityRole="button" style={styles.retry} onPress={() => void controller.load()}><Text style={{ color: colors.primary, fontWeight: '800' }}>{k('retry')}</Text></TouchableOpacity></View> : null}
 
     {!session && !editing ? <Action label={k('request')} onPress={() => setEditing(true)} colors={colors} /> : null}
 
@@ -85,4 +95,4 @@ export function PremierVideoSchedulingCard({ controller, t, translationRoot, onJ
 
 function Action({ label, onPress, colors, busy }: { label: string; onPress: () => void; colors: any; busy?: boolean }) { return <TouchableOpacity accessibilityRole="button" accessibilityLabel={label} disabled={busy} onPress={onPress} style={[styles.action, { backgroundColor: colors.primary }]}>{busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.actionText}>{label}</Text>}</TouchableOpacity>; }
 function Secondary({ label, onPress, colors, danger }: { label: string; onPress: () => void; colors: any; danger?: boolean }) { return <TouchableOpacity accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={[styles.secondary, { borderColor: danger ? colors.coral : colors.primary }]}><Text style={{ color: danger ? colors.coral : colors.primary, fontWeight: '800' }}>{label}</Text></TouchableOpacity>; }
-const styles = StyleSheet.create({ timezone: { fontSize: 12, marginBottom: 8 }, status: { padding: 12, borderRadius: 12, borderWidth: 1, marginTop: 10 }, statusTitle: { fontSize: 15, fontWeight: '900', marginBottom: 5 }, body: { fontSize: 13, lineHeight: 19, marginTop: 2 }, action: { borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginTop: 10 }, actionText: { color: '#fff', fontWeight: '900' }, secondary: { borderWidth: 1, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 12, alignItems: 'center', marginTop: 8 }, form: { borderWidth: 1, borderRadius: 12, padding: 12, marginTop: 10 }, label: { fontSize: 13, fontWeight: '900', marginTop: 4, marginBottom: 6 }, row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }, field: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10 }, hint: { fontSize: 12, lineHeight: 17, marginTop: 5 }, input: { minHeight: 80, borderWidth: 1, borderRadius: 10, padding: 10, textAlignVertical: 'top' }, count: { fontSize: 11, textAlign: 'right' }, error: { borderWidth: 1, borderRadius: 10, padding: 10, gap: 7 }, history: { marginTop: 16 }, historyRow: { flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, paddingVertical: 9 }, });
+const styles = StyleSheet.create({ retry: { minHeight: 44, minWidth: 44, justifyContent: 'center', alignSelf: 'flex-start' }, timezone: { fontSize: 12, marginBottom: 8 }, status: { padding: 12, borderRadius: 12, borderWidth: 1, marginTop: 10 }, statusTitle: { fontSize: 15, fontWeight: '900', marginBottom: 5 }, body: { fontSize: 13, lineHeight: 19, marginTop: 2 }, action: { minHeight: 44, justifyContent: 'center', borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginTop: 10 }, actionText: { color: '#fff', fontWeight: '900' }, secondary: { minHeight: 44, justifyContent: 'center', borderWidth: 1, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 12, alignItems: 'center', marginTop: 8 }, form: { borderWidth: 1, borderRadius: 12, padding: 12, marginTop: 10 }, label: { fontSize: 13, fontWeight: '900', marginTop: 4, marginBottom: 6 }, row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }, field: { minHeight: 44, justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10 }, hint: { fontSize: 12, lineHeight: 17, marginTop: 5 }, input: { minHeight: 80, borderWidth: 1, borderRadius: 10, padding: 10, textAlignVertical: 'top' }, count: { fontSize: 11, textAlign: 'right' }, error: { borderWidth: 1, borderRadius: 10, padding: 10, gap: 7 }, history: { marginTop: 16 }, historyRow: { flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, paddingVertical: 9 }, });

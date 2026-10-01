@@ -12,6 +12,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { useTheme } from '../src/contexts/ThemeContext';
+import { useAsyncScope } from '../src/hooks/useAsyncScope';
 import { useAccount } from '../src/contexts/AccountContext';
 import { usePrivateVideoSessions } from '../src/hooks/usePrivateVideoSessions';
 import { useSafetyWallet } from '../src/hooks/useSafetyWallet';
@@ -101,10 +102,16 @@ function buildBoundary(draft: SafetyBoundary, t: TFunction<'crisis'>) {
 }
 
 export default function CrisisModeScreen() {
+  const { user } = useAccount();
+  return <CrisisModeContent key={user?.id ?? 'signed-out'} />;
+}
+
+function CrisisModeContent() {
   const router = useRouter();
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('crisis');
   const { user, entitlements, isOfflineAccountFallback } = useAccount();
+  const { isCurrent } = useAsyncScope(user?.id ?? null);
   const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
   const isSpanish = language.toLowerCase().startsWith('es');
   const situations = useMemo(() => getCrisisSituations(language), [language]);
@@ -187,7 +194,7 @@ export default function CrisisModeScreen() {
       t('inline.thisRemovesThisAccountS'),
       [
         { text: t('inline.cancel'), style: 'cancel' },
-        { text: t('inline.clear'), style: 'destructive', onPress: () => void clearSafetyWallet().catch(() => appAlert(t('wallet.storageError'))) },
+        { text: t('inline.clear'), style: 'destructive', onPress: () => { if (isCurrent()) void clearSafetyWallet().catch(() => { if (isCurrent()) appAlert(t('wallet.storageError')); }); } },
       ],
     );
   }

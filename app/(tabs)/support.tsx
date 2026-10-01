@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -489,6 +489,7 @@ export default function SupportScreen() {
   const { purchasePremium, purchaseEssential, purchasing, prices: subscriptionPrices, retryPrices } = useIAP();
 
   const [crisisOpen, setCrisisOpen] = useState(false);
+  const [membershipExpanded, setMembershipExpanded] = useState(false);
   const [crisisProtocolOpen, setCrisisProtocolOpen] = useState(false);
   const [providerOpen, setProviderOpen] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
@@ -523,21 +524,49 @@ export default function SupportScreen() {
     }
   }
 
+  const purchaseOwnerRef = useRef({ owner: user?.id, active: true, generation: 0 });
+  if (purchaseOwnerRef.current.owner !== user?.id) {
+    purchaseOwnerRef.current.active = false;
+    purchaseOwnerRef.current = { owner: user?.id, active: true, generation: 0 };
+  }
+  const purchaseOwner = purchaseOwnerRef.current;
+  useEffect(() => {
+    purchaseOwner.active = true;
+    purchaseOwner.generation += 1;
+    return () => { purchaseOwner.active = false; purchaseOwner.generation += 1; };
+  }, [purchaseOwner]);
+
   async function handlePurchase() {
+    const generation = purchaseOwner.generation;
+    const current = () => purchaseOwner.active && purchaseOwnerRef.current === purchaseOwner && generation === purchaseOwner.generation;
+    if (!current() || !purchaseOwner.owner) return;
     if (!subscriptionPrices[upgradeTier]) return;
+    const { data: { session: purchaseSession } } = await supabase.auth.getSession();
+    if (!current() || !purchaseSession) return;
+    const sameSession = async () => {
+      if (!current()) return null;
+      const { data: { session } } = await supabase.auth.getSession();
+      return current() && session?.user.id === purchaseSession.user.id ? session : null;
+    };
     const result = upgradeTier === 'essential'
       ? await purchaseEssential()
       : await purchasePremium();
+    const session = await sameSession();
+    if (!session) return;
     if (result === 'success') {
       // The store verified it: unlock now, then let the server mirror catch up.
       // A failed refresh must not leave the sheet open inviting a second purchase.
       if (user) recordVerifiedPurchase(user.id, upgradeTier);
       await withTimeoutFallback(
-        Promise.resolve(supabase.functions.invoke('sync-iap-entitlements')).then(() => undefined),
+        Promise.resolve(supabase.functions.invoke('sync-iap-entitlements', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        })).then(() => undefined),
         10_000,
         undefined,
       );
+      if (!current()) return;
       await refreshAccount().catch(() => undefined);
+      if (!current()) return;
       closeUpgrade();
     } else if (result === 'failed') {
       appAlert(t('upgradeSheet.title'), t('upgradeSheet.iapError'));
@@ -653,6 +682,39 @@ export default function SupportScreen() {
 
         <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{t('crisis.freeNote')}</Text>
 
+        {/* Entitled member actions stay ahead of membership explanations. */}
+        {hasMembershipAccess && (<>
+            <View style={[styles.card, { borderColor: colors.line }]}>
+              <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
+                {t('messages.eyebrow')}
+              </Text>
+              <TouchableOpacity
+                style={[styles.outlineBtn, { borderColor: colors.primary, marginTop: 0 }]}
+                activeOpacity={0.8}
+                onPress={() => router.push('/chat')}
+              >
+                <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
+                  {t('chat.openButton')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {canAccessPrivateVideo ? (
+              <View style={[styles.card, { borderColor: colors.line }]}>
+                <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>{t('privateVideo.eyebrow').toUpperCase()}</Text>
+                <Text style={[styles.referralTitle, { color: colors.ink }]}>{t('privateVideo.title')}</Text>
+                <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{t('privateVideo.body')}</Text>
+                <PremierVideoSchedulingCard
+                  controller={privateVideo}
+                  t={t}
+                  translationRoot="privateVideo.scheduling"
+                  onJoin={(session) => router.push({ pathname: '/video-session' as never, params: { sessionId: session.id, room: session.room_name } })}
+                />
+              </View>
+            ) : null}
+
+        </>)}
+
         {/* Crisis protocol guide */}
         <TouchableOpacity
           style={[styles.protocolCard, { borderColor: colors.line, backgroundColor: colors.white }]}
@@ -678,7 +740,10 @@ export default function SupportScreen() {
         <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{t('peopleAccess')}</Text>
 
         <View style={[styles.card, { borderColor: colors.line, backgroundColor: colors.white }]}>
-          <Text accessibilityRole="header" style={[styles.referralTitle, { color: colors.ink }]}>{copy.benefits}</Text>
+          <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: membershipExpanded }} aria-expanded={membershipExpanded} onPress={() => setMembershipExpanded((value) => !value)} style={styles.membershipDisclosure}>
+            <Text style={[styles.referralTitle, { color: colors.ink }]}>{copy.benefits} {membershipExpanded ? '−' : '+'}</Text>
+          </TouchableOpacity>
+          <View style={{ display: membershipExpanded ? 'flex' : 'none' }}>
           <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={() => router.push('/membership-guide')}><Text style={{ color: colors.primary }}>{t('coachingGuideLink')}</Text></TouchableOpacity>
           <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={() => router.push('/free-practice')}><Text style={{ color: colors.primary }}>{t('freePracticeLink')}</Text></TouchableOpacity>
           <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{copy.free}</Text>
@@ -692,6 +757,7 @@ export default function SupportScreen() {
           </>}
           <TouchableOpacity accessibilityRole="button" style={{ paddingVertical: 14 }} onPress={() => router.push('/settings')}><Text style={{ color: colors.primary }}>{copy.manage}</Text></TouchableOpacity>
           {(!subscriptionPrices.essential || !subscriptionPrices.premium) && !isAttached && <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={retryPrices}><Text style={{ color: colors.primary }}>{copy.retryPrices}</Text></TouchableOpacity>}
+          </View>
         </View>
 
         {/* Attached: team + sessions */}
@@ -968,35 +1034,6 @@ export default function SupportScreen() {
                   </TouchableOpacity>
                 )}
             </View>
-
-            <View style={[styles.card, { borderColor: colors.line }]}>
-              <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
-                {t('messages.eyebrow')}
-              </Text>
-              <TouchableOpacity
-                style={[styles.outlineBtn, { borderColor: colors.primary, marginTop: 0 }]}
-                activeOpacity={0.8}
-                onPress={() => router.push('/chat')}
-              >
-                <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
-                  {t('chat.openButton')}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {canAccessPrivateVideo ? (
-              <View style={[styles.card, { borderColor: colors.line }]}>
-                <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>{t('privateVideo.eyebrow').toUpperCase()}</Text>
-                <Text style={[styles.referralTitle, { color: colors.ink }]}>{t('privateVideo.title')}</Text>
-                <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{t('privateVideo.body')}</Text>
-                <PremierVideoSchedulingCard
-                  controller={privateVideo}
-                  t={t}
-                  translationRoot="privateVideo.scheduling"
-                  onJoin={(session) => router.push({ pathname: '/video-session' as never, params: { sessionId: session.id, room: session.room_name } })}
-                />
-              </View>
-            ) : null}
 
             <View style={[styles.card, { borderColor: colors.line }]}>
               <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
@@ -1370,14 +1407,14 @@ const styles = StyleSheet.create({
   sessionInfo: { flex: 1 },
   sessionTitle: { fontSize: 14, fontWeight: '600' },
   sessionMeta: { fontSize: 12, marginTop: 2 },
-  sessionBtn: {
+  sessionBtn: { minHeight: 44, justifyContent: 'center',
     borderRadius: 8,
     borderWidth: 1,
     paddingVertical: 6,
     paddingHorizontal: 10,
   },
   sessionBtnText: { fontSize: 12, fontWeight: '600' },
-  questionBtn: {
+  questionBtn: { minHeight: 44, justifyContent: 'center',
     borderWidth: 1,
     borderRadius: 8,
     paddingVertical: 5,
@@ -1426,6 +1463,7 @@ const styles = StyleSheet.create({
   tierCurrent: { fontSize: 11, marginTop: 2 },
 
 
+  membershipDisclosure: { minHeight: 44, justifyContent: 'center' },
   membershipRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   coveredChip: {
     borderRadius: 8,
@@ -1453,14 +1491,14 @@ const styles = StyleSheet.create({
   groupInfo: { flex: 1 },
   groupName: { fontSize: 14, fontWeight: '600' },
   groupMeta: { fontSize: 12, marginTop: 2 },
-  joinBtn: {
+  joinBtn: { minHeight: 44, justifyContent: 'center',
     borderRadius: 8,
     borderWidth: 1,
     paddingVertical: 6,
     paddingHorizontal: 12,
   },
   joinBtnText: { fontSize: 12, fontWeight: '600' },
-  rsvpInlineBtn: {
+  rsvpInlineBtn: { minHeight: 44, justifyContent: 'center',
     alignSelf: 'flex-start',
     borderWidth: 1,
     borderRadius: 6,
@@ -1488,7 +1526,7 @@ const styles = StyleSheet.create({
   videoStatusBody: { fontSize: 12.5, marginTop: 3 },
   errorInline: { fontSize: 13, lineHeight: 18, marginTop: 10 },
 
-  solidBtn: {
+  solidBtn: { minHeight: 44,
     borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -1497,7 +1535,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   solidBtnText: { color: '#fff', fontWeight: '700', fontSize: 14, lineHeight: 20, textAlign: 'center', flexShrink: 1 },
-  outlineBtn: {
+  outlineBtn: { minHeight: 44, justifyContent: 'center',
     borderRadius: 10,
     borderWidth: 1.5,
     paddingVertical: 10,
@@ -1507,7 +1545,7 @@ const styles = StyleSheet.create({
   outlineBtnText: { fontWeight: '700', fontSize: 14 },
 
   pillRow: { flexDirection: 'row', gap: 8 },
-  pill: {
+  pill: { minHeight: 44, justifyContent: 'center',
     borderWidth: 1.5,
     borderRadius: 99,
     paddingVertical: 8,
@@ -1548,7 +1586,7 @@ const styles = StyleSheet.create({
   copilotCopy: { marginBottom: 10 },
   copilotTitle: { fontSize: 16, fontWeight: '800', marginBottom: 4 },
   copilotBody: { fontSize: 13, lineHeight: 18 },
-  copilotButton: { borderRadius: 12, paddingVertical: 11, paddingHorizontal: 14, alignItems: 'center' },
+  copilotButton: { minHeight: 44, justifyContent: 'center', borderRadius: 12, paddingVertical: 11, paddingHorizontal: 14, alignItems: 'center' },
   copilotButtonText: { color: '#fff', fontSize: 14, fontWeight: '800' },
   sheetRow: {
     flexDirection: 'row',
@@ -1566,7 +1604,7 @@ const styles = StyleSheet.create({
   sheetRowName: { fontSize: 14, fontWeight: '600', flex: 1 },
   sheetRowSub: { fontSize: 12, marginTop: 2 },
   sheetRowAction: { fontSize: 14, fontWeight: '700' },
-  sheetActionBtn: {
+  sheetActionBtn: { minHeight: 44, justifyContent: 'center',
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 16,

@@ -2,50 +2,105 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { requireServiceRole } from '../_shared/service-auth.ts';
 import { sessionReminderData } from '../_shared/push-data.ts';
 import { isFamilySquaresReminderHour } from '../_shared/family-squares-time.ts';
-
+import {
+  checked,
+  deliverLegacy,
+  recordDelivery,
+  remaining,
+  sessionDeadline,
+  tally,
+} from '../_shared/legacy-sender-boundary.ts';
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
 );
-
 const COPY = {
-  en: { title: 'Starting in 15 minutes', body: 'The Family Squares is tonight at 7:00 PM Pacific — tap to join' },
-  es: { title: 'Comienza en 15 minutos', body: 'The Family Squares es esta noche a las 7:00 PM (Pacífico) — toca para unirte' },
+  en: {
+    title: 'Starting in 15 minutes',
+    body: 'The Family Squares is tonight at 7:00 PM Pacific — tap to join',
+  },
+  es: {
+    title: 'Comienza en 15 minutos',
+    body: 'The Family Squares es esta noche a las 7:00 PM (Pacífico) — toca para unirte',
+  },
 };
-
 Deno.serve(async (req) => {
   const authError = requireServiceRole(req);
   if (authError) return authError;
   const { force } = await req.json().catch(() => ({ force: false }));
-  // Scheduled at both UTC times that can be 6:45 PM Pacific; only one is.
-  if (!force && !isFamilySquaresReminderHour(new Date())) {
-    return new Response('outside reminder hour', { status: 200 });
+  const started = Date.now();
+  if (!force && !isFamilySquaresReminderHour(new Date(started))) {
+    return new Response('outside reminder hour');
   }
-
-  const { data: targets, error } = await supabase.rpc('get_session_reminder_targets');
-  if (error) return new Response(error.message, { status: 500 });
-  if (!targets?.length) return new Response('no subscribers', { status: 200 });
-  const { data: sessionId } = await supabase.rpc('family_squares_session_id');
-
-  const seen = new Set<string>();
-  const messages = [];
-  for (const row of targets as { push_token: string; locale: string | null }[]) {
-    if (seen.has(row.push_token)) continue;
-    seen.add(row.push_token);
-    const copy = (row.locale ?? 'en').startsWith('es') ? COPY.es : COPY.en;
-    messages.push({ to: row.push_token, ...copy, sound: 'default', data: sessionReminderData(sessionId) });
+  // Explicit operator force retains its off-schedule test contract. Its short
+  // window is pinned once; normal scheduled requests use the actual call time.
+  const deadline = force ? started + 15 * 60000 : sessionDeadline(started);
+  const counts = tally();
+  try {
+    const sessionId = await checked(supabase.rpc('family_squares_session_id'));
+    if (!sessionId) return new Response('no subscribers');
+    // Discover stable identities, never reverse-map a cached token list. A token
+    // rotating during discovery must not silently lose an otherwise valid RSVP.
+    const candidates: { id: string }[] = [];
+    let after: string | undefined;
+    for (;;) {
+      let query = supabase.from('session_rsvps').select('account_id')
+        .eq('session_id', sessionId).eq('status', 'going')
+        .order('account_id').limit(1000);
+      if (after) query = query.gt('account_id', after);
+      const page = await checked(query);
+      if (!page?.length) break;
+      candidates.push(...page.map((r) => ({ id: r.account_id as string })));
+      if (page.length < 1000) break;
+      after = page[page.length - 1].account_id;
+    }
+    if (!candidates.length) return new Response('no subscribers');
+    const seen = new Set<string>();
+    for (const candidate of candidates ?? []) {
+      if (!remaining(deadline)) {
+        counts.skipped++;
+        continue;
+      }
+      try {
+        const currentSession = await checked(supabase.rpc('family_squares_session_id'));
+        if (currentSession !== sessionId) {
+          counts.skipped++;
+          continue;
+        }
+        // Single database snapshot binds consent, account existence and device.
+        const row = await checked(
+          supabase.from('session_rsvps')
+            .select('account_id, accounts!inner(id, push_token, locale)')
+            .eq('account_id', candidate.id).eq('session_id', sessionId).eq('status', 'going')
+            .maybeSingle(),
+        );
+        const a = row?.accounts as unknown as {
+          id: string;
+          push_token: string | null;
+          locale: string | null;
+        } | null;
+        if (!a?.push_token || a.id !== candidate.id || seen.has(a.push_token)) {
+          counts.skipped++;
+          continue;
+        }
+        seen.add(a.push_token);
+        const copy = String(a.locale ?? '').startsWith('es') ? COPY.es : COPY.en;
+        recordDelivery(
+          counts,
+          await deliverLegacy({
+            to: a.push_token,
+            ...copy,
+            sound: 'default',
+            data: sessionReminderData(sessionId),
+          }, deadline),
+        );
+      } catch {
+        counts.failed++;
+        counts.retryable++;
+      }
+    }
+    return new Response(JSON.stringify(counts), { status: counts.failed ? 502 : 200 });
+  } catch {
+    return new Response(JSON.stringify({ ...counts, error: 'lookup_failed' }), { status: 500 });
   }
-
-  // Expo accepts at most 100 messages per request.
-  let failed = 0;
-  for (let i = 0; i < messages.length; i += 100) {
-    const res = await fetch('https://exp.host/--/api/v2/push/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(messages.slice(i, i + 100)),
-    });
-    if (!res.ok) failed += Math.min(100, messages.length - i);
-  }
-
-  return new Response(JSON.stringify({ sent: messages.length - failed, failed }), { status: failed ? 502 : 200 });
 });

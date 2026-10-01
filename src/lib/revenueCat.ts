@@ -57,8 +57,19 @@ export function resetRevenueCatUser(): Promise<void> {
   });
 }
 
-export function purchaseRevenueCatPackage(pkg: PurchasesPackage) {
-  return serializeIdentity(() => Purchases.purchasePackage(pkg));
+export function purchaseRevenueCatPackage(
+  pkg: PurchasesPackage,
+  expectedOwner: string,
+  isActive: () => boolean,
+) {
+  return serializeIdentity(async () => {
+    if (!expectedOwner || !isActive()) throw new Error('purchase_session_changed');
+    const owner = await Purchases.getAppUserID();
+    if (!isActive() || owner !== expectedOwner) throw new Error('purchase_session_changed');
+    const result = await Purchases.purchasePackage(pkg);
+    if (!isActive()) throw new Error('purchase_session_changed');
+    return result;
+  });
 }
 
 export function getActiveRevenueCatTier(): Promise<'premium' | 'essential' | null> {

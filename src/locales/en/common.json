@@ -3,6 +3,14 @@
     "name": "Sober Helpline",
     "tagline": "Hope. Help. Recovery."
   },
+  "navShort": {
+    "today": "Today",
+    "scripts": "Words",
+    "boundaries": "Limits",
+    "tracker": "Track",
+    "learn": "Tools",
+    "support": "Help"
+  },
   "nav": {
     "today": "Today",
     "scripts": "Practice",

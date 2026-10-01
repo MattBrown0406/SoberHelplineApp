@@ -52,6 +52,11 @@
     "openPlanReview": "Abrir guía de crisis y revisión del plan",
     "current": "Plan actual"
   },
+  "practiceGate": {
+    "heading": "Practica conversaciones con IA",
+    "body": "La práctica con IA está incluida con Essential y Premier. Ensaya una conversación con un personaje simulado; no es un coach en vivo ni atención de emergencias.",
+    "freeAction": "Prueba la práctica guiada gratuita"
+  },
   "paywall": {
     "eyebrow": "COACHING Y GRUPOS",
     "heading": "Los mensajes al coach y el video en vivo van con un plan",
@@ -183,7 +188,7 @@
     "archiveError": "No se pudo archivar esta conversación. Revisa tu conexión e inténtalo de nuevo.",
     "reactionDone": "Listo",
     "presenceTitle": "Pregúntale lo que sea a {{coach}}",
-    "presenceBody": "Ninguna pregunta es demasiado pequeña ni demasiado complicada — el seguro, una conversación difícil, algo que viste anoche. {{coach}} lee cada mensaje y un coach de verdad responde en unas horas dentro del horario laboral.",
+    "presenceBody": "Ninguna pregunta es demasiado pequeña o complicada: seguros, una conversación difícil o algo que viste anoche. Puedes escribirle a {{coach}}; un coach responde cuando está disponible. No es un servicio de emergencias.",
     "presenceNextSession": "Próxima sesión en vivo · {{schedule}}"
   },
   "intervention": {
@@ -282,8 +287,10 @@
     "sub": "Explora centros, intervencionistas y coaches. El directorio es gratis; sus servicios pueden tener costo. Confirma disponibilidad y tarifas directamente."
   },
   "textline": {
-    "gatedTitle": "Línea de Texto Urgente",
-    "gatedBody": "El apoyo por texto está incluido con Esencial y Premier. Mejora tu plan para enviar mensajes privados de apoyo y capturas de pantalla desde la app.",
+    "back": "Volver",
+    "freeUrgentHelp": "Ayuda urgente gratuita",
+    "gatedTitle": "Mensajes a tu coach",
+    "gatedBody": "Los mensajes privados están incluidos con Essential y Premier. Un coach responde cuando está disponible; no es un servicio de emergencias.",
     "viewPlans": "Ver planes",
     "sendErrorTitle": "Mensaje no enviado",
     "sendErrorBody": "Por favor inténtalo de nuevo.",
@@ -296,7 +303,7 @@
   "privateVideo": {
     "eyebrow": "Apoyo por video privado",
     "title": "Sesión privada de video Premier",
-    "body": "Incluida para miembros Premier. Solicita una sesión privada de apoyo por video en la app; este no es un servicio de emergencia.",
+    "body": "Incluido para miembros Premier, sujeto a horarios y disponibilidad del equipo. Solicita una sesión privada de video dentro de la app; no es un servicio de emergencias.",
     "requestedOn": "Solicitada el {{date}}",
     "join": "Unirse al video privado",
     "received": "Solicitud recibida",

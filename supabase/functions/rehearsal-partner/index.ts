@@ -683,13 +683,20 @@ Deno.serve(async (req: Request) => {
       // No hint on the delivery of a prepared letter — the coaching starts after it.
       const lastIsDelivery = userScreenTexts.length > 0 && userScreenTexts[userScreenTexts.length - 1] === null;
       const wantsHint = payload.whisper === true && !incomingOpening && !lastIsDelivery;
-      const [raw, hint, flagged] = await Promise.all([
+      const [modelResult, hintResult, moderationResult] = await Promise.allSettled([
         callModel(partnerSystemPrompt(scenario), replyTurns, 300),
         wantsHint ? whisperHint(supabase, scenario, turns) : Promise.resolve(null),
         lineModeration,
       ]);
       // Moderation saw a crisis the patterns missed: the break replaces the reply.
-      if (flagged) return moderationBreak();
+      if (moderationResult.status === 'fulfilled' && moderationResult.value) {
+        await releaseGenerationLock();
+        return moderationBreak();
+      }
+      if (moderationResult.status === 'rejected') throw moderationResult.reason;
+      if (modelResult.status === 'rejected') throw modelResult.reason;
+      const raw = modelResult.value;
+      const hint = hintResult.status === 'fulfilled' ? hintResult.value : null;
       // The model may emit the token after a stray character or line; honor it
       // anywhere and speak only the out-of-character sentence that follows.
       // Its :SELF_HARM / :ABUSE marker (if any) picks the crisis card's headline.

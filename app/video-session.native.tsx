@@ -51,28 +51,48 @@ async function fetchPrivateVideoToken(sessionId: string): Promise<TokenResult> {
 
 function PrivateVideoCall({ onLeave }: { onLeave: () => void }) {
   const { colors } = useTheme();
-  const { localParticipant } = useLocalParticipant();
+  const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant();
   const remoteParticipants = useRemoteParticipants();
   const tracks = useTracks([Track.Source.Camera]);
-  const [micOn, setMicOn] = useState(true);
-  const [cameraOn, setCameraOn] = useState(true);
+  // The SDK is the source of truth, including publication changes outside these buttons.
+  const micOn = isMicrophoneEnabled;
+  const cameraOn = isCameraEnabled;
+  const mediaBusy = useRef(false);
+  const mediaActive = useRef(true);
+  const [mediaPending, setMediaPending] = useState(false);
+  useEffect(() => {
+    mediaActive.current = true;
+    return () => { mediaActive.current = false; };
+  }, []);
 
   const { t } = useTranslation('crisis');
   const localTrack = tracks.find((tr) => tr.participant.isLocal);
   const remoteTrack = tracks.find((tr) => !tr.participant.isLocal);
   const remoteName = remoteParticipants[0]?.name ?? remoteParticipants[0]?.identity ?? t('video.waiting');
 
-  const toggleMic = useCallback(async () => {
-    const next = !micOn;
-    setMicOn(next);
-    await (localParticipant as any)?.setMicrophoneEnabled?.(next);
-  }, [localParticipant, micOn]);
-
-  const toggleCamera = useCallback(async () => {
-    const next = !cameraOn;
-    setCameraOn(next);
-    await (localParticipant as any)?.setCameraEnabled?.(next);
-  }, [cameraOn, localParticipant]);
+  const toggleMedia = useCallback(async (kind: 'microphone' | 'camera') => {
+    if (mediaBusy.current || !mediaActive.current) return;
+    mediaBusy.current = true;
+    setMediaPending(true);
+    try {
+      if (kind === 'microphone') {
+        const next = !localParticipant.isMicrophoneEnabled;
+        await localParticipant.setMicrophoneEnabled(next);
+        if (localParticipant.isMicrophoneEnabled !== next) throw new Error('Microphone state did not change.');
+      } else {
+        const next = !localParticipant.isCameraEnabled;
+        await localParticipant.setCameraEnabled(next);
+        if (localParticipant.isCameraEnabled !== next) throw new Error('Camera state did not change.');
+      }
+    } catch (error) {
+      if (mediaActive.current) Alert.alert(t('video.errorTitle'), String(error));
+    } finally {
+      mediaBusy.current = false;
+      if (mediaActive.current) setMediaPending(false);
+    }
+  }, [localParticipant, t]);
+  const toggleMic = useCallback(() => toggleMedia('microphone'), [toggleMedia]);
+  const toggleCamera = useCallback(() => toggleMedia('camera'), [toggleMedia]);
 
   const remoteVideo = remoteTrack ? (
     <VideoTrack trackRef={remoteTrack} style={styles.remoteVideo} objectFit="cover" />
@@ -99,10 +119,10 @@ function PrivateVideoCall({ onLeave }: { onLeave: () => void }) {
         <Text style={styles.topBadgeText}>{remoteParticipants.length > 0 ? t('video.connected') : t('video.waiting')}</Text>
       </View>
       <View style={styles.controls}>
-        <TouchableOpacity style={[styles.controlBtn, { backgroundColor: micOn ? '#ffffff' : colors.coral }]} onPress={toggleMic}>
+        <TouchableOpacity style={[styles.controlBtn, { backgroundColor: micOn ? '#ffffff' : colors.coral }]} disabled={mediaPending} onPress={toggleMic}>
           <Text style={[styles.controlText, { color: micOn ? colors.ink : '#fff' }]}>{micOn ? t('video.mute') : t('video.unmute')}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.controlBtn, { backgroundColor: cameraOn ? '#ffffff' : colors.coral }]} onPress={toggleCamera}>
+        <TouchableOpacity style={[styles.controlBtn, { backgroundColor: cameraOn ? '#ffffff' : colors.coral }]} disabled={mediaPending} onPress={toggleCamera}>
           <Text style={[styles.controlText, { color: cameraOn ? colors.ink : '#fff' }]}>{cameraOn ? t('video.cameraOff') : t('video.cameraOn')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.controlBtn, styles.leaveBtn]} onPress={onLeave}>

@@ -208,6 +208,9 @@ function RehearsalIncomingContent() {
       language,
     );
     setDelivery(report);
+    // Invalidate before the stage update commits (including pending creates).
+    audioBlocked.current = true;
+    stopAudio();
     setStage('debrief');
     if (user?.id) {
       void saveRehearsalSession({
@@ -231,33 +234,63 @@ function RehearsalIncomingContent() {
     }
   }, [debrief]); // once per debrief: the session state it reads is final by then
 
-  useEffect(() => {
-    // Prime the audio session once so the opening line speaks without delay,
-    // even with the iPhone mute switch on.
-    void Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
-    return () => {
-      void soundRef.current?.unloadAsync();
-      void Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true }).catch(() => undefined);
-    };
+  const audioGeneration = useRef(0);
+  const audioActive = useRef(true);
+  // Gate retained callbacks as well as the effect that starts each reply.
+  const playbackBlocked = safetyBreak || stage !== 'call';
+  const audioBlocked = useRef(playbackBlocked);
+  audioBlocked.current = playbackBlocked;
+  const stopAudio = useCallback(() => {
+    audioGeneration.current += 1;
+    const sound = soundRef.current;
+    soundRef.current = null;
+    if (sound) void sound.unloadAsync().catch(() => undefined);
   }, []);
+  useEffect(() => {
+    audioActive.current = true;
+    return () => {
+      audioActive.current = false;
+      stopAudio();
+    };
+  }, [stopAudio]);
+  useEffect(() => {
+    if (playbackBlocked) stopAudio();
+  }, [playbackBlocked, stopAudio]);
 
   const clipCounter = useRef(0);
   const playAudio = useCallback(async (audioB64: string) => {
+    if (!audioActive.current || audioBlocked.current) return;
+    const generation = ++audioGeneration.current;
+    const current = () => audioActive.current && !audioBlocked.current && generation === audioGeneration.current;
+    let created: Audio.Sound | null = null;
     try {
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+      if (!current()) return;
       let uri: string;
       if (Platform.OS === 'web') {
-        // No file system on web: play the clip straight from memory.
         uri = `data:audio/mpeg;base64,${audioB64}`;
       } else {
         clipCounter.current += 1;
         uri = `${FileSystem.cacheDirectory}rehearsal-reply-${clipCounter.current}.mp3`;
         await FileSystem.writeAsStringAsync(uri, audioB64, { encoding: FileSystem.EncodingType.Base64 });
       }
-      if (soundRef.current) await soundRef.current.unloadAsync();
-      const { sound } = await Audio.Sound.createAsync({ uri }, { shouldPlay: true });
+      if (!current()) return;
+      const previous = soundRef.current;
+      soundRef.current = null;
+      if (previous) await previous.unloadAsync();
+      if (!current()) return;
+      // Never autoplay: native loading can finish after teardown or a crisis break.
+      const { sound } = await Audio.Sound.createAsync({ uri }, { shouldPlay: false });
+      created = sound;
+      if (!current()) { await sound.unloadAsync(); return; }
       soundRef.current = sound;
+      await sound.playAsync();
+      if (!current()) await sound.unloadAsync();
     } catch {
+      if (created) {
+        if (soundRef.current === created) soundRef.current = null;
+        await created.unloadAsync().catch(() => undefined);
+      }
       // Voice is a layer, never a blocker — the text is already on screen.
     }
   }, []);
@@ -265,14 +298,14 @@ function RehearsalIncomingContent() {
   // Speak each partner line the moment it lands — this is a call, voice-first.
   const lastSpokenIndex = useRef(-1);
   useEffect(() => {
-    if (stage !== 'call' || messages.length === 0) return;
+    if (safetyBreak || stage !== 'call' || messages.length === 0) return;
     const lastIndex = messages.length - 1;
     const last = messages[lastIndex];
     if (last.role === 'partner' && last.audio && lastIndex > lastSpokenIndex.current) {
       lastSpokenIndex.current = lastIndex;
       void playAudio(last.audio);
     }
-  }, [messages, stage, playAudio]);
+  }, [messages, stage, playAudio, safetyBreak]);
 
   async function handleAnswer() {
     if (answeringRef.current) return;
@@ -400,6 +433,7 @@ function RehearsalIncomingContent() {
   function handleRedo(userTurnIndex: number) {
     const before = transcriptBeforeUserTurn(messages, userTurnIndex);
     if (!before) return;
+    stopAudio();
     pendingClipsRef.current = [];
     // Lines already heard are not replayed when the call resumes.
     lastSpokenIndex.current = before.length - 1;
@@ -425,6 +459,7 @@ function RehearsalIncomingContent() {
       setStage('call');
       return;
     }
+    stopAudio();
     answeringRef.current = false;
     lastSpokenIndex.current = -1;
     redoFromRef.current = null;

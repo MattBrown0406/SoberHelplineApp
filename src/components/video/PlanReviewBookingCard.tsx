@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Linking, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import type { TFunction } from 'i18next';
 import type { usePrivateVideoSessions } from '../../hooks/usePrivateVideoSessions';
+import { useAccount } from '../../contexts/AccountContext';
+import { useAsyncScope } from '../../hooks/useAsyncScope';
 import { useTheme } from '../../contexts/ThemeContext';
 import { detectedTimeZone, formatInTimeZone } from '../../lib/videoScheduling';
 import { buildPlanReviewSnapshot, planReviewSectionKeysForTier, stableStringify, type PlanReviewSectionKey, type PlanReviewSource } from '../../lib/planReview';
@@ -11,8 +13,15 @@ import { DateTimeField } from '../ui/DateTimeField';
 
 type Props = { controller: ReturnType<typeof usePrivateVideoSessions>; hasIncludedPlanReview: boolean; source: PlanReviewSource; t: TFunction<'crisis'>; consentLocale: 'en' | 'es'; onUpgrade: () => void };
 
-export function PlanReviewBookingCard({ controller, hasIncludedPlanReview, source, t, consentLocale, onUpgrade }: Props) {
+export function PlanReviewBookingCard(props: Props) {
+  const { user } = useAccount();
+  return <PlanReviewBookingCardContent key={user?.id ?? 'signed-out'} {...props} />;
+}
+
+function PlanReviewBookingCardContent({ controller, hasIncludedPlanReview, source, t, consentLocale, onUpgrade }: Props) {
   const { colors } = useTheme();
+  const { user } = useAccount();
+  const { isCurrent } = useAsyncScope(user?.id ?? null);
   const isPremier = hasIncludedPlanReview;
   const [selected, setSelected] = useState<PlanReviewSectionKey[]>([]);
   const [purpose, setPurpose] = useState('completeReview');
@@ -71,6 +80,7 @@ export function PlanReviewBookingCard({ controller, hasIncludedPlanReview, sourc
     const next = !consented; setConsented(next); setConsentFingerprint(next ? fingerprint : null);
   };
   async function submit() {
+    if (!isCurrent() || !user) return;
     if (!selected.length || !consented || !preview || previewFingerprint !== fingerprint || consentFingerprint !== fingerprint || startsAt <= new Date()) { appAlert(k('checkTitle'), k('checkBody')); return; }
     const result = await controller.requestPlanReview({ startsAt, timezone: detectedTimeZone(), durationMinutes: 60, purpose: 'plan_review',
       focusReason: requestFocusReason,
@@ -78,16 +88,17 @@ export function PlanReviewBookingCard({ controller, hasIncludedPlanReview, sourc
       snapshot: snapshot as unknown as Record<string, unknown>, consentText: k('consent'),
       consentLocale,
       paymentChoice: isPremier ? 'membership_included' : 'one_off_150' });
-    if (result) setPreview(false);
+    if (isCurrent() && result) setPreview(false);
   }
 
   async function submitRevision() {
+    if (!isCurrent() || !user) return;
     if (!existing || !selected.length || !consented || !preview || previewFingerprint !== fingerprint || consentFingerprint !== fingerprint) { appAlert(k('checkTitle'), k('updateCheckBody')); return; }
     const result = await controller.submitPlanReviewRevision(existing, {
       selectedSections: selected, snapshot: snapshot as unknown as Record<string, unknown>,
       consentText: k('consent'), consentLocale,
     });
-    if (result) { setPreview(false); setConsented(false); }
+    if (isCurrent() && result) { setPreview(false); setConsented(false); }
   }
 
   if (existing?.booking_purpose === 'plan_review') return <View style={[styles.box, { borderColor: colors.primary }]}>
@@ -104,15 +115,17 @@ export function PlanReviewBookingCard({ controller, hasIncludedPlanReview, sourc
       </>
     ) : existing.appointment_type === 'one_off_150' && existing.payment_status === 'pending_payment' ? (
       <TouchableOpacity accessibilityRole="button" disabled={controller.mutating} onPress={() => void (async () => {
+        if (!isCurrent()) return;
         const url = await controller.beginPlanReviewCheckout(existing);
         // null: an error is shown below, or the server found Premier access and
         // made the review included (the card refreshes without a Pay button).
-        if (!url) return;
+        if (!isCurrent() || !url) return;
         try {
           if (!await Linking.canOpenURL(url)) throw new Error('cannot_open_checkout');
+          if (!isCurrent()) return;
           await Linking.openURL(url);
         } catch {
-          appAlert(k('checkoutOpenErrorTitle'), k('checkoutOpenErrorBody'));
+          if (isCurrent()) appAlert(k('checkoutOpenErrorTitle'), k('checkoutOpenErrorBody'));
         }
       })()} style={[styles.submit, { backgroundColor: colors.primary }]}>
         {controller.mutating ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '900' }}>{k('payNow')}</Text>}

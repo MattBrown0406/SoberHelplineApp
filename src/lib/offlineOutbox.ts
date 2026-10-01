@@ -239,22 +239,34 @@ export function createOfflineOutbox(storage: OutboxStorage = AsyncStorage) {
      * replay continues. Corrupted envelopes are rewritten with only the
      * items that validated.
      */
-    replay(accountId: string, handlers: OutboxHandlers): Promise<OutboxReplayResult> {
+    replay(
+      accountId: string,
+      handlers: OutboxHandlers,
+      canReplay: () => Promise<boolean> = async () => true,
+    ): Promise<OutboxReplayResult> {
       if (!accountId) return Promise.resolve({ synced: [], dropped: [], remaining: [] });
       return serialized(accountId, async () => {
         const { items, corrupted } = await readEnvelope(accountId);
         const synced: OutboxItem[] = [];
         const dropped: OutboxItem[] = [];
         let index = 0;
+        // A guard failure is a pause, never a reason to discard durable work.
+        const allowed = async () => { try { return await canReplay(); } catch { return false; } };
         for (; index < items.length; index++) {
+          // Includes the serialization/storage wait and every subsequent insert.
+          if (!await allowed()) break;
           const item = items[index];
           let outcome: OutboxHandlerResult;
           try {
             if (item.kind === 'checkin') await handlers.checkin(item.payload);
             else await handlers.journal(item.payload);
+            // A confirmed server acceptance remains complete even if the owner
+            // changed while it was in flight. Do not resend an accepted write.
             outcome = 'synced';
           } catch (error) {
-            outcome = classifyOutboxError(error);
+            // RLS/constraint/duplicate errors from an invalidated auth lifetime
+            // are not evidence to discard this account's unconfirmed work.
+            outcome = await allowed() ? classifyOutboxError(error) : 'retry';
           }
           if (outcome === 'retry') break;
           (outcome === 'synced' ? synced : dropped).push(item);

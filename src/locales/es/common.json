@@ -3,6 +3,14 @@
     "name": "Sober Helpline",
     "tagline": "Esperanza. Ayuda. Recuperación."
   },
+  "navShort": {
+    "today": "Hoy",
+    "scripts": "Ensayo",
+    "boundaries": "Límites",
+    "tracker": "Diario",
+    "learn": "Guías",
+    "support": "Apoyo"
+  },
   "nav": {
     "today": "Hoy",
     "scripts": "Práctica",

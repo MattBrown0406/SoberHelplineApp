@@ -6,7 +6,7 @@ import { ScreenContainer } from './ScreenContainer';
 import { walletMembershipCopy } from '../../content/walletMembershipCopy';
 import { useTheme } from '../../contexts/ThemeContext';
 
-export function FreeTierPaywall({ inline = false }: { inline?: boolean }) {
+export function FreeTierPaywall({ inline = false, feature }: { inline?: boolean; feature?: 'aiRehearsal' }) {
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('support');
   const copy = walletMembershipCopy(i18n.language);
@@ -16,12 +16,16 @@ export function FreeTierPaywall({ inline = false }: { inline?: boolean }) {
     <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
       <Text style={styles.lock}>🔒</Text>
       <Text style={[styles.heading, { color: colors.ink }]}>
-        {t('paywall.heading')}
+        {t(feature === 'aiRehearsal' ? 'practiceGate.heading' : 'paywall.heading')}
       </Text>
       <Text style={[styles.body, { color: colors.inkSoft }]}>
-        {t('paywall.body')}
+        {t(feature === 'aiRehearsal' ? 'practiceGate.body' : 'paywall.body')}
       </Text>
-      <Text style={[styles.body, { color: colors.inkSoft }]}>{copy.free}</Text>
+      {feature === 'aiRehearsal' ? (
+        <TouchableOpacity accessibilityRole="button" onPress={() => router.push('/free-practice')} style={styles.freeAction}>
+          <Text style={{ color: colors.primary, textAlign: 'center' }}>{t('practiceGate.freeAction')}</Text>
+        </TouchableOpacity>
+      ) : <Text style={[styles.body, { color: colors.inkSoft }]}>{copy.free}</Text>}
       <TouchableOpacity accessibilityRole="button" onPress={() => router.push('/crisis-mode')} style={{ padding: 12 }}>
         <Text style={{ color: colors.primary }}>{t('crisis.copilotButton')}</Text>
       </TouchableOpacity>
@@ -61,6 +65,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  freeAction: { minHeight: 44, justifyContent: 'center', padding: 12 },
   lock: { fontSize: 40, marginBottom: 4 },
   heading: { fontSize: 20, fontWeight: '700', textAlign: 'center' },
   body: { fontSize: 14, lineHeight: 21, textAlign: 'center' },

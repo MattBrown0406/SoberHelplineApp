@@ -6,6 +6,7 @@ import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import { FreeTierPaywall } from '../src/components/ui/FreeTierPaywall';
 import { useAccount } from '../src/contexts/AccountContext';
 import { useTheme } from '../src/contexts/ThemeContext';
+import { useAsyncScope } from '../src/hooks/useAsyncScope';
 import { useLovedOne } from '../src/hooks/useLovedOne';
 import { useInvitationEngine } from '../src/hooks/useInvitationEngine';
 import { registerForPushNotifications } from '../src/hooks/usePushNotifications';
@@ -72,6 +73,7 @@ function InvitationSetupContent() {
   const router = useRouter();
   const params = useLocalSearchParams<{ step?: string }>();
   const accountId = user?.id ?? null;
+  const { isCurrent } = useAsyncScope(accountId);
   // The saved map is loaded here, not through useLovedOneProfile, so a failed
   // load blocks the flow behind a retry instead of looking like "no map yet"
   // (a draft rebuilt from nothing would otherwise save over the real one).
@@ -195,11 +197,14 @@ function InvitationSetupContent() {
   /** Queue one save of exactly this profile; resolves true when it landed. */
   function enqueueSave(profile: LovedOneProfile, complete: boolean): Promise<boolean> {
     return saveQueue.current!(async () => {
+      if (!isCurrent() || !accountId) return false;
       try {
         const saved = await saveLovedOneProfile(profile, complete);
+        if (!isCurrent()) return false;
         setDraft((current) => (current ? { ...current, completedAt: saved.completedAt, updatedAt: saved.updatedAt } : current));
         return true;
       } catch (error) {
+        if (!isCurrent()) return false;
         captureAppError(error);
         setSaveError(true);
         return false;
@@ -208,14 +213,16 @@ function InvitationSetupContent() {
   }
 
   async function persist(profile: LovedOneProfile, complete: boolean): Promise<boolean> {
+    if (!isCurrent()) return false;
     setSaving(true);
     setSaveError(false);
     try {
       const ok = await enqueueSave(profile, complete);
+      if (!isCurrent()) return false;
       if (ok) dirty.current = false;
       return ok;
     } finally {
-      setSaving(false);
+      if (isCurrent()) setSaving(false);
     }
   }
 
@@ -249,6 +256,7 @@ function InvitationSetupContent() {
    * below) and Android's back button is routed here.
    */
   async function leaveSetup() {
+    if (!isCurrent()) return;
     if (leaving.current) return;
     leaving.current = true;
     setLeavingBusy(true);
@@ -257,13 +265,14 @@ function InvitationSetupContent() {
       // Wait for her edits to land (bounded), so the screen she returns to —
       // e.g. the kit after "Edit your map" — reads the saved map.
       await settleWithin(flushPending(), LEAVE_SAVE_TIMEOUT_MS);
+      if (!isCurrent()) return;
       if (navigation.isFocused()) navigation.goBack();
     } finally {
       // Always re-armed: if the screen lost focus while saving (no pop), a
       // later Back still works. A second press after the pop is a no-op —
       // the isFocused() check above, and the back handler is gone on blur.
       leaving.current = false;
-      setLeavingBusy(false);
+      if (isCurrent()) setLeavingBusy(false);
     }
   }
   const leaveRef = useRef(leaveSetup);
@@ -282,7 +291,7 @@ function InvitationSetupContent() {
   }, []));
 
   async function next() {
-    if (!draft || saving) return;
+    if (!isCurrent() || !draft || saving) return;
     const current = commitPending() ?? draft;
     if (step === 'safety' && !current.safetyConcern) {
       setSafetyMissing(true);
@@ -296,7 +305,7 @@ function InvitationSetupContent() {
         setSafetyMissing(true);
         return;
       }
-      if (!(await persist(current, true))) return;
+      if (!(await persist(current, true)) || !isCurrent()) return;
       const alertsIndex = steps.indexOf('alerts');
       if (alertsIndex >= 0) {
         setStepIndex(alertsIndex);
@@ -304,6 +313,7 @@ function InvitationSetupContent() {
       }
       // Paid members on the safety-first path are set up without alerts.
       if (engine.hasAccess) await completeInvitationSetup(false).catch(captureAppError);
+      if (!isCurrent()) return;
       setFinished(true);
       return;
     }
@@ -313,6 +323,7 @@ function InvitationSetupContent() {
     }
     // Save as we go; a failed draft save never blocks the next question.
     if (step !== 'intro' && dirty.current) await persist(current, false);
+    if (!isCurrent()) return;
     // Anything typed while that save was in flight still belongs to THIS
     // step's list (saved on the next Next or on leaving), never the next one.
     commitPending();
@@ -320,22 +331,26 @@ function InvitationSetupContent() {
   }
 
   async function finishWithAlerts() {
-    if (!accountId) return;
+    if (!isCurrent() || !accountId) return;
     setSaving(true);
     setSaveError(false);
     try {
       if (alertsOn && Platform.OS !== 'web') {
         const registered = await registerForPushNotifications(accountId).catch(() => false);
+        if (!isCurrent()) return;
         setNoDevice(!registered);
       }
+      if (!isCurrent()) return;
       await completeInvitationSetup(alertsOn);
+      if (!isCurrent()) return;
       // Return to an engine screen already in the stack instead of stacking another.
       router.dismissTo('/invitation-engine' as never);
     } catch (error) {
+      if (!isCurrent()) return;
       captureAppError(error);
       setSaveError(true);
     } finally {
-      setSaving(false);
+      if (isCurrent()) setSaving(false);
     }
   }
 
@@ -430,7 +445,7 @@ function InvitationSetupContent() {
             style={[styles.input, { color: colors.ink, borderColor: colors.line, backgroundColor: colors.white }]}
           />
           <Text style={[styles.label, { color: colors.ink }]}>{t('setup.basics.relationshipLabel')}</Text>
-          <View accessibilityRole="radiogroup" style={styles.chips}>
+          <View accessibilityRole="radiogroup" accessibilityLabel={t('setup.basics.relationshipLabel')} style={styles.chips}>
             {RELATIONSHIP_KEYS.map((key) => (
               <Choice
                 key={key}
@@ -465,14 +480,15 @@ function InvitationSetupContent() {
         <View>
           <Text accessibilityRole="header" style={[styles.title, { color: colors.ink }]}>{t('setup.safety.title')}</Text>
           <Text style={[styles.body, { color: colors.ink }]}>{t('setup.safety.body')}</Text>
-          <View accessibilityRole="radiogroup" style={styles.options}>
+          <View accessibilityRole="radiogroup" accessibilityLabel={t('setup.safety.body')} style={styles.options}>
             {SAFETY_CONCERNS.map((concern) => {
               const selected = draft.safetyConcern === concern;
               return (
                 <TouchableOpacity
                   key={concern}
                   accessibilityRole="radio"
-                  accessibilityState={{ selected }}
+                  accessibilityState={{ checked: selected }}
+                  aria-checked={selected}
                   accessibilityLabel={`${t(`setup.safety.${concern}`)}. ${t(`setup.safety.${concern}Body`)}`}
                   onPress={() => chooseSafety(concern)}
                   style={[
@@ -647,7 +663,8 @@ function Choice({
     <TouchableOpacity
       accessibilityRole={role}
       accessibilityLabel={label}
-      accessibilityState={role === 'radio' ? { selected } : { checked: selected }}
+      accessibilityState={{ checked: selected }}
+      aria-checked={selected}
       onPress={onPress}
       style={[
         styles.choice,
@@ -698,7 +715,7 @@ const styles = StyleSheet.create({
   label: { fontSize: 14, fontWeight: '800', marginTop: 18 },
   input: { minHeight: 48, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, fontSize: 16, marginTop: 8 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
-  choice: { borderWidth: 1.5, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9, minHeight: 42, justifyContent: 'center' },
+  choice: { borderWidth: 1.5, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9, minHeight: 44, justifyContent: 'center' },
   choiceText: { fontSize: 14, fontWeight: '700' },
   options: { gap: 10, marginTop: 14 },
   option: { borderWidth: 1.5, borderRadius: 14, padding: 14, minHeight: 56 },

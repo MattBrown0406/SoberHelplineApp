@@ -12,22 +12,49 @@
 // shipped to clients.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { bandsForAccounts, type Band } from '../_shared/situation.ts';
+import { type Band } from '../_shared/situation.ts';
 import { requireServiceRole } from '../_shared/service-auth.ts';
 import { dailyNudgeData } from '../_shared/push-data.ts';
+
+import {
+  checked,
+  dayDeadline,
+  deliverLegacy,
+  freshDailyAccount,
+  localDay,
+  localHour,
+  recordDelivery,
+  remaining,
+  tally,
+} from '../_shared/legacy-sender-boundary.ts';
 
 const NUDGE_HOUR_LOCAL = 9;
 
 // State-aware copy: a gentler, support-forward nudge when the band is elevated
 // or in crisis; the standard streak nudge otherwise.
-const COPY: Record<string, { normal: { title: string; body: string }; support: { title: string; body: string } }> = {
+const COPY: Record<
+  string,
+  { normal: { title: string; body: string }; support: { title: string; body: string } }
+> = {
   en: {
-    normal: { title: 'Your 90 seconds', body: 'A quick check-in keeps the castle strong. How are you holding up today?' },
-    support: { title: 'Your 90 seconds', body: 'A quick check-in can help you pause and notice what you need today.' },
+    normal: {
+      title: 'Your 90 seconds',
+      body: 'A quick check-in keeps the castle strong. How are you holding up today?',
+    },
+    support: {
+      title: 'Your 90 seconds',
+      body: 'A quick check-in can help you pause and notice what you need today.',
+    },
   },
   es: {
-    normal: { title: 'Tus 90 segundos', body: 'Un registro rápido mantiene fuerte el castillo. ¿Cómo estás hoy?' },
-    support: { title: 'Tus 90 segundos', body: 'Un registro rápido puede ayudarte a pausar y notar lo que necesitas hoy.' },
+    normal: {
+      title: 'Tus 90 segundos',
+      body: 'Un registro rápido mantiene fuerte el castillo. ¿Cómo estás hoy?',
+    },
+    support: {
+      title: 'Tus 90 segundos',
+      body: 'Un registro rápido puede ayudarte a pausar y notar lo que necesitas hoy.',
+    },
   },
 };
 
@@ -44,75 +71,63 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   );
 
-  // locale is what the app writes at push registration; language is legacy.
-  const { data: accounts, error } = await supabase
-    .from('accounts')
-    .select('id, push_token, locale, timezone')
-    .not('push_token', 'is', null)
-    .eq('daily_push_opt_in', true);
-  if (error) return new Response(error.message, { status: 500 });
-
-  const now = new Date();
-  // accounts.timezone is client-written text; one malformed zone must not throw
-  // a RangeError here and skip the nudge for every member.
-  const resolveZone = (timezone: string | null) => {
-    try {
-      return new Intl.DateTimeFormat('en-US', { timeZone: timezone || 'America/New_York' }).resolvedOptions().timeZone;
-    } catch {
-      return 'America/New_York';
+  try {
+    const started = Date.now();
+    const accounts: { id: string; timezone: string | null }[] = [];
+    let after: string | undefined;
+    for (;;) {
+      let query = supabase.from('accounts').select('id, timezone')
+        .not('push_token', 'is', null).eq('daily_push_opt_in', true).order('id').limit(1000);
+      if (after) query = query.gt('id', after);
+      const page = await checked(query);
+      if (!page?.length) break;
+      accounts.push(...page);
+      if (page.length < 1000) break;
+      after = page[page.length - 1].id;
     }
-  };
-  const candidates = (accounts ?? []).filter((a) => {
-    const localHour = Number(
-      new Intl.DateTimeFormat('en-US', {
-        hour: 'numeric', hour12: false, timeZone: resolveZone(a.timezone),
-      }).format(now),
+    const candidates = (accounts ?? []).filter((a) =>
+      localHour(started, a.timezone) === NUDGE_HOUR_LOCAL
     );
-    return localHour === NUDGE_HOUR_LOCAL;
-  });
-  if (candidates.length === 0) return new Response('no candidates this hour');
-
-  // Exclude members who already checked in on their own account-local day.
-  const localDate = (timezone: string | null) => {
-    const parts = new Intl.DateTimeFormat('en-US', {
-      timeZone: resolveZone(timezone), year: 'numeric', month: '2-digit', day: '2-digit',
-    }).formatToParts(now);
-    const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-    return `${values.year}-${values.month}-${values.day}`;
-  };
-  const candidateIds = candidates.map((account) => account.id);
-  const candidateDates = candidates.map((account) => localDate(account.timezone)).sort();
-  const { data: checked } = await supabase
-    .from('checkins')
-    .select('account_id, checkin_date')
-    .in('account_id', candidateIds)
-    .gte('checkin_date', candidateDates[0])
-    .lte('checkin_date', candidateDates[candidateDates.length - 1]);
-  const done = new Set((checked ?? []).map((checkin) => `${checkin.account_id}:${checkin.checkin_date}`));
-
-  const recipients = candidates.filter((account) => !done.has(`${account.id}:${localDate(account.timezone)}`));
-  const bands = await bandsForAccounts(supabase, recipients.map((a) => a.id));
-
-  const messages = recipients.map((a) => {
-    const band = bands.get(a.id) ?? 'calm';
-    const copy = copyFor(a.locale, band);
-    return {
-      to: a.push_token,
-      title: copy.title,
-      body: copy.body,
-      sound: 'default',
-      data: dailyNudgeData(band === 'elevated' || band === 'crisis' ? 'support' : 'today'),
-    };
-  });
-
-  // Expo push API accepts batches of 100
-  for (let i = 0; i < messages.length; i += 100) {
-    await fetch('https://exp.host/--/api/v2/push/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(messages.slice(i, i + 100)),
-    });
+    if (!candidates.length) return new Response('no candidates this hour');
+    const counts = tally();
+    for (const candidate of candidates) {
+      // Pin the original local day before IO; "today" cannot become tomorrow.
+      const day = localDay(started, candidate.timezone);
+      const deadline = dayDeadline(started, candidate.timezone);
+      if (!remaining(deadline)) {
+        counts.skipped++;
+        continue;
+      }
+      try {
+        const a = await freshDailyAccount(supabase, candidate.id, day);
+        if (
+          !a?.push_token || !a.daily_push_opt_in || a.checkedIn ||
+          localDay(Date.now(), a.timezone) !== day ||
+          localHour(Date.now(), a.timezone) !== NUDGE_HOUR_LOCAL
+        ) {
+          counts.skipped++;
+          continue;
+        }
+        const band = a.band;
+        const copy = copyFor(a.locale, band);
+        recordDelivery(
+          counts,
+          await deliverLegacy({
+            to: a.push_token,
+            ...copy,
+            sound: 'default',
+            data: dailyNudgeData(band === 'elevated' || band === 'crisis' ? 'support' : 'today'),
+          }, deadline),
+        );
+      } catch {
+        counts.failed++;
+        counts.retryable++;
+      }
+    }
+    // Successful text contract stays unchanged. A failure is never "sent".
+    if (counts.failed) return new Response(JSON.stringify(counts), { status: 500 });
+    return new Response(`sent ${counts.sent}`);
+  } catch {
+    return new Response('lookup_failed', { status: 500 });
   }
-
-  return new Response(`sent ${messages.length}`);
 });

@@ -28,5 +28,6 @@ test('crisis entry stays unconditional and safe-area tab height remains fixed', 
   const tabs = read('app/(tabs)/_layout.tsx');
   assert.ok(tabs.includes('height: 64 + insets.bottom'));
   assert.ok(tabs.includes('paddingBottom: insets.bottom + 6'));
-  assert.ok(tabs.includes('flexShrink: 0'));
+  assert.ok(tabs.includes('flexShrink: 1'));
+  assert.ok(tabs.includes("maxWidth: '100%'"));
 });

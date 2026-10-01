@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Gate } from '../src/components/auth/Gate';
 import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import { useAccount } from '../src/contexts/AccountContext';
 import { useTheme } from '../src/contexts/ThemeContext';
+import { useAsyncScope } from '../src/hooks/useAsyncScope';
 import { useInvitationEngine } from '../src/hooks/useInvitationEngine';
 import { SafetyFirstPanel } from '../src/components/invitation/SafetyFirstPanel';
 import { BackLink, EngineCard, Kicker, PrimaryButton, TextLink } from '../src/components/invitation/ui';
@@ -47,6 +48,13 @@ function InvitationOutcomeContent() {
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('invitation');
   const router = useRouter();
+  const navigation = useNavigation();
+  const { isCurrent } = useAsyncScope(user?.id ?? null);
+  const focusGeneration = useRef(0);
+  useFocusEffect(useCallback(() => {
+    focusGeneration.current += 1;
+    return () => { focusGeneration.current += 1; };
+  }, []));
   const params = useLocalSearchParams<{ style?: string }>();
   const engine = useInvitationEngine(user?.id ?? null, user?.timezone);
   const [note, setNote] = useState('');
@@ -60,7 +68,9 @@ function InvitationOutcomeContent() {
   const [logged, setLogged] = useState<{ outcome: InvitationOutcome; nextWindowDate: string | null } | null>(null);
 
   async function log(outcome: InvitationOutcome) {
-    if (saving) return;
+    if (!isCurrent() || !user || !navigation.isFocused() || saving) return;
+    const generation = focusGeneration.current;
+    const canFinish = () => isCurrent() && navigation.isFocused() && generation === focusGeneration.current;
     setSaving(outcome);
     setSaveError(false);
     const snapshot = engine.snapshot;
@@ -76,6 +86,7 @@ function InvitationOutcomeContent() {
         lineStyle,
         nextWindowDate: suggestNextWindowDate(outcome, localDate, snapshot?.plan.soberTimes ?? []),
       });
+      if (!canFinish()) return;
       if (outcome === 'yes') {
         router.replace({
           pathname: '/treatment-action-plan',
@@ -87,9 +98,9 @@ function InvitationOutcomeContent() {
       setLogged({ outcome, nextWindowDate: saved.nextWindowDate });
     } catch (error) {
       captureAppError(error);
-      setSaveError(true);
+      if (canFinish()) setSaveError(true);
     } finally {
-      setSaving(null);
+      if (isCurrent()) setSaving(null);
     }
   }
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../src/contexts/ThemeContext';
+import { useAsyncScope } from '../src/hooks/useAsyncScope';
 import { useAccount } from '../src/contexts/AccountContext';
 import { useTrajectory, type WeekPoint } from '../src/hooks/useTrajectory';
 import { useThread } from '../src/hooks/useThread';
@@ -29,9 +30,15 @@ function weekLabel(week: string): string {
 }
 
 export default function TrajectoryScreen() {
+  const { user } = useAccount();
+  return <TrajectoryContent key={user?.id ?? 'signed-out'} />;
+}
+
+function TrajectoryContent() {
   const { colors } = useTheme();
   const { t } = useTranslation('tracker');
   const { user, entitlements } = useAccount();
+  const { isCurrent } = useAsyncScope(user?.id ?? null);
   const router = useRouter();
   // Messaging the coach is a paid Text Line feature. Opening this screen must
   // not load or create a Text Line thread; the first share does (send() opens
@@ -39,9 +46,11 @@ export default function TrajectoryScreen() {
   // realtime subscription.
   const canMessageCoach = !!user && entitlements.canMessageOnCallCoach;
   const [threadWanted, setThreadWanted] = useState(false);
+  const [sharePending, setSharePending] = useState(false);
+  const shareInFlight = useRef(false);
 
   const { points, trend, loading } = useTrajectory(user?.id ?? null, 6);
-  const { send, sending } = useThread(user?.id ?? null, threadWanted && canMessageCoach, { readOnly: !canMessageCoach });
+  const { send, sending, loading: threadLoading } = useThread(user?.id ?? null, threadWanted && canMessageCoach, { readOnly: !canMessageCoach });
 
   const [checked, setChecked] = useState<boolean[]>(Array(SELF_CHECK_COUNT).fill(false));
   const [shareConsent, setShareConsent] = useState(false);
@@ -61,9 +70,9 @@ export default function TrajectoryScreen() {
       .eq('consent_key', CONSENT_SHARE_CHECKINS)
       .maybeSingle()
       .then(({ data }) => {
-        if (data) setShareConsent(!!data.granted_at && !data.revoked_at);
+        if (isCurrent() && data) setShareConsent(!!data.granted_at && !data.revoked_at);
       });
-  }, [user?.id]);
+  }, [user?.id, isCurrent]);
 
   const checkedCount = checked.filter(Boolean).length;
   const showSelfCheckResult = checkedCount >= SELF_CHECK_THRESHOLD;
@@ -82,18 +91,24 @@ export default function TrajectoryScreen() {
     setChecked((prev) => prev.map((v, idx) => (idx === i ? !v : v)));
   }
 
-  async function shareWithCoach() {
-    // send() opens (or creates) the Text Line thread on demand; only mark
-    // shared once the note actually reached the coach.
-    if (!canMessageCoach || sending) return;
+  function shareWithCoach() {
+    if (!isCurrent() || !canMessageCoach || sending || shareInFlight.current) return;
+    shareInFlight.current = true;
+    setSharePending(true);
     setThreadWanted(true);
-    try {
-      await send(t('trajectory.shareMessage'));
-      setShared(true);
-    } catch {
-      appAlert(t('trajectory.shareError'));
-    }
   }
+
+  // Wait for a render with the enabled hook (and its initial load) before
+  // sending. Never call the disabled render's retained send callback.
+  useEffect(() => {
+    if (!sharePending || !threadWanted || threadLoading || !canMessageCoach || !isCurrent()) return;
+    setSharePending(false);
+    void send(t('trajectory.shareMessage')).then(() => {
+      if (isCurrent()) setShared(true);
+    }).catch(() => {
+      if (isCurrent()) appAlert(t('trajectory.shareError'));
+    }).finally(() => { shareInFlight.current = false; });
+  }, [sharePending, threadWanted, threadLoading, canMessageCoach, send, t, isCurrent]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>

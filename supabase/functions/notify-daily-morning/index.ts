@@ -1,5 +1,12 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { bandsForAccounts } from '../_shared/situation.ts';
+import {
+  dayDeadline,
+  deliverLegacy,
+  freshDailyAccount,
+  recordDelivery,
+  remaining,
+  tally,
+} from '../_shared/legacy-sender-boundary.ts';
 import { requireServiceRole } from '../_shared/service-auth.ts';
 import { morningNoteData } from '../_shared/push-data.ts';
 
@@ -27,7 +34,8 @@ const COPY: Record<
     mondayBody:
       "It's Monday — join The Family Squares Zoom meeting tonight at 7:00 PM Pacific. Be with people who understand what you're going through.",
     supportTitle: 'A gentle start',
-    supportBody: 'Take one quiet breath before the day begins. Open the app whenever you want support.',
+    supportBody:
+      'Take one quiet breath before the day begins. Open the app whenever you want support.',
     morningTitle: 'Good morning',
     genericMorning: 'A quiet moment for you this morning: take one breath before the day begins.',
   },
@@ -38,16 +46,17 @@ const COPY: Record<
     supportTitle: 'Un comienzo suave',
     supportBody: 'Respira con calma antes de empezar el día. Abre la app cuando quieras apoyo.',
     morningTitle: 'Buenos días',
-    genericMorning: 'Un momento de calma para ti esta mañana: respira una vez antes de empezar el día.',
+    genericMorning:
+      'Un momento de calma para ti esta mañana: respira una vez antes de empezar el día.',
   },
 };
 
 const DAILY_CHALLENGES = [
   'Practice saying "no" once today — and resist the urge to explain yourself afterward.',
-  'Write down one limit you\'ve held this week, even if it was hard. Notice how it felt.',
+  "Write down one limit you've held this week, even if it was hard. Notice how it felt.",
   'Take a 20-minute walk without your phone. Just you and your thoughts.',
   'Tell someone who supports you "I appreciate you" today — a text counts.',
-  'Identify one responsibility you\'ve been carrying that truly belongs to someone else.',
+  "Identify one responsibility you've been carrying that truly belongs to someone else.",
   'Make a nourishing meal just for yourself today. Sit down and actually taste it.',
   'Write a single sentence you can say the next time someone pressures you.',
   'Do something for 30 minutes that has nothing to do with your loved one.',
@@ -64,13 +73,13 @@ const DAILY_CHALLENGES = [
   'Write two sentences about why you are doing this hard work.',
   'Do a physical reset: stretch, take a bath, or breathe deeply for five minutes.',
   'Reflect on one moment this week when a limit you held helped keep the peace.',
-  'Notice one thing today that you\'re grateful for that has nothing to do with recovery.',
+  "Notice one thing today that you're grateful for that has nothing to do with recovery.",
   'Write one sentence you would say to a close friend in your exact situation.',
   'Identify a relationship in your life that genuinely energizes you. Invest in it today.',
   'Celebrate one small win from this week — no matter how minor it seems.',
   'Spend 10 minutes in complete silence. No phone. No background noise. Just you.',
   'Write down three things you love about yourself that have nothing to do with caregiving.',
-  'Let yourself feel what you\'re feeling today without trying to fix or change it.',
+  "Let yourself feel what you're feeling today without trying to fix or change it.",
   'Choose one thing today that is purely for your own joy — and do not apologize for it.',
 ];
 
@@ -89,24 +98,31 @@ const PAGE_SIZE = 1000;
 // Only members who opted into daily reminders; paged past PostgREST's row cap.
 async function optedInAccounts(): Promise<Acct[] | null> {
   const rows: Acct[] = [];
-  for (let from = 0; ; from += PAGE_SIZE) {
-    const { data, error } = await supabase
+  let after: string | undefined;
+  for (;;) {
+    let query = supabase
       .from('accounts')
       .select('id, push_token, locale')
       .not('push_token', 'is', null)
       .eq('daily_push_opt_in', true)
       .order('id')
-      .range(from, from + PAGE_SIZE - 1);
+      .limit(PAGE_SIZE);
+    if (after) query = query.gt('id', after);
+    const { data, error } = await query;
     if (error) return null;
     rows.push(...((data ?? []) as Acct[]));
     if (!data || data.length < PAGE_SIZE) return rows;
+    after = data[data.length - 1].id;
   }
 }
 
 Deno.serve(async (req) => {
   const authError = requireServiceRole(req);
   if (authError) return authError;
-  const accounts = await optedInAccounts();
+  // Pin copy/day before discovery IO, not after a delayed account scan.
+  const now = new Date();
+  const deadline = dayDeadline(now.getTime(), 'UTC');
+  const accounts = await optedInAccounts().catch(() => null);
   if (accounts === null) {
     return new Response(JSON.stringify({ error: 'accounts_unavailable' }), { status: 500 });
   }
@@ -114,39 +130,42 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ sent: 0 }), { status: 200 });
   }
 
-  const now = new Date();
   const isMonday = now.getUTCDay() === 1;
   const challenge = DAILY_CHALLENGES[dayOfYear(now) % DAILY_CHALLENGES.length];
-  const bands = await bandsForAccounts(
-    supabase,
-    (accounts as Acct[]).map((a) => a.id),
-  );
-
-  // Monday: free-call reminder for everyone. Otherwise: a supportive nudge for
-  // an elevated/crisis band, else the daily challenge (en) / a gentle line (es).
-  const messages = (accounts as Acct[]).map((a) => {
-    const lang = a.locale === 'es' ? 'es' : 'en';
-    const c = COPY[lang];
-    const band = bands.get(a.id) ?? 'calm';
-
-    if (isMonday) {
-      return { to: a.push_token, title: c.mondayTitle, body: c.mondayBody, sound: 'default', data: morningNoteData('support') };
+  const counts = tally();
+  for (const candidate of accounts) {
+    if (!remaining(deadline)) {
+      counts.skipped++;
+      continue;
     }
-    if (band === 'elevated' || band === 'crisis') {
-      return { to: a.push_token, title: c.supportTitle, body: c.supportBody, sound: 'default', data: morningNoteData('support') };
+    try {
+      const a = await freshDailyAccount(supabase, candidate.id);
+      if (!a?.push_token || !a.daily_push_opt_in) {
+        counts.skipped++;
+        continue;
+      }
+      const band = a.band;
+      const lang = a.locale === 'es' ? 'es' : 'en';
+      const c = COPY[lang];
+      const support = band === 'elevated' || band === 'crisis';
+      const copy = isMonday
+        ? { title: c.mondayTitle, body: c.mondayBody }
+        : support
+        ? { title: c.supportTitle, body: c.supportBody }
+        : { title: c.morningTitle, body: lang === 'es' ? c.genericMorning : challenge };
+      recordDelivery(
+        counts,
+        await deliverLegacy({
+          to: a.push_token,
+          ...copy,
+          sound: 'default',
+          data: morningNoteData(isMonday || support ? 'support' : 'boundaries'),
+        }, deadline),
+      );
+    } catch {
+      counts.failed++;
+      counts.retryable++;
     }
-    const body = lang === 'es' ? c.genericMorning : challenge;
-    return { to: a.push_token, title: c.morningTitle, body, sound: 'default', data: morningNoteData('boundaries') };
-  });
-
-  // Expo push limit is 100 messages per request
-  for (let i = 0; i < messages.length; i += 100) {
-    await fetch('https://exp.host/--/api/v2/push/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(messages.slice(i, i + 100)),
-    });
   }
-
-  return new Response(JSON.stringify({ sent: messages.length }), { status: 200 });
+  return new Response(JSON.stringify(counts), { status: counts.failed ? 500 : 200 });
 });

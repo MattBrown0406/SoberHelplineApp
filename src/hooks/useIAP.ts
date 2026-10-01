@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useAccount } from '../contexts/AccountContext';
 import Purchases, { type PurchasesOfferings, type PurchasesPackage } from 'react-native-purchases';
 import { purchaseRevenueCatPackage } from '../lib/revenueCat';
 import { setReviewPromptPurchaseFlow } from '../lib/reviewPrompt';
 
 export type SubscriptionTier = 'essential' | 'premium';
 export type PurchaseResult = 'success' | 'cancelled' | 'failed';
+
+let activePurchaseFlows = 0;
 
 const PRODUCT_IDS: Record<SubscriptionTier, string> = {
   essential: 'sh_essential_monthly',
@@ -24,6 +27,20 @@ export function findPackage(offerings: PurchasesOfferings, tier: SubscriptionTie
 }
 
 export function useIAP() {
+  const { user } = useAccount();
+  const owner = user?.id;
+  const lifetimeRef = useRef({ owner, active: true, purchasing: false, generation: 0 });
+  if (lifetimeRef.current.owner !== owner) {
+    lifetimeRef.current.active = false;
+    lifetimeRef.current = { owner, active: true, purchasing: false, generation: 0 };
+  }
+  const lifetime = lifetimeRef.current;
+  const isActive = () => lifetime.active && lifetimeRef.current === lifetime;
+  useEffect(() => {
+    lifetime.active = true;
+    lifetime.generation += 1;
+    return () => { lifetime.active = false; lifetime.generation += 1; };
+  }, [lifetime]);
   const [purchasing, setPurchasing] = useState(false);
   const [iapError, setIapError] = useState<string | null>(null);
   const [prices, setPrices] = useState<Partial<Record<SubscriptionTier, string>>>({});
@@ -50,39 +67,49 @@ export function useIAP() {
   }, [priceAttempt]);
 
   async function purchaseTier(tier: SubscriptionTier): Promise<PurchaseResult> {
+    const generation = lifetime.generation;
+    const current = () => isActive() && generation === lifetime.generation;
+    if (!owner || !current() || lifetime.purchasing) return 'cancelled';
+    lifetime.purchasing = true;
+    activePurchaseFlows += 1;
     setReviewPromptPurchaseFlow(true);
     setPurchasing(true);
     setIapError(null);
     try {
       const offerings = await Purchases.getOfferings();
+      if (!current()) return 'cancelled';
       const pkg = findPackage(offerings, tier);
       if (!pkg) {
         setIapError('tier_not_configured');
         return 'failed';
       }
 
-      const result = await purchaseRevenueCatPackage(pkg);
+      const result = await purchaseRevenueCatPackage(pkg, owner, current);
+      if (!current()) return 'cancelled';
       if (!result.customerInfo.entitlements.active[tier]) {
         setIapError('entitlement_not_granted');
         return 'failed';
       }
       return 'success';
     } catch (err: unknown) {
+      if (!current()) return 'cancelled';
       const rcErr = err as { userCancelled?: boolean; message?: string };
       if (rcErr.userCancelled) return 'cancelled';
       console.error(`[useIAP] ${tier} purchase failed:`, err);
       setIapError(rcErr.message ?? 'purchase_failed');
       return 'failed';
     } finally {
-      setPurchasing(false);
-      setReviewPromptPurchaseFlow(false);
+      lifetime.purchasing = false;
+      if (current()) setPurchasing(false);
+      activePurchaseFlows -= 1;
+      if (activePurchaseFlows === 0) setReviewPromptPurchaseFlow(false);
     }
   }
 
   return {
     purchasePremium: () => purchaseTier('premium'),
     purchaseEssential: () => purchaseTier('essential'),
-    purchasing,
+    purchasing: purchasing && lifetime.purchasing,
     iapError,
     prices,
     retryPrices,

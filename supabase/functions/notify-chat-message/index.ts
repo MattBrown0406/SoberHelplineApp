@@ -1,98 +1,77 @@
-// notify-chat-message — Supabase Edge Function
-//
-// Triggered by a Database Webhook on messages INSERT.
-// Sends an Expo push notification:
-//   - member sends  → notify Matt (the coach)
-//   - coach replies → notify the member
-//
-// Setup:
-//   1. supabase functions deploy notify-chat-message
-//   2. Dashboard → Database → Webhooks → Create webhook:
-//        Table: messages  |  Event: INSERT
-//        URL: https://<project-ref>.supabase.co/functions/v1/notify-chat-message
-//        HTTP method: POST
-//        Add header: Authorization: Bearer <service-role-key>
-
+// Database INSERT webhook. Never trust webhook copy or a cached device token.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { requireServiceRole } from '../_shared/service-auth.ts';
 import { ADMIN_EMAILS } from '../_shared/admin.ts';
-import { coachMessageData, memberMessageData, type PushData } from '../_shared/push-data.ts';
-
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
-
-async function sendExpoPush(to: string, title: string, body: string, data: PushData): Promise<void> {
-  const res = await fetch(EXPO_PUSH_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({ to, title, body, sound: 'default', data }),
-  });
-  if (!res.ok) {
-    console.error('[notify-chat-message] Expo push error:', await res.text());
-  }
-}
+import { coachMessageData, memberMessageData } from '../_shared/push-data.ts';
+import { checked, deliverLegacy } from '../_shared/legacy-sender-boundary.ts';
 
 Deno.serve(async (req: Request) => {
   const authError = requireServiceRole(req);
   if (authError) return authError;
   try {
-    const payload = await req.json();
-    const message = payload.record;
-
-    if (!message?.thread_id) {
-      return new Response('no record', { status: 400 });
-    }
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-    // Resolve the member attached to this thread
-    const { data: memberRows } = await supabase.rpc('get_thread_member_info', {
-      p_thread_id: message.thread_id,
-    });
-    const member = memberRows?.[0];
-
+    const { record } = await req.json();
+    if (!record?.id || !record?.thread_id) return new Response('no record', { status: 400 });
+    const db = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
+    // A single snapshot binds source, thread ownership, account, locale/device.
+    const source = async () =>
+      await checked(
+        db.from('messages')
+          .select(
+            'id, thread_id, sender_role, created_at, threads!inner(account_id, accounts!inner(id, first_name, push_token, locale))',
+          )
+          .eq('id', record.id).eq('thread_id', record.thread_id).maybeSingle(),
+      );
+    const message = await source();
+    if (!message) return new Response('ok');
+    type Thread = {
+      account_id: string;
+      accounts: {
+        id: string;
+        first_name: string | null;
+        push_token: string | null;
+        locale: string | null;
+      };
+    };
     if (message.sender_role === 'member') {
-      // A user sent a message — notify every admin (coach) that has a push token
+      let failed = false;
       for (const email of ADMIN_EMAILS) {
-        const { data: coachToken } = await supabase.rpc('get_account_push_token_by_email', {
-          p_email: email,
+        const current = await source();
+        if (!current || current.sender_role !== 'member') continue;
+        const thread = current.threads as unknown as Thread;
+        if (!thread?.accounts || thread.accounts.id !== thread.account_id) continue;
+        const token = await checked(db.rpc('get_account_push_token_by_email', { p_email: email }));
+        if (!token) continue;
+        const result = await deliverLegacy({
+          to: token,
+          title: `Message from ${thread.accounts.first_name ?? 'Someone'}`,
+          body: 'Open Sober Helpline to read this private message.',
+          sound: 'default',
+          data: memberMessageData(message.thread_id),
         });
-        if (coachToken) {
-          const name = member?.first_name ?? 'Someone';
-          await sendExpoPush(
-            coachToken,
-            `Message from ${name}`,
-            'Open Sober Helpline to read this private message.',
-            memberMessageData(message.thread_id),
-          );
-        } else {
-          console.warn(`[notify-chat-message] admin ${email} has no push token yet`);
-        }
+        if (!result.ok && !result.skipped) failed = true;
       }
+      if (failed) return new Response('provider_failed', { status: 502 });
     } else if (message.sender_role === 'coach') {
-      // Coach replied — notify the member
-      if (member?.push_token) {
-        const { data: prefs } = await supabase
-          .from('accounts')
-          .select('locale')
-          .eq('id', member.account_id)
-          .maybeSingle();
-        const es = String(prefs?.locale ?? '').startsWith('es');
-        await sendExpoPush(
-          member.push_token,
-          es ? 'Nuevo mensaje de tu coach' : 'New message from your coach',
-          es ? 'Abre Sober Helpline para leer este mensaje privado.' : 'Open Sober Helpline to read this private message.',
-          coachMessageData(message.thread_id),
-        );
-      } else {
-        console.warn('[notify-chat-message] member has no push token');
-      }
+      const thread = message.threads as unknown as Thread;
+      const member = thread?.accounts;
+      if (!member?.push_token || member.id !== thread.account_id) return new Response('ok');
+      const es = String(member.locale ?? '').startsWith('es');
+      const result = await deliverLegacy({
+        to: member.push_token,
+        title: es ? 'Nuevo mensaje de tu coach' : 'New message from your coach',
+        body: es
+          ? 'Abre Sober Helpline para leer este mensaje privado.'
+          : 'Open Sober Helpline to read this private message.',
+        sound: 'default',
+        data: coachMessageData(message.thread_id),
+      });
+      if (!result.ok && !result.skipped) return new Response('provider_failed', { status: 502 });
     }
-
-    return new Response('ok', { status: 200 });
-  } catch (err) {
-    console.error('[notify-chat-message] unexpected error:', err);
-    return new Response('error', { status: 500 });
+    return new Response('ok');
+  } catch {
+    return new Response('lookup_failed', { status: 500 });
   }
 });
