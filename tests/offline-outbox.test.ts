@@ -206,11 +206,11 @@ test('a full outbox rejects new work without silently evicting previously saved 
 });
 
 test('rate limits and request timeouts retain queued work for a later replay', async () => {
-  for (const status of [408, 429]) {
+  for (const failure of [{ status: 408 }, { status: 429 }, { code: '408' }, { code: '429' }]) {
     const outbox = createOfflineOutbox(new MemoryStorage());
     await outbox.enqueue(ACCOUNT, journal(1));
     await outbox.enqueue(ACCOUNT, checkin(2));
-    const { handlers, calls } = recordingHandlers(() => ({ status }));
+    const { handlers, calls } = recordingHandlers(() => failure);
     const result = await outbox.replay(ACCOUNT, handlers);
     assert.equal(result.dropped.length, 0);
     assert.equal(result.remaining.length, 2);

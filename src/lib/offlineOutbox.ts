@@ -157,7 +157,7 @@ export function classifyOutboxError(error: unknown): OutboxHandlerResult {
   if (code === '23505') return 'synced';
   // An expired or rejected session token is recoverable (the member signs in
   // again, or the refresh succeeds once online): keep the write queued.
-  if (/^PGRST30[0-3]$/.test(code) || code === '401') return 'retry';
+  if (/^PGRST30[0-3]$/.test(code) || code === '401' || code === '408' || code === '429') return 'retry';
   if (/^(22|23|42)/.test(code) || code === '403') return 'drop';
   if (isOfflineFallbackError(error)) return 'retry';
   const status = typeof error === 'object' && error !== null && 'status' in error
