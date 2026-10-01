@@ -55,8 +55,32 @@ export function useInvitationEngine(accountId: string | null, timezone?: string 
   const [now, setNow] = useState(() => new Date());
   const request = useRef(0);
   const hasAccess = useFeatureAccess('invitationEngine');
+  const clock = localClock(now, timezone);
+  const localDate = clock.date;
+  // Bind callbacks to one account/day lifetime, including the render before
+  // effects run. Late responses and retained buttons cannot mutate its successor.
+  const scopeRef = useRef({ accountId, localDate });
+  if (scopeRef.current.accountId !== accountId || scopeRef.current.localDate !== localDate) {
+    scopeRef.current = { accountId, localDate };
+  }
+  const scope = scopeRef.current;
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
+  const isCurrent = useCallback(() => mounted.current && scopeRef.current === scope
+    && localClock(new Date(), timezone).date === localDate, [scope, localDate, timezone]);
+  useEffect(() => {
+    setBusyMove(null);
+    setCheckSaving(false);
+    setPushSaving(false);
+    setActionError(null);
+  }, [scope]);
 
   const load = useCallback(async () => {
+    if (!mounted.current || scopeRef.current !== scope) return;
+    setNow(new Date());
     const id = ++request.current;
     if (!accountId) {
       setRecord({ accountId: null, value: null });
@@ -67,21 +91,21 @@ export function useInvitationEngine(accountId: string | null, timezone?: string 
     setLoading(true);
     try {
       const snapshot = await fetchEngineSnapshot(localClock(new Date(), timezone).date);
-      if (id !== request.current) return;
+      if (id !== request.current || scopeRef.current !== scope || !mounted.current) return;
       setRecord({ accountId, value: snapshot });
       setLoadError(false);
       setNow(new Date());
     } catch (error) {
       captureAppError(error);
-      if (id === request.current) {
+      if (id === request.current && scopeRef.current === scope && mounted.current) {
         // Keep the last good snapshot for this account; settle "loading" either way.
         setRecord((current) => (current.accountId === accountId ? current : { accountId, value: null }));
         setLoadError(true);
       }
     } finally {
-      if (id === request.current) setLoading(false);
+      if (id === request.current && scopeRef.current === scope && mounted.current) setLoading(false);
     }
-  }, [accountId, timezone]);
+  }, [accountId, timezone, localDate, scope]);
 
   useFocusEffect(useCallback(() => {
     void load();
@@ -93,8 +117,7 @@ export function useInvitationEngine(accountId: string | null, timezone?: string 
     return () => clearInterval(timer);
   }, []);
 
-  const snapshot = record.accountId === accountId ? record.value : null;
-  const clock = localClock(now, timezone);
+  const snapshot = record.accountId === accountId && record.value?.localDate === localDate ? record.value : null;
   const stage: EngineStage | null = snapshot ? engineStage(snapshot, hasAccess) : null;
 
   const moves = useMemo<[InvitationMove, InvitationMove] | null>(() => (
@@ -110,7 +133,7 @@ export function useInvitationEngine(accountId: string | null, timezone?: string 
   // The server keeps each day's best window. Record only when this forecast
   // beats what is already recorded for today (or sent this session).
   useEffect(() => {
-    if (!accountId || !snapshot || !forecast || stage !== 'active' || forecast.paused) return;
+    if (!isCurrent() || !accountId || !snapshot || !forecast || stage !== 'active' || forecast.paused) return;
     const key = `${accountId}:${snapshot.localDate}`;
     const rank = forecastRank(forecast);
     const best = Math.max(
@@ -123,16 +146,16 @@ export function useInvitationEngine(accountId: string | null, timezone?: string 
       if (sentForecastRank.get(key) === rank) sentForecastRank.delete(key);
       captureAppError(error);
     });
-  }, [accountId, snapshot, forecast, stage]);
+  }, [accountId, snapshot, forecast, stage, isCurrent]);
 
   const patch = useCallback((update: (value: EngineSnapshot) => EngineSnapshot) => {
     setRecord((current) => (
-      current.accountId === accountId && current.value ? { accountId, value: update(current.value) } : current
+      isCurrent() && current.accountId === accountId && current.value?.localDate === localDate ? { accountId, value: update(current.value) } : current
     ));
-  }, [accountId]);
+  }, [accountId, localDate, isCurrent]);
 
   const toggleMove = useCallback(async (moveId: string): Promise<boolean> => {
-    if (!snapshot || busyMove) return false;
+    if (!isCurrent() || !snapshot || busyMove) return false;
     const wasDone = snapshot.today.movesDone.includes(moveId);
     const before = snapshot.today.movesDone;
     const withDone = (value: EngineSnapshot, done: string[]): EngineSnapshot => {
@@ -150,54 +173,57 @@ export function useInvitationEngine(accountId: string | null, timezone?: string 
     patch((value) => withDone(value, wasDone ? before.filter((id) => id !== moveId) : [...before, moveId]));
     try {
       const done = await setMoveDone(moveId, snapshot.localDate, !wasDone);
+      if (!isCurrent()) return false;
       patch((value) => withDone(value, done));
       return true;
     } catch (error) {
       captureAppError(error);
       patch((value) => withDone(value, before));
-      setActionError('move');
+      if (isCurrent()) setActionError('move');
       return false;
     } finally {
-      setBusyMove(null);
+      if (isCurrent()) setBusyMove(null);
     }
-  }, [busyMove, patch, snapshot]);
+  }, [busyMove, patch, snapshot, isCurrent]);
 
   const setCheck = useCallback(async (mood: QuickCheck | null): Promise<boolean> => {
-    if (!snapshot || checkSaving) return false;
+    if (!isCurrent() || !snapshot || checkSaving) return false;
     const before = snapshot.today.check;
     setCheckSaving(true);
     setActionError(null);
     patch((value) => ({ ...value, today: { ...value.today, check: mood } }));
     try {
       const saved = await setQuickCheck(snapshot.localDate, mood);
+      if (!isCurrent()) return false;
       patch((value) => ({ ...value, today: { ...value.today, check: saved } }));
       return true;
     } catch (error) {
       captureAppError(error);
       patch((value) => ({ ...value, today: { ...value.today, check: before } }));
-      setActionError('check');
+      if (isCurrent()) setActionError('check');
       return false;
     } finally {
-      setCheckSaving(false);
+      if (isCurrent()) setCheckSaving(false);
     }
-  }, [checkSaving, patch, snapshot]);
+  }, [checkSaving, patch, snapshot, isCurrent]);
 
   const setWindowPushEnabled = useCallback(async (enabled: boolean): Promise<boolean> => {
-    if (!snapshot || pushSaving) return false;
+    if (!isCurrent() || !snapshot || pushSaving) return false;
     setPushSaving(true);
     setActionError(null);
     try {
       const saved = await setWindowPush(enabled);
+      if (!isCurrent()) return false;
       patch((value) => ({ ...value, state: { ...value.state, windowPushOptIn: saved } }));
       return true;
     } catch (error) {
       captureAppError(error);
-      setActionError('push');
+      if (isCurrent()) setActionError('push');
       return false;
     } finally {
-      setPushSaving(false);
+      if (isCurrent()) setPushSaving(false);
     }
-  }, [patch, pushSaving, snapshot]);
+  }, [patch, pushSaving, snapshot, isCurrent]);
 
   return {
     snapshot,
