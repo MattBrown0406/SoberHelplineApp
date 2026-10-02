@@ -1,77 +1,52 @@
-// Zoom link sync — Supabase Edge Function
+// Family Squares link sync — Supabase Edge Function (service role only).
 //
-// Finds the next upcoming "Family Squares" meeting on the Zoom account and
-// writes its join URL + start time onto the Monday Night Family Support
-// session row, so the app's Join button always points at this week's call.
-//
-// Setup (one time):
-//   1. marketplace.zoom.us → Develop → Build App → Server-to-Server OAuth
-//      (on the matt@soberhelpline.com account). Scope: meeting:read:list_meetings.
-//      Copy Account ID, Client ID, Client Secret.
-//   2. supabase secrets set ZOOM_ACCOUNT_ID=... ZOOM_CLIENT_ID=... ZOOM_CLIENT_SECRET=...
-//   3. supabase functions deploy zoom-sync
-//   4. Schedule daily (Dashboard → Edge Functions → zoom-sync → Schedules → "0 14 * * *").
-//
-// NOTE: unnecessary if the meeting becomes a true recurring Zoom meeting
-// (fixed ID) — prefer that when possible.
+// soberhelpline.com owns the Monday call: it creates each week's Zoom meeting
+// (auto-create-monday-zoom) and can swap tonight's (replace-tonight-zoom-meeting),
+// publishing the current join link in its public site_settings. This copies
+// that link onto the app's Family Squares session row, with the next Monday
+// 7 PM Pacific start, so the app's Join button always matches the website.
+// Scheduled every 10 minutes by pg_cron (shl-family-squares-link-sync).
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { requireServiceRole } from '../_shared/service-auth.ts';
+import { nextFamilySquaresStart, validZoomJoinUrl } from '../_shared/family-squares-time.ts';
 
-const MEETING_TOPIC_MATCH = Deno.env.get('ZOOM_TOPIC_MATCH') ?? 'Family Squares';
-// Tolerant match: the prod row is titled 'The Family Squares'; older seeds used
-// 'Monday Night Family Support'. Matching only the old title silently updated
-// zero rows.
-const SESSION_TITLES = ['The Family Squares', 'Monday Night Family Support'];
-
-async function zoomToken(): Promise<string> {
-  const id = Deno.env.get('ZOOM_CLIENT_ID')!;
-  const secret = Deno.env.get('ZOOM_CLIENT_SECRET')!;
-  const account = Deno.env.get('ZOOM_ACCOUNT_ID')!;
-  const res = await fetch(
-    `https://zoom.us/oauth/token?grant_type=account_credentials&account_id=${account}`,
-    { method: 'POST', headers: { Authorization: `Basic ${btoa(`${id}:${secret}`)}` } },
-  );
-  if (!res.ok) throw new Error(`zoom token: ${res.status}`);
-  return (await res.json()).access_token as string;
-}
+// soberhelpline.com's public (publishable) project values — the same ones the
+// app uses for the provider directory. site_settings rows read here are public.
+const WEBSITE_URL = Deno.env.get('WEBSITE_SUPABASE_URL') ?? 'https://anwqprmpzmcqbkttmxos.supabase.co';
+const WEBSITE_ANON_KEY = Deno.env.get('WEBSITE_SUPABASE_ANON_KEY')
+  ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFud3Fwcm1wem1jcWJrdHRteG9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQwMDE1MTcsImV4cCI6MjA3OTU3NzUxN30.zvikfr-0JzQwwqMgOcoZFMuU-w0VyGL28pxB3AXVj2k';
 
 Deno.serve(async (req) => {
   const authError = requireServiceRole(req);
   if (authError) return authError;
   try {
-    const token = await zoomToken();
     const res = await fetch(
-      'https://api.zoom.us/v2/users/me/meetings?type=upcoming&page_size=30',
-      { headers: { Authorization: `Bearer ${token}` } },
+      `${WEBSITE_URL}/rest/v1/site_settings?select=key,value&key=eq.monday_zoom_link`,
+      { headers: { apikey: WEBSITE_ANON_KEY, Authorization: `Bearer ${WEBSITE_ANON_KEY}` }, signal: AbortSignal.timeout(8000) },
     );
-    if (!res.ok) return new Response(`zoom list: ${res.status}`, { status: 500 });
-    const { meetings } = await res.json();
-
-    const next = (meetings ?? [])
-      .filter((m: { topic?: string; join_url?: string; start_time?: string }) =>
-        (m.topic ?? '').includes(MEETING_TOPIC_MATCH) && m.join_url && m.start_time)
-      .sort((a: { start_time: string }, b: { start_time: string }) =>
-        a.start_time.localeCompare(b.start_time))[0];
-
-    if (!next) return new Response('no upcoming match — nothing updated');
+    if (!res.ok) return new Response(`website settings: ${res.status}`, { status: 502 });
+    const rows = await res.json() as Array<{ key: string; value: unknown }>;
+    const link = validZoomJoinUrl(rows.find((row) => row.key === 'monday_zoom_link')?.value);
+    if (!link) return new Response('website has no valid Monday link — nothing updated', { status: 502 });
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
-    const { data: updated, error } = await supabase
-      .from('sessions')
-      .update({ zoom_url: next.join_url, next_at: next.start_time })
-      .in('title', SESSION_TITLES)
-      .select('id');
-    if (error) return new Response(error.message, { status: 500 });
-    if (!updated?.length) {
-      return new Response('no session row matched — zoom link NOT saved', { status: 500 });
+    const { data: sessionId, error: idError } = await supabase.rpc('family_squares_session_id');
+    if (idError || typeof sessionId !== 'string') {
+      return new Response('no Family Squares session row — link NOT saved', { status: 500 });
     }
+    const nextAt = nextFamilySquaresStart(new Date()).toISOString();
+    const { data: current } = await supabase.from('sessions').select('zoom_url, next_at').eq('id', sessionId).maybeSingle();
+    const sameNext = current?.next_at && new Date(current.next_at as string).toISOString() === nextAt;
+    if (current?.zoom_url === link && sameNext) return new Response('unchanged');
 
-    return new Response(`updated ${updated.length} row(s) → ${next.start_time}`);
-  } catch (e) {
-    return new Response(String(e), { status: 500 });
+    const { error } = await supabase.from('sessions').update({ zoom_url: link, next_at: nextAt }).eq('id', sessionId);
+    if (error) return new Response('update failed', { status: 500 });
+    return new Response(`updated → ${nextAt}${current?.zoom_url === link ? '' : ' (new link)'}`);
+  } catch {
+    return new Response('sync failed', { status: 500 });
   }
 });

@@ -49,7 +49,7 @@ Deno.serve(async (req: Request) => {
   const captureId = typeof body.capture_id === 'string' ? body.capture_id : '';
   const status = typeof body.status === 'string' ? body.status : '';
   if (!bookingId || !orderId || !captureId || !['captured', 'refunded', 'reversed', 'failed'].includes(status)
-      || body.amount_cents !== 15000 || body.currency !== 'USD') {
+      || (body.amount_cents !== 15000 && body.amount_cents !== 12500) || body.currency !== 'USD') {
     return new Response(JSON.stringify({ ok: false, code: 'invalid_payload' }), { status: 400, headers: jsonHeaders });
   }
 
@@ -60,7 +60,8 @@ Deno.serve(async (req: Request) => {
     p_order_id: orderId,
     p_capture_id: captureId,
     p_status: status,
-    p_amount_cents: 15000,
+    // $150, or the $125 member price (the RPC accepts it only for a session quoted it).
+    p_amount_cents: body.amount_cents,
     p_currency: 'USD',
     p_occurred_at: body.captured_at ?? body.occurred_at ?? null,
   });

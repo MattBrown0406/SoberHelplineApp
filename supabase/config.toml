@@ -405,6 +405,10 @@ verify_jwt = true
 [functions.receive-plan-review-payment]
 verify_jwt = false
 
+# soberhelpline.com redeems the app's one-time ?sso_token= (no app session).
+[functions.validate-sso-token]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

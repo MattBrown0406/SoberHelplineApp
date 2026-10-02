@@ -77,15 +77,28 @@ Deno.serve(async (req: Request) => {
     return new Response(JSON.stringify({ ok: false, code: 'premier_not_active' }), { status: 200, headers: corsHeaders });
   }
 
+  // Members get $25 off ($125). Only quoted once the website accepts the member
+  // price (PLAN_REVIEW_MEMBER_PRICE=on); the session remembers the quote so the
+  // $125 capture is accepted when PayPal reports it.
+  const memberPriceOn = (Deno.env.get('PLAN_REVIEW_MEMBER_PRICE') ?? '').toLowerCase() === 'on';
+  const { data: quotedCents, error: quoteError } = await admin.rpc('service_plan_review_checkout_cents', {
+    p_session_id: session.id,
+    p_member_price: memberPriceOn,
+  });
+  if (quoteError || (quotedCents !== 15000 && quotedCents !== 12500)) {
+    return new Response(JSON.stringify({ ok: false, code: 'checkout_unavailable' }), { status: 500, headers: corsHeaders });
+  }
+
   const now = Math.floor(Date.now() / 1000);
   const payload = {
     bref: session.id,
     aref: accountId,
-    cents: 15000,
+    cents: quotedCents,
     cur: 'USD',
     svc: 'plan_review_coaching',
     nonce: crypto.randomUUID(),
     exp: now + 15 * 60,
+    ...(quotedCents === 12500 ? { member: true } : {}),
   };
   const header = encodeJson({ alg: 'HS256', typ: 'SHC' });
   const encodedPayload = encodeJson(payload);
