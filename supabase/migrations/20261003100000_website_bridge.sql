@@ -66,7 +66,7 @@ BEGIN
     SELECT k.account_id FROM asked k
   )
   SELECT lower(btrim(u.email::text)),
-         coalesce(left(nullif(btrim(a.first_name), ''), 100), 'Sober Helpline app member'),
+         coalesce(left(nullif(btrim(a.first_name), ''), 100), ''),  -- empty: the website greets them as "Friend"
          r.status,
          coalesce(k.questions, ARRAY[]::text[]),
          -- The app reminds them by push: a device, and an RSVP or the call reminder on.

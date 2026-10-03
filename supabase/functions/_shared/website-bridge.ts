@@ -16,7 +16,8 @@ export const MAX_ATTENDEES = 2000;
 export const MAX_QUESTIONS_PER_PERSON = 5;
 export const MAX_QUESTION_LENGTH = 500;
 export const MAX_NAME_LENGTH = 100;
-export const NEUTRAL_NAME = 'Sober Helpline app member';
+// No first name: send none; the website greets them as "Friend".
+export const NEUTRAL_NAME = '';
 export const MAX_REACHABLE_EMAILS = 1000;
 export const MAX_EXPORT_LIMIT = 1000;
 export const MAX_IMPORT_MEMBERS = 5000;

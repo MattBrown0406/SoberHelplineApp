@@ -68,10 +68,10 @@ SELECT is((SELECT row(name,rsvp,questions,app_reminders)::text FROM bridge_atten
   row('Ana','going',ARRAY['question 2','question 3','question 4','question 5','question 6'],true)::text,
   'the newest five non-blank questions, trimmed, newest last; push + RSVP = app reminds');
 SELECT is((SELECT row(name,rsvp,cardinality(questions),app_reminders)::text FROM bridge_attendees WHERE email='declined@example.com'),
-  row('Sober Helpline app member','declined',0,false)::text,
+  row('','declined',0,false)::text,
   'no first name falls back to the neutral name; no device = no app reminder');
 SELECT is((SELECT row(name,rsvp,questions,app_reminders)::text FROM bridge_attendees WHERE email='asker@example.com'),
-  row('Sober Helpline app member',NULL::text,ARRAY['How do I start the conversation?'],false)::text,
+  row('',NULL::text,ARRAY['How do I start the conversation?'],false)::text,
   'a question alone counts (RSVP null); reminders off and no RSVP = not reminded by the app');
 SELECT is((SELECT app_reminders FROM bridge_attendees WHERE email='notoken@example.com'), false,
   'RSVP without a device is not reminded by the app');
