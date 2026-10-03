@@ -59,6 +59,32 @@ export function nextFamilySquaresStart(now: Date): Date {
   return zonedInstant(nextWeek.getUTCFullYear(), nextWeek.getUTCMonth() + 1, nextWeek.getUTCDate(), 19, PACIFIC);
 }
 
+/** The Pacific calendar date (YYYY-MM-DD) of an instant. */
+export function pacificDate(at: Date): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: PACIFIC, year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(at);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
+  return `${get('year')}-${get('month')}-${get('day')}`;
+}
+
+/**
+ * The call soberhelpline.com should hear about: the next call that hasn't
+ * ended (tonight's during the call), its Pacific date, and when the call
+ * before it ended (that Monday, 8:00 PM Pacific). RSVPs and questions made
+ * after the previous call ended belong to this one.
+ */
+export function familySquaresSyncWindow(now: Date): { meetingDate: string; start: Date; previousCallEnd: Date } {
+  const start = nextFamilySquaresStart(now);
+  const meetingDate = pacificDate(start);
+  const [year, month, day] = meetingDate.split('-').map(Number);
+  const previous = new Date(Date.UTC(year, month - 1, day) - 7 * 86_400_000);
+  const previousCallEnd = zonedInstant(
+    previous.getUTCFullYear(), previous.getUTCMonth() + 1, previous.getUTCDate(), 20, PACIFIC,
+  );
+  return { meetingDate, start, previousCallEnd };
+}
+
 /** A soberhelpline.com Monday link the app can safely open (a Zoom join URL). */
 export function validZoomJoinUrl(value: unknown): string | null {
   if (typeof value !== 'string') return null;

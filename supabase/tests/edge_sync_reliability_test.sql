@@ -45,7 +45,8 @@ SELECT reconcile_revenuecat_entitlements(pg_temp.edge_account(),'{}');
 SELECT is((SELECT count(*)::int FROM entitlements WHERE account_id=pg_temp.edge_account() AND source='revenuecat'),0,'authoritative empty RC revokes');
 SELECT is((SELECT count(*)::int FROM entitlements WHERE account_id=pg_temp.edge_account() AND source IN ('web','scholarship')),2,'RC revocation preserves other sources');
 INSERT INTO entitlements(account_id,source,tier,expires_at) VALUES(pg_temp.edge_account(),'stripe','essential',now()+interval '5 days');
-SELECT is((SELECT count(*)::int FROM spine_outbox WHERE event_name='payment' AND payload->>'email'='edge-sync-test@example.com'),1,'existing stripe event path unaffected');
+SELECT is((SELECT count(*)::int FROM spine_outbox WHERE event_name='payment' AND payload->>'email'='edge-sync-test@example.com'),0,'a stripe entitlement is not reported as a $0 payment');
+SELECT is((SELECT count(*)::int FROM spine_outbox WHERE event_name='membership_started' AND payload->>'email'='edge-sync-test@example.com' AND payload#>>'{props,source}'='stripe'),1,'a stripe entitlement is reported as a membership');
 
 SELECT ok(NOT has_function_privilege('anon','public.claim_spine_outbox()','EXECUTE'),'claim denies anon');
 SELECT ok(NOT has_function_privilege('authenticated','public.claim_spine_outbox()','EXECUTE'),'claim denies clients');

@@ -390,6 +390,10 @@ verify_jwt = true
 [functions.livekit-token]
 verify_jwt = true
 
+# Sends Monday-call RSVPs/questions to soberhelpline.com (pg_cron, service role).
+[functions.family-squares-web-sync]
+verify_jwt = true
+
 # Public destination for Supabase email-confirmation links.
 [functions.confirm-landing]
 verify_jwt = false
@@ -405,8 +409,21 @@ verify_jwt = true
 [functions.receive-plan-review-payment]
 verify_jwt = false
 
-# soberhelpline.com redeems the app's one-time ?sso_token= (no app session).
+# soberhelpline.com's server redeems the app's one-time ?sso_token= (no app
+# session); the function requires the MEMBERSHIP_SYNC_SECRET header.
 [functions.validate-sso-token]
+verify_jwt = false
+
+# soberhelpline.com asks which reminder recipients the app already pushes (secret header).
+[functions.family-squares-push-reachable]
+verify_jwt = false
+
+# soberhelpline.com reads app memberships (secret header).
+[functions.membership-export]
+verify_jwt = false
+
+# soberhelpline.com sends its complete member list (secret header).
+[functions.membership-import]
 verify_jwt = false
 
 [analytics]
