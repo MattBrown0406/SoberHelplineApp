@@ -7,93 +7,56 @@ Information → Notes. Also confirm the demo-account and contact fields in that 
 
 ---
 
-## REVIEW NOTES (paste this)
+## REVIEW NOTES (paste this — under App Store Connect's 4,000-character limit)
 
 Thank you for reviewing Sober Helpline.
 
+DEMO ACCOUNT (sign-in is required)
+Email: appreview@soberhelpline.com
+Password: APPREVIEW
+A free account: core features plus the subscription purchase screens. Paid features unlock after a sandbox purchase.
+
 WHAT'S NEW IN 4.1
-"Book coaching" now opens our website's booking page for a live one-to-one
-coaching session with a person (see 1:1 COACHING SERVICES below). Links from
-soberhelpline.com/app open the matching screen in the app, the free Monday
-support call shows its time in the member's own time zone, and Settings shows
-where a member's subscription comes from.
+- "Book coaching" opens our website booking page for a live one-to-one session with a coach (see 1:1 COACHING). Members see the member price ($125 vs $150).
+- soberhelpline.com/app links (Universal Links) open the matching screen.
+- Community safety: block a member, report a post, crisis screening (see COMMUNITY).
+- The free Monday support call shows its time in the member's time zone; Settings shows where a subscription comes from.
 
 WHAT THE APP IS
-Sober Helpline supports the families and loved ones of people struggling with
-drug or alcohol addiction — with daily check-ins, boundary-setting tools,
-educational content, conversation scripts, peer support groups, and access to
-coaches. It is a coaching, education, and peer-support product. It is NOT medical
-care, therapy, diagnosis, or a treatment service, and it makes no such claims.
-
-SIGN-IN IS REQUIRED — DEMO ACCOUNT
-The app requires an account. Please use this demo login:
-
-   Email: appreview@soberhelpline.com
-   Password: APPREVIEW
-
-This is a direct/free App Store review account. It can access the core family-support experience and the subscription purchase surfaces; paid-only features remain locked until a sandbox purchase is completed.
-
-After tapping "Sign In," the app immediately shows "Signing you in…" while it loads the account, then opens onboarding or the Today tab. Optional subscription-provider checks run in the background and do not block entry.
-
-PROVIDER-CONNECTED ACCOUNTS
-Some families receive Sober Helpline through an invited provider organization and see that provider's branding and assigned care team. This is an invitation-only account type. The direct demo account above covers the complete consumer review path and does not require access to a reviewer-controlled email inbox.
+Support for families of people struggling with addiction: check-ins, boundary tools, education, conversation practice, peer support and coaches. Coaching, education and peer support only, not medical care, therapy or treatment.
 
 IN-APP PURCHASES
-Optional auto-renewable subscriptions (Essential, Premier) are sold in the app
-only through Apple in-app purchase. Essential unlocks private support messaging.
-Premier adds the in-app plan-review and private-video benefits described on the
-purchase screen. The app never links to any other way to buy a membership or
-any digital content or app feature.
+Essential and Premier auto-renewable subscriptions are sold only through Apple in-app purchase. The app never links to another way to buy a membership or any digital content.
 
-1:1 COACHING SERVICES (Guideline 3.1.3(d))
-"Book coaching" opens https://soberhelpline.com/book-consultation in Safari,
-where the member picks a time for a live, real-time one-to-one coaching session
-with a person (a Sober Helpline coach) and pays for that session on the
-website. This is a person-to-person service delivered live
-between two individuals (guideline 3.1.3(d)) — not app features, digital
-content, or a group service. The same screen also keeps a request form that
-sends a scheduling request with no payment; staff follows up to arrange the
-session.
-
-Essential members can also book a separate 60-minute, real-time plan review with
-a coach at the member coaching price. After the appointment request is created,
-that screen may open an external checkout on soberhelpline.com for this
-person-to-person service. Premier members receive the same live plan-review
-appointment as part of their Apple-billed subscription and are not sent to
-external checkout.
+1:1 COACHING (Guideline 3.1.3(d))
+"Book coaching" opens soberhelpline.com/book-consultation in Safari, where the member books and pays for a live, real-time one-to-one session with a person (a Sober Helpline coach). The same screen has a no-payment request form. Essential members may book a 60-minute live plan review with a coach and pay on the website; Premier members get it in their Apple subscription.
 
 WEBSITE PAGES OPENED FROM THE APP
-Some buttons open soberhelpline.com pages in Safari (coaching booking, members'
-education library, recordings, family forum, Terms and Privacy). Every such link
-carries a "from the app" marker, and on those pages the website hides all
-membership purchase links, so a member who arrives from the app is never offered
-a way to buy a membership outside Apple in-app purchase. Members are signed in
-to those pages automatically with a single-use token.
+Coaching booking, the members' library, recordings, the forum, Terms and Privacy open in Safari with a single-use sign-in token and a "from the app" marker. Those pages hide all membership purchase links.
+
+COMMUNITY (Guideline 1.2)
+Support tab > Community, for Essential and Premier members (with the demo account, after a sandbox Essential purchase). First-name-only posts.
+- Report: hides the post for the reporter at once and notifies our moderator; 3 reports hold the post until reviewed.
+- Block: hides that person's posts; unblock in the same screen.
+- Crisis screening: a post describing an emergency happening now is not published; the member sees 911, 988 and a button to message her coach. Other mentions of suicide, overdose or self-harm show her 988/911 and alert our moderator.
+- Our team reviews reported and flagged posts and can remove them.
 
 CRISIS / SAFETY
-The app surfaces 911 and 988 (Suicide & Crisis Lifeline) prominently and never
-places crisis access behind a paywall. The app is not an emergency service; this
-is stated in-app and in the description.
+911 and 988 are prominent and never behind a paywall. The app is not an emergency service; this is stated in the app and the description. Practice tools pause and show 911, 988 and the Domestic Violence Hotline if a member describes a crisis or abuse.
 
-PROVIDER / WHITE-LABEL
-Some accounts are connected to an invited provider organization. Those families access services through their provider and see that provider's branding. The direct demo account above is intentionally not provider-connected.
+PROVIDER ACCOUNTS
+Some families join through an invited provider organization and see its branding. The demo account is a direct account.
 
-LIVE GROUPS / CAMERA & MIC
-Hosts may broadcast video in live support groups (camera/mic used only when a
-host chooses to go live, or during a 1:1 coaching call). Attendees are view-only.
-Permission strings explain this.
+CAMERA / MIC
+Used only when a host goes live in a support group or during a 1:1 coaching call. Attendees are view-only.
 
 ACCOUNT DELETION
-Users can delete their account and all associated data in-app:
-Support tab → Settings (gear icon) → Delete account.
+Support tab > Settings (gear) > Delete account.
 
 PRIVACY
-Privacy Policy: https://soberhelpline.com/privacy
-Terms of Service: https://soberhelpline.com/app-terms
-Sensitive entries (check-ins, letters, messages) are private to the user and,
-where applicable, their assigned coach; never sold or used for advertising.
+https://soberhelpline.com/privacy and https://soberhelpline.com/app-terms. Check-ins, letters and messages are private to the user (and her coach where applicable), never sold or used for ads.
 
-CONTACT FOR REVIEW QUESTIONS
+CONTACT
 Matt Brown · matt@soberhelpline.com · (458) 298-8008
 
 ---
