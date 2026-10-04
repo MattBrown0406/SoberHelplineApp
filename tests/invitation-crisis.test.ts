@@ -123,6 +123,12 @@ const FIRST_PERSON = [
   'me pegó mi esposo',
   'hes hittin me',
   'the father of my kids hit me',
+  // Final audit (round 14): how often, who without "my", "n" for "and", Spanish adverbs.
+  'he always hits me when he\'s drunk',
+  'husband hit me',
+  'he got drunk n hit me',
+  'mi esposo siempre me pega',
+  'he told me to kill myself and then hit me',
 ];
 
 // Ordinary words that must never lock the kit (audit round 3 false positives).
@@ -223,6 +229,9 @@ test('audit round 8: the app twin gives the right kind, and leaves letter lines 
     // Round 13.
     ['me golpeo mi esposo', 'abuse'], ['my sons attacking me', 'abuse'], ["i wish i'd never been born", 'self_harm'],
     ['me pegó la gripe mi hijo', null], ['my sons are hitting each other', null], ['Me quemo cada vez que cocino.', null],
+    // Round 14.
+    ['esposo me pegó', 'abuse'], ['i want to fucking die', 'self_harm'], ["i've been cutting again", 'self_harm'],
+    ['mom, dad hit me again', null], ['El bebé me está pateando', null], ['he cut me some slack', null],
   ] as const) {
     assert.equal(clientCrisisKind(text), kind, text);
     assert.equal(serverCrisisKind(text), kind, `server: ${text}`);

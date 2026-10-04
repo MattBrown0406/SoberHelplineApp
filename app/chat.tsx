@@ -274,7 +274,8 @@ function ChatContent() {
                   <View style={[styles.messageWrap, isMe ? styles.messageWrapMe : styles.messageWrapCoach]}>
                     <TouchableOpacity
                       activeOpacity={0.85}
-                      onLongPress={() => setPickerMessageId(item.id)}
+                      // Read-only (no Text Line): reactions can't be saved, so no picker.
+                      onLongPress={canUseTextLine ? () => setPickerMessageId(item.id) : undefined}
                       delayLongPress={350}
                     >
                       <View

@@ -45,20 +45,22 @@ const RELATION_ES = String.raw`(?:(?:ex[- ]?)?(?:esposo|esposa|marido|mujer|pare
  * then optionally who they are right now ("my son who is using meth", "my husband who's drunk right now").
  * Spanglish too: "mi esposo hit me again", "mi husband me pegó".
  */
-const ABUSER = String.raw`(?:he|she|they|the (?:father|dad|mother|mom) of my (?:kids|children|son|daughter|baby|babies|grandkids)|(?:my|your|mi)(?:\s+(?!(?:my|your|mi)\b)[\p{L}\p{N}'’-]+){0,3}?\s+(?:${RELATION}|${RELATION_ES})(?:\s+of\s+(?:\d{1,2}|\p{L}+)\s+years)?(?:\s+(?:who|that)(?:['’]s|\s+is|\s+was|\s+has been|\s+had been)(?:\s+[\p{L}\p{N}'’-]+){1,5}?)?)`;
+const ABUSER = String.raw`(?:he|she|they|the (?:father|dad|mother|mom) of my (?:kids|children|son|daughter|baby|babies|grandkids)|(?:my|your|mi|our|his|her|the)(?:\s+(?!(?:my|your|mi|our|his|her|the)\b)[\p{L}\p{N}'’-]+){0,3}?\s+(?:${RELATION}|${RELATION_ES})(?:\s+of\s+(?:\d{1,2}|\p{L}+)\s+years)?(?:\s+(?:who|that)(?:['’]s|\s+is|\s+was|\s+has been|\s+had been)(?:\s+[\p{L}\p{N}'’-]+){1,5}?)?)`;
 const ABUSER_ES = String.raw`(?:[ée]l|ella|(?:el|mi) (?:pap[áa]|padre) de (?:mis|los) (?:hij[oa]s|ni[ñn][oa]s)|(?:mi|tu|my) (?:${RELATION_ES}|${RELATION})(?:\s+(?:mayor|menor|adolescente|adult[oa]|borrach[oa]|drogad[oa]|de \d{1,2}(?: a[ñn]os)?|que (?:\p{L}+\s+){0,3}?\p{L}+))?)`;
 /** Ongoing forms ("he's been hitting me for years", "he hits me at night") — only "hits me up (for money / every day)" etc. are figurative. */
-const NOT_FIGURATIVE_ONGOING = String.raw`(?!\s+(?:up (?:for|on|about|asking|with)\b|at (?:cards|chess|poker|checkers|games?|tennis|golf|pool|\w+ing)\b|with(?:\s+\S+){0,4}?\s+(?:news|bills?|questions?|words?|comments?|excuses?|guilt|lawsuits?|demands?|lies|control|attitude|rules|silence|expectations|kindness|love|drinking|behaviou?r|payments?|loans?|debts?|rent|fees?|costs?)\b|to\b|home\b|down\b|(?<!(?:chok|strangl)\w*\s+(?:me|us)\s+)out\b|off\b|aside\b|away\b|on (?:facebook|instagram|social|line|the phone)|over the phone|verbally|emotionally|into\b|toward|towards|where it hurts\b)|(?<=\bhit(?:s|ting)?\s+(?:me|us))\s+up\b)`;
+const NOT_FIGURATIVE_ONGOING = String.raw`(?!\s+(?:up (?:for|on|about|asking|with)\b|at (?:cards|chess|poker|checkers|games?|tennis|golf|pool|\w+ing)\b|with(?:\s+\S+){0,4}?\s+(?:news|bills?|questions?|words?|comments?|excuses?|guilt|lawsuits?|demands?|lies|control|attitude|rules|silence|expectations|kindness|love|drinking|behaviou?r|payments?|loans?|debts?|rent|fees?|costs?)\b|to\b|home\b|down\b|(?<!(?:chok|strangl)\w*\s+(?:me|us)\s+)out\b|off\b|aside\b|away\b|on (?:facebook|instagram|social|line|the phone)|over the phone|verbally|emotionally|into\b|toward|towards|where it hurts\b|in (?:his|her|their|my) sleep\b)|(?<=\bhit(?:s|ting)?\s+(?:me|us))\s+up\b)`;
 /** Past forms: "hit me up", "beat me at cards", "beat me to it", "kicked me out", "hit me with the news". */
-const NOT_FIGURATIVE_PAST = String.raw`(?!\s+(?:up\b|to\b|at (?:cards|chess|poker|checkers|games?|tennis|golf|pool|\w+ing)\b|home\b|there\b|down\b(?!\s+(?:the |a |some )?(?:stairs|steps|staircase|hall|hallway|driveway)\b)|out\b|off\b|aside\b|away\b|by\b|for\b|into (?:doing|a corner|\w+ing)\b|toward|towards|on (?:facebook|instagram|social|line|the phone)|over the phone|verbally|emotionally|where it hurts\b|with(?:\s+\S+){0,4}?\s+(?:news|bills?|questions?|words?|comments?|excuses?|guilt|lawsuits?|demands?|lies|control|attitude|rules|silence|expectations|kindness|love|drinking|behaviou?r|payments?|loans?|debts?|rent|fees?|costs?)\b)|(?<=\bshot\s+(?:me|us))\s+(?:(?:a|an|the|this|that|some|his|her|one|another|quick|dirty|nasty)\s+){0,2}(?:texts?|looks?|glances?|messages?|smiles?|winks?|e-?mails?|dms?|notes?|lines?|pics?|pictures?|photos?|videos?|grins?|glares?|warnings?|stares?|repl(?:y|ies)|snaps?)\b|(?<=\bstabbed\s+(?:me|us))\s+in the back\b(?!\s+with\b))`;
+const NOT_FIGURATIVE_PAST = String.raw`(?!\s+(?:up\b|to\b|at (?:cards|chess|poker|checkers|games?|tennis|golf|pool|\w+ing)\b|home\b|there\b|down\b(?!\s+(?:the |a |some )?(?:stairs|steps|staircase|hall|hallway|driveway)\b)|out\b|off\b|aside\b|away\b|by\b|for\b|into (?:doing|a corner|\w+ing)\b|toward|towards|on (?:facebook|instagram|social|line|the phone)|over the phone|verbally|emotionally|where it hurts\b|with(?:\s+\S+){0,4}?\s+(?:news|bills?|questions?|words?|comments?|excuses?|guilt|lawsuits?|demands?|lies|control|attitude|rules|silence|expectations|kindness|love|drinking|behaviou?r|payments?|loans?|debts?|rent|fees?|costs?)\b)|(?<=\bshot\s+(?:me|us))\s+(?:(?:a|an|the|this|that|some|his|her|one|another|quick|dirty|nasty)\s+){0,2}(?:texts?|looks?|glances?|messages?|smiles?|winks?|e-?mails?|dms?|notes?|lines?|pics?|pictures?|photos?|videos?|grins?|glares?|warnings?|stares?|repl(?:y|ies)|snaps?)\b|(?<=\bstabbed\s+(?:me|us))\s+in the back\b(?!\s+with\b)|(?<=\bcut\s+(?:me|us))\s+(?:some|loose|a check|in line|short|deep|to the|any|no|a break|down)\b|(?<=\bburn(?:ed|t)\s+(?:me|us))\s+(?:out|up|a cd|a copy)\b|\s+with (?:a |the |his |her |their |big )?(?:pillow|snowball|water balloon|nerf\w*|ball|toy|hugs?|kiss(?:es)?|tickles?|love)\b|\s+in (?:his|her|their|my) sleep\b)`;
 /** Old history, not current danger: "my dad hit me when I was a kid", "he threatened to kill me last year". */
 const NOT_HISTORY = String.raw`(?![^.!?]{0,40}\b(?:when (?:i|you|we) (?:was|were) (?:a kid|kids|a child|children|little|young|small|a teen(?:ager)?)|as a (?:kid|child|teen(?:ager)?)|growing up|years ago|last year|a long time ago|when i was growing up))`;
 /** "He just hit me", "my son actually punched me", "he finally threatened to kill me". */
-const ADV = String.raw`(?:\s+(?:just|actually|finally|even|really|again|literally|seriously)){0,2}`;
+const ADV = String.raw`(?:\s+(?:just|actually|finally|even|really|again|literally|seriously|always|sometimes|still|often|usually|constantly|occasionally|does|did)){0,2}`;
+/** "mi esposo siempre / a veces / todavía / ya / otra vez me pega". */
+const ADV_ES = String.raw`(?:\s+(?:siempre|casi siempre|a veces|todav[íi]a|ya|otra vez|de nuevo|tambi[ée]n|seguido|cada rato)){0,2}`;
 /** Her or her and the kids: "he hit me", "he is hitting us". */
 const ME_US = String.raw`(?:me|us)`;
 /** "pushing me for money / about rehab / to get help / too far / around", "pushed me past my limit". */
-const NOT_FIGURATIVE_PUSH = String.raw`(?!\s+(?:for|about|on|and|to|too|past|toward|towards|around|away|aside|out|off|over|down (?:the |my |his |her |a )?(?:list|priority|priorities|road|line|ladder|ranks?|path)|into (?:doing|giving|a corner|\w+ing)|harder|hard to)\b)`;
+const NOT_FIGURATIVE_PUSH = String.raw`(?!\s+(?:for|about|on|and(?!\s+i\s+(?:fell|hit my|landed|went down|tripped))|to|too|past|toward|towards|around|away|aside|out|off|over|down (?:the |my |his |her |a )?(?:list|priority|priorities|road|line|ladder|ranks?|path)|into (?:doing|giving|a corner|\w+ing)|harder|hard to)\b)`;
 const NOT_HISTORY_ES = String.raw`(?![^.!?]{0,40}(?:cuando (?:era|éramos|eras) (?:niñ[oa]s?|chic[oa]s?|pequeñ[oa]s?|joven(?:es)?)|de niñ[oa]|de chic[oa]|hace (?:años|mucho)|el año pasado))`;
 /** "Me quiere matar cuando vea la cuenta / si se entera / de un susto / con sus mentiras" are figures of speech. */
 const NOT_FIGURATIVE_KILL_ES = String.raw`(?!\s+(?:si|cuando|de (?:un susto|la risa|coraje|preocupaci[óo]n|angustia|pena|los nervios|hambre|disgustos?)|con (?:sus|su|tus|tu) (?:mentiras|forma|manera|actitud|palabras|vicio|drogas|bebida))(?![\p{L}]))(?![^.!?]{0,30}(?:si|cuando) se ente)`;
@@ -72,9 +74,9 @@ const BEFORE_WHO_ES = String.raw`(?:\s+en (?:la|el) (?:cara|cabeza|boca|est[óo]
 const PAST_TIME_ES = String.raw`(?:anoche|ayer|antier|anteayer|otra vez|de nuevo)`;
 /** "Me lastimó (ayer) lo que dijiste / con sus palabras" is emotional. */
 const NOT_FIGURATIVE_ES_HURT = String.raw`(?![^.!?]{0,40}(?:lo que (?:dijo|dijiste|hizo|hiciste)|(?:sus|tus) (?:palabras|mentiras|comentarios)|con lo que|el coraz[óo]n))`;
-const NOT_FIGURATIVE_ES_HIT = String.raw`(?!\s+(?:un susto|un grito|gritos|la gripe|el resfriado|la costumbre|duro|muy duro|fuerte|mucho|la noticia|la realidad|la confianza|con (?:sus|tus) palabras))`;
+const NOT_FIGURATIVE_ES_HIT = String.raw`(?!\s+(?:un susto|un grito|gritos|la gripe|la gripa|los piojos|el covid|el resfriado|la costumbre|duro|muy duro|fuerte|mucho|la noticia|la realidad|la confianza|con (?:sus|tus) palabras))`;
 /** With a named abuser "me pegó fuerte / mucho" is literal; only shouts, colds and news stay figurative. */
-const NOT_FIGURATIVE_ES_HIT_BY = String.raw`(?!\s+(?:un susto|un grito|gritos|la gripe|el resfriado|la costumbre|la noticia|la realidad|la confianza|con (?:sus|tus) palabras))`;
+const NOT_FIGURATIVE_ES_HIT_BY = String.raw`(?!\s+(?:un susto|un grito|gritos|la gripe|la gripa|los piojos|el covid|el resfriado|la costumbre|la noticia|la realidad|la confianza|con (?:sus|tus) palabras))`;
 /** Long past, not current danger: "I took an overdose years ago", "…in college". */
 const NOT_LONG_AGO = String.raw`(?![^.!?]{0,30}\b(?:years ago|when i was|last year|in (?:19|20)\d\d|as a (?:kid|teen(?:ager)?)|in (?:high school|college)|a long time ago)\b)`;
 /** What she could overdose on: pills by kind, or a common drug by name ("a bottle of Tylenol", "50 Xanax"). */
@@ -114,7 +116,7 @@ function es(source: string, negatable = true): RegExp {
 const SELF_HARM_PATTERNS = [
   // ---- English ----
   // "I'm only / just hurting myself" is the loved one's classic denial line, not a disclosure.
-  en(String.raw`${NOT_NEGATED}(?<!${QUOTE_LEAD}i(?:['’]m|['’]ll|\s+am|\s+will)?(?:\s+\w+){0,3}\s+)(?<!\b(?:make|makes|made|making|drive|drives|driving|drove|push|pushes|pushing|pushed)\s+me\s+(?:want\s+)?(?:to\s+)?)\b(?:(?:kill|hurt|harm|cut|shoot|hang|poison|drown|stab)|(?<!\b(?:only|just)\s+)(?:killing|hurting|harming|cutting|shooting|hanging|poisoning|drowning|stabbing)) myself\b${NOT_IDIOM}(?!(?<=ing myself)\s+here\b)`),
+  en(String.raw`${NOT_NEGATED}(?<!${QUOTE_LEAD}i(?:['’]m|['’]ll|\s+am|\s+will)?(?:\s+\w+){0,3}\s+)(?<!\b(?:make|makes|made|making|drive|drives|driving|drove|push|pushes|pushing|pushed)\s+me\s+(?:want\s+)?(?:to\s+)?)(?<!\b(?:told|tells|tell|telling|said|says|wants|wanted|asked|asks|dared|dares|begged|begs)\s+me\s+to\s+(?:go\s+)?)\b(?:(?:kill|hurt|harm|cut|shoot|hang|poison|drown|stab)|(?<!\b(?:only|just)\s+)(?:killing|hurting|harming|cutting|shooting|hanging|poisoning|drowning|stabbing)) myself\b${NOT_IDIOM}(?!(?<=ing myself)\s+here\b)`),
   // "I can't stop hurting myself" is ongoing self-harm, not a negation.
   en(String.raw`\b(?:can['’]t|cannot|can not|couldn['’]t) stop (?:hurting|cutting|harming|burning|starving) myself\b`),
   // Uncertainty about staying safe.
@@ -125,7 +127,7 @@ const SELF_HARM_PATTERNS = [
   en(String.raw`${NOT_QUOTED}\bi(?:['’]m|\s+am|['’]ll|\s+will)?${ADVERBS}(?:\s+(?:going to|gonna|want to|wanna|plan to|planning to|thinking (?:of|about)|might|could|should|need to|am going to|ready to|about to|trying to))?(?:\s+just)?\s+(?:end|take|ending|taking) my (?:own )?life\b(?!\s+(?:savings|away|over|back|as i knew))`),
   // "I want to die" at the end of the thought (or going on with because/and/but/so, every day…);
   // never "want to die when I see you like this / of embarrassment / inside".
-  en(String.raw`${NOT_QUOTED}\bi${ADVERBS}\s+(?:want|wanna)\s+(?:to\s+)?(?:just\s+)?die(?:\s+(?:so bad|so badly|so much|right now|now|tonight|today|already|every (?:day|night|single day)|all the time))?(?:${THOUGHT_END_MORE}|\s+so (?:this|the) pain)`),
+  en(String.raw`${NOT_QUOTED}\bi${ADVERBS}\s+(?:want|wanna)\s+(?:to\s+)?(?:(?:just|fucking|literally|really|actually|honestly|seriously|freaking|fricking|effing)\s+){0,2}die(?:\s+(?:so bad|so badly|so much|right now|now|tonight|today|already|every (?:day|night|single day)|all the time))?(?:${THOUGHT_END_MORE}|\s+so (?:this|the) pain)`),
   en(String.raw`\bi(?:['’]ve| have) been wanting to die\b`),
   en(String.raw`${NOT_QUOTED}\bi${ADVERBS}\s+(?:want|wanna)\s+(?:to\s+)?(?:just\s+)?be dead(?:\s+(?:so bad|right now|now|already))?${THOUGHT_END_MORE}`),
   en(String.raw`\b(?:nobody|no one|no-one)(?:\s+(?:would|will)|['’]d|['’]ll)?(?:\s+even)?\s+(?:miss me|notice|care)(?:\s+if i (?:died|was gone|were gone|was dead|were dead|disappeared|killed myself|was not here|wasn['’]t here))\b`),
@@ -137,7 +139,15 @@ const SELF_HARM_PATTERNS = [
   en(String.raw`\bi wish i could (?:just )?die${CLAUSE_END}`),
   en(String.raw`\bi(?:['’]m| am) ready to die\b(?!\s+(?:for|on (?:this|that) hill)\b)`),
   en(String.raw`\bi(?:['’]d| would) (?:much )?rather (?:just )?be dead${CLAUSE_END}`),
-  en(String.raw`${NOT_QUOTED}\bi${ADVERBS}\s+(?:don't|do not|dont|don’t) (?:want to|wanna) (?:live|be alive)(?:\s+(?:anymore|any more))?${THOUGHT_END_MORE}`),
+  en(String.raw`${NOT_QUOTED}\bi${ADVERBS}\s+(?:don't|do not|dont|don’t) (?:want to|wanna) (?:live|be alive|exist)(?:\s+(?:anymore|any more))?${THOUGHT_END_MORE}`),
+  // "I'm so tired of living", "I'm done living", "life isn't worth living", "what's the point of living", "no reason to live anymore".
+  en(String.raw`\bi(?:['’]m|\s+am)${ADVERBS}(?:\s+(?:so|really|just|very))?\s+(?:tired of|sick of|done) (?:living|being alive)${THOUGHT_END_MORE}|\blife (?:isn['’]t|is not|ain['’]t|is no longer) worth living${THOUGHT_END_MORE}|\bwhat['’]?s the point (?:of|in) (?:living|being alive|going on)(?:\s+(?:anymore|any more))?(?:${CLAUSE_END}|\?)|(?:^|[.!?…]\s*)no (?:reason|point) (?:to (?:live|go on)|in (?:living|going on))(?:\s+(?:anymore|any more))?${THOUGHT_END_MORE}|\bthere(?:['’]s| is) no point in (?:living|going on)(?:\s+(?:anymore|any more))?${THOUGHT_END_MORE}`),
+  // "I've been cutting again", "I started cutting again", "I'm self harming again", "I relapsed on self harm".
+  en(String.raw`\bi(?:['’]ve been|\s+have been|\s+been|['’]m|\s+am|\s+started|\s+keep|['’]m still|\s+am still)\s+cutting(?:\s+myself)?(?:\s+(?:again|lately|every (?:day|night)))?${CLAUSE_END}|\bi(?:['’]m|\s+am|['’]ve been|\s+have been|\s+started|\s+keep|\s+relapsed (?:on|with|into))\s+self[- ]?harm(?:ing)?\b`),
+  en(String.raw`\bi (?:wish i could|want to|wanna|just want to|need to) (?:just )?disappear (?:forever|for good)\b|\bthis is (?:my )?(?:final )?goodbye\b(?!\s+(?:to|for)\b)|\bi(?:['’]m| am) done[.!,]?\s+goodbye\b`),
+  en(String.raw`\bi(?:['’]ve|\s+have)?(?:\s+been)?\s+(?:saving|stockpiling|hoarding|collecting)(?:\s+up)?\s+(?:all\s+)?(?:my\s+)?${PILLS}\b|\bi(?:['’]m|\s+am)?\s+(?:sitting\s+)?in (?:the|my) (?:garage|car) with the (?:car|engine|motor) running\b`),
+  en(String.raw`\bi\s+(?:drank|had (?:a bottle|a lot|too much))\b[^.!?]{0,40}\band (?:then\s+)?(?:took|swallowed|popped)\s+(?:(?:a bunch|a handful|all|a bottle|some|too many)(?: of)?\s+)?(?:(?:my|his|her)\s+)?${PILLS}\b|\bi\s+(?:mixed|combined)\s+(?:my\s+)?${PILLS}\s+(?:and|with)\s+(?:alcohol|booze|wine|vodka|liquor|beer)\b[^.!?]{0,30}\b(?:on purpose|to die|so i (?:would|wouldn['’]t|won['’]t|could))`),
+  en(String.raw`\bi(?:['’]m|\s+am)?${ADVERBS}\s+(?:going to|gonna|want to|wanna|about to|trying to)\s+(?:(?:walk|step|run|jump) (?:in|into|out into|in front of) (?:traffic|a (?:car|truck|train|bus)|the (?:highway|freeway|road|train|tracks))|(?:drink|starve) myself to death)\b`),
   // "be here" goes on so often ("…and pretend", "…because I'm scared of you",
   // "…anymore, so I'm moving out") that it only counts at the end of a sentence.
   en(String.raw`\bi${ADVERBS}\s+(?:don't|do not|dont|don’t) (?:want to|wanna) be here(?:\s+(?:anymore|any more))?${SENTENCE_END}`),
@@ -204,7 +214,7 @@ const SELF_HARM_PATTERNS = [
   // With an abuser as the subject, a past-time word ("anoche me golpeo", "me lastimo ayer") or "me quemo con un
   // cigarro", it is an accent-dropped preterite — someone else did it (abuse, below),
   // and "me lastimo lo que hiciste / que no vinieras" is an accent-dropped "me lastimó".
-  es(String.raw`(?<!(?:solo|s[óo]lo|solamente|nom[áa]s)\s+)(?<!${ABUSER_ES}\s+)(?<!${PAST_TIME_ES}\s+(?=me (?:golpeo|lastimo)(?![\p{L}])))(?!me (?:golpeo|lastimo)\s+${PAST_TIME_ES}(?![\p{L}]))(?!me quemo con (?:un|una|el|la|su)(?![\p{L}]))(?!me (?:lastimo|corto|golpeo|quemo)${BEFORE_WHO_ES})(?!me quemo (?:cada vez que|cuando|siempre que) (?:cocino|plancho|horneo|fr[íi]o|cocinando))me (?:lastimo|corto|golpeo|quemo|hago da[ñn]o|estoy lastimando|estoy cortando|estoy haciendo da[ñn]o|he estado (?:cortando|lastimando|haciendo da[ñn]o))${NOT_IDIOM_ES}(?!\s+(?:lo que|que|tu|tus|su|sus|ver(?:te|lo|la|los)|o[íi]r(?:te|lo|la)|saber)(?![${L}]))`),
+  es(String.raw`(?<!(?:solo|s[óo]lo|solamente|nom[áa]s)\s+)(?<!${ABUSER_ES}\s+)(?<!${PAST_TIME_ES}\s+(?=me (?:golpeo|lastimo)(?![\p{L}])))(?!me (?:golpeo|lastimo)\s+${PAST_TIME_ES}(?![\p{L}]))(?!me quemo con (?:un|una|el|la|su)(?![\p{L}]))(?!me (?:lastimo|corto|golpeo|quemo)${BEFORE_WHO_ES})(?!me quemo (?:cada vez que|cuando|siempre que) (?:cocino|plancho|horneo|fr[íi]o|cocinando))(?!me (?:lastimo|corto|golpeo|quemo) (?:la|el|los|las) \p{L}+\s+(?!cuando(?![\p{L}]))\p{L}+(?:ando|iendo)(?![\p{L}]))me (?:lastimo|corto|golpeo|quemo|hago da[ñn]o|estoy lastimando|estoy cortando|estoy haciendo da[ñn]o|he estado (?:cortando|lastimando|haciendo da[ñn]o))${NOT_IDIOM_ES}(?!\s+(?:lo que|que|tu|tus|su|sus|ver(?:te|lo|la|los)|o[íi]r(?:te|lo|la)|saber)(?![${L}]))`),
   es(String.raw`(?:me (?:voy a )?pego|(?:voy a |quiero )?pegarme|me (?:voy a|quiero) pegar) un tiro`),
   es(String.raw`me mato(?=\s*(?:[.!?,;…]|$)|\s+(?:si|y ya|de una vez|hoy|ahora|esta noche)(?![${L}]))`),
   es(String.raw`pensamientos suicidas|ganas de morir(?:me)?|pienso en (?:el suicidio|suicidarme|matarme)`),
@@ -221,6 +231,8 @@ const SELF_HARM_PATTERNS = [
   es(String.raw`estoy (?:en|sobre|arriba de|parad[ao] en|en la orilla de|en el borde de) (?:el|la|un|una|este|esta) (?:puente|techo|azotea|edificio|balc[óo]n|cornisa|precipicio|acantilado|barranco)[^.!?]{0,40}(?:saltar|brincar|tirarme|aventarme|lanzarme)(?!\s+(?:en paraca[íi]das|la cuerda|de (?:alegr[íi]a|gusto)))`),
   es(String.raw`dormir(?:me)? y no (?:volver a )?despertar(?:me)?|no (?:quiero|quisiera) despertar(?:me)?(?: m[áa]s| ma[ñn]ana)?${THOUGHT_END_ES}`, false),
   new RegExp(String.raw`(?:^|[^${L}])no quiero (?:vivir|seguir viviendo)(?: m[áa]s| anymore| any more)?${THOUGHT_END_ES}`, 'iu'),
+  es(String.raw`(?:ya )?no tengo (?:raz[óo]n(?:es)?|motivos?) para vivir|no tengo (?:nada )?por (?:qu[ée]|lo que) vivir|no tengo para qu[ée] vivir`, false),
+  es(String.raw`mejor me muero${THOUGHT_END_ES}|(?:estar[íi]a|estoy|estar[íi]amos) mejor muert[oa]s?|estoy (?:muy |tan |bien )?cansad[ao] de vivir${THOUGHT_END_ES}`),
   es(String.raw`me (?:hice|he hecho) da[ñn]o a prop[óo]sito|me (?:cort[ée]|quem[ée]|lastim[ée]|golpe[ée]) a prop[óo]sito|(?:me siento|estoy|ando|me he sentido) (?:muy |bien |algo )?suicidal?`),
   new RegExp(String.raw`(?:^|[^${L}])no quiero estar aqu[íi](?: m[áa]s)?${SENTENCE_END}`, 'iu'),
 ];
@@ -236,6 +248,15 @@ const ABUSE_PATTERNS = [
   en(String.raw`\b${ABUSER}(?:['’]s|\s+is|\s+are|['’]re|\s+has|\s+have|\s+was|\s+were)?(?:\s+been)?${ADV}\s+(?:hitting|beating|beatin|choking|strangling|kicking|punching|slapping|stabbing|raping|smacking|biting|hits|beats|chokes|strangles|kicks|punches|slaps|stabs|rapes|smacks|bites|beat(?:ing|in)\s+on)\s+${ME_US}\b${NOT_FIGURATIVE_ONGOING}${NOT_HISTORY}`),
   // "My husband is attacking me", "my son is attacking me with a knife" — not "…for setting a boundary".
   en(String.raw`\b${ABUSER}(?:['’]s|\s+is|['’]re|\s+are)${ADV}\s+attacking ${ME_US}(?:\s+(?:right now|again|physically))?(?:${CLAUSE_END}|\s+with\s+(?:a|an|his|her|their|the)\s+(?:\w+\s+)?(?:knife|gun|pistol|bat|hammer|machete|axe|blade|weapon|bottle|pipe|chair)\b)`),
+  // "He'll hit me if I say anything" — a threat she lives under.
+  en(String.raw`\b${ABUSER}(?:\s+will|['’]ll|\s+would)${ADV}\s+(?:hit|beat|choke|hurt|slap|kill) (?:me|us)(?:\s+again)?\s+if i\b`),
+  // "He told me to kill myself", "he tried to make me kill myself" — his words, her abuse.
+  en(String.raw`\b${ABUSER}${ADV}\s+(?:told|tells|keeps telling|said|says|keeps saying|screamed|yelled)(?: (?:at|to))? me (?:to|i should) (?:go )?kill myself\b|\b${ABUSER}(?:['’]s|\s+is)?${ADV}\s+(?:tried|trying|tries|keeps trying|wants|wanted) to (?:make|get|push) me (?:to )?kill myself\b`),
+  // "He grabbed my throat", "held a pillow over my face", "poured boiling water on me", "pinned me to the bed",
+  // "locked me in the bathroom", "my son is violent with me", "he's physically abusive".
+  en(String.raw`\b${ABUSER}(?:['’]s|\s+is|\s+was|\s+has)?${ADV}\s+(?:(?:grabbed|squeezed|choked|grabbing|squeezing) my (?:throat|neck)|(?:held|put|pressed|holding|putting|pressing) (?:a|the) pillow (?:over|on) my face|(?:suffocated|smothered|suffocating|smothering) (?:me|us)|(?:poured|threw) (?:boiling|hot) (?:water|coffee|oil|grease) (?:on|at) (?:me|us)|pinned me (?:to|against|on) (?:the|a|my) (?:bed|floor|wall|ground|couch|car)|sat on (?:me|my chest)|locked me in (?:the|a|my|his|our) (?:bathroom|room|bedroom|closet|basement|house|car|garage|trunk)|grabbed my (?:arm|wrist|hair|face) so hard|put (?:his |her |their )?hands on (?:me|us))\b${NOT_HISTORY}`),
+  en(String.raw`\b${ABUSER}(?:['’]s|\s+is|\s+was|\s+gets|\s+got|\s+has been|\s+can be)${ADV}(?:\s+(?:so|really|very|super))?\s+(?:violent|physical|rough) with (?:me|us)\b${NOT_HISTORY}|\b${ABUSER}(?:['’]s|\s+is|\s+was|\s+has been)${ADV}\s+(?:physically|sexually) (?:abusive|violent)\b${NOT_HISTORY}`),
+  en(String.raw`\bi(?:['’]m|\s+am|m)?\s+(?:afraid|scared|terrified) for my life\b|\bi fear for my life\b`),
   // "He hit the kids and me", "my husband hit my daughter and me".
   en(String.raw`\b${ABUSER}${ADV}\s+(?:hit|beat|punched|kicked|slapped|choked|attacked|hurt|shoved|pushed)\s+(?:the (?:kids|children|baby)|my (?:\p{L}+\s+)?(?:daughter|son|kids|children|baby|grandson|granddaughter|sister|mom|mother)|him|her|them)\s+and\s+me\b${NOT_HISTORY}`),
   // "He's drunk and beating me", "my son is high and hitting me".
@@ -256,7 +277,7 @@ const ABUSE_PATTERNS = [
   en(String.raw`\b${ABUSER}\s+(?:slammed|smashed|banged|hit) my head (?:into|against|on)\b`),
   // Injuries he caused: "he broke my nose", "my husband broke my ribs", "my son gave me a black eye" — never "I broke my arm".
   en(String.raw`\b${ABUSER}${ADV}\s+(?:broke|fractured|cracked|busted|dislocated|split|bloodied)\s+my\s+(?:nose|arms?|ribs?|jaw|wrists?|fingers?|hands?|cheekbone|eye socket|collarbone|skull|teeth|tooth|lips?)\b(?!-)${NOT_HISTORY}|\b${ABUSER}${ADV}\s+gave me (?:a )?(?:black eye|concussion|bloody nose|split lip|fat lip)\b${NOT_HISTORY}`),
-  en(String.raw`(?<!\bremember when\s+)(?!(?<=\bwhen\s+)your\b)\b${ABUSER}(?:['’]s|\s+has|\s+have)?(?:\s+been)?${ADV}\s+(?:hit|beat|beaten|choked|strangled|punched|kicked|slapped|raped|assaulted|attacked|stabbed|shot|smacked|whooped|whupped|bit|molested|sexually (?:assaulted|abused))\s+${ME_US}\b${NOT_FIGURATIVE_PAST}${NOT_HISTORY}(?![^.!?]{0,40}\bwith (?:that|the|this|his|her|their|those) (?:news|words?|comments?|remarks?|questions?))`),
+  en(String.raw`(?<!\bremember when\s+)(?!(?<=\bwhen\s+)your\b)\b${ABUSER}(?:['’]s|\s+has|\s+have)?(?:\s+been)?${ADV}\s+(?:hit|beat|beaten|choked|strangled|punched|kicked|slapped|raped|assaulted|attacked|stabbed|shot|smacked|whooped|whupped|bit|molested|sexually (?:assaulted|abused)|abused|backhanded|headbutted|head-butted|kneed|elbowed|tackled|body ?slammed|cut|burned|burnt|stomped on|spit on|spat on|beat on)\s+${ME_US}\b${NOT_FIGURATIVE_PAST}(?![^.!?]{0,40}\b(?:joking|kidding|playing around|horsing around|by accident|accidentally)\b)${NOT_HISTORY}(?![^.!?]{0,40}\bwith (?:that|the|this|his|her|their|those) (?:news|words?|comments?|remarks?|questions?))`),
   en(String.raw`(?<!\bremember when\s+)\b${ABUSER}(?:['’]s|\s+has|\s+have)?(?:\s+been)?${ADV}\s+(?:pushed|shoved)\s+me\b${NOT_FIGURATIVE_PUSH}${NOT_HISTORY}`),
   en(String.raw`\b${ABUSER}(?:['’]s|\s+has)?${ADV}\s+(?:choked|strangled) me out\b`),
   en(String.raw`\b${ABUSER}(?:['’]s|\s+has)?${ADV}\s+(?:beat|beats|beaten|beating)\s+${ME_US} up\b${NOT_HISTORY}`),
@@ -299,25 +320,27 @@ const ABUSE_PATTERNS = [
   // "he's going to kill me (when he finds out)".
   en(String.raw`\b${ABUSER}(?:['’]s|\s+is|\s+was|\s+keeps)?\s+(?:said|says|saying|told me|tells me|telling me|has said|screamed|screams|screaming|yelled|yells|yelling|texted|texts|texting)(?:(?: (?:at|to))? me)?(?: that)? (?:he|she|they)(?:['’]s| is| was| are|['’]re)? (?:going to|gonna) (?:kill|shoot|stab|strangle|hurt) ${ME_US}(?:\s+all)?\b(?![^.!?]{0,30}\b(?:if|when) (?:he|she|they) (?:finds? out|sees?|hears?|knows?))`),
   en(String.raw`\b${ABUSER}(?:['’]s|\s+is|\s+was|\s+keeps)?\s+(?:said|says|saying|told me|tells me|telling me|has said|screamed|screams|screaming|yelled|yells|yelling|texted|texts|texting)(?:(?: (?:at|to))? me)?(?: that)? (?:he|she|they)(?:['’]d|['’]ll| would| will) (?:kill|shoot|stab|strangle|hurt) ${ME_US}(?:\s+all)?\b(?![^.!?]{0,30}\b(?:if|when) (?:he|she|they) (?:finds? out|sees?|hears?|knows?))`),
-  en(String.raw`\b(?:scared|afraid|terrified)(?: that)? ${ABUSER}(?:['’]ll| will| is going to| is gonna|['’]s going to|['’]s gonna) (?:kill|hurt|beat) me\b(?!\s+with\b)(?![^.!?]{0,30}\b(?:if|when) (?:he|she|they) (?:finds? out|sees?|hears?|knows?))`),
+  en(String.raw`\b(?:scared|afraid|terrified|worried|know|sure)(?: that)? ${ABUSER}(?:['’]ll| will| is going to| is gonna|['’]s going to|['’]s gonna) (?:kill|hurt|beat|hit|choke|strangle|stab|shoot) me\b(?!\s+with\b)(?![^.!?]{0,30}\b(?:if|when) (?:he|she|they) (?:finds? out|sees?|hears?|knows?))`),
   en(String.raw`\b${ABUSER} (?:grabbed|held|had|pinned) me by the (?:throat|neck)\b`),
   en(String.raw`\b${ABUSER}${ADV}\s+(?:pushed|shoved|threw|slammed|kicked|dragged) ${ME_US} (?:down (?:the )?stairs|into (?:a|the) wall|against (?:a|the) wall|to the (?:ground|floor)|on(?:to)? the (?:ground|floor))\b`),
   en(String.raw`\b${ABUSER} (?:put|wrapped|had) (?:his|her|their) hands? (?:around|on) my (?:neck|throat)\b`),
-  es(String.raw`(?:me|nos) (?:est[áa]n?|estaba|estaban) (?:pegando|golpeando|ahorcando|estrangulando)`),
+  // Never the baby kicking or the dog biting; never "una paliza jugando cartas".
+  es(String.raw`(?<!(?:perr[oa]|perrit[oa]|gat[oa]|gatit[oa]|beb[ée]|bebit[oa]|mosquito|zancudo|bicho|caballo)\s+)(?:me|nos) (?:est[áa]n?|estaba|estaban) (?:pegando|golpeando|ahorcando|estrangulando|pateando|violando|mordiendo|cacheteando|abofeteando|agrediendo|jalando (?:el|del) (?:pelo|cabello)|dando (?:una )?(?:golpiza|paliza|cachetadas|patadas|golpes))(?![^.!?]{0,30}(?:jugando|juego|partido|cartas|ajedrez|domin[óo]|p[óo]ker|tenis|f[úu]tbol|videojuego|dormid[oa]|en (?:su|mi) sueño))`),
   // "Mi hijo me sigue pegando", "me empezó a pegar", "empezó a golpearme" — not "…me sigue pegando gritos".
   es(String.raw`(?:me|nos) (?:sigue|segu[íi]a|sigui[óo]) (?:pegando|golpeando|ahorcando|pateando|lastimando)${NOT_FIGURATIVE_ES_HIT}|(?:me|nos) (?:empez[óo]|comenz[óo]|empieza|comienza) a (?:pegar|golpear|ahorcar|patear|estrangular)${NOT_FIGURATIVE_ES_HIT}|(?:empez[óo]|comenz[óo]) a (?:pegarme|golpearme|ahorcarme|patearme|estrangularme|pegarnos|golpearnos)`),
   es(String.raw`me (?:est[áa] )?(?:siguiendo|persiguiendo|correteando) con (?:un|una|el|la|su) (?:cuchillo|navaja|pistola|arma|machete|bate)`),
   // Past-habitual: "mi esposo me pegaba" — but "tu papá me pegaba…", told to the child, is history.
-  es(String.raw`(?!tu\s)${ABUSER_ES} me (?:pegaba|golpeaba|ahorcaba|pateaba)${NOT_FIGURATIVE_ES_HIT_BY}${NOT_HISTORY_ES}`),
+  es(String.raw`(?!tu\s)${ABUSER_ES}${ADV_ES} me (?:pegaba|golpeaba|ahorcaba|pateaba)${NOT_FIGURATIVE_ES_HIT_BY}${NOT_HISTORY_ES}`),
   // Who after the verb: "me pegó mi esposo", "me golpeo mi hijo anoche", "me pegó fuerte mi esposo", "me pegó el papá de mis hijos".
   es(String.raw`me (?:peg[óo]|golpe[óo]|ahorc[óo]|pate[óo]|viol[óo]|lastim[óo]|empuj[óo]|quem[óo]|cort[óo]|atac[óo]|agredi[óo]|apu[ñn]al[óo]|dispar[óo]|abofete[óo]|estrangul[óo]|pegaron|golpearon)${BEFORE_WHO_ES}${NOT_FIGURATIVE_ES_HURT}(?!\s+a\s+\p{L}+r(?:le|les|me|te|lo|la|nos)?(?![\p{L}]))`),
-  es(String.raw`me (?:peg[óo]|golpe[óo]|pate[óo]) (?:bien|muy|s[úu]per) (?:feo|fuerte)${CLAUSE_END}`),
+  es(String.raw`(?<!(?:la|esa|esta) (?:noticia|vida|realidad|muerte|situaci[óo]n|p[ée]rdida)\s+)me (?:peg[óo]|golpe[óo]|pate[óo]) (?:(?:bien|muy|s[úu]per) )?(?:feo|fuerte|duro)${CLAUSE_END}`),
   es(String.raw`me (?:peg[óo]|golpe[óo]|pate[óo]|abofete[óo]) (?:en (?:el|la) (?:cara|cabeza|boca|est[óo]mago|panza|barriga|espalda|costillas|pecho|pierna|ojo)|con (?:el|un|una|su) (?:cintur[óo]n|pu[ñn]o|palo|botella|zapato|bate))`),
   es(String.raw`tiene (?:una|un) (?:pistola|arma|cuchillo|navaja)[^.!?]{0,30}(?:me amenaza|amenaz\p{L}*|matarme|me va a matar)`),
   // "Mi hijo tiene un cuchillo y no me deja salir" (either order) — a bare "tiene un arma" stays with the model.
   es(String.raw`tiene (?:una|un) (?:pistola|arma|cuchillo|navaja|escopeta|rifle)[^.!?]{0,40}no me (?:deja|quiere dejar|va a dejar) (?:salir|irme|ir)`),
   es(String.raw`no me (?:deja|quiere dejar|va a dejar) (?:salir|irme)[^.!?]{0,40}tiene (?:una|un) (?:pistola|arma|cuchillo|navaja|escopeta|rifle)`),
-  es(String.raw`${ABUSER_ES} me (?:pega|golpea|maltrata|ahorca|patea|viola|empuja|peg[óo]|golpe[óo]|ahorc[óo]|pate[óo]|viol[óo]|empuj[óo]|ha pegado|ha golpeado|ha ahorcado|ha violado|ha empujado)${NOT_FIGURATIVE_ES_HIT_BY}${NOT_HISTORY_ES}(?!\s+a\s+\p{L}+r(?:le|les|me|te|lo|la|nos)?(?![\p{L}]))`),
+  es(String.raw`${ABUSER_ES}${ADV_ES} me (?:pega|golpea|maltrata|ahorca|patea|viola|empuja|muerde|cachetea|abofetea|agrede|abusa|peg[óo]|golpe[óo]|ahorc[óo]|pate[óo]|viol[óo]|empuj[óo]|mordi[óo]|cachete[óo]|abofete[óo]|agredi[óo]|forz[óo]|abus[óo]|ha pegado|ha golpeado|ha ahorcado|ha violado|ha empujado)${NOT_FIGURATIVE_ES_HIT_BY}${NOT_HISTORY_ES}(?!\s+a\s+\p{L}+r(?:le|les|me|te|lo|la|nos)?(?![\p{L}]))`),
+  es(String.raw`${ABUSER_ES}${ADV_ES} me (?:hit|choked|punched|kicked|slapped|beat|raped|stabbed|is (?:hitting|choking|beating))(?![\p{L}])${NOT_FIGURATIVE_PAST}|${ABUSER_ES}${ADV_ES} me (?:da|daba|dio|est[áa] dando) (?:cachetadas|bofetadas|golpes|patadas|pu[ñn]etazos|palizas|golpizas)|me (?:oblig[óo]|forz[óo]) a tener (?:relaciones|sexo)|${ABUSER_ES}${ADV_ES} (?:abusa|abus[óo]|abusaba|ha abusado) de m[íi](?!\s+(?:confianza|bondad|paciencia|dinero|generosidad))|${ABUSER_ES}${ADV_ES} me va a (?:pegar|golpear|ahorcar)${NOT_FIGURATIVE_KILL_ES}|${ABUSER_ES}${ADV_ES} me (?:encerr[óo]|tiene encerrad[ao]) en (?:el|la|un|una|mi|su) (?:cuarto|ba[ñn]o|rec[áa]mara|habitaci[óo]n|casa|cl[óo]set|s[óo]tano|carro|coche)|${ABUSER_ES}${ADV_ES} me (?:amenaza|amenaz[óo]|est[áa] amenazando)${CLAUSE_END}|temo por mi vida|tengo miedo por mi vida`),
   // "Mi esposo me lastimó." — a whole clause; never "…con sus mentiras / lo que dijo".
   es(String.raw`${ABUSER_ES} me (?:lastim[óo]|ha lastimado)${CLAUSE_END}${NOT_FIGURATIVE_ES_HURT}`),
   // Subjectless only with a time, "again", or "when he drinks" — "me pegó anoche", "me pega cuando bebe".
@@ -329,7 +352,7 @@ const ABUSE_PATTERNS = [
   es(String.raw`(?:anoche|ayer|hoy|esta ma[ñn]ana|esta noche|otra vez) me (?:peg[óo]|golpe[óo]|ahorc[óo]|pate[óo]|viol[óo]|lastim[óo])${NOT_FIGURATIVE_ES_HIT}${NOT_FIGURATIVE_ES_HURT}(?!\s+la confianza)`),
   es(String.raw`me (?:quiso|trat[óo] de|intent[óo]) (?:ahorcar|estrangular|ahogar|matar)(?!\s+(?:de|a)\s)`),
   // A whole sentence that is only "Me pegó." / "Me ahorcó." — the subject is someone else.
-  new RegExp(String.raw`(?:^|[.!¡]\s*)me (?:peg[óo]|golpe[óo]|ahorc[óo]|estrangul[óo]|viol[óo]|pate[óo]|pegaron|golpearon|patearon|violaron)\s*(?:[.!,;…]|$)`, 'iu'),
+  new RegExp(String.raw`(?:^|[.!¡]\s*)me (?:peg[óo]|golpe[óo]|ahorc[óo]|estrangul[óo]|viol[óo]|pate[óo]|pegaron|golpearon|patearon|violaron|pega|golpea)\s*(?:[.!,;…]|$)`, 'iu'),
   // Explicit threats and attempts — every lead-in the self-harm "matarme" form excludes, except
   // the figurative "va a / iba a" ("esta angustia me va a matar"), which is left to the model.
   es(String.raw`(?:me (?:est[áa] )?)?amenaz(?:a|ó|o|aba|ando) con (?:matarme|matarnos|un cuchillo|una pistola|un arma|una navaja|hacerme da[ñn]o|lastimarme|golpearme|pegarme|apu[ñn]alarme|dispararme|ahorcarme)|me (?:est[áa] )?amenaz(?:a|ó|o|aba|ando) de muerte|me tienen? amenazad[ao] (?:de muerte|con (?:matarme|una pistola|un arma|un cuchillo|una navaja|su (?:pistola|arma|cuchillo)))`),
@@ -342,7 +365,7 @@ const ABUSE_PATTERNS = [
   es(String.raw`(?:fui|he sido|estoy siendo|fue) (?:golpead[ao]|agredid[ao]|violad[ao]|apu[ñn]alad[ao]|ahorcad[ao]|estrangulad[ao]|pateado|pateada|baleada|baleado) por ${ABUSER_ES}`),
   es(String.raw`${ABUSER_ES} (?:me |nos )?(?:quiere|quer[íi]a|intent[óo]|trat[óo] de|quiso) (?:matar|ahorcar|estrangular|ahogar|hacer da[ñn]o|lastimar)(?:me|nos)?${NOT_FIGURATIVE_KILL_ES}`),
   es(String.raw`(?:dijo|dice|me dijo|ha dicho|me dice) que (?:me )?(?:va|iba) a (?:matar(?:me)?|ahorcar(?:me)?)`),
-  es(String.raw`miedo (?:de )?que me (?:mate|vaya a matar|pegue|golpee)`),
+  es(String.raw`miedo (?:de )?que (?:${ABUSER_ES}\s+)?me (?:mate|vaya a matar|pegue|golpee|haga da[ñn]o|lastime|ahorque)`),
   es(String.raw`${ABUSER_ES} me (?:empuj[óo]|tir[óo]|avent[óo]|lanz[óo]) (?:por las escaleras|escaleras abajo|contra la pared|al suelo|al piso)`),
   es(String.raw`me (?:agarr[óo]|apret[óo]|tom[óo]) (?:del|el) cuello|me (?:agarr[óo]|apret[óo]) la garganta`),
   // Blows: "me dio una cachetada / patada / un puñetazo / una golpiza" — never "una paliza jugando cartas", "un golpe de suerte".
@@ -390,6 +413,11 @@ const SLANG: ReadonlyArray<[RegExp, string]> = [
   [/(?<=\b(?:to|gonna|wanna|i['’]ll|i will|might|should|just)\s+)off\s+myself(?![\p{L}\p{N}'’])/giu, 'kill myself'],
   [/(?<![\p{L}])k(iero|ieres|iere|ieren|isiera)(?![\p{L}])/giu, 'qu$1'],
   [/(?<=\bwant(?:\s+to)?\s+)morir(?:me)?(?![\p{L}])/giu, 'die'],
+  // "he got drunk n hit me", "& / +" for "and"; "jus" for "just"; "nite" for "night"; "quiero die".
+  [/(?<=\p{L})\s+(?:n|&|\+)\s+(?=\p{L})/giu, ' and '],
+  [/(?<![\p{L}'’])jus(?![\p{L}'’])/giu, 'just'],
+  [/(?<![\p{L}'’])nite(?![\p{L}'’])/giu, 'night'],
+  [/(?<=\bquiero\s+)die(?![\p{L}])/giu, 'morir'],
   // Dropped g: "hes hittin me", "my husbands beatin me", "hes chokin me".
   [/\b(hitt|chok|punch|kick|beat|slapp|smack|strangl|stabb|attack|hurt|push|shov|grabb|dragg|throw|kill|rap|threaten|chas|com|go|try|gett|bit|hold|point|swing|scream|yell|cutt|burn|tak|drink|us|say|plann)in\b/giu, '$1ing'],
   // The possessive-less "'s": "my sons hitting me", "my husbands been beating me", "my exs drunk and…" — never a
@@ -399,7 +427,7 @@ const SLANG: ReadonlyArray<[RegExp, string]> = [
   [/(\p{L})\s*[,(]\s*\d{1,2}\s*(?:yo|y\/o|years? old|a[ñn]os)?\s*[,)]/gu, '$1'],
 ];
 /** "i want 2 die". */
-const TWO_TO_RE = /(?<=\b(?:want|wanna|going|need|ready|have))\s+2(?=\s+(?:die|live|kill|end|be dead|take|hurt|cut|jump|overdose|od)\b)/giu;
+const TWO_TO_RE = /(?<=\b(?:want|wanna|going|need|ready|have))\s+(?:2|too)(?=\s+(?:die|live|kill|end|be dead|take|hurt|cut|jump|overdose|od)\b)/giu;
 /** Emoticons: ":(", ":'(", ":-/", ";)", ":D", "</3" — each ends the sentence, like an emoji. */
 const EMOTICON_RE = /(?<![\p{L}\p{N}])[:;=]['’]?-?(?:[()[\]\/\\|{}<>@*#$]+|[DPpOoSs3](?![\p{L}\p{N}]))|<\/?3+(?![\p{N}])/gu;
 /** A run of emoji (with skin tones, joiners, variation selectors, and spaces between them). */
@@ -407,7 +435,10 @@ const EMOJI_RUN_RE = /[\p{So}\p{Sk}\p{Co}][\p{So}\p{Sk}\p{Co}\p{Cf}\p{Mn}\s]*/gu
 /** Asides end the clause: a spaced dash, an em/en dash, brackets, asterisks ("- he relapsed", "(seriously)", "*sigh*"). */
 const ASIDE_RE = /\s-+\s|[–—]+|[()[\]{}*]+/g;
 /** A sentence typed without its subject: "took all my pills", "just want to die", "feeling suicidal tonight" — never a question. */
-const DROPPED_I_RE = /(^|[.!?…]\s*)(?=(?:just\s+)?(?:took|swallowed|want|wanna|feel|wish|can['’]t|cannot|don['’]t|overdosed|od['’]?d|cut|slit|got|was)\b(?![^.!?]*\?))/giu;
+const DROPPED_I_RE = /(^|[.!?…]\s*)(?=(?:just\s+)?(?:took|swallowed|want|wanna|feel|wish|can['’]t|cannot|don['’]t|overdosed|od['’]?d|cut|slit|got|was|been)\b(?![^.!?]*\?))/giu;
+/** Who, bare, at the start of a sentence: "husband hit me", "bf hit me again", "esposo me pegó" (never a vocative "Son, …"). */
+const BARE_WHO_RE = /(^|[.!?…]\s*|(?<!\b(?:mom|mommy|mama|dad|daddy|papa|son|honey|sweetheart|sweetie|baby|buddy|mijo|mija|hijo|hija)\s*),\s*)(?=(?:husband|hubby|bf|boyfriend|son|ex|dad|stepdad|stepson|fianc[ée]e?|girlfriend|gf|wife|partner|nephew|grandson)\s+\p{L})/giu;
+const BARE_WHO_ES_RE = /(^|[.!?…,]\s*)(?=(?:esposo|marido|novio|hijo|hija|pareja|ex|yerno|sobrino|nieto)\s+(?:me|nos)(?![\p{L}]))/giu;
 const DROPPED_IM_RE = /(^|[.!?…]\s*)(?=(?:just\s+|really\s+)?(?:feeling|thinking|going to|gonna|planning|about to|ready to)\b(?![^.!?]*\?))/giu;
 
 /**
@@ -432,6 +463,8 @@ function screenText(text: string): string {
     .replace(/[^\p{L}\p{N}\s.,!?;:'’\-…¡¿]/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim()
+    .replace(BARE_WHO_RE, '$1my ')
+    .replace(BARE_WHO_ES_RE, '$1mi ')
     .replace(DROPPED_I_RE, '$1i ')
     .replace(DROPPED_IM_RE, "$1i'm ");
 }

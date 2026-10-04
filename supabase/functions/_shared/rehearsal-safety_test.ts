@@ -1326,3 +1326,58 @@ Deno.test('round 13: the backstop strips more words to the app, and hears vocati
     'I was choked by the person I love most. That is why I am here.', 'Me empujaron, me insultaron, y aquí sigo amándote.',
   ]) assertEquals([text, moderationCrisisKind(violence, text, on)], [text, null]);
 });
+
+// Round 14 (final audit): how often ("he always / still / sometimes hits me", "mi esposo
+// siempre me pega"), who without "my" ("husband hit me", "esposo me pegó"), "n" / "&" for
+// "and", more assault verbs and Spanish forms, his words "told me to kill myself", and the
+// self-harm phrasings the audit found.
+const R14_ABUSE = [
+  "he always hits me when he's drunk", 'my husband sometimes hits me when he drinks', 'he still hits me', 'he often hits me', 'he still beats me',
+  "he usually hits me when he's high", 'he constantly hits me', 'my son sometimes punches me', 'my husband occasionally slaps me', 'he always chokes me', 'he does hit me',
+  'mi esposo siempre me pega', 'mi esposo a veces me pega', 'mi esposo todavia me pega', 'mi esposo todavía me pega', 'mi esposo ya me pego antes',
+  'husband hit me', 'husband hit me last night', 'bf hit me again', 'hubby hit me', 'boyfriend choked me', 'son punched me', 'esposo me pegó', 'marido me pegó',
+  'the bf hit me', 'his dad hit me', 'our son hit me', 'husband choked me last nite', 'he jus hit me',
+  'he got drunk n hit me', 'he came home n hit me', 'he got drunk & hit me', 'he got drunk + hit me',
+  'he backhanded me', 'he headbutted me', 'he kneed me', 'he elbowed me in the face', 'he tackled me', 'he body slammed me', 'he stomped on me', 'he beat on me',
+  'he spit on me', 'he abused me last night', 'he cut me', "he cut me and i'm bleeding a lot", 'he burned me', 'he grabbed my throat', 'he grabbed my throat and squeezed',
+  'he squeezed my neck', 'he grabbed my neck', 'he held a pillow over my face', 'he suffocated me with a pillow', 'he poured boiling water on me', 'he threw hot coffee on me',
+  'he pinned me to the bed', 'he sat on me', 'he locked me in the bathroom', 'he grabbed my arm so hard it bruised', 'he put hands on me', 'he pushed me and i fell',
+  'my son is violent with me', 'he gets violent with me', "he's physically abusive", "i'm afraid for my life", 'im scared for my life', 'i fear for my life',
+  'he will hit me if i say anything', "he'll hit me if i bring it up", 'he will beat me if i tell him', "i'm scared he'll hit me again", "i'm afraid he'll hit me",
+  "i'm afraid my husband will hit me", "i know he'll hit me", 'he told me to kill myself and then hit me', 'he told me to kill myself', 'he tried to make me kill myself',
+  'mi esposo me esta pateando', 'mi esposo me esta violando', 'me esta pateando', 'me esta violando', 'me esta mordiendo', 'me esta jalando el pelo', 'me esta cacheteando',
+  'mi esposo me cacheteó', 'mi esposo me cacheteo', 'mi hijo me mordio', 'mi esposo me mordió', 'mi esposo me agredió', 'mi pareja me agrede', 'mi esposo me forzó',
+  'mi esposo me abuso', 'mi esposo me obligó a tener relaciones', 'mi esposo me da cachetadas', 'mi esposo abusa de mi', 'me golpea', 'me pega', 'me pegó duro',
+  'tengo miedo de que mi esposo me mate', 'tengo miedo de que mi hijo me mate', 'tengo miedo que mi esposo me mate', 'tengo miedo de que mi esposo me pegue',
+  'mi esposo me va a pegar', 'mi esposo me encerró en el cuarto', 'mi esposo me amenaza', 'temo por mi vida', 'mi novio me choked',
+];
+const R14_SELF_HARM = [
+  'i want to fucking die', 'i want to literally die', 'i want too die', "i've been cutting again", "i've been cutting", 'been cutting again', 'i started cutting again',
+  'i relapsed on self harm', "i'm self harming again", "i'm tired of living", "i'm so tired of living", "i'm done living", "i don't want to exist",
+  'no reason to live anymore', "life isn't worth living", "what's the point of living", "there's no point in living anymore", 'i wish i could disappear forever',
+  "i've been saving up my pills", "i'm in the garage with the car running", 'i drank and took pills', 'i drank a bottle of wine and took a bunch of xanax',
+  'i mixed pills and alcohol on purpose', "i'm going to walk into traffic", "i'm going to drink myself to death", "i can't do this anymore. i'm done. goodbye",
+  'this is my goodbye', 'estoy cansada de vivir', 'quiero die', 'ya no tengo razones para vivir', 'no tengo por que vivir', 'mejor me muero', 'estaria mejor muerta',
+  // Her own words win when she says both.
+  'he hit me so hard i want to die',
+];
+const R14_NULL = [
+  'he still hits me up for money', 'he always beats me at cards', 'he did hit me once years ago', 'he still beats me home', 'our son hit me up for cash',
+  'Son, I need to tell you something', 'Husband and I are fighting again', 'Dad hit me when I was a kid', 'mom, dad hit me again', 'he cut me off', 'he cut me some slack',
+  'he cut me out of the will', 'he cut me a check', 'he burned me out', 'he burned me a CD', 'he abused me verbally', 'My son tackled me with a hug.',
+  'he elbowed me out of the way', 'he stomped on my feelings', 'He gets violent with the dog', "I know he'll kill me if he finds out", 'mi esposo abusa de mi confianza',
+  'mi esposo me amenaza con irse', 'Me pega mucho el sol', 'La noticia me pegó duro.', 'Me está dando una paliza jugando cartas', 'El bebé me está pateando',
+  'el perro me está mordiendo', "he's kicking me in his sleep", 'Mi hijo me pegó la gripa.', 'He hit me with a pillow, we were joking around.',
+  'My grandson kicked me in his sleep lol', 'Me lastimo la espalda cargando cajas.', 'rock n roll is his thing', 'no estoy cansada de vivir', "I'm tired of living like this",
+  "I'm done living in fear", "I've been cutting coupons", "I've been cutting back on sugar", 'This is my goodbye to the old me', "what's the point of living like this",
+  "life isn't worth living without you", 'I mixed my meds with wine', 'i want to work myself to death',
+];
+Deno.test('round 14: how often, who without "my", "n"/"&", more verbs and Spanish forms are abuse', () => {
+  for (const text of R14_ABUSE) assertEquals([text, crisisKind(text)], [text, 'abuse']);
+});
+Deno.test('round 14: the self-harm phrasings from the final audit are self-harm', () => {
+  for (const text of R14_SELF_HARM) assertEquals([text, crisisKind(text)], [text, 'self_harm']);
+});
+Deno.test('round 14: figures of speech, games, babies and pets, history and boundary lines stay in the practice', () => {
+  for (const text of R14_NULL) assertEquals([text, crisisKind(text)], [text, null]);
+});

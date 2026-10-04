@@ -20,6 +20,7 @@ import { openEmergencyLink } from '../src/lib/emergencyLinks';
 import { appAlert } from '../src/lib/appAlert';
 import { Gate } from '../src/components/auth/Gate';
 import { useCommunity, CrisisContentError, PostRateLimitedError, type CommunityPost } from '../src/hooks/useCommunity';
+import { useSessionSchedule } from '../src/hooks/useSessionSchedule';
 import { MAX_CONTENT_WIDTH } from '../src/components/ui/ScreenContainer';
 
 
@@ -45,6 +46,7 @@ function CommunityContent() {
     posts, belonging, blocks, loading, createPost, reportPost, deletePost, supportPost, blockAuthor, unblock,
   } = useCommunity(user?.id ?? null);
 
+  const scheduleFor = useSessionSchedule();
   const [draft, setDraft] = useState('');
   const [posting, setPosting] = useState(false);
   const [crisisOpen, setCrisisOpen] = useState(false);
@@ -133,9 +135,12 @@ function CommunityContent() {
     ]);
   }
 
+  const belongingSchedule = belonging.title
+    ? scheduleFor({ title: belonging.title, schedule_label: belonging.schedule_label, next_at: belonging.next_at ?? null })
+    : belonging.schedule_label;
   const belongingText =
-    belonging.count > 0 && belonging.schedule_label
-      ? t('community.belonging', { count: belonging.count, schedule: belonging.schedule_label })
+    belonging.count > 0 && belongingSchedule
+      ? t('community.belonging', { count: belonging.count, schedule: belongingSchedule })
       : belonging.count > 0
       ? t('community.belongingNoSchedule', { count: belonging.count })
       : t('community.belongingZero');

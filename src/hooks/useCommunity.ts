@@ -28,6 +28,9 @@ export interface CreatePostResult {
 export interface BelongingCount {
   count: number;
   schedule_label: string | null;
+  /** Which session (newer servers): lets the app localize the Family Squares time. */
+  title?: string | null;
+  next_at?: string | null;
 }
 
 /** Thrown by createPost after too many posts in an hour. */
