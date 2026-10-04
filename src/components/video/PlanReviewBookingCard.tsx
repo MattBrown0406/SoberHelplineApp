@@ -10,6 +10,8 @@ import { buildPlanReviewSnapshot, planReviewSectionKeysForTier, stableStringify,
 import { appAlert } from '../../lib/appAlert';
 import { videoErrorText } from '../../lib/videoErrors';
 import { DateTimeField } from '../ui/DateTimeField';
+import { useCoachingRate } from '../../hooks/useCoachingRate';
+import { withAppContext } from '../../lib/websiteLinks';
 
 type Props = { controller: ReturnType<typeof usePrivateVideoSessions>; hasIncludedPlanReview: boolean; source: PlanReviewSource; t: TFunction<'crisis'>; consentLocale: 'en' | 'es'; onUpgrade: () => void };
 
@@ -22,6 +24,8 @@ function PlanReviewBookingCardContent({ controller, hasIncludedPlanReview, sourc
   const { colors } = useTheme();
   const { user } = useAccount();
   const { isCurrent } = useAsyncScope(user?.id ?? null);
+  // Members are quoted $125 by create-plan-review-checkout; a lapsed member $150.
+  const coachingRate = useCoachingRate();
   const isPremier = hasIncludedPlanReview;
   const [selected, setSelected] = useState<PlanReviewSectionKey[]>([]);
   const [purpose, setPurpose] = useState('completeReview');
@@ -116,10 +120,14 @@ function PlanReviewBookingCardContent({ controller, hasIncludedPlanReview, sourc
     ) : existing.appointment_type === 'one_off_150' && existing.payment_status === 'pending_payment' ? (
       <TouchableOpacity accessibilityRole="button" disabled={controller.mutating} onPress={() => void (async () => {
         if (!isCurrent()) return;
-        const url = await controller.beginPlanReviewCheckout(existing);
+        const checkoutUrl = await controller.beginPlanReviewCheckout(existing);
         // null: an error is shown below, or the server found Premier access and
         // made the review included (the card refreshes without a Pay button).
-        if (!isCurrent() || !url) return;
+        if (!isCurrent() || !checkoutUrl) return;
+        // The website hides membership purchase links for pages opened from the
+        // app and may offer "Return to the app". The URL carries a checkout
+        // token: never log it.
+        const url = withAppContext(checkoutUrl);
         try {
           if (!await Linking.canOpenURL(url)) throw new Error('cannot_open_checkout');
           if (!isCurrent()) return;
@@ -128,7 +136,7 @@ function PlanReviewBookingCardContent({ controller, hasIncludedPlanReview, sourc
           if (isCurrent()) appAlert(k('checkoutOpenErrorTitle'), k('checkoutOpenErrorBody'));
         }
       })()} style={[styles.submit, { backgroundColor: colors.primary }]}>
-        {controller.mutating ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '900' }}>{k('payNow')}</Text>}
+        {controller.mutating ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '900' }}>{k('payNow', { amount: coachingRate.amount })}</Text>}
       </TouchableOpacity>
     ) : null}
     {controller.planReviewIncluded ? <Text accessibilityRole="alert" style={{ color: colors.green, fontWeight: '700' }}>{k('convertedToIncluded')}</Text> : null}
@@ -150,7 +158,7 @@ function PlanReviewBookingCardContent({ controller, hasIncludedPlanReview, sourc
 
   return <View style={[styles.box, { borderColor: colors.line }]}>
     <Text style={[styles.title, { color: colors.ink }]}>{k('title')}</Text>
-    <Text style={[styles.body, { color: colors.inkSoft }]}>{isPremier ? k('premierBody') : k('essentialBody')}</Text>
+    <Text style={[styles.body, { color: colors.inkSoft }]}>{isPremier ? k('premierBody') : k('essentialBody', { rate: coachingRate.rate })}</Text>
     {!isPremier ? <TouchableOpacity onPress={onUpgrade} style={[styles.outline, { borderColor: colors.primary }]}><Text style={{ color: colors.primary, fontWeight: '800' }}>{k('upgrade')}</Text></TouchableOpacity> : null}
     <Text style={[styles.label, { color: colors.ink }]}>{k('purpose')}</Text>
     <View style={styles.row}>{['completeReview','boundaries','safety','family'].map((item) => <TouchableOpacity key={item} onPress={() => setPurpose(item)} style={[styles.choice, { borderColor: purpose === item ? colors.primary : colors.line }]}><Text style={{ color: colors.ink }}>{k(`purposes.${item}`)}</Text></TouchableOpacity>)}</View>

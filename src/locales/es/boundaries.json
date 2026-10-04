@@ -124,7 +124,11 @@
     "eyebrow": "Mis límites (muros del castillo)",
     "empty": "Aún no hay límites guardados. Usa una sugerencia o escribe un límite claro.",
     "shareAttached": "Revisar murallas con mi coach",
-    "shareDirect": "Compartir murallas con el coach disponible"
+    "shareDirect": "Compartir murallas con el coach disponible",
+    "deleteTitle": "¿Eliminar este límite?",
+    "deleteBody": "Esto borra el límite y sus notas de seguimiento de tu cuenta. No se puede deshacer.",
+    "deleteCancel": "Conservarlo",
+    "deleteConfirm": "Eliminar"
   },
   "challenge": {
     "eyebrow": "DESAFÍO DE HOY",

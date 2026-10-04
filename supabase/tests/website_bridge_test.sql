@@ -36,9 +36,10 @@ INSERT INTO auth.users(id,email,email_confirmed_at,raw_app_meta_data,raw_user_me
  ('31000000-0000-0000-0000-000000000007','notoken@example.com',now(),'{}','{"first_name":"Nia"}','authenticated','authenticated');
 UPDATE accounts SET id=('41000000-0000-0000-0000-'||right(user_id::text,12))::uuid
  WHERE user_id::text LIKE '31000000-0000-0000-0000-00000000000%';
-UPDATE accounts SET push_token='ExponentPushToken[bridge-'||right(id::text,1)||']', family_call_reminders=true
+-- push_token_seen_at: the app re-registered this device (register_push_device).
+UPDATE accounts SET push_token='ExponentPushToken[bridge-'||right(id::text,1)||']', push_token_seen_at=now()-interval '2 days', family_call_reminders=true
  WHERE id IN ('41000000-0000-0000-0000-000000000001','41000000-0000-0000-0000-000000000006');
-UPDATE accounts SET push_token='ExponentPushToken[bridge-'||right(id::text,1)||']', family_call_reminders=false
+UPDATE accounts SET push_token='ExponentPushToken[bridge-'||right(id::text,1)||']', push_token_seen_at=now()-interval '2 days', family_call_reminders=false
  WHERE id IN ('41000000-0000-0000-0000-000000000003','41000000-0000-0000-0000-000000000004','41000000-0000-0000-0000-000000000005');
 UPDATE accounts SET push_token=NULL, family_call_reminders=true
  WHERE id IN ('41000000-0000-0000-0000-000000000002','41000000-0000-0000-0000-000000000007');
@@ -66,7 +67,7 @@ SELECT is(ARRAY(SELECT email FROM bridge_attendees ORDER BY email),
   'verified RSVPs and askers since the last call; stale RSVPs and unverified emails never leave');
 SELECT is((SELECT row(name,rsvp,questions,app_reminders)::text FROM bridge_attendees WHERE email='going@example.com'),
   row('Ana','going',ARRAY['question 2','question 3','question 4','question 5','question 6'],true)::text,
-  'the newest five non-blank questions, trimmed, newest last; push + RSVP = app reminds');
+  'the newest five non-blank questions, trimmed, newest last; confirmed device + call reminder = app reminds');
 SELECT is((SELECT row(name,rsvp,cardinality(questions),app_reminders)::text FROM bridge_attendees WHERE email='declined@example.com'),
   row('','declined',0,false)::text,
   'no first name falls back to the neutral name; no device = no app reminder');
@@ -83,13 +84,24 @@ SELECT is(public.service_family_squares_push_reachable(
         'reminders@example.com','notoken@example.com','declined@example.com','nobody@example.com',''],
   now()-interval '1 day'),
   ARRAY['going@example.com','reminders@example.com'],
-  'device + (reminder on or RSVP this week); verified only; returned lower-cased');
+  'confirmed device + call reminder on; verified only; returned lower-cased');
 UPDATE accounts SET family_call_reminders=false WHERE id='41000000-0000-0000-0000-000000000001';
 UPDATE accounts SET push_token='ExponentPushToken[bridge-2]' WHERE id='41000000-0000-0000-0000-000000000002';
 SELECT is(public.service_family_squares_push_reachable(
   ARRAY['going@example.com','declined@example.com','stale@example.com'], now()-interval '1 day'),
-  ARRAY['declined@example.com','going@example.com'],
-  'with reminders off, a going or declined RSVP this week still counts; last week''s does not');
+  ARRAY[]::text[],
+  'with reminders off the app sends nothing, so an RSVP alone is not handled; an unconfirmed device is not either');
+UPDATE accounts SET push_token_seen_at=now(), family_call_reminders=true WHERE id='41000000-0000-0000-0000-000000000002';
+SELECT is(public.service_family_squares_push_reachable(ARRAY['declined@example.com'], now()-interval '1 day'),
+  ARRAY['declined@example.com'], 'once the app confirms the device (and reminders are on) she is handled');
+UPDATE accounts SET push_token_seen_at=now()-interval '31 days' WHERE id='41000000-0000-0000-0000-000000000002';
+SELECT is(public.service_family_squares_push_reachable(ARRAY['declined@example.com'], now()-interval '1 day'),
+  ARRAY[]::text[], 'a device not seen for 30 days is not trusted');
+UPDATE accounts SET push_token_seen_at=now() WHERE id='41000000-0000-0000-0000-000000000002';
+UPDATE accounts SET push_token=NULL WHERE id='41000000-0000-0000-0000-000000000002';
+UPDATE accounts SET push_token='ExponentPushToken[bridge-2b]' WHERE id='41000000-0000-0000-0000-000000000002';
+SELECT is((SELECT push_token_seen_at FROM accounts WHERE id='41000000-0000-0000-0000-000000000002'), NULL::timestamptz,
+  'clearing or replacing the token outside register_push_device drops the confirmation');
 SELECT is(public.service_family_squares_push_reachable(ARRAY[]::text[], now()), ARRAY[]::text[], 'empty in, empty out');
 SELECT throws_ok($$SELECT public.service_family_squares_push_reachable(array_fill('a@x.com'::text, ARRAY[1001]), now())$$,
   '22023', 'too_many_emails', 'at most 1000 emails per call');

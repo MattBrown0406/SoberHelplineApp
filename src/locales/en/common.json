@@ -54,5 +54,14 @@
     "title": "Something went wrong on our side.",
     "body": "Your data is safe. If you need support right now, call 988 or 911.",
     "retry": "Try again"
+  },
+  "coachingPrice": {
+    "member": "{{price}} member price",
+    "memberHourly": "{{price}}/hour member price",
+    "hourly": "{{price}}/hour"
+  },
+  "familySquares": {
+    "scheduleFallback": "Mondays · 7:00 PM Pacific",
+    "rsvpNote": "Your RSVP and questions go to Matt along with soberhelpline.com registrations. If it's your first call, you may get a follow-up email afterward."
   }
 }

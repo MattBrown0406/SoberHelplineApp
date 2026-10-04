@@ -12,6 +12,10 @@ UPDATE accounts SET id=('99000000-0000-0000-0000-'||right(user_id::text,12))::uu
  push_token='ExponentPushToken['||user_id||']',family_call_reminders=true,daily_push_opt_in=true,created_at=now()-interval '10 days'
  WHERE user_id::text LIKE '98000000-0000-0000-0000-%';
 UPDATE accounts SET family_call_reminders=false,daily_push_opt_in=false WHERE id='99000000-0000-0000-0000-000000001002';
+-- Winbacks go out 9 AM–8 PM in the member's zone: use a fixed-offset zone where it is mid-afternoon now.
+UPDATE accounts SET timezone=(SELECT CASE WHEN x=0 THEN 'Etc/GMT' WHEN x>0 THEN 'Etc/GMT+'||x ELSE 'Etc/GMT'||x END
+ FROM (SELECT (((extract(hour FROM now() AT TIME ZONE 'UTC')::integer-14+12)%24+24)%24)-12 AS x) s)
+ WHERE id::text LIKE '99000000-0000-0000-0000-%';
 CREATE TEMP TABLE pages(job text,page integer,account_id uuid,expires_at timestamptz);
 INSERT INTO session_rsvps(account_id,session_id,status) SELECT id,family_squares_session_id(),'going' FROM accounts WHERE id::text LIKE '99000000-0000-0000-0000-%';
 INSERT INTO pages SELECT 'session_reminder',1,account_id,expires_at FROM dispatcher_job_targets('session_reminder',true,NULL,now());

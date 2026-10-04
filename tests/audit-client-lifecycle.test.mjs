@@ -73,6 +73,7 @@ function authFixture() {
     '../lib/offlineAccountCache': {
       cacheSuccessfulAccount: async () => {}, clearLastOfflineAccount: async () => {}, clearOfflineAccount: async () => {},
       isOfflineFallbackError: (error) => error?.message !== 'server_error', restoreOfflineAccount: () => cached.promise, restoreLastOfflineAccount: () => cached.promise,
+      readCachedAccountState: async () => null,
     },
     '../lib/offlineOutbox': { offlineOutbox: { clear: async () => {} } },
     '../lib/localSignOut': { removeSessionLocally: async () => {}, signOutLocally: async () => {} },
@@ -174,6 +175,92 @@ test('initial session cache miss cannot stop loading a newer sign-in', async () 
   f.cached.resolve(null); await settle();
   assert.equal(f.read().isLoading, true);
   f.h.unmount(); f.accountRead.resolve({ data: null, error: new Error('offline') }); await settle();
+});
+
+// A direct (store/web) account whose entitlements read fails or times out.
+function directAccountFixture({ cachedState = 'direct-premium' } = {}) {
+  const h = harness(); let listener; const appState = new Set();
+  const accountRow = {
+    id: 'account-A', type: 'direct', org_id: null, first_name: 'Ana', last_name: '', language: 'en',
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, created_at: '2026-01-01T00:00:00Z',
+  };
+  const io = {
+    account: () => Promise.resolve({ data: accountRow, error: null }),
+    entitlements: () => Promise.resolve({ data: null, error: new Error('fetch failed') }),
+  };
+  const cacheWrites = [];
+  const { AccountProvider } = load('src/contexts/AccountContext.tsx', {
+    react: { ...h.react, default: h.react },
+    'react-native': { AppState: { addEventListener(_, fn) { appState.add(fn); return { remove() { appState.delete(fn); } }; } } },
+    '../lib/supabase': { supabase: {
+      auth: {
+        getSession: async () => ({ data: { session: { user: { id: 'principal-A', email: 'ana@example.com' } } } }),
+        onAuthStateChange(fn) { listener = fn; return { data: { subscription: { unsubscribe() {} } } }; },
+      },
+      from: (table) => ({ select: () => ({ eq: () => (table === 'entitlements'
+        ? { then: (ok, fail) => io.entitlements().then(ok, fail) }
+        : { single: () => io.account() }) }) }),
+      rpc: async () => ({ error: null }),
+      functions: { invoke: async () => ({ data: null, error: null }) },
+    } },
+    '../lib/admin': { isAdminEmail: () => false },
+    '../lib/revenueCat': { configureRevenueCat: async () => false, getActiveRevenueCatTier: async () => null, resetRevenueCatUser: async () => {} },
+    '../lib/authBootstrap': load('src/lib/authBootstrap.ts'),
+    '../lib/monitoring': monitoring,
+    '../lib/featureAccess': { entitlementsForAccountState: (state) => ({ state }) },
+    '../lib/offlineAccountCache': {
+      cacheSuccessfulAccount: async (_principal, account) => { cacheWrites.push(account.accountState); },
+      clearLastOfflineAccount: async () => {}, clearOfflineAccount: async () => {},
+      isOfflineFallbackError: (error) => /fetch failed|offline/.test(error?.message ?? ''),
+      restoreOfflineAccount: async () => ({ id: 'account-A', accountState: 'direct-free', entitlements: {} }),
+      restoreLastOfflineAccount: async () => null,
+      readCachedAccountState: async (principal, accountId) => (principal === 'principal-A' && accountId === 'account-A' ? cachedState : null),
+    },
+    '../lib/offlineOutbox': { offlineOutbox: { clear: async () => {} } },
+    '../lib/localSignOut': { removeSessionLocally: async () => {}, signOutLocally: async () => {} },
+    '../lib/pendingPushTokenRevoke': { storePendingPushTokenRevoke: async () => {} },
+    '../lib/pushDevice': { stopDevicePushDelivery: async () => {}, setDeviceSignedIn: () => {} },
+  });
+  const read = () => h.render(() => AccountProvider({ children: null })).props.value;
+  read(); h.effects();
+  return { h, read, io, cacheWrites, foreground: () => appState.forEach((fn) => fn('active')), listeners: () => appState.size };
+}
+const drain = async () => { for (let i = 0; i < 6; i++) { await settle(); await new Promise((r) => setImmediate(r)); } };
+
+test('a failed entitlements read keeps the paying tier, caches nothing, and recovers on foreground', async () => {
+  const f = directAccountFixture();
+  await drain(); f.read(); f.h.effects();
+  assert.equal(f.read().accountState, 'direct-premium', 'never downgraded to free by a failed read');
+  assert.equal(f.read().isOfflineAccountFallback, false);
+  assert.deepEqual(f.cacheWrites, [], 'an unverified tier is never cached');
+  assert.equal(f.listeners(), 1, 'a retry waits for the foreground');
+
+  // A retry that cannot reach the account keeps everything as shown.
+  f.io.account = () => Promise.resolve({ data: null, error: new Error('fetch failed') });
+  f.foreground(); await drain(); f.read(); f.h.effects();
+  assert.equal(f.read().accountState, 'direct-premium');
+  assert.equal(f.read().isOfflineAccountFallback, false);
+  assert.equal(f.read().accountError, null);
+
+  // The next successful read is authoritative (here: she moved to Essential).
+  f.io.account = () => Promise.resolve({ data: {
+    id: 'account-A', type: 'direct', org_id: null, first_name: 'Ana', last_name: '', language: 'en',
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, created_at: '2026-01-01T00:00:00Z',
+  }, error: null });
+  f.io.entitlements = () => Promise.resolve({ data: [{ tier: 'essential', expires_at: null }], error: null });
+  f.foreground(); await drain(); f.read(); f.h.effects();
+  assert.equal(f.read().accountState, 'direct-essential');
+  assert.ok(f.cacheWrites.length > 0 && f.cacheWrites.every((state) => state === 'direct-essential'));
+  assert.equal(f.listeners(), 0, 'no more retries once a read succeeds');
+  f.h.unmount();
+});
+
+test('with nothing cached, a failed read falls back to free without caching it', async () => {
+  const f = directAccountFixture({ cachedState: null });
+  await drain(); f.read(); f.h.effects();
+  assert.equal(f.read().accountState, 'direct-free');
+  assert.deepEqual(f.cacheWrites, []);
+  f.h.unmount();
 });
 
 function safetyFixture(io = {}) {

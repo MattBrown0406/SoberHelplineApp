@@ -77,10 +77,12 @@ test('only members paying the store directly are warned before joining a provide
 // ── F4: cold-start push routing waits for entitlements ──────────────────────
 test('a gated tap during enrichment is deferred; ungated taps and settled accounts route now', () => {
   const free = entitlementsForAccountState('direct-free');
-  const video = { kind: 'member_video_live', session_id: SESSION_ID };
-  assert.equal(shouldDeferPushRouting(video, free, false), true, 'video join could open up after enrichment');
+  const video = { kind: 'member_video_scheduled', session_id: SESSION_ID };
+  assert.equal(shouldDeferPushRouting(video, free, false), true, 'Premier sessions live on Support after enrichment');
   assert.equal(shouldDeferPushRouting(video, free, true), false, 'settled entitlements route immediately');
   assert.equal(shouldDeferPushRouting(video, entitlementsForAccountState('direct-premium'), false), false, 'already entitled');
+  // Joining a live session does not depend on tier, so it never waits.
+  assert.equal(shouldDeferPushRouting({ kind: 'member_video_live', session_id: SESSION_ID }, free, false), false);
   assert.equal(shouldDeferPushRouting({ kind: 'coach_message' }, free, false), false, 'Chat serves every tier');
   assert.equal(shouldDeferPushRouting({ kind: 'morning_note', screen: 'boundaries' }, free, false), false, 'ungated');
   assert.equal(shouldDeferPushRouting({ kind: 'admin_textline_message', thread_id: SESSION_ID }, free, false), false, 'admin alerts are not gated');

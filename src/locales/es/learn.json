@@ -37,8 +37,8 @@
   },
   "education": {
     "title": "Educación familiar",
-    "body": "La educación familiar esencial está aquí en la app — sin iniciar sesión en el sitio. Lee una sección y luego usa las preguntas frecuentes.",
-    "button": "Leer aquí",
+    "body": "La biblioteca completa de educación familiar está en soberhelpline.com. Se abre en tu navegador con tu cuenta de Sober Helpline ya iniciada. Las preguntas frecuentes de abajo responden aquí mismo, en la app, lo que toda familia pregunta.",
+    "button": "Abrir en soberhelpline.com",
     "sections": [
       {
         "title": "La adicción es una enfermedad familiar",
@@ -102,8 +102,13 @@
   },
   "recordings": {
     "title": "Grabaciones anteriores",
-    "body": "Mira las grabaciones de las reuniones anteriores de Family Squares en Zoom que te hayas perdido.",
-    "button": "Abrir"
+    "body": "Mira las llamadas de Family Squares en Zoom que te hayas perdido. Están en soberhelpline.com y se abren en tu navegador con tu sesión ya iniciada.",
+    "button": "Ver en soberhelpline.com"
+  },
+  "membersLibrary": {
+    "title": "Biblioteca de educación familiar y grabaciones",
+    "body": "Con Essential o Premier puedes abrir la biblioteca de educación familiar y las grabaciones de Family Squares en soberhelpline.com, con tu sesión iniciada automáticamente. Las preguntas frecuentes de abajo siguen siendo gratis.",
+    "button": "Ver planes"
   },
   "faq": {
     "eyebrow": "Preguntas frecuentes",

@@ -5,7 +5,11 @@ SELECT no_plan();
 INSERT INTO auth.users(id,email,raw_app_meta_data,raw_user_meta_data,aud,role)
 VALUES('92000000-0000-0000-0000-000000000001','lease@example.invalid','{}','{}','authenticated','authenticated');
 UPDATE accounts SET id='93000000-0000-0000-0000-000000000001',push_token='current-token',daily_push_opt_in=true,
- family_call_reminders=true,created_at=now()-interval '10 days' WHERE user_id='92000000-0000-0000-0000-000000000001';
+ family_call_reminders=true,created_at=now()-interval '10 days',
+ -- Winbacks go out 9 AM–8 PM in her zone: a fixed-offset zone where it is mid-afternoon now.
+ timezone=(SELECT CASE WHEN x=0 THEN 'Etc/GMT' WHEN x>0 THEN 'Etc/GMT+'||x ELSE 'Etc/GMT'||x END
+   FROM (SELECT (((extract(hour FROM now() AT TIME ZONE 'UTC')::integer-14+12)%24+24)%24)-12 AS x) s)
+ WHERE user_id='92000000-0000-0000-0000-000000000001';
 CREATE TEMP TABLE leases (token uuid, old_token uuid, deadline timestamptz);
 INSERT INTO leases SELECT claim_push_recipient('family_backup','event','93000000-0000-0000-0000-000000000001',now()+interval '10 minutes'),NULL,now()+interval '10 minutes';
 SELECT ok((SELECT token IS NOT NULL FROM leases),'first recipient lease acquired');
@@ -26,7 +30,8 @@ CREATE TEMP TABLE job_lease AS SELECT claim_dispatcher_job('winback','93000000-0
 SELECT ok((SELECT data->>'processing_token' IS NOT NULL FROM job_lease),'winback account reserved');
 SELECT ok(finish_push_recipient('winback','cooldown','93000000-0000-0000-0000-000000000001',(SELECT (data->>'processing_token')::uuid FROM job_lease),false),'failed winback releases lease');
 UPDATE job_lease SET data=claim_dispatcher_job('winback','93000000-0000-0000-0000-000000000001',NULL,now()+interval '25 hours');
-SELECT is((SELECT (data->>'expires_at')::timestamptz FROM job_lease),now()+interval '24 hours','winback retry returns immutable original deadline');
+SELECT is((SELECT expires_at FROM push_recipient_deliveries WHERE kind='winback'),now()+interval '24 hours','winback retry keeps the immutable original deadline');
+SELECT ok((SELECT (data->>'expires_at')::timestamptz<=now()+interval '24 hours' FROM job_lease),'winback retry is shown no later than that deadline (and not after 8:30 PM her time)');
 SELECT is(claim_dispatcher_job('winback','93000000-0000-0000-0000-000000000001',NULL,now()+interval '24 hours'),NULL::jsonb,'winback overlap denied despite different deadline');
 SELECT ok(finish_push_recipient('winback','cooldown','93000000-0000-0000-0000-000000000001',(SELECT (data->>'processing_token')::uuid FROM job_lease),true),'winback ack accepted');
 SELECT ok((SELECT last_winback_at IS NOT NULL FROM accounts WHERE id='93000000-0000-0000-0000-000000000001'),'winback cooldown atomically recorded');

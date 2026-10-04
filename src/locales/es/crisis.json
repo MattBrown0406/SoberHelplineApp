@@ -307,8 +307,10 @@
   },
   "planReview": {
     "title": "Reservar una revisión del plan",
+    "gateTitle": "La revisión del plan es parte de Essential y Premier",
+    "gateBody": "Con Essential puedes reservar una llamada de revisión del plan al precio de miembro, y Premier la incluye. Tu guía de crisis y los pasos de seguridad de abajo siguen siendo gratis.",
     "premierBody": "La revisión del plan está incluida con Premier sin costo adicional. Las solicitudes de video privado dependen de la programación y disponibilidad del personal.",
-    "essentialBody": "Mejora a Premier para incluir la revisión del plan y solicitudes de video privado, o solicita una llamada única de coaching de $150 que incluye la revisión de este plan.",
+    "essentialBody": "Mejora a Premier para incluir la revisión del plan y solicitudes de video privado, o solicita una llamada única de coaching por {{rate}} que incluye la revisión de este plan.",
     "upgrade": "Mejorar a Premier",
     "purpose": "Propósito de la reunión",
     "purposes": {
@@ -343,7 +345,7 @@
     "checkoutOpenErrorTitle": "No se pudo abrir el pago",
     "checkoutOpenErrorBody": "Revisa tu conexión e inténtalo de nuevo. Tu sesión sigue pendiente de pago.",
     "pendingPayment": "La solicitud quedará pendiente de pago. El horario no se puede confirmar hasta que el registro de pago de coaching sea verificado como pagado.",
-    "payNow": "Pagar $150 de forma segura",
+    "payNow": "Pagar {{amount}} de forma segura",
     "dateField": "Fecha de la sesión",
     "timeField": "Hora de la sesión",
     "includedNowBody": "Tu membresía Premier ahora incluye esta revisión del plan, así que no tienes nada que pagar.",
@@ -366,7 +368,7 @@
       "invalid_plan_review_request": "Revisa las secciones seleccionadas e inténtalo de nuevo.",
       "invalid_plan_review_revision": "Revisa las secciones actualizadas e inténtalo de nuevo.",
       "active_session_exists": "Ya tienes una solicitud de sesión activa.",
-      "premier_upgrade_or_payment_required": "Elige mejorar a Premier o la sesión única de $150.",
+      "premier_upgrade_or_payment_required": "Elige mejorar a Premier o la sesión única de coaching.",
       "essential_or_premier_required": "Se requiere acceso Essential o Premier.",
       "payment_not_verified": "El pago aún no ha sido verificado.",
       "plan_update_not_requested": "Ya no se solicita un plan actualizado.",
@@ -383,11 +385,12 @@
       "unknown": "No pudimos enviar esta solicitud. Actualiza e inténtalo de nuevo."
     },
     "payment": {
-      "pending_payment": "Pago de $150 pendiente — aún no confirmada",
-      "paid": "Pago de $150 verificado",
+      "pending_payment": "Pago pendiente — aún no confirmado",
+      "paid": "Pago verificado",
       "refunded": "Pago reembolsado",
       "included": "Incluida"
-    }
+    },
+    "sessionLoadError": "No pudimos cargar tu sesión. Revisa tu conexión e inténtalo de nuevo."
   },
   "premierVideo": {
     "timezone": "Los horarios usan tu zona horaria detectada: {{timezone}}",

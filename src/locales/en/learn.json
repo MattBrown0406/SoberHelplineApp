@@ -37,8 +37,8 @@
   },
   "education": {
     "title": "Family Education",
-    "body": "Core family education lives here in the app — no website login required. Read a section, then use the FAQ below for the questions every family asks.",
-    "button": "Read here",
+    "body": "The full family education library is on soberhelpline.com. It opens in your browser, already signed in with your Sober Helpline account. The FAQ below answers the questions every family asks, right here in the app.",
+    "button": "Open on soberhelpline.com",
     "sections": [
       {
         "title": "Addiction is a family illness",
@@ -102,8 +102,13 @@
   },
   "recordings": {
     "title": "Past Recordings",
-    "body": "Watch recordings of previous Family Squares Zoom meetings you may have missed.",
-    "button": "Open"
+    "body": "Watch past Family Squares Zoom calls you may have missed. They're on soberhelpline.com and open in your browser, already signed in.",
+    "button": "Watch on soberhelpline.com"
+  },
+  "membersLibrary": {
+    "title": "Family education library & past recordings",
+    "body": "Essential and Premier members can open the family education library and past Family Squares recordings on soberhelpline.com, signed in automatically. The FAQ below stays free.",
+    "button": "View plans"
   },
   "faq": {
     "eyebrow": "Common questions",

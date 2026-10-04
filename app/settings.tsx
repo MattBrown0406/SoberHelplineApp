@@ -36,6 +36,7 @@ import { openStoreReviewFromSettings } from '../src/lib/reviewPrompt';
 import { isOfflineFallbackError } from '../src/lib/offlineAccountCache';
 import { offlineOutbox } from '../src/lib/offlineOutbox';
 import { hasOutboxImpact, outboxImpact } from '../src/lib/localSignOut';
+import { isWebsiteMembership, type MembershipEntitlementRow } from '../src/lib/membershipSource';
 
 const CONSENT_SHARE_CHECKINS = '2';
 const CONSENT_VERSION = '1.0';
@@ -103,6 +104,24 @@ export default function SettingsScreen() {
     }).catch(() => {});
     return () => { active = false; };
   }, [user?.id]);
+
+  // Where this member's Essential/Premier comes from: a soberhelpline.com
+  // membership is billed there (plain text only — App Store 3.1.1).
+  const [websiteMembership, setWebsiteMembership] = useState(false);
+  useEffect(() => {
+    setWebsiteMembership(false);
+    if (!user || isAttached || accountState === 'direct-free') return;
+    const currentTier = accountState === 'direct-premium' ? 'premium' : 'essential';
+    let active = true;
+    void supabase
+      .from('entitlements')
+      .select('source, tier, expires_at, granted_by:raw->>granted_by')
+      .then(({ data, error }) => {
+        if (!active || error || !data) return;
+        setWebsiteMembership(isWebsiteMembership(data as MembershipEntitlementRow[], currentTier));
+      });
+    return () => { active = false; };
+  }, [user?.id, isAttached, accountState]);
 
   useEffect(() => {
     if (!user) return;
@@ -443,7 +462,7 @@ export default function SettingsScreen() {
     <ScreenContainer backgroundColor={colors.cream}>
         {/* Header */}
         <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => router.back()} hitSlop={12}>
+          <TouchableOpacity onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(tabs)'); }} hitSlop={12}>
             <Text style={[styles.backChevron, { color: colors.primary }]}>‹</Text>
           </TouchableOpacity>
           <Text style={[styles.heading, { color: colors.ink }]}>{t('title')}</Text>
@@ -457,6 +476,9 @@ export default function SettingsScreen() {
           </Text>
           <Row label={t('account.nameLabel')} value={fullName} colors={colors} />
           <Row label={t('account.emailLabel')} value={user?.email ?? '—'} colors={colors} last />
+          {user ? (
+            <Text style={[styles.infoLabel, { color: colors.inkSoft, marginTop: 12 }]}>{t('account.websiteLogin')}</Text>
+          ) : null}
           {isAdmin && (
             <TouchableOpacity
               style={[styles.adminBtn, { backgroundColor: colors.primary }]}
@@ -526,6 +548,12 @@ export default function SettingsScreen() {
                     ? t('membership.premiumFeatures')
                     : t('membership.essentialFeatures')}
                 </Text>
+                {websiteMembership ? (
+                  <Text style={[styles.infoLabel, { color: colors.ink, marginBottom: 12 }]}>
+                    {t('membership.websiteSource')}
+                  </Text>
+                ) : null}
+                {/* Kept for everyone: App Store billing (if any) is managed there. */}
                 <TouchableOpacity
                   onPress={() => void Linking.openURL(SUBSCRIPTION_MANAGEMENT_URL)}
                   activeOpacity={0.8}

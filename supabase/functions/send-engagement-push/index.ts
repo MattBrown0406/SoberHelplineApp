@@ -204,6 +204,11 @@ async function sendExpoPushResults(
   return results;
 }
 
+/** Expo will never deliver to this device again (the app was uninstalled or the token rotated). */
+function isPermanentPushFailure(error: string): boolean {
+  return error === "DeviceNotRegistered" || error.startsWith("DeviceNotRegistered:");
+}
+
 function json(payload: unknown, status = 200): Response {
   return new Response(JSON.stringify(payload), {
     status,
@@ -231,7 +236,7 @@ serve(async (req) => {
       if (error) console.error("[push] clearing dead tokens failed", { count: tokens.length });
     } catch { console.error("[push] clearing dead tokens failed", { count: tokens.length }); }
   };
-  const { job, force } = await req.json().catch(() => ({ job: "drain", force: false }));
+  const { job, force, retry } = await req.json().catch(() => ({ job: "drain", force: false, retry: false }));
 
   // ── drain: due, unhandled outbox rows ──────────────────────────────────────
   if (job === "drain" || !job) {
@@ -466,6 +471,8 @@ serve(async (req) => {
     }
     // Database selection supplies stable account + occurrence identities; force
     // previews the next real occurrence, never bypassing consent or source checks.
+    // A winback retry (from the retry sweep) re-sends only failed reservations.
+    const retryOnly = job === "winback" && retry === true;
     const asOf = new Date().toISOString();
     let afterAccountId: string | null = null;
     let sent = 0;
@@ -476,10 +483,14 @@ serve(async (req) => {
     while (true) {
       let data;
       try {
-        const page = await supabase.rpc("dispatcher_job_targets", {
-          p_job: job, p_force: force === true,
-          p_after_account_id: afterAccountId, p_as_of: asOf,
-        });
+        const page = retryOnly
+          ? await supabase.rpc("dispatcher_winback_retry_targets", {
+            p_after_account_id: afterAccountId, p_as_of: asOf,
+          })
+          : await supabase.rpc("dispatcher_job_targets", {
+            p_job: job, p_force: force === true,
+            p_after_account_id: afterAccountId, p_as_of: asOf,
+          });
         if (page.error) throw page.error;
         data = page.data;
       } catch {
@@ -544,17 +555,27 @@ serve(async (req) => {
       const delivered = targets.filter((_, index) => results[index]?.ok);
       let ackFailures = 0;
       for (const [index, lease] of leases) {
+        const result = results[index];
+        const leaseArgs = {
+          p_kind: lease.reservation_kind, p_event_key: lease.event_key,
+          p_account_id: targets[index].account_id, p_processing_token: lease.processing_token,
+        };
         try {
+          // The device is gone (its token was just cleared): finish the
+          // reservation instead of leaving it pending for retries.
+          if (result && !result.ok && isPermanentPushFailure(result.error)) {
+            const { data, error } = await supabase.rpc("abandon_push_recipient", leaseArgs);
+            if (!error && data === true) continue;
+          }
           const { data, error } = await supabase.rpc("finish_push_recipient", {
-            p_kind: lease.reservation_kind, p_event_key: lease.event_key,
-            p_account_id: targets[index].account_id, p_processing_token: lease.processing_token,
-            p_accepted: results[index]?.ok === true,
+            ...leaseArgs, p_accepted: result?.ok === true,
           });
           if (error || data !== true) ackFailures++;
         } catch { ackFailures++; }
       }
       sent += delivered.length;
-      retryable += ackFailures + results.filter((result) => !result.ok && result.error !== "push_ineligible" && result.error !== "push_expired").length;
+      retryable += ackFailures + results.filter((result) => !result.ok && result.error !== "push_ineligible" &&
+        result.error !== "push_expired" && !isPermanentPushFailure(result.error)).length;
     }
     return json({ success: retryable === 0, job, sent, retryable }, retryable ? 503 : 200);
   }

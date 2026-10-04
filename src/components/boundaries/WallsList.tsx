@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
+import { appAlert } from '../../lib/appAlert';
 import type { BoundaryWall } from '../../api/types';
 
 interface Props {
@@ -32,6 +33,15 @@ export function WallsList({ walls, onDelete, accountId, hasFamilySpace, onPropos
   const router = useRouter();
   const copy = boundaryFollowThroughCopy(i18n.language);
   const { t: tAlign } = useTranslation('alignment');
+
+  // Removing a boundary deletes it and its follow-through notes for good:
+  // confirm first, like journal and community deletes.
+  const confirmDelete = (wall: BoundaryWall) => {
+    appAlert(t('walls.deleteTitle'), t('walls.deleteBody'), [
+      { text: t('walls.deleteCancel'), style: 'cancel' },
+      { text: t('walls.deleteConfirm'), style: 'destructive', onPress: () => onDelete(wall.id) },
+    ]);
+  };
 
   return (
     <View style={[styles.card, { borderColor: colors.line }]}>
@@ -74,7 +84,7 @@ export function WallsList({ walls, onDelete, accountId, hasFamilySpace, onPropos
               <TouchableOpacity
                 accessibilityRole="button"
                 accessibilityLabel={copy.delete}
-                onPress={() => onDelete(wall.id)}
+                onPress={() => confirmDelete(wall)}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Text style={[styles.deleteBtn, { color: colors.inkSoft }]}>✕</Text>

@@ -9,6 +9,7 @@
       "distribution": "store",
       "autoIncrement": true,
       "environment": "production",
+      "channel": "production",
       "node": "20.19.4",
       "ios": {
         "image": "macos-sequoia-15.6-xcode-26.0"
@@ -26,7 +27,7 @@
       "extends": "production",
       "autoIncrement": false
     },
-    "release-4-0-3": {
+    "release-4-1-0": {
       "extends": "production",
       "autoIncrement": false
     }

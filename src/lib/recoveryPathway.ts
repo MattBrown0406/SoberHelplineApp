@@ -62,3 +62,26 @@ export function pathwayDaySlot(date: Date, variantCount = 3): number {
   const localDay = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
   return Math.floor(localDay / 86_400_000) % variantCount;
 }
+
+/**
+ * The loved-one status a treatment or recovery phase implies. Choosing one of
+ * these on the Today pathway card clears a stale active-use status ('using',
+ * 'escalating' or 'crisis' — e.g. from an old tracker spike), so the family's
+ * situation can come back down. Other phases leave the status as it is.
+ */
+export const PHASE_SETTLED_STATUS: Readonly<Partial<Record<RecoveryPhase, 'in_treatment' | 'stable'>>> = Object.freeze({
+  in_treatment: 'in_treatment',
+  returning_home: 'stable',
+  early_recovery_30: 'stable',
+  early_recovery_90: 'stable',
+  ongoing_recovery: 'stable',
+});
+
+/** The loved_ones fields to save when the family picks `phase` on the Today pathway card. */
+export function pathwayPhaseUpdate(
+  phase: RecoveryPhase,
+  currentStatus: string | null | undefined,
+): { stage: RecoveryPhase; status?: 'in_treatment' | 'stable' } {
+  const settled = PHASE_SETTLED_STATUS[phase];
+  return settled && ACTIVE_USE_STATUSES.has(currentStatus ?? '') ? { stage: phase, status: settled } : { stage: phase };
+}

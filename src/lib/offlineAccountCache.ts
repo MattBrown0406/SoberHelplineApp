@@ -98,6 +98,31 @@ export async function restoreOfflineAccount(
   }
 }
 
+/**
+ * The tier this account was cached with after its last verified read, or null.
+ *
+ * Only for an online session whose entitlement read just failed or timed out
+ * (see directStateAfterEntitlementRead): a failed read must not downgrade a
+ * paying member to free for the whole session. Never an offline authority —
+ * the offline fallback above still restores the free baseline.
+ */
+export async function readCachedAccountState(
+  authUserId: string,
+  accountId: string,
+  storage: AccountCacheStorage = AsyncStorage,
+): Promise<AccountState | null> {
+  if (!authUserId || !accountId) return null;
+  try {
+    const raw = await storage.getItem(keyFor(authUserId));
+    if (!raw) return null;
+    const entry = JSON.parse(raw) as Partial<CachedAccount>;
+    if (entry.version !== 1 || entry.authUserId !== authUserId || !isValidCachedAuthUser(entry.account)) return null;
+    return entry.account.id === accountId ? entry.account.accountState : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function restoreLastOfflineAccount(
   storage: AccountCacheStorage = AsyncStorage,
 ): Promise<AuthUser | null> {

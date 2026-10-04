@@ -147,7 +147,7 @@ export default function EnablingCostsScreen() {
       <View style={styles.headerRow}>
         <TouchableOpacity
           accessibilityRole="button"
-          accessibilityLabel="Back"
+          accessibilityLabel={t('back')}
           onPress={handleBack}
           style={[styles.backButton, { borderColor: colors.line, backgroundColor: colors.white }]}
         >

@@ -1,4 +1,5 @@
 {
+  "back": "Volver",
   "header": "Dinero y límites",
   "progress": "Paso {{current}} de 3",
   "estimate": {

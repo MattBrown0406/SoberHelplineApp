@@ -147,9 +147,14 @@ max_indexes = 5
 enabled = true
 # The production auth landing page must be a normal website. Supabase's default
 # Edge Function domain renders HTML as plain text for anti-phishing protection.
-site_url = "https://mattbrown0406.github.io/soberhelpline/app-confirmed.html"
-# Keep this exact URL allow-listed for email confirmation redirects.
-additional_redirect_urls = ["https://mattbrown0406.github.io/soberhelpline/app-confirmed.html"]
+site_url = "https://soberhelpline.com/app-confirmed.html"
+# Keep these exact URLs allow-listed for email confirmation redirects: the
+# soberhelpline.com page (4.0 build 3+) and the old GitHub Pages copy that
+# earlier builds still send.
+additional_redirect_urls = [
+  "https://soberhelpline.com/app-confirmed.html",
+  "https://mattbrown0406.github.io/soberhelpline/app-confirmed.html",
+]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to the local API URL (http://127.0.0.1:<port>/auth/v1).

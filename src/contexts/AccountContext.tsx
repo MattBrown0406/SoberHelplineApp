@@ -7,7 +7,9 @@ import { isAdminEmail } from '../lib/admin';
 import { configureRevenueCat, getActiveRevenueCatTier, resetRevenueCatUser } from '../lib/revenueCat';
 import {
   AccountRequestGate,
-  resolveDirectAccountState,
+  accountReadRetryDelay,
+  directStateAfterEntitlementRead,
+  lastKnownDirectState,
   resolveRefreshedDirectAccountState,
   withTimeoutFallback,
   withVerifiedPurchase,
@@ -19,6 +21,7 @@ import {
   clearLastOfflineAccount,
   clearOfflineAccount,
   isOfflineFallbackError,
+  readCachedAccountState,
   restoreLastOfflineAccount,
   restoreOfflineAccount,
 } from '../lib/offlineAccountCache';
@@ -86,7 +89,17 @@ async function withRequiredTimeout<T>(promise: PromiseLike<T>, timeoutMs: number
   }
 }
 
-async function fetchCoreAccount(authUser: User): Promise<AuthUser | null> {
+/**
+ * One account read. `verified`: the tier came from a successful entitlements
+ * read (or needs none), so it may be cached. `readFailed`: the latest
+ * entitlements read failed or timed out, so the account is re-read later.
+ */
+type AccountLoad = { account: AuthUser; verified: boolean; readFailed: boolean };
+
+/** The tier this same account last had, used only when an entitlements read fails. */
+type LastKnownAccountState = (accountId: string) => Promise<string | null>;
+
+async function fetchCoreAccount(authUser: User, lastKnownState: LastKnownAccountState): Promise<AccountLoad> {
   const isAdmin = isAdminEmail(authUser.email);
   const accountResult = await withRequiredTimeout(
     supabase
@@ -103,17 +116,21 @@ async function fetchCoreAccount(authUser: User): Promise<AuthUser | null> {
       throw error ?? new Error('account_not_found');
     }
 
-    return buildAuthUser({
-      id: authUser.id,
-      firstName: 'Matt',
-      lastName: '',
-      email: authUser.email ?? '',
-      accountState: 'direct-free',
-      orgId: null,
-      joinedAt: new Date().toISOString(),
-      timezone: 'America/Los_Angeles',
-      adminOverride: true,
-    });
+    return {
+      account: buildAuthUser({
+        id: authUser.id,
+        firstName: 'Matt',
+        lastName: '',
+        email: authUser.email ?? '',
+        accountState: 'direct-free',
+        orgId: null,
+        joinedAt: new Date().toISOString(),
+        timezone: 'America/Los_Angeles',
+        adminOverride: true,
+      }),
+      verified: true,
+      readFailed: false,
+    };
   }
 
   // Consent persistence is best-effort and must never hold the user on the
@@ -136,6 +153,8 @@ async function fetchCoreAccount(authUser: User): Promise<AuthUser | null> {
   }
 
   let accountState: AccountState = providerActive ? 'attached' : 'direct-free';
+  let verified = true;
+  let readFailed = false;
 
   if (!providerActive && !isAdmin) {
     // Database entitlements are immediately available and safe to use for the
@@ -150,11 +169,15 @@ async function fetchCoreAccount(authUser: User): Promise<AuthUser | null> {
       1000,
       null,
     );
-    if (!entitlementResult || entitlementResult.error) {
-      addAppBreadcrumb('auth.entitlements_initial_load_failed', 'warning');
-    } else {
-      accountState = resolveDirectAccountState(entitlementResult.data ?? []);
-    }
+    readFailed = !entitlementResult || !!entitlementResult.error;
+    if (readFailed) addAppBreadcrumb('auth.entitlements_initial_load_failed', 'warning');
+    // A slow or failed read never downgrades a paying member to free.
+    const settled = directStateAfterEntitlementRead({
+      rows: readFailed ? null : entitlementResult?.data ?? [],
+      lastKnownState: readFailed ? await lastKnownState(data.id) : null,
+    });
+    accountState = settled.state;
+    verified = settled.verified;
   }
 
   let effectiveTimezone = data.timezone || 'UTC';
@@ -174,21 +197,26 @@ async function fetchCoreAccount(authUser: User): Promise<AuthUser | null> {
     }
   }
 
-  return buildAuthUser({
-    id: data.id,
-    firstName: data.first_name ?? '',
-    lastName: data.last_name ?? '',
-    email: authUser.email ?? '',
-    accountState,
-    orgId: data.org_id ?? null,
-    joinedAt: data.created_at,
-    timezone: effectiveTimezone,
-    adminOverride: isAdmin,
-  });
+  return {
+    account: buildAuthUser({
+      id: data.id,
+      firstName: data.first_name ?? '',
+      lastName: data.last_name ?? '',
+      email: authUser.email ?? '',
+      accountState,
+      orgId: data.org_id ?? null,
+      joinedAt: data.created_at,
+      timezone: effectiveTimezone,
+      adminOverride: isAdmin,
+    }),
+    verified,
+    readFailed,
+  };
 }
 
-async function enrichAccount(authUser: User, coreAccount: AuthUser): Promise<AuthUser> {
-  if (isAdminEmail(authUser.email) || coreAccount.accountState === 'attached') return coreAccount;
+async function enrichAccount(authUser: User, core: AccountLoad): Promise<AccountLoad> {
+  const coreAccount = core.account;
+  if (isAdminEmail(authUser.email) || coreAccount.accountState === 'attached') return core;
 
   const revenueCatReady = await withTimeoutFallback(configureRevenueCat(coreAccount.id), 2500, false);
 
@@ -218,12 +246,15 @@ async function enrichAccount(authUser: User, coreAccount: AuthUser): Promise<Aut
   // cached on-device, so it must not restore access after the server revoked it.
   // RevenueCat is only a display fallback when the database cannot be read.
   let accountState: AccountState;
-  if (entitlementResult && !entitlementResult.error) {
+  let verified: boolean;
+  const readFailed = !entitlementResult || !!entitlementResult.error;
+  if (!readFailed) {
     accountState = resolveRefreshedDirectAccountState({
-      databaseRows: entitlementResult.data ?? [],
+      databaseRows: entitlementResult?.data ?? [],
       previousState: coreAccount.accountState as 'direct-free' | 'direct-essential' | 'direct-premium',
       revenueCatTier: null,
     });
+    verified = true;
   } else {
     addAppBreadcrumb('auth.entitlements_refresh_failed', 'warning');
     const revenueCatTier = revenueCatReady
@@ -234,20 +265,26 @@ async function enrichAccount(authUser: User, coreAccount: AuthUser): Promise<Aut
       previousState: coreAccount.accountState as 'direct-free' | 'direct-essential' | 'direct-premium',
       revenueCatTier,
     });
+    // RevenueCat may be cached on-device: a tier it adds is shown, not cached.
+    verified = core.verified && accountState === coreAccount.accountState;
   }
 
   accountState = withVerifiedPurchase(coreAccount.id, accountState as 'direct-free' | 'direct-essential' | 'direct-premium');
-  if (accountState === coreAccount.accountState) return coreAccount;
-  return buildAuthUser({
-    id: coreAccount.id,
-    firstName: coreAccount.firstName,
-    lastName: coreAccount.lastName,
-    email: coreAccount.email,
-    accountState,
-    orgId: coreAccount.orgId,
-    joinedAt: coreAccount.joinedAt,
-    timezone: coreAccount.timezone,
-  });
+  if (accountState === coreAccount.accountState) return { account: coreAccount, verified, readFailed };
+  return {
+    account: buildAuthUser({
+      id: coreAccount.id,
+      firstName: coreAccount.firstName,
+      lastName: coreAccount.lastName,
+      email: coreAccount.email,
+      accountState,
+      orgId: coreAccount.orgId,
+      joinedAt: coreAccount.joinedAt,
+      timezone: coreAccount.timezone,
+    }),
+    verified,
+    readFailed,
+  };
 }
 
 function buildAuthUser({
@@ -295,6 +332,9 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   const [accountError, setAccountError] = useState<string | null>(null);
   const [isOfflineAccountFallback, setIsOfflineAccountFallback] = useState(false);
   const [entitlementsSettled, setEntitlementsSettled] = useState(true);
+  // The latest entitlements read failed or timed out: re-read with a short
+  // backoff and on every return to the foreground until one succeeds.
+  const [accountReadFailed, setAccountReadFailed] = useState(false);
   const isOfflineAccountFallbackRef = useRef(false);
   isOfflineAccountFallbackRef.current = isOfflineAccountFallback;
   const authGenerationRef = useRef(0);
@@ -311,6 +351,22 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       .catch(() => {
         addAppBreadcrumb('auth.offline_account_cache_write_failed', 'warning');
       });
+  }, []);
+
+  /** Only a verified tier is cached; a fallback tier never overwrites it. */
+  const cacheIfVerified = useCallback((authUserId: string, load: AccountLoad) => {
+    if (load.verified) queueAccountCacheWrite(authUserId, load.account);
+  }, [queueAccountCacheWrite]);
+
+  /** For a failed entitlements read: the tier this same account had in memory, else as last cached. */
+  const lastKnownStateFor = useCallback((authUserId: string): LastKnownAccountState => async (accountId) => {
+    const inMemory = isOfflineAccountFallbackRef.current ? null : userRef.current;
+    const fromMemory = lastKnownDirectState(accountId, [inMemory]);
+    if (fromMemory) return fromMemory;
+    // Let a queued write land first so the cache holds the latest verified tier.
+    await cacheWriteRef.current.catch(() => undefined);
+    const cachedState = await readCachedAccountState(authUserId, accountId).catch(() => null);
+    return cachedState ? lastKnownDirectState(accountId, [{ id: accountId, accountState: cachedState }]) : null;
   }, []);
 
   const completeSignIn = useCallback((sessionUser: User) => {
@@ -336,37 +392,41 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     setAuthUser(sessionUser);
     setIsLoading(true);
     setEntitlementsSettled(false);
+    setAccountReadFailed(false);
     setAccountError(null);
     setIsOfflineAccountFallback(false);
     addAppBreadcrumb('auth.account_bootstrap_started');
 
-    void fetchCoreAccount(sessionUser)
-      .then((account) => {
+    void fetchCoreAccount(sessionUser, lastKnownStateFor(sessionUser.id))
+      .then((load) => {
         if (
           authGenerationRef.current !== generation ||
           !accountRequestGateRef.current.isCurrent(requestId) ||
-          !account
+          !load
         ) return;
+        const account = load.account;
         userRef.current = account;
         setUser(account);
         setIsOfflineAccountFallback(false);
         isLoadingRef.current = false;
         setIsLoading(false);
-        queueAccountCacheWrite(sessionUser.id, account);
+        cacheIfVerified(sessionUser.id, load);
         addAppBreadcrumb('auth.account_bootstrap_completed');
 
         // Optional subscription providers refresh after app entry. They can
         // improve entitlements, but cannot keep a valid user on the login page.
-        void enrichAccount(sessionUser, account)
-          .then((enriched) => {
+        void enrichAccount(sessionUser, load)
+          .then((enrichedLoad) => {
             if (
               authGenerationRef.current !== generation ||
               !accountRequestGateRef.current.isCurrent(requestId)
             ) return;
+            const enriched = enrichedLoad.account;
             userRef.current = enriched;
             setUser(enriched);
             setEntitlementsSettled(true);
-            queueAccountCacheWrite(sessionUser.id, enriched);
+            setAccountReadFailed(enrichedLoad.readFailed);
+            cacheIfVerified(sessionUser.id, enrichedLoad);
             addAppBreadcrumb('auth.account_enrichment_completed');
           })
           .catch((error) => {
@@ -375,6 +435,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
               !accountRequestGateRef.current.isCurrent(requestId)
             ) return;
             setEntitlementsSettled(true);
+            setAccountReadFailed(load.readFailed);
             addAppBreadcrumb('auth.account_enrichment_failed', 'warning');
             captureAppError(error);
           });
@@ -417,9 +478,13 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         addAppBreadcrumb('auth.account_bootstrap_failed', 'error');
         captureAppError(error);
       });
-  }, [queueAccountCacheWrite]);
+  }, [cacheIfVerified, lastKnownStateFor]);
 
-  const refreshAccount = useCallback(async (options?: { retainOfflineFallback?: boolean }) => {
+  const refreshAccount = useCallback(async (options?: {
+    retainOfflineFallback?: boolean;
+    /** Background retry: a failure leaves the account on screen exactly as it is. */
+    keepCurrentOnFailure?: boolean;
+  }) => {
     const currentAuthUser = authUserRef.current;
     if (!currentAuthUser) return;
     const generation = authGenerationRef.current;
@@ -430,28 +495,29 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
     }
     try {
-      const account = await fetchCoreAccount(currentAuthUser);
+      const load = await fetchCoreAccount(currentAuthUser, lastKnownStateFor(currentAuthUser.id));
       if (
         authGenerationRef.current !== generation ||
         !accountRequestGateRef.current.isCurrent(requestId) ||
-        !account
+        !load
       ) return;
-      userRef.current = account;
-      setUser(account);
+      userRef.current = load.account;
+      setUser(load.account);
       setIsOfflineAccountFallback(false);
       isLoadingRef.current = false;
       setIsLoading(false);
-      queueAccountCacheWrite(currentAuthUser.id, account);
-      const enriched = await enrichAccount(currentAuthUser, account);
+      cacheIfVerified(currentAuthUser.id, load);
+      const enrichedLoad = await enrichAccount(currentAuthUser, load);
       if (
         authGenerationRef.current === generation &&
         accountRequestGateRef.current.isCurrent(requestId)
       ) {
-        userRef.current = enriched;
-        setUser(enriched);
+        userRef.current = enrichedLoad.account;
+        setUser(enrichedLoad.account);
         // A refresh supersedes a sign-in enrichment still in flight.
         setEntitlementsSettled(true);
-        queueAccountCacheWrite(currentAuthUser.id, enriched);
+        setAccountReadFailed(enrichedLoad.readFailed);
+        cacheIfVerified(currentAuthUser.id, enrichedLoad);
       }
     } catch (error) {
       if (
@@ -459,6 +525,17 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         accountRequestGateRef.current.isCurrent(requestId)
       ) {
         setEntitlementsSettled(true);
+        // A background retry that cannot reach the account keeps what is shown
+        // (never a downgrade, never the offline or error screen).
+        if (
+          options?.keepCurrentOnFailure
+          && userRef.current
+          && !isOfflineAccountFallbackRef.current
+          && authUserRef.current?.id === currentAuthUser.id
+        ) {
+          addAppBreadcrumb('auth.account_retry_failed', 'warning');
+          throw error;
+        }
         if (isOfflineFallbackError(error)) {
           const cached = await restoreOfflineAccount(currentAuthUser.id);
           if (
@@ -496,7 +573,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       }
       throw error;
     }
-  }, [queueAccountCacheWrite]);
+  }, [cacheIfVerified, lastKnownStateFor]);
 
   const signOutLocally = useCallback(async () => {
     const accountId = userRef.current?.id;
@@ -582,6 +659,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         setAccountError(null);
         setIsOfflineAccountFallback(false);
         setEntitlementsSettled(true);
+        setAccountReadFailed(false);
         setIsLoading(false);
         // Finish any older write before clearing so logout cannot race a stale
         // profile back onto disk.
@@ -625,6 +703,44 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     });
     return () => subscription.remove();
   }, [isOfflineAccountFallback, refreshAccount, completeSignIn]);
+
+  // A slow or failed entitlements read must not leave a paying member on the
+  // free tier for the whole session: re-read with a short backoff and whenever
+  // the app returns to the foreground, until a read succeeds.
+  useEffect(() => {
+    if (!accountReadFailed || isOfflineAccountFallback) return;
+    let cancelled = false;
+    let inFlight = false;
+    let attempt = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const schedule = () => {
+      if (timer) clearTimeout(timer);
+      timer = undefined;
+      const delay = accountReadRetryDelay(attempt);
+      attempt += 1;
+      if (delay !== null) timer = setTimeout(retry, delay);
+    };
+    function retry() {
+      if (cancelled || inFlight || !authUserRef.current) return;
+      inFlight = true;
+      void refreshAccount({ keepCurrentOnFailure: true })
+        .catch(() => undefined)
+        .finally(() => {
+          inFlight = false;
+          // Still failing (a success clears accountReadFailed and cancels this).
+          if (!cancelled) schedule();
+        });
+    }
+    schedule();
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') retry();
+    });
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+      subscription.remove();
+    };
+  }, [accountReadFailed, isOfflineAccountFallback, refreshAccount]);
 
   const accountState = user?.accountState ?? 'direct-free';
   useEffect(() => {

@@ -1,16 +1,10 @@
 // notify-situation-brief — Supabase Edge Function
 //
-// Triggered by a Database Webhook on situation_briefs INSERT.
+// Called on every situation_briefs INSERT by the migration-managed trigger
+// shl_notify_situation_brief (20261004100000_notify_webhooks_vault_key.sql),
+// with the Database Webhook body and the vault service key.
 // Emails Matt the brief so an escalating family never sits unseen, even if
-// the admin push lands on a silenced phone.
-//
-// Setup (mirrors notify-coaching-request):
-//   1. RESEND_API_KEY secret must be set (shared with notify-coaching-request)
-//   2. supabase functions deploy notify-situation-brief
-//   3. Dashboard → Database → Webhooks → Create webhook:
-//        Table: situation_briefs  |  Event: INSERT
-//        URL: https://<project-ref>.supabase.co/functions/v1/notify-situation-brief
-//        HTTP method: POST  |  Add header: Authorization: Bearer <service-role-key>
+// the admin push lands on a silenced phone. RESEND_API_KEY must be set.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { requireServiceRole } from '../_shared/service-auth.ts';

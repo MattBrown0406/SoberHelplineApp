@@ -3,6 +3,8 @@ import {
   dayDeadline,
   deliverLegacy,
   freshDailyAccount,
+  localDay,
+  localHour,
   recordDelivery,
   remaining,
   tally,
@@ -87,10 +89,26 @@ function dayOfYear(d: Date): number {
   return Math.floor((d.getTime() - new Date(d.getFullYear(), 0, 0).getTime()) / 86400000);
 }
 
+// When it is sent. The dashboard cron 'daily-morning-notification' calls this
+// once a day at 16:00 UTC with an empty body ("daily" run): that is 6 AM in
+// Hawaii to noon on the US East Coast, so a member for whom it is not morning
+// (6:00 AM–12:59 PM her time — Europe, Asia, Australia…) is skipped rather than
+// told "Good morning" in the evening or at 3 AM. Called hourly with
+// {"mode":"local"}, it instead reaches each member at 9 AM her own time. Either
+// way "It's Monday" means Monday where she is.
+const DAILY_RUN_MORNING = { from: 6, until: 13 };
+const LOCAL_MORNING_HOUR = 9;
+
+/** Day of the week (0 = Sunday) where she is. */
+function localWeekday(now: number, timezone: string | null): number {
+  return new Date(`${localDay(now, timezone)}T00:00:00Z`).getUTCDay();
+}
+
 interface Acct {
   id: string;
   push_token: string;
   locale: string | null;
+  timezone: string | null;
 }
 
 const PAGE_SIZE = 1000;
@@ -102,7 +120,7 @@ async function optedInAccounts(): Promise<Acct[] | null> {
   for (;;) {
     let query = supabase
       .from('accounts')
-      .select('id, push_token, locale')
+      .select('id, push_token, locale, timezone')
       .not('push_token', 'is', null)
       .eq('daily_push_opt_in', true)
       .order('id')
@@ -119,21 +137,29 @@ async function optedInAccounts(): Promise<Acct[] | null> {
 Deno.serve(async (req) => {
   const authError = requireServiceRole(req);
   if (authError) return authError;
+  const { mode } = await req.json().catch(() => ({}));
+  const hourly = mode === 'local';
   // Pin copy/day before discovery IO, not after a delayed account scan.
   const now = new Date();
-  const deadline = dayDeadline(now.getTime(), 'UTC');
-  const accounts = await optedInAccounts().catch(() => null);
-  if (accounts === null) {
+  const started = now.getTime();
+  const dailyDeadline = dayDeadline(started, 'UTC');
+  const all = await optedInAccounts().catch(() => null);
+  if (all === null) {
     return new Response(JSON.stringify({ error: 'accounts_unavailable' }), { status: 500 });
   }
+  const accounts = hourly
+    ? all.filter((a) => localHour(started, a.timezone) === LOCAL_MORNING_HOUR)
+    : all;
   if (!accounts.length) {
     return new Response(JSON.stringify({ sent: 0 }), { status: 200 });
   }
 
-  const isMonday = now.getUTCDay() === 1;
   const challenge = DAILY_CHALLENGES[dayOfYear(now) % DAILY_CHALLENGES.length];
   const counts = tally();
   for (const candidate of accounts) {
+    // Her own day, pinned before IO: "today" cannot become tomorrow.
+    const day = localDay(started, candidate.timezone);
+    const deadline = hourly ? dayDeadline(started, candidate.timezone) : dailyDeadline;
     if (!remaining(deadline)) {
       counts.skipped++;
       continue;
@@ -144,6 +170,17 @@ Deno.serve(async (req) => {
         counts.skipped++;
         continue;
       }
+      // Re-checked at send time with her current time zone.
+      const hour = localHour(Date.now(), a.timezone);
+      if (
+        hourly
+          ? hour !== LOCAL_MORNING_HOUR || localDay(Date.now(), a.timezone) !== day
+          : hour < DAILY_RUN_MORNING.from || hour >= DAILY_RUN_MORNING.until
+      ) {
+        counts.skipped++;
+        continue;
+      }
+      const isMonday = localWeekday(Date.now(), a.timezone) === 1;
       const band = a.band;
       const lang = a.locale === 'es' ? 'es' : 'en';
       const c = COPY[lang];

@@ -25,7 +25,7 @@ function load(lang: string, file: string): Map<string, Json> {
 
 // Strings that are legitimately identical in both languages: proper nouns,
 // numbers, icons, URLs, and short labels that Spanish borrows unchanged.
-const SAME_OK = /^(\s*|[\d\s.:–—-]+|[^A-Za-z]*|(\{\{[\w.]+\}\}[^A-Za-z]*)+|https?:\/\/.*|911|988|OK|Zoom|Premier|Essential|Narcan|LiveKit|Sober Helpline.*|The Family Squares|FamilyBridge|iOS|Android|PDF|Email|Wi-Fi|Mac|No|Total|Freedom Interventions.*|The Party Wreckers.*|No More Enabling.*|SAMHSA.*)$/i;
+const SAME_OK = /^(\s*|[\d\s.:–—-]+|[^A-Za-z]*|(\{\{[\w.]+\}\}[^A-Za-z]*)+|https?:\/\/.*|911|988|OK|Zoom|Premier|Essential|Narcan|LiveKit|Sober Helpline.*|The Family Squares|iOS|Android|PDF|Email|Wi-Fi|Mac|No|Total|Freedom Interventions.*|The Party Wreckers.*|No More Enabling.*|SAMHSA.*)$/i;
 
 const files = readdirSync(resolve(LOCALES, 'en')).filter((name) => name.endsWith('.json')).sort();
 

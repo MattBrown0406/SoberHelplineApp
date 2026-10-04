@@ -1,6 +1,6 @@
 // Provider-boundary guards for legacy (non-outbox) senders only.
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
-import { type Band, bandForSignals } from './situation.ts';
+import { type Band, bandForSignals, type LovedOneSignal } from './situation.ts';
 
 export async function checked<T>(query: PromiseLike<{ data: T; error: unknown }>): Promise<T> {
   const { data, error } = await query;
@@ -61,21 +61,22 @@ export async function freshDailyAccount(db: SupabaseClient, id: string, day?: st
   const since14 = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
   let query = db.from('accounts').select(`id, push_token, locale, timezone, daily_push_opt_in,
     recent_checkins:checkins(mood), today_checkins:checkins(checkin_date),
-    tracker_logs(kind), loved_ones(status)`)
+    tracker_logs(kind), loved_ones(status, stage, stage_changed_at, status_changed_at)`)
     .eq('id', id).gte('recent_checkins.created_at', since7).gte('tracker_logs.week', since14);
   // Morning notes do not depend on today's completion; avoid fetching history.
   query = query.eq('today_checkins.checkin_date', day ?? '0001-01-01');
   const a = await checked(query.maybeSingle());
   if (!a) return null;
   // loved_ones.account_id is UNIQUE: PostgREST embeds an object, not an array.
-  const loved = a.loved_ones as unknown as { status: string | null } | null;
+  const loved = a.loved_ones as unknown as LovedOneSignal | null;
   const band: Band = bandForSignals(
     (a.recent_checkins ?? []).filter((c) => c.mood <= 2).length,
     (a.tracker_logs ?? []).reduce(
       (n, l) => n + (l.kind === 'warning' ? 1 : l.kind === 'recovery' ? -1 : 0),
       0,
     ),
-    loved?.status ?? null,
+    loved ?? null,
+    (a.tracker_logs ?? []).filter((l) => l.kind === 'warning').length,
   );
   return { ...a, band, checkedIn: !!a.today_checkins?.length };
 }

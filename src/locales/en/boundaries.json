@@ -124,7 +124,11 @@
     "eyebrow": "My boundaries (castle walls)",
     "empty": "No boundaries saved yet. Use a suggestion above or write one clear limit.",
     "shareAttached": "Review walls with my coach",
-    "shareDirect": "Share walls with the on-call coach"
+    "shareDirect": "Share walls with the on-call coach",
+    "deleteTitle": "Remove this boundary?",
+    "deleteBody": "This deletes the boundary and its follow-through notes from your account. It can't be undone.",
+    "deleteCancel": "Keep it",
+    "deleteConfirm": "Remove"
   },
   "challenge": {
     "eyebrow": "TODAY'S CHALLENGE",

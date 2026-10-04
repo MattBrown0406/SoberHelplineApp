@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import { supabase } from '../lib/supabase';
+import { subscribeFamilySpaceRefresh } from '../lib/familySpaceRefresh';
 import { isNewBoundaryWin } from '../lib/reviewPromptPolicy';
 import { getWeekStart } from '../lib/trackerWeek';
 
@@ -46,41 +48,60 @@ export function useHoldLog(accountId: string | null, familySpaceId: string | nul
   accountIdRef.current = accountId;
   const weekStart = currentHoldWeekStart(timezone);
 
+  const loadGeneration = useRef(0);
+
+  // Re-read on mount, screen focus (the screens call reload), foreground and
+  // family-space changes. A failed read keeps what is on screen.
   const load = useCallback(async () => {
+    const generation = ++loadGeneration.current;
     if (!accountId) {
       setOwn(null);
       setShared([]);
       return;
     }
 
-    const { data: mine } = await supabase
+    const { data: mine, error: mineError } = await supabase
       .from('wall_hold_logs')
       .select('id, account_id, week_start, result, shared_with_family, updated_at')
       .eq('account_id', accountId)
       .eq('week_start', weekStart)
       .maybeSingle();
-
-    setOwn(mine ? mapRow(mine) : null);
+    if (generation !== loadGeneration.current) return;
+    if (!mineError) setOwn(mine ? mapRow(mine) : null);
 
     if (!familySpaceId) {
       setShared([]);
       return;
     }
 
-    const { data: family } = await supabase
+    const { data: family, error: familyError } = await supabase
       .from('wall_hold_logs')
       .select('id, account_id, week_start, result, shared_with_family, updated_at')
       .eq('family_space_id', familySpaceId)
       .eq('week_start', weekStart)
       .eq('shared_with_family', true)
       .order('updated_at', { ascending: false });
+    if (generation !== loadGeneration.current || familyError) return;
 
     setShared((family ?? []).filter((row) => row.account_id !== accountId).map(mapRow));
   }, [accountId, familySpaceId, weekStart]);
 
   useEffect(() => {
-    void load();
+    void load().catch(() => undefined);
   }, [load]);
+
+  useEffect(() => {
+    if (!accountId) return;
+    const reread = () => { void load().catch(() => undefined); };
+    const unsubscribe = subscribeFamilySpaceRefresh(reread);
+    const appState = AppState.addEventListener('change', (state) => {
+      if (state === 'active') reread();
+    });
+    return () => {
+      unsubscribe();
+      appState.remove();
+    };
+  }, [accountId, load]);
 
   const save = useCallback(
     async (result: HoldResult, shareWithFamily: boolean) => {

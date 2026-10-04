@@ -96,7 +96,7 @@ function messageForError(error: { message?: string; details?: string } | null): 
   if (raw.includes('start_time_in_past')) return 'That start time has already passed. Send a counteroffer with a future time instead.';
   if (raw.includes('calendar_sync_in_progress')) return 'A calendar sync is running right now. Refresh in a minute.';
   if (raw.includes('nothing_to_sync')) return 'This session has nothing on the calendar to sync.';
-  if (raw.includes('manual_payment_note_required')) return 'Add a short note (3–500 characters) saying how the $150 was paid.';
+  if (raw.includes('manual_payment_note_required')) return 'Add a short note (3–500 characters) saying how the payment was made.';
   if (raw.includes('already_paid')) return 'This plan review is already marked paid.';
   if (raw.includes('invalid_payment_transition')) return 'Only an active plan review awaiting payment can be marked paid.';
   return raw.replace(/_/g, ' ');

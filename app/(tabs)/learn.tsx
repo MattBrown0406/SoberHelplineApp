@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Text, TextInput, TouchableOpacity, View, StyleSheet, Linking } from 'react-native';
+import { Text, TextInput, TouchableOpacity, View, StyleSheet } from 'react-native';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -7,14 +7,16 @@ import { useTheme } from '../../src/contexts/ThemeContext';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { useWebSSO } from '../../src/hooks/useWebSSO';
 import { useFeatureAccess } from '../../src/hooks/useFeatureAccess';
+import { WEBSITE_PATHS } from '../../src/lib/websiteLinks';
 
 
-type ContentSection = { key: string; path: string; sso: boolean };
+type ContentSection = { key: 'education' | 'recordings'; path: string };
 type FaqItem = { q: string; a: string };
 
+// Members-only soberhelpline.com pages, opened in the browser already signed in.
 const SECTIONS: ContentSection[] = [
-  { key: 'education', path: '/family-education', sso: true },
-  { key: 'recordings', path: '/zoom-recordings', sso: true },
+  { key: 'education', path: WEBSITE_PATHS.familyEducation },
+  { key: 'recordings', path: WEBSITE_PATHS.zoomRecordings },
 ];
 
 function FaqRow({ item, colors }: { item: FaqItem; colors: ReturnType<typeof useTheme>['colors'] }) {
@@ -211,21 +213,38 @@ export default function LearnScreen() {
 
       {entitlements.canAccessLearningContent ? (
         <>
-          {SECTIONS.map(({ key, path, sso }) => (
+          {/* The website library and recordings are members-only pages; for
+              everyone else they would be a website paywall, so free members
+              see where the library lives and the in-app plans instead. */}
+          {entitlements.canAccessGroups ? SECTIONS.map(({ key, path }) => (
             <View key={key} style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
               <Text style={[styles.cardTitle, { color: colors.ink }]}>{t(`${key}.title`)}</Text>
               <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t(`${key}.body`)}</Text>
               <TouchableOpacity
-                accessibilityRole="button"
+                accessibilityRole="link"
                 accessibilityLabel={t(`${key}.button`)}
                 style={[styles.cardButton, { backgroundColor: colors.primary }]}
-                onPress={() => sso ? void openWithSSO(user?.id ?? null, path) : void Linking.openURL(path)}
+                onPress={() => void openWithSSO(user?.id ?? null, path)}
                 activeOpacity={0.85}
               >
                 <Text style={styles.cardButtonText}>{t(`${key}.button`)}</Text>
               </TouchableOpacity>
             </View>
-          ))}
+          )) : (
+            <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
+              <Text style={[styles.cardTitle, { color: colors.ink }]}>{t('membersLibrary.title')}</Text>
+              <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t('membersLibrary.body')}</Text>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={t('membersLibrary.button')}
+                style={[styles.cardButton, { backgroundColor: colors.primary }]}
+                onPress={() => router.push('/(tabs)/support' as never)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.cardButtonText}>{t('membersLibrary.button')}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* In-app answers to the questions every family asks — no web round-trip. */}
           <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>

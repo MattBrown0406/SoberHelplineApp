@@ -23,6 +23,7 @@ import { EmergencyActions } from '../src/components/safety/EmergencyActions';
 import { SafetyWalletExport } from '../src/components/safety/SafetyWalletExport';
 import { walletExportItems, type WalletExportItem } from '../src/lib/safetyWalletExport';
 import { appAlert } from '../src/lib/appAlert';
+import { crisisSessionView } from '../src/lib/crisisSessionView';
 import type { SafetyBoundary, SafetyIncident, SafetyPlan } from '../src/lib/safetyWallet';
 import {
   CRISIS_SITUATION_ORDER,
@@ -110,7 +111,7 @@ function CrisisModeContent() {
   const router = useRouter();
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('crisis');
-  const { user, entitlements, isOfflineAccountFallback } = useAccount();
+  const { user, entitlements, isOfflineAccountFallback, entitlementsSettled } = useAccount();
   const { isCurrent } = useAsyncScope(user?.id ?? null);
   const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
   const isSpanish = language.toLowerCase().startsWith('es');
@@ -121,10 +122,21 @@ function CrisisModeContent() {
   // Sharing the saved plan is a safety feature and free for every account.
   const canShareWallet = useFeatureAccess('safetyWalletShare');
   const canAccessPrivateVideo = !!user && entitlements.canAccessPrivateVideo;
+  // Her own sessions load whatever her tier: a member whose Essential lapsed
+  // after paying for a plan review still sees, pays for and joins it.
   const privateVideo = usePrivateVideoSessions(
     isOfflineAccountFallback ? null : user?.id ?? null,
-    !isOfflineAccountFallback && hasEssential,
+    !isOfflineAccountFallback && !!user,
   );
+  const sessionView = crisisSessionView({
+    hasEssential,
+    canAccessPrivateVideo,
+    entitlementsSettled,
+    sessionsLoaded: privateVideo.loaded,
+    sessionLoadFailed: !!(privateVideo.error || privateVideo.errorKey),
+    activeSession: privateVideo.activeSession,
+  });
+  const openSession = (session: { id: string; room_name: string }) => router.push({ pathname: '/video-session' as never, params: { sessionId: session.id, room: session.room_name } });
   const {
     plan,
     setPlan,
@@ -249,7 +261,7 @@ function CrisisModeContent() {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.cream }]}>
       <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
-        <TouchableOpacity onPress={() => router.back()} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('back')}>
+        <TouchableOpacity onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(tabs)'); }} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('back')}>
           <Text style={[styles.back, { color: colors.primary }]}>{t('back')}</Text>
         </TouchableOpacity>
 
@@ -287,10 +299,26 @@ function CrisisModeContent() {
 
         <EmergencyActions offline={isOfflineAccountFallback} />
 
-        {focusSession && hydrated && stage !== 'result' ? (
+        {focusSession && hydrated && stage !== 'result' && (sessionView.showSessionCard || sessionView.showPlanReviewCard) ? (
           <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
-            {(canAccessPrivateVideo || privateVideo.activeSession?.appointment_type === 'one_off_150') ? <PremierVideoSchedulingCard controller={privateVideo} t={t} translationRoot="premierVideo" compact onJoin={(session) => router.push({ pathname: '/video-session' as never, params: { sessionId: session.id, room: session.room_name } })} /> : null}
-            {hasEssential ? <PlanReviewBookingCard controller={privateVideo} hasIncludedPlanReview={hasIncludedPlanReview} source={planReviewSource} t={t} consentLocale={isSpanish ? 'es' : 'en'} onUpgrade={() => router.push('/(tabs)/support' as never)} /> : null}
+            {sessionView.showSessionCard ? <PremierVideoSchedulingCard controller={privateVideo} t={t} translationRoot="premierVideo" compact onJoin={openSession} /> : null}
+            {sessionView.showPlanReviewCard ? <PlanReviewBookingCard controller={privateVideo} hasIncludedPlanReview={hasIncludedPlanReview} source={planReviewSource} t={t} consentLocale={isSpanish ? 'es' : 'en'} onUpgrade={() => router.push('/(tabs)/support' as never)} /> : null}
+          </View>
+        ) : null}
+
+        {/* Opened for a plan review (e.g. soberhelpline.com/app/plan-review)
+            without Essential and without a session of her own: say where plan
+            review lives instead of an empty card. Waits for entitlements and
+            her sessions so a member never flashes the gate. */}
+        {focusSession && sessionView.showGate && stage !== 'result' ? (
+          <LockedCard tier="Essential" cta={t('inline.viewPlans')} title={t('planReview.gateTitle')} body={t('planReview.gateBody')} colors={colors} onPress={() => router.push('/(tabs)/support' as never)} />
+        ) : null}
+        {focusSession && sessionView.showLoadError && stage !== 'result' ? (
+          <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
+            <Text accessibilityRole="alert" style={[styles.body, { color: colors.ink }]}>{t('planReview.sessionLoadError')}</Text>
+            <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary }]} onPress={() => void privateVideo.load()}>
+              <Text style={[styles.outlineBtnText, { color: colors.primary }]}>{t('premierVideo.retry')}</Text>
+            </TouchableOpacity>
           </View>
         ) : null}
 
@@ -415,8 +443,8 @@ function CrisisModeContent() {
               <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
                 <Text accessibilityRole="header" style={[styles.sectionTitle, { color: colors.ink }]}>{t('support.title')}</Text>
                 {entitlements.canMessageOnCallCoach ? <TouchableOpacity accessibilityRole="button" style={[styles.primaryBtn, { backgroundColor: colors.primary }]} onPress={() => router.push('/chat')}><Text style={styles.primaryBtnText}>{t('support.openTextline')}</Text></TouchableOpacity> : <Text style={[styles.body, { color: colors.inkSoft }]}>{t('inline.textSupportIsAvailableWith')}</Text>}
-                {(canAccessPrivateVideo || privateVideo.activeSession?.appointment_type === 'one_off_150') ? <PremierVideoSchedulingCard controller={privateVideo} t={t} translationRoot="premierVideo" compact onJoin={(session) => router.push({ pathname: '/video-session' as never, params: { sessionId: session.id, room: session.room_name } })} /> : null}
-                {hasEssential && hydrated ? <PlanReviewBookingCard controller={privateVideo} hasIncludedPlanReview={hasIncludedPlanReview} source={planReviewSource} t={t} consentLocale={isSpanish ? 'es' : 'en'} onUpgrade={() => router.push('/(tabs)/support' as never)} /> : null}
+                {sessionView.showSessionCard ? <PremierVideoSchedulingCard controller={privateVideo} t={t} translationRoot="premierVideo" compact onJoin={openSession} /> : null}
+                {sessionView.showPlanReviewCard && hydrated ? <PlanReviewBookingCard controller={privateVideo} hasIncludedPlanReview={hasIncludedPlanReview} source={planReviewSource} t={t} consentLocale={isSpanish ? 'es' : 'en'} onUpgrade={() => router.push('/(tabs)/support' as never)} /> : null}
               </View>
             ) : null}
           </>

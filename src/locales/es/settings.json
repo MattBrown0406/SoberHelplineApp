@@ -3,7 +3,8 @@
   "account": {
     "eyebrow": "Cuenta",
     "nameLabel": "Nombre",
-    "emailLabel": "Correo electrónico"
+    "emailLabel": "Correo electrónico",
+    "websiteLogin": "Las páginas que abres desde la app inician tu sesión en soberhelpline.com automáticamente. Para entrar allí directamente, usa “Forgot password?” (¿Olvidaste tu contraseña?) en soberhelpline.com y crea una contraseña para el sitio web."
   },
   "privacy": {
     "eyebrow": "Privacidad",
@@ -66,6 +67,7 @@
     "premiumFeatures": "Llamadas telefónicas y de video con un coach en horario laboral",
     "essentialPlan": "Esencial",
     "essentialFeatures": "Acceso completo · mensajería · grupos",
+    "websiteSource": "Tu membresía es a través de soberhelpline.com; administra la facturación allí.",
     "manage": "Gestionar suscripción",
     "restore": "Restaurar compras",
     "restoreSuccessTitle": "Compras restauradas",

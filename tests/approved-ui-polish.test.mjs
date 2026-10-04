@@ -68,7 +68,9 @@ for (const lang of ['en', 'es']) test(`${lang}: short labels retain full titles;
   assert.match(support.practiceGate.body, /Essential.*Premier/);
   assert.ok(support.practiceGate.freeAction);
   assert.match(support.privateVideo.body, lang === 'en' ? /staff availability/ : /disponibilidad/);
-  assert.match(support.coaching.cardBody, /\$150/);
+  // The coaching price is member-aware ($125 member price / $150), filled in by the screen.
+  assert.match(support.coaching.cardBody, /\{\{rate\}\}/);
+  assert.doesNotMatch(support.coaching.cardBody, /\$\d/);
 });
 
 test('rehearsal radio choices have checked semantics on both adapters', () => {
@@ -103,7 +105,7 @@ test('Support actions precede disclosure and pricing remains separate; disclosur
   assert.match(s, /\[membershipExpanded, setMembershipExpanded\] = useState\(false\)/);
   assert.match(s, /aria-expanded=\{membershipExpanded\}/);
   assert.match(s, /display: membershipExpanded \? 'flex' : 'none'/);
-  assert.ok(s.indexOf("t('coaching.cardBody')") > explanation);
+  assert.ok(s.indexOf("t('coaching.cardBody', { rate: coachingRate.hourly })") > explanation);
 });
 
 test('primary practice/invitation/support/scheduling hit areas have explicit 44pt minimums', () => {

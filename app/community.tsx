@@ -19,7 +19,7 @@ import { useAccount } from '../src/contexts/AccountContext';
 import { openEmergencyLink } from '../src/lib/emergencyLinks';
 import { appAlert } from '../src/lib/appAlert';
 import { Gate } from '../src/components/auth/Gate';
-import { useCommunity, CrisisContentError, type CommunityPost } from '../src/hooks/useCommunity';
+import { useCommunity, CrisisContentError, PostRateLimitedError, type CommunityPost } from '../src/hooks/useCommunity';
 import { MAX_CONTENT_WIDTH } from '../src/components/ui/ScreenContainer';
 
 
@@ -41,23 +41,35 @@ function CommunityContent() {
   const { t } = useTranslation('support');
   const { user } = useAccount();
   const router = useRouter();
-  const { posts, belonging, loading, createPost, reportPost, deletePost, supportPost } = useCommunity(user?.id ?? null);
+  const {
+    posts, belonging, blocks, loading, createPost, reportPost, deletePost, supportPost, blockAuthor, unblock,
+  } = useCommunity(user?.id ?? null);
 
   const [draft, setDraft] = useState('');
   const [posting, setPosting] = useState(false);
   const [crisisOpen, setCrisisOpen] = useState(false);
+  const [blockedOpen, setBlockedOpen] = useState(false);
+  // The author's own post mentioned suicide, self-harm or an overdose.
+  const [showResources, setShowResources] = useState(false);
+
+  const authorName = (name: string | null | undefined) =>
+    !name || name === 'A family member' ? t('community.anonymousAuthor') : name;
 
 
-  async function handlePost() {
+  async function handlePost(past = false) {
     const body = draft.trim();
     if (!body || posting) return;
     setPosting(true);
     try {
-      await createPost(body);
+      const { safetyResources } = await createPost(body, past);
       setDraft('');
+      setCrisisOpen(false);
+      setShowResources(safetyResources);
     } catch (err) {
       if (err instanceof CrisisContentError) {
         setCrisisOpen(true);
+      } else if (err instanceof PostRateLimitedError) {
+        appAlert(t('community.postRateLimited'));
       } else {
         appAlert(t('community.postError'));
       }
@@ -74,6 +86,35 @@ function CommunityContent() {
         style: 'destructive',
         onPress: async () => {
           if (!(await reportPost(post.id))) appAlert(t('community.actionError'));
+        },
+      },
+    ]);
+  }
+
+  function confirmBlock(post: CommunityPost) {
+    appAlert(
+      t('community.blockConfirmTitle', { name: authorName(post.author_display) }),
+      t('community.blockConfirmBody'),
+      [
+        { text: t('community.cancel'), style: 'cancel' },
+        {
+          text: t('community.blockConfirm'),
+          style: 'destructive',
+          onPress: async () => {
+            if (!(await blockAuthor(post))) appAlert(t('community.actionError'));
+          },
+        },
+      ],
+    );
+  }
+
+  function confirmUnblock(blockId: string, name: string) {
+    appAlert(t('community.unblockConfirmTitle', { name: authorName(name) }), t('community.unblockConfirmBody'), [
+      { text: t('community.cancel'), style: 'cancel' },
+      {
+        text: t('community.unblock'),
+        onPress: async () => {
+          if (!(await unblock(blockId))) appAlert(t('community.actionError'));
         },
       },
     ]);
@@ -127,7 +168,47 @@ function CommunityContent() {
                 {t('community.crisisMessageCoach')}
               </Text>
             </TouchableOpacity>
+            {/* A story about the past, or venting, can still be shared (with resources). */}
+            <TouchableOpacity
+              onPress={() => { void handlePost(true); }}
+              disabled={posting}
+              style={styles.crisisClose}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.crisisCloseText, { color: colors.primary }]}>{t('community.crisisPostPast')}</Text>
+            </TouchableOpacity>
             <TouchableOpacity onPress={() => setCrisisOpen(false)} style={styles.crisisClose}>
+              <Text style={[styles.crisisCloseText, { color: colors.inkSoft }]}>{t('community.crisisClose')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* People this member blocked, with a way to unblock (App Store 1.2). */}
+      <Modal visible={blockedOpen} transparent animationType="fade" onRequestClose={() => setBlockedOpen(false)}>
+        <View style={styles.crisisOverlay}>
+          <View style={[styles.crisisCard, { backgroundColor: colors.white }]}>
+            <Text style={[styles.crisisTitle, { color: colors.ink }]}>{t('community.blockedTitle')}</Text>
+            {blocks.length === 0 ? (
+              <Text style={[styles.crisisBody, { color: colors.inkSoft }]}>{t('community.blockedEmpty')}</Text>
+            ) : (
+              blocks.map((b) => (
+                <View key={b.block_id} style={[styles.blockedRow, { borderBottomColor: colors.line }]}>
+                  <Text style={[styles.blockedName, { color: colors.ink }]} numberOfLines={1}>
+                    {authorName(b.display_name)}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => confirmUnblock(b.block_id, b.display_name)}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('community.unblockA11y', { name: authorName(b.display_name) })}
+                  >
+                    <Text style={[styles.postActionText, { color: colors.primary }]}>{t('community.unblock')}</Text>
+                  </TouchableOpacity>
+                </View>
+              ))
+            )}
+            <TouchableOpacity onPress={() => setBlockedOpen(false)} style={styles.crisisClose}>
               <Text style={[styles.crisisCloseText, { color: colors.inkSoft }]}>{t('community.crisisClose')}</Text>
             </TouchableOpacity>
           </View>
@@ -159,6 +240,13 @@ function CommunityContent() {
                     <Text style={[styles.belongingText, { color: colors.ink }]}>{belongingText}</Text>
                   </View>
                   <Text style={[styles.guidelines, { color: colors.inkSoft }]}>{t('community.guidelines')}</Text>
+                  {blocks.length > 0 ? (
+                    <TouchableOpacity onPress={() => setBlockedOpen(true)} hitSlop={8} accessibilityRole="button">
+                      <Text style={[styles.blockedLink, { color: colors.primary }]}>
+                        {t('community.blockedLink', { count: blocks.length })}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : null}
                 </View>
               }
               ListEmptyComponent={
@@ -168,9 +256,7 @@ function CommunityContent() {
                 <View style={[styles.postCard, { backgroundColor: colors.white, borderColor: colors.line }]}>
                   <View style={styles.postHead}>
                     <Text style={[styles.postAuthor, { color: colors.ink }]}>
-                      {!item.author_display || item.author_display === 'A family member'
-                        ? t('community.anonymousAuthor')
-                        : item.author_display}
+                      {authorName(item.author_display)}
                     </Text>
                     <Text style={[styles.postTime, { color: colors.inkSoft }]}>
                       {relativeTime(item.created_at, t)}
@@ -198,20 +284,49 @@ function CommunityContent() {
                           : ''}
                       </Text>
                     )}
-                    <TouchableOpacity
-                      style={styles.postAction}
-                      onPress={() => (item.mine ? confirmDelete(item) : confirmReport(item))}
-                      hitSlop={8}
-                    >
-                      <Text style={[styles.postActionText, { color: colors.inkSoft }]}>
-                        {item.mine ? t('community.delete') : t('community.report')}
-                      </Text>
-                    </TouchableOpacity>
+                    {item.mine ? (
+                      <TouchableOpacity style={styles.postAction} onPress={() => confirmDelete(item)} hitSlop={8}>
+                        <Text style={[styles.postActionText, { color: colors.inkSoft }]}>{t('community.delete')}</Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <View style={styles.postActions}>
+                        <TouchableOpacity style={styles.postAction} onPress={() => confirmReport(item)} hitSlop={8}>
+                          <Text style={[styles.postActionText, { color: colors.inkSoft }]}>{t('community.report')}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.postAction} onPress={() => confirmBlock(item)} hitSlop={8}>
+                          <Text style={[styles.postActionText, { color: colors.inkSoft }]}>{t('community.block')}</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
                   </View>
                 </View>
               )}
             />
           )}
+
+          {/* Her post mentioned suicide, self-harm or an overdose: resources, right where she is. */}
+          {showResources ? (
+            <View style={[styles.resourceNote, { backgroundColor: colors.primaryLight, borderColor: colors.line }]}>
+              <Text style={[styles.resourceText, { color: colors.ink }]}>{t('community.resourceNoteBody')}</Text>
+              <View style={styles.resourceActions}>
+                <TouchableOpacity
+                  style={[styles.resourceBtn, { backgroundColor: colors.primary }]}
+                  onPress={() => openEmergencyLink('tel:988')}
+                >
+                  <Text style={styles.resourceBtnText}>{t('community.crisisCall988')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.resourceBtn, { backgroundColor: colors.coral }]}
+                  onPress={() => openEmergencyLink('tel:911')}
+                >
+                  <Text style={styles.resourceBtnText}>{t('community.crisisCall911')}</Text>
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity onPress={() => setShowResources(false)} hitSlop={8} style={styles.resourceDismiss}>
+                <Text style={[styles.crisisCloseText, { color: colors.inkSoft }]}>{t('community.resourceNoteDismiss')}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
 
           {/* Composer */}
           <View style={[styles.composer, { borderTopColor: colors.line }]}>
@@ -274,7 +389,24 @@ const styles = StyleSheet.create({
   supportHeart: { fontSize: 13 },
   supportText: { fontSize: 12, fontWeight: '600' },
   postAction: {},
+  postActions: { flexDirection: 'row', gap: 16 },
   postActionText: { fontSize: 12, fontWeight: '600' },
+  blockedLink: { fontSize: 12, fontWeight: '600', marginBottom: 6, paddingHorizontal: 2 },
+  blockedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    gap: 12,
+  },
+  blockedName: { flex: 1, fontSize: 14, fontWeight: '600' },
+  resourceNote: { marginHorizontal: 12, marginTop: 8, borderRadius: 14, borderWidth: 1, padding: 12, gap: 8 },
+  resourceText: { fontSize: 13, lineHeight: 19 },
+  resourceActions: { flexDirection: 'row', gap: 8 },
+  resourceBtn: { flex: 1, borderRadius: 99, paddingVertical: 10, alignItems: 'center' },
+  resourceBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  resourceDismiss: { alignItems: 'center' },
   composer: {
     flexDirection: 'row',
     alignItems: 'flex-end',

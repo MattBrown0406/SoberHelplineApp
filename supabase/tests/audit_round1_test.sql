@@ -52,7 +52,7 @@ SELECT is((SELECT count(*)::integer FROM public.admin_get_reported_community_pos
 SELECT lives_ok($$SELECT public.moderate_community_post('98000000-0000-0000-0000-000000000001','visible')$$, 'the admin restores it');
 RESET ROLE;
 SELECT ok((SELECT status = 'visible' AND report_count = 0 FROM community_posts WHERE id='98000000-0000-0000-0000-000000000001')
-  AND NOT EXISTS (SELECT 1 FROM community_reports WHERE post_id='98000000-0000-0000-0000-000000000001'),
+  AND NOT EXISTS (SELECT 1 FROM community_reports WHERE post_id='98000000-0000-0000-0000-000000000001' AND cleared_at IS NULL),
   'restoring clears its reports so the next one does not re-hold it');
 
 -- ── Unread Text Line reminder ────────────────────────────────────────────────

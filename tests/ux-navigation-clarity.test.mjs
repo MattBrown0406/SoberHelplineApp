@@ -9,7 +9,8 @@ for (const lang of ['en', 'es']) {
     assert.match(locale('boundaries').intro, lang === 'en' ? /agreed boundaries/ : /límites acordados/);
     assert.match(locale('support').crisis.freeNote, lang === 'en' ? /free.*no subscription/ : /gratuitos.*sin suscripción/);
     assert.match(locale('learn').tools.diyPaid, /Essential.*Premier/);
-    assert.match(locale('support').peopleAccess, /\$150/);
+    assert.match(locale('support').peopleAccess, /\{\{rate\}\}/);
+    assert.match(read('app/(tabs)/support.tsx'), /t\('peopleAccess', \{ rate: coachingRate\.hourly \}\)/);
     assert.ok(locale('common').navPurpose.scripts);
   });
 }

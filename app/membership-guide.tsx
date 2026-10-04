@@ -6,7 +6,8 @@ import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
 import { useIAP } from '../src/hooks/useIAP';
-import { COACHING_RATE_LABEL } from '../src/config';
+import { useCoachingRate } from '../src/hooks/useCoachingRate';
+import { COACHING_MEMBER_PRICE, fillCoachingRates } from '../src/lib/coachingPrice';
 import { walletMembershipCopy } from '../src/content/walletMembershipCopy';
 import { membershipGuideContent } from '../src/membershipGuide/content';
 
@@ -16,6 +17,7 @@ export default function MembershipGuide() {
   const { colors } = useTheme();
   const { user } = useAccount();
   const { prices, retryPrices } = useIAP();
+  const coachingRate = useCoachingRate();
   const c = membershipGuideContent[i18n.language.startsWith('es') ? 'es' : 'en'];
   const membership = walletMembershipCopy(i18n.language);
   const body = (text: string) => <Text style={[styles.body, { color: colors.ink }]}>{text}</Text>;
@@ -49,7 +51,7 @@ export default function MembershipGuide() {
     {body(membership.essential)}
     {body(membership.premier)}
     {body(c.timing)}
-    {body(membership.service.replaceAll('{rate}', COACHING_RATE_LABEL))}
+    {body(fillCoachingRates(membership.service, { rate: coachingRate.hourly, memberRate: COACHING_MEMBER_PRICE }))}
     {heading(c.prices)}
     {body(`Essential: ${prices.essential ? prices.essential + membership.month : membership.priceUnavailable}`)}
     {body(`Premier: ${prices.premium ? prices.premium + membership.month : membership.priceUnavailable}`)}

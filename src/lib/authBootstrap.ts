@@ -54,6 +54,66 @@ export function resolveDirectAccountState(
   return 'direct-free';
 }
 
+export type DirectAccountState = 'direct-free' | 'direct-essential' | 'direct-premium';
+
+const DIRECT_ACCOUNT_STATES: ReadonlySet<string> = new Set<DirectAccountState>([
+  'direct-free', 'direct-essential', 'direct-premium',
+]);
+
+export function isDirectAccountState(value: unknown): value is DirectAccountState {
+  return typeof value === 'string' && DIRECT_ACCOUNT_STATES.has(value);
+}
+
+/**
+ * The tier to show after reading the entitlements table.
+ *
+ * A successful read is authoritative (`verified`). A failed or timed-out read
+ * says nothing about the subscription, so it never downgrades: the member keeps
+ * the tier this same account last had (in memory, or cached from its last
+ * verified read), else free. Display only — server-side gates still read the
+ * entitlements table — and an unverified result is never cached, so a stale
+ * tier cannot outlive the next successful read.
+ */
+export function directStateAfterEntitlementRead(input: {
+  rows: Array<{ tier: string; expires_at: string | null }> | null;
+  lastKnownState: string | null | undefined;
+  now?: Date;
+}): { state: DirectAccountState; verified: boolean } {
+  if (input.rows !== null) return { state: resolveDirectAccountState(input.rows, input.now), verified: true };
+  return {
+    state: isDirectAccountState(input.lastKnownState) ? input.lastKnownState : 'direct-free',
+    verified: false,
+  };
+}
+
+/**
+ * The last tier known for `accountId`: the first candidate that is this same
+ * account with a direct tier (pass the in-memory account before the cache).
+ */
+export function lastKnownDirectState(
+  accountId: string,
+  candidates: ReadonlyArray<{ id: string; accountState: string } | null | undefined>,
+): DirectAccountState | null {
+  for (const candidate of candidates) {
+    if (candidate && candidate.id === accountId && isDirectAccountState(candidate.accountState)) {
+      return candidate.accountState;
+    }
+  }
+  return null;
+}
+
+/**
+ * While the last entitlement read failed, the account is re-read after these
+ * delays (and whenever the app returns to the foreground).
+ */
+export const ACCOUNT_READ_RETRY_DELAYS_MS: readonly number[] = Object.freeze([5_000, 15_000, 30_000, 60_000]);
+
+/** The delay before retry number `attempt` (0-based), or null once the backoff is spent. */
+export function accountReadRetryDelay(attempt: number): number | null {
+  if (!Number.isInteger(attempt) || attempt < 0) return null;
+  return ACCOUNT_READ_RETRY_DELAYS_MS[attempt] ?? null;
+}
+
 export function resolveRefreshedDirectAccountState(input: {
   databaseRows: Array<{ tier: string; expires_at: string | null }> | null;
   previousState: 'direct-free' | 'direct-essential' | 'direct-premium';

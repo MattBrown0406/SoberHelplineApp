@@ -11,11 +11,12 @@ Information → Notes. Also confirm the demo-account and contact fields in that 
 
 Thank you for reviewing Sober Helpline.
 
-WHAT'S NEW IN 3.5.1
-This maintenance update fixes a daily check-in race that could show a save error
-when that day's check-in already existed in the account. Duplicate submissions
-now resolve to the existing authoritative record, and the app no longer displays
-a completed check-in before the authenticated cloud save succeeds.
+WHAT'S NEW IN 4.1
+"Book coaching" now opens our website's booking page for a live one-to-one
+coaching session with a person (see 1:1 COACHING SERVICES below). Links from
+soberhelpline.com/app open the matching screen in the app, the free Monday
+support call shows its time in the member's own time zone, and Settings shows
+where a member's subscription comes from.
 
 WHAT THE APP IS
 Sober Helpline supports the families and loved ones of people struggling with
@@ -38,23 +39,36 @@ PROVIDER-CONNECTED ACCOUNTS
 Some families receive Sober Helpline through an invited provider organization and see that provider's branding and assigned care team. This is an invitation-only account type. The direct demo account above covers the complete consumer review path and does not require access to a reviewer-controlled email inbox.
 
 IN-APP PURCHASES
-Optional auto-renewable subscriptions (Essential, Premier) are sold via Apple
-in-app purchase. Essential unlocks private support messaging. Premier adds the
-in-app plan-review and private-video benefits described on the purchase screen.
+Optional auto-renewable subscriptions (Essential, Premier) are sold in the app
+only through Apple in-app purchase. Essential unlocks private support messaging.
+Premier adds the in-app plan-review and private-video benefits described on the
+purchase screen. The app never links to any other way to buy a membership or
+any digital content or app feature.
 
 1:1 COACHING SERVICES (Guideline 3.1.3(d))
-The standard "Book 1:1 coaching" screen submits a scheduling request for a
-real-time, person-to-person coaching session. It does not collect payment or open
-an external checkout inside the app. Staff follows up with the requester to
-arrange that individual service.
+"Book coaching" opens https://soberhelpline.com/book-consultation in Safari,
+where the member picks a time for a live, real-time one-to-one coaching session
+with a person (a Sober Helpline coach) and pays for that session on the
+website. This is a person-to-person service delivered live
+between two individuals (guideline 3.1.3(d)) — not app features, digital
+content, or a group service. The same screen also keeps a request form that
+sends a scheduling request with no payment; staff follows up to arrange the
+session.
 
-Essential members can also request a separate $150, 60-minute, real-time plan
-review with a coach. After the appointment request is created, that screen may
-open an external PayPal checkout for this person-to-person service. Payment is
-for the live one-to-one coaching appointment—not app features, digital content,
-or a group service. Premier members receive the same live plan-review appointment
-as part of their Apple-billed subscription and are not sent to external checkout.
-All subscription-based digital features use Apple in-app purchase.
+Essential members can also book a separate 60-minute, real-time plan review with
+a coach at the member coaching price. After the appointment request is created,
+that screen may open an external checkout on soberhelpline.com for this
+person-to-person service. Premier members receive the same live plan-review
+appointment as part of their Apple-billed subscription and are not sent to
+external checkout.
+
+WEBSITE PAGES OPENED FROM THE APP
+Some buttons open soberhelpline.com pages in Safari (coaching booking, members'
+education library, recordings, family forum, Terms and Privacy). Every such link
+carries a "from the app" marker, and on those pages the website hides all
+membership purchase links, so a member who arrives from the app is never offered
+a way to buy a membership outside Apple in-app purchase. Members are signed in
+to those pages automatically with a single-use token.
 
 CRISIS / SAFETY
 The app surfaces 911 and 988 (Suicide & Crisis Lifeline) prominently and never
@@ -80,7 +94,7 @@ Sensitive entries (check-ins, letters, messages) are private to the user and,
 where applicable, their assigned coach; never sold or used for advertising.
 
 CONTACT FOR REVIEW QUESTIONS
-Matt Brown · matt@soberhelpline.com · 503-836-2136
+Matt Brown · matt@soberhelpline.com · (458) 298-8008
 
 ---
 
@@ -93,13 +107,13 @@ Matt Brown · matt@soberhelpline.com · 503-836-2136
 - [ ] App Privacy "nutrition label" completed (data types, linkage, tracking = none).
 - [ ] Age rating questionnaire completed (likely 17+ given mature subject matter — answer honestly re: medical/drug references).
 - [ ] Support URL + marketing URL set.
-- [ ] Confirmed the standard 1:1 request flow has no checkout and the separate $150 plan-review checkout is only for a real-time person-to-person service, exactly as disclosed in the review notes.
+- [ ] Confirmed "Book coaching" opens soberhelpline.com/book-consultation for a live one-to-one session, the plan-review checkout is only for a real-time person-to-person service, and website pages opened from the app (they carry `from_app=1`) show no membership purchase links — exactly as disclosed in the review notes.
 - [ ] Build uploaded via EAS/Xcode and selected for this version.
 - [ ] Screenshots uploaded (iPhone 6.5"/6.7"; iPad if iPad enabled).
 
 ## Likely rejection risks for THIS app (worth pre-empting)
 1. Login wall with no/invalid demo account → the #1 cause. Triple-check the logins.
-2. 1:1 coaching request misunderstood as digital payment → the accurate 3.1.3(d) paragraph above explains that no checkout occurs in-app.
+2. Website coaching checkout misunderstood as payment for digital content → the 3.1.3(d) paragraph above explains it is a live one-to-one session with a person, and that pages opened from the app hide membership purchase links.
 3. Health/medical claims → keep all copy as "support/education/coaching," never "treat/cure."
 4. Account deletion missing → it exists; the notes tell the reviewer exactly where.
 5. Broken privacy/terms links → must be live before submit.

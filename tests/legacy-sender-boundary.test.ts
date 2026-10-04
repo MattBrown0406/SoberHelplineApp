@@ -25,6 +25,8 @@ type Options = {
   population?: number;
   service?: boolean;
   deliveries?: State['deliveries'];
+  clock?: number;
+  body?: Record<string, unknown>;
 };
 type Query = {
   table: string;
@@ -58,11 +60,13 @@ function state() {
     language: 'en',
     crisis: false,
     timezone: 'America/New_York',
+    callReminders: true as boolean | null,
   };
 }
 async function run(endpoint: string, options: Options = {}) {
   const s = state();
   if (options.deliveries) s.deliveries = options.deliveries;
+  if (options.clock !== undefined) s.clock = options.clock;
   let handler: (r: Request) => Promise<Response>;
   const account = (id: string) => ({
     id,
@@ -72,6 +76,7 @@ async function run(endpoint: string, options: Options = {}) {
     timezone: s.timezone,
     push_token: id === 'a' ? 'token-a' : s.token,
     daily_push_opt_in: s.optIn,
+    family_call_reminders: s.callReminders,
     recent_checkins: s.crisis ? [{ mood: 1 }, { mood: 1 }, { mood: 1 }] : [],
     today_checkins: s.checked ? [{ checkin_date: '2026-10-01' }] : [],
     tracker_logs: [],
@@ -356,6 +361,7 @@ async function run(endpoint: string, options: Options = {}) {
         force: options.force ?? true,
         wavering_event_id: 'event',
         record: { id: 'message', thread_id: 'thread', sender_role: options.role ?? 'coach' },
+        ...options.body,
       }),
     }),
   );
@@ -628,6 +634,25 @@ test('session: daily optout does not revoke independent going RSVP', async () =>
   });
   assert.equal(r.sends.length, 2);
 });
+test('session: Monday call reminder switched off is not sent despite a going RSVP', async () => {
+  for (const value of [false, null]) {
+    const r = await run('notify-session-reminder', {
+      mutate: (s) => {
+        s.callReminders = value;
+      },
+    });
+    assert.equal(r.sends.length, 0);
+    assert.equal(JSON.parse(r.body).skipped, 2);
+  }
+});
+test('session: Monday call reminder switched off before second boundary is honoured', async () => {
+  const r = await run('notify-session-reminder', {
+    afterSend: (s) => {
+      s.callReminders = false;
+    },
+  });
+  assert.equal(r.sends.length, 1);
+});
 test('session: normal schedule guard and operator force retained', async () => {
   const skipped = await run('notify-session-reminder', { reminderHour: false, force: false });
   assert.equal(skipped.sends.length, 0);
@@ -707,6 +732,60 @@ test('morning: discovery delay cannot renew original day deadline', async () => 
     },
   });
   assert.equal(r.sends.length, 0);
+});
+test('morning: the 16:00 UTC run never says "Good morning" outside her morning', async () => {
+  // 13:00 UTC is 10 PM in Tokyo and 2 PM in London.
+  for (const timezone of ['Asia/Tokyo', 'Europe/London']) {
+    const r = await run('notify-daily-morning', {
+      mutate: (s) => {
+        s.timezone = timezone;
+      },
+    });
+    assert.equal(r.sends.length, 0);
+    assert.equal(JSON.parse(r.body).skipped, 2);
+  }
+  // Noon on the East Coast is still her morning.
+  const noon = await run('notify-daily-morning', { clock: Date.parse('2026-10-01T16:00:00Z') });
+  assert.equal(noon.sends.length, 2);
+});
+test('morning: "It\'s Monday" means Monday where she is', async () => {
+  const monday = await run('notify-daily-morning', { clock: Date.parse('2026-10-05T16:00:00Z') });
+  assert.equal(monday.sends.length, 2);
+  assert.ok(monday.sends.every((m) => m.title === 'Family call tonight'));
+  // Sunday 8 PM UTC is Monday 9 AM in Auckland.
+  const auckland = await run('notify-daily-morning', {
+    clock: Date.parse('2026-10-04T20:00:00Z'),
+    body: { mode: 'local' },
+    mutate: (s) => {
+      s.timezone = 'Pacific/Auckland';
+    },
+  });
+  assert.equal(auckland.sends.length, 2);
+  assert.ok(auckland.sends.every((m) => m.title === 'Family call tonight'));
+  // Monday 8 PM UTC is already Tuesday 9 AM in Auckland.
+  const tuesday = await run('notify-daily-morning', {
+    clock: Date.parse('2026-10-05T20:00:00Z'),
+    body: { mode: 'local' },
+    mutate: (s) => {
+      s.timezone = 'Pacific/Auckland';
+    },
+  });
+  assert.equal(tuesday.sends.length, 2);
+  assert.ok(tuesday.sends.every((m) => m.title !== 'Family call tonight'));
+});
+test('morning: hourly local mode reaches each member at 9 AM her time only', async () => {
+  const nine = await run('notify-daily-morning', { body: { mode: 'local' } });
+  assert.equal(nine.sends.length, 2);
+  // Same instant is 8 AM in Chicago: not her hour.
+  const eight = await run('notify-daily-morning', {
+    body: { mode: 'local' },
+    mutate: (s) => {
+      s.timezone = 'America/Chicago';
+    },
+  });
+  assert.equal(eight.sends.length, 0);
+  // Shown no later than midnight her time.
+  assert.ok(nine.sends.every((m) => m.expiration === Date.parse('2026-10-02T04:00:00Z') / 1000));
 });
 test('session: token rotation during discovery preserves eligible recipient', async () => {
   const r = await run('notify-session-reminder', { rotateDuringDiscovery: true });

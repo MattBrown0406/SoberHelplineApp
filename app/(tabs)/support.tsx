@@ -29,7 +29,13 @@ import { useGroupPresence } from '../../src/hooks/useGroupPresence';
 import { useGroupRsvps } from '../../src/hooks/useGroupRsvps';
 import { usePrivateVideoSessions } from '../../src/hooks/usePrivateVideoSessions';
 import { PremierVideoSchedulingCard } from '../../src/components/video/PremierVideoSchedulingCard';
-import { COACHING_RATE_LABEL, GROUPS_URL, FEATURED_PROVIDER, PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '../../src/config';
+import { FEATURED_PROVIDER, PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '../../src/config';
+import { useWebSSO } from '../../src/hooks/useWebSSO';
+import { WEBSITE_PATHS, withAppContext } from '../../src/lib/websiteLinks';
+import { useCoachingRate } from '../../src/hooks/useCoachingRate';
+import { COACHING_MEMBER_PRICE, fillCoachingRates } from '../../src/lib/coachingPrice';
+import { useSessionSchedule } from '../../src/hooks/useSessionSchedule';
+import { isFamilySquaresSession } from '../../src/lib/familySquaresSchedule';
 import { useIAP, type SubscriptionTier } from '../../src/hooks/useIAP';
 import { useSituation } from '../../src/hooks/useSituation';
 import { funnelDoor, type FunnelDoor } from '../../src/lib/situation';
@@ -54,8 +60,10 @@ function sessionTypeKey(kind: DbSession['kind'], t: (k: string) => string): stri
 
 // ── Crisis sheet ─────────────────────────────────────────────────────────────
 
-const CRISIS_LINE_TEL = 'tel:+15038362136'; // Sober Helpline guidance line — v1 direct dial; Twilio cascade is P2
-const CRISIS_LINE_DISPLAY = '(503) 836-2136';
+// Sober Helpline's phone line (direct dial). (503) 836-2136 is the WhatsApp
+// chat line only — never dial it from here.
+const CRISIS_LINE_TEL = 'tel:+14582988008';
+const CRISIS_LINE_DISPLAY = '(458) 298-8008';
 
 function CrisisSheet({
   visible,
@@ -400,12 +408,17 @@ function UpgradeSheet({
           {t('upgradeSheet.featuresHeaderGeneric')}
         </Text>
         <Text style={[styles.sheetSub, { color: colors.ink, marginBottom: 4 }]}>
-          {t(`tier.${tier}Features`)}
+          {t(`tier.${tier}Features`, { memberRate: COACHING_MEMBER_PRICE })}
         </Text>
 
-        <Text style={[styles.sheetSub, { color: colors.inkSoft, marginTop: 12, marginBottom: 16 }]}>
-          {t('upgradeSheet.renewalNote', { price: priceLabel })}
-        </Text>
+        {/* Price and renewal terms come from StoreKit (never hard-coded copy);
+            without a store price the sheet shows the "price unavailable" label
+            above and on the disabled button instead. */}
+        {priceAvailable ? (
+          <Text style={[styles.sheetSub, { color: colors.inkSoft, marginTop: 12, marginBottom: 16 }]}>
+            {t('upgradeSheet.renewalNote', { price: priceLabel })}
+          </Text>
+        ) : <View style={{ height: 16 }} />}
 
         <TouchableOpacity
           style={[
@@ -418,7 +431,9 @@ function UpgradeSheet({
           onPress={onPurchase}
         >
           <Text style={styles.solidBtnText}>
-            {purchasing ? '...' : t(tier === 'essential' ? 'paywall.subscribeEssential' : 'paywall.subscribePremium', { price: priceLabel })}
+            {purchasing ? '...' : priceAvailable
+              ? t(tier === 'essential' ? 'paywall.subscribeEssential' : 'paywall.subscribePremium', { price: priceLabel })
+              : priceLabel}
           </Text>
         </TouchableOpacity>
 
@@ -479,7 +494,8 @@ export default function SupportScreen() {
   const { colors } = useTheme();
   const { user, isAttached, accountState, entitlements, refreshAccount } = useAccount();
   // A session-reminder push carries the RSVP'd session id so the card it is about stands out.
-  const { sessionId: focusedSessionId } = useLocalSearchParams<{ sessionId?: string }>();
+  // soberhelpline.com/app/family-squares opens Support with focus=family-squares.
+  const { sessionId: sessionIdParam, focus } = useLocalSearchParams<{ sessionId?: string; focus?: string }>();
   const { t } = useTranslation('support');
   const { current, change, languages } = useLanguage();
   const copy = walletMembershipCopy(current);
@@ -487,6 +503,9 @@ export default function SupportScreen() {
   const { width: screenWidth } = useWindowDimensions();
   const sheetOffset = Math.max(0, (screenWidth - 520) / 2);
   const { purchasePremium, purchaseEssential, purchasing, prices: subscriptionPrices, retryPrices } = useIAP();
+  const { openWithSSO } = useWebSSO();
+  const coachingRate = useCoachingRate();
+  const scheduleFor = useSessionSchedule();
 
   const [crisisOpen, setCrisisOpen] = useState(false);
   const [membershipExpanded, setMembershipExpanded] = useState(false);
@@ -578,11 +597,13 @@ export default function SupportScreen() {
 
   const roster = { primaryOnCall: PRIMARY_ON_CALL, available: [] as StaffMember[] };
   const { sessions, toggleRsvp } = useSessions(user?.id ?? null);
+  const focusedSessionId = sessionIdParam
+    ?? (focus === 'family-squares' ? sessions.find(isFamilySquaresSession)?.id : undefined);
   const handleSessionRsvp = async (session: DbSession) => {
     const saved = await toggleRsvp(session);
     if (!saved) appAlert(t('sessions.rsvpErrorTitle'), t('sessions.rsvpErrorBody'));
   };
-  const groups = getSupportGroups();
+  const groups = getSupportGroups((key) => t(key as never));
   const { myRooms, liveRooms } = useGroupPresence(user?.id ?? null);
   const { rsvpedRooms, pendingRooms, toggleRsvp: toggleGroupRsvp } = useGroupRsvps(user?.id ?? null);
   const canAccessPrivateVideo = !!user && entitlements.canAccessPrivateVideo;
@@ -737,7 +758,7 @@ export default function SupportScreen() {
         </TouchableOpacity>
 
         <Text accessibilityRole="header" style={[styles.eyebrow, { color: colors.inkSoft }]}>{t('peopleHeading')}</Text>
-        <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{t('peopleAccess')}</Text>
+        <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{t('peopleAccess', { rate: coachingRate.hourly })}</Text>
 
         <View style={[styles.card, { borderColor: colors.line, backgroundColor: colors.white }]}>
           <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: membershipExpanded }} aria-expanded={membershipExpanded} onPress={() => setMembershipExpanded((value) => !value)} style={styles.membershipDisclosure}>
@@ -749,7 +770,7 @@ export default function SupportScreen() {
           <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{copy.free}</Text>
           <Text style={[styles.referralBody, { color: colors.inkSoft, marginTop: 10 }]}>{copy.essential}</Text>
           <Text style={[styles.referralBody, { color: colors.inkSoft, marginTop: 10 }]}>{copy.premier}</Text>
-          <Text style={[styles.referralBody, { color: colors.inkSoft, marginTop: 10 }]}>{copy.service.replace(/\{rate\}/g, COACHING_RATE_LABEL)}</Text>
+          <Text style={[styles.referralBody, { color: colors.inkSoft, marginTop: 10 }]}>{fillCoachingRates(copy.service, { rate: coachingRate.hourly, memberRate: COACHING_MEMBER_PRICE })}</Text>
           {hasMembershipAccess && <>
             <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={() => router.push('/safety-wallet')}><Text style={{ color: colors.primary }}>{copy.wallet}</Text></TouchableOpacity>
             <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={() => router.push('/crisis-mode')}><Text style={{ color: colors.primary }}>{copy.copilot}</Text></TouchableOpacity>
@@ -796,7 +817,7 @@ export default function SupportScreen() {
                     <View style={styles.sessionInfo}>
                       <Text style={[styles.sessionTitle, { color: colors.ink }]}>{sess.title}</Text>
                       <Text style={[styles.sessionMeta, { color: colors.inkSoft }]}>
-                        {sessionTypeKey(sess.kind, t)} · {sess.schedule_label}
+                        {sessionTypeKey(sess.kind, t)} · {scheduleFor(sess)}
                       </Text>
                     </View>
                     {sess.zoom_url ? (
@@ -805,7 +826,7 @@ export default function SupportScreen() {
                         activeOpacity={0.8}
                         onPress={() => {
                           if (sess.kind === 'group') logFunnelEvent('attended', { source: 'support' });
-                          Linking.openURL(sess.zoom_url!);
+                          Linking.openURL(withAppContext(sess.zoom_url!));
                         }}
                       >
                         <Text style={[styles.sessionBtnText, { color: '#fff' }]}>{t('sessions.joinZoom')}</Text>
@@ -832,6 +853,9 @@ export default function SupportScreen() {
                       </Text>
                     </TouchableOpacity>
                   )}
+                  {isFamilySquaresSession(sess) ? (
+                    <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:familySquares.rsvpNote')}</Text>
+                  ) : null}
                 </View>
               ))}
             </View>
@@ -885,7 +909,7 @@ export default function SupportScreen() {
                     <View style={styles.sessionInfo}>
                       <Text style={[styles.sessionTitle, { color: colors.ink }]}>{sess.title}</Text>
                       <Text style={[styles.sessionMeta, { color: colors.inkSoft }]}>
-                        {sess.schedule_label}
+                        {scheduleFor(sess)}
                       </Text>
                     </View>
                     {sess.zoom_url ? (
@@ -894,7 +918,7 @@ export default function SupportScreen() {
                         activeOpacity={0.8}
                         onPress={() => {
                           if (sess.kind === 'group') logFunnelEvent('attended', { source: 'support' });
-                          Linking.openURL(sess.zoom_url!);
+                          Linking.openURL(withAppContext(sess.zoom_url!));
                         }}
                       >
                         <Text style={[styles.sessionBtnText, { color: '#fff' }]}>{t('sessions.joinZoom')}</Text>
@@ -910,6 +934,9 @@ export default function SupportScreen() {
                       </Text>
                     </TouchableOpacity>
                   </View>
+                  {isFamilySquaresSession(sess) ? (
+                    <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:familySquares.rsvpNote')}</Text>
+                  ) : null}
                 </View>
               ))}
             </View>
@@ -932,7 +959,7 @@ export default function SupportScreen() {
               <View style={[styles.tierRow, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]}>
                 <View style={styles.tierInfo}>
                   <Text style={[styles.tierName, { color: colors.primary }]}>{t('tier.essentialName')}</Text>
-                  <Text style={[styles.tierFeatures, { color: colors.inkSoft }]}>{t('tier.essentialFeatures')}</Text>
+                  <Text style={[styles.tierFeatures, { color: colors.inkSoft }]}>{t('tier.essentialFeatures', { memberRate: COACHING_MEMBER_PRICE })}</Text>
                 </View>
                 <Text style={[styles.tierPrice, { color: colors.primary }]}>{subscriptionPrices.essential ? `${subscriptionPrices.essential}${copy.month}` : copy.priceUnavailable}</Text>
               </View>
@@ -1004,7 +1031,7 @@ export default function SupportScreen() {
                       {t(accountState === 'direct-premium' ? 'tier.premiumName' : 'tier.essentialName')}
                     </Text>
                     <Text style={[styles.tierFeatures, { color: colors.inkSoft }]}>
-                      {t(accountState === 'direct-premium' ? 'tier.premiumFeatures' : 'tier.essentialFeatures')}
+                      {t(accountState === 'direct-premium' ? 'tier.premiumFeatures' : 'tier.essentialFeatures', { memberRate: COACHING_MEMBER_PRICE })}
                     </Text>
                   </View>
                   <View style={styles.tierRight}>
@@ -1043,7 +1070,7 @@ export default function SupportScreen() {
                 {t('coaching.cardTitle')}
               </Text>
               <Text style={[styles.referralBody, { color: colors.inkSoft }]}>
-                {t('coaching.cardBody')}
+                {t('coaching.cardBody', { rate: coachingRate.hourly })}
               </Text>
               <TouchableOpacity
                 style={[styles.outlineBtn, { borderColor: colors.primary, marginTop: 12 }]}
@@ -1066,7 +1093,7 @@ export default function SupportScreen() {
                     <View style={styles.sessionInfo}>
                       <Text style={[styles.sessionTitle, { color: colors.ink }]}>{sess.title}</Text>
                       <Text style={[styles.sessionMeta, { color: colors.inkSoft }]}>
-                        {sessionTypeKey(sess.kind, t)} · {sess.schedule_label}
+                        {sessionTypeKey(sess.kind, t)} · {scheduleFor(sess)}
                       </Text>
                     </View>
                     {sess.zoom_url ? (
@@ -1075,7 +1102,7 @@ export default function SupportScreen() {
                         activeOpacity={0.8}
                         onPress={() => {
                           if (sess.kind === 'group') logFunnelEvent('attended', { source: 'support' });
-                          Linking.openURL(sess.zoom_url!);
+                          Linking.openURL(withAppContext(sess.zoom_url!));
                         }}
                       >
                         <Text style={[styles.sessionBtnText, { color: '#fff' }]}>{t('sessions.joinZoom')}</Text>
@@ -1102,6 +1129,9 @@ export default function SupportScreen() {
                       </Text>
                     </TouchableOpacity>
                   )}
+                  {isFamilySquaresSession(sess) ? (
+                    <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:familySquares.rsvpNote')}</Text>
+                  ) : null}
                 </View>
               ))}
             </View>
@@ -1161,8 +1191,9 @@ export default function SupportScreen() {
                 <View style={styles.groupInfo}>
                   <Text style={[styles.groupName, { color: colors.ink }]}>{group.name}</Text>
                   <Text style={[styles.groupMeta, { color: colors.inkSoft }]}>
-                    {group.scheduleLabel}
-                    {group.onlineCount > 0 ? `  ·  ${group.onlineCount} online` : ''}
+                    {group.onlineCount > 0
+                      ? `${group.scheduleLabel}  ·  ${t('groups.online', { count: group.onlineCount })}`
+                      : group.scheduleLabel}
                   </Text>
                 </View>
                 {/* Status button */}
@@ -1236,18 +1267,24 @@ export default function SupportScreen() {
             </Text>
             <Text style={{ color: colors.primary, fontSize: 20, fontWeight: '700' }}>›</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.moreGroupsRow}
-            activeOpacity={0.7}
-            onPress={() => Linking.openURL(GROUPS_URL)}
-          >
-            <Text style={[styles.moreGroupsText, { color: colors.inkSoft }]}>
-              {t('groups.moreIntro')}{' '}
-              <Text style={{ color: colors.primary, fontWeight: '700' }}>
-                {t('groups.moreLink')}
+          {/* The family forum is a members-only soberhelpline.com page: open it
+              signed in, and only for members (it would be a website paywall
+              for anyone else). */}
+          {hasMembershipAccess ? (
+            <TouchableOpacity
+              style={styles.moreGroupsRow}
+              activeOpacity={0.7}
+              accessibilityRole="link"
+              onPress={() => void openWithSSO(user?.id ?? null, WEBSITE_PATHS.familyForum)}
+            >
+              <Text style={[styles.moreGroupsText, { color: colors.inkSoft }]}>
+                {t('groups.moreIntro')}{' '}
+                <Text style={{ color: colors.primary, fontWeight: '700' }}>
+                  {t('groups.moreLink')}
+                </Text>
               </Text>
-            </Text>
-          </TouchableOpacity>
+            </TouchableOpacity>
+          ) : null}
         </View>
 
         {/* Language selector */}
@@ -1423,6 +1460,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   questionBtnText: { fontSize: 12, fontWeight: '600' },
+  rsvpNote: { fontSize: 11.5, lineHeight: 16, marginTop: 8 },
   questionInput: {
     borderWidth: 1,
     borderRadius: 10,

@@ -68,9 +68,12 @@ Deno.serve(async (req) => {
           continue;
         }
         // Single database snapshot binds consent, account existence and device.
+        // Consent is the Monday call reminder switch (accounts.family_call_reminders),
+        // exactly as the dispatcher's own Monday reminders require; a "going"
+        // RSVP alone is not consent.
         const row = await checked(
           supabase.from('session_rsvps')
-            .select('account_id, accounts!inner(id, push_token, locale)')
+            .select('account_id, accounts!inner(id, push_token, locale, family_call_reminders)')
             .eq('account_id', candidate.id).eq('session_id', sessionId).eq('status', 'going')
             .maybeSingle(),
         );
@@ -78,8 +81,12 @@ Deno.serve(async (req) => {
           id: string;
           push_token: string | null;
           locale: string | null;
+          family_call_reminders: boolean | null;
         } | null;
-        if (!a?.push_token || a.id !== candidate.id || seen.has(a.push_token)) {
+        if (
+          !a?.push_token || a.id !== candidate.id || a.family_call_reminders !== true ||
+          seen.has(a.push_token)
+        ) {
           counts.skipped++;
           continue;
         }

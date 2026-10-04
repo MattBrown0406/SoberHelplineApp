@@ -1,17 +1,9 @@
 // notify-coaching-request — Supabase Edge Function
 //
-// Triggered by a Database Webhook on coaching_bookings INSERT.
-// Sends an email to matt@soberhelpline.com via Resend.
-//
-// Setup:
-//   1. Get a free API key at https://resend.com
-//   2. Verify your sending domain (soberhelpline.com) in the Resend dashboard
-//   3. supabase secrets set RESEND_API_KEY=re_xxxxxxxxxxxx
-//   4. supabase functions deploy notify-coaching-request
-//   5. Dashboard → Database → Webhooks → Create webhook:
-//        Table: coaching_bookings  |  Event: INSERT
-//        URL: https://<project-ref>.supabase.co/functions/v1/notify-coaching-request
-//        HTTP method: POST  |  Add header: Authorization: Bearer <service-role-key>
+// Called on every coaching_bookings INSERT by the migration-managed trigger
+// shl_notify_coaching_request (20261004100000_notify_webhooks_vault_key.sql),
+// with the Database Webhook body and the vault service key.
+// Sends an email to matt@soberhelpline.com via Resend (RESEND_API_KEY).
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { requireServiceRole } from '../_shared/service-auth.ts';
@@ -30,6 +22,11 @@ function escapeHtml(value: unknown): string {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
+}
+
+/** "Member — $125" for the member price, "$150" otherwise. */
+function coachingPriceLine(rateCents: unknown): string {
+  return Number(rateCents) === 12500 ? 'Member — $125' : '$150';
 }
 
 Deno.serve(async (req: Request) => {
@@ -61,6 +58,15 @@ Deno.serve(async (req: Request) => {
       .eq('id', booking.account_id)
       .single();
 
+    // The rate the server recorded for this request ($125 member price or
+    // $150), from the row itself rather than the webhook body.
+    const { data: saved } = await supabase
+      .from('coaching_bookings')
+      .select('rate_cents')
+      .eq('id', booking.id)
+      .maybeSingle();
+    const price = coachingPriceLine(saved?.rate_cents ?? booking.rate_cents);
+
     const name = [account?.first_name, account?.last_name].filter(Boolean).join(' ') || 'A user';
 
     // Extract email from the "Contact: ..." line if the user provided one
@@ -71,6 +77,7 @@ Deno.serve(async (req: Request) => {
     const html = `
       <h2>New 1:1 Coaching Request</h2>
       <p><strong>From:</strong> ${escapeHtml(name)}</p>
+      <p><strong>Rate quoted:</strong> ${escapeHtml(price)}</p>
       <p><strong>Available times:</strong><br>${escapeHtml(booking.preferred_times).replace(/\n/g, '<br>')}</p>
       ${booking.note ? `<p><strong>Notes / contact:</strong><br>${escapeHtml(booking.note).replace(/\n/g, '<br>')}</p>` : ''}
       <p><strong>Submitted:</strong> ${new Date(booking.created_at).toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })} PT</p>
@@ -90,7 +97,7 @@ Deno.serve(async (req: Request) => {
         // Reply-to, never CC: the address is typed by the member, and a CC
         // would send this internal notification to any address they enter.
         ...(userEmail ? { reply_to: [userEmail] } : {}),
-        subject: `New coaching request from ${name}`,
+        subject: `New coaching request from ${name} (${price})`,
         html,
       }),
     });

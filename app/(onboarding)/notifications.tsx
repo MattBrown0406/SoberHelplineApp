@@ -17,22 +17,21 @@ export default function NotificationsScreen() {
   const router = useRouter();
   const [done, setDone] = useState(false);
 
-  // First-win: reserve a spot at the next free group call in one tap.
+  // First-win: reserve a spot at Monday's free call (The Family Squares) in
+  // one tap. The button and its note name that call, so only its session is
+  // offered — never whichever group session happens to come first.
   const [nextGroupId, setNextGroupId] = useState<string | null>(null);
   const [rsvped, setRsvped] = useState(false);
   const [reserving, setReserving] = useState(false);
 
   useEffect(() => {
-    void supabase
-      .from('sessions')
-      .select('id, next_at')
-      .eq('kind', 'group')
-      .order('next_at', { ascending: true })
-      .limit(1)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) setNextGroupId(data.id);
-      });
+    let active = true;
+    void Promise.resolve(supabase.rpc('family_squares_session_id'))
+      .then(({ data, error }) => {
+        if (active && !error && typeof data === 'string' && data) setNextGroupId(data);
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
   }, []);
 
   async function reserveSpot() {
@@ -80,6 +79,11 @@ export default function NotificationsScreen() {
                 {rsvped ? t('done.rsvpDone') : t('done.rsvpButton')}
               </Text>
             </TouchableOpacity>
+          )}
+          {nextGroupId && (
+            <Text style={[styles.rsvpNote, { color: 'rgba(255,255,255,0.8)' }]}>
+              {t('common:familySquares.rsvpNote')}
+            </Text>
           )}
 
           <TouchableOpacity
@@ -133,6 +137,7 @@ const styles = StyleSheet.create({
   primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   rsvpBtn: { borderRadius: 99, borderWidth: 1.5, paddingVertical: 14, alignItems: 'center', marginBottom: 12 },
   rsvpBtnText: { fontSize: 15, fontWeight: '700' },
+  rsvpNote: { fontSize: 12.5, lineHeight: 18, textAlign: 'center', marginBottom: 16 },
   skipBtn: { alignItems: 'center', marginTop: 16 },
   skipText: { fontSize: 14, fontWeight: '600' },
 });

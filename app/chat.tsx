@@ -23,6 +23,7 @@ import { useAsyncScope } from '../src/hooks/useAsyncScope';
 import { useAccount } from '../src/contexts/AccountContext';
 import { AttachmentUploadError, useThread, type ChatMessage, type PendingAttachment } from '../src/hooks/useThread';
 import { useSessions } from '../src/hooks/useSessions';
+import { useSessionSchedule } from '../src/hooks/useSessionSchedule';
 import { PRIMARY_ON_CALL } from '../src/content/onCall';
 import { MAX_CONTENT_WIDTH } from '../src/components/ui/ScreenContainer';
 
@@ -54,7 +55,9 @@ function ChatContent() {
 
   // Coach presence between sessions: the on-call coach and the next live session.
   const coachName = PRIMARY_ON_CALL.firstName;
-  const nextSchedule = sessions.find((s) => s.kind === 'group')?.schedule_label ?? null;
+  const scheduleFor = useSessionSchedule();
+  const nextGroupSession = sessions.find((s) => s.kind === 'group');
+  const nextSchedule = nextGroupSession ? scheduleFor(nextGroupSession) || null : null;
 
   async function handleSend() {
     if (!isCurrent() || sending) return;
@@ -206,7 +209,7 @@ function ChatContent() {
       </Modal>
 
       <View style={[styles.header, { borderBottomColor: colors.line }]}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={12}>
+        <TouchableOpacity onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(tabs)/support'); }} hitSlop={12}>
           <Text style={[styles.back, { color: colors.primary }]}>‹</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>

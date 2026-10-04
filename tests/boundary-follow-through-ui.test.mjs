@@ -10,7 +10,7 @@ const copyModule = moduleAt('src/components/boundaries/followThroughCopy.ts', ()
 const core = moduleAt('src/storage/boundaryFollowThroughCore.ts', () => { throw Error('unexpected import'); });
 const settle = () => new Promise(resolve => setImmediate(resolve));
 function mount(name, props, store = {}, language = 'en') {
-  const slots = []; let cursor = 0; let tree; const effects = []; const routes = [];
+  const slots = []; let cursor = 0; let tree; const effects = []; const routes = []; const alerts = [];
   const React = {
     createElement: (type, props, ...children) => ({ type, props: { ...props, children } }),
     useState(initial) { const i = cursor++; if (!(i in slots)) slots[i] = initial; return [slots[i], v => { slots[i] = typeof v === 'function' ? v(slots[i]) : v; }]; },
@@ -28,6 +28,7 @@ function mount(name, props, store = {}, language = 'en') {
     if (id.endsWith('boundaryFollowThrough')) return { boundaryFollowThroughStore: store };
     if (id.endsWith('ContextualMembershipInvitation')) return { ContextualMembershipInvitation: 'Invitation' };
     if (id.endsWith('BoundaryFollowThroughCard')) return { BoundaryFollowThroughCard: 'Editor' };
+    if (id.endsWith('appAlert')) return { appAlert: (...args) => { alerts.push(args); } };
     throw Error(id);
   };
   const exports = moduleAt(`src/components/boundaries/${name}.tsx`, require);
@@ -35,7 +36,7 @@ function mount(name, props, store = {}, language = 'en') {
   const text = n => typeof n === 'string' ? n : Array.isArray(n) ? n.map(text).join(' ') : n?.props ? text(n.props.children) : '';
   const api = {
     render() { cursor = 0; tree = exports[name](props); while(effects.length) effects.shift()(); return api; },
-    nodes: () => flatten(tree), text: () => text(tree), routes,
+    nodes: () => flatten(tree), text: () => text(tree), routes, alerts,
     press(label) { const n = api.nodes().find(n => n.type === 'TouchableOpacity' && text(n) === label); assert.ok(n, label); assert.ok(!n.props.disabled); n.props.onPress(); api.render(); },
     edit(label, value) { const n = api.nodes().find(n => n.type === 'TextInput' && n.props.accessibilityLabel === label); assert.ok(n); n.props.onChangeText(value); api.render(); },
   };
@@ -50,6 +51,18 @@ test('inactive coach CTA now invokes supported booking route without a data payl
     assert.ok(ui.text().includes(copy.coachPrivacy));
   }
   assert.ok(readFileSync(new URL('../app/book-coaching.tsx', import.meta.url), 'utf8').includes("from('coaching_bookings')"));
+});
+test('the boundary ✕ asks before deleting and deletes only on the destructive choice', () => {
+  const deleted = [];
+  const ui = mount('WallsList', { walls: [wall], isAttached: false, onDelete(id) { deleted.push(id); } });
+  const remove = ui.nodes().find(n => n.type === 'TouchableOpacity' && n.props.accessibilityLabel === copyModule.boundaryFollowThroughCopy('en').delete);
+  assert.ok(remove); remove.props.onPress();
+  assert.deepEqual(deleted, [], 'one tap never deletes');
+  const [title, body, buttons] = ui.alerts[0];
+  assert.equal(title, 'walls.deleteTitle'); assert.equal(body, 'walls.deleteBody');
+  assert.deepEqual(buttons.map(b => [b.text, b.style]), [['walls.deleteCancel', 'cancel'], ['walls.deleteConfirm', 'destructive']]);
+  buttons[1].onPress();
+  assert.deepEqual(deleted, ['wall']);
 });
 test('editor validates, keeps drafts when collapsed, persists responses only locally, retains text on write failure', async () => {
   const saved = []; let fail = false;

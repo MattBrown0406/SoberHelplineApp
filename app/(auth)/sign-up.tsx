@@ -64,9 +64,9 @@ export default function SignUpScreen() {
         password,
         options: {
           // Supabase Edge Functions intentionally serve HTML as plain text on the
-          // default supabase.co domain. Use a normal HTTPS page under Matt's
-          // verified GitHub account so confirmation clicks render reliably.
-          emailRedirectTo: 'https://mattbrown0406.github.io/soberhelpline/app-confirmed.html',
+          // default supabase.co domain. Land on the normal soberhelpline.com page
+          // (must be in the project's auth redirect allow-list).
+          emailRedirectTo: 'https://soberhelpline.com/app-confirmed.html',
           data: {
             first_name: firstName.trim(),
             last_name: lastName.trim(),

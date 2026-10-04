@@ -1,16 +1,24 @@
 import type { SupportGroup } from '../api/types';
 
-/** Production catalog for moderated LiveKit groups. Runtime presence comes from Supabase. */
-export function getSupportGroups(): SupportGroup[] {
+/** Translates a `support` namespace key (the Support tab's `t`). */
+export type SupportGroupTranslate = (key: string) => string;
+
+/**
+ * Production catalog for moderated LiveKit groups. Runtime presence comes from
+ * Supabase. Names and the schedule label are localized (support.json
+ * `groups.names.*`, `groups.weeklyModerated`).
+ */
+export function getSupportGroups(t: SupportGroupTranslate): SupportGroup[] {
+  const weekly = t('groups.weeklyModerated');
   return [
     {
       id: 'group-parents',
-      name: 'Parents of Addicted Young Adults',
+      name: t('groups.names.parents'),
       icon: '👨‍👩‍👦',
       accentColor: '#fdf3e3',
       onlineCount: 0,
       nextSessionAt: null,
-      scheduleLabel: 'Weekly · moderated',
+      scheduleLabel: weekly,
       scheduleType: 'recurring',
       joinUrl: null,
       requiresPremium: false,
@@ -18,12 +26,12 @@ export function getSupportGroups(): SupportGroup[] {
     },
     {
       id: 'group-spouses',
-      name: 'Spouses & Partners of Addicted Individuals',
+      name: t('groups.names.spouses'),
       icon: '💞',
       accentColor: '#fbeae7',
       onlineCount: 0,
       nextSessionAt: null,
-      scheduleLabel: 'Weekly · moderated',
+      scheduleLabel: weekly,
       scheduleType: 'recurring',
       joinUrl: null,
       requiresPremium: false,
@@ -31,12 +39,12 @@ export function getSupportGroups(): SupportGroup[] {
     },
     {
       id: 'group-boundaries',
-      name: 'Setting & Holding Boundaries',
+      name: t('groups.names.boundaries'),
       icon: '🏰',
       accentColor: '#e8eef5',
       onlineCount: 0,
       nextSessionAt: null,
-      scheduleLabel: 'Weekly · moderated',
+      scheduleLabel: weekly,
       scheduleType: 'recurring',
       joinUrl: null,
       requiresPremium: false,
@@ -44,12 +52,12 @@ export function getSupportGroups(): SupportGroup[] {
     },
     {
       id: 'group-treatment',
-      name: 'Finding the Right Treatment Program',
+      name: t('groups.names.treatment'),
       icon: '🧭',
       accentColor: '#e9f2ec',
       onlineCount: 0,
       nextSessionAt: null,
-      scheduleLabel: 'Weekly · moderated',
+      scheduleLabel: weekly,
       scheduleType: 'recurring',
       joinUrl: null,
       requiresPremium: false,

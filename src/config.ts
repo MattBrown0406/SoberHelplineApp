@@ -1,14 +1,16 @@
 import { Platform } from 'react-native';
+import { websiteUrl } from './lib/websiteLinks';
 
 /**
  * App-level configuration. No secrets here — only public client values that are
- * safe to ship in the bundle.
+ * safe to ship in the bundle. Coaching prices live in src/lib/coachingPrice.ts
+ * and soberhelpline.com paths in src/lib/websiteLinks.ts.
  */
-export const COACHING_RATE_LABEL = '$150';
 
 // Public legal documents used by signup, settings, and every subscription surface.
-export const TERMS_OF_USE_URL = 'https://soberhelpline.com/app-terms';
-export const PRIVACY_POLICY_URL = 'https://soberhelpline.com/privacy';
+// Opened from the app, so they carry the app context (no membership purchase links).
+export const TERMS_OF_USE_URL = websiteUrl('/app-terms');
+export const PRIVACY_POLICY_URL = websiteUrl('/privacy');
 
 const RC_IOS_API_KEY =
   process.env.EXPO_PUBLIC_RC_IOS_API_KEY
@@ -29,11 +31,6 @@ export const SUBSCRIPTION_MANAGEMENT_URL = Platform.select({
   android: 'https://play.google.com/store/account/subscriptions',
   default: 'https://apps.apple.com/account/subscriptions',
 }) as string;
-
-// Where group Join taps land when a group has no specific Zoom link yet,
-// and the destination for "more groups & topics."
-export const GROUPS_URL =
-  process.env.EXPO_PUBLIC_GROUPS_URL ?? 'https://soberhelpline.com/family-forum';
 
 // LiveKit cloud endpoint — safe to ship in the client bundle (no secrets here).
 export const LIVEKIT_URL =

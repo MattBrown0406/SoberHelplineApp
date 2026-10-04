@@ -6,6 +6,10 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { DOOR_COPY_KEY, DOOR_ROUTE, type FunnelDoor } from '../../lib/situation';
 import { logFunnelEvent } from '../../lib/funnel';
 import type { FreeCall } from '../../hooks/useTodayFeed';
+import { useCoachingRate } from '../../hooks/useCoachingRate';
+import { useSessionSchedule } from '../../hooks/useSessionSchedule';
+import { isFamilySquaresSession } from '../../lib/familySquaresSchedule';
+import { withAppContext } from '../../lib/websiteLinks';
 
 interface Props {
   nextFreeCall: FreeCall | null;
@@ -24,9 +28,13 @@ export function SituationCard({ nextFreeCall, primaryDoor, onRsvp, onSupportCall
   const { colors } = useTheme();
   const { t } = useTranslation('today');
   const router = useRouter();
+  const coachingRate = useCoachingRate();
+  const scheduleFor = useSessionSchedule();
 
   const title = nextFreeCall?.title ?? t('situationCta.freeCallTitle');
-  const schedule = nextFreeCall?.schedule_label ?? t('situationCta.scheduleFallback');
+  // The Family Squares shows its real next start in the member's time zone.
+  const schedule = nextFreeCall ? scheduleFor(nextFreeCall) : t('common:familySquares.scheduleFallback');
+  const isFamilySquares = isFamilySquaresSession(nextFreeCall);
   // Anyone can join once the admin has set the link — RSVP is encouraged for
   // headcount but never a gate ("push of a button", no link required).
   const canJoin = !!nextFreeCall?.zoom_url;
@@ -49,7 +57,7 @@ export function SituationCard({ nextFreeCall, primaryDoor, onRsvp, onSupportCall
                 // Review instrumentation must never block access to the meeting.
               }
               try {
-                await Linking.openURL(nextFreeCall!.zoom_url!);
+                await Linking.openURL(withAppContext(nextFreeCall!.zoom_url!));
                 logFunnelEvent('attended', { source: 'today' });
               } catch {
                 await onSupportCallOpenFailed?.();
@@ -91,6 +99,10 @@ export function SituationCard({ nextFreeCall, primaryDoor, onRsvp, onSupportCall
         </TouchableOpacity>
       )}
 
+      {isFamilySquares && (
+        <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:familySquares.rsvpNote')}</Text>
+      )}
+
       {primaryDoor !== 'free_call' && doorRoute && (
         <View style={[styles.doorSection, { borderTopColor: colors.line }]}>
           {/* The escalation moment is when connection with Matt matters most.
@@ -110,7 +122,7 @@ export function SituationCard({ nextFreeCall, primaryDoor, onRsvp, onSupportCall
             <Text style={styles.briefBtnText}>{t('situationCta.sendBrief')}</Text>
           </TouchableOpacity>
           <Text style={[styles.doorSub, { color: colors.inkSoft, marginTop: 14 }]}>
-            {t(`situationCta.${primaryDoor}Sub`)}
+            {t(`situationCta.${primaryDoor}Sub`, { rate: coachingRate.rate })}
           </Text>
           <TouchableOpacity
             style={[styles.doorBtn, { borderColor: colors.primary }]}
@@ -173,4 +185,5 @@ const styles = StyleSheet.create({
   finderLinkText: { fontSize: 13, fontWeight: '600' },
   rsvpLink: { alignItems: 'center', marginTop: 10 },
   rsvpLinkText: { fontSize: 13, fontWeight: '600' },
+  rsvpNote: { fontSize: 12, lineHeight: 17, marginTop: 10 },
 });

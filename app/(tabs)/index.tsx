@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { useTranslation } from 'react-i18next';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { useTheme } from '../../src/contexts/ThemeContext';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { TodayDisclosure } from '../../src/components/today/TodayDisclosure';
 import { HeroCard } from '../../src/components/today/HeroCard';
 import { CheckInFeedbackCard } from '../../src/components/today/CheckInFeedbackCard';
@@ -31,6 +31,7 @@ import { useHoldLog } from '../../src/hooks/useHoldLog';
 import { getDailyScripts } from '../../src/content/scripts';
 import { PHASE_LABEL_KEY, selectCurriculumPiece } from '../../src/content/curriculum';
 import { useFeatureAccess } from '../../src/hooks/useFeatureAccess';
+import { pathwayPhaseUpdate } from '../../src/lib/recoveryPathway';
 import {
   cancelQueuedSupportCallReview,
   maybeRequestReview,
@@ -54,11 +55,20 @@ function TodayContent() {
   const router = useRouter();
   const { todayCheckIn, streak, saveCheckIn, pendingSync } = useCheckIn(user?.id ?? null, user?.timezone);
   const { lovedOne, loading: lovedOneLoading, save: saveLovedOne } = useLovedOne(user?.id ?? null);
-  const { dayCount, boundariesHeld, groupSessions, quoteIndex, scriptSlot, curriculumWeek, curriculumPhase, situation, primaryDoor, nextFreeCall, rsvpFreeCall } =
+  const { dayCount, boundariesHeld, groupSessions, quoteIndex, scriptSlot, curriculumWeek, curriculumPhase, situation, primaryDoor, nextFreeCall, rsvpFreeCall, reload: reloadFeed } =
     useTodayFeed(user?.id ?? null, user?.joinedAt ?? null);
   const youLabel = user?.firstName || t('boundaries:journal.you');
-  const { space: familySpace } = useFamilySpace(user?.id ?? null, { you: youLabel, member: t('boundaries:journal.member') });
+  const { space: familySpace, refresh: refreshFamilySpace } = useFamilySpace(user?.id ?? null, { you: youLabel, member: t('boundaries:journal.member') });
   const holdLog = useHoldLog(user?.id ?? null, familySpace?.id ?? null, user?.timezone);
+  const { reload: reloadHoldLog } = holdLog;
+  // Today keeps its own copy of the family space and hold log (both tabs stay
+  // mounted): re-read them whenever Today comes into view.
+  useFocusEffect(
+    useCallback(() => {
+      void refreshFamilySpace();
+      void reloadHoldLog().catch(() => undefined);
+    }, [refreshFamilySpace, reloadHoldLog]),
+  );
   const canAccessFullToday = useFeatureAccess('todayFull');
 
   const firstName = user?.firstName?.trim() ?? '';
@@ -105,12 +115,19 @@ function TodayContent() {
     }, 750);
   }
 
+  const lovedOneStatus = lovedOne?.status ?? situation.drivers.loved_one_status;
   const pathwayCard = (
     <RecoveryPathwayCard
       stage={lovedOne?.stage}
-      status={lovedOne?.status ?? situation.drivers.loved_one_status}
+      status={lovedOneStatus}
       loading={lovedOneLoading}
-      onSavePhase={(stage) => saveLovedOne({ stage })}
+      // Treatment or recovery also clears a stale using/escalating/crisis
+      // status; then re-read the situation so Today reflects it.
+      onSavePhase={async (stage) => {
+        const saved = await saveLovedOne(pathwayPhaseUpdate(stage, lovedOneStatus));
+        void reloadFeed();
+        return saved;
+      }}
     />
   );
   const willingnessWindowAlert = (

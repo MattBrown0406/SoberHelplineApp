@@ -280,7 +280,7 @@ function SessionCard({ session, staff, busy, history, expanded, onToggle, onJoin
                 </>
               ) : editor === 'markPaid' ? (
                 <>
-                  <Text style={[styles.editorTitle, { color: colors.ink }]}>Mark the $150 plan review paid</Text>
+                  <Text style={[styles.editorTitle, { color: colors.ink }]}>Mark the plan review paid ($150, or $125 member price)</Text>
                   <Text style={[styles.meta, { color: colors.inkSoft }]}>Records a manual payment (owner only). Use when the member paid outside the app checkout. Say how and when.</Text>
                 </>
               ) : <Text style={[styles.editorTitle, { color: colors.ink }]}>Cancellation reason</Text>}

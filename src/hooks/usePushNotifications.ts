@@ -12,6 +12,7 @@ import { getPushDestination, shouldHandlePushResponse } from '../lib/pushRouting
 import { settlePendingPushTokenRevoke } from '../lib/pendingPushTokenRevoke';
 import { isDeviceSignedIn } from '../lib/pushDevice';
 import { shouldDeferPushRouting } from '../lib/pushColdStart';
+import { requestFamilySpaceRefresh } from '../lib/familySpaceRefresh';
 import { useAccount } from '../contexts/AccountContext';
 import type { Entitlements } from '../api/types';
 export const LEGACY_NUDGE_PREFIX = 'legacy-daily-nudge:v1:';
@@ -310,6 +311,9 @@ export function usePushNotifications(
 
       if (!effectActive) return false;
       if (!shouldHandlePushResponse(data, response.notification.request.identifier)) return true;
+      // A relative's backup notice lands on the already-mounted Boundaries tab
+      // (and Today keeps its own copy): re-read the family space now.
+      if (data.kind === 'family_backup') requestFamilySpaceRefresh();
       try {
         router.push(destination as never);
         return true;

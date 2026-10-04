@@ -10,14 +10,17 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
 import { supabase } from '../src/lib/supabase';
 import { MAX_CONTENT_WIDTH } from '../src/components/ui/ScreenContainer';
-import { COACHING_RATE_LABEL } from '../src/config';
 import { formatInTimeZone } from '../src/lib/videoScheduling';
+import { useWebSSO } from '../src/hooks/useWebSSO';
+import { useCoachingRate } from '../src/hooks/useCoachingRate';
+import { WEBSITE_PATHS, withAppContext } from '../src/lib/websiteLinks';
+import { COACHING_MEMBER_PRICE, COACHING_STANDARD_PRICE } from '../src/lib/coachingPrice';
 
 interface Booking {
   id: string;
@@ -58,6 +61,11 @@ export default function BookCoachingScreen() {
   const { t, i18n } = useTranslation('support');
   const { user } = useAccount();
   const router = useRouter();
+  const { openWithSSO } = useWebSSO();
+  const coachingRate = useCoachingRate();
+  // soberhelpline.com/app/coaching/booked returns here after a website booking.
+  const { booked } = useLocalSearchParams<{ booked?: string }>();
+  const showBooked = booked === '1';
 
   const dates = getNextDays(14);
 
@@ -111,6 +119,19 @@ export default function BookCoachingScreen() {
 
   const canSubmit = selectedDate !== null && selectedPeriod !== null;
 
+  // The real booking: open time slots and PayPal checkout on soberhelpline.com,
+  // in the system browser (Safari), signed in so members get the $125 price.
+  const [openingBooking, setOpeningBooking] = useState(false);
+  const [bookingOpenError, setBookingOpenError] = useState(false);
+  async function openWebsiteBooking() {
+    if (openingBooking) return;
+    setOpeningBooking(true);
+    setBookingOpenError(false);
+    const opened = await openWithSSO(user?.id ?? null, WEBSITE_PATHS.bookConsultation);
+    setOpeningBooking(false);
+    if (!opened) setBookingOpenError(true);
+  }
+
   async function handleSubmit() {
     if (!user || !canSubmit || submitting) return;
     const scope = submissionScope.current;
@@ -163,7 +184,7 @@ export default function BookCoachingScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
       <View style={[styles.header, { borderBottomColor: colors.line }]}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={12}>
+        <TouchableOpacity onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(tabs)/support'); }} hitSlop={12}>
           <Text style={[styles.back, { color: colors.primary }]}>‹</Text>
         </TouchableOpacity>
         <View>
@@ -171,12 +192,65 @@ export default function BookCoachingScreen() {
             {t('coaching.title')}
           </Text>
           <Text style={[styles.headerSub, { color: colors.inkSoft }]}>
-            {t('coaching.subtitle', { rate: COACHING_RATE_LABEL })}
+            {t('coaching.subtitle', { rate: coachingRate.hourly })}
           </Text>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {showBooked && (
+          <View accessibilityRole="alert" style={[styles.successBox, { backgroundColor: colors.greenLight }]}>
+            <Text accessibilityRole="header" style={[styles.bookedTitle, { color: colors.green }]}>
+              {t('coaching.bookedTitle')}
+            </Text>
+            <Text style={[styles.successText, { color: colors.ink }]}>{t('coaching.bookedBody')}</Text>
+          </View>
+        )}
+
+        <View style={[styles.bookCard, { borderColor: colors.primary, backgroundColor: colors.white }]}>
+          <Text accessibilityRole="header" style={[styles.bookTitle, { color: colors.ink }]}>
+            {t('coaching.bookTitle')}
+          </Text>
+          <Text style={[styles.bodyText, { color: colors.inkSoft, marginBottom: 10 }]}>
+            {t('coaching.bookBody')}
+          </Text>
+          <Text style={[styles.bookPrice, { color: colors.ink }]}>
+            {coachingRate.member
+              ? t('coaching.bookPriceMember', { price: COACHING_MEMBER_PRICE, standard: COACHING_STANDARD_PRICE })
+              : t('coaching.bookPriceStandard', { price: COACHING_STANDARD_PRICE, memberPrice: COACHING_MEMBER_PRICE })}
+          </Text>
+          {!user && (
+            <Text style={[styles.bodyText, { color: colors.inkSoft, marginBottom: 10 }]}>
+              {t('coaching.bookSignedOut')}
+            </Text>
+          )}
+          <TouchableOpacity
+            style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
+            onPress={() => void openWebsiteBooking()}
+            disabled={openingBooking}
+            accessibilityRole="link"
+            accessibilityLabel={t('coaching.bookButton')}
+            accessibilityHint={t('coaching.bookButtonHint')}
+            accessibilityState={{ busy: openingBooking, disabled: openingBooking }}
+            activeOpacity={0.85}
+          >
+            {openingBooking ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.primaryBtnText}>{t('coaching.bookButton')}</Text>
+            )}
+          </TouchableOpacity>
+          {bookingOpenError && (
+            <Text accessibilityRole="alert" style={[styles.bodyText, { color: colors.coral, marginTop: 10, marginBottom: 0 }]}>
+              {t('coaching.bookOpenError')}
+            </Text>
+          )}
+        </View>
+
+        {/* Secondary: a request Matt follows up by hand (coaching_bookings). */}
+        <Text accessibilityRole="header" style={[styles.requestTitle, { color: colors.ink }]}>
+          {t('coaching.requestTitle')}
+        </Text>
         <Text style={[styles.bodyText, { color: colors.inkSoft }]}>
           {t('coaching.description')}
         </Text>
@@ -191,7 +265,7 @@ export default function BookCoachingScreen() {
 
         {submitError && (
           <Text accessibilityRole="alert" style={[styles.bodyText, { color: colors.coral }]}>
-            {t('coaching.submitError', { defaultValue: 'Your request was not sent. Check your connection and try again. Your selections have been kept.' })}
+            {t('coaching.submitError')}
           </Text>
         )}
 
@@ -290,13 +364,13 @@ export default function BookCoachingScreen() {
           )}
         </TouchableOpacity>
         <Text style={[styles.paymentNote, { color: colors.inkSoft }]}>
-          {t('coaching.paymentNote')}
+          {t('coaching.paymentNote', { rate: coachingRate.hourly })}
         </Text>
 
         {loadError && (
           <View>
             <Text accessibilityRole="alert" style={[styles.bodyText, { color: colors.coral }]}>
-              {t('coaching.loadError', { defaultValue: 'Your existing requests could not be loaded. Please refresh before sending another request.' })}
+              {t('coaching.loadError')}
             </Text>
             <TouchableOpacity onPress={() => void load()} accessibilityRole="button">
               <Text style={[styles.label, { color: colors.primary }]}>{t('common:accountLoad.retry')}</Text>
@@ -324,7 +398,7 @@ export default function BookCoachingScreen() {
                 {b.status === 'confirmed' && b.zoom_url ? (
                   <TouchableOpacity
                     style={[styles.joinBtn, { backgroundColor: colors.green }]}
-                    onPress={() => Linking.openURL(b.zoom_url!)}
+                    onPress={() => Linking.openURL(withAppContext(b.zoom_url!))}
                     activeOpacity={0.85}
                   >
                     <Text style={styles.joinBtnText}>{t('sessions.joinZoom')}</Text>
@@ -391,6 +465,11 @@ const styles = StyleSheet.create({
   paymentNote: { fontSize: 11.5, lineHeight: 17, textAlign: 'center', marginTop: 10, marginBottom: 20 },
   successBox: { borderRadius: 12, padding: 14, marginBottom: 16 },
   successText: { fontSize: 13.5, fontWeight: '600', lineHeight: 19 },
+  bookedTitle: { fontSize: 16, fontWeight: '800', marginBottom: 4 },
+  bookCard: { borderWidth: 1.5, borderRadius: 18, padding: 16, marginBottom: 24 },
+  bookTitle: { fontSize: 17, fontWeight: '800', marginBottom: 6 },
+  bookPrice: { fontSize: 14, fontWeight: '700', lineHeight: 20, marginBottom: 12 },
+  requestTitle: { fontSize: 15, fontWeight: '800', marginBottom: 6 },
   card: { backgroundColor: '#fff', borderRadius: 18, padding: 16, borderWidth: 1 },
   eyebrow: { fontSize: 11, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 },
   bookingRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, gap: 8 },

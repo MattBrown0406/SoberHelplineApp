@@ -126,6 +126,13 @@ INSERT INTO work SELECT 'terminal-video',pg_temp.enqueue('member_video_cancelled
 SELECT ok(pg_temp.delivery(id) IS NOT NULL,'cancellation remains useful after membership ends') FROM work WHERE kind='terminal-video';
 UPDATE entitlements SET expires_at=now()+interval '30 days' WHERE account_id=pg_temp.aid(1);
 
+-- A fixed-offset zone where it is now mid-afternoon (support pushes go out
+-- 9 AM–9 PM and winbacks 9 AM–8 PM in her own time zone).
+CREATE FUNCTION pg_temp.tz_at(local_hour integer) RETURNS text LANGUAGE sql AS $$
+ SELECT CASE WHEN x=0 THEN 'Etc/GMT' WHEN x>0 THEN 'Etc/GMT+'||x ELSE 'Etc/GMT'||x END
+ FROM (SELECT (((extract(hour FROM now() AT TIME ZONE 'UTC')::integer-local_hour+12)%24+24)%24)-12 AS x) s
+$$;
+UPDATE accounts SET timezone=pg_temp.tz_at(14) WHERE id=pg_temp.aid(1);
 -- Community and operational/admin alerts retain their legitimate routing.
 INSERT INTO community_posts(id,account_id,body,status) VALUES('dd900000-0000-0000-0000-000000000001',pg_temp.aid(1),'Synthetic','visible');
 INSERT INTO community_supports(post_id,supporter_account_id) VALUES('dd900000-0000-0000-0000-000000000001',pg_temp.aid(3));
@@ -186,24 +193,26 @@ CREATE FUNCTION pg_temp.call_delivery(k text,at_time timestamptz DEFAULT '2026-1
 $$;
 DELETE FROM session_rsvps WHERE account_id=pg_temp.aid(1);
 SELECT ok(pg_temp.call_delivery('family_call_30min') IS NOT NULL,'free family call positive control');
-SELECT is(pg_temp.call_delivery('session_reminder'),NULL,'session reminder requires going RSVP');
+SELECT is(pg_temp.call_delivery('session_reminder','2026-10-06T01:05:00Z'),NULL,'session reminder requires going RSVP');
 INSERT INTO session_rsvps(account_id,session_id,status) VALUES(pg_temp.aid(1),family_squares_session_id(),'going');
-SELECT ok(pg_temp.call_delivery('session_reminder') IS NOT NULL,'going RSVP valid');
+SELECT ok(pg_temp.call_delivery('session_reminder','2026-10-06T01:05:00Z') IS NOT NULL,'going RSVP valid');
 UPDATE accounts SET family_call_reminders=false WHERE id=pg_temp.aid(1);
-SELECT is(pg_temp.call_delivery('session_reminder'),NULL,'going RSVP does not override current optout');
+SELECT is(pg_temp.call_delivery('session_reminder','2026-10-06T01:05:00Z'),NULL,'going RSVP does not override current optout');
 UPDATE accounts SET family_call_reminders=true WHERE id=pg_temp.aid(1);
 SELECT is(pg_temp.call_delivery('family_call_30min'),NULL,'30min excludes going to avoid duplicate');
 UPDATE session_rsvps SET status='declined' WHERE account_id=pg_temp.aid(1);
-SELECT is(pg_temp.call_delivery('session_reminder'),NULL,'declined session drops');
+SELECT is(pg_temp.call_delivery('session_reminder','2026-10-06T01:05:00Z'),NULL,'declined session drops');
 SELECT is(pg_temp.call_delivery('family_call_30min'),NULL,'declined family call drops');
 DELETE FROM session_rsvps WHERE account_id=pg_temp.aid(1);
 UPDATE accounts SET family_call_reminders=false WHERE id=pg_temp.aid(1);
 SELECT is(pg_temp.call_delivery('family_call_30min'),NULL,'family call optout drops');
 UPDATE accounts SET family_call_reminders=true WHERE id=pg_temp.aid(1);
 SELECT is(pg_temp.call_delivery('family_call_30min','2026-10-06T02:00:00Z'),NULL,'call-start absolute deadline drops');
-SELECT is(pg_temp.call_delivery('family_call_30min','2026-10-06T01:50:00Z')->>'ttl','600','delayed call TTL only remaining time');
+SELECT is(pg_temp.call_delivery('family_call_30min','2026-10-06T01:35:00Z')->>'ttl','600','delayed call shown only until 6:45 PM Pacific');
+SELECT is(pg_temp.call_delivery('family_call_30min','2026-10-06T01:50:00Z'),NULL,'"in 30 minutes" is never sent at 6:50');
 SELECT is(pg_temp.call_delivery('family_call_30min','2026-10-06T01:50:00Z','2026-10-06T02:20:00Z'),NULL,'cannot restart call occurrence TTL');
 SELECT ok(pg_temp.call_delivery('family_call_30min','2026-12-08T02:30:00Z','2026-12-08T03:00:00Z') IS NOT NULL,'winter Pacific clock stays 7pm');
+UPDATE accounts SET timezone=pg_temp.tz_at(14) WHERE id=pg_temp.aid(1);
 CREATE FUNCTION pg_temp.winback() RETURNS jsonb LANGUAGE sql AS $$ SELECT dispatcher_job_delivery('winback',pg_temp.aid(1),NULL,now()+interval '1 hour') $$;
 SELECT ok(pg_temp.winback() IS NOT NULL,'winback positive control');
 UPDATE accounts SET daily_push_opt_in=false WHERE id=pg_temp.aid(1);

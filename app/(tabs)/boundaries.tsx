@@ -62,8 +62,11 @@ export default function BoundariesScreen() {
     markWavering,
     commitWall,
     leave: leaveFamilySpace,
+    refresh: refreshFamilySpace,
+    fetchMemberCount,
   } = useFamilySpace(user?.id ?? null, { you: youLabel, member: content.journal.member });
   const holdLog = useHoldLog(user?.id ?? null, familySpace?.id ?? null, user?.timezone);
+  const { reload: reloadHoldLog } = holdLog;
   const [prefill, setPrefill] = useState('');
   const [lastAnchorTag, setLastAnchorTag] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState('');
@@ -212,8 +215,37 @@ export default function BoundariesScreen() {
           if (data) setCheckinDates(new Set(data.map((r) => r.checkin_date as string)));
         });
       if (familySpace?.id) void loadJournal(familySpace.id, user.id);
-    }, [user?.id, user?.timezone, familySpace?.id, loadJournal]),
+      // Relatives commit, waver and join from their own phones: re-read the
+      // space and this week's hold log whenever the tab comes into view.
+      void refreshFamilySpace();
+      void reloadHoldLog().catch(() => undefined);
+    }, [user?.id, user?.timezone, familySpace?.id, loadJournal, refreshFamilySpace, reloadHoldLog]),
   );
+
+  // Leaving as the only member deletes the space (and its journal and shared
+  // boundaries) for good. Count the members fresh: someone may have left since
+  // this screen last loaded, and a now-alone owner must see that warning.
+  const confirmLeaveFamilySpace = useCallback(async (spaceId: string, knownMembers: number) => {
+    const freshCount = await fetchMemberCount(spaceId);
+    const alone = (freshCount ?? knownMembers) <= 1;
+    if (freshCount !== null && freshCount !== knownMembers) void refreshFamilySpace({ force: true });
+    appAlert(
+      alone ? tAlign('leaveAloneTitle') : tAlign('leaveTitle'),
+      alone ? tAlign('leaveAloneBody') : tAlign('leaveBody'), [
+      { text: tAlign('leaveCancel'), style: 'cancel' },
+      {
+        text: alone ? tAlign('leaveAloneConfirm') : tAlign('leaveConfirm'),
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await leaveFamilySpace();
+          } catch {
+            appAlert(tAlign('leaveErrorTitle'), tAlign('leaveErrorBody'));
+          }
+        },
+      },
+    ]);
+  }, [fetchMemberCount, leaveFamilySpace, refreshFamilySpace, tAlign]);
 
   const streakDots = recentLocalDays(7, user?.timezone).map((date, i) => ({
     date,
@@ -614,22 +646,7 @@ export default function BoundariesScreen() {
                 style={styles.leaveFamilyBtn}
                 // Leaving as the only member deletes the space (and its journal
                 // and shared boundaries) for good; say so plainly.
-                onPress={() => appAlert(
-                  familySpace.members.length <= 1 ? tAlign('leaveAloneTitle') : tAlign('leaveTitle'),
-                  familySpace.members.length <= 1 ? tAlign('leaveAloneBody') : tAlign('leaveBody'), [
-                  { text: tAlign('leaveCancel'), style: 'cancel' },
-                  {
-                    text: familySpace.members.length <= 1 ? tAlign('leaveAloneConfirm') : tAlign('leaveConfirm'),
-                    style: 'destructive',
-                    onPress: async () => {
-                      try {
-                        await leaveFamilySpace();
-                      } catch {
-                        appAlert(tAlign('leaveErrorTitle'), tAlign('leaveErrorBody'));
-                      }
-                    },
-                  },
-                ])}
+                onPress={() => void confirmLeaveFamilySpace(familySpace.id, familySpace.members.length)}
               >
                 <Text style={[styles.leaveFamilyText, { color: colors.inkSoft }]}>{tAlign('leaveButton')}</Text>
               </TouchableOpacity>

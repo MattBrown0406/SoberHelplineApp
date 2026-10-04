@@ -39,7 +39,7 @@ test('safety and free practice precede commercial options; real routes exist', (
 });
 
 test('uses canonical benefits, rate, account and store prices without purchasing', () => {
-  for (const contract of ['walletMembershipCopy(i18n.language)', 'membership.essential', 'membership.premier', "membership.service.replaceAll('{rate}', COACHING_RATE_LABEL)", 'useAccount()', 'useIAP()', 'prices.essential', 'prices.premium', 'membership.priceUnavailable', 'retryPrices']) assert.ok(screen.includes(contract), contract);
+  for (const contract of ['walletMembershipCopy(i18n.language)', 'membership.essential', 'membership.premier', 'fillCoachingRates(membership.service, { rate: coachingRate.hourly, memberRate: COACHING_MEMBER_PRICE })', 'useCoachingRate()', 'useAccount()', 'useIAP()', 'prices.essential', 'prices.premium', 'membership.priceUnavailable', 'retryPrices']) assert.ok(screen.includes(contract), contract);
   assert.doesNotMatch(screen, /purchaseEssential|purchasePremium|TextInput|sendMessage|VideoView|Audio|\$\d/);
   assert.doesNotMatch(screen, /if\s*\(!user\)|Redirect|numberOfLines/);
 });

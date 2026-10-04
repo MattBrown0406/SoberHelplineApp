@@ -46,14 +46,10 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (!isAdmin || !hostRow) return json({ error: 'not an admin host for this room' }, 403);
 
-    const svc = new RoomServiceClient(
-      Deno.env.get('LIVEKIT_URL')!,
-      Deno.env.get('LIVEKIT_API_KEY')!,
-      Deno.env.get('LIVEKIT_API_SECRET')!,
-    );
     // Removal is a ban: the token service refuses this member for every live
-    // group until an admin lets them back. Ban first so it holds even if they
-    // already left the room. Identities are account ids.
+    // group until an admin lets them back. Ban first, before anything that can
+    // fail (even building the LiveKit client), so it holds even if they
+    // already left the room or LiveKit is unreachable. Identities are account ids.
     let banned = false;
     if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(identity))) {
       const { error: banError } = await supabase.rpc('admin_ban_from_live_groups', {
@@ -65,13 +61,21 @@ Deno.serve(async (req) => {
     }
 
     try {
+      const svc = new RoomServiceClient(
+        Deno.env.get('LIVEKIT_URL') ?? '',
+        Deno.env.get('LIVEKIT_API_KEY') ?? '',
+        Deno.env.get('LIVEKIT_API_SECRET') ?? '',
+      );
       await svc.removeParticipant(room, identity);
     } catch (error) {
-      // Already gone from the room: the ban is what matters.
-      if (!/not.?found/i.test(String(error))) throw error;
+      // Already gone from the room: the ban is what matters. Any other kick
+      // failure still reports the ban (the host can retry the removal).
+      if (!/not.?found/i.test(String(error))) {
+        return json({ ok: false, banned, removed: false, error: 'kick_failed' }, 502);
+      }
     }
 
-    return json({ ok: true, banned });
+    return json({ ok: true, banned, removed: true });
   } catch (e) {
     return json({ error: String(e) }, 500);
   }

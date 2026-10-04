@@ -90,6 +90,9 @@ export function usePrivateVideoSessions(accountId: string | null, canAccess: boo
   const [history, setHistory] = useState<PrivateVideoSession[]>([]);
   const [pendingProposal, setPendingProposal] = useState<VideoSessionProposal | null>(null);
   const [loading, setLoading] = useState(false);
+  // True once a read has finished for this account (success or failure), so a
+  // screen can tell "no active session" from "not read yet".
+  const [loaded, setLoaded] = useState(false);
   const [mutating, setMutating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorKey, setErrorKey] = useState<string | null>(null);
@@ -104,7 +107,7 @@ export function usePrivateVideoSessions(accountId: string | null, canAccess: boo
   useEffect(() => {
     stateScope.current = scope;
     setActiveSession(null); setHistory([]); setPendingProposal(null);
-    setMutating(false); setPlanReviewIncluded(false); clearError();
+    setMutating(false); setPlanReviewIncluded(false); setLoaded(false); clearError();
   }, [scope, clearError]);
 
   const load = useCallback(async () => {
@@ -112,6 +115,7 @@ export function usePrivateVideoSessions(accountId: string | null, canAccess: boo
     const generation = ++loadGeneration.current;
     if (!accountId || !canAccess) {
       setActiveSession(null); setHistory([]); setPendingProposal(null); setLoading(false); clearError();
+      setLoaded(true);
       return;
     }
     setLoading(true);
@@ -145,7 +149,7 @@ export function usePrivateVideoSessions(accountId: string | null, canAccess: boo
         setError('network'); setErrorKey('unknown');
       }
     } finally {
-      if (isCurrent() && generation === loadGeneration.current) setLoading(false);
+      if (isCurrent() && generation === loadGeneration.current) { setLoading(false); setLoaded(true); }
     }
   }, [accountId, canAccess, clearError, isCurrent]);
 
@@ -261,7 +265,8 @@ export function usePrivateVideoSessions(accountId: string | null, canAccess: boo
   return {
     sessions: visible ? [...(activeSession ? [activeSession] : []), ...history] : [],
     activeSession: visible ? activeSession : null, history: visible ? history : [], pendingProposal: visible ? pendingProposal : null,
-    loading, requesting: visible && mutating, mutating: visible && mutating,
+    loading, loaded: stateScope.current === scope && loaded,
+    requesting: visible && mutating, mutating: visible && mutating,
     error: visible ? error : null, errorKey: visible ? errorKey : null, clearError, load,
     planReviewIncluded: visible && planReviewIncluded,
     requestSession, requestPlanReview, submitPlanReviewRevision, beginPlanReviewCheckout, applyPremierToPlanReview, rescheduleSession, acceptProposal, cancelSession,

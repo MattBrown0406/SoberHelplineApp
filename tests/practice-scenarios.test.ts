@@ -185,7 +185,12 @@ test('after a crisis break there is no coaching: finish, hang-up, timer, and deb
 
 test('spoken transcripts are screened in full; the draft is fitted to one line with a notice', () => {
   const fn = readFileSync('supabase/functions/rehearsal-partner/index.ts', 'utf8');
-  assert.match(fn, /const text = await transcribe\([\s\S]{0,1000}const kind = crisisKind\(screened\) \?\? \(needsModeration && await moderationCrisis\(screened\) \? 'self_harm' : null\);/);
+  assert.match(fn, /const text = await transcribe\([\s\S]{0,1000}const kind = crisisKind\(screened\) \?\? \(needsModeration \? await moderationCrisis\(screened\) : null\);/);
+  // Moderation answers with a kind: self-harm, or violence she is suffering (not a line to the loved one).
+  assert.match(fn, /async function moderationCrisis\(text: string \| undefined, options: \{ violence\?: boolean \} = \{\}\): Promise<CrisisKind \| null>/);
+  assert.match(fn, /return moderationCrisisKind\(await res\.json\(\), input, options\);/);
+  // The debrief (no way past its pause) and transcripts moderate for self-harm only, as before.
+  assert.match(fn, /debriefGate\(\[\], \(await moderationCrisis\(screenable\.join\('\\n'\)\)\) !== null\) === 'safety_break'/);
   const long = 'word '.repeat(300).trim();
   const fitted = clampLine(long);
   assert.equal(fitted.clamped, true);
@@ -281,12 +286,23 @@ test('every crisis card shows 911, 988 and the DV hotline; the kind only orders 
   }
   const fn = readFileSync('supabase/functions/rehearsal-partner/index.ts', 'utf8');
   // Every member line is moderated alongside the partner call, and a flag replaces the reply.
-  assert.match(fn, /if \(toModerate\) lineModeration = moderationCrisis\(toModerate\);/);
+  // Violence counts only on her own line at the reply gate (which offers "I'm safe — keep practicing"),
+  // never on a letter read aloud, and not again once she has said she's safe this session.
+  assert.match(fn, /const violence = payload\.safetyAcknowledged !== true && !screeningText;\n\s+if \(toModerate\) lineModeration = moderationCrisis\(toModerate, \{ violence \}\);/);
+  const ackHook = readFileSync('src/hooks/useRehearsalPartner.ts', 'utf8');
+  assert.match(ackHook, /\.\.\.\(safetyAcknowledgedRef\.current \? \{ safetyAcknowledged: true \} : \{\}\),/);
+  const keep = ackHook.slice(ackHook.indexOf('const keepPracticing = useCallback'), ackHook.indexOf('}, [messages]);', ackHook.indexOf('const keepPracticing')));
+  assert.ok(keep.includes('safetyAcknowledgedRef.current = true;'), 'keep practicing remembers she said she is safe');
+  const reset = ackHook.slice(ackHook.indexOf('const reset = useCallback'), ackHook.indexOf('}, []);', ackHook.indexOf('const reset = useCallback')));
+  assert.ok(reset.includes('safetyAcknowledgedRef.current = false;'), 'a new session starts unacknowledged');
   assert.match(fn, /const \[modelResult, hintResult, moderationResult\] = await Promise\.allSettled\(/);
   const safetyDecision = fn.indexOf("if (moderationResult.status === 'fulfilled' && moderationResult.value)");
   const modelFailure = fn.indexOf("if (modelResult.status === 'rejected') throw modelResult.reason;");
   assert.ok(safetyDecision >= 0 && modelFailure > safetyDecision, 'affirmative moderation must win before a model error');
-  assert.match(fn.slice(safetyDecision, modelFailure), /return moderationBreak\(\);/);
+  // A violence verdict never outranks the model's own self-harm break.
+  assert.match(fn.slice(safetyDecision, modelFailure), /parseBreak\(modelResult\.value, scenario\.language\)\.kind[\s\S]{0,120}return moderationBreak\(modelSaw === 'self_harm' \? 'self_harm' : moderationResult\.value\);/);
+  // The break carries moderation's kind (abuse gets the DV hotline, not 988).
+  assert.match(fn, /const moderationBreak = \(kind: CrisisKind\) =>[\s\S]{0,120}text: breakTextFor\(kind, scenario\.language\),[\s\S]{0,60}crisisKind: kind,/);
   // The model's :SELF_HARM / :ABUSE marker is passed through as the kind.
   assert.match(fn, /const parsed = parseBreak\(raw, scenario\.language\);/);
   assert.match(fn, /if \(!parseBreak\(retry\)\.breakCharacter && !partnerReplyUnsafe\(retry\)\) return retry;/);
@@ -353,7 +369,7 @@ test('a dropped incoming-call opening can be retried', () => {
   }
   const fn = readFileSync('supabase/functions/rehearsal-partner/index.ts', 'utf8');
   // A push-call opening lock is released when the reply quota is exhausted.
-  assert.match(fn, /if \(limited\) \{\n\s+await releaseGenerationLock\(\);[\s\S]{0,160}return limited;/);
+  assert.match(fn, /if \(limited\) \{\n\s+await releaseGenerationLock\(\);[\s\S]{0,240}return limited;/);
 });
 
 test('web recordings are read without expo-file-system, with visible failures', () => {

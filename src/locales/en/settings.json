@@ -3,7 +3,8 @@
   "account": {
     "eyebrow": "Account",
     "nameLabel": "Name",
-    "emailLabel": "Email"
+    "emailLabel": "Email",
+    "websiteLogin": "Pages you open from the app sign you in to soberhelpline.com automatically. To sign in there directly, use “Forgot password?” on soberhelpline.com to set a website password."
   },
   "privacy": {
     "eyebrow": "Privacy",
@@ -66,6 +67,7 @@
     "premiumFeatures": "Phone & video calls with a coach, business hours",
     "essentialPlan": "Essential",
     "essentialFeatures": "Full app access · messaging · groups",
+    "websiteSource": "Your membership is through soberhelpline.com — manage billing there.",
     "manage": "Manage subscription",
     "restore": "Restore Purchases",
     "restoreSuccessTitle": "Purchases restored",

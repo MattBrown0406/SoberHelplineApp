@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useTheme } from '../../contexts/ThemeContext';
 import { supabase } from '../../lib/supabase';
 import { appAlert } from '../../lib/appAlert';
@@ -12,11 +13,20 @@ type ReportedPost = {
   reasons: string[];
   author_name: string | null;
   created_at: string;
+  /** Mentions suicide, an overdose or self-harm and hasn't been reviewed yet. */
+  crisis?: boolean;
+  author_account_id?: string | null;
+  author_email?: string | null;
 };
 
-/** Admin-only: community posts members reported, or the system held after 3 reports. */
+/**
+ * Admin-only: community posts members reported, posts the system held after 3
+ * reports, and posts that mentioned a crisis (check on the author; "Keep" marks
+ * it reviewed).
+ */
 export function CommunityModerationCard() {
   const { colors } = useTheme();
+  const router = useRouter();
   const [posts, setPosts] = useState<ReportedPost[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
@@ -37,6 +47,20 @@ export function CommunityModerationCard() {
     else void load();
   }
 
+  async function messageAuthor(post: ReportedPost) {
+    if (!post.author_account_id) return;
+    setBusy(post.post_id);
+    const { data: threadId, error } = await supabase.rpc('admin_get_or_create_thread', {
+      p_account_id: post.author_account_id,
+    });
+    setBusy(null);
+    if (error || typeof threadId !== 'string') {
+      appAlert('Could not open a conversation', error?.message ?? 'Try again.');
+      return;
+    }
+    router.push({ pathname: '/admin-thread' as never, params: { threadId } });
+  }
+
   function confirmRemove(post: ReportedPost) {
     appAlert('Remove this post?', 'It will be hidden from the community for good.', [
       { text: 'Cancel', style: 'cancel' },
@@ -46,16 +70,21 @@ export function CommunityModerationCard() {
 
   return (
     <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
-      <Text style={[styles.title, { color: colors.ink }]}>Community reports</Text>
+      <Text style={[styles.title, { color: colors.ink }]}>Community reports and check-ins</Text>
       {posts === null ? (
         <ActivityIndicator color={colors.primary} />
       ) : failed ? (
         <Text style={[styles.note, { color: colors.coral }]}>Could not load reported posts.</Text>
       ) : posts.length === 0 ? (
-        <Text style={[styles.note, { color: colors.inkSoft }]}>No reported posts.</Text>
+        <Text style={[styles.note, { color: colors.inkSoft }]}>Nothing to review.</Text>
       ) : (
         posts.map((post) => (
           <View key={post.post_id} style={[styles.row, { borderTopColor: colors.line }]}>
+            {post.crisis ? (
+              <Text style={[styles.meta, { color: colors.coral }]}>
+                🆘 Mentions a crisis — check on {post.author_name ?? 'the author'}
+              </Text>
+            ) : null}
             <Text style={[styles.meta, { color: post.status === 'held' ? colors.coral : colors.inkSoft }]}>
               {post.status === 'held' ? 'Held (hidden)' : 'Visible'} · {post.report_count} report{post.report_count === 1 ? '' : 's'}
               {post.author_name ? ` · ${post.author_name}` : ''} · {new Date(post.created_at).toLocaleDateString()}
@@ -64,14 +93,33 @@ export function CommunityModerationCard() {
             {post.reasons.length > 0 ? (
               <Text style={[styles.note, { color: colors.inkSoft }]}>Reasons: {post.reasons.slice(0, 3).join(' · ')}</Text>
             ) : null}
+            {post.crisis && post.author_email ? (
+              <Text
+                accessibilityRole="link"
+                onPress={() => void Linking.openURL(`mailto:${post.author_email}`)}
+                style={[styles.note, { color: colors.primary }]}
+              >
+                {post.author_email}
+              </Text>
+            ) : null}
             <View style={styles.actions}>
+              {post.crisis && post.author_account_id ? (
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  disabled={busy === post.post_id}
+                  onPress={() => void messageAuthor(post)}
+                  style={[styles.button, { borderColor: colors.primary }]}
+                >
+                  <Text style={[styles.buttonText, { color: colors.primary }]}>Message her</Text>
+                </TouchableOpacity>
+              ) : null}
               <TouchableOpacity
                 accessibilityRole="button"
                 disabled={busy === post.post_id}
                 onPress={() => void moderate(post, 'visible')}
                 style={[styles.button, { borderColor: colors.primary }]}
               >
-                <Text style={[styles.buttonText, { color: colors.primary }]}>Keep / restore</Text>
+                <Text style={[styles.buttonText, { color: colors.primary }]}>{post.crisis && post.report_count === 0 && post.status === 'visible' ? 'Reviewed' : 'Keep / restore'}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 accessibilityRole="button"
@@ -101,7 +149,7 @@ const styles = StyleSheet.create({
   meta: { fontSize: 12, fontWeight: '700' },
   body: { fontSize: 15, lineHeight: 21 },
   note: { fontSize: 13, lineHeight: 18 },
-  actions: { flexDirection: 'row', gap: 10, marginTop: 4 },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 },
   button: { borderWidth: 1.5, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, minHeight: 40, justifyContent: 'center' },
   buttonText: { fontSize: 13, fontWeight: '800' },
   refresh: { marginTop: 8, alignSelf: 'flex-start', paddingVertical: 6 },

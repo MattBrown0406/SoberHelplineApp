@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,12 +6,13 @@ import {
   StyleSheet,
 } from 'react-native';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { useTracker } from '../../src/hooks/useTracker';
 import { useSituation } from '../../src/hooks/useSituation';
+import { INITIAL_TRACKER_SPIKE_MEMORY, nextTrackerSpike, type TrackerSpikeMemory } from '../../src/lib/trackerSpike';
 import { SituationOffRamp } from '../../src/components/situation/SituationOffRamp';
 import type { FunnelDoor } from '../../src/lib/situation';
 import { supabase } from '../../src/lib/supabase';
@@ -130,23 +131,25 @@ function TrackerContent() {
     if (!(await toggleSign(signId, kind))) appAlert(t('signSaveError'));
   }
 
-  const spikeHandledRef = useRef(false);
+  // Only a spike made now escalates (see nextTrackerSpike): signs already
+  // logged when the tracker loads must not re-raise a status the family has
+  // since brought down from the Today pathway card.
+  const spikeMemoryRef = useRef<TrackerSpikeMemory>(INITIAL_TRACKER_SPIKE_MEMORY);
+  // Tabs stay mounted: re-read the band on focus so a status changed on the
+  // Today pathway card is what a new spike compares against.
+  useFocusEffect(useCallback(() => { void refreshSituation(); }, [refreshSituation]));
   useEffect(() => {
-    if (warnCount < ALERT_THRESHOLD) {
-      spikeHandledRef.current = false;
-      return;
-    }
     // Until both hooks have hydrated, the current status is unknown: writing
     // 'escalating' against the default would downgrade a real 'crisis'.
     if (trackerLoading || situationLoading || !situationLoaded) return;
-    if (spikeHandledRef.current) return;
-    spikeHandledRef.current = true;
     const current = situation.drivers.loved_one_status;
-    if (current !== 'crisis' && current !== 'escalating') {
+    const { memory, action } = nextTrackerSpike(spikeMemoryRef.current, warnCount, ALERT_THRESHOLD, current);
+    spikeMemoryRef.current = memory;
+    if (action === 'escalate') {
       void supabase
         .rpc('set_loved_one_status', { p_status: 'escalating' })
         .then(() => refreshSituation());
-    } else {
+    } else if (action === 'refresh') {
       void refreshSituation();
     }
   }, [warnCount, trackerLoading, situationLoading, situationLoaded, situation.drivers.loved_one_status, refreshSituation]);

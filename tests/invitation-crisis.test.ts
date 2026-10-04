@@ -78,6 +78,51 @@ const FIRST_PERSON = [
   "I'll kill myself if you make me go",
   'Me mato si me mandas a un centro',
   'Prefiero morirme antes que ir a rehabilitación',
+  // Audit round 8.
+  "I've taken all my pills",
+  'I took 50 Xanax',
+  "He's abusing me",
+  'He’s got a gun and he won’t let me leave',
+  'My husband is hurting me',
+  'I was raped last night',
+  'Voy a saltar del puente',
+  'Mi hijo tiene un cuchillo y no me deja salir',
+  // Audit round 9: no apostrophes, emoji, run-ons.
+  'im going to take all my pills',
+  'i want to die 😭',
+  'i want to die please help',
+  'i want to commit suicide',
+  'ya no aguanto mas quiero morir',
+  'hes hitting me',
+  'my 19 yo son hit me',
+  'he broke my nose',
+  // Audit round 10: two steps, weapons, line breaks, a dropped "I".
+  'he got drunk and hit me',
+  'he stabbed me',
+  "he won't stop hitting me",
+  'llegó borracho y me pegó',
+  'me apuñaló',
+  'i want to die\nhe relapsed again',
+  'took all my pills',
+  // Audit round 11: progressive, passive, euphemisms, relations, Spanglish, slang.
+  'my son is trying to kill me',
+  'i was beaten by my husband last night',
+  'my son put his hands on me last night',
+  'my son (22) hit me last night',
+  'mi esposo hit me again',
+  'mi esposo intenta matarme',
+  'im gonna kms',
+  // Audit round 12: "i've got", Spanish overdoses, adverbs, us / nos.
+  "i've got my pills ready",
+  'me tomé 30 pastillas',
+  'my son just beat me up',
+  'my son is attacking us',
+  'mi hijo me sigue pegando',
+  // Audit round 13: "my Xs", Spanish who-after-verb, dropped g.
+  'my husbands hitting me',
+  'me pegó mi esposo',
+  'hes hittin me',
+  'the father of my kids hit me',
 ];
 
 // Ordinary words that must never lock the kit (audit round 3 false positives).
@@ -151,6 +196,36 @@ test('the app carries a verbatim copy of the shared first-person crisis check', 
   );
   for (const text of [...FIRST_PERSON, ...CRISIS, ...SAFE]) {
     assert.equal(clientCrisisKind(text), serverCrisisKind(text), text);
+  }
+});
+
+test('audit round 8: the app twin gives the right kind, and leaves letter lines and daily meds alone', () => {
+  for (const [text, kind] of [
+    ["I've taken all my pills", 'self_harm'], ['I swallowed a bottle of Tylenol', 'self_harm'], ["I'm going to end it tonight", 'self_harm'],
+    ["My husband's abusing me", 'abuse'], ["He's hurting me right now", 'abuse'], ['Mi hijo tiene un cuchillo y no me deja salir', 'abuse'],
+    ["you're hurting me when you lie", null], ['Hoy tomé todas mis pastillas', null], ["I'm going to end it with him", null],
+    ["he's got a gun license", null], ['I took 2 Tylenol for my headache', null],
+    // Round 9.
+    ['im suicidal', 'self_harm'], ['me quiero morir 😭', 'self_harm'], ['mi hijo me golpeo anoche', 'abuse'],
+    ['me lastimo lo que hiciste', null], ['i took all my meds today', null], ['he hits me up every day asking for money', null],
+    ['When you said I want to die, I froze', null],
+    // Round 10.
+    ['he grabbed me and choked me', 'abuse'], ['mi esposo me disparó', 'abuse'], ['i want to die 😭 he relapsed again', 'self_harm'],
+    ['he shot me a look', null], ['me dio una paliza jugando cartas', null], ['you texted me “i want to die” and i was terrified', null],
+    ['Want to die? Keep drinking like this.', null],
+    // Round 11.
+    ['mi hijo está tratando de matarme', 'abuse'], ['hes drunk and beating me', 'abuse'], ['i want to unalive myself', 'self_harm'],
+    ['Me amenazaste con matarme cuando te quité las llaves.', null], ["I'm going to take all the pills and flush them.", null],
+    ['when your father hit me, you saw it', null], ['I drove 50 kms today', null],
+    // Round 12.
+    ['anoche me golpeo', 'abuse'], ['me quiero ahorcar', 'self_harm'], ['he kicked me down the stairs', 'abuse'],
+    ["i'm ready to die on this hill", null], ['he pushed me down the list', null], ['Tu papá me pegaba y yo no quiero eso para ti.', null],
+    // Round 13.
+    ['me golpeo mi esposo', 'abuse'], ['my sons attacking me', 'abuse'], ["i wish i'd never been born", 'self_harm'],
+    ['me pegó la gripe mi hijo', null], ['my sons are hitting each other', null], ['Me quemo cada vez que cocino.', null],
+  ] as const) {
+    assert.equal(clientCrisisKind(text), kind, text);
+    assert.equal(serverCrisisKind(text), kind, `server: ${text}`);
   }
 });
 

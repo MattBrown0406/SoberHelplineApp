@@ -22,7 +22,7 @@ import { canAccessFeature } from './featureAccess';
  * | situation_brief            | —                      | /admin                                         |
  * | invitation_window          | —                      | /invitation-engine (paid) else Today           |
  * | admin_invitation_yes       | —                      | /admin (a member logged a YES to treatment)    |
- * | *_video_* (see below)      | session_id             | /video-session (private video), /admin, Support|
+ * | *_video_* (see below)      | session_id             | /video-session (live, any tier), /admin, Support|
  * | anything else / no kind    | screen? (tab name)     | that tab, default Today — never a crash        |
  *
  * Gated destinations are checked against the same feature map screens use, so
@@ -201,9 +201,10 @@ export function getPushDestination(data: PushData, options: PushRoutingOptions |
     if (kind.startsWith('admin_') || kind.startsWith('coach_')) {
       return { pathname: '/admin' };
     }
-    // A one-off plan review (Essential) joins the same session screen; the
-    // token service checks the session belongs to the member.
-    if (kind === 'member_video_live' && sessionId && (allowed('privateVideo') || allowed('planReview'))) {
+    // "Your session is live" opens the call for whoever owns the session,
+    // whatever her tier now (a paid one-off plan review outlives a lapsed
+    // membership); livekit-token admits only the session's own member.
+    if (kind === 'member_video_live' && sessionId) {
       return { pathname: '/video-session', params: { sessionId } };
     }
     // Premier members manage sessions on Support; a one-off plan review is

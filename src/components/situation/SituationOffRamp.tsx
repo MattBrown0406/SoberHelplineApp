@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { DOOR_COPY_KEY, DOOR_ROUTE, type FunnelDoor } from '../../lib/situation';
+import { useCoachingRate } from '../../hooks/useCoachingRate';
 
 interface Props {
   /** The funnel door for the current situation. `free_call` renders nothing —
@@ -27,6 +28,7 @@ export function SituationOffRamp({ door, onBeforeNavigate, compact, hidePrice }:
   const { colors } = useTheme();
   const { t } = useTranslation('today');
   const router = useRouter();
+  const coachingRate = useCoachingRate();
 
   if (door === 'free_call') return null;
   const route = DOOR_ROUTE[door];
@@ -49,7 +51,7 @@ export function SituationOffRamp({ door, onBeforeNavigate, compact, hidePrice }:
         {t(DOOR_COPY_KEY[door])}
       </Text>
       <Text style={[styles.sub, { color: colors.ink }]}>
-        {t(hidePrice && door === 'coaching' ? 'situationCta.coachingSubCrisis' : `situationCta.${door}Sub`)}
+        {t(hidePrice && door === 'coaching' ? 'situationCta.coachingSubCrisis' : `situationCta.${door}Sub`, { rate: coachingRate.rate })}
       </Text>
     </TouchableOpacity>
   );

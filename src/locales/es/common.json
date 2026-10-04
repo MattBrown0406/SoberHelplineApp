@@ -54,5 +54,14 @@
     "title": "Algo salió mal de nuestro lado.",
     "body": "Tus datos están a salvo. Si necesitas apoyo ahora mismo, llama al 988 o al 911.",
     "retry": "Intentar de nuevo"
+  },
+  "coachingPrice": {
+    "member": "{{price}} (precio de miembro)",
+    "memberHourly": "{{price}}/hora (precio de miembro)",
+    "hourly": "{{price}}/hora"
+  },
+  "familySquares": {
+    "scheduleFallback": "Lunes · 7:00 p. m. del Pacífico",
+    "rsvpNote": "Tu confirmación y tus preguntas le llegan a Matt junto con las inscripciones de soberhelpline.com. Si es tu primera llamada, puede que recibas un correo de seguimiento después."
   }
 }

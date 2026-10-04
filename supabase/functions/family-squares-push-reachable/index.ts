@@ -2,8 +2,9 @@
 // handles (soberhelpline.com → app, MEMBERSHIP_SYNC_SECRET; verify_jwt = false).
 //
 // POST { emails: string[] } (≤ 1000) → { handled_by_app: string[] }: the
-// lower-cased input emails of verified app accounts with a push token and
-// either the call reminder on or a going/declined RSVP for this week's call.
+// lower-cased input emails of verified app accounts whose device the app
+// confirmed in the last 30 days and who have the Monday call reminder on (the
+// same rule the app's reminder dispatcher uses).
 // The website skips its reminder emails for those, and fails open (sends them)
 // if this call fails.
 

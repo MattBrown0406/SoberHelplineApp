@@ -307,8 +307,10 @@
   },
   "planReview": {
     "title": "Book a plan review",
+    "gateTitle": "Plan review is part of Essential and Premier",
+    "gateBody": "Essential members can book a plan-review coaching call at the member price, and Premier includes it. Your crisis guide and safety steps below stay free.",
     "premierBody": "Plan review is included with Premier at no extra charge. Private video requests are subject to scheduling and staff availability.",
-    "essentialBody": "Upgrade to Premier for included plan review and private video requests, or request one $150 coaching call that includes review of this submitted plan.",
+    "essentialBody": "Upgrade to Premier for included plan review and private video requests, or request one coaching call at {{rate}} that includes review of this submitted plan.",
     "upgrade": "Upgrade to Premier",
     "purpose": "Meeting purpose",
     "purposes": {
@@ -343,7 +345,7 @@
     "checkoutOpenErrorTitle": "Checkout couldn't open",
     "checkoutOpenErrorBody": "Check your connection and try again. Your session remains pending payment.",
     "pendingPayment": "The request will remain pending payment. Scheduling cannot be confirmed until the existing coaching payment record is verified as paid.",
-    "payNow": "Pay $150 securely",
+    "payNow": "Pay {{amount}} securely",
     "dateField": "Session date",
     "timeField": "Session time",
     "includedNowBody": "Your Premier membership now includes this plan review, so there is nothing to pay.",
@@ -366,7 +368,7 @@
       "invalid_plan_review_request": "Review the selected sections and try again.",
       "invalid_plan_review_revision": "Review the updated sections and try again.",
       "active_session_exists": "You already have an active session request.",
-      "premier_upgrade_or_payment_required": "Choose the Premier upgrade or the one-time $150 session.",
+      "premier_upgrade_or_payment_required": "Choose the Premier upgrade or the one-time coaching session.",
       "essential_or_premier_required": "Essential or Premier access is required.",
       "payment_not_verified": "Payment has not been verified yet.",
       "plan_update_not_requested": "An updated plan is no longer requested.",
@@ -383,11 +385,12 @@
       "unknown": "We couldn't submit this request. Refresh and try again."
     },
     "payment": {
-      "pending_payment": "$150 payment pending — not yet confirmed",
-      "paid": "$150 payment verified",
+      "pending_payment": "Payment pending — not yet confirmed",
+      "paid": "Payment verified",
       "refunded": "Payment refunded",
       "included": "Included"
-    }
+    },
+    "sessionLoadError": "We couldn't load your session. Check your connection and try again."
   },
   "premierVideo": {
     "timezone": "Times use your detected timezone: {{timezone}}",

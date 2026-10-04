@@ -71,6 +71,7 @@ test('actual existing nudge rearm preserves personal schedules; automatic regist
     '../lib/pendingPushTokenRevoke': { settlePendingPushTokenRevoke: async () => 'none' },
     '../lib/pushDevice': { isDeviceSignedIn: () => true },
     '../lib/pushColdStart': { shouldDeferPushRouting: () => false },
+    '../lib/familySpaceRefresh': { requestFamilySpaceRefresh: () => undefined },
     '../contexts/AccountContext': { useAccount: () => ({ entitlementsSettled: true }) },
   });
   await exports.rearmDailyNudge();

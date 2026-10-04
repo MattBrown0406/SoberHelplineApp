@@ -17,6 +17,7 @@ import { EmergencyActions } from '../src/components/safety/EmergencyActions';
 import { getInitialLayoutState, isPushNavigationReady } from '../src/lib/authBootstrap';
 import { addAppBreadcrumb } from '../src/lib/monitoring';
 import { flushQueuedSupportCallReview, setReviewPromptRoute } from '../src/lib/reviewPrompt';
+import { clearPendingDeepLink, subscribePendingDeepLink, takePendingDeepLink } from '../src/lib/pendingDeepLink';
 
 function ReviewPromptCoordinator() {
   const { user } = useAccount();
@@ -108,6 +109,11 @@ function InitialLayout() {
     };
   }, [user?.id]);
 
+  // A soberhelpline.com/app link that arrives while signed out is kept until
+  // sign-in completes (app/+native-intent.tsx); re-run the effect when one lands.
+  const [deepLinkSignal, setDeepLinkSignal] = useState(0);
+  useEffect(() => subscribePendingDeepLink(() => setDeepLinkSignal((value) => value + 1)), []);
+
   useEffect(() => {
     if (isLoading) return;
     const inAuth = segments[0] === '(auth)';
@@ -125,9 +131,12 @@ function InitialLayout() {
       router.replace('/(onboarding)/welcome');
     } else if (user && onboarded && inAuth) {
       addAppBreadcrumb('auth.navigation_app');
-      router.replace('/(tabs)');
+      router.replace((takePendingDeepLink() ?? '/(tabs)') as never);
+    } else if (user && onboarded && !inOnboarding) {
+      // Signed in and in the app: the link already opened its screen.
+      clearPendingDeepLink();
     }
-  }, [user, isAuthenticated, isLoading, onboarded, segments[0]]);
+  }, [user, isAuthenticated, isLoading, onboarded, segments[0], deepLinkSignal]);
 
   // Keep one router stack mounted through auth/onboarding hydration. Unmounting
   // it discards the incoming deep link and can choose an unrelated default route.

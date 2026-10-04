@@ -30,15 +30,16 @@ import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import {
   breakTextFor,
   crisisKind,
+  type CrisisKind,
   debriefGate,
   MAX_MODERATION_CHARS,
-  moderationIndicatesCrisis,
   MODERATION_TIMEOUT_MS,
   normalizeDebrief,
   partnerReplyUnsafe,
   replyGate,
   spokenBeyond,
 } from '../_shared/rehearsal-safety.ts';
+import { moderationCrisisKind } from '../_shared/rehearsal-moderation.ts';
 import { DISFLUENCY_PROMPT, isLikelySilence, stripPromptEcho, type WhisperSegment } from '../_shared/rehearsal-stt.ts';
 import {
   MAX_AUDIO_B64,
@@ -283,11 +284,14 @@ async function transcribe(audioB64: string, format: string, language?: string): 
  * aloud, the part of a long spoken turn past the one-line cap, the debrief):
  * OpenAI's free moderation endpoint. Bounded input, a 3-second timeout, and
  * any failure (no key, network, error) falls back to the patterns alone.
+ * Self-harm always; violence she is suffering only when `options.violence`
+ * (the per-line reply gate, which offers "I'm safe — keep practicing") —
+ * see moderationCrisisKind.
  */
-async function moderationCrisis(text: string | undefined): Promise<boolean> {
+async function moderationCrisis(text: string | undefined, options: { violence?: boolean } = {}): Promise<CrisisKind | null> {
   const input = text?.trim().slice(0, MAX_MODERATION_CHARS);
   const apiKey = Deno.env.get('OPENAI_API_KEY');
-  if (!input || !apiKey) return false;
+  if (!input || !apiKey) return null;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), MODERATION_TIMEOUT_MS);
   try {
@@ -300,12 +304,12 @@ async function moderationCrisis(text: string | undefined): Promise<boolean> {
     if (!res.ok) {
       console.error('moderation_error', res.status);
       await res.body?.cancel();
-      return false;
+      return null;
     }
-    return moderationIndicatesCrisis(await res.json());
+    return moderationCrisisKind(await res.json(), input, options);
   } catch {
     console.error('moderation_unavailable');
-    return false;
+    return null;
   } finally {
     clearTimeout(timer);
   }
@@ -451,6 +455,8 @@ Deno.serve(async (req: Request) => {
     screeningText?: unknown;
     /** stt: 'delivery' when the clip is the member reading their prepared text aloud. */
     purpose?: unknown;
+    /** reply: she has said "I'm safe — keep practicing" this session (no more violence-only moderation breaks). */
+    safetyAcknowledged?: unknown;
   };
   try {
     payload = await req.json();
@@ -486,7 +492,7 @@ Deno.serve(async (req: Request) => {
       const screened = delivery ? spokenBeyond(text, scenario.practiceText!) : text;
       // (A line that fits is moderated again, in full, when it is sent.)
       const needsModeration = delivery ? screened.length > 0 : screened.length > MAX_MESSAGE_CHARS;
-      const kind = crisisKind(screened) ?? (needsModeration && await moderationCrisis(screened) ? 'self_harm' : null);
+      const kind = crisisKind(screened) ?? (needsModeration ? await moderationCrisis(screened) : null);
       if (kind) {
         return json(200, { ok: true, text, breakCharacter: true, crisisKind: kind, breakText: breakTextFor(kind, scenario.language) });
       }
@@ -503,7 +509,7 @@ Deno.serve(async (req: Request) => {
     // Every member line (typed or spoken, plus any read-aloud transcript) also
     // goes to moderation — started here, awaited alongside the partner call so
     // it adds no latency. Fails open to the patterns.
-    let lineModeration: Promise<boolean> = Promise.resolve(false);
+    let lineModeration: Promise<CrisisKind | null> = Promise.resolve(null);
     if (payload.mode === 'debrief') {
       if (userTurnCount === 0) {
         return json(400, { ok: false, code: 'no_user_message' });
@@ -512,7 +518,7 @@ Deno.serve(async (req: Request) => {
       // first, then moderation as a second opinion on everything they said.
       const screenable = userScreenTexts.filter((t): t is string => t !== null);
       const flagged = debriefGate(screenable) === 'safety_break' ||
-        debriefGate([], await moderationCrisis(screenable.join('\n'))) === 'safety_break';
+        debriefGate([], (await moderationCrisis(screenable.join('\n'))) !== null) === 'safety_break';
       if (flagged) {
         return json(409, { ok: false, code: 'safety_break' });
       }
@@ -550,7 +556,11 @@ Deno.serve(async (req: Request) => {
       }
       if (gate === 'warmup_complete') return json(400, { ok: false, code: 'warmup_complete' });
       const toModerate = incomingOpening ? '' : [lastUserRaw, screeningText].filter(Boolean).join('\n');
-      if (toModerate) lineModeration = moderationCrisis(toModerate);
+      // Violence she is suffering counts here only — this pause offers "I'm safe — keep practicing" —
+      // on her own line (never fragments of a letter read aloud), and not again once she has said
+      // she's safe this session. The patterns and self-harm moderation always apply.
+      const violence = payload.safetyAcknowledged !== true && !screeningText;
+      if (toModerate) lineModeration = moderationCrisis(toModerate, { violence });
     }
 
     // ---- debrief ----
@@ -661,12 +671,12 @@ Deno.serve(async (req: Request) => {
         .is('opening_text', null);
     };
 
-    const moderationBreak = () =>
+    const moderationBreak = (kind: CrisisKind) =>
       json(200, {
         ok: true,
-        text: breakTextFor('self_harm', scenario.language),
+        text: breakTextFor(kind, scenario.language),
         breakCharacter: true,
-        crisisKind: 'self_harm',
+        crisisKind: kind,
         audio: null,
         hint: null,
       });
@@ -676,7 +686,8 @@ Deno.serve(async (req: Request) => {
       if (limited) {
         await releaseGenerationLock();
         // Out of replies today, but a disclosure still gets the crisis break.
-        if (await lineModeration) return moderationBreak();
+        const moderated = await lineModeration;
+        if (moderated) return moderationBreak(moderated);
         return limited;
       }
       // The whisper coach runs alongside the in-character reply, never after it.
@@ -688,10 +699,14 @@ Deno.serve(async (req: Request) => {
         wantsHint ? whisperHint(supabase, scenario, turns) : Promise.resolve(null),
         lineModeration,
       ]);
-      // Moderation saw a crisis the patterns missed: the break replaces the reply.
+      // Moderation saw a crisis the patterns missed: the break replaces the reply —
+      // except that the model's own self-harm break outranks a violence verdict.
       if (moderationResult.status === 'fulfilled' && moderationResult.value) {
         await releaseGenerationLock();
-        return moderationBreak();
+        const modelSaw = moderationResult.value === 'abuse' && modelResult.status === 'fulfilled'
+          ? parseBreak(modelResult.value, scenario.language).kind
+          : null;
+        return moderationBreak(modelSaw === 'self_harm' ? 'self_harm' : moderationResult.value);
       }
       if (moderationResult.status === 'rejected') throw moderationResult.reason;
       if (modelResult.status === 'rejected') throw modelResult.reason;

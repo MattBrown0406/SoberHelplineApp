@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { familyJoinFailure, type FamilyJoinResult } from '../lib/inviteCodeErrors';
+import {
+  requestFamilySpaceRefresh,
+  shouldRefreshFamilySpace,
+  subscribeFamilySpaceRefresh,
+} from '../lib/familySpaceRefresh';
 import type {
   FamilyBackupNotice,
   FamilySpace,
@@ -37,8 +43,12 @@ export function useFamilySpace(accountId: string | null, labels: FamilySpaceLabe
   const [backupNotices, setBackupNotices] = useState<FamilyBackupNotice[]>([]);
   const [loading, setLoading] = useState(true);
   const loadGeneration = useRef(0);
+  const lastLoadStartedAt = useRef<number | null>(null);
+  // Identifies this copy so its own change notice does not re-read it twice.
+  const [instanceId] = useState(() => Math.random().toString(36).slice(2));
 
-  async function loadFull(spaceId: string, generation: number) {
+  /** `strict`: a partial read throws instead of showing a space with missing members or walls. */
+  async function loadFull(spaceId: string, generation: number, strict = false) {
     const [spaceRes, membersRes, wallsRes, namesRes, waverRes] = await Promise.all([
       supabase.from('family_spaces').select('id, name, created_by, invite_code').eq('id', spaceId).single(),
       supabase.from('family_members').select('id, account_id, role, joined_at').eq('family_space_id', spaceId),
@@ -56,7 +66,10 @@ export function useFamilySpace(accountId: string | null, labels: FamilySpaceLabe
         .limit(8),
     ]);
 
-    if (generation !== loadGeneration.current || !spaceRes.data) return;
+    if (generation !== loadGeneration.current) return;
+    const readError = spaceRes.error ?? membersRes.error ?? wallsRes.error;
+    if (strict && readError) throw readError;
+    if (!spaceRes.data) return;
 
     const firstNameByAccount = new Map<string, string>(
       ((namesRes.data ?? []) as Array<{ account_id: string; first_name: string | null }>).map((row) => [
@@ -127,7 +140,11 @@ export function useFamilySpace(accountId: string | null, labels: FamilySpaceLabe
     });
   }
 
-  const reload = useCallback(async () => {
+  /**
+   * `silent`: a background re-read (focus, foreground, another screen's
+   * change) — no loading state, and a failed read keeps what is on screen.
+   */
+  const load = useCallback(async (silent: boolean) => {
     if (!accountId) {
       setSpace(null);
       setBackupNotices([]);
@@ -135,7 +152,8 @@ export function useFamilySpace(accountId: string | null, labels: FamilySpaceLabe
       return;
     }
     const generation = ++loadGeneration.current;
-    setLoading(true);
+    lastLoadStartedAt.current = Date.now();
+    if (!silent) setLoading(true);
     try {
       // A member belongs to at most one family space (unique membership).
       const { data, error } = await supabase
@@ -145,13 +163,13 @@ export function useFamilySpace(accountId: string | null, labels: FamilySpaceLabe
         .maybeSingle();
       if (generation !== loadGeneration.current) return;
       if (error) throw error;
-      if (data?.family_space_id) await loadFull(data.family_space_id, generation);
+      if (data?.family_space_id) await loadFull(data.family_space_id, generation, silent);
       else {
         setSpace(null);
         setBackupNotices([]);
       }
     } catch {
-      if (generation === loadGeneration.current) {
+      if (!silent && generation === loadGeneration.current) {
         setSpace(null);
         setBackupNotices([]);
       }
@@ -160,9 +178,56 @@ export function useFamilySpace(accountId: string | null, labels: FamilySpaceLabe
     }
   }, [accountId, youLabel, memberFallback]);
 
+  const reload = useCallback(() => load(false), [load]);
+
+  /**
+   * Re-read in the background (screen focus, app foreground). Skipped when a
+   * read started moments ago unless `force`; a failure keeps the current space.
+   */
+  const refresh = useCallback(async (options?: { force?: boolean }) => {
+    if (!options?.force && !shouldRefreshFamilySpace(lastLoadStartedAt.current)) return;
+    await load(true);
+  }, [load]);
+
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  // Relatives change the space from their own phones: re-read on foreground,
+  // and whenever another screen (or a family_backup tap) says it changed.
+  useEffect(() => {
+    if (!accountId) return;
+    const unsubscribe = subscribeFamilySpaceRefresh((source) => {
+      if (source !== instanceId) void load(true);
+    });
+    const appState = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void refresh();
+    });
+    return () => {
+      unsubscribe();
+      appState.remove();
+    };
+  }, [accountId, instanceId, load, refresh]);
+
+  /** Tell the other mounted copy (Today or Boundaries) that the space changed. */
+  const announceChange = useCallback(() => requestFamilySpaceRefresh(instanceId), [instanceId]);
+
+  /**
+   * The space's member count read fresh from the server (null when it cannot
+   * be read), e.g. right before leaving: a now-alone owner must be told that
+   * leaving deletes the space.
+   */
+  const fetchMemberCount = useCallback(async (spaceId: string): Promise<number | null> => {
+    try {
+      const { count, error } = await supabase
+        .from('family_members')
+        .select('id', { count: 'exact', head: true })
+        .eq('family_space_id', spaceId);
+      return error || typeof count !== 'number' ? null : count;
+    } catch {
+      return null;
+    }
+  }, []);
 
   const create = useCallback(async (ownerFirstName: string): Promise<void> => {
     if (!accountId) return;
@@ -176,7 +241,8 @@ export function useFamilySpace(accountId: string | null, labels: FamilySpaceLabe
     }
     if (generation !== loadGeneration.current) return;
     await loadFull(spaceId as string, generation);
-  }, [accountId]);
+    announceChange();
+  }, [accountId, announceChange]);
 
   /**
    * Join with a family invite code. A refusal says why (unknown code, too many
@@ -197,11 +263,12 @@ export function useFamilySpace(accountId: string | null, labels: FamilySpaceLabe
     } catch {
       return { ok: false, reason: 'error' };
     }
+    announceChange();
     // The join itself succeeded; a newer load owns the visible state now.
     if (generation !== loadGeneration.current) return { ok: true };
     await loadFull(spaceId as string, generation);
     return { ok: true };
-  }, [accountId]);
+  }, [accountId, announceChange]);
 
   const proposeWall = useCallback(async (
     text: string,
@@ -215,14 +282,16 @@ export function useFamilySpace(accountId: string | null, labels: FamilySpaceLabe
     });
     if (error) throw error;
     await reload();
-  }, [reload]);
+    announceChange();
+  }, [reload, announceChange]);
 
   /** Leaves the current family space (an owner hands it to the next member). */
   const leave = useCallback(async (): Promise<void> => {
     const { error } = await supabase.rpc('leave_family_space');
     if (error) throw error;
     await reload();
-  }, [reload]);
+    announceChange();
+  }, [reload, announceChange]);
 
   const markWavering = useCallback(async (sharedWallId: string, shareWithFamily: boolean): Promise<void> => {
     const { data: eventId, error } = await supabase.rpc('record_wall_wavering', {
@@ -236,7 +305,8 @@ export function useFamilySpace(accountId: string | null, labels: FamilySpaceLabe
       });
     }
     await reload();
-  }, [reload]);
+    announceChange();
+  }, [reload, announceChange]);
 
   const commitWall = useCallback(async (sharedWallId: string): Promise<void> => {
     if (!accountId) return;
@@ -251,7 +321,8 @@ export function useFamilySpace(accountId: string | null, labels: FamilySpaceLabe
     );
     if (error) throw error;
     await reload();
-  }, [accountId, reload]);
+    announceChange();
+  }, [accountId, reload, announceChange]);
 
   return {
     space,
@@ -264,5 +335,7 @@ export function useFamilySpace(accountId: string | null, labels: FamilySpaceLabe
     commitWall,
     leave,
     reload,
+    refresh,
+    fetchMemberCount,
   };
 }

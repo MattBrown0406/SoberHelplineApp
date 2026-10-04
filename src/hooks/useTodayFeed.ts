@@ -13,6 +13,7 @@ import {
   phaseForWeek,
 } from '../content/curriculum';
 import type { CurriculumPhase } from '../api/types';
+import { chooseFreeCall } from '../lib/familySquaresSchedule';
 
 const QUOTE_COUNT = 14;
 
@@ -41,6 +42,8 @@ export interface TodayFeedData {
   primaryDoor: FunnelDoor;
   nextFreeCall: FreeCall | null;
   rsvpFreeCall: () => Promise<void>;
+  /** Re-read the feed (e.g. after the loved one's phase or status changed). */
+  reload: () => Promise<void>;
   loading: boolean;
 }
 
@@ -114,11 +117,11 @@ export function useTodayFeed(
       setSituationAccountId(accountId);
     }
 
-    // Next free call: soonest upcoming group session, else the soonest overall.
+    // Next free call: The Family Squares during its live hour, else the
+    // soonest upcoming group session, else the soonest overall.
     const groups = (sessRes.data ?? []) as Omit<FreeCall, 'rsvped'>[];
     const going = new Set((rsvpRowsRes.data ?? []).map((r) => r.session_id as string));
-    const upcoming = groups.find((g) => g.next_at && new Date(g.next_at) >= now);
-    const chosen = upcoming ?? groups[0] ?? null;
+    const chosen = chooseFreeCall(groups, now);
     setNextFreeCall(chosen ? { ...chosen, rsvped: going.has(chosen.id) } : null);
 
     setLoading(false);
@@ -172,6 +175,7 @@ export function useTodayFeed(
     primaryDoor: funnelDoor(visibleSituation),
     nextFreeCall,
     rsvpFreeCall,
+    reload: load,
     loading,
   };
 }

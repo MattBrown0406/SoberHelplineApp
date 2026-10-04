@@ -223,6 +223,9 @@ export function useRehearsalPartner(
   // Which member line (index into messages) triggered the pause; null when no
   // line of hers did (an incoming call's opening, a coaching-time check).
   const breakLineRef = useRef<number | null>(null);
+  // She said "I'm safe — keep practicing" this session: the server stops pausing on moderation's
+  // violence verdict alone (its patterns and self-harm screening still apply).
+  const safetyAcknowledgedRef = useRef(false);
   const [breakLine, setBreakLine] = useState<number | null>(null);
   // Sticky for the session: once paused, a "Get help now" link stays in view.
   const [hadSafetyBreak, setHadSafetyBreak] = useState(false);
@@ -292,6 +295,7 @@ export function useRehearsalPartner(
         scenario: scenarioRef.current,
         messages: history,
         ...(whisperRef.current ? { whisper: true } : {}),
+        ...(safetyAcknowledgedRef.current ? { safetyAcknowledged: true } : {}),
         ...(meta.screeningText?.trim() ? { screeningText: meta.screeningText.slice(0, MAX_SCREENING_CHARS) } : {}),
       });
       // A pause (or "keep practicing") happened while this reply was in
@@ -450,6 +454,7 @@ export function useRehearsalPartner(
     epochRef.current += 1;
     safetyBreakRef.current = false;
     breakLineRef.current = null;
+    safetyAcknowledgedRef.current = false;
     setBreakLine(null);
     setHadSafetyBreak(false);
     setSafetyKind('unknown');
@@ -487,6 +492,7 @@ export function useRehearsalPartner(
     epochRef.current += 1;
     safetyBreakRef.current = false;
     breakLineRef.current = null;
+    safetyAcknowledgedRef.current = true;
     setBreakLine(null);
     setMessages(kept);
     setSafetyBreak(false);

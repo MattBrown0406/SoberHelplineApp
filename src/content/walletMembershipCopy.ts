@@ -9,7 +9,7 @@ export function walletMembershipCopy(language: string) {
     benefits: 'Cómo usar tu membresía', free: 'La guía de crisis y los contactos de emergencia son gratuitos, sin suscripción.',
     essential: 'Essential: guarda tu plan en Safety Wallet, practica límites en Crisis Copilot y abre Chat para enviar preguntas al coach. Los mensajes no son atención de emergencia ni garantizan respuesta inmediata.',
     premier: 'Premier: además, solicita una sesión de video privado desde Support. Para revisar un plan, abre Crisis Copilot, elige y revisa lo que compartirás y solicita la revisión. Las sesiones requieren programación y disponibilidad.',
-    service: 'El coaching individual por separado cuesta {rate}/hora. Essential puede elegir una llamada única de revisión del plan por {rate}; Premier incluye la revisión mediante su beneficio de video privado, sujeto a disponibilidad. El precio de la suscripción no es el cargo de un servicio separado.',
+    service: 'El coaching individual por separado cuesta {rate}. Essential puede elegir una llamada única de revisión del plan al precio de miembro de {memberRate}; Premier incluye la revisión mediante su beneficio de video privado, sujeto a disponibilidad. El precio de la suscripción no es el cargo de un servicio separado.',
     wallet: 'Abrir Safety Wallet', copilot: 'Preparar o revisar un plan', chat: 'Abrir mensajes', manage: 'Restaurar compras o gestionar suscripción en Ajustes',
   } : {
     offline: 'Saved details can be read without internet on this device with this account. They are not synced or monitored for emergencies. Protect access to your device. Calling, sending and using a printer may require a connection.',
@@ -21,7 +21,7 @@ export function walletMembershipCopy(language: string) {
     benefits: 'How to use your membership', free: 'Crisis guidance and emergency contacts are free, with no subscription required.',
     essential: 'Essential: save your plan in Safety Wallet, practice boundaries in Crisis Copilot, and open Chat to send questions to your coach. Messaging is not emergency care and does not guarantee an immediate response.',
     premier: 'Premier: also request a private video session from Support. For a plan review, open Crisis Copilot, select and preview what to share, then request review. Sessions require scheduling and availability.',
-    service: 'Separate 1:1 coaching is {rate}/hour. Essential can choose a one-time plan-review call for {rate}; Premier includes review through its private-video benefit, subject to availability. The subscription price is not a separate service charge.',
+    service: 'Separate 1:1 coaching is {rate}. Essential can choose a one-time plan-review call at the {memberRate} member price; Premier includes review through its private-video benefit, subject to availability. The subscription price is not a separate service charge.',
     wallet: 'Open Safety Wallet', copilot: 'Prepare or review a plan', chat: 'Open messages', manage: 'Restore purchases or manage subscription in Settings',
   };
 }
