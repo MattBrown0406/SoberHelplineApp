@@ -63,5 +63,10 @@
   "familySquares": {
     "scheduleFallback": "Mondays · 7:00 PM Pacific",
     "rsvpNote": "Your RSVP and questions go to Matt along with soberhelpline.com registrations. If it's your first call, you may get a follow-up email afterward."
+  },
+  "laSobremesa": {
+    "scheduleFallback": "Mondays · 8:00 PM Pacific",
+    "note": "La Sobremesa is AyudaSobria's Spanish-language meeting. Reserving gives you your personal link here and by email. By reserving you agree to respect the privacy and confidentiality of the other families.",
+    "notAvailable": "The next meeting isn't open for reservations yet. Please try again later."
   }
 }

@@ -386,6 +386,12 @@ verify_jwt = true
 [functions.notify-session-reminder]
 verify_jwt = true
 
+[functions.notify-la-sobremesa]
+verify_jwt = true
+
+[functions.la-sobremesa-register]
+verify_jwt = true
+
 [functions.notify-chat-message]
 verify_jwt = true
 

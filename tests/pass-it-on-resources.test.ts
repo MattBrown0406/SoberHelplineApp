@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 import {
   MONDAY_FAMILY_CALL_URL,
+  SPANISH_MONDAY_CALL_URL,
   boundaryCardHtml,
   isResourceActionCancellation,
   mondayCallShareMessage,
@@ -16,8 +17,13 @@ test('Monday call share copy uses the public registration URL and no private acc
   assert.match(english, /Monday/i);
   assert.match(english, /7:00 PM Pacific/);
   assert.match(english, new RegExp(MONDAY_FAMILY_CALL_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  // Spanish speakers are invited to La Sobremesa (AyudaSobria.com, 8:00 PM).
+  assert.equal(SPANISH_MONDAY_CALL_URL, 'https://ayudasobria.com/registro');
   assert.match(spanish, /lunes/i);
-  assert.match(spanish, /7:00 p\. m\. del Pacífico/);
+  assert.match(spanish, /La Sobremesa/);
+  assert.match(spanish, /8:00 p\. m\. del Pacífico/);
+  assert.match(spanish, /ayudasobria\.com\/registro/);
+  assert.doesNotMatch(spanish, /Family Squares|7:00/);
   for (const message of [english, spanish]) {
     assert.doesNotMatch(message, /account|check-?in|mood|crisis history|loved one/i);
   }
@@ -26,9 +32,11 @@ test('Monday call share copy uses the public registration URL and no private acc
 test('printable boundary card is branded, bilingual, practical, and safety-aware', () => {
   const english = boundaryCardHtml('en');
   const spanish = boundaryCardHtml('es');
+  assert.match(english, /monday-zoom-registration/);
+  assert.match(spanish, /ayudasobria\.com\/registro/);
+  assert.match(spanish, /La Sobremesa · lunes · 8:00 p\. m\./);
   for (const html of [english, spanish]) {
     assert.match(html, /Sober Helpline/);
-    assert.match(html, /monday-zoom-registration/);
     assert.match(html, /@page/);
     assert.match(html, /911/);
     assert.doesNotMatch(html, /{{|undefined|null/);

@@ -7,11 +7,20 @@
 /** Production title, plus the title older seeds used (never key on one alone). */
 export const FAMILY_SQUARES_TITLES: ReadonlySet<string> = new Set(['The Family Squares', 'Monday Night Family Support']);
 
-/** A call is still "next" until it has run its hour. */
+/** A call is still "next" until it has run its hour (La Sobremesa: 75 minutes). */
 const CALL_LENGTH_MS = 60 * 60_000;
+const LA_SOBREMESA_LENGTH_MS = 75 * 60_000;
 
 export function isFamilySquaresSession(session: { title?: string | null } | null | undefined): boolean {
   return !!session?.title && FAMILY_SQUARES_TITLES.has(session.title.trim());
+}
+
+/** La Sobremesa: AyudaSobria.com's Spanish Monday call (8:00 PM Pacific). */
+export const LA_SOBREMESA_TITLE = 'La Sobremesa';
+export const LA_SOBREMESA_CALL_LENGTH_MS = LA_SOBREMESA_LENGTH_MS;
+
+export function isLaSobremesaSession(session: { title?: string | null } | null | undefined): boolean {
+  return session?.title?.trim() === LA_SOBREMESA_TITLE;
 }
 
 function parseInstant(value: string): number {
@@ -30,13 +39,13 @@ function parseInstant(value: string): number {
  */
 export function formatNextCallTime(
   nextAt: string | null | undefined,
-  options: { now?: Date; locale?: string; timeZone?: string | null } = {},
+  options: { now?: Date; locale?: string; timeZone?: string | null; lengthMs?: number } = {},
 ): string | null {
   if (!nextAt) return null;
   const start = parseInstant(nextAt);
   if (!Number.isFinite(start)) return null;
   const now = (options.now ?? new Date()).getTime();
-  if (start + CALL_LENGTH_MS <= now) return null;
+  if (start + (options.lengthMs ?? CALL_LENGTH_MS) <= now) return null;
   const format = (timeZone?: string) => new Intl.DateTimeFormat(options.locale, {
     weekday: 'short',
     month: 'short',
@@ -59,12 +68,12 @@ export function formatNextCallTime(
 }
 
 /** True from the call's start until its hour is over. */
-export function isCallInProgress(nextAt: string | null | undefined, now: Date = new Date()): boolean {
+export function isCallInProgress(nextAt: string | null | undefined, now: Date = new Date(), lengthMs: number = CALL_LENGTH_MS): boolean {
   if (!nextAt) return false;
   const start = parseInstant(nextAt);
   if (!Number.isFinite(start)) return false;
   const at = now.getTime();
-  return start <= at && at < start + CALL_LENGTH_MS;
+  return start <= at && at < start + lengthMs;
 }
 
 /**
@@ -77,7 +86,9 @@ export function chooseFreeCall<T extends { title?: string | null; next_at: strin
   sessions: readonly T[],
   now: Date = new Date(),
 ): T | null {
-  const live = sessions.find((session) => isFamilySquaresSession(session) && isCallInProgress(session.next_at, now));
+  const live = sessions.find((session) =>
+    (isFamilySquaresSession(session) && isCallInProgress(session.next_at, now))
+    || (isLaSobremesaSession(session) && isCallInProgress(session.next_at, now, LA_SOBREMESA_LENGTH_MS)));
   if (live) return live;
   const upcoming = sessions.find((session) => {
     if (!session.next_at) return false;

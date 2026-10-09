@@ -63,5 +63,10 @@
   "familySquares": {
     "scheduleFallback": "Lunes · 7:00 p. m. del Pacífico",
     "rsvpNote": "Tu confirmación y tus preguntas le llegan a Matt junto con las inscripciones de soberhelpline.com. Si es tu primera llamada, puede que recibas un correo de seguimiento después."
+  },
+  "laSobremesa": {
+    "scheduleFallback": "Lunes · 8:00 p. m. del Pacífico",
+    "note": "La Sobremesa es nuestra reunión en español de AyudaSobria. Al reservar recibes tu enlace personal aquí y por correo. Al reservar aceptas respetar la privacidad y la confidencialidad de las demás familias.",
+    "notAvailable": "La próxima reunión todavía no está abierta para reservar. Vuelve a intentarlo más tarde."
   }
 }

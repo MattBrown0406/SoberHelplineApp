@@ -207,11 +207,16 @@ test('the tracker escalates a new warning spike once, never one already logged w
 });
 
 // ── 5. Family Squares RSVP and live hour ────────────────────────────────────
-test('onboarding saves a spot only at The Family Squares', () => {
+test('onboarding saves a spot only at the Monday call in the member\'s language', () => {
   const screen = read('app/(onboarding)/notifications.tsx');
-  assert.match(screen, /supabase\.rpc\('family_squares_session_id'\)/);
+  // English: The Family Squares (7 PM). Spanish: La Sobremesa (8 PM), reserved through AyudaSobria.
+  assert.match(screen, /supabase\.rpc\(spanish \? 'la_sobremesa_session_id' : 'family_squares_session_id'\)/);
+  assert.match(screen, /reserveLaSobremesa\(\)/);
   assert.doesNotMatch(screen, /\.eq\('kind', 'group'\)/);
-  assert.match(screen, /\{nextGroupId && \(\s*<Text[^>]*>\s*\{t\('common:familySquares\.rsvpNote'\)\}/);
+  assert.match(
+    screen,
+    /\{nextGroupId && \(\s*<Text[^>]*>\s*\{t\(spanish \? 'common:laSobremesa\.note' : 'common:familySquares\.rsvpNote'\)\}/,
+  );
 });
 
 test('Today offers The Family Squares during its live hour', () => {
@@ -272,4 +277,13 @@ test('App Review notes explain website coaching, IAP-only memberships and hidden
   assert.match(notes, /soberhelpline\.com\/book-consultation/);
   assert.match(notes, /only through Apple in-app purchase/i);
   assert.match(notes, /hide[sn]? (all )?membership purchase links/i);
+});
+
+test('Today keeps La Sobremesa (Spanish, 75 minutes) while it is live', () => {
+  const ls = { id: 'ls', title: 'La Sobremesa', next_at: '2026-10-13T03:00:00Z' };
+  const other = { id: 'g2', title: 'Familias en Recuperación', next_at: '2026-10-16T01:00:00Z' };
+  const sessions = [ls, other];
+  assert.equal(chooseFreeCall(sessions, new Date('2026-10-13T02:00:00Z'))?.id, 'ls', 'upcoming');
+  assert.equal(chooseFreeCall(sessions, new Date('2026-10-13T04:10:00Z'))?.id, 'ls', 'live at 9:10 PM');
+  assert.equal(chooseFreeCall(sessions, new Date('2026-10-13T04:20:00Z'))?.id, 'g2', 'over after 75 minutes');
 });

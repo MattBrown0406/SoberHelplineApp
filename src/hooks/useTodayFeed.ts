@@ -13,7 +13,10 @@ import {
   phaseForWeek,
 } from '../content/curriculum';
 import type { CurriculumPhase } from '../api/types';
-import { chooseFreeCall } from '../lib/familySquaresSchedule';
+import { chooseFreeCall, isLaSobremesaSession } from '../lib/familySquaresSchedule';
+import { reserveLaSobremesa, withPersonalLinks } from '../lib/laSobremesa';
+import { appAlert } from '../lib/appAlert';
+import i18n from 'i18next';
 
 const QUOTE_COUNT = 14;
 
@@ -119,7 +122,9 @@ export function useTodayFeed(
 
     // Next free call: The Family Squares during its live hour, else the
     // soonest upcoming group session, else the soonest overall.
-    const groups = (sessRes.data ?? []) as Omit<FreeCall, 'rsvped'>[];
+    // La Sobremesa's Join opens the member's personal link.
+    const groups = await withPersonalLinks((sessRes.data ?? []) as Omit<FreeCall, 'rsvped'>[]);
+    if (request !== generation.current) return;
     const going = new Set((rsvpRowsRes.data ?? []).map((r) => r.session_id as string));
     const chosen = chooseFreeCall(groups, now);
     setNextFreeCall(chosen ? { ...chosen, rsvped: going.has(chosen.id) } : null);
@@ -143,6 +148,21 @@ export function useTodayFeed(
   const rsvpFreeCall = useCallback(async () => {
     if (!accountId || !nextFreeCall) return;
     const wasRsvped = nextFreeCall.rsvped;
+    // Reserving La Sobremesa registers with AyudaSobria for a personal link.
+    // Also when "going" but without a link (e.g. RSVP'd from an older app build).
+    if (isLaSobremesaSession(nextFreeCall) && (!wasRsvped || !nextFreeCall.zoom_url)) {
+      const reserved = await reserveLaSobremesa();
+      if (!reserved.ok) {
+        appAlert(
+          i18n.t('support:sessions.rsvpErrorTitle'),
+          i18n.t(reserved.reason === 'not_available' ? 'common:laSobremesa.notAvailable' : 'support:sessions.rsvpErrorBody'),
+        );
+        return;
+      }
+      setNextFreeCall((prev) => (prev ? { ...prev, rsvped: true, zoom_url: reserved.joinUrl } : prev));
+      if (!wasRsvped) setGroupSessions((c) => c + 1);
+      return;
+    }
     setNextFreeCall((prev) => (prev ? { ...prev, rsvped: !prev.rsvped } : prev));
     setGroupSessions((c) => Math.max(0, c + (wasRsvped ? -1 : 1)));
     if (wasRsvped) {

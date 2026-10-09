@@ -8,11 +8,14 @@ import { useTheme } from '../../src/contexts/ThemeContext';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { supabase } from '../../src/lib/supabase';
 import { appAlert } from '../../src/lib/appAlert';
+import { reserveLaSobremesa } from '../../src/lib/laSobremesa';
 import { markOnboarded } from '../../src/onboarding/state';
 
 export default function NotificationsScreen() {
   const { colors } = useTheme();
-  const { t } = useTranslation('onboarding');
+  const { t, i18n } = useTranslation('onboarding');
+  // In Spanish the Monday call is La Sobremesa (8:00 PM), registered through AyudaSobria.
+  const spanish = i18n.language.startsWith('es');
   const { user } = useAccount();
   const router = useRouter();
   const [done, setDone] = useState(false);
@@ -26,17 +29,24 @@ export default function NotificationsScreen() {
 
   useEffect(() => {
     let active = true;
-    void Promise.resolve(supabase.rpc('family_squares_session_id'))
+    void Promise.resolve(supabase.rpc(spanish ? 'la_sobremesa_session_id' : 'family_squares_session_id'))
       .then(({ data, error }) => {
         if (active && !error && typeof data === 'string' && data) setNextGroupId(data);
       })
       .catch(() => undefined);
     return () => { active = false; };
-  }, []);
+  }, [spanish]);
 
   async function reserveSpot() {
     if (!user?.id || !nextGroupId || rsvped) return;
     setReserving(true);
+    if (spanish) {
+      const reserved = await reserveLaSobremesa();
+      setReserving(false);
+      if (reserved.ok) setRsvped(true);
+      else if (reserved.reason === 'not_available') appAlert(t('common:laSobremesa.notAvailable'));
+      return;
+    }
     const { error } = await supabase
       .from('session_rsvps')
       .upsert({ session_id: nextGroupId, account_id: user.id, status: 'going' });
@@ -82,7 +92,7 @@ export default function NotificationsScreen() {
           )}
           {nextGroupId && (
             <Text style={[styles.rsvpNote, { color: 'rgba(255,255,255,0.8)' }]}>
-              {t('common:familySquares.rsvpNote')}
+              {t(spanish ? 'common:laSobremesa.note' : 'common:familySquares.rsvpNote')}
             </Text>
           )}
 

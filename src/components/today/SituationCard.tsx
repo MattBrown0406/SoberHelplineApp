@@ -8,7 +8,7 @@ import { logFunnelEvent } from '../../lib/funnel';
 import type { FreeCall } from '../../hooks/useTodayFeed';
 import { useCoachingRate } from '../../hooks/useCoachingRate';
 import { useSessionSchedule } from '../../hooks/useSessionSchedule';
-import { isFamilySquaresSession } from '../../lib/familySquaresSchedule';
+import { isFamilySquaresSession, isLaSobremesaSession } from '../../lib/familySquaresSchedule';
 import { withAppContext } from '../../lib/websiteLinks';
 
 interface Props {
@@ -101,6 +101,9 @@ export function SituationCard({ nextFreeCall, primaryDoor, onRsvp, onSupportCall
 
       {isFamilySquares && (
         <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:familySquares.rsvpNote')}</Text>
+      )}
+      {isLaSobremesaSession(nextFreeCall) && (
+        <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:laSobremesa.note')}</Text>
       )}
 
       {primaryDoor !== 'free_call' && doorRoute && (

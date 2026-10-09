@@ -42,9 +42,9 @@ const COPY: Record<
     genericMorning: 'A quiet moment for you this morning: take one breath before the day begins.',
   },
   es: {
-    mondayTitle: 'Llamada familiar hoy',
+    mondayTitle: 'La Sobremesa es hoy',
     mondayBody:
-      'Es lunes — únete esta noche a la reunión de Zoom The Family Squares a las 7:00 PM (Pacífico). Acompáñate de quienes entienden lo que estás viviendo.',
+      'Es lunes — únete esta noche a La Sobremesa, nuestra reunión en español por Zoom, a las 8:00 PM (Pacífico). Acompáñate de quienes entienden lo que estás viviendo.',
     supportTitle: 'Un comienzo suave',
     supportBody: 'Respira con calma antes de empezar el día. Abre la app cuando quieras apoyo.',
     morningTitle: 'Buenos días',

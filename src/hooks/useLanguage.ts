@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { setLanguage, SUPPORTED_LANGUAGES, type SupportedLanguage } from '../i18n';
 import { supabase } from '../lib/supabase';
@@ -25,4 +25,23 @@ export function useLanguage(): UseLanguageResult {
     await syncServerLocale(lang).catch(() => undefined);
   }, []);
   return { current, change, languages: SUPPORTED_LANGUAGES };
+}
+
+/**
+ * Keeps accounts.locale in step with the language this device shows, once per
+ * signed-in launch and on every change. The server uses it for push copy and to
+ * show the Monday call in the member's language (The Family Squares in English,
+ * La Sobremesa in Spanish). Best effort; a failed write is retried next launch.
+ */
+export function useServerLocaleSync(): void {
+  const { i18n } = useTranslation();
+  const lang: SupportedLanguage = i18n.language.startsWith('es') ? 'es' : 'en';
+  useEffect(() => {
+    void (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user.id) return;
+      const { data } = await supabase.from('accounts').select('locale').eq('user_id', session.user.id).maybeSingle();
+      if (data && data.locale !== lang) await syncServerLocale(lang);
+    })().catch(() => undefined);
+  }, [lang]);
 }

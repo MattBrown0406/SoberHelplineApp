@@ -35,7 +35,7 @@ import { WEBSITE_PATHS, withAppContext } from '../../src/lib/websiteLinks';
 import { useCoachingRate } from '../../src/hooks/useCoachingRate';
 import { COACHING_MEMBER_PRICE, fillCoachingRates } from '../../src/lib/coachingPrice';
 import { useSessionSchedule } from '../../src/hooks/useSessionSchedule';
-import { isFamilySquaresSession } from '../../src/lib/familySquaresSchedule';
+import { isFamilySquaresSession, isLaSobremesaSession } from '../../src/lib/familySquaresSchedule';
 import { useIAP, type SubscriptionTier } from '../../src/hooks/useIAP';
 import { useSituation } from '../../src/hooks/useSituation';
 import { funnelDoor, type FunnelDoor } from '../../src/lib/situation';
@@ -598,7 +598,9 @@ export default function SupportScreen() {
   const roster = { primaryOnCall: PRIMARY_ON_CALL, available: [] as StaffMember[] };
   const { sessions, toggleRsvp } = useSessions(user?.id ?? null);
   const focusedSessionId = sessionIdParam
-    ?? (focus === 'family-squares' ? sessions.find(isFamilySquaresSession)?.id : undefined);
+    ?? (focus === 'family-squares'
+      ? sessions.find((s) => isFamilySquaresSession(s) || isLaSobremesaSession(s))?.id
+      : undefined);
   const handleSessionRsvp = async (session: DbSession) => {
     const saved = await toggleRsvp(session);
     if (!saved) appAlert(t('sessions.rsvpErrorTitle'), t('sessions.rsvpErrorBody'));
@@ -842,7 +844,7 @@ export default function SupportScreen() {
                       </Text>
                     </TouchableOpacity>
                   </View>
-                  {sess.rsvped && (
+                  {sess.rsvped && !isLaSobremesaSession(sess) && (
                     <TouchableOpacity
                       style={[styles.questionBtn, { borderColor: colors.primary }]}
                       activeOpacity={0.8}
@@ -855,6 +857,8 @@ export default function SupportScreen() {
                   )}
                   {isFamilySquaresSession(sess) ? (
                     <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:familySquares.rsvpNote')}</Text>
+                  ) : isLaSobremesaSession(sess) ? (
+                    <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:laSobremesa.note')}</Text>
                   ) : null}
                 </View>
               ))}
@@ -936,6 +940,8 @@ export default function SupportScreen() {
                   </View>
                   {isFamilySquaresSession(sess) ? (
                     <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:familySquares.rsvpNote')}</Text>
+                  ) : isLaSobremesaSession(sess) ? (
+                    <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:laSobremesa.note')}</Text>
                   ) : null}
                 </View>
               ))}
@@ -1118,7 +1124,7 @@ export default function SupportScreen() {
                       </Text>
                     </TouchableOpacity>
                   </View>
-                  {sess.rsvped && (
+                  {sess.rsvped && !isLaSobremesaSession(sess) && (
                     <TouchableOpacity
                       style={[styles.questionBtn, { borderColor: colors.primary }]}
                       activeOpacity={0.8}
@@ -1131,6 +1137,8 @@ export default function SupportScreen() {
                   )}
                   {isFamilySquaresSession(sess) ? (
                     <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:familySquares.rsvpNote')}</Text>
+                  ) : isLaSobremesaSession(sess) ? (
+                    <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:laSobremesa.note')}</Text>
                   ) : null}
                 </View>
               ))}

@@ -57,7 +57,7 @@
     "dailyErrorTitle": "Cambio no confirmado",
     "dailyErrorBody": "Comprueba el permiso en los ajustes del dispositivo y reintenta. No se garantiza la entrega.",
     "familyCallTitle": "Recordatorio de la llamada familiar del lunes",
-    "familyCallDesc": "Un recordatorio 30 minutos antes de The Family Squares, nuestra llamada gratuita de apoyo familiar por Zoom (lunes, 7:00 PM, hora del Pacífico).",
+    "familyCallDesc": "Un recordatorio 15 minutos antes de La Sobremesa, nuestra reunión gratuita de apoyo familiar en español por Zoom (lunes, 8:00 PM, hora del Pacífico), si reservaste tu lugar.",
     "familyCallErrorTitle": "No se pudo actualizar el recordatorio",
     "familyCallErrorBody": "Revisa tu conexión e intenta de nuevo."
   },

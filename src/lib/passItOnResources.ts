@@ -1,6 +1,12 @@
 export type ResourceLanguage = 'en' | 'es';
 
 export const MONDAY_FAMILY_CALL_URL = 'https://soberhelpline.com/monday-zoom-registration';
+/** La Sobremesa, the Spanish Monday call (8:00 PM Pacific) on AyudaSobria.com. */
+export const SPANISH_MONDAY_CALL_URL = 'https://ayudasobria.com/registro';
+
+export function mondayCallUrl(language: ResourceLanguage): string {
+  return language === 'es' ? SPANISH_MONDAY_CALL_URL : MONDAY_FAMILY_CALL_URL;
+}
 
 export function resourceLanguage(language: string): ResourceLanguage {
   return language.toLowerCase().startsWith('es') ? 'es' : 'en';
@@ -16,10 +22,10 @@ export function mondayCallShareMessage(language: ResourceLanguage): string {
     return [
       'Quiero compartir contigo un recurso gratuito para familias afectadas por la adicción.',
       '',
-      'The Family Squares — llamada gratuita de apoyo familiar',
-      'Lunes a las 7:00 p. m. del Pacífico · por Zoom',
+      'La Sobremesa — reunión gratuita de apoyo familiar en español',
+      'Lunes a las 8:00 p. m. del Pacífico · por Zoom',
       '',
-      `Inscripción: ${MONDAY_FAMILY_CALL_URL}`,
+      `Inscripción: ${SPANISH_MONDAY_CALL_URL}`,
       '',
       'No tienes que resolverlo todo a solas.',
     ].join('\n');
@@ -78,7 +84,7 @@ export function boundaryCardHtml(language: ResourceLanguage): string {
     <footer class="footer">
       <div class="call">${copy.call}</div>
       <div class="schedule">${copy.schedule}</div>
-      <div class="url">${MONDAY_FAMILY_CALL_URL}</div>
+      <div class="url">${mondayCallUrl(language)}</div>
       <div class="note">${copy.disclaimer}</div>
     </footer>
   </main>
@@ -112,6 +118,6 @@ const SPANISH_CARD = {
   keepBody: 'Dilo una vez. No lo discutas mientras alguien esté intoxicado. Elige solo una respuesta que puedas cumplir de forma segura.',
   safety: 'Si alguien puede estar en peligro inmediato o sospechas una sobredosis, llama al 911. Esta tarjeta no reemplaza ayuda médica, clínica ni de emergencia.',
   call: 'Llamada gratuita de apoyo familiar los lunes',
-  schedule: 'The Family Squares · lunes · 7:00 p. m. del Pacífico · Zoom',
+  schedule: 'La Sobremesa · lunes · 8:00 p. m. del Pacífico · Zoom',
   disclaimer: 'Educación familiar y apoyo entre pares de Sober Helpline. No es atención médica ni de emergencia.',
 } as const;

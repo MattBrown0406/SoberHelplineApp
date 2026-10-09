@@ -4,6 +4,7 @@ import { Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { AppLogo } from '../../src/components/ui/AppLogo';
+import { useServerLocaleSync } from '../../src/hooks/useLanguage';
 
 function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
   return (
@@ -12,6 +13,8 @@ function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
 }
 
 export default function TabLayout() {
+  // Which Monday call (and push language) the server uses follows this device's language.
+  useServerLocaleSync();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation('common');
