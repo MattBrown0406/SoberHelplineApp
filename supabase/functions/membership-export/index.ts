@@ -8,7 +8,7 @@
 // next_cursor back until it is null.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { requireSyncSecret } from '../_shared/sync-secret.ts';
+import { requireSyncSecretOrAyuda } from '../_shared/sync-secret.ts';
 import { exportPage, parseExportRequest } from '../_shared/website-bridge.ts';
 
 function json(body: unknown, status = 200): Response {
@@ -16,7 +16,7 @@ function json(body: unknown, status = 200): Response {
 }
 
 Deno.serve(async (req) => {
-  const authError = requireSyncSecret(req);
+  const authError = requireSyncSecretOrAyuda(req);
   if (authError) return authError;
 
   const text = await req.text().catch(() => '');

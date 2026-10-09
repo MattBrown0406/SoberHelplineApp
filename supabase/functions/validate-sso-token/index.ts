@@ -2,8 +2,9 @@
 // soberhelpline.com links (?sso_token=…). verify_jwt = false: the website calls
 // it without an app session.
 //
-// Only the website's server (app-sso-exchange) may redeem, with header
-// x-membership-sync-secret = MEMBERSHIP_SYNC_SECRET. It gets the member's
+// Only the websites' servers may redeem: soberhelpline.com's app-sso-exchange with
+// x-membership-sync-secret = MEMBERSHIP_SYNC_SECRET, or AyudaSobria.com's /api/app-sso
+// with AYUDA_SYNC_SECRET. It gets the member's
 // verified email, first name and tier, so it can sign them in on the website
 // and gate member pages on real membership. Without the secret the answer is
 // 401 and the token is NOT spent (the older browser-side redeem, which only
@@ -11,7 +12,7 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { webSsoTier } from '../_shared/web-sso.ts';
-import { requireSyncSecret } from '../_shared/sync-secret.ts';
+import { requireSyncSecretOrAyuda } from '../_shared/sync-secret.ts';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
@@ -26,7 +27,7 @@ function json(body: unknown, status = 200): Response {
 
 Deno.serve(async (req) => {
   // Checked before the token is even read: an unauthenticated caller can't spend it.
-  const authError = requireSyncSecret(req);
+  const authError = requireSyncSecretOrAyuda(req);
   if (authError) {
     return json({ valid: false, reason: authError.status === 405 ? 'method not allowed' : 'unauthorized' }, authError.status);
   }

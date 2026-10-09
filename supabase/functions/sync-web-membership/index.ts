@@ -17,6 +17,10 @@ import { parseWebMembership } from "../_shared/membership-validation.ts";
 //
 // Secrets required (app project): MEMBERSHIP_SYNC_SECRET — must match the
 // website project's secret of the same name.
+//
+// AyudaSobria.com (the Spanish site) is a second source: when AYUDA_SYNC_SECRET is
+// set, its /api/membership/check is asked the same question, and a member of either
+// site gets Essential. A site that can't be reached never causes a revoke.
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,6 +30,41 @@ const corsHeaders = {
 
 const WEBSITE_CHECK_URL =
   "https://anwqprmpzmcqbkttmxos.supabase.co/functions/v1/check-membership-email";
+const AYUDA_CHECK_URL = "https://ayudasobria.com/api/membership/check";
+
+type SiteCheck = { ok: true; isMember: boolean } | { ok: false; error: string };
+
+/** Asks one website whether this email holds an active membership there. */
+async function checkSite(
+  url: string,
+  secret: string,
+  email: string,
+  notDeployedMeansNo = false,
+): Promise<SiteCheck> {
+  try {
+    const resp = await fetch(url, {
+      signal: AbortSignal.timeout(10_000),
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-membership-sync-secret": secret,
+      },
+      body: JSON.stringify({ email }),
+    });
+    // Until AyudaSobria publishes its check endpoint it answers 404: nobody is a member there yet.
+    if (notDeployedMeansNo && resp.status === 404) {
+      await resp.body?.cancel();
+      return { ok: true, isMember: false };
+    }
+    if (!resp.ok) {
+      await resp.body?.cancel();
+      return { ok: false, error: `check failed: ${resp.status}` };
+    }
+    return { ok: true, isMember: parseWebMembership(await resp.json()) };
+  } catch (err) {
+    return { ok: false, error: `unreachable: ${String(err).slice(0, 200)}` };
+  }
+}
 
 function json(payload: unknown, status = 200): Response {
   return new Response(JSON.stringify(payload), {
@@ -70,28 +109,19 @@ serve(async (req) => {
     .maybeSingle();
   if (!account) return json({ error: "no account" }, 404);
 
-  // Ask the website whether this email holds an active family membership.
-  let isMember = false;
-  try {
-    const resp = await fetch(WEBSITE_CHECK_URL, {
-      signal: AbortSignal.timeout(10_000),
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-membership-sync-secret": syncSecret,
-      },
-      body: JSON.stringify({ email }),
-    });
-    if (!resp.ok) {
-      // Don't revoke on transient website errors — just report and bail.
-      return json({ error: `website check failed: ${resp.status}` }, 502);
-    }
-    isMember = parseWebMembership(await resp.json());
-  } catch (err) {
-    return json(
-      { error: `website unreachable: ${String(err).slice(0, 200)}` },
-      502,
-    );
+  // Ask soberhelpline.com (and AyudaSobria.com, when configured) whether this
+  // email holds an active family membership.
+  const ayudaSecret = Deno.env.get("AYUDA_SYNC_SECRET") ?? "";
+  const checks = await Promise.all([
+    checkSite(WEBSITE_CHECK_URL, syncSecret, email),
+    ayudaSecret ? checkSite(AYUDA_CHECK_URL, ayudaSecret, email, true) : null,
+  ]);
+  const answered = checks.filter((c): c is SiteCheck => c !== null);
+  const isMember = answered.some((c) => c.ok && c.isMember);
+  const failure = answered.find((c): c is { ok: false; error: string } => !c.ok);
+  if (!isMember && failure) {
+    // Don't revoke on transient website errors — just report and bail.
+    return json({ error: `website ${failure.error}` }, 502);
   }
 
   // Validation happens before this atomic, service-only database transaction.

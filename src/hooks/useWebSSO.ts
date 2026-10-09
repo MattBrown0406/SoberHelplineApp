@@ -1,10 +1,12 @@
 import { useCallback } from 'react';
 import { Linking } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
-import { websiteUrl } from '../lib/websiteLinks';
+import { siteUrlFor } from '../lib/websiteLinks';
 
 /**
- * Opens a soberhelpline.com page signed in as the current member.
+ * Opens a soberhelpline.com page (or, in Spanish, its ayudasobria.com equivalent)
+ * signed in as the current member.
  *
  * `Linking.openURL` hands the URL to the system browser (Safari on iOS), not an
  * in-app web view: PayPal checkout and the website's own session cookies work
@@ -16,9 +18,11 @@ import { websiteUrl } from '../lib/websiteLinks';
  * (the website then offers its own sign-in).
  */
 export function useWebSSO() {
+  const { i18n } = useTranslation();
+  const language = i18n.language;
   const openWithSSO = useCallback(
     async (accountId: string | null | undefined, next: string): Promise<boolean> => {
-      const directUrl = websiteUrl(next);
+      const directUrl = siteUrlFor(next, language);
       const open = async (url: string) => {
         try {
           await Linking.openURL(url);
@@ -36,13 +40,13 @@ export function useWebSSO() {
           return open(directUrl);
         }
         // Pass the token directly to the destination — no redirect chain.
-        return open(websiteUrl(next, tokenId));
+        return open(siteUrlFor(next, language, tokenId));
       } catch {
         console.error('[useWebSSO] unexpected error, falling back');
         return open(directUrl);
       }
     },
-    [],
+    [language],
   );
 
   return { openWithSSO };

@@ -34,6 +34,19 @@ export const APP_CONTEXT_PARAMS: readonly (readonly [string, string])[] = Object
 
 const WEBSITE_URL_PATTERN = /^https:\/\/(www\.)?soberhelpline\.com(?=[/?#]|$)/i;
 
+/**
+ * AyudaSobria.com is the Spanish site. It shares Sober Helpline accounts the same way
+ * (single-use `sso_token`, `from_app=1`), so when the app is in Spanish the pages that
+ * have a Spanish equivalent open there instead. Coaching booking stays on
+ * soberhelpline.com: only it has Matt's real time slots and reports bookings back.
+ */
+export const SPANISH_SITE_ORIGIN = 'https://ayudasobria.com';
+
+export const SPANISH_SITE_PATHS: Readonly<Record<string, string>> = Object.freeze({
+  [WEBSITE_PATHS.familyEducation]: '/recursos',
+  [WEBSITE_PATHS.zoomRecordings]: '/grabaciones',
+});
+
 /** A same-site path (never `//host` or a full URL, which could leave the site). */
 function safePath(path: string): string {
   const trimmed = path.trim();
@@ -83,4 +96,21 @@ export function websiteUrl(path: string, ssoToken?: string | null): string {
   const params: (readonly [string, string])[] = [...APP_CONTEXT_PARAMS];
   if (ssoToken) params.push(['sso_token', ssoToken]);
   return appendParams(`${WEBSITE_ORIGIN}${safePath(path)}`, params);
+}
+
+/**
+ * Where the app opens `path` for a member using the app in `language`: the Spanish
+ * site's equivalent page when there is one and the app is in Spanish, otherwise
+ * soberhelpline.com. Same app-context parameters and sign-in token either way.
+ */
+export function siteUrlFor(path: string, language: string | null | undefined, ssoToken?: string | null): string {
+  const spanishPath = language?.toLowerCase().startsWith('es')
+    ? Object.prototype.hasOwnProperty.call(SPANISH_SITE_PATHS, safePath(path))
+      ? SPANISH_SITE_PATHS[safePath(path)]
+      : undefined
+    : undefined;
+  if (!spanishPath) return websiteUrl(path, ssoToken);
+  const params: (readonly [string, string])[] = [...APP_CONTEXT_PARAMS];
+  if (ssoToken) params.push(['sso_token', ssoToken]);
+  return appendParams(`${SPANISH_SITE_ORIGIN}${spanishPath}`, params);
 }

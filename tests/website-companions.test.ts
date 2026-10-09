@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { WEBSITE_ORIGIN, WEBSITE_PATHS, isWebsiteUrl, websiteUrl, withAppContext } from '../src/lib/websiteLinks';
+import { WEBSITE_ORIGIN, WEBSITE_PATHS, isWebsiteUrl, siteUrlFor, websiteUrl, withAppContext } from '../src/lib/websiteLinks';
 import {
   COACHING_MEMBER_PRICE,
   COACHING_STANDARD_PRICE,
@@ -226,4 +226,22 @@ test('store builds ship on the production update channel', () => {
   assert.equal(app.expo.ios.buildNumber, '1');
   assert.deepEqual(app.expo.runtimeVersion, { policy: 'appVersion' });
   assert.match(app.expo.updates.url, /^https:\/\/u\.expo\.dev\//);
+});
+
+test('in Spanish, education and recordings open on ayudasobria.com with the same app context and token', () => {
+  assert.equal(
+    siteUrlFor(WEBSITE_PATHS.familyEducation, 'es', 'tok-1'),
+    `https://ayudasobria.com/recursos?${APP}&sso_token=tok-1`,
+  );
+  assert.equal(siteUrlFor(WEBSITE_PATHS.zoomRecordings, 'es-MX'), `https://ayudasobria.com/grabaciones?${APP}`);
+  // Booking keeps Matt's real time slots on soberhelpline.com; the forum has no Spanish twin.
+  assert.equal(
+    siteUrlFor(WEBSITE_PATHS.bookConsultation, 'es', 't'),
+    `https://soberhelpline.com/book-consultation?${APP}&sso_token=t`,
+  );
+  assert.equal(siteUrlFor(WEBSITE_PATHS.familyForum, 'es'), `https://soberhelpline.com/family-forum?${APP}`);
+  // English (or unknown) always stays on soberhelpline.com; odd paths never leave either site.
+  assert.equal(siteUrlFor(WEBSITE_PATHS.zoomRecordings, 'en', 't'), websiteUrl(WEBSITE_PATHS.zoomRecordings, 't'));
+  assert.equal(siteUrlFor('constructor', 'es'), `https://soberhelpline.com/?${APP}`);
+  assert.equal(siteUrlFor('//evil.example', 'es'), `https://soberhelpline.com/?${APP}`);
 });
