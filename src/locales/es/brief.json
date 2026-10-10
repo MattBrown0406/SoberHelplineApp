@@ -47,7 +47,7 @@
   "sendButton": "Enviar a Matt",
   "sending": "Enviando…",
   "sentTitle": "Está en manos de Matt.",
-  "sentBody": "Matt lee cada informe personalmente y responde aquí en la app — normalmente en un día. Si esto no puede esperar, no esperes: usa el Modo Crisis o llama o envía un mensaje al 988 ahora.",
+  "sentBody": "Matt lee cada informe personalmente y responde aquí en la app — normalmente en un día. Si esto no puede esperar, no esperes: usa el Modo Crisis, o llama al 988 (marca 2 para español) o envía AYUDA al 988 ahora.",
   "tooSoonTitle": "Ya le enviaste un informe a Matt hoy",
   "tooSoonBody": "Dale un momento para ponerse al día — puedes enviar otro mañana. Si las cosas empeoraron ahora mismo, usa el Modo Crisis o escríbele directamente.",
   "errorTitle": "No se pudo enviar tu informe",
@@ -60,5 +60,5 @@
   },
   "openMessages": "Matt respondió — abre tus mensajes →",
   "messagesLink": "Escríbele a Matt directamente →",
-  "crisisNote": "En una emergencia, no esperes una respuesta: llama o envía un mensaje al 988, o llama al 911."
+  "crisisNote": "En una emergencia, no esperes una respuesta: llama al 988 (marca 2 para español) o envía AYUDA al 988, o llama al 911."
 }

@@ -675,7 +675,7 @@ export default function BoundariesScreen() {
                       <Text style={[styles.journalDate, { color: colors.inkSoft }]}>
                         {entry.pendingSync
                           ? content.journal.pendingSync
-                          : new Date(entry.created_at).toLocaleDateString()}
+                          : new Date(entry.created_at).toLocaleDateString(i18n.resolvedLanguage ?? i18n.language)}
                       </Text>
                     </View>
                   ))

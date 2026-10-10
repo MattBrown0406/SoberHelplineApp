@@ -52,7 +52,7 @@ function customFamilyScript(wallText: string, language?: string): Script {
       ? 'Un familiar ablanda el límite mientras otro lo sostiene. Una sola voz, o la adicción divide la casa.'
       : 'One relative softening the limit while another holds it. One voice, or the addiction splits the house.',
     why: es
-      ? 'Los mensajes mezclados enseñan a buscar el eslabón más débil. Ensayad las mismas palabras.'
+      ? 'Los mensajes mezclados enseñan a buscar el eslabón más débil. Ensayen las mismas palabras.'
       : 'Mixed messages teach them to shop for the weakest link. Rehearse the same words.',
     comeback: {
       theySay: es ? 'Mamá / papá me diría que sí.' : 'Mom / Dad would say yes.',

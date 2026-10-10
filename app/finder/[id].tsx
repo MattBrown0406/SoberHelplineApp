@@ -123,7 +123,7 @@ export default function ProviderDetailScreen() {
               {provider.insurance.length === 0 && <Text style={[styles.body, { color: colors.inkSoft }]}>{t('detail.noInsurance')}</Text>}
               {provider.insurance.map((i) => (
                 <View key={i} style={[styles.tag, { backgroundColor: colors.primaryLight }]}>
-                  <Text style={[styles.tagText, { color: colors.primary }]}>{i}</Text>
+                  <Text style={[styles.tagText, { color: colors.primary }]}>{i === 'Self Pay' ? t('details.selfPay') : i}</Text>
                 </View>
               ))}
             </View>

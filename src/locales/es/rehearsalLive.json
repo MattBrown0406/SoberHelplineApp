@@ -59,7 +59,7 @@
       "desc": "Estalla — alza la voz, dice groserías, se pone personal, amenaza con irse. Una pelea, no un debate."
     },
     "tearful": {
-      "title": "Culposo",
+      "title": "Lleno de culpa",
       "desc": "Se hunde en la vergüenza y la autocrítica — \"soy un desastre, lo arruino todo\" — y te lleva a consolarlo en lugar de responder a tu petición."
     }
   },
@@ -93,7 +93,7 @@
     "recordingTooLongTitle": "Esa grabación es demasiado larga",
     "recordingTooLongBody": "Mantén cada grabación por debajo de unos dos minutos y medio. Inténtalo de nuevo en partes más cortas o escribe lo que quieres decir.",
     "abuseTitle": "Pausemos la práctica — tu seguridad es lo primero",
-    "abuseBody": "Lo que acabas de compartir suena a que alguien te está lastimando. Mereces estar a salvo. Si estás en peligro ahora mismo, llama al 911. La Línea Nacional sobre la Violencia Doméstica es gratuita y confidencial, las 24 horas.",
+    "abuseBody": "Lo que acabas de compartir suena a que alguien te está lastimando. Mereces estar a salvo. Si estás en peligro ahora mismo, llama al 911. La Línea Nacional sobre la Violencia Doméstica es gratuita y confidencial, las 24 horas, los 7 días de la semana.",
     "call911": "Llamar al 911",
     "callHotline": "Llamar al 1-800-799-7233",
     "textHotline": "Envía START al 88788",
@@ -101,8 +101,8 @@
     "thirtySecondsLeft": "Quedan unos 30 segundos en esta grabación.",
     "safetyUnknownTitle": "Pausemos la práctica",
     "safetyUnknownBody": "Lo que compartiste importa más que cualquier práctica. Si estás en peligro, llama al 911. Hay ayuda ahora mismo, de día o de noche:",
-    "call988": "Llamar al 988 (Línea de Crisis y Suicidio)",
-    "text988": "Enviar mensaje al 988",
+    "call988": "Llamar al 988 (marca 2 para español)",
+    "text988": "Enviar AYUDA al 988",
     "keepPracticing": "Estoy a salvo — seguir practicando",
     "keepPracticingHint": "Quita esa frase y vuelve a la práctica. La ayuda sigue a un toque.",
     "getHelpNow": "Busca ayuda ahora"
@@ -120,7 +120,7 @@
     "drillLabel": "Tu próximo ejercicio",
     "againButton": "Practicar de nuevo",
     "doneButton": "Terminar por ahora",
-    "encouragement": "Aquí no se gana ni se pierde — solo se llega más preparado. Repítelo con otro estado de ánimo, o uno más difícil. Cada repetición mejora la conversación real.",
+    "encouragement": "Aquí no se gana ni se pierde — solo llegas cada vez más preparada. Repítelo con otro estado de ánimo, o uno más difícil. Cada repetición mejora la conversación real.",
     "redoButton": "↺ Repetir desde aquí",
     "redoLabel": "Volver justo antes de esta frase y decirla de nuevo",
     "delivery": {
@@ -135,8 +135,8 @@
       "typedNote": "La próxima vez di tus frases en voz alta para recibir comentarios sobre tu ritmo, tus muletillas y tu volumen.",
       "tips": {
         "paceFast": "Hablaste a {{wpm}} palabras por minuto — rápido para una conversación difícil. Baja el ritmo; las pausas ayudan a que tus palabras lleguen.",
-        "fillersHigh_one": "{{count}} muletilla ({{examples}}). Un breve silencio suena más segura que un \"eh\" — permítete hacer pausas.",
-        "fillersHigh_other": "{{count}} muletillas ({{examples}}). Un breve silencio suena más segura que un \"eh\" — permítete hacer pausas.",
+        "fillersHigh_one": "{{count}} muletilla ({{examples}}). Un breve silencio te hace sonar más segura que un \"eh\" — permítete hacer pausas.",
+        "fillersHigh_other": "{{count}} muletillas ({{examples}}). Un breve silencio te hace sonar más segura que un \"eh\" — permítete hacer pausas.",
         "youHeavy": "{{you}} de tus frases empezaron con \"tú\" y {{i}} con \"yo\". Las frases con \"tú\" suenan a reproche — prueba con \"Yo siento… cuando…\".",
         "longTurns": "Tus turnos tuvieron en promedio {{words}} palabras. Los turnos largos empiezan a sonar a sermón — dos o tres frases bastan.",
         "loudPeaks_one": "Tu voz se elevó en {{count}} de {{total}} turnos hablados. Cuando te presione, intenta bajar la voz, no subirla.",

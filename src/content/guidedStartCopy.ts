@@ -35,7 +35,7 @@ const es: typeof en = {
   steps: { understand: 'Comprender', boundary: 'Límite', practice: 'Practicar', support: 'Apoyo' },
   descriptions: { understand: 'Lee un recurso educativo. Observa en qué puedes influir y qué no te corresponde controlar.', boundary: 'Elige un límite que puedas mantener. Escríbelo en la herramienta de límites.', practice: 'Elige un guion y dilo en voz alta, o adáptalo con tus propias palabras.', support: 'Explora las opciones de apoyo y elige una persona o un grupo con quien podrías comunicarte.' },
   open: 'Abrir la herramienta de este paso', complete: 'He completado este paso', done: 'Completado', finished: 'Has terminado estos cuatro pasos. Puedes volver a las herramientas cuando lo necesites.',
-  pace: 'Avanza a tu ritmo. Abrir una herramienta no completa un paso. Vuelve aquí y márcalo como completado cuando estés listo.',
+  pace: 'Avanza a tu ritmo. Abrir una herramienta no completa un paso. Vuelve aquí y márcalo como completado cuando estés lista.',
   reset: 'Borrar punto de partida y reiniciar recorrido', confirmReset: '¿Borrar el punto de partida y el progreso de esta cuenta en este dispositivo?', cancel: 'Cancelar',
   retry: 'Intentar cargar de nuevo', error: 'No se pudieron cargar o guardar los datos del dispositivo. Reintenta o bórralos para empezar de nuevo. Los cambios sin guardar no se cuentan.', loading: 'Cargando el progreso del dispositivo…', back: 'Volver',
   feedbackTitle: 'Un siguiente paso, si te sirve', feedbackNote: 'Se basa solo en tus respuestas guardadas; no es un diagnóstico ni una evaluación de IA. Puedes dejarlo aquí por hoy.',

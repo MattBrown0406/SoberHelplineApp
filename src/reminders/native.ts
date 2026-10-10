@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Crypto from 'expo-crypto';
+import i18n from 'i18next';
 import { PersonalReminderService, REMINDER_PREFIX } from './personalReminders';
 import { reminderCopy } from './copy';
 
@@ -18,7 +19,7 @@ export const personalReminders = new PersonalReminderService({
   permission: async request => {
     if (request && Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('personal-reminders', {
-        name: 'Personal reminders', importance: Notifications.AndroidImportance.LOW,
+        name: i18n.t('settings:reminders.channelName'), importance: Notifications.AndroidImportance.LOW,
         sound: null, vibrationPattern: [0], lockscreenVisibility: Notifications.AndroidNotificationVisibility.PRIVATE,
       });
     }

@@ -32,7 +32,9 @@ export const APP_CONTEXT_PARAMS: readonly (readonly [string, string])[] = Object
   Object.freeze(['app_links', '1'] as const),
 ]);
 
-const WEBSITE_URL_PATTERN = /^https:\/\/(www\.)?soberhelpline\.com(?=[/?#]|$)/i;
+// Both sites the app opens (soberhelpline.com and the Spanish AyudaSobria.com) hide
+// membership purchase links when a page says it came from the app.
+const WEBSITE_URL_PATTERN = /^https:\/\/(www\.)?(soberhelpline|ayudasobria)\.com(?=[/?#]|$)/i;
 
 /**
  * AyudaSobria.com is the Spanish site. It shares Sober Helpline accounts the same way
@@ -74,7 +76,7 @@ function appendParams(url: string, params: readonly (readonly [string, string])[
   return `${base}${hash}`;
 }
 
-/** True for an https://soberhelpline.com (or www.) URL. */
+/** True for an https://soberhelpline.com or ayudasobria.com (or www.) URL. */
 export function isWebsiteUrl(url: string): boolean {
   return WEBSITE_URL_PATTERN.test(url.trim());
 }

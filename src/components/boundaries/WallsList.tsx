@@ -22,9 +22,9 @@ interface Props {
   onPropose?: (wall: BoundaryWall) => void;
 }
 
-function formatDate(iso: string): string {
+function formatDate(iso: string, locale: string): string {
   const d = new Date(iso);
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return d.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
 }
 
 export function WallsList({ walls, onDelete, accountId, hasFamilySpace, onPropose }: Props) {
@@ -66,7 +66,7 @@ export function WallsList({ walls, onDelete, accountId, hasFamilySpace, onPropos
                   {wall.text}
                 </Text>
                 <Text style={[styles.wallDate, { color: colors.inkSoft }]}>
-                  {formatDate(wall.createdAt)}
+                  {formatDate(wall.createdAt, i18n.resolvedLanguage ?? i18n.language)}
                 </Text>
                 {accountId ? <BoundaryFollowThroughCard key={`${accountId}:${wall.id}`} accountId={accountId} wallId={wall.id} /> : null}
                 {hasFamilySpace && onPropose ? (

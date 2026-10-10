@@ -12,7 +12,8 @@
   "joinErrorRemoved": "La persona anfitriona te retiró de los grupos en vivo, así que no puedes unirte. Si crees que fue un error, escríbele a Matt desde la pestaña Apoyo.",
   "host": {
     "eyebrow": "TRANSMISIÓN",
-    "watching": "{{count}} viendo",
+    "watching_one": "{{count}} viendo",
+    "watching_other": "{{count}} viendo",
     "remove": "Eliminar",
     "removeConfirm": "¿Retirar a {{name}} de esta transmisión? No podrá volver a unirse a ningún grupo en vivo a menos que le permitas regresar desde Admin.",
     "thisPerson": "esta persona",
@@ -34,8 +35,8 @@
   },
   "crisis": {
     "line911": "Emergencias — 911",
-    "line988": "Línea de crisis — 988"
+    "line988": "Llamar al 988 (marca 2 para español)"
   },
-  "privacyNote": "Eres anónimo — solo tu nombre. Los participantes no pueden verse entre sí.",
+  "privacyNote": "Participas de forma anónima: solo se muestra tu nombre. Los participantes no pueden verse entre sí.",
   "removedTitle": "Te retiraron de este grupo"
 }

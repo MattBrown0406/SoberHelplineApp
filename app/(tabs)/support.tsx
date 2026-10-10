@@ -331,7 +331,7 @@ function ProviderSheet({
             <Text style={[styles.sheetRowSub, { color: colors.inkSoft }]}>
               {t('providerSheet.credential', {
                 credential: FEATURED_PROVIDER.credential,
-                credentialFull: FEATURED_PROVIDER.credentialFull,
+                credentialFull: t('common:provider.credentialFull'),
               })}
             </Text>
           </View>
@@ -603,7 +603,8 @@ export default function SupportScreen() {
       : undefined);
   const handleSessionRsvp = async (session: DbSession) => {
     const saved = await toggleRsvp(session);
-    if (!saved) appAlert(t('sessions.rsvpErrorTitle'), t('sessions.rsvpErrorBody'));
+    if (saved === 'not_available') appAlert(t('sessions.rsvpErrorTitle'), t('common:laSobremesa.notAvailable'));
+    else if (!saved) appAlert(t('sessions.rsvpErrorTitle'), t('sessions.rsvpErrorBody'));
   };
   const groups = getSupportGroups((key) => t(key as never));
   const { myRooms, liveRooms } = useGroupPresence(user?.id ?? null);

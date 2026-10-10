@@ -12,7 +12,8 @@
   "joinErrorRemoved": "You were removed from live groups by the host, so you can't join. If you think this was a mistake, message Matt from the Support tab.",
   "host": {
     "eyebrow": "BROADCAST",
-    "watching": "{{count}} watching",
+    "watching_one": "{{count}} watching",
+    "watching_other": "{{count}} watching",
     "remove": "Remove",
     "removeConfirm": "Remove {{name}} from this broadcast? They won't be able to join any live group again unless you let them back in from Admin.",
     "thisPerson": "this person",

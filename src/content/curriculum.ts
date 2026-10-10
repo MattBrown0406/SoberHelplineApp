@@ -231,7 +231,7 @@ export const CURRICULUM_ES: CurriculumPiece[] = [
     tagTextColor: '#1a365d',
     icon: '🧭',
     accentColor: '#e8eef6',
-    title: 'No estás loco, y no te lo estás imaginando',
+    title: 'No estás loca, y no te lo estás imaginando',
     mechanism:
       'Cuando una familia por fin pide ayuda, casi siempre lleva meses escuchando —a veces de la persona que consume, a veces entre ustedes mismos— que está exagerando. Así que aprendiste a dudar de lo que ves con claridad. Esa duda no es un defecto tuyo. Es lo que pasa cuando la supervivencia de alguien depende de que no confíes en tus propios ojos. La adicción se protege, y lo primero que ataca es tu certeza. Si has llevado una lista mental de cosas que no cuadraban, esa lista es información, no paranoia.',
     practice:
@@ -287,7 +287,7 @@ export const CURRICULUM_ES: CurriculumPiece[] = [
       'La palabra "facilitar" se ha usado como acusación durante tanto tiempo que ya casi no sirve: pone a la gente a la defensiva justo cuando más necesita tener curiosidad. Prueba una pregunta más limpia: ¿esta acción protege a la persona, o protege a la adicción de sus propias consecuencias? Comida, llevarla a una reunión, pagarle directamente al centro de tratamiento: eso protege a la persona. Pagar la deuda, llamar a su jefe, disimular lo que pasó en la cena: eso absorbe un golpe que debía aterrizar. Por fuera la acción puede verse idéntica. La diferencia es a quién estás protegiendo. Y ojo: amortiguar casi siempre nace del amor. Por eso cuesta tanto verlo y cuesta tanto dejarlo.',
     practice:
       'Elige la única cosa que hiciste la semana pasada que ya sospechas que fue amortiguar. Solo nómbrala para ti, en una frase, sin defenderte. No la cambies todavía. Primero hay que verla con claridad.',
-    prompt: '¿Qué habría pasado el mes pasado si no hubieras intervenido? Sé específico: la respuesta real, no la catastrófica.',
+    prompt: '¿Qué habría pasado el mes pasado si no hubieras intervenido? Sé específica: la respuesta real, no la catastrófica.',
     crisisSafe: true,
   },
   {
@@ -301,7 +301,7 @@ export const CURRICULUM_ES: CurriculumPiece[] = [
     accentColor: '#fdf3e3',
     title: 'Un límite que cumples vale más que diez que anuncias',
     mechanism:
-      'Las familias en crisis suelen declarar muchas reglas nuevas de golpe, casi siempre después de una mala noche. Después la semana se hace larga, alguien está agotado, tres de las diez se caen en silencio, y la persona que consume aprende algo muy concreto: los límites son clima, no muros. Si espera lo suficiente, pasan. Por eso la constancia importa más que la severidad. Un límite pequeño que nunca se mueve enseña más que uno dramático que cede bajo presión. Y por eso conviene poner menos de los que quisieras. Elige el que puedas sostener un martes, cansado, cuando nadie te está mirando.',
+      'Las familias en crisis suelen declarar muchas reglas nuevas de golpe, casi siempre después de una mala noche. Después la semana se hace larga, alguien está agotado, tres de las diez se caen en silencio, y la persona que consume aprende algo muy concreto: los límites son clima, no muros. Si espera lo suficiente, pasan. Por eso la constancia importa más que la severidad. Un límite pequeño que nunca se mueve enseña más que uno dramático que cede bajo presión. Y por eso conviene poner menos de los que quisieras. Elige el que puedas sostener un martes, cansada, cuando nadie te está mirando.',
     practice:
       'Elige un solo límite y sostén únicamente ese durante siete días. Escríbelo. Si te descubres queriendo agregar un segundo, resístelo: la meta de esta semana no es cubrir todo, es un límite que demuestre que no se mueve.',
     prompt: '¿Cuál de tus límites te diría esa persona que es negociable? Casi siempre lo saben antes que tú.',
@@ -335,7 +335,7 @@ export const CURRICULUM_ES: CurriculumPiece[] = [
     accentColor: '#e9f2ec',
     title: 'Ellos reciben un equipo de tratamiento. ¿Quién te toca a ti?',
     mechanism:
-      'Cuando alguien entra a tratamiento le asignan un consejero, un grupo, un horario y una sala llena de gente que entiende. A la familia le dan un día de visita. El desequilibrio es estructural, no personal, y explica por qué tantas familias se quiebran justo cuando las cosas empiezan a ir bien. Has estado funcionando con adrenalina; la adrenalina aguanta hasta que termina la emergencia, y entonces deja de aguantar. Tu recuperación no es un premio que recoges cuando la de ellos ya esté asegurada. Va en paralelo, o el próximo en romperse vas a ser tú.',
+      'Cuando alguien entra a tratamiento le asignan un consejero, un grupo, un horario y una sala llena de gente que entiende. A la familia le dan un día de visita. El desequilibrio es estructural, no personal, y explica por qué tantas familias se quiebran justo cuando las cosas empiezan a ir bien. Has estado funcionando con adrenalina; la adrenalina aguanta hasta que termina la emergencia, y entonces deja de aguantar. Tu recuperación no es un premio que recoges cuando la de ellos ya esté asegurada. Va en paralelo, o la próxima en romperse vas a ser tú.',
     practice:
       'Dile a una persona fuera de tu casa una frase verdadera sobre cómo estás realmente. No el reporte sobre tu ser querido: cómo estás *tú*. Una persona, una frase, esta semana.',
     prompt: '¿Quién fue la última persona que te preguntó cómo estabas y de verdad esperó la respuesta?',

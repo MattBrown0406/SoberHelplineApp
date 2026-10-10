@@ -100,6 +100,8 @@ serve(async (req) => {
   if (userError || !userData?.user?.email) {
     return json({ error: "unauthorized" }, 401);
   }
+  // Only a verified address may claim a website membership bought with that email.
+  if (!userData.user.email_confirmed_at) return json({ error: "email_unverified" }, 403);
   const email = userData.user.email.toLowerCase().trim();
 
   const { data: account } = await admin
@@ -132,7 +134,10 @@ serve(async (req) => {
       p_membership: { isMember, email },
     },
   );
-  if (reconcileError) return json({ error: reconcileError.message }, 500);
+  if (reconcileError) {
+    console.error("sync-web-membership: reconcile failed", reconcileError.code ?? "unknown");
+    return json({ error: "reconcile_failed" }, 500);
+  }
 
   return json({
     success: true,

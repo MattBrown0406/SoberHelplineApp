@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Linking, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import type { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 import type { usePrivateVideoSessions } from '../../hooks/usePrivateVideoSessions';
 import { useAccount } from '../../contexts/AccountContext';
 import { useAsyncScope } from '../../hooks/useAsyncScope';
@@ -22,6 +23,8 @@ export function PlanReviewBookingCard(props: Props) {
 
 function PlanReviewBookingCardContent({ controller, hasIncludedPlanReview, source, t, consentLocale, onUpgrade }: Props) {
   const { colors } = useTheme();
+  const { i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage ?? i18n.language;
   const { user } = useAccount();
   const { isCurrent } = useAsyncScope(user?.id ?? null);
   // Members are quoted $125 by create-plan-review-checkout; a lapsed member $150.
@@ -108,7 +111,7 @@ function PlanReviewBookingCardContent({ controller, hasIncludedPlanReview, sourc
   if (existing?.booking_purpose === 'plan_review') return <View style={[styles.box, { borderColor: colors.primary }]}>
     <Text style={[styles.title, { color: colors.ink }]}>{k('submittedTitle')}</Text>
     <Text style={{ color: colors.inkSoft }}>{existing.appointment_type === 'membership_included' ? k('includedStatus') : k(`payment.${existing.payment_status}`)}</Text>
-    <Text style={{ color: colors.inkSoft }}>{k('snapshotTime', { date: existing.snapshot_created_at ? new Date(existing.snapshot_created_at).toLocaleString() : '—' })}</Text>
+    <Text style={{ color: colors.inkSoft }}>{k('snapshotTime', { date: existing.snapshot_created_at ? new Date(existing.snapshot_created_at).toLocaleString(locale) : '—' })}</Text>
     {existing.appointment_type === 'one_off_150' && existing.payment_status === 'pending_payment' && isPremier ? (
       // Upgraded to Premier after booking: the review is included, never paid for.
       <>
@@ -168,16 +171,16 @@ function PlanReviewBookingCardContent({ controller, hasIncludedPlanReview, sourc
     {preview ? <View style={[styles.preview, { backgroundColor: colors.primaryLight }]}>
       <Text style={{ color: colors.ink, fontWeight: '900' }}>{k('previewMeetingDetails')}</Text>
       <Text style={{ color: colors.inkSoft }}>{k('previewPurpose', { value: requestFocusReason })}</Text>
-      <Text style={{ color: colors.inkSoft }}>{k('previewTime', { value: formatInTimeZone(startsAt, detectedTimeZone()) })}</Text>
+      <Text style={{ color: colors.inkSoft }}>{k('previewTime', { value: formatInTimeZone(startsAt, detectedTimeZone(), locale) })}</Text>
       <Text style={{ color: colors.inkSoft }}>{k('previewQuestions', { value: requestQuestions.length ? requestQuestions.join(' · ') : k('none') })}</Text>
       {Object.entries(snapshot.sections).map(([key, value]) => <View key={key}><Text style={{ color: colors.ink, fontWeight: '800' }}>{k(`sections.${key}`)}</Text><Text selectable style={{ color: colors.inkSoft }}>{JSON.stringify(value, null, 2)}</Text><TouchableOpacity onPress={() => toggle(key as PlanReviewSectionKey)}><Text style={{ color: colors.coral, fontWeight: '700' }}>{k('remove')}</Text></TouchableOpacity></View>)}
     </View> : null}
     <Text style={[styles.label, { color: colors.ink }]}>{k('date')}</Text>
     <View style={styles.row}>
-      <DateTimeField mode="date" value={startsAt} onChange={setStartsAt} minimumDate={new Date()} label={startsAt.toLocaleDateString()} accessibilityLabel={k('dateField')} />
-      <DateTimeField mode="time" value={startsAt} onChange={setStartsAt} minuteInterval={5} label={startsAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} accessibilityLabel={k('timeField')} />
+      <DateTimeField mode="date" value={startsAt} onChange={setStartsAt} minimumDate={new Date()} label={startsAt.toLocaleDateString(locale)} accessibilityLabel={k('dateField')} />
+      <DateTimeField mode="time" value={startsAt} onChange={setStartsAt} minuteInterval={5} label={startsAt.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' })} accessibilityLabel={k('timeField')} />
     </View>
-    <Text style={{ color: colors.inkSoft }}>{formatInTimeZone(startsAt, detectedTimeZone())}</Text>
+    <Text style={{ color: colors.inkSoft }}>{formatInTimeZone(startsAt, detectedTimeZone(), locale)}</Text>
     <TextInput value={focus} onChangeText={setFocus} multiline placeholder={k('focus')} placeholderTextColor={colors.inkSoft} style={[styles.input, { color: colors.ink, borderColor: colors.line }]} />
     <TextInput value={questions} onChangeText={setQuestions} multiline placeholder={k('questions')} placeholderTextColor={colors.inkSoft} style={[styles.input, { color: colors.ink, borderColor: colors.line }]} />
     <TouchableOpacity accessibilityRole="checkbox" accessibilityState={{ checked: consented }} onPress={toggleConsent} style={styles.check}><Text style={{ color: colors.primary, fontWeight: '900' }}>{consented ? '☑' : '☐'}</Text><Text style={{ color: colors.ink, flex: 1 }}>{k('consent')}</Text></TouchableOpacity>

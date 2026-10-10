@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Linking, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import type { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 import { useAccount } from '../../contexts/AccountContext';
 import { useAsyncScope } from '../../hooks/useAsyncScope';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -24,6 +25,8 @@ function PremierVideoSchedulingCardContent({ controller, t, translationRoot, onJ
   const { colors } = useTheme();
   const { user } = useAccount();
   const { isCurrent } = useAsyncScope(user?.id ?? null);
+  const { i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage ?? i18n.language;
   const k = (key: string, options?: Record<string, unknown>) => t(`${translationRoot}.${key}`, options);
   const zone = useMemo(detectedTimeZone, []);
   const [editing, setEditing] = useState(false);
@@ -62,11 +65,11 @@ function PremierVideoSchedulingCardContent({ controller, t, translationRoot, onJ
 
     {session && !editing ? <View style={[styles.status, { backgroundColor: colors.primaryLight, borderColor: colors.primary }]}>
       <Text style={[styles.statusTitle, { color: colors.primary }]}>{k(`statuses.${proposedByCoach ? 'coach_proposal' : session.status}`)}</Text>
-      {session.status === 'requested' && requestedValue ? <Text style={[styles.body, { color: colors.ink }]}>{formatInTimeZone(requestedValue, proposal?.timezone ?? session.requested_timezone)} · {proposal?.duration_minutes ?? session.duration_minutes} {k('minutes')}</Text> : null}
+      {session.status === 'requested' && requestedValue ? <Text style={[styles.body, { color: colors.ink }]}>{formatInTimeZone(requestedValue, proposal?.timezone ?? session.requested_timezone, locale)} · {proposal?.duration_minutes ?? session.duration_minutes} {k('minutes')}</Text> : null}
       {session.status === 'requested' ? <Text style={[styles.body, { color: colors.inkSoft }]}>{k(proposedByCoach ? 'coachProposalBody' : 'memberProposalBody')}</Text> : null}
       {(session.status === 'scheduled' || session.status === 'live') && session.scheduled_for ? <>
-        <Text style={[styles.body, { color: colors.ink }]}>{k('confirmedRequestedZone', { date: formatInTimeZone(session.scheduled_for, session.requested_timezone), timezone: session.requested_timezone })}</Text>
-        {zone !== session.requested_timezone ? <Text style={[styles.body, { color: colors.inkSoft }]}>{k('deviceTime', { date: formatInTimeZone(session.scheduled_for, zone), timezone: zone })}</Text> : null}
+        <Text style={[styles.body, { color: colors.ink }]}>{k('confirmedRequestedZone', { date: formatInTimeZone(session.scheduled_for, session.requested_timezone, locale), timezone: session.requested_timezone })}</Text>
+        {zone !== session.requested_timezone ? <Text style={[styles.body, { color: colors.inkSoft }]}>{k('deviceTime', { date: formatInTimeZone(session.scheduled_for, zone, locale), timezone: zone })}</Text> : null}
       </> : null}
       {proposedByCoach ? <Action label={k('accept')} onPress={() => void controller.acceptProposal(session, proposal!)} colors={colors} busy={controller.mutating} /> : null}
       {session.status === 'live' ? <Action label={k('join')} onPress={() => onJoin(session)} colors={colors} /> : null}
@@ -78,8 +81,8 @@ function PremierVideoSchedulingCardContent({ controller, t, translationRoot, onJ
     {editing ? <View style={[styles.form, { borderColor: colors.line }]}>
       <Text style={[styles.label, { color: colors.ink }]}>{k('dateTimeLabel')}</Text>
       <View style={styles.row}>
-        <DateTimeField mode="date" value={startsAt} onChange={setStartsAt} minimumDate={new Date()} label={formatInTimeZone(startsAt, zone).split(',').slice(0, 2).join(',')} accessibilityLabel={k('dateField')} style={styles.field} />
-        <DateTimeField mode="time" value={startsAt} onChange={setStartsAt} minuteInterval={5} label={startsAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} accessibilityLabel={k('timeField')} style={styles.field} />
+        <DateTimeField mode="date" value={startsAt} onChange={setStartsAt} minimumDate={new Date()} label={formatInTimeZone(startsAt, zone, locale).split(',').slice(0, 2).join(',')} accessibilityLabel={k('dateField')} style={styles.field} />
+        <DateTimeField mode="time" value={startsAt} onChange={setStartsAt} minuteInterval={5} label={startsAt.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' })} accessibilityLabel={k('timeField')} style={styles.field} />
       </View>
       <Text style={[styles.hint, { color: colors.inkSoft }]}>{k('durationAndZone', { timezone: zone })}</Text>
       <Text style={[styles.label, { color: colors.ink }]}>{k('noteLabel')}</Text>
@@ -89,7 +92,7 @@ function PremierVideoSchedulingCardContent({ controller, t, translationRoot, onJ
       <Secondary label={k('keep')} onPress={() => setEditing(false)} colors={colors} />
     </View> : null}
 
-    {!compact && controller.history.length ? <View style={styles.history}><Text style={[styles.label, { color: colors.ink }]}>{k('history')}</Text>{controller.history.slice(0, 5).map((item) => <View key={item.id} style={[styles.historyRow, { borderColor: colors.line }]}><View style={{ flex: 1 }}><Text style={{ color: colors.ink, fontWeight: '700' }}>{k(`statuses.${item.status}`)}</Text><Text style={[styles.hint, { color: colors.inkSoft }]}>{formatInTimeZone(item.scheduled_for ?? item.requested_start, item.requested_timezone)}</Text></View><TouchableOpacity accessibilityRole="button" accessibilityLabel={k('rebook')} onPress={() => { const next = initialDate(); next.setHours(new Date(item.requested_start).getHours(), new Date(item.requested_start).getMinutes()); setStartsAt(next); setNote(item.member_note ?? ''); setEditing(true); }}><Text style={{ color: colors.primary, fontWeight: '800' }}>{k('rebook')}</Text></TouchableOpacity></View>)}</View> : null}
+    {!compact && controller.history.length ? <View style={styles.history}><Text style={[styles.label, { color: colors.ink }]}>{k('history')}</Text>{controller.history.slice(0, 5).map((item) => <View key={item.id} style={[styles.historyRow, { borderColor: colors.line }]}><View style={{ flex: 1 }}><Text style={{ color: colors.ink, fontWeight: '700' }}>{k(`statuses.${item.status}`)}</Text><Text style={[styles.hint, { color: colors.inkSoft }]}>{formatInTimeZone(item.scheduled_for ?? item.requested_start, item.requested_timezone, locale)}</Text></View><TouchableOpacity accessibilityRole="button" accessibilityLabel={k('rebook')} onPress={() => { const next = initialDate(); next.setHours(new Date(item.requested_start).getHours(), new Date(item.requested_start).getMinutes()); setStartsAt(next); setNote(item.member_note ?? ''); setEditing(true); }}><Text style={{ color: colors.primary, fontWeight: '800' }}>{k('rebook')}</Text></TouchableOpacity></View>)}</View> : null}
   </View>;
 }
 

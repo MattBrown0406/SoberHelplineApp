@@ -14,7 +14,7 @@ import { INVITATION_MOVES } from '../src/lib/invitationMoves';
 type Node = { type: unknown; props: Record<string, unknown> & { children?: unknown } };
 const realRequire = createRequire(import.meta.url);
 
-function harness(stubs: Record<string, unknown> = {}) {
+function harness(stubs: Record<string, unknown> = {}, language = 'en') {
   const states: unknown[] = [];
   let cursor = 0;
   const routes: unknown[] = [];
@@ -35,6 +35,7 @@ function harness(stubs: Record<string, unknown> = {}) {
   };
   const native = Object.fromEntries(['View', 'Text', 'TextInput', 'TouchableOpacity', 'ActivityIndicator', 'Switch'].map((x) => [x, x]));
   (native as Record<string, unknown>).StyleSheet = { create: (x: unknown) => x };
+  (native as Record<string, unknown>).Platform = { OS: 'ios' };
   const colors = new Proxy({}, { get: (_, key) => `#${String(key)}` });
   const cache = new Map<string, Record<string, unknown>>();
 
@@ -53,7 +54,7 @@ function harness(stubs: Record<string, unknown> = {}) {
       if (id === 'react-native') return native;
       if (id === 'expo-router') return { useRouter: () => ({ push: (route: unknown) => routes.push(route) }) };
       if (id === 'react-i18next') {
-        return { useTranslation: () => ({ t: (key: string, params?: unknown) => (params ? `${key}:${JSON.stringify(params)}` : key) }) };
+        return { useTranslation: () => ({ t: (key: string, params?: unknown) => (params ? `${key}:${JSON.stringify(params)}` : key), i18n: { language } }) };
       }
       if (id.includes('ThemeContext')) return { useTheme: () => ({ colors }) };
       if (id in stubs) return stubs[id];
@@ -261,9 +262,17 @@ test('crisis resources offer 911, 988 (call and text), the DV hotline and Matt â
   const { mount } = harness({ '../../lib/emergencyLinks': { openEmergencyLink: (...args: unknown[]) => links.push(args) } });
   const ui = mount('src/components/invitation/CrisisResourcesPanel.tsx', 'CrisisResourcesPanel', {});
   for (const label of ['crisis.call911', 'crisis.call988', 'crisis.text988', 'safety.callHotline', 'safety.textHotline', 'safety.mattButton']) ui.press(label);
-  assert.deepEqual(links, [['tel:911'], ['tel:988'], ['sms:988'], ['tel:18007997233', '1-800-799-7233'], ['sms:88788', '88788']]);
+  assert.deepEqual(links, [['tel:911'], ['tel:988'], ['sms:988', '988'], ['tel:18007997233', '1-800-799-7233'], ['sms:88788', '88788']]);
   assert.deepEqual(ui.routes, ['/situation-brief']);
   assert.doesNotMatch(ui.text(), /kit\.|lines\./);
+});
+
+test('in Spanish, Text 988 prefills AYUDA so she reaches the Spanish text line', () => {
+  const links: unknown[] = [];
+  const { mount } = harness({ '../../lib/emergencyLinks': { openEmergencyLink: (...args: unknown[]) => links.push(args) } }, 'es');
+  const ui = mount('src/components/invitation/CrisisResourcesPanel.tsx', 'CrisisResourcesPanel', {});
+  ui.press('crisis.text988');
+  assert.deepEqual(links, [['sms:988&body=AYUDA', '988']]);
 });
 
 test('the unknown-safety window notice offers 911 and a retry, not "leave now"', () => {

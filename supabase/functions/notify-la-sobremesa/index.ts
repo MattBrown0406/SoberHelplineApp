@@ -83,7 +83,9 @@ Deno.serve(async (req) => {
           supabase.from('session_join_links').select('starts_at')
             .eq('session_id', sessionId).eq('account_id', accountId).maybeSingle(),
         );
-        if (!link?.starts_at || Date.parse(link.starts_at as string) !== startsAt) {
+        // Tonight's link (allow for a provider rounding the start by a few minutes).
+        const linkStart = link?.starts_at ? Date.parse(link.starts_at as string) : NaN;
+        if (!Number.isFinite(linkStart) || Math.abs(linkStart - startsAt) > 30 * 60_000) {
           counts.skipped++;
           continue;
         }

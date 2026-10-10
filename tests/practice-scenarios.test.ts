@@ -260,7 +260,7 @@ test('every crisis card shows 911, 988 and the DV hotline; the kind only orders 
   const card = readFileSync('src/components/rehearsal/SafetyBreakCard.tsx', 'utf8');
   assert.match(card, /openEmergencyLink\('tel:911'\)/);
   assert.match(card, /openEmergencyLink\('tel:988'\)/);
-  assert.match(card, /openEmergencyLink\('sms:988', '988'\)/);
+  assert.match(card, /openEmergencyLink\(text988Url\(language, Platform\.OS\), '988'\)/);
   assert.match(card, /openEmergencyLink\('tel:18007997233', '1-800-799-7233'\)/);
   assert.match(card, /openEmergencyLink\(hotlineTextUrl\(\), '88788'\)/);
   // START is prefilled (iOS uses &body=, Android ?body=).

@@ -244,7 +244,7 @@ function AccountSafetyWallet() {
             {incidents.slice(0, 5).map((incident) => (
               <View key={incident.id} style={[styles.incident, { borderTopColor: colors.line }]}>
                 <Text style={[styles.incidentDate, { color: colors.inkSoft }]}>
-                  {new Date(incident.createdAt).toLocaleString()}
+                  {new Date(incident.createdAt).toLocaleString(i18n.resolvedLanguage ?? i18n.language)}
                 </Text>
                 <Text style={[styles.body, { color: colors.ink }]}>{incident.summary}</Text>
               </View>

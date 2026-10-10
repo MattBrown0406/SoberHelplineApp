@@ -42,8 +42,10 @@ test('every soberhelpline.com page the app opens says it came from the app (from
   assert.equal(withAppContext('https://www.soberhelpline.com/x#top'), `https://www.soberhelpline.com/x?${APP}#top`);
   assert.equal(withAppContext('https://soberhelpline.com'), `https://soberhelpline.com?${APP}`);
   assert.equal(withAppContext(`https://soberhelpline.com/y?${APP}`), `https://soberhelpline.com/y?${APP}`);
+  // AyudaSobria (the Spanish site) also hides membership purchase for app visitors.
+  assert.equal(withAppContext('https://ayudasobria.com/registro'), `https://ayudasobria.com/registro?${APP}`);
   // Other hosts (PayPal, look-alike domains) are never touched.
-  for (const other of ['https://www.paypal.com/checkoutnow?token=1', 'https://soberhelpline.com.evil.example/x', 'http://soberhelpline.com/x', 'tel:+14582988008']) {
+  for (const other of ['https://www.paypal.com/checkoutnow?token=1', 'https://soberhelpline.com.evil.example/x', 'https://ayudasobria.com.evil.example/x', 'http://soberhelpline.com/x', 'tel:+14582988008']) {
     assert.equal(withAppContext(other), other);
     assert.equal(isWebsiteUrl(other), false);
   }
@@ -219,10 +221,10 @@ test('email confirmation lands on soberhelpline.com', () => {
 test('store builds ship on the production update channel', () => {
   const eas = JSON.parse(read('eas.json'));
   assert.equal(eas.build.production.channel, 'production');
-  assert.equal(eas.build['release-4-1-0'].extends, 'production');
-  assert.equal(eas.build['release-4-1-0'].autoIncrement, false);
+  assert.equal(eas.build['release-4-2-0'].extends, 'production');
+  assert.equal(eas.build['release-4-2-0'].autoIncrement, false);
   const app = JSON.parse(read('app.json'));
-  assert.equal(app.expo.version, '4.1');
+  assert.equal(app.expo.version, '4.2');
   assert.equal(app.expo.ios.buildNumber, '1');
   assert.deepEqual(app.expo.runtimeVersion, { policy: 'appVersion' });
   assert.match(app.expo.updates.url, /^https:\/\/u\.expo\.dev\//);

@@ -408,7 +408,7 @@ function CrisisModeContent() {
                   <Toggle label={t('incident.policeOrEms')} value={incidentDraft.policeOrEms} onPress={() => setIncidentDraft((prev) => ({ ...prev, policeOrEms: !prev.policeOrEms }))} hint={t('inline.doubleTapToToggle')} />
                   <Toggle label={t('incident.boundaryCrossed')} value={incidentDraft.boundaryCrossed} onPress={() => setIncidentDraft((prev) => ({ ...prev, boundaryCrossed: !prev.boundaryCrossed }))} hint={t('inline.doubleTapToToggle')} />
                   <TouchableOpacity accessibilityRole="button" style={[styles.primaryBtn, { backgroundColor: colors.primary }]} onPress={addIncident}><Text style={styles.primaryBtnText}>{t('incident.save')}</Text></TouchableOpacity>
-                  {incidents.slice(0, 5).map((incident) => <View key={incident.id} style={[styles.incident, { borderColor: colors.line }]}><Text style={[styles.incidentDate, { color: colors.inkSoft }]}>{new Date(incident.createdAt).toLocaleString()}</Text><Text style={[styles.body, { color: colors.ink }]}>{incident.summary}</Text></View>)}
+                  {incidents.slice(0, 5).map((incident) => <View key={incident.id} style={[styles.incident, { borderColor: colors.line }]}><Text style={[styles.incidentDate, { color: colors.inkSoft }]}>{new Date(incident.createdAt).toLocaleString(i18n.resolvedLanguage ?? i18n.language)}</Text><Text style={[styles.body, { color: colors.ink }]}>{incident.summary}</Text></View>)}
                 </View>
 
                 <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>

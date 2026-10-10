@@ -14,11 +14,11 @@
     "actionBody": "Prepara la cama, el seguro, el transporte, la maleta, el trabajo, los dependientes y las primeras 72 horas antes de la conversación planificada.",
     "actionButton": "Crear el plan de acción",
     "actionBadge": "Gratis · Planificación",
-    "diyBadge": "ESSENTIALS",
+    "diyBadge": "ESSENTIAL",
     "diyTitle": "Planificador de Intervención DIY",
     "diyBody": "Prepara una conversación familiar sobre tratamiento: acuerden límites, escriban cartas, ensayen y preparen un plan para cualquier respuesta.",
     "diyButton": "Abrir Planificador de Intervención DIY",
-    "diyLockedButton": "Desbloquear con Essentials",
+    "diyLockedButton": "Desbloquear con Essential",
     "homecomingTitle": "Semana de Regreso",
     "homecomingBody": "Crea el plan según edad y vivienda segura para los días 0–7 después del alta, antes del viaje a casa y el primer fin de semana.",
     "homecomingButton": "Crear Semana de Regreso",
@@ -46,7 +46,7 @@
       },
       {
         "title": "Ayudar frente a facilitar",
-        "body": "Una prueba útil: ¿esta acción protege a la persona, o protege a la adicción de las consecuencias? Llevarle a una reunión, comida, pagar un tratamiento al proveedor — ayuda. Efectivo, encubrir un DUI, llamar enfermo por ellos — eso amortigua la enfermedad. Nombrar la facilitación no es culpar; es el primer muro."
+        "body": "Una prueba útil: ¿esta acción protege a la persona, o protege a la adicción de las consecuencias? Llevarle a una reunión, comida, pagar un tratamiento al proveedor — ayuda. Efectivo, encubrir una multa por manejar ebrio, avisar al trabajo que está enfermo por él o ella — eso amortigua la enfermedad. Nombrar la facilitación no es culpar; es el primer muro."
       },
       {
         "title": "No tienes que esperar el fondo",
@@ -56,7 +56,7 @@
   },
   "resources": {
     "eyebrow": "Recursos — no un embudo de colocación",
-    "sub": "Niveles de atención, grupos familiares, naloxona y 988. El buscador es un directorio público A–Z. Un navegador puede ayudarte a elegir. Sin ranking patrocinado.",
+    "sub": "Niveles de atención, grupos familiares, naloxona y 988. El buscador es un directorio público A–Z. Un orientador puede ayudarte a elegir. Sin clasificaciones patrocinadas.",
     "levels": {
       "title": "NIVELES DE ATENCIÓN",
       "items": [
@@ -88,16 +88,16 @@
     },
     "naloxone": {
       "title": "Naloxona (Narcan)",
-      "body": "La naloxona puede revertir una sobredosis de opioides. En la mayoría de los estados de EE. UU. está en farmacias sin receta. Tenla en casa si puede haber opioides (incluido fentanilo en otras drogas). Llama al 911 mientras la administras. Esto es reducción de daños, no un plan de tratamiento."
+      "body": "La naloxona puede revertir una sobredosis de opioides. El aerosol nasal Narcan (naloxona) está disponible sin receta en farmacias de todo el país. Tenla en casa si puede haber opioides (incluido fentanilo en otras drogas). Llama al 911 mientras la administras. Esto es reducción de daños, no un plan de tratamiento."
     },
     "lifeline": {
-      "title": "988 — Línea de Prevención del Suicidio y Crisis",
-      "body": "Llama o envía un mensaje al 988 ante pensamientos suicidas, autolesión o una crisis de salud mental. El 911 es para una emergencia que amenaza la vida o una sobredosis (sin respuesta, labios azules, respiración detenida). Ambas quedan por encima de cualquier puerta de coaching de pago en esta app.",
-      "action": "Llamar 988"
+      "title": "988 Línea de Prevención del Suicidio y Crisis",
+      "body": "Llama al 988 (marca 2 para español) o envía AYUDA al 988 ante pensamientos suicidas, autolesión o una crisis de salud mental. El 911 es para una emergencia que amenaza la vida o una sobredosis (sin respuesta, labios azules, respiración detenida). Ambas quedan por encima de cualquier puerta de coaching de pago en esta app.",
+      "action": "Llamar al 988 (marca 2 para español)"
     },
     "finder": {
       "button": "Abrir el buscador público",
-      "note": "Los centros se listan A–Z. La consulta va a un navegador de Sober Helpline — no es un marketplace patrocinado ni un embudo de colocación de pago."
+      "note": "Los centros se listan A–Z. La consulta va a un orientador de Sober Helpline — no es un marketplace patrocinado ni un embudo de colocación de pago."
     }
   },
   "recordings": {
@@ -160,7 +160,7 @@
       },
       {
         "q": "¿Cuándo es una emergencia?",
-        "a": "Llama al 911 ante señales de sobredosis — no responde, labios azules, respiración lenta o detenida, gorgoteo. Llama o envía un mensaje al 988 ante cualquier mención de suicidio o autolesión. No esperes a estar segura; equivocarse y estar a salvo es mejor que tener razón y llegar tarde. Guarda ambos números en tu teléfono ahora, y si hay opioides, ten naloxona (Narcan) en casa — en la mayoría de los estados no requiere receta."
+        "a": "Llama al 911 ante señales de sobredosis — no responde, labios azules, respiración lenta o detenida, gorgoteo. Llama al 988 (marca 2 para español) o envía AYUDA al 988 ante cualquier mención de suicidio o autolesión. No esperes a estar segura; equivocarse y estar a salvo es mejor que tener razón y llegar tarde. Guarda ambos números en tu teléfono ahora, y si hay opioides, ten naloxona (Narcan) en casa — el aerosol nasal Narcan está disponible sin receta en farmacias de todo el país."
       }
     ],
     "collapseHint": "Oculta esta respuesta",

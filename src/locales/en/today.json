@@ -65,7 +65,8 @@
     "doneStreak": "✓ Check-in complete — {{count}}-day streak!",
     "doneCoach": "{{orgFirst}} will see your update.",
     "lowSupportTitle": "A heavy stretch",
-    "lowSupportBody": "That's {{count}} hard days lately — a lot to carry alone. A coach can help you steady things in one private hour, just for you.",
+    "lowSupportBody_one": "That's {{count}} hard day lately — a lot to carry alone. A coach can help you steady things in one private hour, just for you.",
+    "lowSupportBody_other": "That's {{count}} hard days lately — a lot to carry alone. A coach can help you steady things in one private hour, just for you.",
     "lowSupportButton": "Talk to a coach",
     "responses": {
       "safety": {
@@ -155,11 +156,14 @@
   "weekReview": {
     "eyebrow": "Your week",
     "title": "Look at what you did this week",
-    "checkins": "{{count}} check-ins",
+    "checkins_one": "{{count}} check-in",
+    "checkins_other": "{{count}} check-ins",
     "avgMood": "average mood {{avg}}/5",
     "avgCapacity": "average capacity {{avg}}/5",
-    "highPressureDays": "{{count}} high-pressure days",
-    "boundaries": "{{count}} boundaries held",
+    "highPressureDays_one": "{{count}} high-pressure day",
+    "highPressureDays_other": "{{count}} high-pressure days",
+    "boundaries_one": "{{count}} boundary held",
+    "boundaries_other": "{{count}} boundaries held",
     "encourage": "Steadiness like this is what recovery looks like from the family side. Keep going."
   },
   "pathway": {

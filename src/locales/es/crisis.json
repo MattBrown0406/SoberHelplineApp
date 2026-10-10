@@ -9,8 +9,8 @@
     "title": "¿Hay peligro inmediato?",
     "note": "Estas acciones siempre son gratuitas. Las llamadas y mensajes requieren servicio telefónico.",
     "call911": "Llamar al 911 (EE. UU.)",
-    "call988": "Llamar al 988",
-    "text988": "Enviar mensaje al 988",
+    "call988": "Llamar al 988 (marca 2 para español)",
+    "text988": "Enviar AYUDA al 988",
     "poisonControl": "Control de Envenenamiento EE. UU.",
     "openErrorTitle": "No se pudo abrir la app Teléfono",
     "openErrorBody": "Es posible que este dispositivo no pueda llamar ni enviar mensajes. Desde cualquier teléfono, llama o envía un mensaje al {{number}}."
@@ -18,16 +18,16 @@
   "triage": {
     "title": "1. Evalúa la situación",
     "items": {
-      "notBreathing": "No respira, está inconsciente, azul/gris, o no despierta.",
+      "notBreathing": "No respira, está inconsciente, tiene los labios o la piel azulados o grisáceos, o no se le puede despertar.",
       "overdose": "Sospecho una sobredosis o envenenamiento.",
       "suicide": "Amenaza con suicidarse o con autolesionarse gravemente.",
       "violence": "Amenaza con violencia o alguien podría salir herido.",
       "weapons": "Hay armas involucradas o preocupa el acceso a armas.",
-      "drivingIntoxicated": "Intenta manejar bajo los efectos.",
+      "drivingIntoxicated": "Intenta manejar bajo los efectos del alcohol o de drogas.",
       "childrenPresent": "Hay niños presentes o expuestos a la crisis.",
       "missing": "Está desaparecido/a o nadie sabe dónde está.",
       "intoxicated": "Está intoxicado/a en este momento.",
-      "aggressive": "Está verbalmente agresivo/a, escalando, o es imposible razonar.",
+      "aggressive": "Está verbalmente agresivo/a, cada vez más alterado/a, o es imposible razonar con él/ella.",
       "askingMoney": "Está presionando a la familia por dinero, vivienda, llaves o un rescate.",
       "willingTalk": "Está lo bastante sobrio/a y dispuesto/a a hablar con calma."
     }
@@ -37,7 +37,7 @@
     "RED": {
       "label": "Rojo",
       "title": "Riesgo inmediato de seguridad",
-      "body": "Esto no es una conversación de coaching. Muévete hacia la seguridad y contacta a los servicios de emergencia ahora.",
+      "body": "Esto no es una conversación de coaching. Ponte a salvo y comunícate ahora con los servicios de emergencia.",
       "action": "Llama al 911 o al 988 ahora si hay peligro médico inmediato, violencia o riesgo de suicidio."
     },
     "ORANGE": {
@@ -50,7 +50,7 @@
       "label": "Amarillo",
       "title": "Preocupación en aumento",
       "body": "El patrón necesita una respuesta familiar clara. Es buen momento para poner un límite, documentar lo ocurrido y planear antes de la próxima escalada.",
-      "action": "Construye un límite y actualiza el registro de incidentes y el plan de seguridad."
+      "action": "Define un límite y actualiza el registro de incidentes y el plan de seguridad."
     },
     "GREEN": {
       "label": "Verde",
@@ -66,10 +66,10 @@
       "Administra naloxona si la tienes. Repite según las instrucciones del empaque si hace falta.",
       "Inicia respiración de rescate/RCP si sabes hacerlo y es seguro.",
       "Ponlo/a en posición de recuperación si respira pero está inconsciente.",
-      "Quédate hasta que lleguen los servicios. Diles qué sustancias podrían estar involucradas."
+      "Quédate hasta que lleguen los servicios de emergencia. Diles qué sustancias podrían estar involucradas."
     ],
     "redSuicide": [
-      "Llama o envía mensaje al 988 ahora. Llama al 911 si hay peligro inmediato o medios presentes.",
+      "Llama o envía un mensaje al 988 ahora (marca 2 para español). Llama al 911 si hay peligro inmediato o si tiene a su alcance armas, pastillas u otros medios para hacerse daño.",
       "No lo/la dejes solo/a si es seguro que te quedes cerca.",
       "Retira el acceso a armas, pastillas o llaves solo si puedes hacerlo con seguridad.",
       "Usa frases cortas y calmadas. No debatas, no avergüences, no amenaces.",
@@ -83,9 +83,9 @@
       "Documenta las amenazas cuando todos estén a salvo."
     ],
     "orange": [
-      "Deja de discutir. Nada de debatir el tratamiento mientras esté intoxicado/a o escalado/a.",
+      "Deja de discutir. Nada de debatir el tratamiento mientras esté intoxicado/a o alterado/a.",
       "Pon a salvo a los niños, las llaves, el efectivo y los medicamentos si puedes hacerlo con calma.",
-      "No des dinero, ni llevadas a lugares inseguros, ni acceso al auto.",
+      "No le des dinero, no lo/la lleves a lugares inseguros y no le des acceso al auto.",
       "Usa un solo guion corto. Repítelo. No des explicaciones de más.",
       "Registra el incidente cuando la situación inmediata se calme."
     ],
@@ -139,11 +139,11 @@
     "consequence": "Qué pasa si se cruza",
     "defaults": {
       "behavior": "este patrón continúa",
-      "support": "buscar apoyo real de recuperación",
+      "support": "buscar apoyo real para tu recuperación",
       "noLongerDo": "dar dinero, tapar consecuencias o discutir con la adicción",
       "consequence": "voy a dar un paso atrás, proteger mi paz y contactar ayuda si la seguridad se ve en riesgo"
     },
-    "template": "Te amo y te quiero sano/a. Cuando {{behavior}}, no voy a seguir respondiendo como antes. Voy a apoyar {{support}}. Ya no voy a {{noLongerDo}}. Si se cruza el límite, {{consequence}}."
+    "template": "Te amo y te quiero sano/a. Cuando {{behavior}}, no voy a seguir respondiendo como antes. Te voy a apoyar para {{support}}. Ya no voy a {{noLongerDo}}. Si se cruza el límite, {{consequence}}."
   },
   "readiness": {
     "title": "7. Preparación para la intervención",
@@ -163,7 +163,7 @@
     "requesting": "Solicitando…",
     "share": "Compartir / Exportar resumen de crisis familiar",
     "call911": "Llamar al 911",
-    "call988": "Llamar/Enviar mensaje al 988"
+    "call988": "Llamar al 988 (marca 2 para español) o enviar AYUDA"
   },
   "videoAlerts": {
     "gateTitle": "Apoyo por video Premier",
@@ -198,14 +198,15 @@
   },
   "wallet": {
     "storageError": "No se pudo leer o actualizar el almacenamiento. La edición está pausada para proteger los datos. Los cambios recientes podrían no estar guardados. Reintenta para cargar la copia guardada.",
-    "signInRequired": "Inicia sesión para acceder a tu plan guardado. La ayuda de emergencia sigue disponible.",
+    "signInRequired": "Inicia sesión para acceder a tu Cartera de Seguridad guardada. La ayuda de emergencia sigue disponible.",
     "kicker": "SIEMPRE GRATIS",
     "title": "Cartera de Seguridad",
     "body": "Guarda los datos del hogar que podrías necesitar cuando sea difícil pensar con claridad. Nada se comparte a menos que elijas exportarlo.",
     "offline": "Guardado en este dispositivo · disponible sin conexión",
     "startGuide": "Algo está pasando ahora — abrir la Guía de Crisis",
     "loading": "Abriendo tu plan de seguridad guardado…",
-    "savedCount": "{{count}} datos de seguridad listos",
+    "savedCount_one": "{{count}} dato de seguridad listo",
+    "savedCount_other": "{{count}} datos de seguridad listos",
     "autoSave": "Los cambios se guardan automáticamente para esta cuenta en este dispositivo. Evita ingresar datos privados en un dispositivo compartido.",
     "coreProgress": "Plan principal: {{completed}} de {{total}} datos esenciales listos",
     "readyTitle": "Tu Cartera de Seguridad principal está lista",
@@ -279,7 +280,7 @@
       "crisisHeading": "Si está pasando ahora",
       "crisisLines": [
         "Peligro inmediato o posible sobredosis: llama al 911.",
-        "Crisis suicida: llama o envía un mensaje de texto al 988."
+        "Crisis suicida: llama al 988 (marca 2 para español) o envía AYUDA al 988."
       ],
       "note": "Compartido desde la app Sober Helpline. No es un registro médico ni un servicio de monitoreo de emergencias.",
       "preview": "Vista previa",
@@ -460,6 +461,9 @@
     "leave": "Salir",
     "back": "Volver",
     "connecting": "Conectando la sesión de video privada…",
+    "loadError": "No pudimos abrir esta sesión de video. Revisa tu conexión e inténtalo de nuevo.",
+    "mediaToggleError": "No pudimos cambiar tu micrófono o tu cámara. Inténtalo de nuevo.",
+    "connectionError": "Hubo un problema con la conexión de video. Revisa tu conexión y vuelve a entrar.",
     "errorTitle": "Error de la sesión de video",
     "webOnly": "Las sesiones de video privadas están disponibles en la app de iOS."
   },

@@ -34,7 +34,7 @@ test('actual Expo adapter uses discreet payload, fixed local daily trigger and n
   };
   const { personalReminders: service } = load('src/reminders/native.ts', {
     '@react-native-async-storage/async-storage': { getItem: async (key: string) => disk.get(key) ?? null, setItem: async (key: string, value: string) => { disk.set(key, value); } },
-    'react-native': { Platform: { OS: 'ios' } }, 'expo-notifications': notifications,
+    'react-native': { Platform: { OS: 'ios' } }, 'expo-notifications': notifications, i18next: { t: (key: string) => key },
     'expo-crypto': { randomUUID: () => 'opaque-id' }, './personalReminders': core, './copy': { reminderCopy },
   });
   await service.setAccount('private-account');

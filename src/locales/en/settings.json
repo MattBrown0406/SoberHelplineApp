@@ -57,7 +57,7 @@
     "dailyErrorTitle": "Reminder change not confirmed",
     "dailyErrorBody": "Check notification permission in device Settings and retry. No reminder delivery is guaranteed.",
     "familyCallTitle": "Monday family call reminder",
-    "familyCallDesc": "A reminder 30 minutes before The Family Squares, our free family support call on Zoom (Mondays, 7:00 PM Pacific).",
+    "familyCallDesc": "A reminder 15 minutes before The Family Squares, our free family support call on Zoom (Mondays, 7:00 PM Pacific), if you've saved your spot.",
     "familyCallErrorTitle": "Couldn't update the reminder",
     "familyCallErrorBody": "Check your connection and try again."
   },
@@ -105,7 +105,8 @@
     "button": "Delete account",
     "confirmTitle": "Delete your account?",
     "confirmMessage": "Your data will be permanently deleted within 30 days. This cannot be undone.",
-    "subscriptionNote": "Deleting your account does not cancel a subscription. If you subscribed through the App Store or on the web, cancel it there first so you aren't charged again.",
+    "subscriptionNote": "Deleting your account does not cancel an App Store subscription. Cancel it first in your Apple ID subscriptions so you aren't charged again.",
+    "subscriptionNoteWeb": "Deleting your account does not cancel a membership you bought on our website. Cancel it there first so you aren't charged again.",
     "confirmButton": "Yes, delete my account",
     "cancelButton": "Cancel",
     "errorTitle": "Account not deleted",
@@ -119,5 +120,8 @@
     "action": "Manage personal reminders",
     "cleanupTitle": "Reminder cleanup could not be confirmed",
     "cleanupBody": "You are still signed in. Retry before signing out or deleting your account. You can disable notifications in your device Settings."
+  },
+  "reminders": {
+    "channelName": "Personal reminders"
   }
 }

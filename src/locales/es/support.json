@@ -6,7 +6,7 @@
     "copilotTitle": "Guía de crisis gratuita",
     "copilotBody": "Orientación de seguridad gratuita paso a paso. Es una guía en la app, no un coach en vivo.",
     "copilotButton": "Abrir Copiloto de Crisis",
-    "sheetTitle": "No estás solo/a en este momento",
+    "sheetTitle": "No estás sola en este momento",
     "attachedSub": "está de guardia para tu familia esta noche.",
     "directSub": "está de guardia y responderá primero.",
     "freeSub": "puede ayudarte mediante el Copiloto de Crisis gratuito; los mensajes están disponibles con Essential y Premier.",
@@ -14,7 +14,7 @@
     "messageButton": "Mensaje",
     "divider": "Contactos de emergencia — sin suscripción",
     "line911": "911 — Emergencia que pone en riesgo la vida",
-    "line988": "988 — Línea de crisis de suicidio y crisis",
+    "line988": "988 Línea de Prevención del Suicidio y Crisis (marca 2 para español)",
     "lineSh": "Línea de crisis de Sober Helpline",
     "freeNote": "La guía inmediata de crisis y los contactos de emergencia son gratuitos, sin suscripción. El coaching de pago es aparte y no es atención de emergencias."
   },
@@ -40,7 +40,7 @@
     "freeName": "Gratuito",
     "freeFeatures": "Guía de crisis inmediata y pasos de seguridad",
     "freeCurrent": "Tu plan",
-    "essentialName": "Esencial",
+    "essentialName": "Essential",
     "essentialFeatures": "Crea y guarda tu plan de crisis · mejora a Premier o elige una llamada única de revisión al precio de miembro de {{memberRate}}",
     "premiumName": "Premier",
     "premiumFeatures": "Revisión del plan incluida · solicitudes de video privado sujetas a programación y disponibilidad del personal",
@@ -56,7 +56,7 @@
   "paywall": {
     "eyebrow": "COACHING Y GRUPOS",
     "heading": "Los mensajes al coach y el video en vivo van con un plan",
-    "body": "Los muros del castillo, la revisión de facilitación, el tracker, las preguntas de Aprender y los recursos familiares siguen gratis. Essential y Premier añaden mensajería con el coach, grupos y video en vivo. Las líneas de crisis (911 / 988 / Copiloto) no se bloquean.",
+    "body": "Los muros del castillo, la revisión de facilitación, el registro, las preguntas de Aprender y los recursos familiares siguen gratis. Essential y Premier añaden mensajería con el coach, grupos y video en vivo. Las líneas de crisis (911 / 988 / Copiloto) no se bloquean.",
     "viewPlans": "Ver planes",
     "subscribeEssential": "Suscribirse a Essential · {{price}}/mes",
     "subscribePremium": "Mejorar a Premier · {{price}}/mes",
@@ -87,7 +87,7 @@
     "close": "Cerrar"
   },
   "upgradeSheet": {
-    "title": "Actualizar a Premier",
+    "title": "Mejorar a Premier",
     "featuresHeader": "Premier incluye:",
     "featuresHeaderGeneric": "Incluye:",
     "renewalNote": "{{price}} al mes, cobrado a tu Cuenta de Apple. Se renueva automáticamente a menos que lo desactives al menos 24 horas antes de que termine el período. Administra o cancela cuando quieras en los ajustes de tu Cuenta de Apple.",
@@ -144,8 +144,10 @@
   "community": {
     "openLink": "Comunidad de familias",
     "title": "Comunidad",
-    "belonging": "{{count}} familias se unirán a {{schedule}}.",
-    "belongingNoSchedule": "{{count}} familias son parte de esta comunidad.",
+    "belonging_one": "{{count}} familia se unirá a {{schedule}}.",
+    "belonging_other": "{{count}} familias se unirán a {{schedule}}.",
+    "belongingNoSchedule_one": "{{count}} familia es parte de esta comunidad.",
+    "belongingNoSchedule_other": "{{count}} familias son parte de esta comunidad.",
     "belongingZero": "Sé la primera persona en saludar.",
     "guidelines": "Sé amable. Esto es apoyo entre familias — no es consejo médico. En una emergencia, llama al 911 o al 988.",
     "empty": "Aún no hay publicaciones. Comparte un ánimo, un pequeño logro o una pregunta.",
@@ -161,20 +163,21 @@
     "cancel": "Cancelar",
     "crisisTitle": "Parece que las cosas están muy difíciles ahora",
     "crisisBody": "Un espacio entre familias no es el lugar más seguro para esto — pero la ayuda sí lo es, y no estás sola.",
-    "crisisCall988": "Llama o envía mensaje al 988",
+    "crisisCall988": "Llamar al 988 (marca 2 para español)",
     "crisisCall911": "Llamar al 911",
     "crisisMessageCoach": "Enviar mensaje a mi coach",
     "crisisClose": "Cerrar",
     "postRateLimited": "Has publicado mucho en la última hora. Espera un poco antes de volver a publicar.",
     "crisisPostPast": "Esto no está pasando ahora — publicarlo",
-    "safetyFooter": "¿En crisis? Llama o envía mensaje al 988, o llama al 911.",
+    "safetyFooter": "¿En crisis? Llama al 988 (marca 2 para español) o envía AYUDA al 988, o llama al 911.",
     "timeNow": "ahora mismo",
     "timeMinutes": "hace {{count}}m",
     "timeHours": "hace {{count}}h",
     "timeDays": "hace {{count}}d",
     "support": "Enviar apoyo",
     "supported": "Apoyo enviado",
-    "supportReceived": "{{count}} familias te enviaron apoyo",
+    "supportReceived_one": "{{count}} familia te envió apoyo",
+    "supportReceived_other": "{{count}} familias te enviaron apoyo",
     "actionError": "No se pudo completar. Revisa tu conexión e intenta de nuevo.",
     "anonymousAuthor": "Un familiar",
     "block": "Bloquear",
@@ -189,7 +192,7 @@
     "unblockA11y": "Desbloquear a {{name}}",
     "unblockConfirmTitle": "¿Desbloquear a {{name}}?",
     "unblockConfirmBody": "Sus publicaciones volverán a aparecer en tu comunidad.",
-    "resourceNoteBody": "Tu publicación está compartida. Si tú o alguien que amas está en peligro ahora mismo, llama al 911. Si hay pensamientos de suicidio o una crisis de salud mental, llama o envía mensaje al 988 — a cualquier hora, de día o de noche.",
+    "resourceNoteBody": "Tu publicación está compartida. Si tú o alguien que amas está en peligro ahora mismo, llama al 911. Si hay pensamientos de suicidio o una crisis de salud mental, llama al 988 (marca 2 para español) o envía AYUDA al 988 — a cualquier hora, de día o de noche.",
     "resourceNoteDismiss": "Entendido"
   },
   "chat": {
@@ -279,9 +282,9 @@
       "steps": [
         "Llama al 911 de inmediato — no esperes.",
         "Si tienes Narcan (naloxona) disponible, adminístralo ahora.",
-        "Colócalos de lado (posición de recuperación) para evitar asfixia.",
+        "Coloca a la persona de lado (posición de recuperación) para evitar asfixia.",
         "Permanece en la línea con el 911 y sigue sus instrucciones.",
-        "No los dejes solos hasta que llegue la ayuda.",
+        "No dejes sola a la persona hasta que llegue la ayuda.",
         "Las leyes del Buen Samaritano te protegen — llama al 911."
       ]
     },
@@ -291,9 +294,9 @@
         "Mantén la calma. Tu presencia importa.",
         "Pregunta directamente: \"¿Estás pensando en hacerte daño?\"",
         "Retira o asegura el acceso a medios si es seguro hacerlo.",
-        "Llama o envía un mensaje al 988 (Línea de Crisis) juntos si es posible.",
-        "No los dejes solos hasta que la crisis pase o llegue la ayuda.",
-        "Si crees que están en peligro inmediato, llama al 911."
+        "Llama o envía un mensaje al 988 (Línea de Prevención del Suicidio y Crisis), juntos si es posible.",
+        "No dejes sola a la persona hasta que pase la crisis o llegue la ayuda.",
+        "Si crees que está en peligro inmediato, llama al 911."
       ]
     },
     "unsafe": {
@@ -301,9 +304,9 @@
       "steps": [
         "No discutas ni intentes razonar con alguien que está bajo los efectos de sustancias o escalado.",
         "Crea distancia física — ve a otra habitación o sal de la casa.",
-        "Si te sientes amenazado/a, sal de inmediato. Tu seguridad es lo primero.",
+        "Si te sientes amenazada, sal de inmediato. Tu seguridad es lo primero.",
         "Llama al 911 si hay una amenaza de violencia.",
-        "No intentes sujetarlos físicamente.",
+        "No intentes sujetar físicamente a la persona.",
         "Contacta a tu coach o red de apoyo una vez que estés en un lugar seguro."
       ]
     },

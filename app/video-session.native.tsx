@@ -85,7 +85,8 @@ function PrivateVideoCall({ onLeave }: { onLeave: () => void }) {
         if (localParticipant.isCameraEnabled !== next) throw new Error('Camera state did not change.');
       }
     } catch (error) {
-      if (mediaActive.current) Alert.alert(t('video.errorTitle'), String(error));
+      console.error('[video-session] media toggle failed', error);
+      if (mediaActive.current) Alert.alert(t('video.errorTitle'), t('video.mediaToggleError'));
     } finally {
       mediaBusy.current = false;
       if (mediaActive.current) setMediaPending(false);
@@ -145,7 +146,7 @@ function VideoSessionContent({ sessionId }: { sessionId: string }) {
   const router = useRouter();
 
   const [tokenResult, setTokenResult] = useState<TokenResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -159,7 +160,8 @@ function VideoSessionContent({ sessionId }: { sessionId: string }) {
         const result = await fetchPrivateVideoToken(sessionId);
         if (active) setTokenResult(result);
       } catch (e) {
-        if (active) setError(String(e));
+        console.error('[video-session] failed to open session', e);
+        if (active) setLoadFailed(true);
       }
     }
     void init();
@@ -174,10 +176,10 @@ function VideoSessionContent({ sessionId }: { sessionId: string }) {
     if (mountedRef.current) router.back();
   }, [router]);
 
-  if (error) {
+  if (loadFailed) {
     return (
       <SafeAreaView style={[styles.center, { backgroundColor: colors.ink }]}>
-        <Text style={[styles.errorText, { color: colors.coral }]}>{error}</Text>
+        <Text style={[styles.errorText, { color: colors.coral }]}>{t('video.loadError')}</Text>
         <TouchableOpacity onPress={leave} style={[styles.errorBtn, { backgroundColor: colors.primary }]}>
           <Text style={styles.errorBtnText}>{t('video.back')}</Text>
         </TouchableOpacity>
@@ -203,7 +205,8 @@ function VideoSessionContent({ sessionId }: { sessionId: string }) {
       video
       onDisconnected={leave}
       onError={(e) => {
-        if (mountedRef.current) Alert.alert(t('video.errorTitle'), String(e));
+        console.error('[video-session] connection error', e);
+        if (mountedRef.current) Alert.alert(t('video.errorTitle'), t('video.connectionError'));
       }}
     >
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>

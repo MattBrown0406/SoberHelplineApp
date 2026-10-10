@@ -35,7 +35,7 @@ const BAND_COLOR: Record<SituationBand, string> = {
 
 export default function SituationBriefScreen() {
   const { colors } = useTheme();
-  const { t } = useTranslation('brief');
+  const { t, i18n } = useTranslation('brief');
   const { t: tTracker } = useTranslation('tracker');
   const { t: tOnboarding } = useTranslation('onboarding');
   const router = useRouter();
@@ -287,7 +287,7 @@ export default function SituationBriefScreen() {
           {briefs.map((b) => (
             <View key={b.id} style={[styles.historyRow, { borderTopColor: colors.line }]}>
               <Text style={[styles.historyDate, { color: colors.ink }]}>
-                {new Date(b.created_at).toLocaleDateString()}
+                {new Date(b.created_at).toLocaleDateString(i18n.resolvedLanguage ?? i18n.language)}
               </Text>
               <Text
                 style={[

@@ -53,7 +53,7 @@
     "projectionLabel": "Si el mismo patrón continuara durante cinco años",
     "largestLabel": "Área principal",
     "context": "Esta cifra no mide cuánto te importa esa persona. Refleja las maneras en que trataste de mantenerla segura o mantener a la familia funcionando. Ahora puedes usarla para decidir hacia dónde irá tu apoyo.",
-    "fundTitle": "¿Qué estás dispuesto a seguir financiando?",
+    "fundTitle": "¿Qué estás dispuesta a seguir financiando?",
     "fundBody": "Elige apoyos que apunten a la salud, la seguridad o la recuperación.",
     "fundOptions": [
       { "id": "provider", "label": "Tratamiento o evaluación pagados directamente al proveedor" },
@@ -95,5 +95,5 @@
     "sharePause": "Haré una pausa o diré no a:",
     "shareBoundary": "Mi límite: {{boundary}}"
   },
-  "disclaimer": "Solo para reflexión personal y educación; no constituye asesoramiento financiero, legal ni médico. Si alguien está en peligro inmediato, llama al 911. Llama o envía un mensaje al 988 para apoyo en una crisis."
+  "disclaimer": "Solo para reflexión personal y educación; no constituye asesoramiento financiero, legal ni médico. Si alguien está en peligro inmediato, llama al 911. Llama al 988 (marca 2 para español) o envía AYUDA al 988 para apoyo en una crisis."
 }

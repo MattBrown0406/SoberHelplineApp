@@ -26,7 +26,8 @@ type Controller = ReturnType<typeof useTreatmentActionPlan>;
 
 export function TheySaidYesMode({ controller }: { controller: Controller }) {
   const { colors } = useTheme();
-  const { t } = useTranslation('treatmentActionPlan');
+  const { t, i18n } = useTranslation('treatmentActionPlan');
+  const locale = i18n.resolvedLanguage ?? i18n.language;
   const router = useRouter();
   const { plan, updateExecution, saveState } = controller;
   const [clock, setClock] = useState(() => new Date());
@@ -187,7 +188,7 @@ export function TheySaidYesMode({ controller }: { controller: Controller }) {
       {departureLocked ? (
         <View style={[styles.lockedDeparture, { backgroundColor: colors.primaryLight, borderColor: colors.primary }]}>
           <Text style={[styles.lockedTime, { color: colors.primary }]}>
-            {departure.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+            {departure.toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' })}
           </Text>
           <Text style={[styles.lockedHint, { color: colors.inkSoft }]}>{t('yesMode.leaveLocked')}</Text>
         </View>
@@ -200,7 +201,7 @@ export function TheySaidYesMode({ controller }: { controller: Controller }) {
               fallbackValue={suggestedDeparture}
               minimumDate={new Date()}
               onChange={(date) => setDraft((current) => ({ ...current, date }))}
-              label={draft.date ? draft.date.toLocaleDateString() : t('yesMode.setDate')}
+              label={draft.date ? draft.date.toLocaleDateString(locale) : t('yesMode.setDate')}
               accessibilityLabel={t('yesMode.setDate')}
               style={styles.smallButton}
             />
@@ -210,7 +211,7 @@ export function TheySaidYesMode({ controller }: { controller: Controller }) {
               fallbackValue={suggestedDeparture}
               minuteInterval={5}
               onChange={(time) => setDraft((current) => ({ ...current, time }))}
-              label={draft.time ? draft.time.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : t('yesMode.setTime')}
+              label={draft.time ? draft.time.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' }) : t('yesMode.setTime')}
               accessibilityLabel={t('yesMode.setTime')}
               style={styles.smallButton}
             />

@@ -1,11 +1,11 @@
 {
-  "categories": {"Inpatient Treatment": "Tratamiento residencial", "Outpatient Treatment": "Tratamiento ambulatorio", "Medical Detox": "Desintoxicación médica", "Sober Living": "Vivienda de recuperación", "Interventionists": "Intervencionistas", "Sober Coaches/Companions": "Coaches y acompañantes de recuperación", "Therapists": "Terapeutas", "Psychiatrists": "Psiquiatras"},
+  "categories": {"Inpatient Treatment": "Tratamiento residencial", "Outpatient Treatment": "Tratamiento ambulatorio", "Medical Detox": "Desintoxicación médica", "Sober Living": "Vivienda sobria", "Interventionists": "Intervencionistas", "Sober Coaches/Companions": "Coaches y acompañantes de recuperación", "Therapists": "Terapeutas", "Psychiatrists": "Psiquiatras"},
   "title": "Buscador de tratamientos",
   "intro": {
     "browseAll": "Ver todos los proveedores",
     "directorySource": "Anuncios aprobados actuales de SoberHelpline.com, aquí en la app. Las ubicaciones y los servicios pueden tener anuncios separados.",
     "h1": "Encontremos la ayuda adecuada para esa persona que amas.",
-    "lede": "Directorio público A–Z de centros, intervencionistas y coaches de sobriedad. Filtra por lo que necesitas; un navegador de Sober Helpline puede ayudarte a elegir. Sin ranking patrocinado.",
+    "lede": "Directorio público A–Z de centros, intervencionistas y coaches de sobriedad. Filtra por lo que necesitas; un orientador de Sober Helpline puede ayudarte a elegir. Sin clasificaciones patrocinadas.",
     "whatEyebrow": "¿Qué estás buscando?"
   },
   "cats": {
@@ -154,7 +154,7 @@
       "Afirmativo LGBTQ+",
       "Veteranos",
       "Profesionales",
-      "Primeros respondientes",
+      "Personal de primera respuesta",
       "Mujeres embarazadas"
     ],
     "budgets": [
@@ -167,12 +167,16 @@
     "selfPay": "Pago directo"
   },
   "results": {
-    "count_all": "{{count}} anuncios",
+    "count_all_one": "{{count}} anuncio",
+    "count_all_other": "{{count}} anuncios",
     "search": "Buscar por nombre, ciudad, estado o servicio",
     "refresh": "Actualizar anuncios",
-    "count_center": "{{count}} centros",
-    "count_interventionist": "{{count}} intervencionistas",
-    "count_coach": "{{count}} coaches",
+    "count_center_one": "{{count}} centro",
+    "count_center_other": "{{count}} centros",
+    "count_interventionist_one": "{{count}} intervencionista",
+    "count_interventionist_other": "{{count}} intervencionistas",
+    "count_coach_one": "{{count}} coach",
+    "count_coach_other": "{{count}} coaches",
     "inState": " en {{state}}",
     "edit": "Editar",
     "filters": "Filtros: {{list}}",
@@ -202,13 +206,13 @@
     "statAvailability": "disponibilidad",
     "ctaCenter": "Solicitar información y disponibilidad",
     "ctaOther": "Solicitar una consulta gratuita",
-    "disclaimer": "{{type}} · Un navegador de Sober Helpline atiende cada solicitud — sin costo, sin presión."
+    "disclaimer": "{{type}} · Un orientador de Sober Helpline atiende cada solicitud — sin costo, sin presión."
   },
   "inquiry": {
     "barTitle": "Solicitar información",
     "h1Named": "Solicitar una consulta — {{name}}",
     "h1": "Solicitar información",
-    "lede": "Un navegador de Sober Helpline te contactará — normalmente en unas horas — para ayudarte con el siguiente paso. Sin costo, sin presión.",
+    "lede": "Un orientador de Sober Helpline te contactará — normalmente en unas horas — para ayudarte con el siguiente paso. Sin costo, sin presión.",
     "nameLabel": "Tu nombre",
     "namePlaceholder": "Nombre y apellido",
     "relationshipLabel": "Tu relación con tu ser querido",
@@ -222,7 +226,7 @@
     "send": "Enviar solicitud",
     "sending": "Enviando…",
     "errorTitle": "No se pudo enviar tu solicitud",
-    "errorBody": "Algo salió mal al contactar a nuestro equipo. Revisa tu conexión e inténtalo de nuevo — o llama al 988 en cualquier momento para apoyo inmediato.",
+    "errorBody": "Algo salió mal al contactar a nuestro equipo. Revisa tu conexión e inténtalo de nuevo — o llama al 988 (marca 2 para español) en cualquier momento para apoyo inmediato.",
     "relationships": [
       "Madre/Padre",
       "Cónyuge / pareja",
@@ -241,12 +245,12 @@
     "confirmLedeNamed": "{{first}}, no estás sola en esto. Enviamos tu solicitud sobre {{provider}}.",
     "confirmLede": "No estás sola en esto. Enviamos tu solicitud.",
     "steps": [
-      "Un navegador de Sober Helpline revisa tu solicitud y la disponibilidad actual del proveedor.",
+      "Un orientador de Sober Helpline revisa tu solicitud y la disponibilidad actual del proveedor.",
       "Te llama o escribe (tú eliges) para confirmar encaje, seguro y próximos pasos.",
       "Si encaja, te presenta directamente con el proveedor — y sigue a tu lado."
     ],
     "backToResults": "Volver a resultados",
-    "crisisNote": "¿Peligro inmediato? Llama al 911. Para la Línea de Crisis y Suicidio 24/7, llama o envía mensaje al 988."
+    "crisisNote": "¿Peligro inmediato? Llama al 911. Para la 988 Línea de Prevención del Suicidio y Crisis, disponible 24/7, llama o envía un mensaje al 988 (marca 2 para español)."
   },
   "type": {
     "center": "Centro de tratamiento",

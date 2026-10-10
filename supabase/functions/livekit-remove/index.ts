@@ -56,7 +56,10 @@ Deno.serve(async (req) => {
         p_account_id: identity,
         p_room_name: room,
       });
-      if (banError) return json({ ok: false, banned: false, error: banError.message }, 500);
+      if (banError) {
+        console.error('livekit-remove: ban failed', banError.code ?? 'unknown');
+        return json({ ok: false, banned: false, error: 'ban_failed' }, 500);
+      }
       banned = true;
     }
 
@@ -77,7 +80,8 @@ Deno.serve(async (req) => {
 
     return json({ ok: true, banned, removed: true });
   } catch (e) {
-    return json({ error: String(e) }, 500);
+    console.error('livekit-remove: failed', e instanceof Error ? e.message : 'unknown');
+    return json({ error: 'remove_failed' }, 500);
   }
 });
 

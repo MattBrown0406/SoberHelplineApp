@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, type StyleProp, type ViewStyle } from 'react-native';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { applyInputValue, fieldBaseValue, mergePickedValue, toDateInputValue, toInputValue, type DateTimeFieldMode } from '../../lib/dateTimeInput';
 
@@ -27,6 +28,7 @@ type Props = {
  */
 export function DateTimeField({ value, fallbackValue, mode, onChange, label, accessibilityLabel, minimumDate, minuteInterval, style }: Props) {
   const { colors } = useTheme();
+  const { i18n } = useTranslation();
   const [open, setOpen] = useState(false);
   const base = fieldBaseValue(value, fallbackValue);
 
@@ -89,6 +91,7 @@ export function DateTimeField({ value, fallbackValue, mode, onChange, label, acc
         <DateTimePicker
           value={base}
           mode={mode}
+          locale={i18n.resolvedLanguage ?? i18n.language}
           minimumDate={mode === 'date' ? minimumDate : undefined}
           minuteInterval={mode === 'time' ? minuteInterval : undefined}
           onChange={handleChange}

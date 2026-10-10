@@ -60,6 +60,8 @@ function authFixture() {
   const { AccountProvider } = load('src/contexts/AccountContext.tsx', {
     react: { ...h.react, default: h.react },
     'react-native': { AppState: { addEventListener(_, fn) { appState.add(fn); return { remove() { appState.delete(fn); } }; } } },
+    // The fixtures' accounts carry no locale; an un-initialized i18n skips the sync.
+    i18next: { __esModule: true, default: { language: 'en', isInitialized: false } },
     '../lib/supabase': { supabase: {
       auth: { getSession: () => session.promise, onAuthStateChange(fn) { listener = fn; return { data: { subscription: { unsubscribe() {} } } }; } },
       from: () => ({ select: () => ({ eq: () => ({ single: () => reads.current.promise }) }) }),
@@ -192,6 +194,8 @@ function directAccountFixture({ cachedState = 'direct-premium' } = {}) {
   const { AccountProvider } = load('src/contexts/AccountContext.tsx', {
     react: { ...h.react, default: h.react },
     'react-native': { AppState: { addEventListener(_, fn) { appState.add(fn); return { remove() { appState.delete(fn); } }; } } },
+    // The fixtures' accounts carry no locale; an un-initialized i18n skips the sync.
+    i18next: { __esModule: true, default: { language: 'en', isInitialized: false } },
     '../lib/supabase': { supabase: {
       auth: {
         getSession: async () => ({ data: { session: { user: { id: 'principal-A', email: 'ana@example.com' } } } }),
@@ -402,6 +406,8 @@ function lovedOneFixture() {
   const { useLovedOne } = load('src/hooks/useLovedOne.ts', {
     react: h.react, '../lib/monitoring': monitoring,
     '../lib/appFlowGuards': load('src/lib/appFlowGuards.ts'),
+    // The fixtures' accounts carry no locale; an un-initialized i18n skips the sync.
+    i18next: { __esModule: true, default: { language: 'en', isInitialized: false } },
     '../lib/supabase': { supabase: {
       from: () => ({
         select: () => ({ eq: () => ({ maybeSingle: () => request(reads) }) }),

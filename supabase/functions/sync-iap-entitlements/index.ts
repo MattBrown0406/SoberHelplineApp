@@ -89,7 +89,10 @@ serve(async (req) => {
     "reconcile_revenuecat_entitlements",
     { p_account_id: account.id, p_entitlements: mirrored },
   );
-  if (reconcileError) return json({ error: reconcileError.message }, 500);
+  if (reconcileError) {
+    console.error('sync-iap-entitlements: reconcile failed', reconcileError.code ?? 'unknown');
+    return json({ error: 'reconcile_failed' }, 500);
+  }
 
   return json({ success: true, tiers: granted ?? [] });
 });

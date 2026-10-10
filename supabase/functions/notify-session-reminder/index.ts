@@ -19,10 +19,6 @@ const COPY = {
     title: 'Starting in 15 minutes',
     body: 'The Family Squares is tonight at 7:00 PM Pacific — tap to join',
   },
-  es: {
-    title: 'Comienza en 15 minutos',
-    body: 'The Family Squares es esta noche a las 7:00 PM (Pacífico) — toca para unirte',
-  },
 };
 Deno.serve(async (req) => {
   const authError = requireServiceRole(req);
@@ -83,15 +79,17 @@ Deno.serve(async (req) => {
           locale: string | null;
           family_call_reminders: boolean | null;
         } | null;
+        // Spanish members are invited to La Sobremesa (8 PM), never The Family
+        // Squares; notify-la-sobremesa reminds them.
         if (
           !a?.push_token || a.id !== candidate.id || a.family_call_reminders !== true ||
-          seen.has(a.push_token)
+          seen.has(a.push_token) || String(a.locale ?? '').toLowerCase().startsWith('es')
         ) {
           counts.skipped++;
           continue;
         }
         seen.add(a.push_token);
-        const copy = String(a.locale ?? '').startsWith('es') ? COPY.es : COPY.en;
+        const copy = COPY.en;
         recordDelivery(
           counts,
           await deliverLegacy({

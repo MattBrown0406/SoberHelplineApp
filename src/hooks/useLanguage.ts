@@ -2,6 +2,7 @@ import { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { setLanguage, SUPPORTED_LANGUAGES, type SupportedLanguage } from '../i18n';
 import { supabase } from '../lib/supabase';
+import { withTimeoutFallback } from '../lib/authBootstrap';
 
 // Server-sent pushes (group live, practice calls, reminders) read
 // accounts.locale; keep it in step with the language the member picks.
@@ -21,8 +22,11 @@ export function useLanguage(): UseLanguageResult {
   const { i18n } = useTranslation();
   const current: SupportedLanguage = i18n.language.startsWith('es') ? 'es' : 'en';
   const change = useCallback(async (lang: SupportedLanguage) => {
+    // Server first: screens reload on the language change and must already see
+    // the call (and push language) for the new one.
+    // Bounded: a slow network must not stall the switch (the next launch retries).
+    await withTimeoutFallback(syncServerLocale(lang).catch(() => undefined), 1500, undefined);
     await setLanguage(lang);
-    await syncServerLocale(lang).catch(() => undefined);
   }, []);
   return { current, change, languages: SUPPORTED_LANGUAGES };
 }

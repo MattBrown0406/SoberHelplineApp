@@ -48,10 +48,10 @@
   "commitmentHint": "Confirma cada límite antes de salir de casa.",
   "commitments": {
     "writtenBeforeDrive": "Escribimos la visita antes de conducir hasta allí.",
-    "noCash": "No habrá efectivo en la tarjeta ni se entregará efectivo durante o después de la visita.",
+    "noCash": "No pondremos efectivo dentro de la tarjeta ni se entregará efectivo durante o después de la visita.",
     "noRoomReady": "No diremos “tu habitación está lista”, especialmente a una persona de 18 años o más.",
-    "noOutsideNegotiation": "No le sacaremos afuera ni al estacionamiento para volver a discutir el regreso a casa.",
-    "backProgram": "Le veremos, escucharemos con cariño y apoyaremos el programa de tratamiento.",
+    "noOutsideNegotiation": "No lo/la sacaremos afuera ni al estacionamiento para volver a discutir el regreso a casa.",
+    "backProgram": "Lo/La veremos, escucharemos con cariño y apoyaremos el programa de tratamiento.",
     "leaveOnTime": "Terminaremos la visita y nos iremos a la hora escrita.",
     "approvedCarePackage": "El paquete lleva calcetines, estampillas y artículos básicos aprobados—no es una forma de evadir la casa ni el programa.",
     "parkingLotExit": "Tenemos un plan de salida del estacionamiento y no convertiremos la partida en otra decisión sobre el tratamiento."

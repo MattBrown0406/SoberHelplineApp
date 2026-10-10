@@ -14,11 +14,11 @@
     "actionBody": "Get the bed, insurance, ride, bag, work coverage, dependents, and first 72 hours ready before the planned conversation.",
     "actionButton": "Build the action plan",
     "actionBadge": "Free · Planning",
-    "diyBadge": "ESSENTIALS",
+    "diyBadge": "ESSENTIAL",
     "diyTitle": "DIY Intervention Planner",
     "diyBody": "Prepare a family conversation about treatment: agree on boundaries, write letters, rehearse, and plan for either answer.",
     "diyButton": "Open DIY Intervention Planner",
-    "diyLockedButton": "Unlock with Essentials",
+    "diyLockedButton": "Unlock with Essential",
     "homecomingTitle": "Homecoming Week",
     "homecomingBody": "Build the age-aware, housing-safe plan for days 0–7 after discharge—before the ride home and first weekend.",
     "homecomingButton": "Build Homecoming Week",
@@ -88,7 +88,7 @@
     },
     "naloxone": {
       "title": "Naloxone (Narcan)",
-      "body": "Naloxone can reverse an opioid overdose. In most U.S. states it is available at pharmacies without a prescription. Keep it at home if opioids (including fentanyl in other drugs) may be involved. Call 911 as you administer it. This is harm reduction, not a treatment plan."
+      "body": "Naloxone can reverse an opioid overdose. Narcan (naloxone) nasal spray is available over the counter at pharmacies nationwide. Keep it at home if opioids (including fentanyl in other drugs) may be involved. Call 911 as you administer it. This is harm reduction, not a treatment plan."
     },
     "lifeline": {
       "title": "988 Suicide & Crisis Lifeline",
@@ -160,7 +160,7 @@
       },
       {
         "q": "When is it an emergency?",
-        "a": "Call 911 for overdose signs — unresponsive, blue lips, slow or stopped breathing, gurgling. Call or text 988 for any talk of suicide or self-harm. Don't wait to be sure; being wrong and safe beats being right and late. Save both numbers in your phone now, and if opioids are involved, keep naloxone (Narcan) at home — no prescription needed in most states."
+        "a": "Call 911 for overdose signs — unresponsive, blue lips, slow or stopped breathing, gurgling. Call or text 988 for any talk of suicide or self-harm. Don't wait to be sure; being wrong and safe beats being right and late. Save both numbers in your phone now, and if opioids are involved, keep naloxone (Narcan) at home — Narcan nasal spray is available over the counter at pharmacies nationwide."
       }
     ],
     "collapseHint": "Collapses this answer",

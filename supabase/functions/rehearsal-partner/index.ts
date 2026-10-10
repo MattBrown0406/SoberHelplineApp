@@ -474,6 +474,12 @@ Deno.serve(async (req: Request) => {
     return allowed === true ? null : json(429, { ok: false, code: 'daily_limit_reached' });
   };
 
+  // Voice has its own daily cap; past it (or if the check fails) replies stay text.
+  const voiceAllowed = async (): Promise<boolean> => {
+    const { data, error } = await supabase.rpc('consume_rehearsal_quota', { p_mode: 'voice' });
+    return !error && data === true;
+  };
+
   try {
     // ---- speech-to-text ----
     if (payload.mode === 'stt') {
@@ -628,7 +634,7 @@ Deno.serve(async (req: Request) => {
           const limited = await spend('reply');
           if (limited) return limited;
         }
-        const cachedAudio = wantsAudio && scenario.voice
+        const cachedAudio = wantsAudio && scenario.voice && await voiceAllowed()
           ? await synthesize(event.opening_text, scenario.voice, scenario.temperament)
           : null;
         return json(200, {
@@ -729,7 +735,9 @@ Deno.serve(async (req: Request) => {
       }
       // Never voice the safety break — it reads as the app, not the character.
       // The hint is text-only by design and is dropped with a safety break.
-      const audio = !breakCharacter && scenario.voice ? await synthesize(text, scenario.voice, scenario.temperament) : null;
+      const audio = !breakCharacter && scenario.voice && await voiceAllowed()
+        ? await synthesize(text, scenario.voice, scenario.temperament)
+        : null;
       return json(200, {
         ok: true,
         text,

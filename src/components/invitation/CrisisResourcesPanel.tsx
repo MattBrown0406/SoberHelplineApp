@@ -1,9 +1,10 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { openEmergencyLink } from '../../lib/emergencyLinks';
+import { text988Url } from '../safety/text988Url';
 import { FIELD_SETUP_STEP, type ScreenedField } from '../../lib/invitationScreen';
 import { EngineCard, Kicker, SecondaryButton, TextLink } from './ui';
 
@@ -22,7 +23,7 @@ export function CrisisResourcesPanel({
   onAcknowledge?: () => void;
 } = {}) {
   const { colors } = useTheme();
-  const { t } = useTranslation('invitation');
+  const { t, i18n } = useTranslation('invitation');
   const router = useRouter();
   const setupStep = field === 'unknown' ? undefined : FIELD_SETUP_STEP[field];
   return (
@@ -36,7 +37,7 @@ export function CrisisResourcesPanel({
       <View style={styles.row}>
         <Action label={t('crisis.call911')} color={colors.coral} onPress={() => openEmergencyLink('tel:911')} />
         <Action label={t('crisis.call988')} color={colors.primary} onPress={() => openEmergencyLink('tel:988')} />
-        <Action label={t('crisis.text988')} color={colors.primary} onPress={() => openEmergencyLink('sms:988')} />
+        <Action label={t('crisis.text988')} color={colors.primary} onPress={() => openEmergencyLink(text988Url(i18n.language, Platform.OS), '988')} />
       </View>
       <Text style={[styles.section, { color: colors.ink }]}>{t('safety.hotlineTitle')}</Text>
       <View style={styles.row}>

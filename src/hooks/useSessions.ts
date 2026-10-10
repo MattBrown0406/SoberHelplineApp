@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { isLaSobremesaSession } from '../lib/familySquaresSchedule';
@@ -38,9 +39,12 @@ export function useSessions(accountId: string | null) {
     setLoading(false);
   }, []);
 
+  // The server shows the Monday call in the member's language: reload when it changes.
+  const { i18n } = useTranslation();
+  const language = i18n.language;
   useEffect(() => {
     if (accountId) load();
-  }, [accountId, load]);
+  }, [accountId, load, language]);
 
   // Refetch on focus so an admin-updated Zoom link reaches already-open apps.
   useFocusEffect(
@@ -49,14 +53,22 @@ export function useSessions(accountId: string | null) {
     }, [accountId, load]),
   );
 
+  const reserving = useRef(false);
+
   const toggleRsvp = useCallback(
-    async (session: DbSession): Promise<boolean> => {
+    /** true when saved; 'not_available' when La Sobremesa isn't open for reservations yet. */
+    async (session: DbSession): Promise<boolean | 'not_available'> => {
       if (!accountId) return false;
       // Reserving La Sobremesa registers with AyudaSobria for a personal link.
       // Also when "going" but without a link (e.g. RSVP'd from an older app build).
       if (isLaSobremesaSession(session) && (!session.rsvped || !session.zoom_url)) {
-        const reserved = await reserveLaSobremesa();
-        if (!reserved.ok) return false;
+        // One registration at a time: it can take several seconds (AyudaSobria → Zoom).
+        if (reserving.current) return true;
+        reserving.current = true;
+        const reserved = await reserveLaSobremesa().finally(() => {
+          reserving.current = false;
+        });
+        if (!reserved.ok) return reserved.reason === 'not_available' ? 'not_available' : false;
         setSessions((prev) =>
           prev.map((s) => (s.id === session.id ? { ...s, rsvped: true, zoom_url: reserved.joinUrl } : s)),
         );

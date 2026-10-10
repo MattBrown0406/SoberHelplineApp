@@ -68,5 +68,8 @@
     "scheduleFallback": "Lunes · 8:00 p. m. del Pacífico",
     "note": "La Sobremesa es nuestra reunión en español de AyudaSobria. Al reservar recibes tu enlace personal aquí y por correo. Al reservar aceptas respetar la privacidad y la confidencialidad de las demás familias.",
     "notAvailable": "La próxima reunión todavía no está abierta para reservar. Vuelve a intentarlo más tarde."
+  },
+  "provider": {
+    "credentialFull": "Profesional Certificado en Intervención"
   }
 }

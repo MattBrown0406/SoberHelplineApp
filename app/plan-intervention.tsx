@@ -188,7 +188,7 @@ export default function PlanInterventionScreen() {
             {FEATURED_PROVIDER.name}
           </Text>
           <Text style={[styles.providerCred, { color: colors.inkSoft }]}>
-            {FEATURED_PROVIDER.credential} · {FEATURED_PROVIDER.credentialFull}
+            {FEATURED_PROVIDER.credential} · {t('common:provider.credentialFull')}
           </Text>
           <Text style={[styles.providerOrg, { color: colors.inkSoft }]}>
             {FEATURED_PROVIDER.org}

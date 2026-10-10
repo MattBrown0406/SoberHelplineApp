@@ -26,14 +26,16 @@ interface Props {
  */
 export function SituationCard({ nextFreeCall, primaryDoor, onRsvp, onSupportCallJoin, onSupportCallOpenFailed }: Props) {
   const { colors } = useTheme();
-  const { t } = useTranslation('today');
+  const { t, i18n } = useTranslation('today');
   const router = useRouter();
   const coachingRate = useCoachingRate();
   const scheduleFor = useSessionSchedule();
 
   const title = nextFreeCall?.title ?? t('situationCta.freeCallTitle');
   // The Family Squares shows its real next start in the member's time zone.
-  const schedule = nextFreeCall ? scheduleFor(nextFreeCall) : t('common:familySquares.scheduleFallback');
+  const schedule = nextFreeCall
+    ? scheduleFor(nextFreeCall)
+    : t(i18n.language.startsWith('es') ? 'common:laSobremesa.scheduleFallback' : 'common:familySquares.scheduleFallback');
   const isFamilySquares = isFamilySquaresSession(nextFreeCall);
   // Anyone can join once the admin has set the link — RSVP is encouraged for
   // headcount but never a gate ("push of a button", no link required).

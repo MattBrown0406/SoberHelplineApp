@@ -40,7 +40,8 @@
   "inline": {
     "collapsesThisScript": "Collapses this script",
     "expandsThisScript": "Expands this script",
-    "practicedTimes": "practiced {{count}} times",
+    "practicedTimes_one": "practiced {{count}} time",
+    "practicedTimes_other": "practiced {{count}} times",
     "opensPracticeForThisScript": "Opens practice for this script"
   },
   "shelf": {

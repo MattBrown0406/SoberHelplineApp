@@ -17,6 +17,7 @@ import { chooseFreeCall, isLaSobremesaSession } from '../lib/familySquaresSchedu
 import { reserveLaSobremesa, withPersonalLinks } from '../lib/laSobremesa';
 import { appAlert } from '../lib/appAlert';
 import i18n from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 const QUOTE_COUNT = 14;
 
@@ -132,10 +133,13 @@ export function useTodayFeed(
     setLoading(false);
   }, [accountId, joinedAt]);
 
+  // The server shows the Monday call in the member's language: reload when it changes.
+  const { i18n: i18nInstance } = useTranslation();
+  const language = i18nInstance.language;
   useEffect(() => {
     void load();
     return () => { ++generation.current; };
-  }, [load]);
+  }, [load, language]);
 
   // Refetch when the screen regains focus so an admin-updated Zoom link (or
   // fresh RSVP counts) reach members whose app was already open.
@@ -145,13 +149,19 @@ export function useTodayFeed(
     }, [load]),
   );
 
+  const reserving = useRef(false);
   const rsvpFreeCall = useCallback(async () => {
     if (!accountId || !nextFreeCall) return;
+    // One RSVP write (or La Sobremesa registration, which can take seconds) at a time.
+    if (reserving.current) return;
     const wasRsvped = nextFreeCall.rsvped;
     // Reserving La Sobremesa registers with AyudaSobria for a personal link.
     // Also when "going" but without a link (e.g. RSVP'd from an older app build).
     if (isLaSobremesaSession(nextFreeCall) && (!wasRsvped || !nextFreeCall.zoom_url)) {
-      const reserved = await reserveLaSobremesa();
+      reserving.current = true;
+      const reserved = await reserveLaSobremesa().finally(() => {
+        reserving.current = false;
+      });
       if (!reserved.ok) {
         appAlert(
           i18n.t('support:sessions.rsvpErrorTitle'),
@@ -165,18 +175,31 @@ export function useTodayFeed(
     }
     setNextFreeCall((prev) => (prev ? { ...prev, rsvped: !prev.rsvped } : prev));
     setGroupSessions((c) => Math.max(0, c + (wasRsvped ? -1 : 1)));
-    if (wasRsvped) {
-      await supabase
-        .from('session_rsvps')
-        .delete()
-        .eq('session_id', nextFreeCall.id)
-        .eq('account_id', accountId);
-    } else {
-      await supabase.from('session_rsvps').upsert({
-        session_id: nextFreeCall.id,
-        account_id: accountId,
-        status: 'going',
-      });
+    reserving.current = true;
+    let failed = false;
+    try {
+      const result = wasRsvped
+        ? await supabase
+            .from('session_rsvps')
+            .delete()
+            .eq('session_id', nextFreeCall.id)
+            .eq('account_id', accountId)
+        : await supabase.from('session_rsvps').upsert({
+            session_id: nextFreeCall.id,
+            account_id: accountId,
+            status: 'going',
+          });
+      failed = !!result.error;
+    } catch {
+      failed = true;
+    } finally {
+      reserving.current = false;
+    }
+    if (failed) {
+      // Undo the optimistic change: a "Going" that wasn't saved gets no reminder.
+      setNextFreeCall((prev) => (prev ? { ...prev, rsvped: wasRsvped } : prev));
+      setGroupSessions((c) => Math.max(0, c + (wasRsvped ? 1 : -1)));
+      appAlert(i18n.t('support:sessions.rsvpErrorTitle'), i18n.t('support:sessions.rsvpErrorBody'));
     }
   }, [accountId, nextFreeCall]);
 

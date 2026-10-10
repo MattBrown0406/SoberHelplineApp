@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { openEmergencyLink } from '../../lib/emergencyLinks';
+import { text988Url } from '../safety/text988Url';
 import type { SafetyKind } from '../../hooks/useRehearsalPartner';
 
 type Resource = 'call911' | 'call988' | 'text988' | 'callHotline' | 'textHotline';
@@ -21,7 +22,7 @@ export function hotlineTextUrl(os: string = Platform.OS): string {
   return os === 'ios' ? 'sms:88788&body=START' : 'sms:88788?body=START';
 }
 
-function open(resource: Resource): void {
+function open(resource: Resource, language: string): void {
   switch (resource) {
     case 'call911':
       openEmergencyLink('tel:911');
@@ -30,7 +31,7 @@ function open(resource: Resource): void {
       openEmergencyLink('tel:988');
       return;
     case 'text988':
-      openEmergencyLink('sms:988', '988');
+      openEmergencyLink(text988Url(language, Platform.OS), '988');
       return;
     case 'callHotline':
       openEmergencyLink('tel:18007997233', '1-800-799-7233');
@@ -48,7 +49,7 @@ function open(resource: Resource): void {
  */
 export function SafetyBreakCard({ kind, onKeepPracticing }: { kind: SafetyKind; onKeepPracticing?: () => void }) {
   const { colors } = useTheme();
-  const { t } = useTranslation('rehearsalLive');
+  const { t, i18n } = useTranslation('rehearsalLive');
   const router = useRouter();
   const heading = kind === 'abuse'
     ? { title: t('chat.abuseTitle'), body: t('chat.abuseBody') }
@@ -64,7 +65,7 @@ export function SafetyBreakCard({ kind, onKeepPracticing }: { kind: SafetyKind; 
         <TouchableOpacity
           key={resource}
           style={[styles.button, { backgroundColor: i === 0 ? colors.coral : colors.primary }]}
-          onPress={() => open(resource)}
+          onPress={() => open(resource, i18n.language)}
           accessibilityRole="button"
           activeOpacity={0.85}
         >

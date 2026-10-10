@@ -66,7 +66,8 @@ export default function DiyInterventionPlannerScreen() {
 function DiyInterventionPlannerContent() {
   const router = useRouter();
   const { colors } = useTheme();
-  const { t } = useTranslation('diyInterventionPlanner');
+  const { t, i18n } = useTranslation('diyInterventionPlanner');
+  const locale = i18n.resolvedLanguage ?? i18n.language;
   const { user } = useAccount();
   const accountId = user?.id ?? null;
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -182,7 +183,7 @@ function DiyInterventionPlannerContent() {
             <Text style={[styles.summaryLine, { color: colors.ink }]}>{t('program.contact', { name: tapSnapshot.admissionsContactName || '—', phone: tapSnapshot.admissionsPhone || '—' })}</Text>
             <Text style={[styles.summaryLine, { color: colors.ink }]}>{t('program.bed', { date: tapSnapshot.bedConfirmedFor || '—', window: tapSnapshot.bedConfirmationWindow || '—' })}</Text>
             <Text style={[styles.summaryLine, { color: colors.ink }]}>{t('program.confirmedBy', { value: tapSnapshot.bedConfirmedBy || '—' })}</Text>
-            <Text style={[styles.summaryLine, { color: colors.ink }]}>{t('program.leave', { value: tapSnapshot.departureAt ? new Date(tapSnapshot.departureAt).toLocaleString() : '—' })}</Text>
+            <Text style={[styles.summaryLine, { color: colors.ink }]}>{t('program.leave', { value: tapSnapshot.departureAt ? new Date(tapSnapshot.departureAt).toLocaleString(locale) : '—' })}</Text>
             {!progress.stages.program.ready && <Text accessibilityRole="alert" style={[styles.note, { color: colors.coral }]}>{t('program.missing')}</Text>}
             <PrimaryButton label={t('program.tapButton')} onPress={() => router.push('/treatment-action-plan' as never)} />
             <TextButton label={t('program.finderButton')} onPress={() => router.push('/finder' as never)} />
@@ -215,7 +216,7 @@ function DiyInterventionPlannerContent() {
 
           <StageCard title={t('stages.unity')} ready={progress.stages.unity.ready} locked={!access.unity}>
             <Text style={[styles.body, { color: colors.inkSoft }]}>{t('unity.body')}</Text>
-            <Text style={[styles.solution, { color: colors.primary }]}>{t('unity.summary', { level: diy.plan.care.indicatedLevel ? t(`care.labels.${diy.plan.care.indicatedLevel}` as never) : '—', program: tapSnapshot.programName, date: diy.plan.interventionDate, leave: tapSnapshot.departureAt ? new Date(tapSnapshot.departureAt).toLocaleString() : '—' })}</Text>
+            <Text style={[styles.solution, { color: colors.primary }]}>{t('unity.summary', { level: diy.plan.care.indicatedLevel ? t(`care.labels.${diy.plan.care.indicatedLevel}` as never) : '—', program: tapSnapshot.programName, date: diy.plan.interventionDate, leave: tapSnapshot.departureAt ? new Date(tapSnapshot.departureAt).toLocaleString(locale) : '—' })}</Text>
             <CheckRow label={t('unity.solutionConfirmed')} checked={diy.plan.unity.solutionConfirmed} onChange={(solutionConfirmed) => update((plan) => updateDiyPlan(plan, { unity: { ...plan.unity, solutionConfirmed, solutionKey: solutionConfirmed ? solutionKey : '' } }))} />
             <Input label={t('unity.yesPlan')} value={diy.plan.unity.yesPlan} placeholder={t('unity.yesPlaceholder')} onChange={(yesPlan) => update((plan) => updateDiyPlan(plan, { unity: { ...plan.unity, yesPlan } }))} multiline />
             <Input label={t('unity.plannedNo')} value={diy.plan.unity.plannedNo} onChange={(plannedNo) => update((plan) => updateDiyPlan(plan, { unity: { ...plan.unity, plannedNo } }))} multiline />

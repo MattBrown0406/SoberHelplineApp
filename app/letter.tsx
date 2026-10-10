@@ -706,7 +706,7 @@ export default function LetterScreen() {
                       onPress={() =>
                         appAlert(
                           `${FEATURED_PROVIDER.name} · ${FEATURED_PROVIDER.org}`,
-                          `${FEATURED_PROVIDER.credential} — ${FEATURED_PROVIDER.credentialFull}`,
+                          `${FEATURED_PROVIDER.credential} — ${t('common:provider.credentialFull')}`,
                           [
                             {
                               text: t('preview.referralEmail', { name: FEATURED_PROVIDER.name }),

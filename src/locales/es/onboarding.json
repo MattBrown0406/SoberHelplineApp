@@ -1,6 +1,6 @@
 {
   "welcome": {
-    "title": "Bienvenido a Sober Helpline",
+    "title": "Te damos la bienvenida a Sober Helpline",
     "subtitle": "La intervención es un momento. La recuperación de la familia es un camino. Preparemos el tuyo.",
     "providerButton": "Trabajo con un proveedor",
     "providerSub": "Ingresa el código de invitación de tu intervencionista o consejero",
@@ -24,7 +24,7 @@
   },
   "consent": {
     "title": "¿Compartir tus registros con tu coach?",
-    "body": "Tus registros diarios ayudan a tu coach a ver patrones y acompañarte cuando importa. Solo tu coach asignado los ve — nunca tu familia, nunca el personal administrativo. Puedes desactivarlo cuando quieras en Configuración.",
+    "body": "Tus registros diarios y las entradas del monitor ayudan a tu coach a ver patrones y acompañarte cuando importa. Solo tu coach asignado los ve — nunca tu familia, nunca el personal administrativo. Puedes desactivarlo cuando quieras en Configuración.",
     "acceptButton": "Compartir con mi coach",
     "declineButton": "Ahora no"
   },
@@ -59,7 +59,7 @@
       "seeking_help": "Buscando ayuda",
       "in_treatment": "En tratamiento",
       "recovery": "En recuperación",
-      "unsure": "No estoy seguro/a"
+      "unsure": "No estoy segura"
     },
     "statusLabel": "¿Cómo van las cosas esta semana?",
     "status": {
@@ -76,7 +76,7 @@
     "body": "Un recordatorio diario para tu registro de 90 segundos — y avisos de sesiones. Sin presión, sin spam.",
     "acceptButton": "Activar recordatorios",
     "declineButton": "Quizás después",
-    "unavailable": "No se activaron los recordatorios. Puedes reintentar en Ajustes."
+    "unavailable": "No se activaron los recordatorios. Puedes reintentar en Configuración."
   },
   "saveError": {
     "title": "No pudimos guardar eso",

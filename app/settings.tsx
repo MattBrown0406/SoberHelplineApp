@@ -17,7 +17,8 @@ import { useLanguage } from '../src/hooks/useLanguage';
 import { supabase } from '../src/lib/supabase';
 import { isAdminEmail } from '../src/lib/admin';
 import { useFeatureAccess } from '../src/hooks/useFeatureAccess';
-import { restorePurchases } from '../src/lib/revenueCat';
+import { getActiveRevenueCatTier, restorePurchases } from '../src/lib/revenueCat';
+import { recordVerifiedPurchase, withTimeoutFallback } from '../src/lib/authBootstrap';
 import { purgeAccountLocalData } from '../src/lib/accountLocalData';
 import { captureAppError } from '../src/lib/monitoring';
 import { appAlert } from '../src/lib/appAlert';
@@ -380,6 +381,22 @@ export default function SettingsScreen() {
     setRestoring(true);
     try {
       const hasEntitlement = await restorePurchases();
+      if (hasEntitlement && user) {
+        // Same as a purchase: unlock from the store's answer now, and give the server
+        // mirror (RevenueCat → entitlements) time to catch up before re-reading.
+        const tier = await getActiveRevenueCatTier().catch(() => null);
+        if (tier) recordVerifiedPurchase(user.id, tier);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          await withTimeoutFallback(
+            Promise.resolve(supabase.functions.invoke('sync-iap-entitlements', {
+              headers: { Authorization: `Bearer ${session.access_token}` },
+            })).then(() => undefined),
+            10_000,
+            undefined,
+          );
+        }
+      }
       await refreshAccount();
       appAlert(
         hasEntitlement ? t('membership.restoreSuccessTitle') : t('membership.restoreNoneTitle'),
@@ -406,7 +423,7 @@ export default function SettingsScreen() {
     appAlert(
       t('deleteAccount.confirmTitle'),
       hasOwnSubscription
-        ? `${t('deleteAccount.confirmMessage')}\n\n${t('deleteAccount.subscriptionNote')}`
+        ? `${t('deleteAccount.confirmMessage')}\n\n${t(websiteMembership ? 'deleteAccount.subscriptionNoteWeb' : 'deleteAccount.subscriptionNote')}`
         : t('deleteAccount.confirmMessage'),
       [
         { text: t('deleteAccount.cancelButton'), style: 'cancel' },

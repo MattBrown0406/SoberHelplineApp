@@ -30,6 +30,10 @@
     "release-4-1-0": {
       "extends": "production",
       "autoIncrement": false
+    },
+    "release-4-2-0": {
+      "extends": "production",
+      "autoIncrement": false
     }
   },
   "submit": {

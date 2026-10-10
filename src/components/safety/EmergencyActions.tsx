@@ -1,12 +1,13 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { openEmergencyLink } from '../../lib/emergencyLinks';
+import { text988Url } from './text988Url';
 
 export function EmergencyActions({ prominent = false, offline = false }: { prominent?: boolean; offline?: boolean }) {
   const { colors } = useTheme();
-  const { t } = useTranslation('crisis');
+  const { t, i18n } = useTranslation('crisis');
 
   return (
     <View
@@ -28,7 +29,7 @@ export function EmergencyActions({ prominent = false, offline = false }: { promi
       <View style={styles.buttons}>
         <EmergencyButton label={t('emergency.call911')} url="tel:911" color={colors.coral} hint={t('emergency.buttonHint')} />
         <EmergencyButton label={t('emergency.call988')} url="tel:988" color={colors.primary} hint={t('emergency.buttonHint')} />
-        <EmergencyButton label={t('emergency.text988')} url="sms:988" color={colors.primary} hint={t('emergency.buttonHint')} />
+        <EmergencyButton label={t('emergency.text988')} url={text988Url(i18n.language, Platform.OS)} displayNumber="988" color={colors.primary} hint={t('emergency.buttonHint')} />
         <EmergencyButton label={t('emergency.poisonControl')} url="tel:18002221222" displayNumber="1-800-222-1222" color={colors.secondary} hint={t('emergency.buttonHint')} />
       </View>
     </View>

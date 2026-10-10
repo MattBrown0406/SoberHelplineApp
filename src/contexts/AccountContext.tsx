@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 import { AppState } from 'react-native';
 import type { User } from '@supabase/supabase-js';
 import type { AuthUser, AccountState, Entitlements } from '../api/types';
+import i18n from 'i18next';
 import { supabase } from '../lib/supabase';
 import { isAdminEmail } from '../lib/admin';
 import { configureRevenueCat, getActiveRevenueCatTier, resetRevenueCatUser } from '../lib/revenueCat';
@@ -104,7 +105,7 @@ async function fetchCoreAccount(authUser: User, lastKnownState: LastKnownAccount
   const accountResult = await withRequiredTimeout(
     supabase
       .from('accounts')
-      .select('id, type, org_id, first_name, last_name, language, timezone, created_at')
+      .select('id, type, org_id, first_name, last_name, language, locale, timezone, created_at')
       .eq('user_id', authUser.id)
       .single(),
     4000,
@@ -178,6 +179,22 @@ async function fetchCoreAccount(authUser: User, lastKnownState: LastKnownAccount
     });
     accountState = settled.state;
     verified = settled.verified;
+  }
+
+  // accounts.locale decides which Monday call the server shows (The Family Squares
+  // in English, La Sobremesa in Spanish) and the language of server pushes. Sync it
+  // before the account resolves so no screen fetches with a stale language.
+  const uiLocale = (i18n.language ?? '').startsWith('es') ? 'es' : 'en';
+  if (i18n.isInitialized && (data as { locale?: string | null }).locale !== uiLocale) {
+    try {
+      await withTimeoutFallback(
+        Promise.resolve(supabase.from('accounts').update({ locale: uiLocale }).eq('id', data.id)),
+        1000,
+        null,
+      );
+    } catch {
+      addAppBreadcrumb('auth.locale_sync_failed', 'warning');
+    }
   }
 
   let effectiveTimezone = data.timezone || 'UTC';
