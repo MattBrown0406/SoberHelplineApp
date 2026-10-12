@@ -96,17 +96,54 @@ test('snapshot expires at Monday end, not Tuesday reset; DST uses Pacific Monday
   assert.equal(lib.familySquaresRsvpIsCurrent('2026-11-02', new Date('2026-11-03T03:59:59Z')), true);
 });
 
-function hooks(which, result = { ok: true, alreadyRegistered: true }) {
-  const alerts = [], writes = [], reservations = [], states = [];
-  const session = { id: 'english-session', title: 'The Family Squares', rsvped: true, zoom_url: 'https://zoom.invalid', next_at: null };
+function hooks(which, result = { ok: true, alreadyRegistered: true }, options = {}) {
+  const alerts = [], writes = [], reservations = [], states = [], counts = [], reads = [], warnings = [];
+  const session = { id: 'english-session', title: 'The Family Squares', rsvped: options.rsvped ?? true, zoom_url: 'https://zoom.invalid', next_at: null };
   let slot = 0;
-  const react = { useState: (initial) => { const index = slot++; states[index] = which === 'today' && index === 8 ? session : initial; return [states[index], (next) => { states[index] = typeof next === 'function' ? next(states[index]) : next; }]; }, useCallback: (fn) => fn, useEffect() {}, useRef: (value) => ({ current: value }) };
-  const query = { delete() { writes.push('delete'); return this; }, upsert() { writes.push('upsert'); return this; }, eq() { return this; }, then(resolve) { resolve({}); } };
+  const react = { useState: (initial) => { const index = slot++; states[index] = which === 'today' && index === 8 ? session : which === 'today' && index === 2 ? options.initialCount ?? 0 : initial; return [states[index], (next) => { states[index] = typeof next === 'function' ? next(states[index]) : next; if (index === 2) counts.push(states[index]); }]; }, useCallback: (fn) => fn, useEffect() {}, useRef: (value) => ({ current: value }) };
+  const query = { select(columns, config) { reads.push([columns, config]); return this; }, delete() { writes.push('delete'); return this; }, upsert() { writes.push('upsert'); return this; }, eq(key, value) { if (reads.length) reads.push([key, value]); return this; }, then(resolve, reject) { if (options.countReject) return Promise.reject(Error('offline')).then(resolve, reject); return Promise.resolve(options.countResponse ?? { count: 1, error: null }).then(resolve, reject); } };
   const imports = { react, 'expo-router': { useFocusEffect() {} }, 'react-i18next': { useTranslation: () => ({ i18n: { language: 'en' } }) }, i18next: { default: { t: (v) => v } }, '../lib/supabase': { supabase: { from: () => query } }, '../lib/familySquaresSchedule': schedule, '../lib/laSobremesa': { reserveLaSobremesa: async () => { throw Error('unexpected Spanish registration'); } }, '../lib/appAlert': { appAlert: (...args) => alerts.push(args) }, '../lib/familySquaresRegistration': { reserveFamilySquares: async (id) => { reservations.push(id); return result; }, familySquaresRsvpIsCurrent: () => false, FAMILY_SQUARES_ALREADY_REGISTERED: 'You’re already registered. We look forward to seeing you Monday evening!' }, '../lib/situation': { DEFAULT_SITUATION: {}, funnelDoor: () => '' }, '../content/curriculum': { phaseForWeek: () => '', isBeyondAuthoredCurriculum: () => false } };
-  const module = load(which === 'today' ? 'src/hooks/useTodayFeed.ts' : 'src/hooks/useSessions.ts', imports);
+  const module = load(which === 'today' ? 'src/hooks/useTodayFeed.ts' : 'src/hooks/useSessions.ts', imports, { console: { ...console, warn: (...args) => warnings.push(args) } });
   const hook = which === 'today' ? module.useTodayFeed('account-A', null) : module.useSessions('account-A');
-  return { alerts, writes, reservations, session, run: which === 'today' ? hook.rsvpFreeCall : hook.toggleRsvp };
+  return { alerts, writes, reservations, session, states, counts, reads, warnings, run: which === 'today' ? hook.rsvpFreeCall : hook.toggleRsvp };
 }
+for (const [name, initialCount, alreadyRegistered] of [
+  ['legacy going row', 1, true],
+  ['stale going row renewed for this week', 1, false],
+  ['new going row', 0, false],
+]) test(`Today actual RSVP callback recounts ${name} without an optimistic overcount`, async () => {
+  const h = hooks('today', { ok: true, alreadyRegistered }, { rsvped: false, initialCount });
+  await h.run();
+  assert.equal(h.states[2], 1);
+  assert.deepEqual(h.counts, [1]);
+  assert.equal(h.states[8].rsvped, true);
+  assert.deepEqual(JSON.parse(JSON.stringify(h.reads)), [['*', { count: 'exact', head: true }], ['status', 'going']]);
+  assert.deepEqual(h.writes, []);
+  assert.deepEqual(h.reservations, ['account-A']);
+  assert.equal(h.warnings.length, 0);
+});
+for (const [name, options] of [
+  ['returned error', { countResponse: { count: 99, error: { message: 'unavailable' } } }],
+  ['rejected query', { countReject: true }],
+  ['missing count', { countResponse: { count: null, error: null } }],
+]) test(`Today recount ${name} preserves last known count and successful registration`, async () => {
+  const h = hooks('today', { ok: true, alreadyRegistered: true }, { rsvped: false, initialCount: 1, ...options });
+  await h.run();
+  assert.equal(h.states[2], 1);
+  assert.deepEqual(h.counts, []);
+  assert.equal(h.states[8].rsvped, true);
+  assert.equal(h.warnings.length, 1);
+  assert.equal(h.alerts[0][0], 'You’re already registered. We look forward to seeing you Monday evening!');
+  assert.deepEqual(h.writes, []);
+});
+test('Today failed ensure does not recount or change count', async () => {
+  const h = hooks('today', { ok: false }, { rsvped: false, initialCount: 1 });
+  await h.run();
+  assert.equal(h.states[2], 1);
+  assert.equal(h.states[8].rsvped, false);
+  assert.deepEqual(h.reads, []);
+  assert.deepEqual(h.counts, []);
+});
 for (const which of ['today', 'support']) {
   test(`${which}: going repeat reconciles without deletion and gives exact friendly message`, async () => { const h = hooks(which); await h.run(h.session); assert.equal(h.writes.length, 0); assert.equal(h.reservations.length, 1); assert.equal(h.alerts[0][0], 'You’re already registered. We look forward to seeing you Monday evening!'); });
   test(`${which}: stale going new-week creation never claims already registered`, async () => { const h = hooks(which, { ok: true, alreadyRegistered: false }); await h.run(h.session); assert.equal(h.reservations.length, 1); assert.equal(h.alerts.length, 0); assert.equal(h.writes.length, 0); });

@@ -170,7 +170,22 @@ export function useTodayFeed(
         return;
       }
       setNextFreeCall((prev) => prev?.id === nextFreeCall.id ? { ...prev, rsvped: true } : prev);
-      if (!wasRsvped) setGroupSessions((c) => c + 1);
+      // A legacy/stale going row already contributes to the total even when
+      // this occurrence was not registered. Ensure may update, not insert it.
+      try {
+        const { count, error } = await supabase
+          .from('session_rsvps')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'going');
+        if (identity.current !== accountId) return;
+        if (error || count === null) throw error ?? new Error('Missing RSVP count');
+        setGroupSessions(count);
+      } catch (error) {
+        // Registration succeeded; keep the last known total until a reload
+        // rather than inventing a count or reporting registration failure.
+        console.warn('Could not refresh Today session count after registration', error);
+      }
+      if (identity.current !== accountId) return;
       if (reserved.alreadyRegistered) appAlert(FAMILY_SQUARES_ALREADY_REGISTERED);
       return;
     }
