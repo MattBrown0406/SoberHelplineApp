@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { appAlert } from '../lib/appAlert';
 import { useFocusEffect } from 'expo-router';
 import { supabase } from '../lib/supabase';
-import { isLaSobremesaSession } from '../lib/familySquaresSchedule';
+import { reserveFamilySquares, familySquaresRsvpIsCurrent, FAMILY_SQUARES_ALREADY_REGISTERED } from '../lib/familySquaresRegistration';
+import { isLaSobremesaSession, isFamilySquaresSession } from '../lib/familySquaresSchedule';
 import { reserveLaSobremesa, withPersonalLinks } from '../lib/laSobremesa';
 
 export interface DbSession {
@@ -18,26 +20,35 @@ export interface DbSession {
 export function useSessions(accountId: string | null) {
   const [sessions, setSessions] = useState<DbSession[]>([]);
   const [loading, setLoading] = useState(true);
+  const identity = useRef(accountId);
+  identity.current = accountId;
+  const generation = useRef(0);
+  useEffect(() => () => { identity.current = null; ++generation.current; }, []);
 
   const load = useCallback(async () => {
+    const request = ++generation.current;
+    if (!accountId) return;
     const [{ data: rows }, { data: rsvps }] = await Promise.all([
       supabase
         .from('sessions')
         .select('id, kind, title, schedule_label, next_at, zoom_url')
         .order('next_at', { ascending: true }),
-      supabase.from('session_rsvps').select('session_id').eq('status', 'going'),
+      supabase.from('session_rsvps').select('session_id, family_squares_meeting_date').eq('status', 'going').eq('account_id', accountId!),
     ]);
     const going = new Set((rsvps ?? []).map((r) => r.session_id as string));
     // La Sobremesa's Join opens the member's personal link.
     const withLinks = await withPersonalLinks((rows as Omit<DbSession, 'rsvped'>[]) ?? []);
+    if (request !== generation.current || identity.current !== accountId) return;
     setSessions(
       withLinks.map((s) => ({
         ...s,
-        rsvped: going.has(s.id),
+        rsvped: isFamilySquaresSession(s)
+          ? familySquaresRsvpIsCurrent(rsvps?.find((r) => r.session_id === s.id)?.family_squares_meeting_date)
+          : going.has(s.id),
       })),
     );
     setLoading(false);
-  }, []);
+  }, [accountId]);
 
   // The server shows the Monday call in the member's language: reload when it changes.
   const { i18n } = useTranslation();
@@ -58,7 +69,17 @@ export function useSessions(accountId: string | null) {
   const toggleRsvp = useCallback(
     /** true when saved; 'not_available' when La Sobremesa isn't open for reservations yet. */
     async (session: DbSession): Promise<boolean | 'not_available'> => {
-      if (!accountId) return false;
+      if (!accountId || identity.current !== accountId) return false;
+      if (isFamilySquaresSession(session)) {
+        if (reserving.current) return true;
+        reserving.current = true;
+        const reserved = await reserveFamilySquares(accountId).finally(() => { reserving.current = false; });
+        if (identity.current !== accountId) return true;
+        if (!reserved.ok) return false;
+        setSessions((prev) => prev.map((s) => s.id === session.id ? { ...s, rsvped: true } : s));
+        if (reserved.alreadyRegistered) appAlert(FAMILY_SQUARES_ALREADY_REGISTERED);
+        return true;
+      }
       // Reserving La Sobremesa registers with AyudaSobria for a personal link.
       // Also when "going" but without a link (e.g. RSVP'd from an older app build).
       if (isLaSobremesaSession(session) && (!session.rsvped || !session.zoom_url)) {

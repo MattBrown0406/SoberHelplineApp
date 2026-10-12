@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -9,6 +9,7 @@ import { useAccount } from '../../src/contexts/AccountContext';
 import { supabase } from '../../src/lib/supabase';
 import { appAlert } from '../../src/lib/appAlert';
 import { reserveLaSobremesa } from '../../src/lib/laSobremesa';
+import { reserveFamilySquares, FAMILY_SQUARES_ALREADY_REGISTERED } from '../../src/lib/familySquaresRegistration';
 import { markOnboarded } from '../../src/onboarding/state';
 
 export default function NotificationsScreen() {
@@ -26,6 +27,10 @@ export default function NotificationsScreen() {
   const [nextGroupId, setNextGroupId] = useState<string | null>(null);
   const [rsvped, setRsvped] = useState(false);
   const [reserving, setReserving] = useState(false);
+  const reservationLock = useRef(false);
+  const identity = useRef(user?.id);
+  identity.current = user?.id;
+  useEffect(() => () => { identity.current = undefined; }, []);
 
   useEffect(() => {
     let active = true;
@@ -38,20 +43,28 @@ export default function NotificationsScreen() {
   }, [spanish]);
 
   async function reserveSpot() {
-    if (!user?.id || !nextGroupId || rsvped) return;
+    if (!user?.id || !nextGroupId || reservationLock.current || (spanish && rsvped)) return;
+    const accountId = user.id;
+    reservationLock.current = true;
     setReserving(true);
     if (spanish) {
       const reserved = await reserveLaSobremesa();
+      reservationLock.current = false;
       setReserving(false);
       if (reserved.ok) setRsvped(true);
       else if (reserved.reason === 'not_available') appAlert(t('common:laSobremesa.notAvailable'));
       return;
     }
-    const { error } = await supabase
-      .from('session_rsvps')
-      .upsert({ session_id: nextGroupId, account_id: user.id, status: 'going' });
+    const reserved = await reserveFamilySquares(accountId);
+    reservationLock.current = false;
     setReserving(false);
-    if (!error) setRsvped(true);
+    if (identity.current !== accountId) return;
+    if (reserved.ok) {
+      setRsvped(true);
+      if (reserved.alreadyRegistered) appAlert(FAMILY_SQUARES_ALREADY_REGISTERED);
+    } else {
+      appAlert(t('support:sessions.rsvpErrorTitle'), t('support:sessions.rsvpErrorBody'));
+    }
   }
 
   async function finish(askPermission: boolean) {
@@ -82,7 +95,7 @@ export default function NotificationsScreen() {
                 { borderColor: '#fff', backgroundColor: rsvped ? '#fff' : 'transparent' },
               ]}
               onPress={() => void reserveSpot()}
-              disabled={reserving || rsvped}
+              disabled={reserving || (spanish && rsvped)}
               activeOpacity={0.85}
             >
               <Text style={[styles.rsvpBtnText, { color: rsvped ? colors.primary : '#fff' }]}>

@@ -392,6 +392,9 @@ verify_jwt = true
 [functions.la-sobremesa-register]
 verify_jwt = true
 
+[functions.family-squares-register]
+verify_jwt = true
+
 [functions.notify-chat-message]
 verify_jwt = true
 

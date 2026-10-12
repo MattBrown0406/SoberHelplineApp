@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { supabase } from '../lib/supabase';
+import { reserveFamilySquares, familySquaresRsvpIsCurrent, FAMILY_SQUARES_ALREADY_REGISTERED } from '../lib/familySquaresRegistration';
 import {
   DEFAULT_SITUATION,
   funnelDoor,
@@ -13,7 +14,7 @@ import {
   phaseForWeek,
 } from '../content/curriculum';
 import type { CurriculumPhase } from '../api/types';
-import { chooseFreeCall, isLaSobremesaSession } from '../lib/familySquaresSchedule';
+import { chooseFreeCall, isLaSobremesaSession, isFamilySquaresSession } from '../lib/familySquaresSchedule';
 import { reserveLaSobremesa, withPersonalLinks } from '../lib/laSobremesa';
 import { appAlert } from '../lib/appAlert';
 import i18n from 'i18next';
@@ -66,6 +67,9 @@ export function useTodayFeed(
   const [nextFreeCall, setNextFreeCall] = useState<FreeCall | null>(null);
   const [loading, setLoading] = useState(true);
   const generation = useRef(0);
+  const identity = useRef(accountId);
+  identity.current = accountId;
+  useEffect(() => () => { identity.current = null; }, []);
 
   const load = useCallback(async () => {
     const request = ++generation.current;
@@ -91,7 +95,7 @@ export function useTodayFeed(
         .select('id, title, schedule_label, next_at, zoom_url')
         .eq('kind', 'group')
         .order('next_at', { ascending: true }),
-      supabase.from('session_rsvps').select('session_id').eq('status', 'going'),
+      supabase.from('session_rsvps').select('session_id, family_squares_meeting_date').eq('status', 'going').eq('account_id', accountId!),
       supabase.rpc('my_situation'),
     ]);
 
@@ -128,7 +132,9 @@ export function useTodayFeed(
     if (request !== generation.current) return;
     const going = new Set((rsvpRowsRes.data ?? []).map((r) => r.session_id as string));
     const chosen = chooseFreeCall(groups, now);
-    setNextFreeCall(chosen ? { ...chosen, rsvped: going.has(chosen.id) } : null);
+    setNextFreeCall(chosen ? { ...chosen, rsvped: isFamilySquaresSession(chosen)
+      ? familySquaresRsvpIsCurrent(rsvpRowsRes.data?.find((r) => r.session_id === chosen.id)?.family_squares_meeting_date, now)
+      : going.has(chosen.id) } : null);
 
     setLoading(false);
   }, [accountId, joinedAt]);
@@ -155,6 +161,19 @@ export function useTodayFeed(
     // One RSVP write (or La Sobremesa registration, which can take seconds) at a time.
     if (reserving.current) return;
     const wasRsvped = nextFreeCall.rsvped;
+    if (isFamilySquaresSession(nextFreeCall)) {
+      reserving.current = true;
+      const reserved = await reserveFamilySquares(accountId).finally(() => { reserving.current = false; });
+      if (identity.current !== accountId) return;
+      if (!reserved.ok) {
+        appAlert(i18n.t('support:sessions.rsvpErrorTitle'), i18n.t('support:sessions.rsvpErrorBody'));
+        return;
+      }
+      setNextFreeCall((prev) => prev?.id === nextFreeCall.id ? { ...prev, rsvped: true } : prev);
+      if (!wasRsvped) setGroupSessions((c) => c + 1);
+      if (reserved.alreadyRegistered) appAlert(FAMILY_SQUARES_ALREADY_REGISTERED);
+      return;
+    }
     // Reserving La Sobremesa registers with AyudaSobria for a personal link.
     // Also when "going" but without a link (e.g. RSVP'd from an older app build).
     if (isLaSobremesaSession(nextFreeCall) && (!wasRsvped || !nextFreeCall.zoom_url)) {
