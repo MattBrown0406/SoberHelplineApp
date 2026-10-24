@@ -1,0 +1,5 @@
+Please deploy the Supabase edge function app-family-squares-sync from the latest main branch (commit 780420e0 or later). Do not run any SQL or migrations and do not change any other function.
+
+Why: the app's Family Squares RSVPs reach soberhelpline.com through this function every 15 minutes. The version currently deployed expects database changes (the question_items column and the merge_monday_registration_questions function) that were never applied to this database, so the first app RSVP from someone without a soberhelpline.com registration, or any question asked in the app, would make every sync fail. The new version works with or without those database changes.
+
+After deploying, reply with the deployed version/commit of app-family-squares-sync.

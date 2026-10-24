@@ -22,7 +22,8 @@ import { recordVerifiedPurchase, withTimeoutFallback } from '../src/lib/authBoot
 import { purgeAccountLocalData } from '../src/lib/accountLocalData';
 import { captureAppError } from '../src/lib/monitoring';
 import { appAlert } from '../src/lib/appAlert';
-import { cancelPersonalRemindersForLogout } from '../src/reminders/native';
+import { cancelPersonalRemindersForLogout, personalReminders } from '../src/reminders/native';
+import type { PersonalReminder } from '../src/reminders/personalReminders';
 import {
   cancelPushRegistration,
   getReminderHour,
@@ -88,6 +89,8 @@ export default function SettingsScreen() {
   const [familyCallReminders, setFamilyCallReminders] = useState(true);
   const [familyCallBusy, setFamilyCallBusy] = useState(false);
   const dailyBusyRef = useRef(false);
+  // Personal reminders that were on when a sign-out/deletion began.
+  const remindersBeforeExit = useRef<readonly PersonalReminder[]>([]);
   const [practicePush, setPracticePush] = useState<PracticePushSettings>(DEFAULT_PRACTICE_PUSH);
   const [practicePushLoading, setPracticePushLoading] = useState(true);
   const [practicePushSaving, setPracticePushSaving] = useState(false);
@@ -327,14 +330,27 @@ export default function SettingsScreen() {
   }
 
   async function clearRemindersBeforeExit(): Promise<boolean> {
+    const reminders = personalReminders.snapshot();
+    remindersBeforeExit.current = user && reminders.accountId === user.id ? reminders.items.filter((r) => r.enabled) : [];
     try {
       await cancelPersonalRemindersForLogout();
       if (user) await cancelPushRegistration(user.id);
       return true;
     } catch {
+      restoreRemindersAfterAbortedExit();
       appAlert(t('personalReminders.cleanupTitle'), t('personalReminders.cleanupBody'));
       return false;
     }
+  }
+
+  // The exit did not happen (failed or cancelled): re-arm what
+  // clearRemindersBeforeExit switched off, or reminders stay silent.
+  function restoreRemindersAfterAbortedExit() {
+    if (!user) return;
+    const armed = remindersBeforeExit.current;
+    remindersBeforeExit.current = [];
+    void personalReminders.restoreAfterAbortedExit(user.id, armed).catch(() => undefined);
+    void registerForPushNotifications(user.id, false).catch(() => false);
   }
 
   async function offerSignOutAnyway() {
@@ -344,12 +360,13 @@ export default function SettingsScreen() {
       ? t('signOutOffline.bodyWithQueue', { checkins: impact.checkin, notes: impact.journal })
       : t('signOutOffline.body');
     appAlert(t('signOutOffline.title'), body, [
-      { text: t('signOutOffline.cancel'), style: 'cancel' },
+      { text: t('signOutOffline.cancel'), style: 'cancel', onPress: restoreRemindersAfterAbortedExit },
       {
         text: t('signOutOffline.confirm'),
         style: 'destructive',
         onPress: () => {
           void signOutLocally().catch(() => {
+            restoreRemindersAfterAbortedExit();
             appAlert(t('signOutErrorTitle'), t('signOutErrorBody'));
           });
         },
@@ -367,14 +384,20 @@ export default function SettingsScreen() {
       if (error) {
         // No server: the device can still forget the account, with consent.
         if (isOfflineFallbackError(error)) await offerSignOutAnyway();
-        else appAlert(t('signOutErrorTitle'), t('signOutErrorBody'));
+        else {
+          restoreRemindersAfterAbortedExit();
+          appAlert(t('signOutErrorTitle'), t('signOutErrorBody'));
+        }
         return;
       }
     }
     const { error: signOutError } = await supabase.auth.signOut();
     if (!signOutError) return;
     if (user && isOfflineFallbackError(signOutError)) await offerSignOutAnyway();
-    else appAlert(t('signOutErrorTitle'), t('signOutErrorBody'));
+    else {
+      restoreRemindersAfterAbortedExit();
+      appAlert(t('signOutErrorTitle'), t('signOutErrorBody'));
+    }
   }
 
   async function handleRestore() {
@@ -441,11 +464,13 @@ export default function SettingsScreen() {
               // nothing is left behind if the deletion goes through.
               const { error: purgeError } = await supabase.functions.invoke('purge-account-files');
               if (purgeError) {
+                restoreRemindersAfterAbortedExit();
                 appAlert(t('deleteAccount.errorTitle'), t('deleteAccount.errorMessage'));
                 return;
               }
               const { error: deletionError } = await supabase.rpc('delete_own_account');
               if (deletionError) {
+                restoreRemindersAfterAbortedExit();
                 appAlert(t('deleteAccount.errorTitle'), t('deleteAccount.errorMessage'));
                 return;
               }
@@ -459,6 +484,7 @@ export default function SettingsScreen() {
                 appAlert(t('deleteAccount.cleanupErrorTitle'), t('deleteAccount.cleanupErrorMessage'));
               }
             } catch {
+              if (!deletionCompleted) restoreRemindersAfterAbortedExit();
               appAlert(
                 t(deletionCompleted ? 'deleteAccount.cleanupErrorTitle' : 'deleteAccount.errorTitle'),
                 t(deletionCompleted ? 'deleteAccount.cleanupErrorMessage' : 'deleteAccount.errorMessage'),

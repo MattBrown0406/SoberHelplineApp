@@ -46,10 +46,11 @@ Deno.serve(async (req) => {
   const { data: sessionId, error: sessionError } = await admin.rpc('la_sobremesa_session_id');
   if (sessionError || typeof sessionId !== 'string') return json({ error: 'unavailable' }, 503);
 
-  const fullName = [account.first_name, account.last_name]
-    .filter((part): part is string => typeof part === 'string' && part.trim().length > 0)
-    .join(' ')
-    .trim();
+  // Zoom shows the registrant's name to the other families, and the app never
+  // asked to show a surname: send the first name and last initial only.
+  const firstName = typeof account.first_name === 'string' ? account.first_name.trim() : '';
+  const lastInitial = typeof account.last_name === 'string' ? Array.from(account.last_name.trim())[0] ?? '' : '';
+  const fullName = firstName && lastInitial ? `${firstName} ${lastInitial.toUpperCase()}.` : firstName;
 
   let registration;
   try {

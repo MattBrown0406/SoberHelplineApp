@@ -1,7 +1,8 @@
 import { supabase } from './supabase';
 import { familySquaresSyncWindow } from '../../supabase/functions/_shared/family-squares-time';
 
-export const FAMILY_SQUARES_ALREADY_REGISTERED = 'You’re already registered. We look forward to seeing you Monday evening!';
+/** i18n key of the repeat-registration message. */
+export const FAMILY_SQUARES_ALREADY_REGISTERED = 'common:familySquares.alreadyRegistered';
 export type FamilySquaresResult = { ok: true; alreadyRegistered: boolean; meetingDate: string } | { ok: false };
 
 /** A legacy/stale going row is not a confirmed registration for this occurrence. */

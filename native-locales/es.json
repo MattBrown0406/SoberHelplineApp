@@ -1,0 +1,5 @@
+{
+  "NSMicrophoneUsageDescription": "Sober Helpline usa tu micrófono solo al grabar tus prácticas, en las sesiones grupales en vivo y en las sesiones privadas de apoyo por video a las que decidas unirte.",
+  "NSCameraUsageDescription": "Sober Helpline usa tu cámara solo en las sesiones grupales en vivo y en las sesiones privadas de apoyo por video a las que decidas unirte.",
+  "NSPhotoLibraryUsageDescription": "Sober Helpline te permite adjuntar capturas de pantalla a tu conversación privada de apoyo en la app cuando decidas compartirlas."
+}

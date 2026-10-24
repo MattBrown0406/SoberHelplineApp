@@ -43,7 +43,11 @@ function FaqRow({ item, colors }: { item: FaqItem; colors: ReturnType<typeof use
 
 export default function LearnScreen() {
   const { colors } = useTheme();
-  const { t } = useTranslation('learn');
+  const { t, i18n } = useTranslation('learn');
+  // AyudaSobria's library (/recursos) is public and La Sobremesa is not
+  // recorded: Spanish members get the library card and no recordings pitch.
+  const spanish = i18n.language.startsWith('es');
+  const sections = spanish ? SECTIONS.filter(({ key }) => key === 'education') : SECTIONS;
   const { user, entitlements } = useAccount();
   const canUseDiyIntervention = useFeatureAccess('diyIntervention');
   const router = useRouter();
@@ -216,7 +220,7 @@ export default function LearnScreen() {
           {/* The website library and recordings are members-only pages; for
               everyone else they would be a website paywall, so free members
               see where the library lives and the in-app plans instead. */}
-          {entitlements.canAccessGroups ? SECTIONS.map(({ key, path }) => (
+          {entitlements.canAccessGroups || spanish ? sections.map(({ key, path }) => (
             <View key={key} style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
               <Text style={[styles.cardTitle, { color: colors.ink }]}>{t(`${key}.title`)}</Text>
               <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t(`${key}.body`)}</Text>

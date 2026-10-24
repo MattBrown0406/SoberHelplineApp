@@ -4,6 +4,18 @@
 
 const PACIFIC = 'America/Los_Angeles';
 
+/**
+ * The 0-23 hour of formatToParts output. This also runs on the phone (Hermes):
+ * an engine that ignores hourCycle may answer on a 12-hour clock or say "24"
+ * at midnight, and either would shift the Monday date by half a day.
+ */
+function hour24(parts: Intl.DateTimeFormatPart[]): number {
+  const hour = Number(parts.find((p) => p.type === 'hour')?.value ?? NaN);
+  const period = parts.find((p) => p.type === 'dayPeriod')?.value;
+  if (period) return (hour % 12) + (/^p/i.test(period.trim()) ? 12 : 0);
+  return hour % 24;
+}
+
 export function pacificWeekdayHour(now: Date): { weekday: string; hour: number } {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: PACIFIC,
@@ -12,8 +24,7 @@ export function pacificWeekdayHour(now: Date): { weekday: string; hour: number }
     hourCycle: 'h23',
   }).formatToParts(now);
   const weekday = parts.find((p) => p.type === 'weekday')?.value ?? '';
-  const hour = Number(parts.find((p) => p.type === 'hour')?.value ?? NaN);
-  return { weekday, hour };
+  return { weekday, hour: hour24(parts) };
 }
 
 /** True during the Monday 6 PM Pacific hour, the hour before the call. */
@@ -28,7 +39,7 @@ function zoneOffsetMs(at: Date, timeZone: string): number {
     hour: '2-digit', minute: '2-digit', second: '2-digit',
   }).formatToParts(at);
   const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
-  const asUtc = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'));
+  const asUtc = Date.UTC(get('year'), get('month') - 1, get('day'), hour24(parts), get('minute'), get('second'));
   return asUtc - Math.floor(at.getTime() / 1000) * 1000;
 }
 

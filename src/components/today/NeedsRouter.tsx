@@ -7,12 +7,13 @@ import { useTheme } from '../../contexts/ThemeContext';
 /**
  * Need-based front door. Families arrive with a question, not a feature in
  * mind — each row routes a common need straight to the screen that answers it.
- * Script needs land on the Scripts tab with the search pre-filled (`q` param).
+ * Script needs land on the Scripts tab with the search pre-filled (`q` param)
+ * with the tag's label in the member's language, which Scripts searches.
  */
-const NEEDS: { key: string; icon: string; route: string }[] = [
-  { key: 'money', icon: '💵', route: '/(tabs)/scripts?q=money' },
-  { key: 'using', icon: '👀', route: '/(tabs)/scripts?q=relapse' },
-  { key: 'treatmentTalk', icon: '💬', route: '/(tabs)/scripts?q=treatment' },
+const NEEDS: { key: string; icon: string; route?: string; scriptTag?: string }[] = [
+  { key: 'money', icon: '💵', scriptTag: 'MONEY' },
+  { key: 'using', icon: '👀', scriptTag: 'RELAPSE' },
+  { key: 'treatmentTalk', icon: '💬', scriptTag: 'TREATMENT' },
   { key: 'findTreatment', icon: '🧭', route: '/finder' },
   { key: 'boundary', icon: '🏰', route: '/(tabs)/boundaries' },
 
@@ -37,13 +38,15 @@ export function NeedsRouter() {
         <Text style={[styles.chipText, { color: colors.ink }]}>{t('needs.crisis')}</Text>
       </TouchableOpacity>
       <View style={styles.grid}>
-        {NEEDS.slice(0, expanded ? NEEDS.length : 2).map(({ key, icon, route }) => (
+        {NEEDS.slice(0, expanded ? NEEDS.length : 2).map(({ key, icon, route, scriptTag }) => (
           <TouchableOpacity
             key={key}
             accessibilityRole="button"
             style={[styles.chip, { borderColor: colors.line }]}
             activeOpacity={0.8}
-            onPress={() => router.push(route as never)}
+            onPress={() => router.push((scriptTag
+              ? `/(tabs)/scripts?q=${encodeURIComponent(t(`scripts:tags.${scriptTag}`).toLowerCase())}`
+              : route) as never)}
           >
             <Text style={styles.chipIcon}>{icon}</Text>
             <Text style={[styles.chipText, { color: colors.ink }]}>

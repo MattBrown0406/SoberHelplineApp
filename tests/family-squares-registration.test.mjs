@@ -67,12 +67,26 @@ for (const [name, opts, body, auth] of [
   ['auth error', { authError: true }], ['account error', { accountError: true }],
   ['missing account', { noAccount: true }], ['session error', { sessionError: true }],
   ['client identity', {}, { email: 'victim@test', meeting_date: '2030-01-01' }],
+  ['cancelled week', { status: 409, response: { ok: false, error: 'meeting_cancelled' } }],
+  ['blocked attendee', { status: 403, response: { ok: false, error: 'registration_unavailable' } }],
+]) test(`Edge fails closed: ${name}`, async () => { const e = edge(opts); assert.notEqual((await e.run(body, auth)).status, 200); assert.equal(e.writes.length, 0); });
+// Without a usable website answer the RSVP snapshot alone is saved; the batch
+// bridge registers it on the website, and nothing claims "already registered".
+for (const [name, opts] of [
+  ['website without ensure action', { status: 400, response: { ok: false, error: 'attendees_required' } }],
   ['absent endpoint', { status: 404 }], ['malformed', { malformed: true }],
+  ['website failure', { status: 500, response: { ok: false, error: 'registration_failed' } }],
   ['wrong week', { response: { ...success, meeting_date: '2026-10-05' } }],
   ['false acceptance', { response: { ...success, ok: false } }],
   ['missing repeat flag', { response: { ok: true, meeting_date: '2026-10-12' } }],
+  ['repeat flag on error status', { status: 500, response: success }],
   ['network error', { networkError: true }],
-]) test(`Edge fails closed: ${name}`, async () => { const e = edge(opts); assert.notEqual((await e.run(body, auth)).status, 200); assert.equal(e.writes.length, 0); });
+]) test(`Edge falls back to the RSVP snapshot: ${name}`, async () => {
+  const e = edge(opts); const r = await e.run(); assert.equal(r.status, 200);
+  assert.deepEqual(await r.json(), { ok: true, already_registered: false, meeting_date: '2026-10-12' });
+  assert.equal(e.writes.length, 1); assert.equal(e.writes[0].status, 'going');
+  assert.equal(e.writes[0].family_squares_meeting_date, '2026-10-12');
+});
 test('native save failure remains retryable after website acceptance', async () => { const e = edge({ saveError: true }); assert.equal((await e.run()).status, 503); });
 
 function client(options = {}) {
@@ -102,7 +116,7 @@ function hooks(which, result = { ok: true, alreadyRegistered: true }, options = 
   let slot = 0;
   const react = { useState: (initial) => { const index = slot++; states[index] = which === 'today' && index === 8 ? session : which === 'today' && index === 2 ? options.initialCount ?? 0 : initial; return [states[index], (next) => { states[index] = typeof next === 'function' ? next(states[index]) : next; if (index === 2) counts.push(states[index]); }]; }, useCallback: (fn) => fn, useEffect() {}, useRef: (value) => ({ current: value }) };
   const query = { select(columns, config) { reads.push([columns, config]); return this; }, delete() { writes.push('delete'); return this; }, upsert() { writes.push('upsert'); return this; }, eq(key, value) { if (reads.length) reads.push([key, value]); return this; }, then(resolve, reject) { if (options.countReject) return Promise.reject(Error('offline')).then(resolve, reject); return Promise.resolve(options.countResponse ?? { count: 1, error: null }).then(resolve, reject); } };
-  const imports = { react, 'expo-router': { useFocusEffect() {} }, 'react-i18next': { useTranslation: () => ({ i18n: { language: 'en' } }) }, i18next: { default: { t: (v) => v } }, '../lib/supabase': { supabase: { from: () => query } }, '../lib/familySquaresSchedule': schedule, '../lib/laSobremesa': { reserveLaSobremesa: async () => { throw Error('unexpected Spanish registration'); } }, '../lib/appAlert': { appAlert: (...args) => alerts.push(args) }, '../lib/familySquaresRegistration': { reserveFamilySquares: async (id) => { reservations.push(id); return result; }, familySquaresRsvpIsCurrent: () => false, FAMILY_SQUARES_ALREADY_REGISTERED: 'You’re already registered. We look forward to seeing you Monday evening!' }, '../lib/situation': { DEFAULT_SITUATION: {}, funnelDoor: () => '' }, '../content/curriculum': { phaseForWeek: () => '', isBeyondAuthoredCurriculum: () => false } };
+  const imports = { react, 'expo-router': { useFocusEffect() {} }, 'react-i18next': { useTranslation: () => ({ i18n: { language: 'en' } }) }, i18next: { default: { t: (v) => v } }, '../lib/supabase': { supabase: { from: () => query } }, '../lib/familySquaresSchedule': schedule, '../lib/laSobremesa': { reserveLaSobremesa: async () => { throw Error('unexpected Spanish registration'); } }, '../lib/appAlert': { appAlert: (...args) => alerts.push(args) }, '../lib/familySquaresRegistration': { reserveFamilySquares: async (id) => { reservations.push(id); return result; }, familySquaresRsvpIsCurrent: () => false, FAMILY_SQUARES_ALREADY_REGISTERED: 'common:familySquares.alreadyRegistered' }, '../lib/situation': { DEFAULT_SITUATION: {}, funnelDoor: () => '' }, '../content/curriculum': { phaseForWeek: () => '', isBeyondAuthoredCurriculum: () => false } };
   const module = load(which === 'today' ? 'src/hooks/useTodayFeed.ts' : 'src/hooks/useSessions.ts', imports, { console: { ...console, warn: (...args) => warnings.push(args) } });
   const hook = which === 'today' ? module.useTodayFeed('account-A', null) : module.useSessions('account-A');
   return { alerts, writes, reservations, session, states, counts, reads, warnings, run: which === 'today' ? hook.rsvpFreeCall : hook.toggleRsvp };
@@ -133,7 +147,7 @@ for (const [name, options] of [
   assert.deepEqual(h.counts, []);
   assert.equal(h.states[8].rsvped, true);
   assert.equal(h.warnings.length, 1);
-  assert.equal(h.alerts[0][0], 'You’re already registered. We look forward to seeing you Monday evening!');
+  assert.equal(h.alerts[0][0], 'common:familySquares.alreadyRegistered');
   assert.deepEqual(h.writes, []);
 });
 test('Today failed ensure does not recount or change count', async () => {
@@ -145,9 +159,9 @@ test('Today failed ensure does not recount or change count', async () => {
   assert.deepEqual(h.counts, []);
 });
 for (const which of ['today', 'support']) {
-  test(`${which}: going repeat reconciles without deletion and gives exact friendly message`, async () => { const h = hooks(which); await h.run(h.session); assert.equal(h.writes.length, 0); assert.equal(h.reservations.length, 1); assert.equal(h.alerts[0][0], 'You’re already registered. We look forward to seeing you Monday evening!'); });
+  test(`${which}: going repeat reconciles without deletion and gives exact friendly message`, async () => { const h = hooks(which); await h.run(h.session); assert.equal(h.writes.length, 0); assert.equal(h.reservations.length, 1); assert.equal(h.alerts[0][0], 'common:familySquares.alreadyRegistered'); });
   test(`${which}: stale going new-week creation never claims already registered`, async () => { const h = hooks(which, { ok: true, alreadyRegistered: false }); await h.run(h.session); assert.equal(h.reservations.length, 1); assert.equal(h.alerts.length, 0); assert.equal(h.writes.length, 0); });
-  test(`${which}: unavailable never writes or claims registration`, async () => { const h = hooks(which, { ok: false }); const saved = await h.run(h.session); assert.equal(h.writes.length, 0); if (which === 'support') assert.equal(saved, false); else assert.notEqual(h.alerts[0][0], 'You’re already registered. We look forward to seeing you Monday evening!'); });
+  test(`${which}: unavailable never writes or claims registration`, async () => { const h = hooks(which, { ok: false }); const saved = await h.run(h.session); assert.equal(h.writes.length, 0); if (which === 'support') assert.equal(saved, false); else assert.notEqual(h.alerts[0][0], 'common:familySquares.alreadyRegistered'); });
 }
 for (const title of ['Other Group', 'La Sobremesa']) test(`${title} cancellation remains unchanged`, async () => { const h = hooks('support'); await h.run({ ...h.session, title }); assert.deepEqual(h.writes, ['delete']); assert.equal(h.reservations.length, 0); });
 
@@ -159,4 +173,13 @@ test('onboarding actual repeat handler reconciles even when already marked going
   const context = { user: { id: 'account-A' }, nextGroupId: 'english', rsvped: true, spanish: false, reservationLock: { current: false }, identity: { current: 'account-A' }, setReserving() {}, setRsvped: (x) => writes.push(x), reserveFamilySquares: async () => ({ ok: true, alreadyRegistered: true }), appAlert: (x) => alerts.push(x), FAMILY_SQUARES_ALREADY_REGISTERED: 'friendly', t: (x) => x };
   vm.createContext(context); vm.runInContext(code, context); await context.reserveSpot();
   assert.deepEqual(writes, [true]); assert.deepEqual(alerts, ['friendly']);
+});
+
+test('repeat-registration copy is translated, not hardcoded', () => {
+  for (const lang of ['en', 'es']) {
+    const common = JSON.parse(fs.readFileSync(new URL(`src/locales/${lang}/common.json`, root), 'utf8'));
+    assert.equal(typeof common.familySquares.alreadyRegistered, 'string');
+  }
+  assert.equal(JSON.parse(fs.readFileSync(new URL('src/locales/en/common.json', root), 'utf8')).familySquares.alreadyRegistered, 'You’re already registered. We look forward to seeing you Monday evening!');
+  assert.doesNotMatch(source('src/lib/familySquaresRegistration.ts'), /already registered\./);
 });

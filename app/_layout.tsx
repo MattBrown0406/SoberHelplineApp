@@ -1,4 +1,4 @@
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, useNavigationContainerRef, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, Text, TouchableOpacity, View } from 'react-native';
@@ -16,6 +16,7 @@ import { SafetyShortcut } from '../src/components/safety/SafetyShortcut';
 import { EmergencyActions } from '../src/components/safety/EmergencyActions';
 import { getInitialLayoutState, isPushNavigationReady } from '../src/lib/authBootstrap';
 import { addAppBreadcrumb } from '../src/lib/monitoring';
+import { collapseAppStack } from '../src/lib/appStack';
 import { flushQueuedSupportCallReview, setReviewPromptRoute } from '../src/lib/reviewPrompt';
 import { clearPendingDeepLink, subscribePendingDeepLink, takePendingDeepLink } from '../src/lib/pendingDeepLink';
 
@@ -114,6 +115,9 @@ function InitialLayout() {
   const [deepLinkSignal, setDeepLinkSignal] = useState(0);
   useEffect(() => subscribePendingDeepLink(() => setDeepLinkSignal((value) => value + 1)), []);
 
+  const navigationRef = useNavigationContainerRef();
+  const collapseRootStack = () => collapseAppStack(navigationRef);
+
   useEffect(() => {
     if (isLoading) return;
     const inAuth = segments[0] === '(auth)';
@@ -121,6 +125,7 @@ function InitialLayout() {
     if (!isAuthenticated) {
       if (!inAuth) {
         addAppBreadcrumb('auth.navigation_sign_in');
+        collapseRootStack();
         router.replace('/(auth)/sign-in');
       }
       return;
@@ -128,9 +133,11 @@ function InitialLayout() {
     if (onboarded === null) return;
     if (user && !onboarded && !inOnboarding) {
       addAppBreadcrumb('auth.navigation_onboarding');
+      collapseRootStack();
       router.replace('/(onboarding)/welcome');
     } else if (user && onboarded && inAuth) {
       addAppBreadcrumb('auth.navigation_app');
+      collapseRootStack();
       router.replace((takePendingDeepLink() ?? '/(tabs)') as never);
     } else if (user && onboarded && !inOnboarding) {
       // Signed in and in the app: the link already opened its screen.

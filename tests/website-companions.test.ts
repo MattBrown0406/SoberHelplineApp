@@ -225,7 +225,7 @@ test('store builds ship on the production update channel', () => {
   assert.equal(eas.build['release-4-2-0'].autoIncrement, false);
   const app = JSON.parse(read('app.json'));
   assert.equal(app.expo.version, '4.2');
-  assert.equal(app.expo.ios.buildNumber, '1');
+  assert.equal(app.expo.ios.buildNumber, '2');
   assert.deepEqual(app.expo.runtimeVersion, { policy: 'appVersion' });
   assert.match(app.expo.updates.url, /^https:\/\/u\.expo\.dev\//);
 });

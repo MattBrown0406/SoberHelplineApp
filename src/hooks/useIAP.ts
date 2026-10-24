@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import { useAccount } from '../contexts/AccountContext';
 import Purchases, { type PurchasesOfferings, type PurchasesPackage } from 'react-native-purchases';
 import { purchaseRevenueCatPackage } from '../lib/revenueCat';
@@ -8,6 +9,7 @@ export type SubscriptionTier = 'essential' | 'premium';
 export type PurchaseResult = 'success' | 'cancelled' | 'failed';
 
 let activePurchaseFlows = 0;
+const PRICE_RETRY_DELAYS_MS = [5_000, 15_000, 45_000];
 
 const PRODUCT_IDS: Record<SubscriptionTier, string> = {
   essential: 'sh_essential_monthly',
@@ -47,9 +49,12 @@ export function useIAP() {
 
   const [priceAttempt, setPriceAttempt] = useState(0);
   const retryPrices = () => setPriceAttempt((value) => value + 1);
+  const pricesLoaded = !!prices.essential && !!prices.premium;
+  const autoRetries = useRef(0);
 
   useEffect(() => {
     let active = true;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
     Purchases.getOfferings()
       .then((offerings) => {
         if (!active) return;
@@ -59,12 +64,29 @@ export function useIAP() {
           ...(essential ? { essential: essential.product.priceString } : {}),
           ...(premium ? { premium: premium.product.priceString } : {}),
         });
+        if (essential && premium) autoRetries.current = 0;
       })
       .catch(() => {
-        // Do not invent a price; the UI can explicitly retry offerings.
+        // Do not invent a price. The buy buttons stay disabled until a load
+        // succeeds, so retry a few times on our own (a cold start on a bad
+        // connection) instead of relying on the Retry control alone.
+        if (!active || autoRetries.current >= PRICE_RETRY_DELAYS_MS.length) return;
+        retryTimer = setTimeout(retryPrices, PRICE_RETRY_DELAYS_MS[autoRetries.current]);
+        autoRetries.current += 1;
       });
-    return () => { active = false; };
-  }, [priceAttempt]);
+    return () => { active = false; if (retryTimer) clearTimeout(retryTimer); };
+  }, [priceAttempt, owner]);
+
+  // Coming back to the app with prices still missing: try again.
+  useEffect(() => {
+    if (pricesLoaded) return;
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') return;
+      autoRetries.current = 0;
+      retryPrices();
+    });
+    return () => sub.remove();
+  }, [pricesLoaded]);
 
   async function purchaseTier(tier: SubscriptionTier): Promise<PurchaseResult> {
     const generation = lifetime.generation;

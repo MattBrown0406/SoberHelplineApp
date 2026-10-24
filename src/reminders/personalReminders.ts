@@ -150,6 +150,20 @@ export class PersonalReminderService {
       }
     });
   }
+  /**
+   * An exit (sign-out, deletion) cancelled the reminders and was then aborted.
+   * setAccount alone would show them paused, since their notifications are gone:
+   * schedule again the ones that were on before the exit. Never prompts.
+   */
+  async restoreAfterAbortedExit(accountId: string, armed: readonly PersonalReminder[]): Promise<void> {
+    await this.setAccount(accountId);
+    if (!armed.length || !this.boundary.supported || !await this.boundary.permission(false)) return;
+    for (const r of armed) {
+      if (this.state.accountId !== accountId) return;
+      if (this.state.items.some(item => item.category === r.category && item.enabled)) continue;
+      await this.enable(r.category, r.hour, r.minute, r.locale).catch(() => undefined);
+    }
+  }
   private disable(category: ReminderCategory, remove: boolean) {
     return this.edit(async (account, generation) => {
       const item = this.state.items.find(r => r.category === category);

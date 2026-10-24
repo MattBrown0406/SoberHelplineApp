@@ -79,7 +79,7 @@ function iap() {
   const offerings={all:{main:{availablePackages:[pkg]}}};
   const sdk={configure(){},async getAppUserID(){return rcOwner;},async logOut(){rcOwner='$RCAnonymousID:test';},async logIn(id){rcOwner=id;},getOfferings(){return ++reads===1?Promise.resolve(offerings):price.promise;},async purchasePackage(){purchases.push(rcOwner);return {customerInfo:{entitlements:{active:{premium:{}}}}};}};
   const rc=load('src/lib/revenueCat.ts',{'react-native-purchases':{default:sdk},'../config':{RC_API_KEY:'public-test'}});
-  const hook=load('src/hooks/useIAP.ts',{react:h.react,'../contexts/AccountContext':{useAccount:()=>({user:{id:owner}})},'react-native-purchases':{default:sdk},'../lib/revenueCat':rc,'../lib/reviewPrompt':{setReviewPromptPurchaseFlow(){}}}).useIAP;
+  const hook=load('src/hooks/useIAP.ts',{react:h.react,'../contexts/AccountContext':{useAccount:()=>({user:{id:owner}})},'react-native-purchases':{default:sdk},'../lib/revenueCat':rc,'../lib/reviewPrompt':{setReviewPromptPurchaseFlow(){}},'react-native':{AppState:{addEventListener:()=>({remove(){}})}}}).useIAP;
   const render=()=>h.render(hook);
   return {h,price,purchases,offerings,render,rc,pkg,sdk,switchAccount(){owner='account-B';render();}};
 }

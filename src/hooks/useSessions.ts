@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import i18next from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { appAlert } from '../lib/appAlert';
 import { useFocusEffect } from 'expo-router';
@@ -77,7 +78,7 @@ export function useSessions(accountId: string | null) {
         if (identity.current !== accountId) return true;
         if (!reserved.ok) return false;
         setSessions((prev) => prev.map((s) => s.id === session.id ? { ...s, rsvped: true } : s));
-        if (reserved.alreadyRegistered) appAlert(FAMILY_SQUARES_ALREADY_REGISTERED);
+        if (reserved.alreadyRegistered) appAlert(i18next.t(FAMILY_SQUARES_ALREADY_REGISTERED));
         return true;
       }
       // Reserving La Sobremesa registers with AyudaSobria for a personal link.

@@ -180,3 +180,33 @@ test('cross-account records and duplicate categories fail closed', async () => {
     assert.deepEqual([...f.scheduled], ['practice-existing']);
   }
 });
+
+test('an aborted sign-out re-schedules the reminders that were on, without prompting', async () => {
+  const f = fixture();
+  await f.service.setAccount('a');
+  await f.service.enable('boundary', 9, 30, 'en');
+  await f.service.enable('meeting', 18, 0, 'en');
+  const armed = f.service.snapshot().items.filter(r => r.enabled);
+  await f.service.setAccount(null);
+  assert.equal(f.scheduled.size, 0);
+  f.calls.length = 0;
+  await f.service.restoreAfterAbortedExit('a', armed);
+  assert.equal(f.scheduled.size, 2);
+  assert.deepEqual(f.service.snapshot().items.map(r => [r.category, r.enabled, r.hour]).sort(), [['boundary', true, 9], ['meeting', true, 18]]);
+  assert.equal(JSON.parse(f.disk.get('personal-reminders:v1:a')!).items.filter((r: { enabled: boolean }) => r.enabled).length, 2);
+  // Permission is checked (no prompt) before re-scheduling; the native request
+  // inside enable() only prompts when permission is not already granted.
+  assert.ok(f.calls.indexOf('check') < f.calls.indexOf('request'));
+});
+
+test('an aborted sign-out never prompts when permission was revoked meanwhile', async () => {
+  const f = fixture();
+  await f.service.setAccount('a');
+  await f.service.enable('boundary', 9, 30, 'en');
+  const armed = f.service.snapshot().items.filter(r => r.enabled);
+  await f.service.setAccount(null);
+  f.deny(); f.calls.length = 0;
+  await f.service.restoreAfterAbortedExit('a', armed);
+  assert.equal(f.scheduled.size, 0);
+  assert.equal(f.calls.includes('request'), false);
+});

@@ -1,7 +1,9 @@
-# English Family Squares repeat registration — LOCAL ONLY
+# English Family Squares repeat registration
 
-Base: `d1e79a445b33f1b5ae0562578759afcbe938437d` (`origin/main`, 4.2 HOLD DEPLOYMENT).
-No push, deploy, EAS, OTA, production calls, or client contact was performed.
+Released with 4.2 (2) (2026-10-24 audit). The website's ensure action is not live
+yet (its migration 20261012224330 is unapplied), so until it is, every tap takes
+the fallback below and nobody sees the repeat message; RSVPs reach the website
+through the 15-minute batch exactly as 4.1 RSVPs do.
 
 ## Behavior
 
@@ -9,7 +11,7 @@ Today, Support (`useSessions`), and English onboarding all ensure registration r
 
 > You’re already registered. We look forward to seeing you Monday evening!
 
-Only the website's explicit `already_registered: true` produces this copy. Website auto-registration is therefore detected without exposing an arbitrary-email lookup to the frontend. Creation marks going without the repeat claim. A missing endpoint, malformed response, wrong occurrence, unverified email, network error, or native save error produces the existing visible RSVP failure; there is no silent direct-upsert fallback. Other sessions and La Sobremesa cancellation remain unchanged.
+Only the website's explicit `already_registered: true` produces this copy (now the i18n key `common:familySquares.alreadyRegistered`). Website auto-registration is therefore detected without exposing an arbitrary-email lookup to the frontend. Creation marks going without the repeat claim. The website's own decisions (`meeting_cancelled`, `registration_unavailable`) produce the visible RSVP failure. Any other website answer (no ensure action yet, outage, timeout, malformed or wrong-week reply) falls back to saving the RSVP snapshot alone, with `already_registered: false`; the existing 15-minute `family-squares-web-sync` batch then registers it on the website. An unverified email or native save error still fails visibly. Other sessions and La Sobremesa cancellation remain unchanged.
 
 ## Pinned website contract (dependency, separate owner)
 
@@ -36,7 +38,7 @@ Required successful response, after durable exact-week registration:
 Website owner must ensure:
 - Idempotency across website auto-registration, native ensure, old batch sync and concurrent retries, keyed by normalized email + exact English occurrence.
 - Existing durable registration returns true without provider registration or confirmation-email replay; creation returns false only after durable success.
-- An ensured registration survives the existing complete-batch snapshot arriving before the native RSVP save (or after a failed native save). Do not delete it merely because it is momentarily absent from that snapshot.
+- A new ensured seat is an `app` row (website `ensure_monday_app_registration`, 2026-10-24), so it gets no marketing, lead scoring or follow-up. Because the app saves its RSVP right after ensuring, the next batch snapshot keeps the row; a snapshot that races the save at worst removes it until the following run re-creates it.
 - Secret required for the new action; do not expose public email enumeration. Existing batch payload/behavior remains compatible.
 
 There is intentionally no new public lookup action, provider API call, email sender, or broad authentication mechanism on the app side.
@@ -59,12 +61,10 @@ Tuesday 02:00 Pacific reset now deletes English null/expired snapshots but prese
 - `python3 scripts/test-family-squares-registration-db.py` — passed actual PostgreSQL 17 migration application, deterministic Tuesday reset, future/legacy/Spanish/other controls, protected snapshots and composite-PK retries; isolated no-network/no-host-port container removed. This is a minimal-schema delta check, NOT full migration replay or live RLS integration.
 - `git diff --check` — passed.
 
-## Release blockers / ordered dependencies
+## Release status (2026-10-24)
 
-1. Keep the existing 4.2 deployment hold. Obtain separate release authorization.
-2. Website owner completes/reviews/tests the exact secret-auth ensure action, concurrent provider/email idempotency, and batch coexistence above. No end-to-end completion is claimed here.
-3. Full app migration-chain/RLS integration gate; apply the new occurrence/reset migration before the new function/client (new column is required).
-4. Deploy authenticated `family-squares-register` with existing website bridge secret/URL and gateway JWT check; verify isolated/non-client test accounts against deployed website contract.
-5. Only then release native changes through the separately authorized binary/OTA process. Device UI, accessibility, offline and account-transition testing remain release checks.
+1. Released by Matt's go-ahead with 4.2 (2): migration 20261012224545 and `family-squares-register` deploy with the merge to main.
+2. The website ensure action goes live when the website's Monday registration migrations (20261012224330, 20261012230630) are applied through Lovable; nothing in the app changes then.
+3. Do one English RSVP on a real 4.2 (2) device (Hermes `formatToParts` with `hourCycle: 'h23'`).
 
 Reverting the client code would restore destructive toggle behavior; do not use rollback as a registration cancellation mechanism. Leave additive schema in place unless separately reviewed.

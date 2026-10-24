@@ -186,7 +186,7 @@ export function useTodayFeed(
         console.warn('Could not refresh Today session count after registration', error);
       }
       if (identity.current !== accountId) return;
-      if (reserved.alreadyRegistered) appAlert(FAMILY_SQUARES_ALREADY_REGISTERED);
+      if (reserved.alreadyRegistered) appAlert(i18n.t(FAMILY_SQUARES_ALREADY_REGISTERED));
       return;
     }
     // Reserving La Sobremesa registers with AyudaSobria for a personal link.

@@ -18,7 +18,9 @@ A free account: core features plus the subscription purchase screens. Paid featu
 
 WHAT'S NEW IN 4.2
 - Spanish: members using the app in Spanish see La Sobremesa, our free Spanish-language Monday call (8:00 PM Pacific, from our Spanish site AyudaSobria.com), with a personal Zoom link; English members keep The Family Squares (7:00 PM Pacific).
-- Spanish education and call recordings open on AyudaSobria.com (same account, same "from the app" handling as soberhelpline.com).
+- Spanish education opens on AyudaSobria.com (same account, same "from the app" handling as soberhelpline.com).
+- The Family Squares RSVP now only saves a spot (a second tap no longer cancels it).
+- iOS permission prompts are in Spanish on Spanish-language devices.
 - Restore Purchases (Support > Settings > Membership) now waits for the server to confirm before reloading the account.
 - Spanish copy and crisis-resource wording improvements; dates follow the app language.
 
@@ -32,7 +34,7 @@ Essential and Premier auto-renewable subscriptions are sold only through Apple i
 "Book coaching" opens soberhelpline.com/book-consultation in Safari, where the member books and pays for a live, real-time one-to-one session with a person (a Sober Helpline coach). The same screen has a no-payment request form. Essential members may book a 60-minute live plan review with a coach and pay on the website; Premier members get it in their Apple subscription.
 
 WEBSITE PAGES OPENED FROM THE APP
-Coaching booking, the members' library, recordings and the forum open in Safari with a single-use sign-in token and a "from the app" marker; Terms and Privacy carry only the "from the app" marker. In Spanish, the library and recordings open on our Spanish site AyudaSobria.com the same way. Those pages hide all membership purchase links.
+Coaching booking, the members' library, recordings and the forum open in Safari with a single-use sign-in token and a "from the app" marker; Terms and Privacy carry only the "from the app" marker. In Spanish, the library opens on our Spanish site AyudaSobria.com the same way. Those pages hide all membership purchase links.
 
 COMMUNITY (Guideline 1.2)
 Support tab > Community, for Essential and Premier members (with the demo account, after a sandbox Essential purchase). First-name-only posts.

@@ -62,7 +62,8 @@
   },
   "familySquares": {
     "scheduleFallback": "Mondays · 7:00 PM Pacific",
-    "rsvpNote": "Your RSVP and questions go to Matt along with soberhelpline.com registrations. If it's your first call, you may get a follow-up email afterward."
+    "rsvpNote": "Your RSVP and questions go to Matt along with soberhelpline.com registrations. If it's your first call, you may get a follow-up email afterward.",
+    "alreadyRegistered": "You’re already registered. We look forward to seeing you Monday evening!"
   },
   "laSobremesa": {
     "scheduleFallback": "Mondays · 8:00 PM Pacific",

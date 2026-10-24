@@ -53,6 +53,7 @@ export default function NotificationsScreen() {
       setReserving(false);
       if (reserved.ok) setRsvped(true);
       else if (reserved.reason === 'not_available') appAlert(t('common:laSobremesa.notAvailable'));
+      else appAlert(t('support:sessions.rsvpErrorTitle'), t('support:sessions.rsvpErrorBody'));
       return;
     }
     const reserved = await reserveFamilySquares(accountId);
@@ -61,7 +62,7 @@ export default function NotificationsScreen() {
     if (identity.current !== accountId) return;
     if (reserved.ok) {
       setRsvped(true);
-      if (reserved.alreadyRegistered) appAlert(FAMILY_SQUARES_ALREADY_REGISTERED);
+      if (reserved.alreadyRegistered) appAlert(t(FAMILY_SQUARES_ALREADY_REGISTERED));
     } else {
       appAlert(t('support:sessions.rsvpErrorTitle'), t('support:sessions.rsvpErrorBody'));
     }

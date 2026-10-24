@@ -17,7 +17,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.soberhelplineapp",
       "appStoreUrl": "https://apps.apple.com/app/id6780034996?action=write-review",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "associatedDomains": [
         "applinks:soberhelpline.com"
       ],
@@ -36,6 +36,9 @@
         ],
         "ITSAppUsesNonExemptEncryption": false
       }
+    },
+    "locales": {
+      "es": "./native-locales/es.json"
     },
     "android": {
       "adaptiveIcon": {

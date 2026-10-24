@@ -7,6 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+// Website ensure errors that are decisions, not outages.
+const WEBSITE_DECISIONS = new Set<unknown>(['meeting_cancelled', 'registration_unavailable']);
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 }
@@ -37,14 +39,29 @@ Deno.serve(async (req) => {
     const now = new Date();
     const { meetingDate } = familySquaresSyncWindow(now);
     const name = [account.first_name, account.last_name].filter((p) => typeof p === 'string' && p.trim()).join(' ').trim() || 'Family';
-    const response = await fetch(websiteFunctionUrl('app-family-squares-sync', Deno.env.get('WEBSITE_FUNCTIONS_URL')), {
-      method: 'POST', signal: AbortSignal.timeout(20_000),
-      headers: { 'Content-Type': 'application/json', 'x-membership-sync-secret': secret },
-      body: JSON.stringify({ action: 'ensure-registration', meeting_date: meetingDate, attendee: { email: user.email.trim().toLowerCase(), name } }),
-    });
-    const registration = await response.json().catch(() => null);
-    if (!response.ok || registration?.ok !== true || typeof registration.already_registered !== 'boolean'
-      || registration.meeting_date !== meetingDate) return json({ ok: false, error: 'website_unavailable' }, 502);
+    let registration: { ok?: unknown; already_registered?: unknown; meeting_date?: unknown; error?: unknown } | null = null;
+    let websiteOk = false;
+    try {
+      const response = await fetch(websiteFunctionUrl('app-family-squares-sync', Deno.env.get('WEBSITE_FUNCTIONS_URL')), {
+        method: 'POST', signal: AbortSignal.timeout(20_000),
+        headers: { 'Content-Type': 'application/json', 'x-membership-sync-secret': secret },
+        body: JSON.stringify({ action: 'ensure-registration', meeting_date: meetingDate, attendee: { email: user.email.trim().toLowerCase(), name } }),
+      });
+      websiteOk = response.ok;
+      registration = await response.json().catch(() => null);
+    } catch {
+      // Outage/timeout: handled by the snapshot fallback below.
+    }
+    const confirmed = websiteOk && registration?.ok === true && typeof registration.already_registered === 'boolean'
+      && registration.meeting_date === meetingDate;
+    // The website's own decisions stand (cancelled week, blocked attendee).
+    if (!confirmed && WEBSITE_DECISIONS.has(registration?.error)) return json({ ok: false, error: 'website_declined' }, 409);
+    // Anything else (a website without the ensure action yet, an outage, a
+    // malformed reply) falls back to the RSVP snapshot alone: the 15-minute
+    // family-squares-web-sync mirrors it to the website exactly as 4.1 RSVPs
+    // are, so the member is registered either way. Only an explicit website
+    // repeat answer can claim "already registered".
+    const alreadyRegistered = confirmed && registration?.already_registered === true;
     // Crossing the call-end boundary must not stamp the previous occurrence as current.
     if (familySquaresSyncWindow(new Date()).meetingDate !== meetingDate) return json({ ok: false, error: 'retry' }, 409);
     // One composite-PK row; occurrence + timestamp advance together for the existing batch bridge.
@@ -53,7 +70,7 @@ Deno.serve(async (req) => {
       family_squares_meeting_date: meetingDate, created_at: now.toISOString(),
     }, { onConflict: 'session_id,account_id' });
     if (saveError) return json({ ok: false, error: 'unavailable' }, 503);
-    return json({ ok: true, already_registered: registration.already_registered, meeting_date: meetingDate });
+    return json({ ok: true, already_registered: alreadyRegistered, meeting_date: meetingDate });
   } catch {
     // No PII, JWT, provider payloads or secrets in logs/responses.
     return json({ ok: false, error: 'unavailable' }, 503);
