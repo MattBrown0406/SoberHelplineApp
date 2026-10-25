@@ -1,0 +1,29 @@
+Where to send: developer.apple.com/contact -> App Store Connect -> TestFlight (or call Developer Support).
+
+Subject: TestFlight builds fail to install on every app in my team ("The requested app is not available or doesn't exist")
+
+Hello,
+
+Since about October 12, 2026, no TestFlight build uploaded to my developer account can be installed. Tapping Install/Update in the TestFlight app shows:
+
+  "Could not install <app>. The requested app is not available or doesn't exist."
+
+This affects every app on my team (Team ID 4D2KRG86P2, individual account), for example:
+- Sober Helpline (Apple ID 6780034996), build 4.2 (2), uploaded 2026-10-24
+- Family Bridge Recovery, build 6.2 (1), uploaded 2026-10-12
+- Intentus, build 3.0 (1), uploaded 2026-10-13
+- BedrockMoney, builds 1.0.0 (1) and (2), uploaded 2026-10-18
+
+Every one of these shows 0 installs. At the same time, all of my older builds were expired early. For example, Sober Helpline 4.2 (1) (uploaded 2026-10-09) and 4.1 (1) (2026-10-04) both show Expired, long before their 90 days.
+
+What I have verified in App Store Connect:
+- The builds are Valid and "In Beta Testing" (processing finished, export compliance answered).
+- I am an internal tester in an internal group that has access to all builds.
+- The apps are live on the App Store and available in my region. New uploads and submissions still go through normally.
+- The same error occurs on every one of these builds on my iPhone.
+
+This looks like the account-level TestFlight issue described in Developer Forums threads 778597 and 788196, which Developer Support resolved on Apple's side. Could you please check my team's TestFlight distribution and restore installs?
+
+Thank you,
+Matt Brown
+matt@freedominterventions.com

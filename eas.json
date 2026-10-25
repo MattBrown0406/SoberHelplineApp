@@ -34,6 +34,10 @@
     "release-4-2-0": {
       "extends": "production",
       "autoIncrement": false
+    },
+    "internal-4-2-0": {
+      "extends": "release-4-2-0",
+      "distribution": "internal"
     }
   },
   "submit": {
