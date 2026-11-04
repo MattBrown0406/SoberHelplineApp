@@ -13,6 +13,7 @@ SELECT is(public._family_squares_latest_meeting_date('2026-11-15 23:00 America/L
 SELECT is(public._family_squares_week_monday('2026-11-09 08:00 America/Los_Angeles'), date '2026-11-09',
   'an admin writing Monday morning writes for tonight''s call');
 
+-- Fixed calls in 2025, so the run date (the live "latest call") never collides.
 -- ── Accounts (fixed ids; RLS hides subqueries from authenticated) ─────────
 INSERT INTO auth.users(id, email, raw_app_meta_data, raw_user_meta_data, aud, role, email_confirmed_at) VALUES
   ('16000000-0000-0000-0000-000000000001', 'fu-a@example.com', '{}', '{}', 'authenticated', 'authenticated', now()),
@@ -36,19 +37,19 @@ UPDATE public.accounts SET push_token = NULL WHERE id = '26000000-0000-0000-0000
 UPDATE public.accounts SET push_token = 'ExponentPushToken[fu-admin]'
 WHERE user_id = '16000000-0000-0000-0000-0000000000ff';
 
--- Seats for Monday 2026-11-09: A dated, B undated (4.1) during the week, C/D/E
+-- Seats for Monday 2025-11-10: A dated, B undated (4.1) during the week, C/D/E
 -- excluded by language, switch and device; G only has next week's seat; F
 -- tapped Join during the call without a seat.
 INSERT INTO public.session_rsvps(account_id, session_id, status, family_squares_meeting_date, created_at) VALUES
-  ('26000000-0000-0000-0000-000000000001', public.family_squares_session_id(), 'going', '2026-11-09', '2026-11-05 10:00 America/Los_Angeles'),
-  ('26000000-0000-0000-0000-000000000002', public.family_squares_session_id(), 'going', NULL, '2026-11-08 12:00 America/Los_Angeles'),
-  ('26000000-0000-0000-0000-000000000003', public.family_squares_session_id(), 'going', '2026-11-09', '2026-11-05 10:00 America/Los_Angeles'),
-  ('26000000-0000-0000-0000-000000000004', public.family_squares_session_id(), 'going', '2026-11-09', '2026-11-05 10:00 America/Los_Angeles'),
-  ('26000000-0000-0000-0000-000000000005', public.family_squares_session_id(), 'going', '2026-11-09', '2026-11-05 10:00 America/Los_Angeles'),
-  ('26000000-0000-0000-0000-000000000007', public.family_squares_session_id(), 'going', '2026-11-16', '2026-11-09 20:30 America/Los_Angeles')
+  ('26000000-0000-0000-0000-000000000001', public.family_squares_session_id(), 'going', '2025-11-10', '2025-11-06 10:00 America/Los_Angeles'),
+  ('26000000-0000-0000-0000-000000000002', public.family_squares_session_id(), 'going', NULL, '2025-11-09 12:00 America/Los_Angeles'),
+  ('26000000-0000-0000-0000-000000000003', public.family_squares_session_id(), 'going', '2025-11-10', '2025-11-06 10:00 America/Los_Angeles'),
+  ('26000000-0000-0000-0000-000000000004', public.family_squares_session_id(), 'going', '2025-11-10', '2025-11-06 10:00 America/Los_Angeles'),
+  ('26000000-0000-0000-0000-000000000005', public.family_squares_session_id(), 'going', '2025-11-10', '2025-11-06 10:00 America/Los_Angeles'),
+  ('26000000-0000-0000-0000-000000000007', public.family_squares_session_id(), 'going', '2025-11-17', '2025-11-10 20:30 America/Los_Angeles')
 ON CONFLICT DO NOTHING;
 INSERT INTO public.funnel_events(account_id, stage, metadata, created_at)
-VALUES ('26000000-0000-0000-0000-000000000006', 'attended', '{"source":"today"}', '2026-11-09 19:20 America/Los_Angeles');
+VALUES ('26000000-0000-0000-0000-000000000006', 'attended', '{"source":"today"}', '2025-11-10 19:20 America/Los_Angeles');
 
 -- ── Takeaway: admins write it, members read the latest call's ─────────────
 SET LOCAL ROLE authenticated;
@@ -63,7 +64,7 @@ SELECT is(public.admin_set_family_call_takeaway('  Hold   one limit for seven da
 SELECT is(public.admin_set_family_call_takeaway('') ->> 'body', NULL, 'an empty line clears it');
 RESET ROLE;
 INSERT INTO public.family_call_takeaways(meeting_date, body) VALUES (public._family_squares_latest_meeting_date(now()), 'Say one true sentence to one person.');
-INSERT INTO public.family_call_takeaways(meeting_date, body) VALUES ('2026-11-09', 'Hold one limit for seven days.')
+INSERT INTO public.family_call_takeaways(meeting_date, body) VALUES ('2025-11-10', 'Hold one limit for seven days.')
 ON CONFLICT (meeting_date) DO UPDATE SET body = EXCLUDED.body;
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claims', '{"sub":"16000000-0000-0000-0000-000000000001","email":"fu-a@example.com","role":"authenticated"}', true);
@@ -73,36 +74,36 @@ SELECT set_config('request.jwt.claims', '', true);
 SELECT is((SELECT public.family_call_takeaway()), NULL::jsonb, 'nobody signed in: nothing');
 
 -- ── Tuesday follow-up ─────────────────────────────────────────────────────
-SELECT is(public.enqueue_family_call_followups('2026-11-10 02:10 America/Los_Angeles'), 0, 'the 2 AM run (after the reset) does nothing');
-SELECT is(public.enqueue_family_call_followups('2026-11-09 01:10 America/Los_Angeles'), 0, 'Monday 1 AM does nothing');
-SELECT is(public.enqueue_family_call_followups('2026-11-10 01:10 America/Los_Angeles'), 3, 'Tuesday 1 AM Pacific enqueues three notes');
-SELECT is(public.enqueue_family_call_followups('2026-11-10 01:40 America/Los_Angeles'), 0, 'one per member per call');
+SELECT is(public.enqueue_family_call_followups('2025-11-11 02:10 America/Los_Angeles'), 0, 'the 2 AM run (after the reset) does nothing');
+SELECT is(public.enqueue_family_call_followups('2025-11-10 01:10 America/Los_Angeles'), 0, 'Monday 1 AM does nothing');
+SELECT is(public.enqueue_family_call_followups('2025-11-11 01:10 America/Los_Angeles'), 3, 'Tuesday 1 AM Pacific enqueues three notes');
+SELECT is(public.enqueue_family_call_followups('2025-11-11 01:40 America/Los_Angeles'), 0, 'one per member per call');
 SELECT set_eq(
   $$SELECT account_id FROM push_outbox WHERE kind = 'family_call_followup'$$,
   $$VALUES ('26000000-0000-0000-0000-000000000001'::uuid), ('26000000-0000-0000-0000-000000000002'::uuid), ('26000000-0000-0000-0000-000000000006'::uuid)$$,
   'a seat (dated or 4.1-undated) or a Join tap during the call; not Spanish, switched off, deviceless or next-week-only');
 SELECT is((SELECT scheduled_for FROM push_outbox WHERE kind = 'family_call_followup' AND account_id = '26000000-0000-0000-0000-000000000001'),
-  '2026-11-10 10:30 America/New_York'::timestamptz, 'New York gets it at 10:30 AM her time, clear of the morning note');
+  '2025-11-11 10:30 America/New_York'::timestamptz, 'New York gets it at 10:30 AM her time, clear of the morning note');
 SELECT is((SELECT scheduled_for FROM push_outbox WHERE kind = 'family_call_followup' AND account_id = '26000000-0000-0000-0000-000000000002'),
-  '2026-11-10 10:30 Europe/London'::timestamptz, 'London (9:10 AM there) also waits for 10:30');
+  '2025-11-11 10:30 Europe/London'::timestamptz, 'London (9:10 AM there) also waits for 10:30');
 SELECT is((SELECT expires_at FROM push_outbox WHERE kind = 'family_call_followup' AND account_id = '26000000-0000-0000-0000-000000000001'),
-  '2026-11-10 21:00 America/New_York'::timestamptz, 'never shown after 9 PM her time');
+  '2025-11-11 21:00 America/New_York'::timestamptz, 'never shown after 9 PM her time');
 SELECT is((SELECT body FROM push_outbox WHERE kind = 'family_call_followup' AND account_id = '26000000-0000-0000-0000-000000000001'),
   'This week''s one thing: Hold one limit for seven days.', 'quotes Matt''s line for that call');
 SELECT is((SELECT metadata FROM push_outbox WHERE kind = 'family_call_followup' AND account_id = '26000000-0000-0000-0000-000000000001'),
-  '{"kind":"family_call_followup","meeting_date":"2026-11-09"}'::jsonb, 'the routed payload');
+  '{"kind":"family_call_followup","meeting_date":"2025-11-10"}'::jsonb, 'the routed payload');
 SELECT ok(NOT has_function_privilege('authenticated', 'public.enqueue_family_call_followups(timestamptz)', 'EXECUTE'),
   'members cannot enqueue');
 
 -- No line written: the wording depends on what her app build can show.
 UPDATE public.accounts SET push_app_contract = 1 WHERE id = '26000000-0000-0000-0000-000000000001';
-UPDATE public.session_rsvps SET family_squares_meeting_date = '2026-11-16'
+UPDATE public.session_rsvps SET family_squares_meeting_date = '2025-11-17'
 WHERE account_id = '26000000-0000-0000-0000-000000000001' AND session_id = public.family_squares_session_id();
-SELECT is(public.enqueue_family_call_followups('2026-11-17 01:10 America/Los_Angeles'), 2, 'next week: A (seat moved) and G');
-SELECT is((SELECT body FROM push_outbox WHERE idempotency_key = 'family-call-followup:2026-11-16:26000000-0000-0000-0000-000000000001'),
+SELECT is(public.enqueue_family_call_followups('2025-11-18 01:10 America/Los_Angeles'), 2, 'next week: A (seat moved) and G');
+SELECT is((SELECT body FROM push_outbox WHERE idempotency_key = 'family-call-followup:2025-11-17:26000000-0000-0000-0000-000000000001'),
   'Your one thing to try this week is on Today, and next Monday''s seat is one tap away.', '4.2 (3)+: points at Today''s card');
-SELECT is((SELECT body FROM push_outbox WHERE idempotency_key = 'family-call-followup:2026-11-16:26000000-0000-0000-0000-000000000007'),
-  'Thanks for being part of Monday''s call. You can save your seat for next Monday in the app.', 'older builds: nothing they cannot find');
+SELECT is((SELECT body FROM push_outbox WHERE idempotency_key = 'family-call-followup:2025-11-17:26000000-0000-0000-0000-000000000007'),
+  'Next Monday''s call is free too. You can save your seat in the app.', 'older builds: nothing they cannot find');
 
 -- Registering a device records which build it is.
 SET LOCAL ROLE authenticated;

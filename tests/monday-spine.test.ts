@@ -49,7 +49,8 @@ test('questions are screened server-side and a crisis question alerts admins', (
   // A failed send keeps her words for a retry with 911/988 on screen, never only an error alert.
   assert.match(support, /\} catch \{\n\s+if \(!current\(\)\) return;[\s\S]*?setQuestionCrisis\('unsent'\);/);
   // A reply after the sheet closed is ignored.
-  assert.match(support, /questionSheetGeneration\.current \+= 1;/);
+  assert.match(support, /questionSheetGeneration\.current \+= 1;\n\s+setQuestionSession\(null\);\n\s+setQuestionText\(''\);\n\s+setQuestionSubmitting\(false\);/,
+    'closing mid-send leaves the next sheet able to send');
 });
 
 test('the hour-before reminder asks for a question only on builds that open the sheet', () => {

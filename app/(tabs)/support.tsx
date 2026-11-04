@@ -572,9 +572,11 @@ export default function SupportScreen() {
   const questionSheetGeneration = useRef(0);
 
   function closeQuestionSheet() {
+    // Orphans any send still in flight; the next sheet starts ready to send.
     questionSheetGeneration.current += 1;
     setQuestionSession(null);
     setQuestionText('');
+    setQuestionSubmitting(false);
     setQuestionSubmitted(false);
     setQuestionCrisis(null);
   }

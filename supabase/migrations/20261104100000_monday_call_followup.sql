@@ -272,7 +272,7 @@ BEGIN
       WHEN coalesce(s.push_app_contract, 0) >= 1 THEN
         'Your one thing to try this week is on Today, and next Monday''s seat is one tap away.'
       -- Older builds have no such card on Today.
-      ELSE 'Thanks for being part of Monday''s call. You can save your seat for next Monday in the app.'
+      ELSE 'Next Monday''s call is free too. You can save your seat in the app.'
     END,
     jsonb_build_object('kind', 'family_call_followup', 'meeting_date', v_meeting::text),
     'family-call-followup:' || v_meeting || ':' || s.id,
