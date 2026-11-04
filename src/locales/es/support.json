@@ -119,7 +119,9 @@
     "errorBody": "Tu pregunta no se guardó. Revisa tu conexión e inténtalo de nuevo.",
     "cancel": "Cancelar",
     "crisisNote": "Tu pregunta se envió. Si alguien está en peligro ahora mismo, no esperes a la llamada del lunes. Busca ayuda ya:",
-    "done": "Listo"
+    "done": "Listo",
+    "crisisNotSent": "Tu pregunta no se envió. Revisa tu conexión e inténtalo de nuevo. Si alguien está en peligro ahora mismo, no esperes a la llamada del lunes:",
+    "retry": "Intentar enviarla de nuevo"
   },
   "groups": {
     "eyebrow": "Grupos moderados",

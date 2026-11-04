@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { parseFamilyCallTakeaway, type FamilyCallTakeaway } from '../lib/familyCallTakeaway';
@@ -6,8 +7,8 @@ import { parseFamilyCallTakeaway, type FamilyCallTakeaway } from '../lib/familyC
 export type { FamilyCallTakeaway } from '../lib/familyCallTakeaway';
 
 /**
- * Re-read whenever Today comes into view: Matt usually writes it Monday night,
- * after the call, while Today stays mounted.
+ * Re-read whenever Today comes into view or the app returns to the foreground:
+ * Matt usually writes it Monday night, after the call, while Today stays mounted.
  */
 export function useFamilyCallTakeaway(accountId: string | null): FamilyCallTakeaway | null {
   const [takeaway, setTakeaway] = useState<FamilyCallTakeaway | null>(null);
@@ -36,6 +37,13 @@ export function useFamilyCallTakeaway(accountId: string | null): FamilyCallTakea
   }, [load]);
 
   useFocusEffect(useCallback(() => { void load(); }, [load]));
+  // And on foreground: tapping Tuesday's note can resume a Today already in view.
+  useEffect(() => {
+    const appState = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void load();
+    });
+    return () => appState.remove();
+  }, [load]);
 
   return takeaway;
 }

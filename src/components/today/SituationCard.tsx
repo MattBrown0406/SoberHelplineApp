@@ -115,7 +115,7 @@ export function SituationCard({ nextFreeCall, primaryDoor, weeklyOneThing, onRsv
           accessibilityRole="button"
           onPress={() => router.push({ pathname: '/(tabs)/support', params: { sessionId: nextFreeCall.id, ask: 'question' } })}
           activeOpacity={0.75}
-          style={styles.rsvpLink}
+          style={styles.askLink}
         >
           <Text style={[styles.rsvpLinkText, { color: colors.primary }]}>{t('situationCta.askQuestion')}</Text>
         </TouchableOpacity>
@@ -217,6 +217,7 @@ const styles = StyleSheet.create({
   finderLink: { alignItems: 'center', marginTop: 12 },
   finderLinkText: { fontSize: 13, fontWeight: '600' },
   rsvpLink: { alignItems: 'center', marginTop: 10 },
+  askLink: { alignItems: 'center', justifyContent: 'center', minHeight: 44, marginTop: 4 },
   rsvpLinkText: { fontSize: 13, fontWeight: '600' },
   rsvpNote: { fontSize: 12, lineHeight: 17, marginTop: 10 },
   oneThing: { marginTop: 16, paddingTop: 14, borderTopWidth: 1 },

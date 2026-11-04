@@ -464,7 +464,7 @@
     "askQuestion": "Envía una pregunta para la llamada",
     "oneThing": "LO DE ESTA SEMANA",
     "oneThingFromCall": "LO DE ESTA SEMANA · DE LA LLAMADA DEL LUNES",
-    "oneThingSupport": "Esta semana, deja que alguien lo cargue contigo: envíale tu semana a Matt o habla 1 a 1 con un coach, aquí abajo."
+    "oneThingSupport": "Esta semana, deja que alguien lo cargue contigo: usa una de las opciones de aquí abajo."
   },
   "curriculum": {
     "weekLabel": "SEMANA {{week}}",

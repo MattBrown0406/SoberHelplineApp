@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { reserveFamilySquares, familySquaresRsvpIsCurrent, FAMILY_SQUARES_ALREADY_REGISTERED } from '../lib/familySquaresRegistration';
@@ -154,6 +155,15 @@ export function useTodayFeed(
       void load();
     }, [load]),
   );
+  // Focus does not fire when the app returns to a Today that was already in
+  // view (a push tap the next morning): re-read on foreground too, so a seat
+  // cleared by the Tuesday reset is not still shown as saved.
+  useEffect(() => {
+    const appState = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void load();
+    });
+    return () => appState.remove();
+  }, [load]);
 
   const reserving = useRef(false);
   const rsvpFreeCall = useCallback(async () => {

@@ -119,7 +119,9 @@
     "errorBody": "Your question wasn't saved. Check your connection and try again.",
     "cancel": "Cancel",
     "crisisNote": "Your question was sent. If anyone is in danger right now, don't wait for Monday's call. Get help now:",
-    "done": "Done"
+    "done": "Done",
+    "crisisNotSent": "Your question wasn't sent. Check your connection and try again. If anyone is in danger right now, don't wait for Monday's call:",
+    "retry": "Try sending again"
   },
   "groups": {
     "eyebrow": "Moderated groups",

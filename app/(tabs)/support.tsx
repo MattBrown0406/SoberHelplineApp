@@ -13,6 +13,7 @@ import {
   Platform,
   useWindowDimensions,
   ScrollView,
+  AccessibilityInfo,
 } from 'react-native';
 import { supabase } from '../../src/lib/supabase';
 import { recordVerifiedPurchase, withTimeoutFallback } from '../../src/lib/authBootstrap';
@@ -544,7 +545,9 @@ export default function SupportScreen() {
   const { purchasePremium, purchaseEssential, purchasing, prices: subscriptionPrices, trials, retryPrices } = useIAP();
   const trialLabel = (tier: SubscriptionTier): string | null => {
     const trial = trials[tier];
-    if (!trial || !subscriptionPrices[tier]) return null;
+    // A member who already has a plan is upgrading: Apple judges trial
+    // eligibility per subscription group, so never promise her one.
+    if (!trial || !subscriptionPrices[tier] || entitlements.canAccessGroups) return null;
     const { key, count } = trialLabelKey(trial);
     return t(key, { count });
   };
@@ -562,40 +565,56 @@ export default function SupportScreen() {
   const [questionText, setQuestionText] = useState('');
   const [questionSubmitting, setQuestionSubmitting] = useState(false);
   const [questionSubmitted, setQuestionSubmitted] = useState(false);
-  // The question reads like an emergency: 911/988 stay on screen until she closes it.
-  const [questionCrisis, setQuestionCrisis] = useState(false);
+  // 'sent': the question reads like an emergency — 911/988 stay on screen
+  // until she closes it. 'unsent': it could not be sent; retry, with 911/988.
+  const [questionCrisis, setQuestionCrisis] = useState<'sent' | 'unsent' | null>(null);
+  // A reply that lands after the sheet was closed belongs to no sheet.
+  const questionSheetGeneration = useRef(0);
 
   function closeQuestionSheet() {
+    questionSheetGeneration.current += 1;
     setQuestionSession(null);
     setQuestionText('');
     setQuestionSubmitted(false);
-    setQuestionCrisis(false);
+    setQuestionCrisis(null);
   }
 
   useEffect(() => () => setReviewPromptPaywallVisible(false), []);
 
   async function submitQuestion() {
     if (!questionText.trim() || !questionSession || !user?.id) return;
+    const generation = questionSheetGeneration.current;
+    const current = () => generation === questionSheetGeneration.current;
+    const text = questionText.trim();
+    const row = { account_id: user.id, session_id: questionSession.id, question: text };
     setQuestionSubmitting(true);
     try {
-      const { data, error } = await supabase.from('session_questions').insert({
-        account_id: user.id,
-        session_id: questionSession.id,
-        question: questionText.trim(),
-      }).select('crisis_tier').single();
+      let { data, error } = await supabase.from('session_questions').insert(row).select('crisis_tier').single();
+      // A backend without the screen's column yet (42703 / PGRST204): plain insert.
+      if (error && (error.code === '42703' || error.code === 'PGRST204')) {
+        ({ data, error } = await supabase.from('session_questions').insert(row).select('id').single());
+      }
+      if (!current()) return;
       if (error) throw error;
       setQuestionSubmitted(true);
+      setQuestionCrisis(null);
       // The server reads every question with the community crisis screen and
       // alerts an admin; she sees emergency help now rather than on Monday.
       if ((data as { crisis_tier?: string | null } | null)?.crisis_tier) {
-        setQuestionCrisis(true);
+        setQuestionCrisis('sent');
+        AccessibilityInfo.announceForAccessibility(t('questionModal.crisisNote'));
         return;
       }
-      setTimeout(closeQuestionSheet, 1500);
+      setTimeout(() => { if (current()) closeQuestionSheet(); }, 1500);
     } catch {
-      appAlert(t('questionModal.errorTitle'), t('questionModal.errorBody'));
+      if (!current()) return;
+      // Unsent, so nothing screened it and no admin heard about it: the sheet
+      // keeps her words for a retry, with 911/988 on screen in case it is an
+      // emergency (never a dead end behind an error alert).
+      setQuestionCrisis('unsent');
+      AccessibilityInfo.announceForAccessibility(t('questionModal.crisisNotSent'));
     } finally {
-      setQuestionSubmitting(false);
+      if (current()) setQuestionSubmitting(false);
     }
   }
 
@@ -632,6 +651,8 @@ export default function SupportScreen() {
       // The store verified it: unlock now, then let the server mirror catch up.
       // A failed refresh must not leave the sheet open inviting a second purchase.
       if (user) recordVerifiedPurchase(user.id, upgradeTier);
+      // Eligibility changed with the purchase.
+      retryPrices();
       await withTimeoutFallback(
         Promise.resolve(supabase.functions.invoke('sync-iap-entitlements', {
           headers: { Authorization: `Bearer ${session.access_token}` },
@@ -1459,14 +1480,32 @@ export default function SupportScreen() {
             <Text style={[styles.sheetTitle, { color: colors.ink }]}>{t('questionModal.title')}</Text>
             <Text style={[styles.sheetSub, { color: colors.inkSoft, marginBottom: 14 }]}>{t('questionModal.sub')}</Text>
 
-            {questionSubmitted && questionCrisis ? (
+            {questionCrisis ? (
               <ScrollView style={styles.questionCrisisScroll} contentContainerStyle={{ paddingBottom: 8 }}>
                 <Text accessibilityRole="alert" style={[styles.sheetSub, { color: colors.ink, marginBottom: 12 }]}>
-                  {t('questionModal.crisisNote')}
+                  {t(questionCrisis === 'sent' ? 'questionModal.crisisNote' : 'questionModal.crisisNotSent')}
                 </Text>
-                <EmergencyActions prominent />
-                <TouchableOpacity style={[styles.solidBtn, { backgroundColor: colors.primary, marginTop: 12 }]} onPress={closeQuestionSheet} activeOpacity={0.85}>
-                  <Text style={styles.solidBtnText}>{t('questionModal.done')}</Text>
+                <EmergencyActions prominent offline={questionCrisis === 'unsent'} />
+                {questionCrisis === 'unsent' && (
+                  <TouchableOpacity
+                    style={[styles.solidBtn, { backgroundColor: colors.primary, marginTop: 12 }]}
+                    disabled={questionSubmitting}
+                    onPress={() => void submitQuestion()}
+                    activeOpacity={0.85}
+                  >
+                    {questionSubmitting
+                      ? <ActivityIndicator color="#fff" />
+                      : <Text style={styles.solidBtnText}>{t('questionModal.retry')}</Text>}
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  style={[questionCrisis === 'sent' ? styles.solidBtn : styles.sheetRow, questionCrisis === 'sent' ? { backgroundColor: colors.primary, marginTop: 12 } : styles.sheetRowLast]}
+                  onPress={closeQuestionSheet}
+                  activeOpacity={0.85}
+                >
+                  <Text style={questionCrisis === 'sent' ? styles.solidBtnText : [styles.sheetRowName, { color: colors.inkSoft }]}>
+                    {t(questionCrisis === 'sent' ? 'questionModal.done' : 'questionModal.cancel')}
+                  </Text>
                 </TouchableOpacity>
               </ScrollView>
             ) : questionSubmitted ? (

@@ -45,7 +45,11 @@ test('questions are screened server-side and a crisis question alerts admins', (
   assert.match(followupSql, /'admin_session_question', '🆘 A question for Monday mentions a crisis'/);
   const support = readFileSync('app/(tabs)/support.tsx', 'utf8');
   assert.match(support, /\.select\('crisis_tier'\)\.single\(\)/);
-  assert.match(support, /questionSubmitted && questionCrisis \?[\s\S]*?<EmergencyActions prominent \/>/);
+  assert.match(support, /\{questionCrisis \? \([\s\S]*?<EmergencyActions prominent offline=\{questionCrisis === 'unsent'\} \/>/);
+  // A failed send keeps her words for a retry with 911/988 on screen, never only an error alert.
+  assert.match(support, /\} catch \{\n\s+if \(!current\(\)\) return;[\s\S]*?setQuestionCrisis\('unsent'\);/);
+  // A reply after the sheet closed is ignored.
+  assert.match(support, /questionSheetGeneration\.current \+= 1;/);
 });
 
 test('the hour-before reminder asks for a question only on builds that open the sheet', () => {
@@ -72,6 +76,11 @@ test('free trials show only when the store says she is eligible', () => {
   assert.equal(freeTrialOffer(null, INTRO_ELIGIBLE), null);
   assert.equal(freeTrialOffer({ ...week, periodUnit: 'YEAR' }, INTRO_ELIGIBLE), null);
   assert.deepEqual(trialLabelKey({ unit: 'day', count: 7 }), { key: 'paywall.trialDays', count: 7 });
+});
+
+test('members who already have a plan are never promised a trial', () => {
+  const support = readFileSync('app/(tabs)/support.tsx', 'utf8');
+  assert.match(support, /if \(!trial \|\| !subscriptionPrices\[tier\] \|\| entitlements\.canAccessGroups\) return null;/);
 });
 
 test('trial copy keeps the price and the cancel terms next to the trial', () => {

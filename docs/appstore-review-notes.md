@@ -16,6 +16,12 @@ Email: appreview@soberhelpline.com
 Password: APPREVIEW
 A free account: core features plus the subscription purchase screens. Paid features unlock after a sandbox purchase.
 
+WHAT'S NEW IN 4.2 (build 3)
+- Today leads with the free Monday call (The Family Squares): save a seat, send a question ahead, and see "this week's one thing" from the call.
+- The morning after a call she saved a seat for or joined, one note with that week's one thing (only with Monday call reminders on; Settings > Notifications).
+- If an App Store free trial is offered for a plan, the plan screen states its length, the price charged after it and how to cancel; members who are not eligible never see one.
+- The community feed is no longer offered.
+
 WHAT'S NEW IN 4.2
 - Spanish: members using the app in Spanish see La Sobremesa, our free Spanish-language Monday call (8:00 PM Pacific, from our Spanish site AyudaSobria.com), with a personal Zoom link; English members keep The Family Squares (7:00 PM Pacific).
 - Spanish education opens on AyudaSobria.com (same account, same "from the app" handling as soberhelpline.com).
@@ -36,12 +42,11 @@ Essential and Premier auto-renewable subscriptions are sold only through Apple i
 WEBSITE PAGES OPENED FROM THE APP
 Coaching booking, the members' library, recordings and the forum open in Safari with a single-use sign-in token and a "from the app" marker; Terms and Privacy carry only the "from the app" marker. In Spanish, the library opens on our Spanish site AyudaSobria.com the same way. Those pages hide all membership purchase links.
 
-COMMUNITY (Guideline 1.2)
-Support tab > Community, for Essential and Premier members (with the demo account, after a sandbox Essential purchase). First-name-only posts.
-- Report: hides the post for the reporter at once and notifies our moderator; 3 reports hold the post until reviewed.
-- Block: hides that person's posts; unblock in the same screen.
-- Crisis screening: a post describing an emergency happening now is not published; the member sees 911, 988 and a button to message her coach. Other mentions of suicide, overdose or self-harm show her 988/911 and alert our moderator.
-- Our team reviews reported and flagged posts and can remove them.
+COMMUNITY FEED
+This version does not offer the member community feed (there is no user-generated content to review). If it returns, it will ship in a reviewed binary with its report, block and moderation tools described here.
+
+QUESTIONS FOR THE MONDAY CALL
+Members who saved a seat for The Family Squares can send a question ahead (Today > "Send a question for the call", or Support). Questions go only to our team, never to other members. Each question is screened: one describing an emergency shows 911, 988 and Poison Control at once and alerts our team; if a question cannot be sent, the same emergency numbers are shown with a retry.
 
 CRISIS / SAFETY
 911 and 988 are prominent and never behind a paywall. The app is not an emergency service; this is stated in the app and the description. Practice tools pause and show 911, 988 and the Domestic Violence Hotline if a member describes a crisis or abuse.
