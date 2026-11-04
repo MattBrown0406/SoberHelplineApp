@@ -194,14 +194,16 @@ CREATE FUNCTION pg_temp.call_delivery(k text,at_time timestamptz DEFAULT '2026-1
  SELECT dispatcher_job_delivery(k,pg_temp.aid(1),family_squares_session_id(),deadline,at_time)
 $$;
 DELETE FROM session_rsvps WHERE account_id=pg_temp.aid(1);
+-- The invite checks her local daytime, and the calls below use fixed Monday
+-- evening clocks: pin her to New York (the earlier tz_at(14) zone depends on
+-- when the test runs).
+UPDATE accounts SET timezone='America/New_York' WHERE id=pg_temp.aid(1);
 SELECT ok(pg_temp.call_delivery('family_call_30min') IS NOT NULL,'free family call positive control');
 -- 6:30 PM Pacific is 2:30 AM in London: never invite her in the middle of her night.
-CREATE TEMP TABLE saved_tz AS SELECT timezone FROM accounts WHERE id=pg_temp.aid(1);
 UPDATE accounts SET timezone='Europe/London' WHERE id=pg_temp.aid(1);
 SELECT is(pg_temp.call_delivery('family_call_30min'),NULL,'free family call invite waits for daytime where she is');
 UPDATE accounts SET timezone='America/New_York' WHERE id=pg_temp.aid(1);
 SELECT ok(pg_temp.call_delivery('family_call_30min') IS NOT NULL,'and still reaches US members in the evening');
-UPDATE accounts SET timezone=(SELECT timezone FROM saved_tz) WHERE id=pg_temp.aid(1);
 SELECT is(pg_temp.call_delivery('session_reminder','2026-10-06T01:05:00Z'),NULL,'session reminder requires going RSVP');
 INSERT INTO session_rsvps(account_id,session_id,status) VALUES(pg_temp.aid(1),family_squares_session_id(),'going');
 SELECT ok(pg_temp.call_delivery('session_reminder','2026-10-06T01:05:00Z') IS NOT NULL,'going RSVP valid');
