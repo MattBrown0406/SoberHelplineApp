@@ -501,7 +501,8 @@
       "contact": "Que Matt o un coach se comunique contigo personalmente",
       "confirm": "Sí, falleció",
       "cancel": "Cancelar",
-      "error": "No pudimos guardarlo. Inténtalo de nuevo."
+      "error": "No pudimos guardarlo. Inténtalo de nuevo.",
+      "quiet": "Pausar recordatorios y notas por ahora"
     },
     "link": "Mi ser querido falleció",
     "grief": {
@@ -525,7 +526,11 @@
       "crisisTitle": "Si no quieres seguir aquí",
       "crisisBody": "Cuando alguien muere por una adicción, aumenta el riesgo de suicidio en su familia y en quienes estaban cerca. Si estás pensando en no querer seguir aquí, llama al 988 (marca 2 para español) o envía AYUDA al 988. Pedir ayuda no es un fracaso.",
       "stillHere": "Matt y la llamada de los lunes siguen aquí para ti, todo el tiempo que los necesites.",
-      "openError": "No pudimos abrir esa página. Visita {{site}} en tu navegador."
+      "openError": "No pudimos abrir esa página. Visita {{site}} en tu navegador.",
+      "pause": "Pausar todos los recordatorios",
+      "resume": "Volver a activar los recordatorios",
+      "pausedNote": "Los recordatorios y las notas están en pausa. Los mensajes de Matt o de un coach siguen llegando.",
+      "quietError": "No pudimos cambiarlo. Inténtalo de nuevo."
     }
   }
 }

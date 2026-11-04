@@ -4,7 +4,8 @@ import fs from 'node:fs';
 import ts from 'typescript';
 import { AsyncWriteBarrier } from '../src/lib/appFlowGuards';
 
-function harness(platform = 'ios', serverDailyOptIn = false, server: { pushToken?: string | null; hour?: number | null } = {}) {
+function harness(platform = 'ios', serverDailyOptIn = false, server: { pushToken?: string | null; hour?: number | null; quiet?: boolean } = {}) {
+  const quietCalls: string[] = [];
   let serverHour = server.hour ?? null;
   const store = new Map<string, string>();
   const scheduled: any[] = []; const canceled: string[] = []; let writes = 0;
@@ -36,18 +37,22 @@ function harness(platform = 'ios', serverDailyOptIn = false, server: { pushToken
         return { data: true };
       },
       auth: { getSession: async () => ({ data: { session: { user: { id: 'auth' } } } }) },
-      from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: 'A', timezone: null, daily_push_opt_in: serverDailyOptIn, daily_push_hour: serverHour, push_token: server.pushToken ?? null } }) }) }) }),
+      from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: 'A', timezone: null, daily_push_opt_in: serverDailyOptIn, daily_push_hour: serverHour, push_token: server.pushToken ?? null, loved_ones: server.quiet === undefined ? null : { died_at: '2026-11-04T00:00:00Z', bereavement_quiet: server.quiet } } }) }) }) }),
     } }, '../storage/checkIn': { getCheckIn: async () => null },
     '../lib/appFlowGuards': { AsyncWriteBarrier }, '../lib/pushRouting': {},
     '../lib/pendingPushTokenRevoke': { settlePendingPushTokenRevoke: async () => 'none' }, '../lib/pushDevice': { isDeviceSignedIn: () => true },
     '../reminders/personalReminders': { REMINDER_PREFIX: 'personal-reminder:' },
+    '../reminders/bereavementQuiet': {
+      pausePersonalRemindersForQuiet: async (id: string) => { quietCalls.push(`pause:${id}`); },
+      resumePersonalRemindersAfterQuiet: async (id: string) => { quietCalls.push(`resume:${id}`); },
+    },
   };
   const code = ts.transpileModule(fs.readFileSync('src/hooks/usePushNotifications.ts', 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true },
   }).outputText;
   const exports: any = {};
   new Function('require', 'exports', code)((name: string) => modules[name], exports);
-  return { api: exports, store, scheduled, canceled, writes: () => writes, rpcCalls };
+  return { api: exports, store, scheduled, canceled, writes: () => writes, rpcCalls, quietCalls };
 }
 
 test('web logout preserves token barrier without invoking an unavailable native scheduler', async () => {
@@ -124,4 +129,18 @@ test('when another device holds the server token, this device keeps its own nudg
   const h = harness('ios', false, { pushToken: 'ExponentPushToken[other-device]' });
   assert.equal(await h.api.registerForPushNotifications('A', true, true), true);
   assert.ok(dailyNudges(h).length > 0);
+});
+
+test('a bereaved member who paused reminders gets nothing scheduled on this device; turning them back on restores', async () => {
+  const quiet = harness('ios', false, { pushToken: null, quiet: true });
+  quiet.store.set('reminderHour', '18');
+  await quiet.api.registerForPushNotifications('A', true, true);
+  assert.equal(quiet.scheduled.length, 0, 'no daily nudge, no week review');
+  assert.ok(quiet.canceled.includes('legacy-daily-nudge:v1:daily-1'), 'already scheduled nudges are cancelled');
+  assert.ok(quiet.quietCalls.includes('pause:A'), 'personal reminders pause too');
+  const back = harness('ios', false, { pushToken: null, quiet: false });
+  back.store.set('reminderHour', '18');
+  await back.api.registerForPushNotifications('A', true, true);
+  assert.ok(back.quietCalls.includes('resume:A'));
+  assert.ok(dailyNudges(back).length > 0, 'nudges are scheduled again');
 });

@@ -61,7 +61,7 @@ export async function freshDailyAccount(db: SupabaseClient, id: string, day?: st
   const since14 = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
   let query = db.from('accounts').select(`id, push_token, locale, timezone, daily_push_opt_in, daily_push_hour,
     recent_checkins:checkins(mood), today_checkins:checkins(checkin_date),
-    tracker_logs(kind), loved_ones(status, stage, stage_changed_at, status_changed_at, died_at)`)
+    tracker_logs(kind), loved_ones(status, stage, stage_changed_at, status_changed_at, died_at, bereavement_quiet)`)
     .eq('id', id).gte('recent_checkins.created_at', since7).gte('tracker_logs.week', since14);
   // Morning notes do not depend on today's completion; avoid fetching history.
   query = query.eq('today_checkins.checkin_date', day ?? '0001-01-01');
@@ -79,8 +79,17 @@ export async function freshDailyAccount(db: SupabaseClient, id: string, day?: st
     (a.tracker_logs ?? []).filter((l) => l.kind === 'warning').length,
   );
   // Her loved one died: the coaching notes about them stop.
-  const bereaved = !!(a.loved_ones as unknown as { died_at?: string | null } | null)?.died_at;
-  return { ...a, band, bereaved, checkedIn: !!a.today_checkins?.length };
+  const grief = a.loved_ones as unknown as { died_at?: string | null; bereavement_quiet?: boolean | null } | null;
+  const bereaved = !!grief?.died_at;
+  // She asked for quiet while she grieves: no reminders or notes at all.
+  const remindersPaused = bereaved && grief?.bereavement_quiet === true;
+  return { ...a, band, bereaved, remindersPaused, checkedIn: !!a.today_checkins?.length };
+}
+
+/** The account's loved-one row as embedded under accounts: paused when bereaved and quiet. */
+export function remindersPausedFor(lovedOne: unknown): boolean {
+  const row = lovedOne as { died_at?: string | null; bereavement_quiet?: boolean | null } | null;
+  return !!row?.died_at && row.bereavement_quiet === true;
 }
 /** Latest event (including private events), both memberships and token together.
  * Do NOT filter shared_with_family=true in SQL: that hides newer withdrawals.

@@ -7,6 +7,7 @@ import {
   deliverLegacy,
   recordDelivery,
   remaining,
+  remindersPausedFor,
   sessionDeadline,
   tally,
 } from '../_shared/legacy-sender-boundary.ts';
@@ -69,7 +70,7 @@ Deno.serve(async (req) => {
         // RSVP alone is not consent.
         const row = await checked(
           supabase.from('session_rsvps')
-            .select('account_id, accounts!inner(id, push_token, locale, family_call_reminders)')
+            .select('account_id, accounts!inner(id, push_token, locale, family_call_reminders, loved_ones(died_at, bereavement_quiet))')
             .eq('account_id', candidate.id).eq('session_id', sessionId).eq('status', 'going')
             .maybeSingle(),
         );
@@ -78,11 +79,12 @@ Deno.serve(async (req) => {
           push_token: string | null;
           locale: string | null;
           family_call_reminders: boolean | null;
+          loved_ones: unknown;
         } | null;
         // Spanish members are invited to La Sobremesa (8 PM), never The Family
         // Squares; notify-la-sobremesa reminds them.
         if (
-          !a?.push_token || a.id !== candidate.id || a.family_call_reminders !== true ||
+          !a?.push_token || a.id !== candidate.id || a.family_call_reminders !== true || remindersPausedFor(a.loved_ones) ||
           seen.has(a.push_token) || String(a.locale ?? '').toLowerCase().startsWith('es')
         ) {
           counts.skipped++;

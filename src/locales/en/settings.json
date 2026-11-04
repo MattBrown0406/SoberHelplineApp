@@ -136,6 +136,8 @@
     "undoConfirm": "Undo",
     "undoCancel": "Cancel",
     "errorTitle": "Couldn't save",
-    "errorBody": "Please check your connection and try again."
+    "errorBody": "Please check your connection and try again.",
+    "remindersLabel": "Reminders and notes",
+    "remindersDesc": "Turn off to pause every reminder and note for as long as you need. Messages from Matt or a coach still come through."
   }
 }

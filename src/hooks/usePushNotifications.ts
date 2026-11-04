@@ -15,6 +15,7 @@ import { shouldDeferPushRouting } from '../lib/pushColdStart';
 import { requestFamilySpaceRefresh } from '../lib/familySpaceRefresh';
 import { useAccount } from '../contexts/AccountContext';
 import type { Entitlements } from '../api/types';
+import { pausePersonalRemindersForQuiet, resumePersonalRemindersAfterQuiet } from '../reminders/bereavementQuiet';
 export const LEGACY_NUDGE_PREFIX = 'legacy-daily-nudge:v1:';
 const LEGACY_OPT_IN_KEY = 'legacy-daily-nudge-opt-in:v1:';
 
@@ -130,20 +131,26 @@ async function performDailyNudgeRearm(): Promise<void> {
   // Resolve the account before touching the schedule: offline the lookup
   // fails, and cancelling first would leave the week with no reminders.
   const { data: { session } } = await supabase.auth.getSession();
-  let account: {
+  type DailyAccount = {
     id: string; timezone: string | null; daily_push_opt_in: boolean;
     daily_push_hour: number | null; push_token: string | null;
-  } | null = null;
+    loved_ones?: { died_at: string | null; bereavement_quiet: boolean | null } | null;
+  };
+  let account: DailyAccount | null = null;
+  // Bereaved and asked for quiet: nothing scheduled on this device either.
+  let remindersPaused = false;
   // The server morning note reaches her (via the token on file) at this hour.
   let serverMorningNote = false;
   if (accountId && session?.user.id) {
     const { data, error } = await supabase
       .from('accounts')
-      .select('id, timezone, daily_push_opt_in, daily_push_hour, push_token')
+      .select('id, timezone, daily_push_opt_in, daily_push_hour, push_token, loved_ones(died_at, bereavement_quiet)')
       .eq('user_id', session.user.id)
       .maybeSingle();
     if (error) return;
-    account = data;
+    account = data as DailyAccount | null;
+    remindersPaused = account?.id === accountId && !!account.loved_ones?.died_at
+      && account.loved_ones.bereavement_quiet === true;
     // Only an explicit opt-in on this device consents to the server's daily
     // push; keep the server in step (older builds never reported it).
     const optedIn = await isDailyNudgeEnabled(accountId);
@@ -169,6 +176,13 @@ async function performDailyNudgeRearm(): Promise<void> {
       await Notifications.cancelScheduledNotificationAsync(request.identifier);
     }
   }
+
+  // Her own personal reminders follow the same pause (and come back after it).
+  if (accountId && account?.id === accountId && current()) {
+    await (remindersPaused ? pausePersonalRemindersForQuiet(accountId) : resumePersonalRemindersAfterQuiet(accountId))
+      .catch(() => undefined);
+  }
+  if (remindersPaused) return;
 
   if (!accountId || !current() || !(await isDailyNudgeEnabled(accountId))) return;
   const { status } = await Notifications.getPermissionsAsync();

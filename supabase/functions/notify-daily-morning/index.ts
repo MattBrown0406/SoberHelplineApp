@@ -179,7 +179,7 @@ Deno.serve(async (req) => {
     }
     try {
       const a = await freshDailyAccount(supabase, candidate.id);
-      if (!a?.push_token || !a.daily_push_opt_in) {
+      if (!a?.push_token || !a.daily_push_opt_in || a.remindersPaused) {
         counts.skipped++;
         continue;
       }

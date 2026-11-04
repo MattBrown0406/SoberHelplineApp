@@ -25,6 +25,8 @@ export interface LovedOne {
   updated_at: string;
   /** Set when she tells us her loved one died; null otherwise (and on old rows). */
   died_at?: string | null;
+  /** Bereaved and asked to pause every reminder and note. */
+  bereavement_quiet?: boolean | null;
 }
 
 export interface LovedOneInput {
@@ -140,10 +142,12 @@ export function useLovedOne(accountId: string | null) {
 
   // "They died": her own account only (the RPC reads the signed-in account).
   // `contact` lets an admin know so someone can reach out.
-  const markDied = useCallback(async (contact: boolean): Promise<void> => {
+  const markDied = useCallback(async (contact: boolean, quiet = false): Promise<void> => {
     if (!accountId || scopeRef.current.accountId !== accountId) throw new Error('Cannot update without the active account');
     const { error } = await supabase.rpc('mark_loved_one_died', { p_contact: contact });
     if (error) throw error;
+    // Pausing reminders is a second, separate choice; the death is saved either way.
+    if (quiet) await supabase.rpc('set_bereavement_quiet', { p_quiet: true });
     rememberBereaved(accountId, true);
     setCached({ accountId, bereaved: true });
     await load().catch(() => undefined);
@@ -163,6 +167,14 @@ export function useLovedOne(accountId: string | null) {
   // A new device, a reinstall or the web has no copy: unknown until the read
   // settles. Offline with no copy, the usual Today: never stuck.
   const unreadable = !!loadError && record.accountId === accountId && !loading;
+  // Pause (or bring back) every reminder and note while she grieves.
+  const setQuiet = useCallback(async (quiet: boolean): Promise<void> => {
+    if (!accountId || scopeRef.current.accountId !== accountId) throw new Error('Cannot update without the active account');
+    const { error } = await supabase.rpc('set_bereavement_quiet', { p_quiet: quiet });
+    if (error) throw error;
+    await load().catch(() => undefined);
+  }, [accountId, load]);
+
   return {
     lovedOne: record.accountId === accountId ? record.value : null,
     /**
@@ -171,6 +183,6 @@ export function useLovedOne(accountId: string | null) {
      */
     bereaved: settled ? isBereaved(record.value) : cachedBereaved ?? (unreadable ? false : undefined),
     loading: loading || record.accountId !== accountId,
-    loadError, save, setStatus, markDied, clearDied, refresh: load,
+    loadError, save, setStatus, markDied, clearDied, setQuiet, refresh: load,
   };
 }

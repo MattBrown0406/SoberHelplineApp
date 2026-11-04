@@ -34,6 +34,7 @@ import { useLovedOne } from '../../src/hooks/useLovedOne';
 import { useFamilySpace } from '../../src/hooks/useFamilySpace';
 import { useHoldLog } from '../../src/hooks/useHoldLog';
 import { useFamilyCallTakeaway } from '../../src/hooks/useFamilyCallTakeaway';
+import { rearmDailyNudge } from '../../src/hooks/usePushNotifications';
 import { getDailyScripts } from '../../src/content/scripts';
 import { PHASE_LABEL_KEY, selectCurriculumPiece } from '../../src/content/curriculum';
 import { useFeatureAccess } from '../../src/hooks/useFeatureAccess';
@@ -60,7 +61,7 @@ function TodayContent() {
   const { t, i18n } = useTranslation('today');
   const router = useRouter();
   const { todayCheckIn, streak, saveCheckIn, pendingSync } = useCheckIn(user?.id ?? null, user?.timezone);
-  const { lovedOne, loading: lovedOneLoading, loadError: lovedOneLoadError, save: saveLovedOne, markDied, refresh: refreshLovedOne, bereaved: bereavedState } = useLovedOne(user?.id ?? null);
+  const { lovedOne, loading: lovedOneLoading, loadError: lovedOneLoadError, save: saveLovedOne, markDied, setQuiet, refresh: refreshLovedOne, bereaved: bereavedState } = useLovedOne(user?.id ?? null);
   // Her loved one died: Today shows the grief card instead of everything about them.
   // The device's copy answers before the record loads (or offline), so a
   // bereaved member never sees the loved-one Today first.
@@ -166,8 +167,10 @@ function TodayContent() {
     <BereavementSheet
       visible={diedSheetOpen}
       onCancel={() => setDiedSheetOpen(false)}
-      onConfirm={async (contact) => {
-        await markDied(contact);
+      onConfirm={async (contact, quiet) => {
+        await markDied(contact, quiet);
+        // The device's own reminders follow the server's pause.
+        void rearmDailyNudge().catch(() => undefined);
         setDiedSheetOpen(false);
         void reloadFeed();
       }}
@@ -249,7 +252,13 @@ function TodayContent() {
       <ScreenContainer backgroundColor={colors.cream}>
         {header}
         <NeedsRouter bereaved />
-        <GriefCard />
+        <GriefCard
+          quiet={lovedOne?.bereavement_quiet === true}
+          onSetQuiet={async (quiet) => {
+            await setQuiet(quiet);
+            void rearmDailyNudge().catch(() => undefined);
+          }}
+        />
         {mondayCallCard}
         {checkInCard}
         <CheckInFeedbackCard checkIn={todayCheckIn} />

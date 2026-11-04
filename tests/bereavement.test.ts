@@ -62,7 +62,7 @@ test('Today, the cards, Settings and Admin are wired', () => {
   const prompt = read('src/lib/reviewPrompt.ts');
   assert.match(prompt, /from\('loved_ones'\)\.select\('died_at'\)/);
   assert.match(prompt, /bereaved: authoritativeSafety\.bereaved \|\| safety\?\.bereaved/);
-  assert.match(today, /if \(bereaved\) \{[\s\S]*<GriefCard \/>/);
+  assert.match(today, /if \(bereaved\) \{[\s\S]*<GriefCard\b/);
   assert.match(today, /bereaved \? null : takeaway/);
   assert.match(today, /onTheyDied=\{\(\) => setDiedSheetOpen\(true\)\}/);
   assert.match(today, /refreshLovedOne\(\)/);
@@ -89,7 +89,7 @@ test('the server marks her own account only and stops the notes about the loved 
   assert.doesNotMatch(morning, /\|\| a\.bereaved\)/);
   assert.match(morning, /const copy = isMonday\s*\? \{ title: c\.mondayTitle, body: c\.mondayBody \}\s*: bereaved\s*\? \{ title: c\.morningTitle, body: c\.genericMorning \}/);
   assert.match(morning, /morningNoteData\(isMonday \|\| support \|\| bereaved \? 'support' : 'boundaries'\)/);
-  assert.match(read('supabase/functions/_shared/legacy-sender-boundary.ts'), /status_changed_at, died_at\)/);
+  assert.match(read('supabase/functions/_shared/legacy-sender-boundary.ts'), /status_changed_at, died_at, bereavement_quiet\)/);
 });
 
 test('a bereaved member is never asked for a rating, and the admin alert opens Admin', async () => {

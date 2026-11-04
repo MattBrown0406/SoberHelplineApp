@@ -136,6 +136,8 @@
     "undoConfirm": "Deshacer",
     "undoCancel": "Cancelar",
     "errorTitle": "No se pudo guardar",
-    "errorBody": "Revisa tu conexión e inténtalo de nuevo."
+    "errorBody": "Revisa tu conexión e inténtalo de nuevo.",
+    "remindersLabel": "Recordatorios y notas",
+    "remindersDesc": "Apágalo para pausar todos los recordatorios y notas el tiempo que necesites. Los mensajes de Matt o de un coach siguen llegando."
   }
 }

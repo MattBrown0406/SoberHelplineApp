@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useLovedOne } from '../../hooks/useLovedOne';
+import { rearmDailyNudge } from '../../hooks/usePushNotifications';
 import { appAlert } from '../../lib/appAlert';
 import { isBereaved } from '../../lib/bereavement';
 import { BereavementSheet } from './BereavementSheet';
@@ -11,12 +12,24 @@ import { BereavementSheet } from './BereavementSheet';
 export function BereavementSettingsCard({ accountId }: { accountId: string | null }) {
   const { colors } = useTheme();
   const { t } = useTranslation('settings');
-  const { lovedOne, loading, loadError, markDied, clearDied } = useLovedOne(accountId);
+  const { lovedOne, loading, loadError, markDied, clearDied, setQuiet } = useLovedOne(accountId);
+  const [quietBusy, setQuietBusy] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [undoing, setUndoing] = useState(false);
 
   if (!accountId || loading || loadError) return null;
   const bereaved = isBereaved(lovedOne);
+  const quiet = lovedOne?.bereavement_quiet === true;
+  // The device's own reminders follow every change.
+  const syncDevice = () => { void rearmDailyNudge().catch(() => undefined); };
+
+  const toggleReminders = (remindersOn: boolean) => {
+    setQuietBusy(true);
+    void setQuiet(!remindersOn)
+      .then(syncDevice)
+      .catch(() => appAlert(t('bereavement.errorTitle'), t('bereavement.errorBody')))
+      .finally(() => setQuietBusy(false));
+  };
 
   const undo = () => appAlert(t('bereavement.undoTitle'), t('bereavement.undoBody'), [
     { text: t('bereavement.undoCancel'), style: 'cancel' },
@@ -25,6 +38,7 @@ export function BereavementSettingsCard({ accountId }: { accountId: string | nul
       onPress: () => {
         setUndoing(true);
         void clearDied()
+          .then(syncDevice)
           .catch(() => appAlert(t('bereavement.errorTitle'), t('bereavement.errorBody')))
           .finally(() => setUndoing(false));
       },
@@ -46,11 +60,27 @@ export function BereavementSettingsCard({ accountId }: { accountId: string | nul
           <Text style={[styles.buttonText, { color: colors.primary }]}>{t(bereaved ? 'bereavement.undo' : 'bereavement.tell')}</Text>
         )}
       </TouchableOpacity>
+      {bereaved ? (
+        <View style={styles.switchRow}>
+          <View style={styles.switchText}>
+            <Text style={[styles.switchLabel, { color: colors.ink }]}>{t('bereavement.remindersLabel')}</Text>
+            <Text style={[styles.switchDesc, { color: colors.inkSoft }]}>{t('bereavement.remindersDesc')}</Text>
+          </View>
+          <Switch
+            accessibilityLabel={t('bereavement.remindersLabel')}
+            accessibilityHint={t('bereavement.remindersDesc')}
+            value={!quiet}
+            disabled={quietBusy}
+            onValueChange={toggleReminders}
+          />
+        </View>
+      ) : null}
       <BereavementSheet
         visible={sheetOpen}
         onCancel={() => setSheetOpen(false)}
-        onConfirm={async (contact) => {
-          await markDied(contact);
+        onConfirm={async (contact, quietChoice) => {
+          await markDied(contact, quietChoice);
+          syncDevice();
           setSheetOpen(false);
         }}
       />
@@ -64,4 +94,8 @@ const styles = StyleSheet.create({
   body: { fontSize: 14, lineHeight: 20, marginBottom: 12 },
   button: { borderWidth: 1, borderRadius: 10, minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
   buttonText: { fontSize: 14, fontWeight: '600' },
+  switchRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 14, minHeight: 44 },
+  switchText: { flex: 1 },
+  switchLabel: { fontSize: 14, fontWeight: '600' },
+  switchDesc: { fontSize: 12, lineHeight: 17, marginTop: 3 },
 });

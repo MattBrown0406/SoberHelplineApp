@@ -6,8 +6,8 @@ import { useTheme } from '../../contexts/ThemeContext';
 interface Props {
   visible: boolean;
   onCancel: () => void;
-  /** `contact`: she agreed to let Matt know so someone can reach out. */
-  onConfirm: (contact: boolean) => Promise<unknown>;
+  /** `contact`: she agreed to let Matt know so someone can reach out; `quiet`: pause reminders and notes. */
+  onConfirm: (contact: boolean, quiet: boolean) => Promise<unknown>;
 }
 
 /** The gentle confirmation before the app treats her loved one as having died. */
@@ -15,12 +15,14 @@ export function BereavementSheet({ visible, onCancel, onConfirm }: Props) {
   const { colors } = useTheme();
   const { t } = useTranslation('today');
   const [contact, setContact] = useState(true);
+  const [quiet, setQuiet] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(false);
 
   useEffect(() => {
     if (!visible) return;
     setContact(true);
+    setQuiet(false);
     setSaving(false);
     setError(false);
   }, [visible]);
@@ -30,7 +32,7 @@ export function BereavementSheet({ visible, onCancel, onConfirm }: Props) {
     setSaving(true);
     setError(false);
     try {
-      await onConfirm(contact);
+      await onConfirm(contact, quiet);
     } catch {
       setError(true);
     } finally {
@@ -58,6 +60,20 @@ export function BereavementSheet({ visible, onCancel, onConfirm }: Props) {
                 {contact && <Text style={styles.checkmark}>✓</Text>}
               </View>
               <Text style={[styles.checkLabel, { color: colors.ink }]}>{t('bereavement.sheet.contact')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: quiet, disabled: saving }}
+              accessibilityLabel={t('bereavement.sheet.quiet')}
+              disabled={saving}
+              onPress={() => setQuiet((value) => !value)}
+              activeOpacity={0.8}
+              style={[styles.checkRow, { borderColor: quiet ? colors.primary : colors.line }]}
+            >
+              <View style={[styles.checkbox, { borderColor: quiet ? colors.primary : colors.inkSoft, backgroundColor: quiet ? colors.primary : colors.white }]}>
+                {quiet && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+              <Text style={[styles.checkLabel, { color: colors.ink }]}>{t('bereavement.sheet.quiet')}</Text>
             </TouchableOpacity>
             {error && <Text accessibilityRole="alert" style={[styles.error, { color: colors.coral }]}>{t('bereavement.sheet.error')}</Text>}
             <TouchableOpacity

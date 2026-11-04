@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
       try {
         const a = await freshDailyAccount(supabase, candidate.id, day);
         if (
-          !a?.push_token || !a.daily_push_opt_in || a.checkedIn ||
+          !a?.push_token || !a.daily_push_opt_in || a.checkedIn || a.remindersPaused ||
           localDay(Date.now(), a.timezone) !== day ||
           localHour(Date.now(), a.timezone) !== NUDGE_HOUR_LOCAL
         ) {

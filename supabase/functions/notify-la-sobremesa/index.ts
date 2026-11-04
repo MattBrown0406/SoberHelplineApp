@@ -8,7 +8,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { requireServiceRole } from '../_shared/service-auth.ts';
 import { sessionReminderData } from '../_shared/push-data.ts';
 import { isLaSobremesaReminderHour } from '../_shared/la-sobremesa.ts';
-import { checked, deliverLegacy, recordDelivery, remaining, tally } from '../_shared/legacy-sender-boundary.ts';
+import { checked, deliverLegacy, recordDelivery, remaining, remindersPausedFor, tally } from '../_shared/legacy-sender-boundary.ts';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
         // One snapshot binds the RSVP, consent and device.
         const row = await checked(
           supabase.from('session_rsvps')
-            .select('account_id, accounts!inner(id, push_token, family_call_reminders)')
+            .select('account_id, accounts!inner(id, push_token, family_call_reminders, loved_ones(died_at, bereavement_quiet))')
             .eq('account_id', accountId).eq('session_id', sessionId).eq('status', 'going')
             .maybeSingle(),
         );
@@ -73,8 +73,11 @@ Deno.serve(async (req) => {
           id: string;
           push_token: string | null;
           family_call_reminders: boolean | null;
+          loved_ones: unknown;
         } | null;
-        if (!a?.push_token || a.id !== accountId || a.family_call_reminders !== true || seen.has(a.push_token)) {
+        // A bereaved member who asked for quiet gets no reminder.
+        if (!a?.push_token || a.id !== accountId || a.family_call_reminders !== true || remindersPausedFor(a.loved_ones)
+          || seen.has(a.push_token)) {
           counts.skipped++;
           continue;
         }
