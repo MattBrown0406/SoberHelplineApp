@@ -25,6 +25,7 @@ import {
   HOLIDAY_COMMITMENTS,
   HOLIDAY_INPUT_MAX_LENGTH,
   HOLIDAY_INVITATIONS,
+  holidayPlanIsThisSeason,
   holidayPlanProgress,
   holidayPlanShareText,
   type HolidayCommitmentId,
@@ -40,7 +41,9 @@ export default function HolidayPlanScreen() {
   const controller = useHolidayPlan(user?.id ?? null);
   const { plan, loadState, saveState, update, reload, retrySave, clear } = controller;
   const progress = useMemo(() => holidayPlanProgress(plan), [plan]);
-  const savedReady = progress.ready && saveState === 'saved';
+  // Last season's plan reads as not ready until she looks it over again:
+  // any edit this season makes it this year's plan.
+  const savedReady = progress.ready && saveState === 'saved' && holidayPlanIsThisSeason(plan, new Date());
 
   // Finished when she completes it here: incomplete once loaded, then ready
   // and saved. Opening a plan that is already done is not a new finish.

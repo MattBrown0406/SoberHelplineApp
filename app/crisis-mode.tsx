@@ -90,6 +90,8 @@ function riskLevel(situation: CrisisSituationKey | null, selected: Record<Triage
 
 function emergencyChecklistKey(situation: CrisisSituationKey | null, selected: Record<TriageKey, boolean>) {
   if (situation === 'overdose' || selected.notBreathing || selected.overdose) return 'redOverdose';
+  // In custody only the jail can reach them: "stay with them" steps don't fit.
+  if (situation === 'arrested') return 'redCustody';
   if (situation === 'selfHarm' || selected.suicide) return 'redSuicide';
   return 'redDefault';
 }
@@ -170,7 +172,7 @@ function CrisisModeContent() {
   const immediateActions = level === 'RED'
     ? t(`checklist.${emergencyChecklistKey(situationKey, selected)}`, { returnObjects: true }) as string[]
     : situation?.action ?? [];
-  const sayThis = level === 'RED' ? t('say.red') : situation?.say ?? t('say.default');
+  const sayThis = level === 'RED' ? t(situationKey === 'arrested' ? 'say.redCustody' : 'say.red') : situation?.say ?? t('say.default');
   const dontDo = situation?.dont ?? [];
   const boundaryText = buildBoundary(boundary, t);
   const fieldPlaceholder = t('field.placeholder');

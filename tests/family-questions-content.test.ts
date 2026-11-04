@@ -98,3 +98,16 @@ test('the FAQ answers the arrest, court-ordered treatment, and medication questi
     assert.ok(words >= 60 && words <= 140, `${item.q} answer is FAQ-sized (${words} words)`);
   }
 });
+
+test('an emergency during an arrest gets custody steps, not "stay with them" steps', () => {
+  const screen = readFileSync('app/crisis-mode.tsx', 'utf8');
+  assert.match(screen, /if \(situation === 'arrested'\) return 'redCustody';/);
+  assert.match(screen, /situationKey === 'arrested' \? 'say\.redCustody' : 'say\.red'/);
+  for (const lang of ['en', 'es']) {
+    const crisis = JSON.parse(readFileSync(`src/locales/${lang}/crisis.json`, 'utf8'));
+    assert.equal(crisis.checklist.redCustody.length, 4, lang);
+    assert.match(crisis.checklist.redCustody.join(' '), /911/, lang);
+    assert.match(crisis.checklist.redCustody.join(' '), /988/, lang);
+    assert.ok(crisis.say.redCustody, lang);
+  }
+});
