@@ -400,11 +400,18 @@ test('provider API distinguishes DB failure from missing and never invents avail
   assert.ok(!api.LOC_OPTIONS.center.includes('iop'));
 });
 
-function lovedOneFixture() {
+function lovedOneFixture(stored = {}) {
   const h = harness(); let owner = 'A'; const reads = []; const saves = []; const statuses = [];
   const request = (list) => { const d = deferred(); list.push(d); return d.promise; };
+  const storage = new Map(Object.entries(stored));
   const { useLovedOne } = load('src/hooks/useLovedOne.ts', {
     react: h.react, '../lib/monitoring': monitoring,
+    '@react-native-async-storage/async-storage': { __esModule: true, default: {
+      getItem: async (key) => storage.get(key) ?? null,
+      setItem: async (key, value) => { storage.set(key, value); },
+      removeItem: async (key) => { storage.delete(key); },
+    } },
+    '../lib/bereavement': load('src/lib/bereavement.ts'),
     '../lib/appFlowGuards': load('src/lib/appFlowGuards.ts'),
     // The fixtures' accounts carry no locale; an un-initialized i18n skips the sync.
     i18next: { __esModule: true, default: { language: 'en', isInitialized: false } },
@@ -417,8 +424,32 @@ function lovedOneFixture() {
     } },
   });
   const read = () => h.render(() => useLovedOne(owner)); read(); h.effects();
-  return { h, read, reads, saves, statuses, switchTo(id) { owner = id; } };
+  return { h, read, reads, saves, statuses, storage, switchTo(id) { owner = id; } };
 }
+
+test('a refresh of a loaded loved-one record is silent and keeps the record when it fails', async () => {
+  const f = lovedOneFixture();
+  f.reads.shift().resolve({ data: { id: 'A', account_id: 'A', stage: 'active_use' }, error: null }); await settle();
+  const refresh = f.read().refresh();
+  assert.equal(f.read().loading, false, 'no loading flash on a background refresh');
+  f.reads.shift().resolve({ data: null, error: new Error('offline') });
+  await assert.rejects(refresh, /offline/);
+  assert.equal(f.read().loadError, null); assert.equal(f.read().lovedOne.stage, 'active_use');
+  f.h.unmount();
+});
+
+test('the device remembers "they died" per account and answers before the record loads', async () => {
+  const f = lovedOneFixture({ '@sh:bereaved:A': '1' }); await settle();
+  assert.equal(f.read().bereaved, true, 'cached answer before the read returns');
+  f.reads.shift().resolve({ data: { id: 'A', account_id: 'A', died_at: null }, error: null }); await settle();
+  assert.equal(f.read().bereaved, false, 'the loaded record decides');
+  assert.equal(f.storage.has('@sh:bereaved:A'), false, 'and refreshes the device copy');
+  f.h.unmount();
+  const offline = lovedOneFixture(); await settle();
+  offline.reads.shift().resolve({ data: null, error: new Error('offline') }); await settle();
+  assert.equal(offline.read().bereaved, false, 'no copy and no record: the usual Today, never stuck');
+  offline.h.unmount();
+});
 
 test('loved-one load failure exits loading and refresh exposes recoverable errors', async () => {
   const f = lovedOneFixture();

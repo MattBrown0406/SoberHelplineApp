@@ -12,3 +12,8 @@ export const GRIEF_RESOURCES = [
   { key: 'grasp', url: 'https://grasphelp.org', site: 'grasphelp.org' },
   { key: 'compassionateFriends', url: 'https://www.compassionatefriends.org', site: 'compassionatefriends.org' },
 ] as const;
+
+/** AsyncStorage key; contains the account id so the deletion purge removes it. */
+export function bereavedCacheKey(accountId: string): string {
+  return `@sh:bereaved:${accountId}`;
+}

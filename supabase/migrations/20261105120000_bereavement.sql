@@ -2,8 +2,8 @@
 -- loved_ones.died_at marks it for her own account only, through
 -- mark_loved_one_died(); clear_loved_one_died() undoes a mistaken tap.
 -- From then on the pushes about the loved one stop (receptivity windows,
--- incoming-call practice; the morning boundaries note is skipped in
--- notify-daily-morning). Monday call reminders and notes keep following her
+-- incoming-call practice; notify-daily-morning sends a neutral morning line
+-- instead of the boundaries challenge). Monday call reminders and notes keep following her
 -- own call-reminder switch. With her permission, admins get one alert so
 -- someone can reach out personally (Admin -> Families who lost someone).
 -- Old builds never call these and keep working: the new columns are

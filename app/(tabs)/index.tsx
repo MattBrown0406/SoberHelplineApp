@@ -28,7 +28,6 @@ import { LovedOneCheckCard } from '../../src/components/today/LovedOneCheckCard'
 import { HolidayPlanTodayCard } from '../../src/components/today/HolidayPlanTodayCard';
 import { GriefCard } from '../../src/components/bereavement/GriefCard';
 import { BereavementSheet } from '../../src/components/bereavement/BereavementSheet';
-import { isBereaved } from '../../src/lib/bereavement';
 import { useCheckIn } from '../../src/hooks/useCheckIn';
 import { useTodayFeed } from '../../src/hooks/useTodayFeed';
 import { useLovedOne } from '../../src/hooks/useLovedOne';
@@ -61,9 +60,12 @@ function TodayContent() {
   const { t, i18n } = useTranslation('today');
   const router = useRouter();
   const { todayCheckIn, streak, saveCheckIn, pendingSync } = useCheckIn(user?.id ?? null, user?.timezone);
-  const { lovedOne, loading: lovedOneLoading, loadError: lovedOneLoadError, save: saveLovedOne, markDied, refresh: refreshLovedOne } = useLovedOne(user?.id ?? null);
+  const { lovedOne, loading: lovedOneLoading, loadError: lovedOneLoadError, save: saveLovedOne, markDied, refresh: refreshLovedOne, bereaved: bereavedState } = useLovedOne(user?.id ?? null);
   // Her loved one died: Today shows the grief card instead of everything about them.
-  const bereaved = isBereaved(lovedOne);
+  // The device's copy answers before the record loads (or offline), so a
+  // bereaved member never sees the loved-one Today first.
+  const bereaved = bereavedState === true;
+  const bereavedUnknown = bereavedState === undefined;
   const [diedSheetOpen, setDiedSheetOpen] = useState(false);
   const { dayCount, boundariesHeld, groupSessions, quoteIndex, scriptSlot, curriculumWeek, curriculumPhase, situation, primaryDoor, nextFreeCall, rsvpFreeCall, reload: reloadFeed } =
     useTodayFeed(user?.id ?? null, user?.joinedAt ?? null);
@@ -195,7 +197,8 @@ function TodayContent() {
   const mondayCallCard = (
     <SituationCard
       nextFreeCall={nextFreeCall}
-      primaryDoor={primaryDoor}
+      // No coaching or intervention door about a loved one who died.
+      primaryDoor={bereaved ? 'free_call' : primaryDoor}
       weeklyOneThing={weeklyOneThing}
       onRsvp={rsvpFreeCall}
       onSupportCallJoin={queueMondayMeetingReview}
@@ -230,11 +233,19 @@ function TodayContent() {
   // Immediate help and the daily check-in lead for every membership tier.
   // After her loved one died: immediate help, the grief card, the Monday call
   // and her own check-in — nothing about their recovery.
+  // A moment on a cold start: neither the record nor the device's copy is known.
+  if (bereavedUnknown) {
+    return (
+      <ScreenContainer backgroundColor={colors.cream}>
+        {header}
+      </ScreenContainer>
+    );
+  }
   if (bereaved) {
     return (
       <ScreenContainer backgroundColor={colors.cream}>
         {header}
-        <NeedsRouter />
+        <NeedsRouter bereaved />
         <GriefCard />
         {mondayCallCard}
         {checkInCard}

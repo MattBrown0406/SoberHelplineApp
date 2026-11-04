@@ -105,7 +105,7 @@ test('both Today tiers place needs and check-in ahead of event/share promotions'
   assert.ok(bereaved[0].indexOf('<NeedsRouter') < bereaved[0].indexOf('<GriefCard'));
   assert.ok(bereaved[0].indexOf('<GriefCard') < bereaved[0].indexOf('{mondayCallCard}'));
   assert.ok(bereaved[0].indexOf('{mondayCallCard}') < bereaved[0].indexOf('{checkInCard}'));
-  const screens = all.filter((screen) => !screen.includes('<GriefCard')); assert.equal(screens.length, 2);
+  const screens = all.filter((screen) => !screen.includes('<GriefCard') && screen.includes('{checkInCard}')); assert.equal(screens.length, 2);
   for (const screen of screens) {
     // Immediate help first; then the free Monday call leads (saving a seat is
     // a new member's first step), then the check-in.

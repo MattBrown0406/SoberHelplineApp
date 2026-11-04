@@ -227,7 +227,8 @@ test('Today shows the engine card on both tiers, after check-in; the Monday call
   for (const card of ['{invitationCard}', '{lovedOneCheckCard}', '{holidayCard}', '{pathwayCard}', '{willingnessWindowAlert}', '<CurriculumCard']) {
     assert.ok(!bereaved[0].includes(card), `bereaved Today has no ${card}`);
   }
-  const screens = all.filter((screen) => !screen.includes('<GriefCard'));
+  // The cold-start moment before the bereaved flag is known renders only the header.
+  const screens = all.filter((screen) => !screen.includes('<GriefCard') && screen.includes('{checkInCard}'));
   assert.equal(screens.length, 2);
   for (const screen of screens) {
     assert.ok(screen.includes('{invitationCard}'));

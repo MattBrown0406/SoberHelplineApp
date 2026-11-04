@@ -19,7 +19,8 @@ const NEEDS: { key: string; icon: string; route?: string; scriptTag?: string }[]
 
 ];
 
-export function NeedsRouter() {
+/** `bereaved`: her loved one died, so only the emergency button (every other need is about them). */
+export function NeedsRouter({ bereaved = false }: { bereaved?: boolean }) {
   const { colors } = useTheme();
   const { t } = useTranslation('today');
   const router = useRouter();
@@ -37,6 +38,7 @@ export function NeedsRouter() {
       >
         <Text style={[styles.chipText, { color: colors.ink }]}>{t('needs.crisis')}</Text>
       </TouchableOpacity>
+      {bereaved ? null : (<>
       <View style={styles.grid}>
         {NEEDS.slice(0, expanded ? NEEDS.length : 2).map(({ key, icon, route, scriptTag }) => (
           <TouchableOpacity
@@ -60,6 +62,7 @@ export function NeedsRouter() {
         onPress={() => setExpanded(value => !value)} style={{ paddingTop: 14, minHeight: 44 }}>
         <Text style={{ color: colors.primary, fontWeight: '600' }}>{t(expanded ? 'needs.fewer' : 'needs.more')}</Text>
       </TouchableOpacity>
+      </>)}
     </View>
   );
 }

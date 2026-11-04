@@ -179,8 +179,7 @@ Deno.serve(async (req) => {
     }
     try {
       const a = await freshDailyAccount(supabase, candidate.id);
-      // The morning note coaches boundaries with her loved one: not after they died.
-      if (!a?.push_token || !a.daily_push_opt_in || a.bereaved) {
+      if (!a?.push_token || !a.daily_push_opt_in) {
         counts.skipped++;
         continue;
       }
@@ -200,8 +199,14 @@ Deno.serve(async (req) => {
       const lang = a.locale === 'es' ? 'es' : 'en';
       const c = COPY[lang];
       const support = band === 'elevated' || band === 'crisis';
+      // After her loved one died the daily boundaries challenge stops; she
+      // keeps a neutral morning line (her app schedules no local nudge for
+      // this hour) and Monday's call note.
+      const bereaved = a.bereaved;
       const copy = isMonday
         ? { title: c.mondayTitle, body: c.mondayBody }
+        : bereaved
+        ? { title: c.morningTitle, body: c.genericMorning }
         : support
         ? { title: c.supportTitle, body: c.supportBody }
         : { title: c.morningTitle, body: lang === 'es' ? c.genericMorning : challenge };
@@ -211,7 +216,7 @@ Deno.serve(async (req) => {
           to: a.push_token,
           ...copy,
           sound: 'default',
-          data: morningNoteData(isMonday || support ? 'support' : 'boundaries'),
+          data: morningNoteData(isMonday || support || bereaved ? 'support' : 'boundaries'),
         }, deadline),
       );
     } catch {
