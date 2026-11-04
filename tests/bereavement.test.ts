@@ -50,7 +50,8 @@ test('the grief card and sheet copy exist in both languages, with 988 and the tw
 test('Today, the cards, Settings and Admin are wired', () => {
   const today = read('app/(tabs)/index.tsx');
   assert.match(today, /const bereaved = bereavedState === true;/);
-  assert.match(today, /if \(bereavedUnknown\) \{\s*return \(\s*<ScreenContainer[^>]*>\s*\{header\}\s*<\/ScreenContainer>/);
+  // Unknown: only the greeting and emergency numbers, nothing about the loved one.
+  assert.match(today, /if \(bereavedUnknown\) \{[\s\S]*?return \(\s*<ScreenContainer[^>]*>\s*\{header\}\s*<NeedsRouter bereaved \/>\s*<\/ScreenContainer>/);
   assert.match(today, /<NeedsRouter bereaved \/>/);
   assert.match(today, /primaryDoor=\{bereaved \? 'free_call' : primaryDoor\}/);
   // Crisis Mode is about the loved one: bereaved, she gets 911 / 988 for herself.

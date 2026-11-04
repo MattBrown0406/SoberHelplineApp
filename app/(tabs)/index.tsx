@@ -235,10 +235,12 @@ function TodayContent() {
   // After her loved one died: immediate help, the grief card, the Monday call
   // and her own check-in — nothing about their recovery.
   // A moment on a cold start: neither the record nor the device's copy is known.
+  // Emergency numbers are right for anyone, so they show even now.
   if (bereavedUnknown) {
     return (
       <ScreenContainer backgroundColor={colors.cream}>
         {header}
+        <NeedsRouter bereaved />
       </ScreenContainer>
     );
   }
