@@ -29,6 +29,7 @@ import type { SafetyBoundary, SafetyIncident, SafetyPlan } from '../src/lib/safe
 import {
   CRISIS_SITUATION_ORDER,
   assessSituationRisk,
+  crisisEmergencyChecklist,
   getCrisisSituations,
   type CrisisSituationKey,
 } from '../src/content/crisisCopilot';
@@ -88,13 +89,6 @@ function riskLevel(situation: CrisisSituationKey | null, selected: Record<Triage
   return assessSituationRisk(situation, immediateDanger, activeConcernCount);
 }
 
-function emergencyChecklistKey(situation: CrisisSituationKey | null, selected: Record<TriageKey, boolean>) {
-  if (situation === 'overdose' || selected.notBreathing || selected.overdose) return 'redOverdose';
-  // In custody only the jail can reach them: "stay with them" steps don't fit.
-  if (situation === 'arrested') return 'redCustody';
-  if (situation === 'selfHarm' || selected.suicide) return 'redSuicide';
-  return 'redDefault';
-}
 
 function buildBoundary(draft: SafetyBoundary, t: TFunction<'crisis'>) {
   return t('builder.template', {
@@ -169,10 +163,14 @@ function CrisisModeContent() {
 
   const level = useMemo(() => riskLevel(situationKey, selected), [selected, situationKey]);
   const situation = situationKey ? situations[situationKey] : null;
+  // One choice drives both the steps and the words, so they never disagree.
+  const redChecklist = crisisEmergencyChecklist(situationKey, selected);
   const immediateActions = level === 'RED'
-    ? t(`checklist.${emergencyChecklistKey(situationKey, selected)}`, { returnObjects: true }) as string[]
+    ? t(`checklist.${redChecklist}`, { returnObjects: true }) as string[]
     : situation?.action ?? [];
-  const sayThis = level === 'RED' ? t(situationKey === 'arrested' ? 'say.redCustody' : 'say.red') : situation?.say ?? t('say.default');
+  const sayThis = level === 'RED'
+    ? t(redChecklist === 'redCustody' ? 'say.redCustody' : 'say.red')
+    : situation?.say ?? t('say.default');
   const dontDo = situation?.dont ?? [];
   const boundaryText = buildBoundary(boundary, t);
   const fieldPlaceholder = t('field.placeholder');

@@ -140,6 +140,27 @@ export function assessCrisisRisk(immediateDanger: boolean, activeConcernCount: n
 
 export const ALWAYS_RED_SITUATIONS: CrisisSituationKey[] = ['overdose', 'selfHarm', 'violence', 'driving'];
 
+export type CrisisEmergencyChecklist = 'redOverdose' | 'redCustody' | 'redSuicide' | 'redDefault';
+
+/**
+ * Which emergency checklist a red result shows (crisis.json `checklist.*`).
+ * An arrest that turns red is usually suicide talk on a jail call, where only
+ * the jail can reach them: the custody list covers in custody and already
+ * out. Weapons, violence or driving mean they are out and near her, so the
+ * at-the-scene list applies.
+ */
+export function crisisEmergencyChecklist(
+  situation: CrisisSituationKey | null,
+  selected: Readonly<Partial<Record<string, boolean>>>,
+): CrisisEmergencyChecklist {
+  if (situation === 'overdose' || selected.notBreathing || selected.overdose) return 'redOverdose';
+  if (situation === 'arrested') {
+    return selected.violence || selected.weapons || selected.drivingIntoxicated ? 'redDefault' : 'redCustody';
+  }
+  if (situation === 'selfHarm' || selected.suicide) return 'redSuicide';
+  return 'redDefault';
+}
+
 export function assessSituationRisk(
   situation: CrisisSituationKey | null,
   immediateDanger: boolean,

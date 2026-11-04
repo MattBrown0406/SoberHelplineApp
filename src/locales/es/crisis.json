@@ -76,10 +76,10 @@
       "Trae de inmediato a otro adulto de confianza si es posible."
     ],
     "redCustody": [
-      "Si habló de suicidio o está en peligro, llama a la cárcel ahora. Dilo claramente y pide que personal médico o de salud mental lo/la revise de inmediato.",
-      "Si nadie contesta en la cárcel, llama al 911, di el nombre de la cárcel y explica que una persona detenida está en riesgo.",
-      "Llama o envía un mensaje al 988 para recibir ayuda sobre qué decir y apoyo para ti.",
-      "Si ya salió y está cerca de ti, tu seguridad va primero: ve a un lugar seguro y llama al 911."
+      "Si sigue detenido/a: llama a la cárcel ahora. Di que habló de suicidio o que está en peligro, y pide que personal médico o de salud mental lo/la revise de inmediato. Si nadie contesta, llama al 911 y di el nombre de la cárcel.",
+      "Si ya salió: llama o envía un mensaje al 988 ahora, o llama al 911 si hay peligro inmediato. Quédate cerca solo si es seguro para ti.",
+      "Si ya salió, aleja pastillas, armas y llaves solo si puedes hacerlo con seguridad, y busca a otro adulto de confianza.",
+      "Llama o envía un mensaje al 988 también para ti, para recibir ayuda sobre qué decir y apoyo."
     ],
     "redDefault": [
       "Sal del lugar si la violencia o las armas son posibles. La seguridad física va primero.",
@@ -106,7 +106,7 @@
   "say": {
     "title": "3. Qué decir ahora mismo",
     "red": "“Te amo. Ahora mismo esto es cuestión de seguridad. Voy a llamar a ayuda de emergencia.”",
-    "redCustody": "“Te escucho y lo tomo en serio. Voy a llamar a la cárcel ahora mismo para que alguien te revise.”",
+    "redCustody": "“Te escucho y lo tomo en serio. Voy a conseguirte ayuda ahora mismo.”",
     "money": "“Te amo demasiado para darte dinero mientras la adicción está activa. Te ayudaré a conseguir apoyo real, pero no voy a financiar la adicción.”",
     "escalated": "“No voy a discutir mientras estés intoxicado/a o alterado/a. Hablaré cuando ambos podamos mantenernos seguros y respetuosos.”",
     "willing": "“Te amo. Estoy dispuesta a hablar de ayuda real y de los próximos pasos. No estoy dispuesta a seguir fingiendo que esto funciona.”",

@@ -163,6 +163,13 @@ test('a plan from an earlier season does not count for this one', () => {
   assert.equal(holidayPlanIsThisSeason(plan, new Date(2027, 10, 2)), false);
   assert.equal(holidayPlanIsThisSeason(defaultHolidayPlan(), new Date(2026, 10, 2)), false);
   assert.match(read('src/components/today/HolidayPlanTodayCard.tsx'), /const ready = thisSeason && holidayPlanProgress\(plan\)\.ready/);
+  // On the screen, last season's finished plan can be kept for this year in one tap.
+  const screen = read('app/holiday-plan.tsx');
+  assert.match(screen, /const savedReady = progress\.ready && saveState === 'saved' && !fromLastSeason;/);
+  assert.match(screen, /onPress=\{\(\) => update\(\{\}\)\}/);
+  const kept = updateHolidayPlan(plan, {}, new Date(2027, 10, 3).toISOString());
+  assert.equal(holidayPlanIsThisSeason(kept, new Date(2027, 10, 20)), true);
+  assert.equal(holidayPlanProgress(kept).ready, true);
 });
 
 test('SecureStore keys are valid and account scoped', () => {

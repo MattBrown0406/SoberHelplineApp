@@ -76,10 +76,10 @@
       "Bring in another safe adult immediately if possible."
     ],
     "redCustody": [
-      "If they talked about suicide or are in danger, call the jail now. Say it plainly and ask for medical or mental health staff to check on them right away.",
-      "If no one at the jail answers, call 911, give the jail's name, and say a person in custody is at risk.",
-      "Call or text 988 for help with what to say, and for support for yourself.",
-      "If they are out and near you, your safety comes first: get to a safe place and call 911."
+      "Still in custody: call the jail now. Say they talked about suicide or are in danger, and ask for medical or mental health staff to check on them right away. If no one answers, call 911 and give the jail's name.",
+      "Already out: call or text 988 now, or 911 if there is immediate danger. Stay nearby only if it is safe for you.",
+      "If they are out, move pills, weapons, and keys away only if you can do it safely, and bring in another safe adult.",
+      "Call or text 988 for yourself too, for help with what to say and for support."
     ],
     "redDefault": [
       "Leave the area if violence/weapons are possible. Physical safety comes first.",
@@ -106,7 +106,7 @@
   "say": {
     "title": "3. What to say right now",
     "red": "“I love you. Right now this is about safety. I’m calling for emergency help.”",
-    "redCustody": "“I hear you, and I’m taking this seriously. I’m calling the jail right now so someone can check on you.”",
+    "redCustody": "“I hear you, and I’m taking this seriously. I’m getting help for you right now.”",
     "money": "“I love you too much to give money while addiction is active. I will help you get real support, but I will not fund the addiction.”",
     "escalated": "“I’m not going to argue while you’re intoxicated or escalated. I’ll talk when we can both stay safe and respectful.”",
     "willing": "“I love you. I’m willing to talk about real help and next steps. I’m not willing to keep pretending this is working.”",

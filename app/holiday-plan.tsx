@@ -43,7 +43,8 @@ export default function HolidayPlanScreen() {
   const progress = useMemo(() => holidayPlanProgress(plan), [plan]);
   // Last season's plan reads as not ready until she looks it over again:
   // any edit this season makes it this year's plan.
-  const savedReady = progress.ready && saveState === 'saved' && holidayPlanIsThisSeason(plan, new Date());
+  const fromLastSeason = !!plan.updatedAt && !holidayPlanIsThisSeason(plan, new Date());
+  const savedReady = progress.ready && saveState === 'saved' && !fromLastSeason;
 
   // Finished when she completes it here: incomplete once loaded, then ready
   // and saved. Opening a plan that is already done is not a new finish.
@@ -144,6 +145,12 @@ export default function HolidayPlanScreen() {
               {saveState === 'saving' ? t('saveSaving') : saveState === 'error' ? t('saveError') : t('saveSaved')}
             </Text>
             {saveState === 'error' && <ActionButton label={t('retrySave')} onPress={retrySave} />}
+            {fromLastSeason && progress.ready && saveState !== 'error' ? (
+              <>
+                <Text style={[styles.progressBody, styles.lastSeason, { color: colors.ink }]}>{t('lastSeasonBody')}</Text>
+                <ActionButton label={t('lastSeasonKeep')} onPress={() => update({})} />
+              </>
+            ) : null}
           </View>
 
           <Section title={t('sectionGathering')} hint={t('gatheringHint')}>
@@ -276,6 +283,7 @@ const styles = StyleSheet.create({
   track: { height: 8, borderRadius: 999, overflow: 'hidden' },
   fill: { height: 8, borderRadius: 999 },
   saveText: { fontSize: 12.5, fontWeight: '700', marginTop: 9 },
+  lastSeason: { marginTop: 12 },
   section: { borderWidth: 1, borderRadius: 14, padding: 18, marginBottom: 18 },
   sectionTitle: { fontSize: 19, fontWeight: '900', marginBottom: 4 },
   sectionHint: { fontSize: 13, lineHeight: 18, marginBottom: 16 },

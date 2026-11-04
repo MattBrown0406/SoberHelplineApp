@@ -12,6 +12,8 @@
   "readyBody": "Compártelo con todos los que reciben en casa, para que el plan sea el mismo en cada cuarto. Tenlo a mano ese día.",
   "notReadyTitle": "Termínalo antes del día",
   "notReadyBody": "Un plan escrito la noche anterior se hace bajo presión. Elige la invitación, responde cada pregunta y confirma cada acuerdo.",
+  "lastSeasonBody": "Este plan es de las fiestas del año pasado. Léelo y cambia lo que sea diferente esta vez, o déjalo como está.",
+  "lastSeasonKeep": "Usarlo de nuevo este año",
   "progressCount": "{{completed}} de {{total}} completos",
   "loading": "Abriendo tu plan protegido para las fiestas…",
   "loadErrorTitle": "No se pudo abrir el plan protegido",

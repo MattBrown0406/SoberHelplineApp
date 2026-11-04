@@ -7,6 +7,7 @@ import {
   ALWAYS_RED_SITUATIONS,
   CRISIS_SITUATION_ORDER,
   assessSituationRisk,
+  crisisEmergencyChecklist,
   getCrisisSituations,
 } from '../src/content/crisisCopilot';
 
@@ -101,8 +102,22 @@ test('the FAQ answers the arrest, court-ordered treatment, and medication questi
 
 test('an emergency during an arrest gets custody steps, not "stay with them" steps', () => {
   const screen = readFileSync('app/crisis-mode.tsx', 'utf8');
-  assert.match(screen, /if \(situation === 'arrested'\) return 'redCustody';/);
-  assert.match(screen, /situationKey === 'arrested' \? 'say\.redCustody' : 'say\.red'/);
+  // Steps and words come from the same choice.
+  assert.match(screen, /const redChecklist = crisisEmergencyChecklist\(situationKey, selected\);/);
+  assert.match(screen, /t\(redChecklist === 'redCustody' \? 'say\.redCustody' : 'say\.red'\)/);
+  assert.equal(crisisEmergencyChecklist('arrested', { suicide: true }), 'redCustody');
+  assert.equal(crisisEmergencyChecklist('arrested', {}), 'redCustody');
+  // Out and near her: the at-the-scene steps.
+  for (const tick of ['violence', 'weapons', 'drivingIntoxicated']) {
+    assert.equal(crisisEmergencyChecklist('arrested', { suicide: true, [tick]: true }), 'redDefault', tick);
+  }
+  assert.equal(crisisEmergencyChecklist('arrested', { overdose: true }), 'redOverdose');
+  assert.equal(crisisEmergencyChecklist('arrested', { notBreathing: true, suicide: true }), 'redOverdose');
+  // Other situations are unchanged.
+  assert.equal(crisisEmergencyChecklist('selfHarm', {}), 'redSuicide');
+  assert.equal(crisisEmergencyChecklist('demands', { suicide: true }), 'redSuicide');
+  assert.equal(crisisEmergencyChecklist('violence', {}), 'redDefault');
+  assert.equal(crisisEmergencyChecklist('overdose', {}), 'redOverdose');
   for (const lang of ['en', 'es']) {
     const crisis = JSON.parse(readFileSync(`src/locales/${lang}/crisis.json`, 'utf8'));
     assert.equal(crisis.checklist.redCustody.length, 4, lang);

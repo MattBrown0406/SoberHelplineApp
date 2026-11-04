@@ -12,6 +12,8 @@
   "readyBody": "Share it with everyone hosting, so the plan is the same in every room. Keep it open on the day.",
   "notReadyTitle": "Finish it before the day",
   "notReadyBody": "A plan you write the night before gets made under pressure. Choose the invitation, answer each question, and confirm each agreement.",
+  "lastSeasonBody": "This plan is from last year's holidays. Read it over and change anything that's different this time, or keep it as it is.",
+  "lastSeasonKeep": "Use it again this year",
   "progressCount": "{{completed}} of {{total}} complete",
   "loading": "Opening your protected holiday plan…",
   "loadErrorTitle": "Protected plan could not be opened",
