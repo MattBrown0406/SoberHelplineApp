@@ -524,5 +524,8 @@
     "textSupportIsAvailableWith": "Text support is available with Essential and Premier. For immediate danger, use 911 or 988.",
     "tierRequired": "{{tier}} required",
     "offlineToolsBody": "Assessment, scripts, 24/72-hour guidance, and the Safety Wallet remain available. Chat, video, and booking return after your connection is restored."
+  },
+  "arrestLinks": {
+    "bookSession": "Book a session with Matt Brown to choose a treatment program"
   }
 }

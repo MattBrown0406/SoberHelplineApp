@@ -7,8 +7,8 @@
   "privacy": "Saved in protected storage on this device for your signed-in account. What you write stays on this phone unless you share it.",
   "beforeTitle": "Before you send it",
   "before": [
-    "Give it to their defense attorney first. Most prosecutors expect a request like this to come through the attorney, who may send it, add to it, or time it with a court date. No lawyer yet? Ask for the public defender.",
-    "Don't write about what happened or the charges. Anything you put in writing can be used in the case. This letter only talks about treatment and accountability.",
+    "Give it to their defense attorney first, and let the attorney decide whether and when it goes to the prosecutor. Most prosecutors expect a request like this to come through the attorney, who may change it or time it with a court date. No lawyer yet? Ask for the public defender.",
+    "Don't write about what happened or the charges. Anything you put in writing can be used in the case. If the prosecutor's office or an investigator calls you, don't talk about the case: say their attorney can answer.",
     "The program can send updates to the prosecutor only after your loved one signs a release. Federal privacy rules protect addiction treatment records. Ask the program for its release form.",
     "Choose a licensed program and ask it for an acceptance letter with the admission date. Attach it.",
     "Some courts have drug court or diversion programs with their own rules. The attorney will know which apply."
@@ -24,26 +24,26 @@
   "saveError": "Not saved. Retry before relying on this letter.",
   "progressCount": "{{completed}} of {{total}} details filled in",
   "sectionDetails": "The details",
-  "detailsHint": "Short answers. Anything you leave blank stays as a [blank] in the letter.",
+  "detailsHint": "Type names, the case number, and the program's name exactly as they appear on the paperwork. Everything else is a choice, so the letter reads correctly in English or Spanish.",
   "fields": {
     "lovedOneName": "Their full legal name",
     "lovedOneNamePlaceholder": "As it appears on the case",
     "caseNumber": "Case number and court",
-    "caseNumberPlaceholder": "Example: Case 26-CR-01234, Marion County Circuit Court",
+    "caseNumberPlaceholder": "Example: 26-CR-01234, Marion County Circuit Court",
     "prosecutor": "Prosecutor's name (optional)",
-    "prosecutorPlaceholder": "Example: Deputy District Attorney Jane Smith",
-    "program": "Treatment program and level of care",
-    "programPlaceholder": "Example: Hope Recovery Center in Salem, 30-day residential",
+    "prosecutorPlaceholder": "Example: Jane Smith",
+    "programName": "Treatment program's name",
+    "programNamePlaceholder": "Example: Hope Recovery Center in Salem",
+    "levelOfCare": "Level of care",
     "startDate": "Admission date",
-    "startDatePlaceholder": "Example: November 18, 2026",
+    "startDateChoose": "Choose the date",
     "updates": "How often the program will send written updates",
-    "updatesPlaceholder": "Example: every two weeks",
-    "attorney": "Their defense attorney",
-    "attorneyPlaceholder": "A name, or \"the public defender\"",
+    "attorneySection": "Their lawyer",
+    "attorney": "Lawyer's name",
+    "attorneyPlaceholder": "Their lawyer's full name",
     "yourName": "Your name",
     "yourNamePlaceholder": "Your full name",
     "relationship": "Your relationship to them",
-    "relationshipPlaceholder": "Example: mother",
     "contact": "Your phone or email (optional)",
     "contactPlaceholder": "How the office can reach you"
   },
@@ -65,33 +65,94 @@
   "clearConfirm": "Clear letter",
   "crisisLink": "Write a letter asking for treatment instead of jail",
   "letter": {
-    "date": "{{date}}",
-    "re": "Re: {{name}}, {{caseNumber}}",
+    "re": "Re: {{name}}, Case {{caseNumber}}",
     "greeting": "Dear Prosecutor:",
     "greetingNamed": "Dear {{prosecutor}}:",
     "opening": "I am writing as {{name}}'s {{relationship}}. Our family respectfully asks that {{name}} be allowed to enter treatment in place of jail while the charges in this case are pending.",
-    "arranged": "We have arranged a place for {{name}} at {{program}}. {{name}} can be admitted on {{startDate}}.",
-    "askHeading": "We ask your office to consider this agreement:",
+    "arranged": "We have arranged {{care}} for {{name}} at {{program}}, and {{name}} can be admitted on {{startDate}}.",
+    "askHeading": "We ask your office to consider a plan like this, which {{name}}'s attorney can discuss with you:",
     "askComplete": "{{name}} enters {{program}} on {{startDate}} and completes the full program, including the aftercare plan the program recommends.",
     "askUpdates": "{{name}} signs a release so the program can send written progress updates to your office {{updates}}, covering attendance, participation, and progress in treatment.",
     "askEarlyExit": "If {{name}} leaves the program before completing it, your office is told right away.",
     "askMeeting": "When treatment is complete, your office meets in person with {{name}}'s attorney, and with our family if you are willing, to assess the change in {{name}} and review whether continued prosecution of the pending charges is needed, and, if it is, whether the charges can be reduced.",
-    "accountability": "We are not asking that this case be set aside. We are asking for the chance for {{name}} to show real change through treatment, with accountability to your office at every step.",
-    "attorneyCopy": "{{name}}'s attorney, {{attorney}}, has a copy of this letter.",
+    "accountability": "We are asking for the chance for {{name}} to show real change through treatment, with accountability to your office at every step.",
     "thanks": "Thank you for considering this request.",
     "signoff": "Respectfully,",
     "relationshipLine": "{{name}}'s {{relationship}}",
     "blank": {
       "lovedOneName": "[their full name]",
       "caseNumber": "[case number and court]",
-      "prosecutor": "[prosecutor]",
-      "program": "[treatment program and level of care]",
+      "programName": "[treatment program]",
+      "levelOfCare": "[level of care]",
       "startDate": "[admission date]",
       "updates": "[how often]",
       "attorney": "[attorney's name]",
       "yourName": "[your name]",
-      "relationship": "[relationship]",
-      "contact": "[phone or email]"
+      "relationship": "[relationship]"
+    },
+    "sharedAttorney": "We have shared this letter with {{name}}'s attorney, {{attorney}}.",
+    "sharedPublicDefender": "We have shared this letter with {{name}}'s public defender.",
+    "care": {
+      "detoxResidential": "medical detox followed by residential treatment",
+      "residential": "residential treatment",
+      "php": "a partial hospitalization program (PHP)",
+      "iop": "an intensive outpatient program (IOP)",
+      "outpatient": "outpatient treatment"
+    },
+    "updates": {
+      "weekly": "every week",
+      "biweekly": "every two weeks",
+      "monthly": "every month"
+    },
+    "relationship": {
+      "mother": "mother",
+      "father": "father",
+      "wife": "wife",
+      "husband": "husband",
+      "partner": "partner",
+      "daughter": "daughter",
+      "son": "son",
+      "sister": "sister",
+      "brother": "brother",
+      "grandmother": "grandmother",
+      "grandfather": "grandfather",
+      "aunt": "aunt",
+      "uncle": "uncle",
+      "relative": "relative"
+    }
+  },
+  "options": {
+    "relationship": {
+      "mother": "Mother",
+      "father": "Father",
+      "wife": "Wife",
+      "husband": "Husband",
+      "partner": "Partner",
+      "daughter": "Daughter",
+      "son": "Son",
+      "sister": "Sister",
+      "brother": "Brother",
+      "grandmother": "Grandmother",
+      "grandfather": "Grandfather",
+      "aunt": "Aunt",
+      "uncle": "Uncle",
+      "relative": "Other relative"
+    },
+    "levelOfCare": {
+      "detoxResidential": "Detox, then residential",
+      "residential": "Residential",
+      "php": "Partial hospitalization (PHP)",
+      "iop": "Intensive outpatient (IOP)",
+      "outpatient": "Outpatient"
+    },
+    "updates": {
+      "weekly": "Every week",
+      "biweekly": "Every two weeks",
+      "monthly": "Every month"
+    },
+    "attorneyKind": {
+      "named": "Their own attorney",
+      "publicDefender": "The public defender"
     }
   }
 }

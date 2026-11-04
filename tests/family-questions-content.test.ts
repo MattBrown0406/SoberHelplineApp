@@ -57,6 +57,19 @@ test('the arrested guidance covers withdrawal, recorded calls, a lawyer, and ove
   for (const pattern of [/fianza/i, /abstinencia/i, /graban/i, /abogado|defensor público/i, /corte de drogas|desvío/i, /naloxona/i, /tratamiento/i]) {
     assert.match(allEs, pattern);
   }
+  // Matt's order: pause (they are safe), a treatment plan, treatment as the
+  // condition of bail, revoke the bond if they back out, then the attorney.
+  assert.match(en.action[0], /Don’t rush to post bail[\s\S]*They are safe and in no immediate danger[\s\S]*Breathe/);
+  assert.match(en.action[1], /meets their needs, not just one that takes their insurance[\s\S]*Matt Brown/);
+  assert.match(en.action[2], /I will only post your bail if you agree to go directly to treatment from jail[\s\S]*job, relationship, pets/);
+  assert.match(en.action[3], /revokes the bond and they go back to jail[\s\S]*before the bond is posted/);
+  assert.match(en.action[4], /Once they are in treatment, bring in a criminal defense attorney or the public defender/);
+  assert.match(es.action[2], /Solo pagaré tu fianza si aceptas ir directo de la cárcel al tratamiento/);
+  assert.match(es.action[3], /revoca la fianza/);
+  assert.equal(es.action.length, en.action.length);
+  // Withdrawal and suicide talk still get one call to the jail's medical staff.
+  assert.match(en.action[0], /medical staff[\s\S]*suicide/);
+  assert.match(es.action[0], /personal médico[\s\S]*suicidio/);
 });
 
 test('an arrest is not an automatic red alert; danger questions still decide', () => {

@@ -109,7 +109,7 @@ function CrisisModeContent() {
   const router = useRouter();
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('crisis');
-  const { user, entitlements, isOfflineAccountFallback, entitlementsSettled } = useAccount();
+  const { user, isAttached, entitlements, isOfflineAccountFallback, entitlementsSettled } = useAccount();
   const { isCurrent } = useAsyncScope(user?.id ?? null);
   const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
   const isSpanish = language.toLowerCase().startsWith('es');
@@ -391,6 +391,16 @@ function CrisisModeContent() {
                 </View>
                 <ActionCard title={t('inline.next24HourPlan')} items={situation.next24} colors={colors} numbered />
                 <ActionCard title={t('inline.next72HourPlan')} items={situation.next72} colors={colors} numbered />
+                {situationKey === 'arrested' && !isAttached && (
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel={t('arrestLinks.bookSession')}
+                    onPress={() => router.push('/book-coaching' as never)}
+                    style={[styles.card, styles.letterLink, { backgroundColor: colors.white, borderColor: colors.primary }]}
+                  >
+                    <Text style={[styles.sectionTitle, { color: colors.primary }]}>{t('arrestLinks.bookSession')} ›</Text>
+                  </TouchableOpacity>
+                )}
                 {situationKey === 'arrested' && (
                   <TouchableOpacity
                     accessibilityRole="button"

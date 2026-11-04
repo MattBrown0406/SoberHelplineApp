@@ -7,8 +7,8 @@
   "privacy": "Se guarda en almacenamiento protegido de este dispositivo para tu cuenta. Lo que escribes se queda en este teléfono a menos que lo compartas.",
   "beforeTitle": "Antes de enviarla",
   "before": [
-    "Dásela primero a su abogado defensor. La mayoría de las fiscalías esperan que una petición así llegue por medio del abogado, que puede enviarla, agregarle algo o presentarla en una fecha de corte. ¿Todavía no tiene abogado? Pide un defensor público.",
-    "No escribas sobre lo que pasó ni sobre los cargos. Todo lo que pongas por escrito puede usarse en el caso. Esta carta solo habla de tratamiento y de rendir cuentas.",
+    "Dásela primero a su abogado defensor, y deja que el abogado decida si se envía a la fiscalía y cuándo. La mayoría de las fiscalías esperan que una petición así llegue por medio del abogado, que puede cambiarla o presentarla en una fecha de corte. ¿Todavía no tiene abogado? Pide un defensor público.",
+    "No escribas sobre lo que pasó ni sobre los cargos. Todo lo que pongas por escrito puede usarse en el caso. Si te llama alguien de la fiscalía o un investigador, no hables del caso: di que su abogado puede responder.",
     "El programa solo puede enviar informes a la fiscalía después de que tu ser querido firme una autorización. Las leyes federales de privacidad protegen los expedientes de tratamiento de adicciones. Pide al programa su formulario de autorización.",
     "Elige un programa con licencia y pídele una carta de aceptación con la fecha de ingreso. Adjúntala.",
     "Algunas cortes tienen corte de drogas o programas de desvío con sus propias reglas. El abogado sabrá cuáles aplican."
@@ -24,26 +24,26 @@
   "saveError": "No se guardó. Reintenta antes de confiar en esta carta.",
   "progressCount": "{{completed}} de {{total}} datos completos",
   "sectionDetails": "Los datos",
-  "detailsHint": "Respuestas cortas. Lo que dejes vacío queda como un [espacio] en la carta.",
+  "detailsHint": "Escribe los nombres, el número de caso y el nombre del programa tal como aparecen en los papeles. Todo lo demás se elige de una lista, para que la carta salga bien en inglés o en español.",
   "fields": {
     "lovedOneName": "Su nombre legal completo",
     "lovedOneNamePlaceholder": "Como aparece en el caso",
     "caseNumber": "Número de caso y corte",
-    "caseNumberPlaceholder": "Ejemplo: Caso 26-CR-01234, Corte de Circuito del Condado Marion",
+    "caseNumberPlaceholder": "Como aparece en los papeles, por ejemplo: 26-CR-01234, Marion County Circuit Court",
     "prosecutor": "Nombre del fiscal (opcional)",
-    "prosecutorPlaceholder": "Ejemplo: Fiscal adjunta Jane Smith",
-    "program": "Programa de tratamiento y nivel de atención",
-    "programPlaceholder": "Ejemplo: Hope Recovery Center en Salem, residencial de 30 días",
+    "prosecutorPlaceholder": "Solo el nombre, por ejemplo: Jane Smith",
+    "programName": "Nombre del programa de tratamiento",
+    "programNamePlaceholder": "Por ejemplo: Hope Recovery Center en Salem",
+    "levelOfCare": "Nivel de atención",
     "startDate": "Fecha de ingreso",
-    "startDatePlaceholder": "Ejemplo: 18 de noviembre de 2026",
+    "startDateChoose": "Elegir la fecha",
     "updates": "Cada cuánto enviará el programa informes escritos",
-    "updatesPlaceholder": "Ejemplo: cada dos semanas",
-    "attorney": "Su abogado defensor",
-    "attorneyPlaceholder": "Un nombre, o \"el defensor público\"",
+    "attorneySection": "Su abogado",
+    "attorney": "Nombre del abogado",
+    "attorneyPlaceholder": "Nombre completo del abogado",
     "yourName": "Tu nombre",
     "yourNamePlaceholder": "Tu nombre completo",
     "relationship": "Tu relación con esa persona",
-    "relationshipPlaceholder": "Ejemplo: madre",
     "contact": "Tu teléfono o correo (opcional)",
     "contactPlaceholder": "Cómo puede contactarte la oficina"
   },
@@ -65,33 +65,94 @@
   "clearConfirm": "Borrar carta",
   "crisisLink": "Escribir una carta para pedir tratamiento en lugar de cárcel",
   "letter": {
-    "date": "{{date}}",
-    "re": "Asunto: {{name}}, {{caseNumber}}",
+    "re": "Asunto: {{name}}, caso {{caseNumber}}",
     "greeting": "Estimado/a fiscal:",
     "greetingNamed": "Estimado/a {{prosecutor}}:",
     "opening": "Le escribo como {{relationship}} de {{name}}. Nuestra familia le pide respetuosamente que se le permita a {{name}} ingresar a tratamiento en lugar de ir a la cárcel mientras los cargos de este caso están pendientes.",
-    "arranged": "Hemos conseguido un lugar para {{name}} en {{program}}. {{name}} puede ingresar el {{startDate}}.",
-    "askHeading": "Le pedimos a su oficina que considere este acuerdo:",
+    "arranged": "Hemos conseguido {{care}} para {{name}} en {{program}}, y {{name}} puede ingresar el {{startDate}}.",
+    "askHeading": "Le pedimos a su oficina que considere un plan como este, que la defensa de {{name}} puede conversar con usted:",
     "askComplete": "{{name}} ingresa a {{program}} el {{startDate}} y completa todo el programa, incluido el plan de seguimiento que recomiende el programa.",
     "askUpdates": "{{name}} firma una autorización para que el programa envíe a su oficina informes escritos de progreso {{updates}}, sobre asistencia, participación y progreso en el tratamiento.",
     "askEarlyExit": "Si {{name}} deja el programa antes de completarlo, se le avisará a su oficina de inmediato.",
     "askMeeting": "Al completar el tratamiento, su oficina se reúne en persona con la defensa de {{name}}, y con nuestra familia si usted lo permite, para evaluar el cambio en {{name}} y revisar si es necesario continuar el proceso por los cargos pendientes y, si lo es, si los cargos pueden reducirse.",
-    "accountability": "No pedimos que se deje de lado este caso. Pedimos la oportunidad de que {{name}} demuestre un cambio real por medio del tratamiento, rindiendo cuentas a su oficina en cada paso.",
-    "attorneyCopy": "{{attorney}}, quien representa a {{name}}, tiene una copia de esta carta.",
+    "accountability": "Pedimos la oportunidad de que {{name}} demuestre un cambio real por medio del tratamiento, rindiendo cuentas a su oficina en cada paso.",
     "thanks": "Gracias por considerar esta solicitud.",
     "signoff": "Atentamente,",
     "relationshipLine": "{{relationship}} de {{name}}",
     "blank": {
       "lovedOneName": "[su nombre completo]",
       "caseNumber": "[número de caso y corte]",
-      "prosecutor": "[fiscal]",
-      "program": "[programa de tratamiento y nivel de atención]",
+      "programName": "[programa de tratamiento]",
+      "levelOfCare": "[nivel de atención]",
       "startDate": "[fecha de ingreso]",
       "updates": "[cada cuánto]",
       "attorney": "[nombre del abogado]",
       "yourName": "[tu nombre]",
-      "relationship": "[relación]",
-      "contact": "[teléfono o correo]"
+      "relationship": "[relación]"
+    },
+    "sharedAttorney": "Hemos compartido esta carta con {{attorney}}, quien representa a {{name}}.",
+    "sharedPublicDefender": "Hemos compartido esta carta con la defensoría pública que representa a {{name}}.",
+    "care": {
+      "detoxResidential": "desintoxicación médica seguida de tratamiento residencial",
+      "residential": "tratamiento residencial",
+      "php": "un programa de hospitalización parcial (PHP)",
+      "iop": "un programa intensivo ambulatorio (IOP)",
+      "outpatient": "tratamiento ambulatorio"
+    },
+    "updates": {
+      "weekly": "cada semana",
+      "biweekly": "cada dos semanas",
+      "monthly": "cada mes"
+    },
+    "relationship": {
+      "mother": "madre",
+      "father": "padre",
+      "wife": "esposa",
+      "husband": "esposo",
+      "partner": "pareja",
+      "daughter": "hija",
+      "son": "hijo",
+      "sister": "hermana",
+      "brother": "hermano",
+      "grandmother": "abuela",
+      "grandfather": "abuelo",
+      "aunt": "tía",
+      "uncle": "tío",
+      "relative": "familiar"
+    }
+  },
+  "options": {
+    "relationship": {
+      "mother": "Madre",
+      "father": "Padre",
+      "wife": "Esposa",
+      "husband": "Esposo",
+      "partner": "Pareja",
+      "daughter": "Hija",
+      "son": "Hijo",
+      "sister": "Hermana",
+      "brother": "Hermano",
+      "grandmother": "Abuela",
+      "grandfather": "Abuelo",
+      "aunt": "Tía",
+      "uncle": "Tío",
+      "relative": "Otro familiar"
+    },
+    "levelOfCare": {
+      "detoxResidential": "Desintoxicación y luego residencial",
+      "residential": "Residencial",
+      "php": "Hospitalización parcial (PHP)",
+      "iop": "Intensivo ambulatorio (IOP)",
+      "outpatient": "Ambulatorio"
+    },
+    "updates": {
+      "weekly": "Cada semana",
+      "biweekly": "Cada dos semanas",
+      "monthly": "Cada mes"
+    },
+    "attorneyKind": {
+      "named": "Su propio abogado",
+      "publicDefender": "La defensoría pública"
     }
   }
 }

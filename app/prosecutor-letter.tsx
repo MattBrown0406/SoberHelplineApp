@@ -15,6 +15,8 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import i18n from 'i18next';
 import { ScreenContainer } from '../src/components/ui/ScreenContainer';
+import { DateTimeField } from '../src/components/ui/DateTimeField';
+import { toDateInputValue } from '../src/lib/dateTimeInput';
 import { useAccount } from '../src/contexts/AccountContext';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useProsecutorLetter } from '../src/hooks/useProsecutorLetter';
@@ -23,18 +25,26 @@ import { logToolUsage } from '../src/lib/toolUsage';
 import { shareOrCopy, webCanShare } from '../src/lib/webShare';
 import { isSessionOnlyPlanStorage } from '../src/lib/webSessionPlanStore';
 import {
+  PROSECUTOR_ATTORNEY_KINDS,
   PROSECUTOR_INPUT_MAX_LENGTH,
   PROSECUTOR_LETTER_LANGUAGES,
-  PROSECUTOR_TEXT_KEYS,
+  PROSECUTOR_LEVELS_OF_CARE,
+  PROSECUTOR_RELATIONSHIPS,
+  PROSECUTOR_UPDATE_INTERVALS,
+  formatLetterDate,
+  isLetterDate,
   prosecutorLetterProgress,
   prosecutorLetterText,
+  type ProsecutorLetter,
   type ProsecutorTextKey,
 } from '../src/lib/prosecutorLetter';
+
+type ChoiceField = 'relationship' | 'levelOfCare' | 'updates' | 'attorneyKind';
 
 export default function ProsecutorLetterScreen() {
   useToolOpened('prosecutor_letter');
   const router = useRouter();
-  const { t } = useTranslation('prosecutorLetter');
+  const { t, i18n: ui } = useTranslation('prosecutorLetter');
   const { colors } = useTheme();
   const { user } = useAccount();
   const { plan: letter, loadState, saveState, update, reload, retrySave, clear } = useProsecutorLetter(user?.id ?? null);
@@ -45,10 +55,8 @@ export default function ProsecutorLetterScreen() {
   // language: prosecutors' offices usually work in English.
   const letterText = useMemo(() => {
     const fixed = i18n.getFixedT(letter.letterLanguage, 'prosecutorLetter');
-    const date = new Intl.DateTimeFormat(letter.letterLanguage === 'es' ? 'es' : 'en-US', {
-      year: 'numeric', month: 'long', day: 'numeric',
-    }).format(new Date());
-    return prosecutorLetterText(letter, (key, options) => fixed(key, options), date);
+    const today = formatLetterDate(toDateInputValue(new Date()), letter.letterLanguage);
+    return prosecutorLetterText(letter, (key, options) => fixed(key, options), today, letter.letterLanguage);
   }, [letter]);
 
   // Finished when she fills in the last required detail during this visit.
@@ -79,17 +87,45 @@ export default function ProsecutorLetterScreen() {
     else if (outcome === 'failed') appAlert(t('shareError'));
   }
 
-  const field = (key: ProsecutorTextKey) => (
+  const uiLanguage = ui.language.startsWith('es') ? 'es' : 'en';
+  const startDate = isLetterDate(letter.startDate) ? new Date(`${letter.startDate}T12:00:00`) : null;
+
+  const choices = <K extends ChoiceField>(key: K, values: readonly NonNullable<ProsecutorLetter[K]>[], label: string) => (
+    <View style={styles.fieldWrap}>
+      <Text style={[styles.label, { color: colors.ink }]}>{label}</Text>
+      <View accessibilityRole="radiogroup" style={styles.chips}>
+        {values.map((value) => {
+          const selected = letter[key] === value;
+          const text = t(`options.${key}.${value}`);
+          return (
+            <TouchableOpacity
+              key={value}
+              accessibilityRole="radio"
+              accessibilityLabel={text}
+              accessibilityState={{ checked: selected }}
+              onPress={() => update({ [key]: value } as Partial<ProsecutorLetter>)}
+              activeOpacity={0.8}
+              style={[styles.chip, { borderColor: selected ? colors.primary : colors.line, backgroundColor: selected ? colors.primary : colors.white }]}
+            >
+              <Text style={[styles.chipText, { color: selected ? '#fff' : colors.ink }]}>{text}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  );
+
+  const field = (key: ProsecutorTextKey, label = t(`fields.${key}`)) => (
     <View key={key} style={styles.fieldWrap}>
-      <Text style={[styles.label, { color: colors.ink }]}>{t(`fields.${key}`)}</Text>
+      <Text style={[styles.label, { color: colors.ink }]}>{label}</Text>
       <TextInput
-        accessibilityLabel={t(`fields.${key}`)}
+        accessibilityLabel={label}
         value={letter[key]}
         onChangeText={(value) => update({ [key]: value })}
         placeholder={t(`fields.${key}Placeholder`)}
         placeholderTextColor={colors.inkSoft}
         maxLength={PROSECUTOR_INPUT_MAX_LENGTH}
-        autoCapitalize={key === 'contact' ? 'none' : 'sentences'}
+        autoCapitalize={key === 'contact' ? 'none' : 'words'}
         style={[styles.input, { color: colors.ink, borderColor: colors.line, backgroundColor: colors.white }]}
       />
     </View>
@@ -136,7 +172,27 @@ export default function ProsecutorLetterScreen() {
           <View style={[styles.section, { borderColor: colors.line, backgroundColor: colors.white }]}>
             <Text accessibilityRole="header" style={[styles.sectionTitle, { color: colors.ink }]}>{t('sectionDetails')}</Text>
             <Text style={[styles.sectionHint, { color: colors.inkSoft }]}>{t('detailsHint')}</Text>
-            {PROSECUTOR_TEXT_KEYS.map(field)}
+            {field('lovedOneName')}
+            {field('caseNumber')}
+            {field('prosecutor')}
+            {field('programName')}
+            {choices('levelOfCare', PROSECUTOR_LEVELS_OF_CARE, t('fields.levelOfCare'))}
+            <View style={styles.fieldWrap}>
+              <Text style={[styles.label, { color: colors.ink }]}>{t('fields.startDate')}</Text>
+              <DateTimeField
+                mode="date"
+                value={startDate}
+                onChange={(next) => update({ startDate: toDateInputValue(next) })}
+                label={startDate ? formatLetterDate(letter.startDate, uiLanguage) : t('fields.startDateChoose')}
+                accessibilityLabel={t('fields.startDate')}
+              />
+            </View>
+            {choices('updates', PROSECUTOR_UPDATE_INTERVALS, t('fields.updates'))}
+            {choices('attorneyKind', PROSECUTOR_ATTORNEY_KINDS, t('fields.attorneySection'))}
+            {letter.attorneyKind === 'named' ? field('attorney') : null}
+            {field('yourName')}
+            {choices('relationship', PROSECUTOR_RELATIONSHIPS, t('fields.relationship'))}
+            {field('contact')}
             <Text style={[styles.count, { color: colors.ink }]}>{t('progressCount', { completed: progress.completed, total: progress.total })}</Text>
             <Text accessibilityRole={saveState === 'error' ? 'alert' : 'text'} style={[styles.saveText, { color: saveState === 'error' ? colors.coral : colors.inkSoft }]}>
               {saveState === 'saving' ? t('saveSaving') : saveState === 'error' ? t('saveError') : t('saveSaved')}
@@ -226,6 +282,9 @@ const styles = StyleSheet.create({
   count: { fontSize: 13, fontWeight: '700', marginTop: 4 },
   saveText: { fontSize: 12.5, fontWeight: '700', marginTop: 6 },
   choices: { flexDirection: 'row', gap: 8, marginBottom: 16 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { borderWidth: 1, borderRadius: 999, minHeight: 44, paddingHorizontal: 14, justifyContent: 'center' },
+  chipText: { fontSize: 14, fontWeight: '700' },
   choice: { borderWidth: 1, borderRadius: 10, minHeight: 44, paddingHorizontal: 16, justifyContent: 'center' },
   choiceText: { fontSize: 15, fontWeight: '700' },
   previewCard: { borderWidth: 1, borderRadius: 14, padding: 18, marginBottom: 16 },
