@@ -14,24 +14,16 @@ Thank you for reviewing Sober Helpline.
 DEMO ACCOUNT (sign-in is required)
 Email: appreview@soberhelpline.com
 Password: APPREVIEW
-A free account: core features plus the subscription purchase screens. Paid features unlock after a sandbox purchase.
-
-WHAT'S NEW IN 4.2 (build 3)
-- Today leads with the free Monday call (The Family Squares): save a seat, send a question ahead, and see "this week's one thing" from the call.
-- The morning after a call she saved a seat for or joined, one note with that week's one thing (only with Monday call reminders on; Settings > Notifications).
-- If an App Store free trial is offered for a plan, the plan screen states its length, the price charged after it and how to cancel; members who are not eligible never see one.
-- The community feed is no longer offered.
-- Holiday Plan (Learn > Tools; a Today card from November 1 to January 6): a family writes who is invited, on what terms, and what happens if the terms break. Saved only on the device in protected storage; "Share this plan" opens the iOS share sheet with the text she wrote.
-- Today asks, in one tap, where things are with her loved one (when she skipped it at signup, monthly, and after a heavy check-in), so the support it shows matches.
-- The weekly family reading now runs 26 weeks and then rotates; Crisis Mode adds "Arrested, in jail, or calling from jail"; the FAQ answers bail, court-ordered treatment, and medication for addiction. General information, not legal or medical advice.
+A free account; paid features unlock after a sandbox purchase.
 
 WHAT'S NEW IN 4.2
-- Spanish: members using the app in Spanish see La Sobremesa, our free Spanish-language Monday call (8:00 PM Pacific, from our Spanish site AyudaSobria.com), with a personal Zoom link; English members keep The Family Squares (7:00 PM Pacific).
-- Spanish education opens on AyudaSobria.com (same account, same "from the app" handling as soberhelpline.com).
-- The Family Squares RSVP now only saves a spot (a second tap no longer cancels it).
-- iOS permission prompts are in Spanish on Spanish-language devices.
-- Restore Purchases (Support > Settings > Membership) now waits for the server to confirm before reloading the account.
-- Spanish copy and crisis-resource wording improvements; dates follow the app language.
+- Members using the app in Spanish see La Sobremesa, our free Spanish Monday call (from AyudaSobria.com, personal Zoom link); English members keep The Family Squares. Spanish education opens on AyudaSobria.com; iOS prompts are in Spanish on Spanish devices.
+- Today leads with the free Monday call: save a seat, send a question ahead, see "this week's one thing"; the next morning, one note with it (only with Monday call reminders on).
+- Holiday Plan (Learn > Tools; a Today card Nov 1 to Jan 6): who is invited, on what terms, and what happens if the terms break. Saved only on the device; "Share this plan" opens the iOS share sheet.
+- Today asks, in one tap, where things stand with her loved one, so the support it shows matches.
+- A 26-week family reading; Crisis Mode adds "Arrested, in jail, or calling from jail"; the FAQ covers bail, court-ordered treatment and medication (general information, not legal or medical advice).
+- If an App Store free trial is offered, the plan screen states its length, the price after it and how to cancel; ineligible members never see one.
+- Restore Purchases waits for the server to confirm. The community feed is no longer offered.
 
 WHAT THE APP IS
 Support for families of people struggling with addiction: check-ins, boundary tools, education, conversation practice, peer support and coaches. Coaching, education and peer support only, not medical care, therapy or treatment.
@@ -43,16 +35,13 @@ Essential and Premier auto-renewable subscriptions are sold only through Apple i
 "Book coaching" opens soberhelpline.com/book-consultation in Safari, where the member books and pays for a live, real-time one-to-one session with a person (a Sober Helpline coach). The same screen has a no-payment request form. Essential members may book a 60-minute live plan review with a coach and pay on the website; Premier members get it in their Apple subscription.
 
 WEBSITE PAGES OPENED FROM THE APP
-Coaching booking, the members' library, recordings and the forum open in Safari with a single-use sign-in token and a "from the app" marker; Terms and Privacy carry only the "from the app" marker. In Spanish, the library opens on our Spanish site AyudaSobria.com the same way. Those pages hide all membership purchase links.
-
-COMMUNITY FEED
-This version does not offer the member community feed. If it returns, it will ship in a reviewed binary with its report, block and moderation tools described here.
+Coaching booking, the members' library, recordings and the forum open in Safari with a single-use sign-in token and a "from the app" marker (Spanish: AyudaSobria.com, same way). Those pages hide all membership purchase links.
 
 LIVE SUPPORT GROUPS (Guideline 1.2)
 Support tab > Groups > "Join live" (Essential and Premier, while a host is live). Groups are hosted by our staff; members can chat in the room, and the host can remove and ban a participant.
 
 QUESTIONS FOR THE MONDAY CALL
-Members who saved a seat for The Family Squares can send a question ahead (Today > "Send a question for the call", or Support). Questions go only to our team, never to other members. Each question is screened: one describing an emergency shows 911, 988 and Poison Control at once and alerts our team; if a question cannot be sent, the same emergency numbers are shown with a retry.
+Members who saved a seat for The Family Squares can send a question ahead (Today > "Send a question for the call", or Support). Questions go only to our team, never to other members. A question describing an emergency shows 911, 988 and Poison Control at once and alerts our team; if one cannot be sent, the same numbers show with a retry.
 
 CRISIS / SAFETY
 911 and 988 are prominent and never behind a paywall. The app is not an emergency service; this is stated in the app and the description. Practice tools pause and show 911, 988 and the Domestic Violence Hotline if a member describes a crisis or abuse.
@@ -67,7 +56,7 @@ ACCOUNT DELETION
 Support tab > Settings (gear) > Delete account.
 
 PRIVACY
-https://soberhelpline.com/privacy and https://soberhelpline.com/app-terms. Check-ins, letters and messages are private to the user (and her coach where applicable), never sold or used for ads.
+https://soberhelpline.com/privacy and https://soberhelpline.com/app-terms. Check-ins, letters and messages are private to the user (and her coach), never sold or used for ads.
 
 CONTACT
 Matt Brown · matt@soberhelpline.com · (458) 298-8008

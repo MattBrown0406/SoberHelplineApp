@@ -5,7 +5,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useHolidayPlan } from '../../hooks/useHolidayPlan';
-import { holidayPlanProgress, holidayPlanStarted, holidaySeason } from '../../lib/holidayPlan';
+import { holidayPlanIsThisSeason, holidayPlanProgress, holidayPlanStarted, holidaySeason } from '../../lib/holidayPlan';
 import { holidayCardStorageKey, holidayCardVisible } from '../../lib/todayPrompts';
 
 /**
@@ -37,9 +37,11 @@ export function HolidayPlanTodayCard({ accountId }: { accountId: string | null }
   }, [accountId]));
 
   if (!accountId || dismissedSeason === undefined || loadState !== 'ready') return null;
-  const ready = holidayPlanProgress(plan).ready;
+  // Last year's finished plan does not count for this year's holidays.
+  const thisSeason = holidayPlanIsThisSeason(plan, now);
+  const ready = thisSeason && holidayPlanProgress(plan).ready;
   if (!holidayCardVisible({ now, planReady: ready, dismissedSeason })) return null;
-  const started = holidayPlanStarted(plan);
+  const started = thisSeason && holidayPlanStarted(plan);
 
   const hide = () => {
     const season = holidaySeason(new Date()).season;

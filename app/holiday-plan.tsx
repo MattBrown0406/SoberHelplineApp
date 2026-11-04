@@ -42,17 +42,19 @@ export default function HolidayPlanScreen() {
   const progress = useMemo(() => holidayPlanProgress(plan), [plan]);
   const savedReady = progress.ready && saveState === 'saved';
 
-  // Finished once per plan written: when it first reads as ready and saved.
-  const loggedReady = useRef(false);
+  // Finished when she completes it here: incomplete once loaded, then ready
+  // and saved. Opening a plan that is already done is not a new finish.
+  const sawIncomplete = useRef(false);
   useEffect(() => {
-    if (!savedReady) {
-      loggedReady.current = false;
+    if (loadState !== 'ready') return;
+    if (!progress.ready) {
+      sawIncomplete.current = true;
       return;
     }
-    if (loggedReady.current || loadState !== 'ready') return;
-    loggedReady.current = true;
+    if (!savedReady || !sawIncomplete.current) return;
+    sawIncomplete.current = false;
     logToolUsage('holiday_plan', 'finished');
-  }, [loadState, savedReady]);
+  }, [loadState, progress.ready, savedReady]);
 
   const confirmClear = () => appAlert(t('clearTitle'), t('clearBody'), [
     { text: t('cancel'), style: 'cancel' },

@@ -87,7 +87,13 @@ export function useHolidayPlan(accountId: string | null) {
     if (!accountId) return;
     const coordinator = coordinatorFor(accountId);
     if (coordinator.clearing || coordinator.snapshot.loadState !== 'ready') return;
-    const plan = updateHolidayPlan(coordinator.snapshot.plan, patch);
+    // Kept from the Visitation Plan pattern: never throw from a tap.
+    let plan: HolidayPlan;
+    try {
+      plan = updateHolidayPlan(coordinator.snapshot.plan, patch);
+    } catch {
+      return;
+    }
     const generation = ++coordinator.generation;
     publish(coordinator, { plan, loadState: 'ready', saveState: 'saving' });
     coordinator.queue = coordinator.queue

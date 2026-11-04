@@ -12,6 +12,7 @@ export const HOLIDAY_COMMITMENTS = [
   'secureAlcoholMeds',
   'noTableDebate',
   'followPlan',
+  'safetyFirst',
   'naloxone',
   'supportCall',
   'ownDay',
@@ -99,8 +100,15 @@ function fitPlanToProtectedBudget(plan: HolidayPlan, changedKeys: (keyof Holiday
       next[key] = characters.join('');
     }
   }
-  if (holidayPlanProtectedByteLength(next) > HOLIDAY_PROTECTED_BYTE_LIMIT) {
-    throw new Error('protected_holiday_value_too_large');
+  // Choosing a longer invitation or ticking an agreement can tip a full plan
+  // over the budget with no text changed: trim the longest answer instead of
+  // throwing from a tap.
+  while (holidayPlanProtectedByteLength(next) > HOLIDAY_PROTECTED_BYTE_LIMIT) {
+    const longest = [...HOLIDAY_TEXT_KEYS].sort((a, b) => utf8ByteLength(next[b]) - utf8ByteLength(next[a]))[0];
+    const characters = Array.from(next[longest]);
+    if (characters.length === 0) throw new Error('protected_holiday_value_too_large');
+    characters.pop();
+    next[longest] = characters.join('');
   }
   return next;
 }
@@ -152,8 +160,11 @@ export function parseHolidayPlan(raw: string | null): HolidayPlan {
     throw new Error('protected_holiday_invalid_commitments');
   }
   const commitmentSource = source.commitments as Record<string, unknown>;
-  const missingCommitment = HOLIDAY_COMMITMENTS.find((id) => typeof commitmentSource[id] !== 'boolean');
-  if (missingCommitment) throw new Error(`protected_holiday_missing_commitment:${missingCommitment}`);
+  // An agreement added in a later build is simply unchecked in an older plan;
+  // a present value that is not a boolean means the record is damaged.
+  const invalidCommitment = HOLIDAY_COMMITMENTS.find((id) =>
+    commitmentSource[id] !== undefined && typeof commitmentSource[id] !== 'boolean');
+  if (invalidCommitment) throw new Error(`protected_holiday_invalid_commitment:${invalidCommitment}`);
   const text = Object.fromEntries(
     HOLIDAY_TEXT_KEYS.map((key) => [key, cap(source[key] as string)]),
   ) as Record<HolidayTextKey, string>;
@@ -207,6 +218,13 @@ export function holidaySeason(now: Date): { active: boolean; season: string } {
   if (month === 10 || month === 11) return { active: true, season: String(year) };
   if (month === 0 && now.getDate() <= 6) return { active: true, season: String(year - 1) };
   return { active: false, season: String(month === 0 ? year - 1 : year) };
+}
+
+/** A plan last edited in an earlier season starts over on Today next year. */
+export function holidayPlanIsThisSeason(plan: HolidayPlan, now: Date): boolean {
+  if (!plan.updatedAt) return false;
+  const edited = new Date(plan.updatedAt);
+  return Number.isFinite(edited.getTime()) && holidaySeason(edited).season === holidaySeason(now).season;
 }
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;

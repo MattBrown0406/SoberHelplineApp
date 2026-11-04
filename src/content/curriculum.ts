@@ -264,9 +264,9 @@ export const CURRICULUM: CurriculumPiece[] = [
     accentColor: '#efeaf6',
     title: 'Step out of the way and let it land',
     mechanism:
-      "Every family has a list of things it quietly fixes: the late rent, the angry landlord, the towed car, the story told to Grandma about why they couldn't come. Each fix makes sense in the moment, because the consequence looks cruel and you can make it go away. But that consequence was the one thing in their life telling the truth about where this is going. When you absorb it, the message never arrives — not because they don't care, but because it never reached them. Letting it land isn't punishment, and it doesn't mean you stop caring. It means you stop standing between them and their own life. Safety is the exception: an overdose, violence, or danger to a child is never a consequence you let land. Everywhere else, you can stay warm while you step aside. \"That sounds hard. What are you going to do?\" is both.",
+      "Every family has a list of things it quietly fixes: the late rent, the angry landlord, the towed car, the story told to Grandma about why they couldn't come. Each fix makes sense in the moment, because the consequence looks cruel and you can make it go away. But that consequence was the one thing in their life telling the truth about where this is going. When you absorb it, the message never arrives — not because they don't care, but because it never reached them. Letting it land isn't punishment, and it doesn't mean you stop caring. It means you stop standing between them and their own life. Safety is the exception: an overdose, talk of suicide, violence, or danger to a child is never a consequence you let land. Everywhere else, you can stay warm while you step aside. \"That sounds hard. What are you going to do?\" is both.",
     practice:
-      'The next time a problem caused by their use lands on your doorstep, say "That sounds hard. What are you going to do?" and then stop talking. Don\'t solve it in the first hour.',
+      'The next time a problem caused by their use lands on your doorstep, say "That sounds hard. What are you going to do?" and then stop talking. Don\'t solve it in the first hour. (Safety comes first: an overdose, talk of suicide, violence, or a child in danger is never one to let land.)',
     prompt: 'Which consequence do you most dread letting reach them, and what exactly do you picture happening if it does?',
     crisisSafe: false,
   },
@@ -283,9 +283,9 @@ export const CURRICULUM: CurriculumPiece[] = [
     mechanism:
       "After a bad fight, two urges arrive together: the urge to fix it fast, and the urge to win it this time. Both reopen the negotiation. The fast fix usually comes with a softened boundary attached — you apologize for the yelling and somehow also for the limit. The second round usually goes worse than the first. Repair is narrower than either. You can own your part — the volume, the thing you said and didn't mean — without taking back the part you did mean. \"I'm sorry I yelled. I'm not changing what I said about money.\" Both sentences can be true in the same breath. Repair lowers the temperature. It doesn't need to settle anything, and it shouldn't try.",
     practice:
-      'If there has been a blowup this week, write your repair in two sentences: one that owns your part, one that keeps your limit. Say it once, calmly, and then let the silence be.',
+      'If there has been a blowup this week, write your repair in two sentences: one that owns your part, one that keeps your limit. Say it once, calmly, and then let the silence be. If it got physical or you are afraid, skip this: your safety comes first, and Crisis Mode can help.',
     prompt: 'In your last fight, which part do you regret, and which part do you still stand behind?',
-    crisisSafe: true,
+    crisisSafe: false,
   },
   {
     id: 'cur-w13-relapse-information',
@@ -300,7 +300,7 @@ export const CURRICULUM: CurriculumPiece[] = [
     mechanism:
       "A relapse can feel like proof: proof that treatment failed, that you were naive to hope, that it's all starting over. It isn't any of those. Addiction behaves like other chronic illnesses — a return to use is common, especially early, and it tells you something about what wasn't strong enough yet: the aftercare, the living situation, the support around them, the stress they walked back into. Families who treat relapse as the end tend to do one of two things: give up or go back to rescuing. Families who treat it as information ask better questions. What happened right before? What level of care do they need now? What do we need to keep in place? You don't have to like what you're learning. You just have to keep learning from it.",
     practice:
-      'Write down now, while things are calm, what your family will do in the first day after a relapse: who calls whom, and what you will not decide that day. A plan made calm beats one made scared.',
+      'Write down what your family will do in the first day after a relapse: who calls whom, and what no one decides that day. If a relapse is already happening, write only the second part today.',
     prompt: 'If they relapsed tomorrow, what would you most want to have already decided?',
     crisisSafe: true,
   },
@@ -317,7 +317,7 @@ export const CURRICULUM: CurriculumPiece[] = [
     mechanism:
       "The first three days after a relapse are when families make the decisions they later regret: the room reopened, the car keys handed back, the money for one more fresh start. The fear is real, and it pushes you to do something big immediately. Slow down on everything except safety. After a stretch without using, tolerance drops, so going back to the old amount is when overdose risk is highest — especially with opioids. If opioids are anywhere in the picture, naloxone belongs in the house and everyone should know where it is. Beyond safety, almost nothing needs deciding today. Housing, money, and what happens next can be decided after you've talked with a professional and with each other — not in the doorway at midnight.",
     practice:
-      "If opioids could be involved at all, find your naloxone or buy some (many pharmacies sell it over the counter) and tell one other person where it is. Then write down the one decision you won't make in the first 72 hours.",
+      "If opioids could be involved at all, find your naloxone or buy some (many pharmacies sell it over the counter) and tell one other person where it is. Then write down the one decision you won't make in the first 72 hours after a relapse.",
     prompt: 'Which decision do you most often make in a panic and then spend weeks undoing?',
     crisisSafe: true,
   },
@@ -334,7 +334,7 @@ export const CURRICULUM: CurriculumPiece[] = [
     mechanism:
       "Willingness tends to show up at inconvenient moments — after a scare, in the middle of the night, the morning after a disaster — and it rarely lasts long. Families who have spent months hoping for a yes often aren't ready for one: no bed lined up, no insurance call made, no idea which level of care fits. By the time they find out, the window has closed and the person has talked themselves back out of it. You don't need to push for a yes to prepare for one. Knowing the next step ahead of time isn't pressure; it's respect for the moment when it comes. And once they're in, the family's job is simple and hard: back the program, keep your limits, and don't reopen the going-home conversation.",
     practice:
-      "Write down the one next step you'd take if they said yes tonight: a phone number, a program, or a person who would help you find one. Put it where you could find it at 2 a.m.",
+      "Write down the one next step you'd take if they said yes to treatment tonight: a phone number, a program, or a person who would help you find one. Put it where you could find it at 2 a.m.",
     prompt: 'If they said "Okay, I\'ll go" right now, what would you do in the next hour?',
     crisisSafe: true,
   },
@@ -368,7 +368,7 @@ export const CURRICULUM: CurriculumPiece[] = [
     mechanism:
       "If the person using has brothers or sisters, there's often one who learned early that the best way to help was to need nothing. The easy one, the responsible one, the one who's fine. They're usually not fine. They've watched the family's attention, money, and worry flow in one direction for years, and they've decided — often without saying so — that their own problems don't qualify. Some are angry at their sibling. Some are angry at you and feel guilty about it. Many are quietly afraid of getting the same phone call you dread. None of this means you've failed them. It means the illness has been pulling everyone's attention, and they deserve some of it back, on purpose.",
     practice:
-      'Spend one hour this week with another family member — a sibling, your other kids, your partner — where the person using does not come up. If it comes up, change the subject.',
+      'Spend one hour this week with someone else in the family — a brother or sister, a child, another adult who loves them — where the person using does not come up. If it comes up, change the subject.',
     prompt: 'Who in your family has been fine for so long that no one checks anymore?',
     crisisSafe: false,
   },
@@ -398,11 +398,11 @@ export const CURRICULUM: CurriculumPiece[] = [
     tagTextColor: '#9a6717',
     icon: '🔗',
     accentColor: '#fdf3e3',
-    title: "When you and your partner aren't on the same side",
+    title: "When the adults who love them aren't on the same side",
     mechanism:
       "Addiction is very good at finding the gap between two parents, two partners, or any two people who love the same person — and then living in it. One of you softens, the other gets tougher to make up for it, and the harder one pushes, the softer the other gets. Before long you're fighting each other more than the problem, and the person using knows exactly which of you to call for what. Neither of you is the problem. Each of you is protecting the person you love in the way that makes sense to you. But a family that sends two messages has sent none. You don't have to agree on everything. You have to agree on a few things and say them the same way, out loud, together.",
     practice:
-      "Sit down with the other adult this week and agree on one thing you'll both say no to. Just one. Write it down in the same words for both of you.",
+      "Sit down this week with another adult who loves them and agree on one thing you'll both say no to. Just one. Write it down in the same words for both of you.",
     prompt: 'Which of you do they call when they want a yes, and which when they want a no?',
     crisisSafe: false,
   },
@@ -712,9 +712,9 @@ export const CURRICULUM_ES: CurriculumPiece[] = [
     accentColor: '#efeaf6',
     title: 'Hazte a un lado y deja que la consecuencia llegue',
     mechanism:
-      'Cada familia tiene una lista de cosas que arregla en silencio: la renta atrasada, el casero enojado, el auto que se llevó la grúa, la historia que le contaron a la abuela sobre por qué no pudo venir. Cada arreglo tiene sentido en el momento, porque la consecuencia se ve cruel y tú puedes hacerla desaparecer. Pero esa consecuencia era lo único en su vida que decía la verdad sobre hacia dónde va esto. Cuando tú la absorbes, el mensaje nunca llega: no porque no le importe, sino porque nunca le alcanzó. Dejar que llegue no es castigo, ni significa que dejes de querer. Significa que dejas de pararte entre esa persona y su propia vida. La seguridad es la excepción: una sobredosis, la violencia o el peligro para un niño nunca son consecuencias que se dejan llegar. En todo lo demás, puedes seguir siendo cálida mientras te haces a un lado. "Suena difícil. ¿Qué vas a hacer?" es las dos cosas.',
+      'Cada familia tiene una lista de cosas que arregla en silencio: la renta atrasada, el casero enojado, el auto que se llevó la grúa, la historia que le contaron a la abuela sobre por qué no pudo venir. Cada arreglo tiene sentido en el momento, porque la consecuencia se ve cruel y tú puedes hacerla desaparecer. Pero esa consecuencia era lo único en su vida que decía la verdad sobre hacia dónde va esto. Cuando tú la absorbes, el mensaje nunca llega: no porque no le importe, sino porque nunca le alcanzó. Dejar que llegue no es castigo, ni significa que dejes de querer. Significa que dejas de pararte entre esa persona y su propia vida. La seguridad es la excepción: una sobredosis, hablar de suicidio, la violencia o el peligro para un niño nunca son consecuencias que se dejan llegar. En todo lo demás, puedes seguir siendo cálida mientras te haces a un lado. "Suena difícil. ¿Qué vas a hacer?" es las dos cosas.',
     practice:
-      'La próxima vez que un problema causado por su consumo llegue a tu puerta, di "Suena difícil. ¿Qué vas a hacer?" y luego deja de hablar. No lo resuelvas en la primera hora.',
+      'La próxima vez que un problema causado por su consumo llegue a tu puerta, di "Suena difícil. ¿Qué vas a hacer?" y luego deja de hablar. No lo resuelvas en la primera hora. (La seguridad va primero: una sobredosis, hablar de suicidio, la violencia o un niño en peligro nunca son consecuencias que se dejan llegar.)',
     prompt: '¿Qué consecuencia te da más miedo dejar que le llegue, y qué te imaginas exactamente que pasaría si llega?',
     crisisSafe: false,
   },
@@ -731,9 +731,9 @@ export const CURRICULUM_ES: CurriculumPiece[] = [
     mechanism:
       'Después de una mala pelea llegan dos impulsos juntos: arreglarlo rápido, y ganarla esta vez. Los dos reabren la negociación. El arreglo rápido casi siempre trae un límite ablandado: pides perdón por los gritos y, de alguna forma, también por el límite. La segunda ronda casi siempre sale peor que la primera. Reparar es más estrecho que cualquiera de las dos cosas. Puedes hacerte cargo de tu parte (el volumen, lo que dijiste sin sentirlo) sin retirar lo que sí sentías. "Perdón por gritar. No voy a cambiar lo que dije sobre el dinero." Las dos frases pueden ser verdad en el mismo aliento. Reparar baja la temperatura. No necesita resolver nada, y no debería intentarlo.',
     practice:
-      'Si hubo una pelea esta semana, escribe tu reparación en dos frases: una que reconozca tu parte y otra que mantenga tu límite. Dila una vez, con calma, y deja que el silencio haga lo suyo.',
+      'Si hubo una pelea esta semana, escribe tu reparación en dos frases: una que reconozca tu parte y otra que mantenga tu límite. Dila una vez, con calma, y deja que el silencio haga lo suyo. Si hubo violencia o tienes miedo, sáltate esto: tu seguridad va primero, y el Modo Crisis puede ayudarte.',
     prompt: 'En tu última pelea, ¿de qué parte te arrepientes y qué parte todavía sostienes?',
-    crisisSafe: true,
+    crisisSafe: false,
   },
   {
     id: 'cur-w13-relapse-information',
@@ -748,7 +748,7 @@ export const CURRICULUM_ES: CurriculumPiece[] = [
     mechanism:
       'Una recaída puede sentirse como una prueba: prueba de que el tratamiento falló, de que fuiste ingenua al tener esperanza, de que todo vuelve a empezar. No es nada de eso. La adicción se comporta como otras enfermedades crónicas: volver a consumir es común, sobre todo al principio, y dice algo sobre lo que todavía no era lo bastante fuerte: el seguimiento después del tratamiento, el lugar donde vive, el apoyo a su alrededor, el estrés al que regresó. Las familias que tratan la recaída como el final suelen hacer una de dos cosas: rendirse o volver a rescatar. Las que la tratan como información hacen mejores preguntas. ¿Qué pasó justo antes? ¿Qué nivel de atención necesita ahora? ¿Qué tenemos que mantener en pie? No tiene que gustarte lo que estás aprendiendo. Solo tienes que seguir aprendiendo de ello.',
     practice:
-      'Escribe ahora, mientras hay calma, qué hará tu familia el primer día después de una recaída: quién llama a quién y qué no van a decidir ese día. Un plan hecho con calma vale más que uno hecho con miedo.',
+      'Escribe qué hará tu familia el primer día después de una recaída: quién llama a quién y qué nadie va a decidir ese día. Si la recaída ya está pasando, hoy escribe solo la segunda parte.',
     prompt: 'Si mañana recayera, ¿qué te gustaría tener ya decidido?',
     crisisSafe: true,
   },
@@ -765,7 +765,7 @@ export const CURRICULUM_ES: CurriculumPiece[] = [
     mechanism:
       'Los primeros tres días después de una recaída son cuando las familias toman las decisiones de las que luego se arrepienten: el cuarto que se vuelve a abrir, las llaves del auto devueltas, el dinero para un nuevo comienzo más. El miedo es real y empuja a hacer algo grande de inmediato. Ve despacio en todo, menos en la seguridad. Después de un tiempo sin consumir, la tolerancia baja, así que volver a la cantidad de antes es cuando el riesgo de sobredosis es más alto, sobre todo con opioides. Si los opioides están en el panorama, la naloxona debe estar en casa y todos deben saber dónde está. Fuera de la seguridad, casi nada necesita decidirse hoy. La vivienda, el dinero y lo que sigue se pueden decidir después de hablar con un profesional y entre ustedes, no en la puerta a medianoche.',
     practice:
-      'Si los opioides pueden estar involucrados, busca tu naloxona o compra una (muchas farmacias la venden sin receta) y dile a otra persona dónde está. Luego escribe la única decisión que no vas a tomar en las primeras 72 horas.',
+      'Si los opioides pueden estar involucrados, busca tu naloxona o compra una (muchas farmacias la venden sin receta) y dile a otra persona dónde está. Luego escribe la única decisión que no vas a tomar en las primeras 72 horas después de una recaída.',
     prompt: '¿Qué decisión tomas casi siempre con pánico y luego pasas semanas deshaciendo?',
     crisisSafe: true,
   },
@@ -782,7 +782,7 @@ export const CURRICULUM_ES: CurriculumPiece[] = [
     mechanism:
       'La disposición suele aparecer en momentos inoportunos (después de un susto, en medio de la noche, la mañana después de un desastre) y casi nunca dura mucho. Las familias que llevan meses esperando un sí muchas veces no están listas para recibirlo: no hay cama reservada, no se ha llamado al seguro, no saben qué nivel de atención corresponde. Para cuando lo averiguan, la ventana se cerró y la persona ya se convenció de no ir. No necesitas presionar por un sí para prepararte para él. Saber el siguiente paso de antemano no es presión; es respeto por ese momento cuando llegue. Y una vez que entra, el trabajo de la familia es sencillo y difícil: respaldar el programa, sostener tus límites y no reabrir la conversación de volver a casa.',
     practice:
-      'Escribe el único siguiente paso que darías si esta noche dijera que sí: un número de teléfono, un programa o una persona que te ayudaría a encontrarlo. Guárdalo donde puedas encontrarlo a las 2 de la mañana.',
+      'Escribe el único siguiente paso que darías si esta noche dijera que sí al tratamiento: un número de teléfono, un programa o una persona que te ayudaría a encontrarlo. Guárdalo donde puedas encontrarlo a las 2 de la mañana.',
     prompt: 'Si ahora mismo te dijera "Está bien, voy a ir", ¿qué harías en la siguiente hora?',
     crisisSafe: true,
   },
@@ -816,7 +816,7 @@ export const CURRICULUM_ES: CurriculumPiece[] = [
     mechanism:
       'Si la persona que consume tiene hermanos, muchas veces hay uno que aprendió temprano que la mejor manera de ayudar era no necesitar nada. El fácil, el responsable, el que está bien. Casi nunca está bien. Lleva años viendo cómo la atención, el dinero y la preocupación de la familia fluyen en una sola dirección, y decidió, muchas veces sin decirlo, que sus propios problemas no cuentan. Algunos están enojados con su hermano o hermana. Otros están enojados contigo y se sienten culpables por eso. Muchos tienen miedo, en silencio, de recibir la misma llamada que tú temes. Nada de esto significa que les fallaste. Significa que la enfermedad ha estado jalando la atención de todos, y ellos merecen recuperar una parte, a propósito.',
     practice:
-      'Pasa una hora esta semana con otro familiar (un hermano, tus otros hijos, tu pareja) en la que no se hable de la persona que consume. Si sale el tema, cámbialo.',
+      'Pasa una hora esta semana con alguien más de la familia (un hermano o hermana, un hijo o hija, otro adulto que le quiere) en la que no se hable de la persona que consume. Si sale el tema, cámbialo.',
     prompt: '¿Quién en tu familia ha estado bien por tanto tiempo que ya nadie le pregunta?',
     crisisSafe: false,
   },
@@ -846,11 +846,11 @@ export const CURRICULUM_ES: CurriculumPiece[] = [
     tagTextColor: '#9a6717',
     icon: '🔗',
     accentColor: '#fdf3e3',
-    title: 'Cuando tú y tu pareja no están del mismo lado',
+    title: 'Cuando los adultos que le quieren no están del mismo lado',
     mechanism:
       'La adicción es muy buena para encontrar la grieta entre dos padres, dos parejas o dos personas que quieren a la misma persona, y para instalarse ahí. Uno se ablanda, el otro se endurece para compensar, y mientras más empuja uno, más se ablanda el otro. Al poco tiempo pelean más entre ustedes que contra el problema, y la persona que consume sabe exactamente a quién llamar para qué. Ninguno de los dos es el problema. Cada uno está protegiendo a quien ama de la manera que le parece lógica. Pero una familia que manda dos mensajes no manda ninguno. No tienen que estar de acuerdo en todo. Tienen que estar de acuerdo en unas pocas cosas y decirlas igual, en voz alta, juntos.',
     practice:
-      'Siéntate esta semana con el otro adulto y acuerden una sola cosa a la que los dos le van a decir que no. Solo una. Escríbanla con las mismas palabras para los dos.',
+      'Siéntate esta semana con otro adulto que le quiere y acuerden una sola cosa a la que los dos le van a decir que no. Solo una. Escríbanla con las mismas palabras para los dos.',
     prompt: '¿A cuál de ustedes llama cuando quiere un sí, y a cuál cuando quiere un no?',
     crisisSafe: false,
   },

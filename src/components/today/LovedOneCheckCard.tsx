@@ -36,11 +36,15 @@ export function LovedOneCheckCard({ accountId, lovedOne, ready, pressureScore, o
   const [saveError, setSaveError] = useState(false);
   const [thanked, setThanked] = useState(false);
   // Saving refreshes the record, which clears `due` before the save resolves:
-  // keep the question on screen until the thanks replaces it.
+  // keep the question on screen until the thanks replaces it, and after a
+  // failed save so she sees the error and can try again.
   const lastReason = useRef<LovedOneCheckReason | null>(null);
 
   useFocusEffect(useCallback(() => {
     setNow(new Date());
+    // The thanks is for this visit; next time Today shows only what is due.
+    setThanked(false);
+    setSaveError(false);
     if (!accountId) {
       setSnoozedUntil(undefined);
       return undefined;
@@ -63,7 +67,7 @@ export function LovedOneCheckCard({ accountId, lovedOne, ready, pressureScore, o
     })
     : null;
   if (due) lastReason.current = due;
-  const reason = due ?? (saving ? lastReason.current : null);
+  const reason = due ?? (saving || saveError ? lastReason.current : null);
 
   if (!accountId) return null;
   if (thanked) {

@@ -74,6 +74,8 @@ export function useLovedOne(accountId: string | null) {
     const scope = scopeRef.current;
     if (!accountId || scope.accountId !== accountId) throw new Error('Cannot save a loved one without the active account');
     const request = ++scope.request;
+    // A failed save is the caller's to show (it rethrows); `loadError` stays
+    // about the read, so Today does not treat the saved record as unreadable.
     try {
       const { data, error } = await supabase.from('loved_ones')
         .upsert({ ...input, account_id: accountId, updated_at: new Date().toISOString() }, { onConflict: 'account_id' })
@@ -81,9 +83,6 @@ export function useLovedOne(accountId: string | null) {
       const saved = requireSavedData(data as LovedOne | null, error, 'Loved-one save returned no data');
       if (scopeRef.current === scope && scope.request === request) setRecord({ accountId, value: saved });
       return saved;
-    } catch (error) {
-      if (scopeRef.current === scope && scope.request === request) setLoadError(error);
-      throw error;
     } finally {
       if (scopeRef.current === scope && scope.request === request) setLoading(false);
     }

@@ -12,6 +12,7 @@ import {
   HOLIDAY_PROTECTED_BYTE_LIMIT,
   holidayPlanProgress,
   holidayPlanProtectedByteLength,
+  holidayPlanIsThisSeason,
   holidayPlanShareText,
   holidayPlanStarted,
   holidaySeason,
@@ -95,7 +96,12 @@ test('stored plans normalize oversized values and fail closed when truncated', (
   assert.equal(parseHolidayPlan(null).invitation, '');
   assert.throws(() => parseHolidayPlan(''), /invalid_json/);
   assert.throws(() => parseHolidayPlan('{}'), /missing_field/);
-  assert.throws(() => parseHolidayPlan(JSON.stringify({ ...completePlan(), commitments: {} })), /missing_commitment/);
+  // An agreement added in a later build reads as unchecked; a damaged value fails closed.
+  const older = parseHolidayPlan(JSON.stringify({ ...completePlan(), commitments: { noCash: true } }));
+  assert.equal(older.commitments.noCash, true);
+  assert.equal(older.commitments.safetyFirst, false);
+  assert.equal(holidayPlanProgress(older).ready, false);
+  assert.throws(() => parseHolidayPlan(JSON.stringify({ ...completePlan(), commitments: { ...completePlan().commitments, noCash: 'yes' } })), /invalid_commitment:noCash/);
   assert.throws(() => parseHolidayPlan(JSON.stringify({ ...completePlan(), gift: 12 })), /invalid_field:gift/);
   assert.throws(() => parseHolidayPlan(JSON.stringify({ ...completePlan(), invitation: 'maybe' })), /invalid_invitation/);
   assert.throws(() => parseHolidayPlan(JSON.stringify({ ...completePlan(), updatedAt: {} })), /invalid_updated_at/);
@@ -119,6 +125,30 @@ test('a full plan stays under the SecureStore budget, even in Spanish', () => {
   for (const key of ['occasion', 'terms', 'ifTermsBreak', 'relatives', 'ownExit', 'kids', 'gift'] as const) {
     assert.equal(english[key].length, HOLIDAY_INPUT_MAX_LENGTH, key);
   }
+});
+
+test('a full plan never throws when an agreement or the invitation changes', () => {
+  let plan = completePlan();
+  for (const key of ['occasion', 'terms', 'ifTermsBreak', 'relatives', 'ownExit', 'kids', 'gift'] as const) {
+    plan = updateHolidayPlan(plan, { [key]: `${'🎄'.repeat(40)}\n`.repeat(3) });
+  }
+  for (const invitation of ['notThisYear', 'separateVisit', 'invited'] as const) {
+    assert.doesNotThrow(() => { plan = updateHolidayPlan(plan, { invitation }); });
+  }
+  for (const id of HOLIDAY_COMMITMENTS) {
+    assert.doesNotThrow(() => { plan = updateHolidayPlan(plan, { commitments: { ...plan.commitments, [id]: !plan.commitments[id] } }); });
+  }
+  assert.ok(holidayPlanProtectedByteLength(plan) <= HOLIDAY_PROTECTED_BYTE_LIMIT);
+  assert.doesNotThrow(() => parseHolidayPlan(JSON.stringify(plan)));
+});
+
+test('a plan from an earlier season does not count for this one', () => {
+  const plan = updateHolidayPlan(completePlan(), {}, new Date(2026, 10, 20).toISOString());
+  assert.equal(holidayPlanIsThisSeason(plan, new Date(2026, 11, 20)), true);
+  assert.equal(holidayPlanIsThisSeason(plan, new Date(2027, 0, 5)), true);
+  assert.equal(holidayPlanIsThisSeason(plan, new Date(2027, 10, 2)), false);
+  assert.equal(holidayPlanIsThisSeason(defaultHolidayPlan(), new Date(2026, 10, 2)), false);
+  assert.match(read('src/components/today/HolidayPlanTodayCard.tsx'), /const ready = thisSeason && holidayPlanProgress\(plan\)\.ready/);
 });
 
 test('SecureStore keys are valid and account scoped', () => {
@@ -182,6 +212,16 @@ test('the loved-one check asks when she never said, monthly, and sooner after a 
   const later = new Date(Date.parse(snoozedUntil) + 1000);
   assert.equal(lovedOneCheckDue({ ...base, hasRecord: false, stage: null, snoozedUntil, now: later }), 'missing');
   assert.equal(lovedOneCheckDue({ ...base, hasRecord: false, stage: null, snoozedUntil: 'garbage' }), 'missing');
+});
+
+test('a failed loved-one save keeps the question and its error on screen', () => {
+  const card = read('src/components/today/LovedOneCheckCard.tsx');
+  assert.match(card, /const reason = due \?\? \(saving \|\| saveError \? lastReason\.current : null\)/);
+  assert.match(card, /setThanked\(false\)/);
+  // A save failure must not read as an unreadable record (which hides the card).
+  const hook = read('src/hooks/useLovedOne.ts');
+  const save = hook.slice(hook.indexOf('const save = useCallback'), hook.indexOf('const setStatus = useCallback'));
+  assert.doesNotMatch(save, /setLoadError/);
 });
 
 test('Today card flags are account scoped and purged with the account', () => {

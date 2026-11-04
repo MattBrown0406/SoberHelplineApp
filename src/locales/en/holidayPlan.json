@@ -53,7 +53,7 @@
     "occasion": "Which gathering, where, and when?",
     "occasionPlaceholder": "Example: Thanksgiving dinner at my sister's, 3 PM",
     "ifTermsBreak": "If they arrive using, or show up uninvited",
-    "ifTermsBreakPlaceholder": "Who says it, what they say, and where they go. Example: Dad walks them to the car: \"We love you. Today isn't the day. Call me tomorrow.\"",
+    "ifTermsBreakPlaceholder": "Who says it, what they say, and where they go. Example: Dad walks them outside and calls them a ride: \"We love you. Today isn't the day. Call me tomorrow.\" If they've been using, they don't drive.",
     "relatives": "What you'll say to relatives who ask",
     "relativesPlaceholder": "Example: \"We're working through some things as a family. We're not getting into it today, but thank you for caring.\"",
     "ownExit": "Your own way to step away",
@@ -71,6 +71,7 @@
     "secureAlcoholMeds": "Alcohol and prescription medications are put away or locked up.",
     "noTableDebate": "No treatment debate at the table. If it needs saying, it gets said privately, another day.",
     "followPlan": "If they arrive using, we follow this plan instead of improvising.",
+    "safetyFirst": "If they've been using, they don't drive. If they try to drive, won't leave, or get aggressive, we call 911, and nobody wrestles for keys.",
     "naloxone": "If opioids could be involved, naloxone is in the house and two people know where it is.",
     "supportCall": "I've told one person I'll call them before and after.",
     "ownDay": "Their choices don't get to cancel the day for everyone else. I'll enjoy part of it."

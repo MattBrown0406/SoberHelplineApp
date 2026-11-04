@@ -87,7 +87,14 @@ export function useFamilyVisitationPlan(accountId: string | null) {
     if (!accountId) return;
     const coordinator = coordinatorFor(accountId);
     if (coordinator.clearing || coordinator.snapshot.loadState !== 'ready') return;
-    const plan = updateFamilyVisitationPlan(coordinator.snapshot.plan, patch);
+    // A change that cannot fit the protected budget is dropped, not thrown
+    // from the tap that made it.
+    let plan: FamilyVisitationPlan;
+    try {
+      plan = updateFamilyVisitationPlan(coordinator.snapshot.plan, patch);
+    } catch {
+      return;
+    }
     const generation = ++coordinator.generation;
     publish(coordinator, { plan, loadState: 'ready', saveState: 'saving' });
     coordinator.queue = coordinator.queue
