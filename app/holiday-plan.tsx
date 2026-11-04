@@ -21,6 +21,7 @@ import { appAlert } from '../src/lib/appAlert';
 import { logToolUsage } from '../src/lib/toolUsage';
 import { shareOrCopy, webCanShare } from '../src/lib/webShare';
 import { isSessionOnlyPlanStorage } from '../src/lib/webSessionPlanStore';
+import { SPANISH_SITE_ORIGIN, WEBSITE_ORIGIN } from '../src/lib/websiteLinks';
 import {
   HOLIDAY_COMMITMENTS,
   HOLIDAY_INPUT_MAX_LENGTH,
@@ -35,7 +36,7 @@ import {
 export default function HolidayPlanScreen() {
   useToolOpened('holiday_plan');
   const router = useRouter();
-  const { t } = useTranslation('holidayPlan');
+  const { t, i18n } = useTranslation('holidayPlan');
   const { colors } = useTheme();
   const { user } = useAccount();
   const controller = useHolidayPlan(user?.id ?? null);
@@ -66,7 +67,8 @@ export default function HolidayPlanScreen() {
   ]);
 
   async function sharePlan() {
-    const message = holidayPlanShareText(plan, (key, options) => t(key, options));
+    const appUrl = i18n.language.startsWith('es') ? SPANISH_SITE_ORIGIN : WEBSITE_ORIGIN;
+    const message = holidayPlanShareText(plan, (key, options) => t(key, options), appUrl);
     const outcome = await shareOrCopy(message, {
       canShare: Platform.OS !== 'web' || webCanShare(globalThis),
       share: (text) => Share.share({ message: text, title: t('shareHeading') }),

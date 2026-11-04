@@ -87,6 +87,14 @@ export default function FinderScreen() {
         </TouchableOpacity>
         <Text style={[styles.barTitle, { color: colors.primary }]}>{t('title')}</Text>
       </View>
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel={t('chooseGuide')}
+        onPress={() => router.push('/choose-treatment' as never)}
+        style={[styles.guideLink, { borderColor: colors.primary, backgroundColor: colors.white }]}
+      >
+        <Text style={[styles.guideLinkText, { color: colors.primary }]}>{t('chooseGuide')} ›</Text>
+      </TouchableOpacity>
 
       {step !== 'intro' && (
         <View style={styles.steps}>
@@ -287,6 +295,8 @@ function Section({ label, children }: { label: string; children: React.ReactNode
 }
 
 const styles = StyleSheet.create({
+  guideLink: { borderWidth: 1.5, borderRadius: 12, minHeight: 44, justifyContent: 'center', paddingHorizontal: 14, marginBottom: 14 },
+  guideLinkText: { fontSize: 14.5, fontWeight: '800' },
   bar: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
   back: { width: 34, height: 34, borderRadius: 10, borderWidth: 1, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   backIcon: { fontSize: 22, marginTop: -2 },

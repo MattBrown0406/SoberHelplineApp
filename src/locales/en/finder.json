@@ -1,6 +1,16 @@
 {
-  "categories": {"Inpatient Treatment": "Inpatient Treatment", "Outpatient Treatment": "Outpatient Treatment", "Medical Detox": "Medical Detox", "Sober Living": "Sober Living", "Interventionists": "Interventionists", "Sober Coaches/Companions": "Sober Coaches/Companions", "Therapists": "Therapists", "Psychiatrists": "Psychiatrists"},
+  "categories": {
+    "Inpatient Treatment": "Inpatient Treatment",
+    "Outpatient Treatment": "Outpatient Treatment",
+    "Medical Detox": "Medical Detox",
+    "Sober Living": "Sober Living",
+    "Interventionists": "Interventionists",
+    "Sober Coaches/Companions": "Sober Coaches/Companions",
+    "Therapists": "Therapists",
+    "Psychiatrists": "Psychiatrists"
+  },
   "title": "Treatment Finder",
+  "chooseGuide": "How to choose a treatment program",
   "intro": {
     "browseAll": "Browse all providers",
     "directorySource": "Current approved listings from SoberHelpline.com, shown here in the app. Separate locations and services may have separate listings.",

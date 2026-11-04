@@ -1,0 +1,65 @@
+{
+  "back": "‹ Volver",
+  "kicker": "ANTES DE ELEGIR",
+  "title": "Cómo elegir un programa de tratamiento",
+  "intro": "El seguro te dice quién va a pagar. No te dice quién va a ayudar. Hazle estas preguntas a cada programa y aléjate de las señales de alerta.",
+  "askTitle": "Pregúntale a cada programa",
+  "ask": [
+    {
+      "q": "¿Tienen licencia del estado y acreditación de The Joint Commission o CARF? ¿Cuál es su número de licencia?",
+      "why": "Verifica el número tú misma en el sitio web de licencias de tu estado."
+    },
+    {
+      "q": "¿Qué nivel de atención recomiendan para mi ser querido, y por qué?",
+      "why": "Un buen programa evalúa primero. Desconfía de una misma respuesta para todos."
+    },
+    {
+      "q": "¿Dónde se hace la desintoxicación médica: en el lugar o en otro sitio?",
+      "why": "La abstinencia de alcohol y de benzodiacepinas necesita atención médica."
+    },
+    {
+      "q": "¿Ofrecen o permiten medicamentos para la adicción, como buprenorfina, metadona o naltrexona?",
+      "why": "Para los opioides, la medicación es una de las protecciones más fuertes contra la sobredosis."
+    },
+    {
+      "q": "¿Tratan al mismo tiempo la depresión, la ansiedad, el trauma y otros problemas de salud mental?",
+      "why": "La mayoría de las personas en tratamiento necesitan ambas cosas, y tratar solo una muchas veces no funciona."
+    },
+    {
+      "q": "¿Quién forma parte del personal, y cada cuánto verá a un consejero o terapeuta con licencia?",
+      "why": "Pide nombres y licencias, no solo los puestos."
+    },
+    {
+      "q": "¿Cómo es su programa para la familia?",
+      "why": "Las familias que participan le dan a su ser querido una mejor oportunidad."
+    },
+    {
+      "q": "¿Cómo deciden cuándo está listo/a para salir, y cuál es el plan de seguimiento?",
+      "why": "La duración debe seguir el progreso, no los días que cubre el seguro."
+    },
+    {
+      "q": "¿Cuánto nos costará después del seguro? ¿Nos lo pueden dar por escrito?",
+      "why": "Consigue la cifra antes del ingreso, no después."
+    }
+  ],
+  "flagsTitle": "Señales de alerta: aléjate",
+  "flags": [
+    "Ofrecen viaje gratis, vivienda gratis, dinero o regalos si tu ser querido va.",
+    "\"Aceptamos todos los seguros\", o la promesa de que no te costará nada.",
+    "Una línea telefónica o un servicio de \"colocación\" que no te dice el nombre, la dirección ni el número de licencia del centro.",
+    "Presión para decidir en esta llamada, o para ir antes de que hayas visto el programa.",
+    "No pueden explicar el plan de tratamiento ni las credenciales del personal.",
+    "Sugieren cambiar de seguro o se ofrecen a pagar las primas. Eso es corretaje de pacientes, y es ilegal en muchos estados."
+  ],
+  "beforeTitle": "Antes de decir que sí",
+  "before": [
+    "Busca la licencia en el sitio web de tu estado, y busca el nombre del programa junto con \"quejas\" o \"demanda\".",
+    "Para más opciones, usa FindTreatment.gov o llama a la línea gratuita y confidencial de SAMHSA al 1-800-662-4357 (atienden en español).",
+    "Pide la carta de aceptación y la fecha de ingreso por escrito.",
+    "Ten lista la cama, la fecha y el transporte antes de pedirle que diga que sí."
+  ],
+  "finder": "Abrir el buscador de tratamiento",
+  "saidYes": "Dijo que sí: prepárate",
+  "bookSession": "Agenda una sesión con Matt Brown para evaluar opciones",
+  "note": "Información general, no consejo médico."
+}

@@ -526,6 +526,8 @@
     "offlineToolsBody": "La evaluación, los guiones, las guías de 24/72 horas y la Cartera de Seguridad siguen disponibles. El chat, video y las reservaciones volverán cuando se restablezca la conexión."
   },
   "arrestLinks": {
+    "chooseProgram": "Cómo elegir un programa de tratamiento",
+    "saidYes": "Aceptó: prepárate para ir directo de la cárcel al tratamiento",
     "bookSession": "Agenda una sesión con Matt Brown para elegir un programa de tratamiento"
   }
 }

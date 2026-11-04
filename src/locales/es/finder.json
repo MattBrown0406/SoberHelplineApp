@@ -1,6 +1,16 @@
 {
-  "categories": {"Inpatient Treatment": "Tratamiento residencial", "Outpatient Treatment": "Tratamiento ambulatorio", "Medical Detox": "Desintoxicación médica", "Sober Living": "Vivienda sobria", "Interventionists": "Intervencionistas", "Sober Coaches/Companions": "Coaches y acompañantes de recuperación", "Therapists": "Terapeutas", "Psychiatrists": "Psiquiatras"},
+  "categories": {
+    "Inpatient Treatment": "Tratamiento residencial",
+    "Outpatient Treatment": "Tratamiento ambulatorio",
+    "Medical Detox": "Desintoxicación médica",
+    "Sober Living": "Vivienda sobria",
+    "Interventionists": "Intervencionistas",
+    "Sober Coaches/Companions": "Coaches y acompañantes de recuperación",
+    "Therapists": "Terapeutas",
+    "Psychiatrists": "Psiquiatras"
+  },
   "title": "Buscador de tratamientos",
+  "chooseGuide": "Cómo elegir un programa de tratamiento",
   "intro": {
     "browseAll": "Ver todos los proveedores",
     "directorySource": "Anuncios aprobados actuales de SoberHelpline.com, aquí en la app. Las ubicaciones y los servicios pueden tener anuncios separados.",

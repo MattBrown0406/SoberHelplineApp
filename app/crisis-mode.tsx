@@ -391,6 +391,26 @@ function CrisisModeContent() {
                 </View>
                 <ActionCard title={t('inline.next24HourPlan')} items={situation.next24} colors={colors} numbered />
                 <ActionCard title={t('inline.next72HourPlan')} items={situation.next72} colors={colors} numbered />
+                {situationKey === 'arrested' && (
+                  <>
+                    <TouchableOpacity
+                      accessibilityRole="button"
+                      accessibilityLabel={t('arrestLinks.chooseProgram')}
+                      onPress={() => router.push('/choose-treatment' as never)}
+                      style={[styles.card, styles.letterLink, { backgroundColor: colors.white, borderColor: colors.primary }]}
+                    >
+                      <Text style={[styles.sectionTitle, { color: colors.primary }]}>{t('arrestLinks.chooseProgram')} ›</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      accessibilityRole="button"
+                      accessibilityLabel={t('arrestLinks.saidYes')}
+                      onPress={() => router.push({ pathname: '/treatment-action-plan', params: { focus: 'yes', source: 'arrest' } } as never)}
+                      style={[styles.card, styles.letterLink, { backgroundColor: colors.white, borderColor: colors.primary }]}
+                    >
+                      <Text style={[styles.sectionTitle, { color: colors.primary }]}>{t('arrestLinks.saidYes')} ›</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
                 {situationKey === 'arrested' && !isAttached && (
                   <TouchableOpacity
                     accessibilityRole="button"

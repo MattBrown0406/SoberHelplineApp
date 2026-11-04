@@ -22,7 +22,7 @@ const output = process.env.AUDIT_OUTPUT || '/tmp/sh-audit-browser/smoke-results.
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
-    const routes = ['/', '/scripts', '/boundaries', '/tracker', '/learn', '/support', '/settings', '/safety-wallet', '/crisis-mode', '/finder', '/book-coaching', '/rehearsal-history', '/family-outcomes', '/treatment-action-plan', '/homecoming-week', '/family-visitation-plan', '/holiday-plan', '/prosecutor-letter', '/diy-intervention-planner', '/enabling-costs', '/letter', '/trajectory', '/community'];
+    const routes = ['/', '/scripts', '/boundaries', '/tracker', '/learn', '/support', '/settings', '/safety-wallet', '/crisis-mode', '/finder', '/book-coaching', '/rehearsal-history', '/family-outcomes', '/treatment-action-plan', '/homecoming-week', '/family-visitation-plan', '/holiday-plan', '/prosecutor-letter', '/choose-treatment', '/diy-intervention-planner', '/enabling-costs', '/letter', '/trajectory', '/community'];
     for (const width of [320, 390]) {
       await page.setViewportSize({ width, height: 844 });
       for (const path of routes) {

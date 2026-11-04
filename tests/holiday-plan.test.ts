@@ -190,6 +190,11 @@ test('the shared text has what she wrote, the agreements she confirmed, and not 
   assert.match(text, /\[commitments\.noCash\]/);
   assert.doesNotMatch(text, /PRIVATE EXIT/);
   assert.doesNotMatch(text, /\[fields\.kids\]/);
+  // One line about the free app at the end, only when the screen passes the link.
+  assert.doesNotMatch(text, /\[shareFooter\]/);
+  const withFooter = holidayPlanShareText(plan, (key, options) => key === 'shareFooter' ? `FOOTER ${options?.url}` : `[${key}]`, 'https://soberhelpline.com');
+  assert.match(withFooter, /\n\nFOOTER https:\/\/soberhelpline\.com$/);
+  assert.match(read('app/holiday-plan.tsx'), /holidayPlanShareText\(plan, \(key, options\) => t\(key, options\), appUrl\)/);
   const unconfirmed = updateHolidayPlan(plan, { commitments: { ...plan.commitments, noCash: false } });
   assert.doesNotMatch(holidayPlanShareText(unconfirmed, t), /\[commitments\.noCash\]/);
 });

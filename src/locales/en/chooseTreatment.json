@@ -1,0 +1,65 @@
+{
+  "back": "‹ Back",
+  "kicker": "BEFORE YOU CHOOSE",
+  "title": "How to choose a treatment program",
+  "intro": "Insurance tells you who will pay. It doesn't tell you who will help. Ask every program these questions, and walk away from the red flags.",
+  "askTitle": "Ask every program",
+  "ask": [
+    {
+      "q": "Are you licensed by the state and accredited by The Joint Commission or CARF? What's your license number?",
+      "why": "Check the number yourself on your state's licensing website."
+    },
+    {
+      "q": "What level of care do you recommend for them, and why?",
+      "why": "A good program assesses first. Beware of one answer for everyone."
+    },
+    {
+      "q": "Where does medical detox happen: on site, or somewhere else?",
+      "why": "Alcohol and benzodiazepine withdrawal need medical care."
+    },
+    {
+      "q": "Do you offer or allow medication for addiction, such as buprenorphine, methadone, or naltrexone?",
+      "why": "For opioids, medication is one of the strongest protections against overdose."
+    },
+    {
+      "q": "Do you treat depression, anxiety, trauma, and other mental health conditions at the same time?",
+      "why": "Most people in treatment need both, and treating one alone often fails."
+    },
+    {
+      "q": "Who is on staff, and how often will they see a licensed counselor or therapist?",
+      "why": "Ask for names and licenses, not just job titles."
+    },
+    {
+      "q": "What does your family program look like?",
+      "why": "Families who take part give their loved one a better chance."
+    },
+    {
+      "q": "How do you decide when they're ready to leave, and what's the aftercare plan?",
+      "why": "Length of stay should follow progress, not the number of days insurance covers."
+    },
+    {
+      "q": "What will it cost us after insurance? Can you put that in writing?",
+      "why": "Get the number before admission, not after."
+    }
+  ],
+  "flagsTitle": "Red flags: walk away",
+  "flags": [
+    "They offer free travel, free housing, cash, or gifts if your loved one comes.",
+    "\"We take all insurance,\" or a promise that it will cost you nothing.",
+    "A hotline or \"placement\" service that won't tell you the facility's name, address, or license number.",
+    "Pressure to decide on this call, or to leave before you've seen the program.",
+    "They can't explain the treatment plan or the staff's credentials.",
+    "They suggest switching insurance plans or offer to pay the premiums. That's patient brokering, and it's illegal in many states."
+  ],
+  "beforeTitle": "Before you say yes",
+  "before": [
+    "Look up the license on your state's website, and search the program's name with \"complaints\" or \"lawsuit\".",
+    "For more options, use FindTreatment.gov or call SAMHSA's free, confidential helpline at 1-800-662-4357.",
+    "Ask for the acceptance letter and the admission date in writing.",
+    "Have the bed, the date, and the ride ready before you ask them to say yes."
+  ],
+  "finder": "Open the treatment finder",
+  "saidYes": "They said yes: get ready",
+  "bookSession": "Book a session with Matt Brown to weigh options",
+  "note": "General information, not medical advice."
+}

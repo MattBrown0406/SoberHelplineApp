@@ -526,6 +526,8 @@
     "offlineToolsBody": "Assessment, scripts, 24/72-hour guidance, and the Safety Wallet remain available. Chat, video, and booking return after your connection is restored."
   },
   "arrestLinks": {
+    "chooseProgram": "How to choose a treatment program",
+    "saidYes": "They agreed: get ready to go straight from jail to treatment",
     "bookSession": "Book a session with Matt Brown to choose a treatment program"
   }
 }

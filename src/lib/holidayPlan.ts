@@ -230,8 +230,11 @@ export function holidayPlanIsThisSeason(plan: HolidayPlan, now: Date): boolean {
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
-/** The plan as plain text for the share sheet: only what she has written. */
-export function holidayPlanShareText(plan: HolidayPlan, t: Translate): string {
+/**
+ * The plan as plain text for the share sheet: only what she has written,
+ * then one line naming the free app (the plan reaches relatives who may need it).
+ */
+export function holidayPlanShareText(plan: HolidayPlan, t: Translate, appUrl?: string): string {
   const lines = [t('shareHeading')];
   const add = (label: string, value: string) => {
     if (value.trim()) lines.push('', label, value.trim());
@@ -248,5 +251,6 @@ export function holidayPlanShareText(plan: HolidayPlan, t: Translate): string {
     lines.push('', t('sectionCommitments'));
     for (const id of agreed) lines.push(`• ${t(`commitments.${id}`)}`);
   }
+  if (appUrl) lines.push('', t('shareFooter', { url: appUrl }));
   return lines.join('\n');
 }

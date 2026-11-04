@@ -215,6 +215,24 @@ export default function LearnScreen() {
         </TouchableOpacity>
       </View>
 
+      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.green }]}>
+        <View style={styles.toolTopRow}>
+          <Text style={styles.toolIcon}>🔎</Text>
+          <Text style={[styles.toolBadge, { color: colors.green, backgroundColor: colors.greenLight }]}>{t('tools.chooseBadge')}</Text>
+        </View>
+        <Text style={[styles.cardTitle, { color: colors.ink }]}>{t('tools.chooseTitle')}</Text>
+        <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t('tools.chooseBody')}</Text>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={t('tools.chooseButton')}
+          style={[styles.cardButton, { backgroundColor: colors.green }]}
+          onPress={() => router.push('/choose-treatment' as never)}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.cardButtonText}>{t('tools.chooseButton')}</Text>
+        </TouchableOpacity>
+      </View>
+
       <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
         <View style={styles.toolTopRow}>
           <Text style={styles.toolIcon}>💵</Text>

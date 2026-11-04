@@ -80,8 +80,9 @@
     "ownDay": "Sus decisiones no van a cancelar el día para todos los demás. Voy a disfrutar parte de él."
   },
   "share": "Compartir este plan",
-  "shareNote": "Al compartir, tus respuestas se envían como mensaje, excepto tu propia forma de tomar distancia. Una vez enviado, ya no queda solo en este dispositivo.",
+  "shareNote": "Al compartir, tus respuestas se envían como mensaje, excepto tu propia forma de tomar distancia, con una línea al final sobre la app gratuita. Una vez enviado, ya no queda solo en este dispositivo.",
   "shareHeading": "Nuestro plan para las fiestas",
+  "shareFooter": "Escrito con Sober Helpline, una app gratuita para familias que aman a alguien con una adicción: {{url}}",
   "shareCopied": "Plan copiado. Pégalo en un mensaje.",
   "shareError": "No pudimos compartir el plan. Inténtalo de nuevo.",
   "footer": "El cariño y los límites caben en la misma mesa. Un plan no enfría el día. Evita que las decisiones de una persona lo decidan por todos.",

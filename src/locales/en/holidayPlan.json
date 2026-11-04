@@ -80,8 +80,9 @@
     "ownDay": "Their choices don't get to cancel the day for everyone else. I'll enjoy part of it."
   },
   "share": "Share this plan",
-  "shareNote": "Sharing sends your answers as a message, except your own way to step away. Once sent, it's no longer only on this device.",
+  "shareNote": "Sharing sends your answers as a message, except your own way to step away, with one line at the end about the free app. Once sent, it's no longer only on this device.",
   "shareHeading": "Our holiday plan",
+  "shareFooter": "Written with Sober Helpline, a free app for families who love someone with an addiction: {{url}}",
   "shareCopied": "Plan copied. Paste it into a message.",
   "shareError": "We couldn't share the plan. Please try again.",
   "footer": "Warmth and limits belong at the same table. A plan doesn't make the day cold. It keeps one person's choices from deciding it for everyone.",
