@@ -7,7 +7,7 @@
   "privacy": "Se guarda en almacenamiento protegido de este dispositivo para tu cuenta. Lo que escribes se queda en este teléfono a menos que lo compartas.",
   "beforeTitle": "Antes de enviarla",
   "before": [
-    "Dásela primero a su abogado defensor, y deja que el abogado decida si se envía a la fiscalía y cuándo. La mayoría de las fiscalías esperan que una petición así llegue por medio del abogado, que puede cambiarla o presentarla en una fecha de corte. ¿Todavía no tiene abogado? Pide un defensor público.",
+    "Dásela primero a su abogado defensor, y deja que el abogado decida si se envía a la fiscalía y cuándo. La mayoría de las fiscalías esperan que una petición así llegue por medio del abogado, que puede cambiarla o presentarla en una audiencia. ¿Todavía no tiene abogado? Pide un defensor público.",
     "No escribas sobre lo que pasó ni sobre los cargos. Todo lo que pongas por escrito puede usarse en el caso. Si te llama alguien de la fiscalía o un investigador, no hables del caso: di que su abogado puede responder.",
     "El programa solo puede enviar informes a la fiscalía después de que tu ser querido firme una autorización. Las leyes federales de privacidad protegen los expedientes de tratamiento de adicciones. Pide al programa su formulario de autorización.",
     "Elige un programa con licencia y pídele una carta de aceptación con la fecha de ingreso. Adjúntala.",
@@ -32,6 +32,7 @@
     "caseNumberPlaceholder": "Como aparece en los papeles, por ejemplo: 26-CR-01234, Marion County Circuit Court",
     "prosecutor": "Nombre del fiscal (opcional)",
     "prosecutorPlaceholder": "Solo el nombre, por ejemplo: Jane Smith",
+    "treatmentStatus": "En qué punto está el tratamiento",
     "programName": "Nombre del programa de tratamiento",
     "programNamePlaceholder": "Por ejemplo: Hope Recovery Center en Salem",
     "levelOfCare": "Nivel de atención",
@@ -69,9 +70,12 @@
     "greeting": "Estimado/a fiscal:",
     "greetingNamed": "Estimado/a {{prosecutor}}:",
     "opening": "Le escribo como {{relationship}} de {{name}}. Nuestra familia le pide respetuosamente que se le permita a {{name}} ingresar a tratamiento en lugar de ir a la cárcel mientras los cargos de este caso están pendientes.",
+    "openingAdmitted": "Le escribo como {{relationship}} de {{name}}. Nuestra familia le pide respetuosamente que se le permita a {{name}} completar el tratamiento en lugar de ir a la cárcel mientras los cargos de este caso están pendientes.",
     "arranged": "Hemos conseguido {{care}} para {{name}} en {{program}}, y {{name}} puede ingresar el {{startDate}}.",
+    "arrangedAdmitted": "{{name}} ingresó a {{care}} en {{program}} el {{startDate}} y hoy está en tratamiento allí.",
     "askHeading": "Le pedimos a su oficina que considere un plan como este, que la defensa de {{name}} puede conversar con usted:",
     "askComplete": "{{name}} ingresa a {{program}} el {{startDate}} y completa todo el programa, incluido el plan de seguimiento que recomiende el programa.",
+    "askCompleteAdmitted": "{{name}} permanece en {{program}} y completa todo el programa, incluido el plan de seguimiento que recomiende el programa.",
     "askUpdates": "{{name}} firma una autorización para que el programa envíe a su oficina informes escritos de progreso {{updates}}, sobre asistencia, participación y progreso en el tratamiento.",
     "askEarlyExit": "Si {{name}} deja el programa antes de completarlo, se le avisará a su oficina de inmediato.",
     "askMeeting": "Al completar el tratamiento, su oficina se reúne en persona con la defensa de {{name}}, y con nuestra familia si usted lo permite, para evaluar el cambio en {{name}} y revisar si es necesario continuar el proceso por los cargos pendientes y, si lo es, si los cargos pueden reducirse.",
@@ -153,6 +157,10 @@
     "attorneyKind": {
       "named": "Su propio abogado",
       "publicDefender": "La defensoría pública"
+    },
+    "treatmentStatus": {
+      "arranged": "Conseguido, empieza pronto",
+      "admitted": "Ya está en tratamiento"
     }
   }
 }

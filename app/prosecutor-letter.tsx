@@ -30,6 +30,7 @@ import {
   PROSECUTOR_LETTER_LANGUAGES,
   PROSECUTOR_LEVELS_OF_CARE,
   PROSECUTOR_RELATIONSHIPS,
+  PROSECUTOR_TREATMENT_STATUSES,
   PROSECUTOR_UPDATE_INTERVALS,
   formatLetterDate,
   isLetterDate,
@@ -39,7 +40,7 @@ import {
   type ProsecutorTextKey,
 } from '../src/lib/prosecutorLetter';
 
-type ChoiceField = 'relationship' | 'levelOfCare' | 'updates' | 'attorneyKind';
+type ChoiceField = 'relationship' | 'levelOfCare' | 'updates' | 'attorneyKind' | 'treatmentStatus';
 
 export default function ProsecutorLetterScreen() {
   useToolOpened('prosecutor_letter');
@@ -175,6 +176,7 @@ export default function ProsecutorLetterScreen() {
             {field('lovedOneName')}
             {field('caseNumber')}
             {field('prosecutor')}
+            {choices('treatmentStatus', PROSECUTOR_TREATMENT_STATUSES, t('fields.treatmentStatus'))}
             {field('programName')}
             {choices('levelOfCare', PROSECUTOR_LEVELS_OF_CARE, t('fields.levelOfCare'))}
             <View style={styles.fieldWrap}>

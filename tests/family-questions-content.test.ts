@@ -65,7 +65,11 @@ test('the arrested guidance covers withdrawal, recorded calls, a lawyer, and ove
   assert.match(en.action[3], /revokes the bond and they go back to jail[\s\S]*before the bond is posted/);
   assert.match(en.action[4], /Once they are in treatment, bring in a criminal defense attorney or the public defender/);
   assert.match(es.action[2], /Solo pagaré tu fianza si aceptas ir directo de la cárcel al tratamiento/);
-  assert.match(es.action[3], /revoca la fianza/);
+  assert.match(es.action[3], /se revoque la fianza y tu ser querido vuelve a la cárcel/);
+  // The revoke promise is said only after confirming it can be kept.
+  assert.match(en.action[3], /Confirm you can before you promise it[\s\S]*bail bond agent[\s\S]*cash bail[\s\S]*“If you agree and then change your mind, we will revoke the bond/);
+  assert.doesNotMatch(en.say, /revoke/);
+  assert.doesNotMatch(es.say, /revoc/);
   assert.equal(es.action.length, en.action.length);
   // Withdrawal and suicide talk still get one call to the jail's medical staff.
   assert.match(en.action[0], /medical staff[\s\S]*suicide/);

@@ -23,11 +23,14 @@ export const PROSECUTOR_RELATIONSHIPS = [
 export const PROSECUTOR_LEVELS_OF_CARE = ['detoxResidential', 'residential', 'php', 'iop', 'outpatient'] as const;
 export const PROSECUTOR_UPDATE_INTERVALS = ['weekly', 'biweekly', 'monthly'] as const;
 export const PROSECUTOR_ATTORNEY_KINDS = ['named', 'publicDefender'] as const;
+/** Arranged and waiting for a bed, or already in treatment when the letter goes out. */
+export const PROSECUTOR_TREATMENT_STATUSES = ['arranged', 'admitted'] as const;
 
 export type ProsecutorRelationship = typeof PROSECUTOR_RELATIONSHIPS[number];
 export type ProsecutorLevelOfCare = typeof PROSECUTOR_LEVELS_OF_CARE[number];
 export type ProsecutorUpdateInterval = typeof PROSECUTOR_UPDATE_INTERVALS[number];
 export type ProsecutorAttorneyKind = typeof PROSECUTOR_ATTORNEY_KINDS[number];
+export type ProsecutorTreatmentStatus = typeof PROSECUTOR_TREATMENT_STATUSES[number];
 
 /** Typed as written: names, the case number, the program's name. */
 export const PROSECUTOR_TEXT_KEYS = ['lovedOneName', 'caseNumber', 'prosecutor', 'programName', 'attorney', 'yourName', 'contact'] as const;
@@ -38,6 +41,7 @@ export type ProsecutorLetter = Record<ProsecutorTextKey, string> & {
   levelOfCare: ProsecutorLevelOfCare | '';
   updates: ProsecutorUpdateInterval | '';
   attorneyKind: ProsecutorAttorneyKind | '';
+  treatmentStatus: ProsecutorTreatmentStatus | '';
   /** YYYY-MM-DD on her calendar, or ''. */
   startDate: string;
   /** The prosecutor's office reads English; Spanish is there to read along. */
@@ -50,6 +54,7 @@ const CHOICES = {
   levelOfCare: PROSECUTOR_LEVELS_OF_CARE,
   updates: PROSECUTOR_UPDATE_INTERVALS,
   attorneyKind: PROSECUTOR_ATTORNEY_KINDS,
+  treatmentStatus: PROSECUTOR_TREATMENT_STATUSES,
 } as const;
 type ChoiceKey = keyof typeof CHOICES;
 const CHOICE_KEYS = Object.keys(CHOICES) as ChoiceKey[];
@@ -61,6 +66,7 @@ export function defaultProsecutorLetter(): ProsecutorLetter {
     levelOfCare: '',
     updates: '',
     attorneyKind: '',
+    treatmentStatus: '',
     startDate: '',
     letterLanguage: 'en',
     updatedAt: null,
@@ -181,6 +187,7 @@ export function parseProsecutorLetter(raw: string | null): ProsecutorLetter {
     levelOfCare: source.levelOfCare as ProsecutorLetter['levelOfCare'],
     updates: source.updates as ProsecutorLetter['updates'],
     attorneyKind: source.attorneyKind as ProsecutorLetter['attorneyKind'],
+    treatmentStatus: source.treatmentStatus as ProsecutorLetter['treatmentStatus'],
     startDate: source.startDate as string,
     letterLanguage: source.letterLanguage,
     updatedAt: typeof source.updatedAt === 'string' ? source.updatedAt : null,
@@ -198,6 +205,7 @@ export function prosecutorLetterProgress(letter: ProsecutorLetter): {
   const checks: [string, boolean][] = [
     ['lovedOneName', !!letter.lovedOneName.trim()],
     ['caseNumber', !!letter.caseNumber.trim()],
+    ['treatmentStatus', !!letter.treatmentStatus],
     ['programName', !!letter.programName.trim()],
     ['levelOfCare', !!letter.levelOfCare],
     ['startDate', isLetterDate(letter.startDate)],
@@ -255,6 +263,8 @@ export function prosecutorLetterText(
     relationship: letter.relationship ? t(`letter.relationship.${letter.relationship}`) : t('letter.blank.relationship'),
   };
   const prosecutor = letter.prosecutor.trim();
+  // Already in treatment: say so — it is the strongest fact in the letter.
+  const admitted = letter.treatmentStatus === 'admitted';
   const lines = [
     today,
     '',
@@ -262,12 +272,12 @@ export function prosecutorLetterText(
     '',
     prosecutor ? t('letter.greetingNamed', { prosecutor }) : t('letter.greeting'),
     '',
-    t('letter.opening', fill),
+    t(admitted ? 'letter.openingAdmitted' : 'letter.opening', fill),
     '',
-    t('letter.arranged', fill),
+    t(admitted ? 'letter.arrangedAdmitted' : 'letter.arranged', fill),
     '',
     t('letter.askHeading', fill),
-    `1. ${t('letter.askComplete', fill)}`,
+    `1. ${t(admitted ? 'letter.askCompleteAdmitted' : 'letter.askComplete', fill)}`,
     `2. ${t('letter.askUpdates', fill)}`,
     `3. ${t('letter.askEarlyExit', fill)}`,
     `4. ${t('letter.askMeeting', fill)}`,

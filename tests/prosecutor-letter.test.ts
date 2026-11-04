@@ -49,6 +49,7 @@ function filled(): ProsecutorLetter {
     startDate: '2026-11-18',
     updates: 'biweekly',
     attorneyKind: 'named',
+    treatmentStatus: 'arranged',
     attorney: 'Sam Rivera',
     yourName: 'Pat Lee',
     relationship: 'mother',
@@ -118,6 +119,20 @@ test('a Spanish-speaking mother gets a fully English letter: every mid-sentence 
     }
     for (const kind of PROSECUTOR_ATTORNEY_KINDS) assert.ok(source.options.attorneyKind[kind], `${lang} attorneyKind.${kind}`);
   }
+});
+
+test('a letter sent once they are in treatment says so, in both languages', () => {
+  const letter = updateProsecutorLetter(filled(), { treatmentStatus: 'admitted', startDate: '2026-10-30' });
+  const en = prosecutorLetterText(letter, translator('en'), 'November 4, 2026', 'en');
+  assert.match(en, /be allowed to complete treatment in place of jail/);
+  assert.match(en, /Jordan Lee entered residential treatment at Hope Recovery Center in Salem on October 30, 2026 and is in treatment there now\./);
+  assert.match(en, /1\. Jordan Lee stays at Hope Recovery Center in Salem and completes the full program/);
+  assert.doesNotMatch(en, /can be admitted|enters Hope/);
+  const es = prosecutorLetterText(letter, translator('es'), '4 de noviembre de 2026', 'es');
+  assert.match(es, /completar el tratamiento en lugar de ir a la cárcel/);
+  assert.match(es, /Jordan Lee ingresó a tratamiento residencial en Hope Recovery Center in Salem el 30 de octubre de 2026 y hoy está en tratamiento allí\./);
+  assert.match(es, /1\. Jordan Lee permanece en Hope Recovery Center in Salem/);
+  assert.equal(prosecutorLetterProgress(updateProsecutorLetter(letter, { treatmentStatus: '' })).ready, false);
 });
 
 test('the admission date is a calendar date, formatted without a time-zone shift', () => {

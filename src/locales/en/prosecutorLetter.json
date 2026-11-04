@@ -32,6 +32,7 @@
     "caseNumberPlaceholder": "Example: 26-CR-01234, Marion County Circuit Court",
     "prosecutor": "Prosecutor's name (optional)",
     "prosecutorPlaceholder": "Example: Jane Smith",
+    "treatmentStatus": "Where treatment stands",
     "programName": "Treatment program's name",
     "programNamePlaceholder": "Example: Hope Recovery Center in Salem",
     "levelOfCare": "Level of care",
@@ -69,9 +70,12 @@
     "greeting": "Dear Prosecutor:",
     "greetingNamed": "Dear {{prosecutor}}:",
     "opening": "I am writing as {{name}}'s {{relationship}}. Our family respectfully asks that {{name}} be allowed to enter treatment in place of jail while the charges in this case are pending.",
+    "openingAdmitted": "I am writing as {{name}}'s {{relationship}}. Our family respectfully asks that {{name}} be allowed to complete treatment in place of jail while the charges in this case are pending.",
     "arranged": "We have arranged {{care}} for {{name}} at {{program}}, and {{name}} can be admitted on {{startDate}}.",
+    "arrangedAdmitted": "{{name}} entered {{care}} at {{program}} on {{startDate}} and is in treatment there now.",
     "askHeading": "We ask your office to consider a plan like this, which {{name}}'s attorney can discuss with you:",
     "askComplete": "{{name}} enters {{program}} on {{startDate}} and completes the full program, including the aftercare plan the program recommends.",
+    "askCompleteAdmitted": "{{name}} stays at {{program}} and completes the full program, including the aftercare plan the program recommends.",
     "askUpdates": "{{name}} signs a release so the program can send written progress updates to your office {{updates}}, covering attendance, participation, and progress in treatment.",
     "askEarlyExit": "If {{name}} leaves the program before completing it, your office is told right away.",
     "askMeeting": "When treatment is complete, your office meets in person with {{name}}'s attorney, and with our family if you are willing, to assess the change in {{name}} and review whether continued prosecution of the pending charges is needed, and, if it is, whether the charges can be reduced.",
@@ -153,6 +157,10 @@
     "attorneyKind": {
       "named": "Their own attorney",
       "publicDefender": "The public defender"
+    },
+    "treatmentStatus": {
+      "arranged": "Arranged, starting soon",
+      "admitted": "Already in treatment"
     }
   }
 }
