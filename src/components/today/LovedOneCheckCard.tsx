@@ -19,7 +19,8 @@ interface Props {
   /** Hidden while the record is loading or unreadable: never ask over a read error. */
   ready: boolean;
   pressureScore: number | null | undefined;
-  onSavePhase: (phase: RecoveryPhase) => Promise<unknown>;
+  /** `unchanged` is "Still the same": keep the saved status as it is. */
+  onSavePhase: (phase: RecoveryPhase, unchanged?: boolean) => Promise<unknown>;
 }
 
 /**
@@ -36,8 +37,8 @@ export function LovedOneCheckCard({ accountId, lovedOne, ready, pressureScore, o
   const [saveError, setSaveError] = useState(false);
   const [thanked, setThanked] = useState(false);
   // Saving refreshes the record, which clears `due` before the save resolves:
-  // keep the question on screen until the thanks replaces it, and after a
-  // failed save so she sees the error and can try again.
+  // keep the question on screen until the thanks replaces it. A failed save
+  // leaves the record as it was, so the card (and its error) stays by itself.
   const lastReason = useRef<LovedOneCheckReason | null>(null);
 
   useFocusEffect(useCallback(() => {
@@ -67,7 +68,7 @@ export function LovedOneCheckCard({ accountId, lovedOne, ready, pressureScore, o
     })
     : null;
   if (due) lastReason.current = due;
-  const reason = due ?? (saving || saveError ? lastReason.current : null);
+  const reason = due ?? (saving ? lastReason.current : null);
 
   if (!accountId) return null;
   if (thanked) {
@@ -84,12 +85,12 @@ export function LovedOneCheckCard({ accountId, lovedOne, ready, pressureScore, o
   const titleKey = reason === 'missing' ? 'titleMissing' : reason === 'pressure' ? 'titlePressure' : 'titleStale';
   const title = name ? t(`lovedOneCheck.${titleKey}`, { name }) : t(`lovedOneCheck.${titleKey}NoName`);
 
-  const save = async (phase: RecoveryPhase) => {
+  const save = async (phase: RecoveryPhase, unchanged = false) => {
     if (saving) return;
     setSaving(phase);
     setSaveError(false);
     try {
-      await onSavePhase(phase);
+      await onSavePhase(phase, unchanged);
       setThanked(true);
       AccessibilityInfo.announceForAccessibility?.(t('lovedOneCheck.thanks'));
     } catch {
@@ -101,6 +102,7 @@ export function LovedOneCheckCard({ accountId, lovedOne, ready, pressureScore, o
 
   const snooze = () => {
     const until = lovedOneCheckSnoozeUntil(new Date());
+    setSaveError(false);
     setSnoozedUntil(until);
     void AsyncStorage.setItem(lovedOneCheckStorageKey(accountId), until).catch(() => undefined);
   };
@@ -115,7 +117,7 @@ export function LovedOneCheckCard({ accountId, lovedOne, ready, pressureScore, o
           accessibilityRole="button"
           accessibilityLabel={t('lovedOneCheck.sameAccessibility', { phase: t(`pathway.phases.${current}.label`) })}
           disabled={!!saving}
-          onPress={() => void save(current)}
+          onPress={() => void save(current, true)}
           activeOpacity={0.85}
           style={[styles.same, { backgroundColor: colors.primary, opacity: saving && saving !== current ? 0.6 : 1 }]}
         >

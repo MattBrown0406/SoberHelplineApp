@@ -4,7 +4,7 @@
   "kicker": "BEFORE THE HOLIDAYS",
   "title": "Holiday Plan",
   "intro": "Decide the hard parts now, while things are calm, so nobody has to improvise at the door or at the table.",
-  "privacy": "Saved in protected storage on this device for your signed-in account. Nothing leaves your phone unless you share it.",
+  "privacy": "Saved in protected storage on this device for your signed-in account. What you write stays on this phone unless you share it.",
   "coreMessage": "Most holiday blowups aren't about the turkey. They're about a decision nobody made ahead of time.",
   "coreSupport": "Write down who is coming, on what terms, and what happens if those terms break. Then everyone hosting follows the same plan, and no one has to decide in the moment.",
   "progressTitle": "PLAN READINESS",
@@ -72,6 +72,7 @@
     "noTableDebate": "No treatment debate at the table. If it needs saying, it gets said privately, another day.",
     "followPlan": "If they arrive using, we follow this plan instead of improvising.",
     "safetyFirst": "If they've been using, they don't drive. If they try to drive, won't leave, or get aggressive, we call 911, and nobody wrestles for keys.",
+    "medicalEmergency": "If they can't stay awake, are hard to wake, or are breathing slowly, it's a medical emergency: we call 911, give naloxone if opioids could be involved, and stay with them.",
     "naloxone": "If opioids could be involved, naloxone is in the house and two people know where it is.",
     "supportCall": "I've told one person I'll call them before and after.",
     "ownDay": "Their choices don't get to cancel the day for everyone else. I'll enjoy part of it."

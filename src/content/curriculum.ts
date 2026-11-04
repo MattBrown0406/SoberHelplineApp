@@ -317,7 +317,7 @@ export const CURRICULUM: CurriculumPiece[] = [
     mechanism:
       "The first three days after a relapse are when families make the decisions they later regret: the room reopened, the car keys handed back, the money for one more fresh start. The fear is real, and it pushes you to do something big immediately. Slow down on everything except safety. After a stretch without using, tolerance drops, so going back to the old amount is when overdose risk is highest — especially with opioids. If opioids are anywhere in the picture, naloxone belongs in the house and everyone should know where it is. Beyond safety, almost nothing needs deciding today. Housing, money, and what happens next can be decided after you've talked with a professional and with each other — not in the doorway at midnight.",
     practice:
-      "If opioids could be involved at all, find your naloxone or buy some (many pharmacies sell it over the counter) and tell one other person where it is. Then write down the one decision you won't make in the first 72 hours after a relapse.",
+      "If opioids could be involved at all, find your naloxone or buy some (many pharmacies sell it over the counter) and tell one other person where it is. If they can't be woken or are breathing slowly, call 911. Then write down the one decision you won't make in the first 72 hours after a relapse.",
     prompt: 'Which decision do you most often make in a panic and then spend weeks undoing?',
     crisisSafe: true,
   },
@@ -455,7 +455,7 @@ export const CURRICULUM: CurriculumPiece[] = [
     practice:
       'Write down one thing you miss about who they were and one thing you still love about who they are. Say both out loud to someone you trust, or just to yourself.',
     prompt: "What did you picture for them that you haven't let yourself say you've lost?",
-    crisisSafe: true,
+    crisisSafe: false,
   },
   {
     id: 'cur-w23-other-things',
@@ -765,7 +765,7 @@ export const CURRICULUM_ES: CurriculumPiece[] = [
     mechanism:
       'Los primeros tres días después de una recaída son cuando las familias toman las decisiones de las que luego se arrepienten: el cuarto que se vuelve a abrir, las llaves del auto devueltas, el dinero para un nuevo comienzo más. El miedo es real y empuja a hacer algo grande de inmediato. Ve despacio en todo, menos en la seguridad. Después de un tiempo sin consumir, la tolerancia baja, así que volver a la cantidad de antes es cuando el riesgo de sobredosis es más alto, sobre todo con opioides. Si los opioides están en el panorama, la naloxona debe estar en casa y todos deben saber dónde está. Fuera de la seguridad, casi nada necesita decidirse hoy. La vivienda, el dinero y lo que sigue se pueden decidir después de hablar con un profesional y entre ustedes, no en la puerta a medianoche.',
     practice:
-      'Si los opioides pueden estar involucrados, busca tu naloxona o compra una (muchas farmacias la venden sin receta) y dile a otra persona dónde está. Luego escribe la única decisión que no vas a tomar en las primeras 72 horas después de una recaída.',
+      'Si los opioides pueden estar involucrados, busca tu naloxona o compra una (muchas farmacias la venden sin receta) y dile a otra persona dónde está. Si no despierta o respira muy lento, llama al 911. Luego escribe la única decisión que no vas a tomar en las primeras 72 horas después de una recaída.',
     prompt: '¿Qué decisión tomas casi siempre con pánico y luego pasas semanas deshaciendo?',
     crisisSafe: true,
   },
@@ -903,7 +903,7 @@ export const CURRICULUM_ES: CurriculumPiece[] = [
     practice:
       'Escribe una cosa que extrañas de quien era y una cosa que todavía amas de quien es. Di las dos en voz alta a alguien de confianza, o solo a ti misma.',
     prompt: '¿Qué imaginabas para esa persona que no te has permitido decir que perdiste?',
-    crisisSafe: true,
+    crisisSafe: false,
   },
   {
     id: 'cur-w23-other-things',

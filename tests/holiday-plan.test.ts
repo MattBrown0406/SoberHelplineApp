@@ -127,6 +127,20 @@ test('a full plan stays under the SecureStore budget, even in Spanish', () => {
   }
 });
 
+test('a plan saved at the budget still opens after a newer agreement is added', () => {
+  let plan = completePlan();
+  for (const key of ['occasion', 'terms', 'ifTermsBreak', 'relatives', 'ownExit', 'kids', 'gift'] as const) {
+    plan = updateHolidayPlan(plan, { [key]: 'é'.repeat(150) });
+  }
+  // Simulate the older build: one agreement key missing, the rest of the
+  // budget filled, plus a padded answer so the record sits over the cap.
+  const { medicalEmergency: _dropped, ...olderCommitments } = plan.commitments;
+  const older = { ...plan, commitments: olderCommitments, gift: `${plan.gift}${'x'.repeat(80)}` };
+  const opened = parseHolidayPlan(JSON.stringify(older));
+  assert.ok(holidayPlanProtectedByteLength(opened) <= HOLIDAY_PROTECTED_BYTE_LIMIT);
+  assert.equal(opened.commitments.medicalEmergency, false);
+});
+
 test('a full plan never throws when an agreement or the invitation changes', () => {
   let plan = completePlan();
   for (const key of ['occasion', 'terms', 'ifTermsBreak', 'relatives', 'ownExit', 'kids', 'gift'] as const) {
@@ -216,7 +230,12 @@ test('the loved-one check asks when she never said, monthly, and sooner after a 
 
 test('a failed loved-one save keeps the question and its error on screen', () => {
   const card = read('src/components/today/LovedOneCheckCard.tsx');
-  assert.match(card, /const reason = due \?\? \(saving \|\| saveError \? lastReason\.current : null\)/);
+  assert.match(card, /const reason = due \?\? \(saving \? lastReason\.current : null\)/);
+  // "Not now" after a failed save hides the card.
+  assert.match(card, /const until = lovedOneCheckSnoozeUntil\(new Date\(\)\);\s*setSaveError\(false\);/);
+  // "Still the same" keeps the saved status.
+  assert.match(card, /save\(current, true\)/);
+  assert.match(read('app/(tabs)/index.tsx'), /saveLovedOne\(unchanged \? \{ stage \} : pathwayPhaseUpdate\(stage, lovedOneStatus\)\)/);
   assert.match(card, /setThanked\(false\)/);
   // A save failure must not read as an unreadable record (which hides the card).
   const hook = read('src/hooks/useLovedOne.ts');

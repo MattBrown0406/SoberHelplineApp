@@ -4,7 +4,7 @@
   "kicker": "ANTES DE LAS FIESTAS",
   "title": "Plan para las fiestas",
   "intro": "Decide ahora las partes difíciles, mientras hay calma, para que nadie tenga que improvisar en la puerta ni en la mesa.",
-  "privacy": "Se guarda en almacenamiento protegido de este dispositivo para tu cuenta. Nada sale de tu teléfono a menos que lo compartas.",
+  "privacy": "Se guarda en almacenamiento protegido de este dispositivo para tu cuenta. Lo que escribes se queda en este teléfono a menos que lo compartas.",
   "coreMessage": "La mayoría de los pleitos en las fiestas no son por la comida. Son por una decisión que nadie tomó a tiempo.",
   "coreSupport": "Escribe quién viene, con qué condiciones y qué pasa si esas condiciones se rompen. Así todos los que reciben siguen el mismo plan y nadie tiene que decidir en el momento.",
   "progressTitle": "PREPARACIÓN DEL PLAN",
@@ -72,6 +72,7 @@
     "noTableDebate": "Nada de discutir el tratamiento en la mesa. Si hay que decirlo, se dice en privado, otro día.",
     "followPlan": "Si llega intoxicado/a, seguimos este plan en vez de improvisar.",
     "safetyFirst": "Si ha estado consumiendo, no maneja. Si intenta manejar, no se quiere ir o se pone agresivo/a, llamamos al 911 y nadie forcejea por las llaves.",
+    "medicalEmergency": "Si no puede mantenerse despierto/a, cuesta despertarlo/a o respira muy lento, es una emergencia médica: llamamos al 911, damos naloxona si podría haber opioides y nos quedamos con esa persona.",
     "naloxone": "Si podría haber opioides, hay naloxona en la casa y dos personas saben dónde está.",
     "supportCall": "Le dije a una persona que la voy a llamar antes y después.",
     "ownDay": "Sus decisiones no van a cancelar el día para todos los demás. Voy a disfrutar parte de él."

@@ -13,6 +13,7 @@ export const HOLIDAY_COMMITMENTS = [
   'noTableDebate',
   'followPlan',
   'safetyFirst',
+  'medicalEmergency',
   'naloxone',
   'supportCall',
   'ownDay',
@@ -176,10 +177,10 @@ export function parseHolidayPlan(raw: string | null): HolidayPlan {
     ) as HolidayCommitments,
     updatedAt: typeof source.updatedAt === 'string' ? source.updatedAt : null,
   };
-  if (holidayPlanProtectedByteLength(plan) > HOLIDAY_PROTECTED_BYTE_LIMIT) {
-    throw new Error('protected_holiday_value_too_large');
-  }
-  return plan;
+  // A plan saved at the budget by an older build can be a few bytes over once
+  // a newer agreement is added: trim the longest answer rather than lock her
+  // out of her own plan.
+  return fitPlanToProtectedBudget(plan, []);
 }
 
 export function holidayPlanProgress(plan: HolidayPlan): {

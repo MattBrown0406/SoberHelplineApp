@@ -124,9 +124,10 @@ function TodayContent() {
 
   const lovedOneStatus = lovedOne?.status ?? situation.drivers.loved_one_status;
   // Treatment or recovery also clears a stale using/escalating/crisis
-  // status; then re-read the situation so Today reflects it.
-  const saveLovedOnePhase = async (stage: Parameters<typeof pathwayPhaseUpdate>[0]) => {
-    const saved = await saveLovedOne(pathwayPhaseUpdate(stage, lovedOneStatus));
+  // status; then re-read the situation so Today reflects it. "Still the
+  // same" on the loved-one check only re-confirms the phase.
+  const saveLovedOnePhase = async (stage: Parameters<typeof pathwayPhaseUpdate>[0], unchanged = false) => {
+    const saved = await saveLovedOne(unchanged ? { stage } : pathwayPhaseUpdate(stage, lovedOneStatus));
     void reloadFeed();
     return saved;
   };

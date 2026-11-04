@@ -180,7 +180,10 @@ test('choosing treatment or recovery clears a stale active-use status; other pha
     if (status) assert.ok(allowed.has(status));
   }
   const today = read('app/(tabs)/index.tsx');
-  assert.match(today, /saveLovedOne\(pathwayPhaseUpdate\(stage, lovedOneStatus\)\)/);
+  // The pathway card always goes through pathwayPhaseUpdate; only the loved-one
+  // check's "Still the same" re-saves the phase alone.
+  assert.match(today, /saveLovedOne\(unchanged \? \{ stage \} : pathwayPhaseUpdate\(stage, lovedOneStatus\)\)/);
+  assert.match(today, /onSavePhase=\{saveLovedOnePhase\}/);
 });
 
 test('the tracker escalates a new warning spike once, never one already logged when it loads', () => {
