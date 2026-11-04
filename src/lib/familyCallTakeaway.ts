@@ -12,5 +12,5 @@ export function parseFamilyCallTakeaway(value: unknown): FamilyCallTakeaway | nu
   const meetingDate = typeof row.meeting_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(row.meeting_date)
     ? row.meeting_date
     : '';
-  return body && meetingDate ? { meetingDate, body: body.slice(0, 280) } : null;
+  return body && meetingDate ? { meetingDate, body: body.slice(0, 150) } : null;
 }

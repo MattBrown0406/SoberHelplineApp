@@ -50,7 +50,7 @@ type ReferralResourceStats = {
   last_30_days: { monday_call_share_requests: number; boundary_print_requests: number };
 };
 type RsvpRow = { first_name: string; last_name: string; email: string; rsvped_at: string };
-type QuestionRow = { id: string; first_name: string; last_name: string; question: string; submitted_at: string; crisis_tier?: string | null };
+type QuestionRow = { id: string; first_name: string; last_name: string; question: string; submitted_at: string; crisis_tier?: string | null; session_title?: string | null };
 type ThreadRow = {
   thread_id: string;
   first_name: string;
@@ -377,7 +377,7 @@ export default function AdminScreen() {
                 ) : null}
                 <Text style={[styles.questionText, { color: colors.ink }]}>"{item.question}"</Text>
                 <Text style={[styles.rsvpName, { color: colors.inkSoft, marginTop: 4 }]}>
-                  — {item.first_name} {item.last_name} · {new Date(item.submitted_at).toLocaleDateString()}
+                  — {item.first_name} {item.last_name} · {new Date(item.submitted_at).toLocaleDateString()}{item.session_title ? ` · ${item.session_title}` : ''}
                 </Text>
               </View>
             )}

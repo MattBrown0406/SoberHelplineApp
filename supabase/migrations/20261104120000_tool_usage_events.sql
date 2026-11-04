@@ -94,7 +94,7 @@ REVOKE ALL ON FUNCTION public.log_funnel_event(text, jsonb) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.log_funnel_event(text, jsonb) TO authenticated;
 
 -- Per tool over the last p_days days: members who opened it, members who
--- finished it, and member-days opened. Admins only.
+-- finished it, and member-days opened (admins' own use left out). Admins only.
 CREATE OR REPLACE FUNCTION public.admin_tool_usage(p_days integer DEFAULT 30)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -127,6 +127,8 @@ BEGIN
       ON e.metadata ->> 'tool' = t.tool
      AND e.stage IN ('tool_opened', 'tool_finished')
      AND e.created_at >= now() - make_interval(days => v_days)
+     -- Admins' own use would swamp a small membership.
+     AND NOT public._dispatcher_admin(e.account_id)
     GROUP BY t.tool
   ) x;
 

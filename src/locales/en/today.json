@@ -463,7 +463,8 @@
     "sendBriefSub": "Put your last two weeks in front of Matt — your check-ins, warning signs, and boundaries. He reads every brief and replies personally.",
     "askQuestion": "Send a question for the call",
     "oneThing": "THIS WEEK'S ONE THING",
-    "oneThingFromCall": "THIS WEEK'S ONE THING · FROM MONDAY'S CALL"
+    "oneThingFromCall": "THIS WEEK'S ONE THING · FROM MONDAY'S CALL",
+    "oneThingSupport": "This week, let someone carry this with you: send Matt your week or talk 1:1 with a coach, below."
   },
   "curriculum": {
     "weekLabel": "WEEK {{week}}",

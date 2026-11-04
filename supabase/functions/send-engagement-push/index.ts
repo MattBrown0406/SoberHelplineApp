@@ -511,6 +511,18 @@ serve(async (req) => {
         previous = target.account_id;
       }
       afterAccountId = previous;
+      // Builds that open the question sheet from this reminder (4.2 (3)+);
+      // a failed lookup falls back to the wording every build can act on.
+      let asksQuestion = new Set<string>();
+      if (job === "session_reminder") {
+        try {
+          const { data: builds, error: buildsError } = await supabase.from("accounts")
+            .select("id, push_app_contract").in("id", targets.map((target) => target.account_id));
+          if (!buildsError && Array.isArray(builds)) {
+            asksQuestion = new Set(builds.filter((row) => (row.push_app_contract ?? 0) >= 1).map((row) => row.id as string));
+          }
+        } catch { /* older wording */ }
+      }
       const leases = new Map<number, { processing_token: string; reservation_kind: string; event_key: string }>();
       const results = await sendExpoPushResults(targets.map((target): PushMessage => {
         const es = (target.locale ?? "en").startsWith("es");
@@ -527,14 +539,17 @@ serve(async (req) => {
             : halfHour
             ? (es ? "Llamada gratuita de apoyo familiar por Zoom a las 7:00 PM (Pacífico). Ven tal como estás — toca para unirte."
               : "Free family support call on Zoom at 7:00 PM Pacific. Come as you are — tap to join.")
-            : (es ? "Empieza en aproximadamente una hora y tu lugar está guardado. ¿Algo que quieras que se trate? Toca para enviar una pregunta."
-              : "Starts in about an hour and your seat is saved. Anything you'd like covered? Tap to send a question."),
+            : asksQuestion.has(target.account_id)
+            ? (es ? "Empieza en aproximadamente una hora y tu lugar está guardado. ¿Algo que quieras que se trate? Toca para enviar una pregunta."
+              : "Starts in about an hour and your seat is saved. Anything you'd like covered? Tap to send a question.")
+            : (es ? "Tu grupo comienza en aproximadamente una hora. Tu lugar está guardado — ven tal como estás."
+              : "Your group starts in about an hour. Your seat is saved — come as you are."),
           sound: "default", expiresAt: force === true && !winback
             ? new Date(Math.min(Date.parse(target.expires_at), Date.now() + (halfHour ? 1800 : 3600) * 1000)).toISOString()
             : target.expires_at,
           data: winback ? winbackData()
             // The hour-before reminder is for members who saved a seat: invite a question.
-            : sessionReminderData(target.session_id, { askQuestion: !halfHour }),
+            : sessionReminderData(target.session_id, { askQuestion: !halfHour && asksQuestion.has(target.account_id) }),
         };
       }), clearDeadTokens, async (index) => {
         const target = targets[index];

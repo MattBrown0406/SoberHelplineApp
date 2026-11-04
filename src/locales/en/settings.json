@@ -57,7 +57,7 @@
     "dailyErrorTitle": "Reminder change not confirmed",
     "dailyErrorBody": "Check notification permission in device Settings and retry. No reminder delivery is guaranteed.",
     "familyCallTitle": "Monday family call reminder",
-    "familyCallDesc": "Reminders for The Family Squares, our free family support call on Zoom (Mondays, 7:00 PM Pacific): an hour before and again 15 minutes before if you've saved your spot, or 30 minutes before if you haven't.",
+    "familyCallDesc": "Reminders for The Family Squares, our free family support call on Zoom (Mondays, 7:00 PM Pacific): an hour before and again 15 minutes before if you've saved your spot, or 30 minutes before if you haven't, plus a short note the next morning after a call you saved a spot for or joined.",
     "familyCallErrorTitle": "Couldn't update the reminder",
     "familyCallErrorBody": "Check your connection and try again."
   },

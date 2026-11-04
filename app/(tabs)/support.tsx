@@ -1,5 +1,5 @@
 import { useToolOpened } from '../../src/hooks/useToolOpened';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -18,7 +18,7 @@ import { supabase } from '../../src/lib/supabase';
 import { recordVerifiedPurchase, withTimeoutFallback } from '../../src/lib/authBootstrap';
 import { appAlert } from '../../src/lib/appAlert';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { useTheme } from '../../src/contexts/ThemeContext';
@@ -657,15 +657,34 @@ export default function SupportScreen() {
     ?? (focus === 'family-squares'
       ? sessions.find((s) => isFamilySquaresSession(s) || isLaSobremesaSession(s))?.id
       : undefined);
-  // Opened from the hour-before reminder (or Today's "Send a question"): open
-  // the question sheet once, and only while she still has a seat.
+  // Opened from the hour-before reminder (or Today's "Send a question"):
+  // consume the param on this screen (router.setParams acts on whatever screen
+  // is in front), then open the sheet once Support is in view and the session
+  // has loaded. Her seat is not re-checked: Support's copy of the sessions can
+  // be older than the seat she just saved on Today, and only seat holders are
+  // sent here.
+  const navigation = useNavigation();
+  const [pendingAsk, setPendingAsk] = useState<string | null>(null);
+  const [supportFocused, setSupportFocused] = useState(false);
+  useFocusEffect(useCallback(() => {
+    setSupportFocused(true);
+    return () => {
+      setSupportFocused(false);
+      setPendingAsk(null);
+    };
+  }, []));
   useEffect(() => {
-    if (ask !== 'question' || !focusedSessionId) return;
-    const session = sessions.find((s) => s.id === focusedSessionId);
+    if (ask !== 'question') return;
+    navigation.setParams({ ask: undefined } as never);
+    setPendingAsk(sessionIdParam ?? null);
+  }, [ask, sessionIdParam, navigation]);
+  useEffect(() => {
+    if (!pendingAsk || !supportFocused) return;
+    const session = sessions.find((s) => s.id === pendingAsk);
     if (!session) return;
-    router.setParams({ ask: undefined } as never);
-    if (session.rsvped && !isLaSobremesaSession(session)) setQuestionSession(session);
-  }, [ask, focusedSessionId, sessions, router]);
+    setPendingAsk(null);
+    if (!isLaSobremesaSession(session)) setQuestionSession(session);
+  }, [pendingAsk, supportFocused, sessions]);
   const handleSessionRsvp = async (session: DbSession) => {
     const saved = await toggleRsvp(session);
     if (saved === 'not_available') appAlert(t('sessions.rsvpErrorTitle'), t('common:laSobremesa.notAvailable'));
@@ -1005,6 +1024,17 @@ export default function SupportScreen() {
                       </Text>
                     </TouchableOpacity>
                   </View>
+                  {sess.rsvped && !isLaSobremesaSession(sess) && (
+                    <TouchableOpacity
+                      style={[styles.questionBtn, { borderColor: colors.primary }]}
+                      activeOpacity={0.8}
+                      onPress={() => setQuestionSession(sess)}
+                    >
+                      <Text style={[styles.questionBtnText, { color: colors.primary }]}>
+                        {t('questionModal.button')}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                   {isFamilySquaresSession(sess) ? (
                     <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:familySquares.rsvpNote')}</Text>
                   ) : isLaSobremesaSession(sess) ? (

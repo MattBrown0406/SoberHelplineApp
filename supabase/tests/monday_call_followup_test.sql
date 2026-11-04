@@ -1,7 +1,7 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SET search_path = public, extensions;
-SELECT plan(33);
+SELECT plan(44);
 
 -- ── Which call is "this week's" ───────────────────────────────────────────
 SELECT is(public._family_squares_latest_meeting_date('2026-11-09 18:59 America/Los_Angeles'), date '2026-11-02',
@@ -57,7 +57,7 @@ SELECT throws_ok($$SELECT public.admin_set_family_call_takeaway('x')$$, 'P0001',
 SELECT throws_ok($$SELECT public.admin_get_family_call_takeaway()$$, 'P0001', 'not authorized', 'members cannot read the admin view');
 SELECT ok(NOT has_table_privilege('authenticated', 'public.family_call_takeaways', 'SELECT'), 'the table itself is not readable');
 SELECT set_config('request.jwt.claims', '{"sub":"16000000-0000-0000-0000-0000000000ff","email":"matt@soberhelpline.com","role":"authenticated"}', true);
-SELECT throws_ok($$SELECT public.admin_set_family_call_takeaway(repeat('x', 281))$$, '22023', 'takeaway_too_long', 'at most 280 characters');
+SELECT throws_ok($$SELECT public.admin_set_family_call_takeaway(repeat('x', 151))$$, '22023', 'takeaway_too_long', 'at most 150 characters: the Tuesday note quotes it whole');
 SELECT is(public.admin_set_family_call_takeaway('  Hold   one limit for seven days.  ') ->> 'body', 'Hold one limit for seven days.',
   'saved trimmed, inner spaces collapsed');
 SELECT is(public.admin_set_family_call_takeaway('') ->> 'body', NULL, 'an empty line clears it');
@@ -82,9 +82,9 @@ SELECT set_eq(
   $$VALUES ('26000000-0000-0000-0000-000000000001'::uuid), ('26000000-0000-0000-0000-000000000002'::uuid), ('26000000-0000-0000-0000-000000000006'::uuid)$$,
   'a seat (dated or 4.1-undated) or a Join tap during the call; not Spanish, switched off, deviceless or next-week-only');
 SELECT is((SELECT scheduled_for FROM push_outbox WHERE kind = 'family_call_followup' AND account_id = '26000000-0000-0000-0000-000000000001'),
-  '2026-11-10 09:00 America/New_York'::timestamptz, 'New York gets it at 9 AM her time');
+  '2026-11-10 10:30 America/New_York'::timestamptz, 'New York gets it at 10:30 AM her time, clear of the morning note');
 SELECT is((SELECT scheduled_for FROM push_outbox WHERE kind = 'family_call_followup' AND account_id = '26000000-0000-0000-0000-000000000002'),
-  '2026-11-10 01:10 America/Los_Angeles'::timestamptz, 'London is already in its morning: now');
+  '2026-11-10 10:30 Europe/London'::timestamptz, 'London (9:10 AM there) also waits for 10:30');
 SELECT is((SELECT expires_at FROM push_outbox WHERE kind = 'family_call_followup' AND account_id = '26000000-0000-0000-0000-000000000001'),
   '2026-11-10 21:00 America/New_York'::timestamptz, 'never shown after 9 PM her time');
 SELECT is((SELECT body FROM push_outbox WHERE kind = 'family_call_followup' AND account_id = '26000000-0000-0000-0000-000000000001'),
@@ -93,6 +93,28 @@ SELECT is((SELECT metadata FROM push_outbox WHERE kind = 'family_call_followup' 
   '{"kind":"family_call_followup","meeting_date":"2026-11-09"}'::jsonb, 'the routed payload');
 SELECT ok(NOT has_function_privilege('authenticated', 'public.enqueue_family_call_followups(timestamptz)', 'EXECUTE'),
   'members cannot enqueue');
+
+-- No line written: the wording depends on what her app build can show.
+UPDATE public.accounts SET push_app_contract = 1 WHERE id = '26000000-0000-0000-0000-000000000001';
+UPDATE public.session_rsvps SET family_squares_meeting_date = '2026-11-16'
+WHERE account_id = '26000000-0000-0000-0000-000000000001' AND session_id = public.family_squares_session_id();
+SELECT is(public.enqueue_family_call_followups('2026-11-17 01:10 America/Los_Angeles'), 2, 'next week: A (seat moved) and G');
+SELECT is((SELECT body FROM push_outbox WHERE idempotency_key = 'family-call-followup:2026-11-16:26000000-0000-0000-0000-000000000001'),
+  'Your one thing to try this week is on Today, and next Monday''s seat is one tap away.', '4.2 (3)+: points at Today''s card');
+SELECT is((SELECT body FROM push_outbox WHERE idempotency_key = 'family-call-followup:2026-11-16:26000000-0000-0000-0000-000000000007'),
+  'Thanks for being part of Monday''s call. You can save your seat for next Monday in the app.', 'older builds: nothing they cannot find');
+
+-- Registering a device records which build it is.
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims', '{"sub":"16000000-0000-0000-0000-000000000007","email":"fu-g@example.com","role":"authenticated"}', true);
+SELECT ok(public.register_push_device('ExponentPushToken[fu-g-new]', 'en', 1), 'a 4.2 (3) build registers with its contract');
+RESET ROLE;
+SELECT is((SELECT push_app_contract FROM accounts WHERE id = '26000000-0000-0000-0000-000000000007'), 1::smallint, 'stored');
+SET LOCAL ROLE authenticated;
+SELECT ok(public.register_push_device('ExponentPushToken[fu-g-old]', 'en'), 'an older build registers the old way');
+RESET ROLE;
+SELECT is((SELECT push_app_contract FROM accounts WHERE id = '26000000-0000-0000-0000-000000000007'), NULL::smallint,
+  'and its token belongs to a build without the new pushes');
 
 -- Delivery re-checks her daytime at send time.
 CREATE TEMP TABLE zones AS SELECT
@@ -136,6 +158,32 @@ SELECT set_config('request.jwt.claims', '{"sub":"16000000-0000-0000-0000-0000000
 SELECT isnt((SELECT crisis_tier FROM public.admin_get_session_questions() WHERE id = '36000000-0000-0000-0000-000000000002'), NULL,
   'the admin list marks it');
 RESET ROLE;
+-- 4.1 lets a member ask for La Sobremesa too: a crisis one must be findable.
+INSERT INTO public.session_questions(id, account_id, session_id, question) VALUES
+  ('36000000-0000-0000-0000-000000000003', '26000000-0000-0000-0000-000000000003', public.la_sobremesa_session_id(),
+   'Mi hijo tomó muchas pastillas y no despierta'),
+  ('36000000-0000-0000-0000-000000000004', '26000000-0000-0000-0000-000000000003', public.la_sobremesa_session_id(),
+   '¿Cómo pongo un límite con el dinero?');
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims', '{"sub":"16000000-0000-0000-0000-0000000000ff","email":"matt@soberhelpline.com","role":"authenticated"}', true);
+SELECT is((SELECT session_title FROM public.admin_get_session_questions() WHERE id = '36000000-0000-0000-0000-000000000003'),
+  'La Sobremesa', 'a crisis question for another call is in the list, titled');
+SELECT is((SELECT count(*)::int FROM public.admin_get_session_questions() WHERE id = '36000000-0000-0000-0000-000000000004'), 0,
+  'an ordinary one for another call is not');
+RESET ROLE;
+
+-- Winback ("We're still here") skips members who just got the Tuesday note.
+UPDATE public.accounts SET daily_push_opt_in = true, created_at = now() - interval '30 days', last_winback_at = NULL,
+  timezone = (SELECT day_tz FROM zones), family_call_reminders = true
+WHERE id = '26000000-0000-0000-0000-000000000002';
+INSERT INTO push_outbox(account_id, kind, title, body, metadata, idempotency_key, scheduled_for, expires_at)
+VALUES ('26000000-0000-0000-0000-000000000002', 'family_call_followup', 't', 'b', '{"kind":"family_call_followup"}', 'fu-test-winback',
+  now(), now() + interval '6 hours');
+SELECT is(public.dispatcher_job_delivery('winback', '26000000-0000-0000-0000-000000000002', NULL, now() + interval '1 day', now(), false),
+  NULL::jsonb, 'no winback the day of her Tuesday note');
+DELETE FROM push_outbox WHERE account_id = '26000000-0000-0000-0000-000000000002' AND kind = 'family_call_followup';
+SELECT isnt(public.dispatcher_job_delivery('winback', '26000000-0000-0000-0000-000000000002', NULL, now() + interval '1 day', now(), false),
+  NULL::jsonb, 'otherwise winback is unchanged');
 
 -- ── Tool usage: names only, once a day ────────────────────────────────────
 SET LOCAL ROLE authenticated;

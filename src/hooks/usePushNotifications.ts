@@ -57,6 +57,11 @@ const REMINDER_HOUR_KEY = 'reminderHour';
 export const DEFAULT_REMINDER_HOUR = 9;
 // notify-daily-morning sends its note at the chosen hour only before noon.
 const MORNING_NOTE_BEFORE_HOUR = 12;
+/**
+ * Push features this build understands (accounts.push_app_contract): 1 = the
+ * hour-before reminder's ask=question and Today's "this week's one thing".
+ */
+export const PUSH_APP_CONTRACT = 1;
 const NUDGE_DAYS = 7; // schedule a week of nudges ahead so non-openers still get pinged
 const pushWriteBarrier = new AsyncWriteBarrier();
 let activePushAccountId: string | null = null;
@@ -249,10 +254,15 @@ export async function registerForPushNotifications(accountId: string, requestPer
 
     // Transfer this device token to the current authenticated account in one
     // server transaction so account switching cannot leave two owners.
+    // p_app_contract tells the server this build understands the newer pushes
+    // (the hour-before reminder's question sheet, Today's one thing). A
+    // backend without that argument yet (PGRST202) gets the older call.
     const tokenWrite = pushWriteBarrier.track(accountId, Promise.resolve(supabase.rpc(
       'register_push_device',
-      { p_token: token, p_locale: i18n.language ?? 'en' },
-    )));
+      { p_token: token, p_locale: i18n.language ?? 'en', p_app_contract: PUSH_APP_CONTRACT },
+    )).then(async (result) => (result.error?.code === 'PGRST202'
+      ? await supabase.rpc('register_push_device', { p_token: token, p_locale: i18n.language ?? 'en' })
+      : result)));
     const { data, error } = await tokenWrite;
     if (error || data !== true) throw error ?? new Error('push_token_not_registered');
     if (!pushWriteBarrier.isCurrent(accountId, generation) || activePushAccountId !== accountId) return false;

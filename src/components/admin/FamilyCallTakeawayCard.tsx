@@ -6,7 +6,8 @@ import { appAlert } from '../../lib/appAlert';
 
 type Takeaway = { meeting_date: string; body: string | null; live_meeting_date: string; live_body: string | null };
 
-const MAX_LENGTH = 280;
+// The Tuesday note quotes it whole (family_call_takeaways allows 150).
+const MAX_LENGTH = 150;
 
 function isTakeaway(value: unknown): value is Takeaway {
   const row = value as Record<string, unknown> | null;

@@ -48,10 +48,16 @@ test('questions are screened server-side and a crisis question alerts admins', (
   assert.match(support, /questionSubmitted && questionCrisis \?[\s\S]*?<EmergencyActions prominent \/>/);
 });
 
-test('the hour-before reminder (not the 30-minute invite) asks for a question', () => {
+test('the hour-before reminder asks for a question only on builds that open the sheet', () => {
   const push = readFileSync('supabase/functions/send-engagement-push/index.ts', 'utf8');
-  assert.match(push, /sessionReminderData\(target\.session_id, \{ askQuestion: !halfHour \}\)/);
-  assert.match(push, /Tap to send a question\./);
+  assert.match(push, /sessionReminderData\(target\.session_id, \{ askQuestion: !halfHour && asksQuestion\.has\(target\.account_id\) \}\)/);
+  assert.match(push, /asksQuestion\.has\(target\.account_id\)\n\s+\? \(es \? "Empieza[^]*?Tap to send a question\."\)\n\s+: \(es \? "Tu grupo comienza[^]*?come as you are\."\)/);
+  assert.match(push, /\.select\("id, push_app_contract"\)/);
+  // The app tells the server it understands these pushes, with a fallback for an older backend.
+  const hook = readFileSync('src/hooks/usePushNotifications.ts', 'utf8');
+  assert.match(hook, /p_app_contract: PUSH_APP_CONTRACT/);
+  assert.match(hook, /result\.error\?\.code === 'PGRST202'/);
+  assert.match(followupSql, /WHEN coalesce\(s\.push_app_contract, 0\) >= 1 THEN/);
 });
 
 test('free trials show only when the store says she is eligible', () => {
@@ -117,7 +123,7 @@ test('this week\'s one thing: only a well-formed reply counts', () => {
   assert.equal(parseFamilyCallTakeaway(null), null);
   assert.equal(parseFamilyCallTakeaway({ meeting_date: '2026-11-09', body: '   ' }), null);
   assert.equal(parseFamilyCallTakeaway({ meeting_date: 'Monday', body: 'x' }), null);
-  assert.equal(parseFamilyCallTakeaway({ meeting_date: '2026-11-09', body: 'x'.repeat(400) })?.body.length, 280);
+  assert.equal(parseFamilyCallTakeaway({ meeting_date: '2026-11-09', body: 'x'.repeat(400) })?.body.length, 150);
 });
 
 test('Today leads with the Monday card, with the question link and this week\'s one thing', () => {

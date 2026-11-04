@@ -1,4 +1,5 @@
 import { logFunnelEvent } from './funnel';
+import { supabase } from './supabase';
 import { toolUsageKey, type UsageTool } from './toolUsageNames';
 
 export type { UsageTool } from './toolUsageNames';
@@ -10,6 +11,11 @@ export type { UsageTool } from './toolUsageNames';
  * skips repeats within a day so a tab switch is not a network call.
  */
 const logged = new Set<string>();
+
+// Another account signing in on this device starts its own day of events.
+supabase.auth.onAuthStateChange((event) => {
+  if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') logged.clear();
+});
 
 /** True when the event was handed to the server (first time today). */
 export function logToolUsage(tool: UsageTool, stage: 'opened' | 'finished', nowMs = Date.now()): boolean {

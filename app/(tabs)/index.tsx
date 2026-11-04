@@ -148,9 +148,12 @@ function TodayContent() {
   const curriculumPiece = selectCurriculumPiece(curriculumWeek, situation.band, i18n.language);
   // This week's one thing: Matt's line from The Family Squares (English call)
   // when he wrote one, otherwise her own week's practice.
+  // A week on fire has no exercise: then the one thing is leaning on the
+  // support doors the card shows below it.
   const weeklyOneThing: WeeklyOneThing | null = takeaway && !i18n.language.startsWith('es')
     ? { text: takeaway.body, fromCall: true }
-    : curriculumPiece ? { text: curriculumPiece.practice, fromCall: false } : null;
+    : curriculumPiece ? { text: curriculumPiece.practice, fromCall: false }
+      : primaryDoor !== 'free_call' ? { text: t('situationCta.oneThingSupport'), fromCall: false } : null;
   // The free Monday call leads Today, right after immediate help: saving a
   // seat is the first thing a new member is asked to do.
   const mondayCallCard = (
