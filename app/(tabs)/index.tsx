@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { useTranslation } from 'react-i18next';
@@ -26,6 +26,9 @@ import { PassItOnCard } from '../../src/components/today/PassItOnCard';
 import { InvitationTodayCard } from '../../src/components/invitation/InvitationTodayCard';
 import { LovedOneCheckCard } from '../../src/components/today/LovedOneCheckCard';
 import { HolidayPlanTodayCard } from '../../src/components/today/HolidayPlanTodayCard';
+import { GriefCard } from '../../src/components/bereavement/GriefCard';
+import { BereavementSheet } from '../../src/components/bereavement/BereavementSheet';
+import { isBereaved } from '../../src/lib/bereavement';
 import { useCheckIn } from '../../src/hooks/useCheckIn';
 import { useTodayFeed } from '../../src/hooks/useTodayFeed';
 import { useLovedOne } from '../../src/hooks/useLovedOne';
@@ -58,7 +61,10 @@ function TodayContent() {
   const { t, i18n } = useTranslation('today');
   const router = useRouter();
   const { todayCheckIn, streak, saveCheckIn, pendingSync } = useCheckIn(user?.id ?? null, user?.timezone);
-  const { lovedOne, loading: lovedOneLoading, loadError: lovedOneLoadError, save: saveLovedOne } = useLovedOne(user?.id ?? null);
+  const { lovedOne, loading: lovedOneLoading, loadError: lovedOneLoadError, save: saveLovedOne, markDied, refresh: refreshLovedOne } = useLovedOne(user?.id ?? null);
+  // Her loved one died: Today shows the grief card instead of everything about them.
+  const bereaved = isBereaved(lovedOne);
+  const [diedSheetOpen, setDiedSheetOpen] = useState(false);
   const { dayCount, boundariesHeld, groupSessions, quoteIndex, scriptSlot, curriculumWeek, curriculumPhase, situation, primaryDoor, nextFreeCall, rsvpFreeCall, reload: reloadFeed } =
     useTodayFeed(user?.id ?? null, user?.joinedAt ?? null);
   const youLabel = user?.firstName || t('boundaries:journal.you');
@@ -71,7 +77,9 @@ function TodayContent() {
     useCallback(() => {
       void refreshFamilySpace();
       void reloadHoldLog().catch(() => undefined);
-    }, [refreshFamilySpace, reloadHoldLog]),
+      // Settings can mark or undo "They died" while Today stays mounted.
+      void refreshLovedOne().catch(() => undefined);
+    }, [refreshFamilySpace, reloadHoldLog, refreshLovedOne]),
   );
   const canAccessFullToday = useFeatureAccess('todayFull');
   const takeaway = useFamilyCallTakeaway(user?.id ?? null);
@@ -137,6 +145,7 @@ function TodayContent() {
       status={lovedOneStatus}
       loading={lovedOneLoading}
       onSavePhase={saveLovedOnePhase}
+      onTheyDied={() => setDiedSheetOpen(true)}
     />
   );
   // Signup lets her skip the loved-one step: ask again on Today, in one tap.
@@ -147,6 +156,18 @@ function TodayContent() {
       ready={!lovedOneLoading && !lovedOneLoadError}
       pressureScore={todayCheckIn?.pressureScore}
       onSavePhase={saveLovedOnePhase}
+      onTheyDied={() => setDiedSheetOpen(true)}
+    />
+  );
+  const bereavementSheet = (
+    <BereavementSheet
+      visible={diedSheetOpen}
+      onCancel={() => setDiedSheetOpen(false)}
+      onConfirm={async (contact) => {
+        await markDied(contact);
+        setDiedSheetOpen(false);
+        void reloadFeed();
+      }}
     />
   );
   const holidayCard = <HolidayPlanTodayCard accountId={user?.id ?? null} />;
@@ -165,7 +186,7 @@ function TodayContent() {
   // when he wrote one, otherwise her own week's practice.
   // A week on fire has no exercise: then the one thing is leaning on the
   // support doors the card shows below it.
-  const weeklyOneThing: WeeklyOneThing | null = takeaway && !i18n.language.startsWith('es')
+  const weeklyOneThing: WeeklyOneThing | null = bereaved ? null : takeaway && !i18n.language.startsWith('es')
     ? { text: takeaway.body, fromCall: true }
     : curriculumPiece ? { text: curriculumPiece.practice, fromCall: false }
       : primaryDoor !== 'free_call' ? { text: t('situationCta.oneThingSupport'), fromCall: false } : null;
@@ -207,6 +228,27 @@ function TodayContent() {
   );
 
   // Immediate help and the daily check-in lead for every membership tier.
+  // After her loved one died: immediate help, the grief card, the Monday call
+  // and her own check-in — nothing about their recovery.
+  if (bereaved) {
+    return (
+      <ScreenContainer backgroundColor={colors.cream}>
+        {header}
+        <NeedsRouter />
+        <GriefCard />
+        {mondayCallCard}
+        {checkInCard}
+        <CheckInFeedbackCard checkIn={todayCheckIn} />
+        <MoodChart accountId={user?.id ?? null} timezone={user?.timezone} />
+        {isAdmin && (
+          <TouchableOpacity onPress={() => router.push('/admin')} style={styles.adminLink}>
+            <Text style={[styles.adminLinkText, { color: colors.inkSoft }]}>Admin</Text>
+          </TouchableOpacity>
+        )}
+      </ScreenContainer>
+    );
+  }
+
   // Secondary content stays reachable without overwhelming the first screen.
   if (!canAccessFullToday) {
     const freeScript = getDailyScripts(scriptSlot, i18n.language)[0];
@@ -260,6 +302,7 @@ function TodayContent() {
         <TodayDisclosure title={t('disclosure.membership')}>
           <FreeTierPaywall inline />
         </TodayDisclosure>
+        {bereavementSheet}
       </ScreenContainer>
     );
   }
@@ -320,6 +363,7 @@ function TodayContent() {
           <Text style={[styles.adminLinkText, { color: colors.inkSoft }]}>Admin</Text>
         </TouchableOpacity>
       )}
+      {bereavementSheet}
     </ScreenContainer>
   );
 }

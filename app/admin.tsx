@@ -23,6 +23,7 @@ import { useAdminVideoSessions } from '../src/hooks/useAdminVideoSessions';
 import type { AdminBriefRow } from '../src/lib/situationBrief';
 import { FamilyCallTakeawayCard } from '../src/components/admin/FamilyCallTakeawayCard';
 import { ToolUsageCard } from '../src/components/admin/ToolUsageCard';
+import { BereavementContactsCard } from '../src/components/admin/BereavementContactsCard';
 
 type FunnelStats = {
   members: number;
@@ -186,6 +187,7 @@ export default function AdminScreen() {
       <Text style={[styles.heading, { color: colors.ink }]}>Admin</Text>
 
       <InvitationStatsCard />
+      <BereavementContactsCard />
       <ToolUsageCard />
 
       {/* ── Funnel & family health ── */}

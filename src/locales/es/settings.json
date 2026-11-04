@@ -124,5 +124,18 @@
   },
   "reminders": {
     "channelName": "Recordatorios personales"
+  },
+  "bereavement": {
+    "eyebrow": "TU SER QUERIDO",
+    "body": "Si tu ser querido falleció, puedes decírnoslo aquí. La app dejará de preguntarte por esa persona y de enviarte notas sobre su recuperación.",
+    "tell": "Mi ser querido falleció",
+    "bereavedBody": "Nos dijiste que tu ser querido falleció. Lo sentimos muchísimo. La app ya no te pregunta por esa persona ni te envía notas sobre su recuperación.",
+    "undo": "Lo elegí por error",
+    "undoTitle": "¿Deshacer esto?",
+    "undoBody": "La app volverá a preguntarte por tu ser querido y a enviarte notas sobre su recuperación.",
+    "undoConfirm": "Deshacer",
+    "undoCancel": "Cancelar",
+    "errorTitle": "No se pudo guardar",
+    "errorBody": "Revisa tu conexión e inténtalo de nuevo."
   }
 }

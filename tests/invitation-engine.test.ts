@@ -220,7 +220,14 @@ test('a logged yes opens They Said Yes mode; the plan screen honours focus=yes',
 
 test('Today shows the engine card on both tiers, after check-in; the Monday call card leads', () => {
   const today = readFileSync('app/(tabs)/index.tsx', 'utf8');
-  const screens = today.split('<ScreenContainer').slice(1);
+  const all = today.split('<ScreenContainer').slice(1);
+  // The bereaved Today (her loved one died) has nothing about them.
+  const bereaved = all.filter((screen) => screen.includes('<GriefCard'));
+  assert.equal(bereaved.length, 1);
+  for (const card of ['{invitationCard}', '{lovedOneCheckCard}', '{holidayCard}', '{pathwayCard}', '{willingnessWindowAlert}', '<CurriculumCard']) {
+    assert.ok(!bereaved[0].includes(card), `bereaved Today has no ${card}`);
+  }
+  const screens = all.filter((screen) => !screen.includes('<GriefCard'));
   assert.equal(screens.length, 2);
   for (const screen of screens) {
     assert.ok(screen.includes('{invitationCard}'));

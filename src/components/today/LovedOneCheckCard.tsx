@@ -21,13 +21,15 @@ interface Props {
   pressureScore: number | null | undefined;
   /** `unchanged` is "Still the same": keep the saved status as it is. */
   onSavePhase: (phase: RecoveryPhase, unchanged?: boolean) => Promise<unknown>;
+  /** Opens the gentle "They died" confirmation. */
+  onTheyDied?: () => void;
 }
 
 /**
  * One tap on Today: where things are with her loved one right now. Asked when
  * she has never said, monthly after that, and sooner after a heavy check-in.
  */
-export function LovedOneCheckCard({ accountId, lovedOne, ready, pressureScore, onSavePhase }: Props) {
+export function LovedOneCheckCard({ accountId, lovedOne, ready, pressureScore, onSavePhase, onTheyDied }: Props) {
   const { colors } = useTheme();
   const { t } = useTranslation('today');
   // undefined until the snooze has been read, so the card never flashes.
@@ -151,6 +153,11 @@ export function LovedOneCheckCard({ accountId, lovedOne, ready, pressureScore, o
       <TouchableOpacity accessibilityRole="button" onPress={snooze} disabled={!!saving} style={styles.notNow}>
         <Text style={[styles.notNowText, { color: colors.inkSoft }]}>{t('lovedOneCheck.notNow')}</Text>
       </TouchableOpacity>
+      {onTheyDied ? (
+        <TouchableOpacity accessibilityRole="button" onPress={onTheyDied} disabled={!!saving} style={styles.notNow}>
+          <Text style={[styles.diedText, { color: colors.inkSoft }]}>{t('bereavement.link')}</Text>
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 }
@@ -169,5 +176,6 @@ const styles = StyleSheet.create({
   privacy: { fontSize: 12, lineHeight: 17, marginTop: 12 },
   notNow: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: 12, marginTop: 4 },
   notNowText: { fontSize: 13.5, fontWeight: '700' },
+  diedText: { fontSize: 12.5, fontWeight: '600', textDecorationLine: 'underline' },
   thanks: { fontSize: 15, lineHeight: 21, fontWeight: '700' },
 });

@@ -9,6 +9,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { ScreenContainer } from '../src/components/ui/ScreenContainer';
+import { BereavementSettingsCard } from '../src/components/bereavement/BereavementSettingsCard';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAccount } from '../src/contexts/AccountContext';
@@ -644,6 +645,8 @@ export default function SettingsScreen() {
             <Text style={[styles.restoreText, { color: colors.primary }]}>{t('personalReminders.action')}</Text>
           </TouchableOpacity>
         </View>
+
+        <BereavementSettingsCard accountId={user?.id ?? null} />
 
         {/* Language */}
         <View style={[styles.card, { borderColor: colors.line }]}>

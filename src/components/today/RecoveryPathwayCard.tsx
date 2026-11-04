@@ -16,6 +16,8 @@ interface Props {
   status: string | null | undefined;
   loading?: boolean;
   onSavePhase: (phase: RecoveryPhase) => Promise<unknown>;
+  /** Opens the gentle "They died" confirmation. */
+  onTheyDied?: () => void;
 }
 
 const GUIDANCE_ROWS = [
@@ -29,6 +31,7 @@ export function RecoveryPathwayCard({
   status,
   loading = false,
   onSavePhase,
+  onTheyDied,
 }: Props) {
   const { colors } = useTheme();
   const { t } = useTranslation('today');
@@ -132,6 +135,11 @@ export function RecoveryPathwayCard({
               {t('pathway.saveError')}
             </Text>
           )}
+          {onTheyDied ? (
+            <TouchableOpacity accessibilityRole="button" onPress={onTheyDied} disabled={saving} style={styles.diedLink}>
+              <Text style={[styles.diedText, { color: colors.inkSoft }]}>{t('bereavement.link')}</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       )}
 
@@ -272,6 +280,8 @@ const styles = StyleSheet.create({
   },
   saveButtonText: { color: '#fff', fontSize: 14, fontWeight: '700' },
   errorText: { fontSize: 12, textAlign: 'center', marginTop: 8 },
+  diedLink: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: 12, marginTop: 6 },
+  diedText: { fontSize: 12.5, fontWeight: '600', textDecorationLine: 'underline' },
   description: { fontSize: 13.5, lineHeight: 20, marginTop: 12, marginBottom: 14 },
   guidance: { borderWidth: 1, borderRadius: 14, overflow: 'hidden' },
   guidanceRow: { flexDirection: 'row', gap: 11, padding: 12, alignItems: 'flex-start' },

@@ -124,5 +124,18 @@
   },
   "reminders": {
     "channelName": "Personal reminders"
+  },
+  "bereavement": {
+    "eyebrow": "YOUR LOVED ONE",
+    "body": "If your loved one has died, you can tell us here. The app will stop asking about them and stop sending notes about their recovery.",
+    "tell": "My loved one died",
+    "bereavedBody": "You told us your loved one died. We're so sorry. The app no longer asks about them or sends notes about their recovery.",
+    "undo": "I chose this by mistake",
+    "undoTitle": "Undo this?",
+    "undoBody": "The app will ask about your loved one again and send notes about their recovery.",
+    "undoConfirm": "Undo",
+    "undoCancel": "Cancel",
+    "errorTitle": "Couldn't save",
+    "errorBody": "Please check your connection and try again."
   }
 }

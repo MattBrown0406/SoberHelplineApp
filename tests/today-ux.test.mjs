@@ -98,7 +98,14 @@ test('disclosure starts collapsed and keeps opened child content mounted when cl
 
 test('both Today tiers place needs and check-in ahead of event/share promotions', () => {
   const source = readFileSync(new URL('../app/(tabs)/index.tsx', import.meta.url), 'utf8');
-  const screens = source.split('<ScreenContainer').slice(1); assert.equal(screens.length, 2);
+  const all = source.split('<ScreenContainer').slice(1);
+  // The bereaved Today: immediate help, then the grief card, then the call and her check-in.
+  const bereaved = all.filter((screen) => screen.includes('<GriefCard'));
+  assert.equal(bereaved.length, 1);
+  assert.ok(bereaved[0].indexOf('<NeedsRouter') < bereaved[0].indexOf('<GriefCard'));
+  assert.ok(bereaved[0].indexOf('<GriefCard') < bereaved[0].indexOf('{mondayCallCard}'));
+  assert.ok(bereaved[0].indexOf('{mondayCallCard}') < bereaved[0].indexOf('{checkInCard}'));
+  const screens = all.filter((screen) => !screen.includes('<GriefCard')); assert.equal(screens.length, 2);
   for (const screen of screens) {
     // Immediate help first; then the free Monday call leads (saving a seat is
     // a new member's first step), then the check-in.

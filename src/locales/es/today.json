@@ -493,5 +493,39 @@
     "saveError": "No pudimos guardarlo. Inténtalo de nuevo.",
     "notNow": "Ahora no",
     "thanks": "Gracias. Hoy ya refleja dónde están las cosas."
+  },
+  "bereavement": {
+    "sheet": {
+      "title": "Lo sentimos muchísimo.",
+      "body": "Si tu ser querido falleció, la app dejará de preguntarte por esa persona y de enviarte notas sobre su recuperación. Tus registros diarios, la llamada de los lunes y Apoyo siguen aquí para ti. Puedes deshacer esto en Configuración.",
+      "contact": "Que Matt o un coach se comunique contigo personalmente",
+      "confirm": "Sí, falleció",
+      "cancel": "Cancelar",
+      "error": "No pudimos guardarlo. Inténtalo de nuevo."
+    },
+    "link": "Mi ser querido falleció",
+    "grief": {
+      "eyebrow": "LO SENTIMOS MUCHÍSIMO",
+      "title": "No hay una forma correcta de vivir este duelo",
+      "paragraphs": [
+        "El duelo después de una adicción es un duelo distinto. Puedes sentir una pérdida que aplasta y, algunos días, alivio de que la espera terminó, y luego culpa por ese alivio. Todo eso es normal.",
+        "Tú no causaste esto. Amaste a alguien durante una enfermedad que se lo llevó, y nada de lo que hiciste o dejaste de hacer un día lo decidió.",
+        "Puede que algunas personas a tu alrededor no sepan qué decir, o no traten esta pérdida como otras. Tu duelo cuenta de todos modos."
+      ],
+      "grasp": {
+        "title": "GRASP: Grief Recovery After a Substance Passing",
+        "body": "Grupos gratuitos de apoyo entre pares, en persona y en línea, para familias que perdieron a alguien por adicción o sobredosis (en inglés).",
+        "button": "Abrir grasphelp.org"
+      },
+      "compassionateFriends": {
+        "title": "The Compassionate Friends",
+        "body": "Apoyo para familias después de la muerte de un hijo o hija de cualquier edad, también para hermanos y abuelos.",
+        "button": "Abrir compassionatefriends.org"
+      },
+      "crisisTitle": "Si no quieres seguir aquí",
+      "crisisBody": "El duelo después de una sobredosis aumenta el riesgo de suicidio de quienes quedan. Si estás pensando en no querer seguir aquí, llama al 988 (marca 2 para español) o envía AYUDA al 988. Pedir ayuda no es un fracaso.",
+      "stillHere": "Matt y la llamada de los lunes siguen aquí para ti, todo el tiempo que los necesites.",
+      "openError": "No pudimos abrir esa página. Visita {{site}} en tu navegador."
+    }
   }
 }

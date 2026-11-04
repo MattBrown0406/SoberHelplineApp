@@ -21,6 +21,8 @@ export interface LovedOne {
   status: LovedOneStatus;
   created_at: string;
   updated_at: string;
+  /** Set when she tells us her loved one died; null otherwise (and on old rows). */
+  died_at?: string | null;
 }
 
 export interface LovedOneInput {
@@ -102,9 +104,25 @@ export function useLovedOne(accountId: string | null) {
     }
   }, [accountId, load]);
 
+  // "They died": her own account only (the RPC reads the signed-in account).
+  // `contact` lets an admin know so someone can reach out.
+  const markDied = useCallback(async (contact: boolean): Promise<void> => {
+    if (!accountId || scopeRef.current.accountId !== accountId) throw new Error('Cannot update without the active account');
+    const { error } = await supabase.rpc('mark_loved_one_died', { p_contact: contact });
+    if (error) throw error;
+    await load();
+  }, [accountId, load]);
+
+  const clearDied = useCallback(async (): Promise<void> => {
+    if (!accountId || scopeRef.current.accountId !== accountId) throw new Error('Cannot update without the active account');
+    const { error } = await supabase.rpc('clear_loved_one_died');
+    if (error) throw error;
+    await load();
+  }, [accountId, load]);
+
   return {
     lovedOne: record.accountId === accountId ? record.value : null,
     loading: loading || record.accountId !== accountId,
-    loadError, save, setStatus, refresh: load,
+    loadError, save, setStatus, markDied, clearDied, refresh: load,
   };
 }

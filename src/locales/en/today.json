@@ -493,5 +493,39 @@
     "saveError": "We couldn't save that. Please try again.",
     "notNow": "Not now",
     "thanks": "Thanks. Today now fits where things are."
+  },
+  "bereavement": {
+    "sheet": {
+      "title": "We're so sorry.",
+      "body": "If your loved one has died, the app will stop asking about them and stop sending notes about their recovery. Your check-ins, the Monday call, and Support stay here for you. You can undo this in Settings.",
+      "contact": "Let Matt or a coach reach out to you personally",
+      "confirm": "Yes, they died",
+      "cancel": "Cancel",
+      "error": "We couldn't save that. Please try again."
+    },
+    "link": "My loved one died",
+    "grief": {
+      "eyebrow": "WE'RE SO SORRY",
+      "title": "There's no right way to grieve this",
+      "paragraphs": [
+        "Grief after addiction is its own kind of grief. You may feel crushing loss, and some days relief that the waiting is over, and then guilt for the relief. All of it is normal.",
+        "You didn't cause this. You loved someone through an illness that took them, and nothing you did or didn't do on one day decided it.",
+        "Some people around you may not know what to say, or may not treat this like other losses. Your grief counts anyway."
+      ],
+      "grasp": {
+        "title": "GRASP: Grief Recovery After a Substance Passing",
+        "body": "Free peer groups, in person and online, for families who lost someone to addiction or overdose.",
+        "button": "Open grasphelp.org"
+      },
+      "compassionateFriends": {
+        "title": "The Compassionate Friends",
+        "body": "Support for families after the death of a child of any age, including brothers, sisters, and grandparents.",
+        "button": "Open compassionatefriends.org"
+      },
+      "crisisTitle": "If you don't want to be here",
+      "crisisBody": "Grief after an overdose raises the risk of suicide for the people left behind. If you're thinking about not wanting to be here, call or text 988. Reaching out is not a failure.",
+      "stillHere": "Matt and the Monday call are still here for you, for as long as you want them.",
+      "openError": "We couldn't open that page. Visit {{site}} in your browser."
+    }
   }
 }

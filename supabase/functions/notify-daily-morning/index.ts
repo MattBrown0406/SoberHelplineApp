@@ -179,7 +179,8 @@ Deno.serve(async (req) => {
     }
     try {
       const a = await freshDailyAccount(supabase, candidate.id);
-      if (!a?.push_token || !a.daily_push_opt_in) {
+      // The morning note coaches boundaries with her loved one: not after they died.
+      if (!a?.push_token || !a.daily_push_opt_in || a.bereaved) {
         counts.skipped++;
         continue;
       }
