@@ -43,7 +43,10 @@ WEBSITE PAGES OPENED FROM THE APP
 Coaching booking, the members' library, recordings and the forum open in Safari with a single-use sign-in token and a "from the app" marker; Terms and Privacy carry only the "from the app" marker. In Spanish, the library opens on our Spanish site AyudaSobria.com the same way. Those pages hide all membership purchase links.
 
 COMMUNITY FEED
-This version does not offer the member community feed (there is no user-generated content to review). If it returns, it will ship in a reviewed binary with its report, block and moderation tools described here.
+This version does not offer the member community feed. If it returns, it will ship in a reviewed binary with its report, block and moderation tools described here.
+
+LIVE SUPPORT GROUPS (Guideline 1.2)
+Support tab > Groups > "Join live" (Essential and Premier, while a host is live). Groups are hosted by our staff; members can chat in the room, and the host can remove and ban a participant.
 
 QUESTIONS FOR THE MONDAY CALL
 Members who saved a seat for The Family Squares can send a question ahead (Today > "Send a question for the call", or Support). Questions go only to our team, never to other members. Each question is screened: one describing an emergency shows 911, 988 and Poison Control at once and alerts our team; if a question cannot be sent, the same emergency numbers are shown with a retry.

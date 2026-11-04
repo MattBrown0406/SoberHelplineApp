@@ -68,6 +68,8 @@ export function useTodayFeed(
   const [nextFreeCall, setNextFreeCall] = useState<FreeCall | null>(null);
   const [loading, setLoading] = useState(true);
   const generation = useRef(0);
+  // The account whose feed last loaded without an error.
+  const loadedFor = useRef<string | null>(null);
   const identity = useRef(accountId);
   identity.current = accountId;
   useEffect(() => () => { identity.current = null; }, []);
@@ -101,6 +103,14 @@ export function useTodayFeed(
     ]);
 
     if (request !== generation.current) return;
+    // A failed read (offline resume, dead zone) keeps what this account last
+    // loaded: blanking it would drop her saved seat and, for a family in a
+    // crisis week, the support doors. The first load still falls back.
+    const failed = [wallsRes, rsvpCountRes, sessRes, rsvpRowsRes, sitRes].some((res) => res.error);
+    if (failed && loadedFor.current === accountId) {
+      setLoading(false);
+      return;
+    }
 
     const now = new Date();
     const doy = dayOfYear(now);
@@ -137,6 +147,7 @@ export function useTodayFeed(
       ? familySquaresRsvpIsCurrent(rsvpRowsRes.data?.find((r) => r.session_id === chosen.id)?.family_squares_meeting_date, now)
       : going.has(chosen.id) } : null);
 
+    if (!failed) loadedFor.current = accountId;
     setLoading(false);
   }, [accountId, joinedAt]);
 
