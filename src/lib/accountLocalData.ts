@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { clearProtectedDiyInterventionPlan } from '../storage/diyInterventionPlanner';
 import { clearProtectedFamilyVisitationPlan } from '../storage/familyVisitationPlan';
 import { clearProtectedHolidayPlan } from '../storage/holidayPlan';
+import { clearProtectedProsecutorLetter } from '../storage/prosecutorLetter';
 import { clearProtectedHomecomingWeek } from '../storage/homecomingWeek';
 import { clearProtectedTreatmentActionPlan } from '../storage/treatmentActionPlan';
 import { accountLocalKeys } from './accountLocalKeys';
@@ -19,6 +20,7 @@ export async function purgeAccountLocalData(accountId: string, authUserId: strin
     clearProtectedDiyInterventionPlan(accountId),
     clearProtectedFamilyVisitationPlan(accountId),
     clearProtectedHolidayPlan(accountId),
+    clearProtectedProsecutorLetter(accountId),
     clearProtectedHomecomingWeek(accountId),
     clearProtectedTreatmentActionPlan(accountId),
   ]);

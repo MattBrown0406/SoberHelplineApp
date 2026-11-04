@@ -391,6 +391,16 @@ function CrisisModeContent() {
                 </View>
                 <ActionCard title={t('inline.next24HourPlan')} items={situation.next24} colors={colors} numbered />
                 <ActionCard title={t('inline.next72HourPlan')} items={situation.next72} colors={colors} numbered />
+                {situationKey === 'arrested' && (
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel={t('prosecutorLetter:crisisLink')}
+                    onPress={() => router.push('/prosecutor-letter' as never)}
+                    style={[styles.card, styles.letterLink, { backgroundColor: colors.white, borderColor: colors.primary }]}
+                  >
+                    <Text style={[styles.sectionTitle, { color: colors.primary }]}>{t('prosecutorLetter:crisisLink')} ›</Text>
+                  </TouchableOpacity>
+                )}
 
                 {!hydrated ? <View style={styles.card}>
                   <Text accessibilityRole="alert">{t(!user ? 'wallet.signInRequired' : loadError ? 'wallet.storageError' : 'wallet.loading')}</Text>
@@ -485,6 +495,7 @@ const styles = StyleSheet.create({
   progressDot: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   progressText: { color: '#fff', fontWeight: '900' },
   card: { borderWidth: 1, borderRadius: 20, padding: 18, marginBottom: 14 },
+  letterLink: { minHeight: 44, justifyContent: 'center' },
   sectionTitle: { fontSize: 21, lineHeight: 26, fontWeight: '900', marginBottom: 10 },
   eyebrow: { fontSize: 12, fontWeight: '900', letterSpacing: 1, marginBottom: 8 },
   situationRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 15, padding: 14, marginTop: 10, minHeight: 44 },

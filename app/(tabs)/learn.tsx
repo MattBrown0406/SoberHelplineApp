@@ -197,6 +197,24 @@ export default function LearnScreen() {
         </TouchableOpacity>
       </View>
 
+      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.primary }]}>
+        <View style={styles.toolTopRow}>
+          <Text style={styles.toolIcon}>⚖️</Text>
+          <Text style={[styles.toolBadge, { backgroundColor: colors.primary }]}>{t('tools.prosecutorBadge')}</Text>
+        </View>
+        <Text style={[styles.cardTitle, { color: colors.ink }]}>{t('tools.prosecutorTitle')}</Text>
+        <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t('tools.prosecutorBody')}</Text>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={t('tools.prosecutorButton')}
+          style={[styles.cardButton, { backgroundColor: colors.primary }]}
+          onPress={() => router.push('/prosecutor-letter' as never)}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.cardButtonText}>{t('tools.prosecutorButton')}</Text>
+        </TouchableOpacity>
+      </View>
+
       <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
         <View style={styles.toolTopRow}>
           <Text style={styles.toolIcon}>💵</Text>

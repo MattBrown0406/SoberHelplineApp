@@ -31,6 +31,10 @@
     "holidayBody": "Who's invited, on what terms, what happens if they show up using, and what to tell the relatives. Written before the day, shared with everyone hosting.",
     "holidayButton": "Write the holiday plan",
     "holidayBadge": "Free · Holidays",
+    "prosecutorTitle": "Treatment instead of jail",
+    "prosecutorBody": "If they're facing charges: a letter asking the prosecutor to allow the treatment your family arranged, with completion, written progress updates, and a meeting to review the charges.",
+    "prosecutorButton": "Write the letter",
+    "prosecutorBadge": "Free · Legal",
     "learningEyebrow": "LEARN · FREE RESOURCES",
     "diyIncluded": "Included with your current access.",
     "diyPaid": "Paid feature · Essential or Premier membership required.",
@@ -173,6 +177,10 @@
       {
         "q": "Can we make them go to treatment?",
         "a": "Sometimes. Most states have a civil commitment law for addiction (Florida's Marchman Act, Kentucky's Casey's Law, and Massachusetts' Section 35 are well-known examples), but the rules vary widely. Usually a family member petitions a court, there's an evaluation, and you have to show danger to self or others or an inability to care for themselves. Stays are often short, and some states have no such law. A criminal court can also order treatment through drug court or diversion. Ask a local attorney or the county court clerk how it works where you live. Many families reach the same goal without a court through a planned, professional intervention, and a Sober Helpline coach can help you weigh it. This is general information, not legal advice."
+      },
+      {
+        "q": "Can we ask the prosecutor for treatment instead of jail?",
+        "a": "Yes, and it helps to ask in writing. The Tools tab has a letter asking the prosecutor to let them enter the treatment your family arranged and complete it, with the program sending written progress updates to the prosecutor's office, then an in-person meeting to review whether the charges should continue or be reduced. Give it to the defense attorney first, and don't write about what happened: anything in writing can be used in the case. The program can send updates only after your loved one signs a release. This is general information, not legal advice."
       },
       {
         "q": "Isn't medication just trading one drug for another?",

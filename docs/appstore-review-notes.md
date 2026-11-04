@@ -19,9 +19,9 @@ A free account; paid features unlock after a sandbox purchase.
 WHAT'S NEW IN 4.2
 - Members using the app in Spanish see La Sobremesa, our free Spanish Monday call (from AyudaSobria.com, personal Zoom link); English members keep The Family Squares. Spanish education opens on AyudaSobria.com; iOS prompts are in Spanish on Spanish devices.
 - Today leads with the free Monday call: save a seat, send a question ahead, see "this week's one thing"; the next morning, one note with it (only with Monday call reminders on).
-- Holiday Plan (Learn > Tools; a Today card Nov 1 to Jan 6): who is invited, on what terms, and what happens if the terms break. Saved only on the device; "Share this plan" opens the iOS share sheet.
+- Holiday Plan (Tools tab; a Today card Nov 1 to Jan 6): who is invited, on what terms, and what happens if the terms break. Saved only on the device; "Share this plan" opens the iOS share sheet.
 - Today asks, in one tap, where things stand with her loved one, so the support it shows matches.
-- A 26-week family reading; Crisis Mode adds "Arrested, in jail, or calling from jail"; the FAQ covers bail, court-ordered treatment and medication (general information, not legal or medical advice).
+- A 26-week family reading; Crisis Mode adds "Arrested, in jail, or calling from jail"; the FAQ covers bail, court-ordered treatment and medication; Tools adds a letter asking a prosecutor for treatment instead of jail (general information, not legal or medical advice).
 - If an App Store free trial is offered, the plan screen states its length, the price after it and how to cancel; ineligible members never see one.
 - Restore Purchases waits for the server to confirm. The community feed is no longer offered.
 
@@ -47,10 +47,10 @@ CRISIS / SAFETY
 911 and 988 are prominent and never behind a paywall. The app is not an emergency service; this is stated in the app and the description. Practice tools pause and show 911, 988 and the Domestic Violence Hotline if a member describes a crisis or abuse.
 
 PROVIDER ACCOUNTS
-Some families join through an invited provider organization and see its branding. The demo account is a direct account.
+Some families join through an invited provider and see its branding. The demo account is direct.
 
 CAMERA / MIC
-Used only when a host goes live in a support group or during a 1:1 coaching call. Attendees are view-only.
+Used only when a host goes live in a group or in a 1:1 coaching call. Attendees are view-only.
 
 ACCOUNT DELETION
 Support tab > Settings (gear) > Delete account.

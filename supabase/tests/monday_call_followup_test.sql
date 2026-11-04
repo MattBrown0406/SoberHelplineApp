@@ -1,7 +1,7 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SET search_path = public, extensions;
-SELECT plan(45);
+SELECT plan(46);
 
 -- ── Which call is "this week's" ───────────────────────────────────────────
 SELECT is(public._family_squares_latest_meeting_date('2026-11-09 18:59 America/Los_Angeles'), date '2026-11-02',
@@ -193,6 +193,7 @@ SELECT public.log_funnel_event('tool_opened', '{"tool":"letter","draft":"private
 SELECT public.log_funnel_event('tool_opened', '{"tool":"letter"}');
 SELECT throws_ok($$SELECT public.log_funnel_event('tool_opened', '{"tool":"somewhere"}')$$, 'P0001', 'bad_tool', 'unknown tools are refused');
 SELECT lives_ok($$SELECT public.log_funnel_event('tool_finished', '{"tool":"holiday_plan"}')$$, 'the Holiday Plan is an allowlisted tool');
+SELECT lives_ok($$SELECT public.log_funnel_event('tool_finished', '{"tool":"prosecutor_letter"}')$$, 'the prosecutor letter is an allowlisted tool');
 RESET ROLE;
 SELECT is((SELECT array_agg(metadata) FROM funnel_events WHERE account_id = '26000000-0000-0000-0000-000000000002' AND stage = 'tool_opened'),
   ARRAY['{"tool":"letter"}'::jsonb], 'one event a day, holding only the tool name');

@@ -31,6 +31,10 @@
     "holidayBody": "Quién está invitado, con qué condiciones, qué pasa si llega intoxicado/a y qué decir a los familiares. Escrito antes del día y compartido con todos los que reciben.",
     "holidayButton": "Escribir el plan",
     "holidayBadge": "Gratis · Fiestas",
+    "prosecutorTitle": "Tratamiento en lugar de cárcel",
+    "prosecutorBody": "Si enfrenta cargos: una carta para pedirle a la fiscalía que permita el tratamiento que tu familia consiguió, con el tratamiento completo, informes escritos de progreso y una reunión para revisar los cargos.",
+    "prosecutorButton": "Escribir la carta",
+    "prosecutorBadge": "Gratis · Legal",
     "learningEyebrow": "APRENDE · RECURSOS GRATUITOS",
     "diyIncluded": "Incluido con tu acceso actual.",
     "diyPaid": "Función de pago · requiere membresía Essential o Premier.",
@@ -173,6 +177,10 @@
       {
         "q": "¿Podemos obligar a nuestro ser querido a ir a tratamiento?",
         "a": "A veces. La mayoría de los estados tiene una ley de internamiento civil por adicción (la Marchman Act de Florida, la Casey's Law de Kentucky y la Section 35 de Massachusetts son ejemplos conocidos), pero las reglas varían mucho. Por lo general, un familiar lo pide ante un tribunal, hay una evaluación y debe haber peligro para sí o para otros, o incapacidad de cuidarse. Los internamientos suelen ser cortos, y algunos estados no tienen esta ley. Un tribunal penal también puede ordenar tratamiento mediante la corte de drogas o un programa de desvío. Pregunta a un abogado local o al tribunal de tu condado cómo funciona donde vives. Muchas familias logran lo mismo sin un tribunal, con una intervención profesional planificada, y un coach de Sober Helpline puede ayudarte a evaluarlo. Es información general, no asesoría legal."
+      },
+      {
+        "q": "¿Podemos pedirle a la fiscalía tratamiento en lugar de cárcel?",
+        "a": "Sí, y ayuda pedirlo por escrito. En la pestaña Herramientas hay una carta para pedirle a la fiscalía que permita el tratamiento que tu familia consiguió y que tu ser querido lo complete, con informes escritos de progreso del programa a la fiscalía y luego una reunión en persona para revisar si los cargos deben continuar o reducirse. Dásela primero al abogado defensor y no escribas sobre lo que pasó: todo lo escrito puede usarse en el caso. El programa solo puede enviar informes después de que tu ser querido firme una autorización. Es información general, no asesoría legal."
       },
       {
         "q": "¿La medicación no es solo cambiar una droga por otra?",

@@ -92,7 +92,7 @@ test('scheduling cards and They Said Yes use the cross-platform field', () => {
 // ── Alert.alert is a no-op on web ───────────────────────────────────────────
 test('member screens use appAlert instead of the web no-op Alert.alert', () => {
   const files = [
-    'app/(tabs)/boundaries.tsx', 'app/family-outcomes.tsx', 'app/family-visitation-plan.tsx', 'app/holiday-plan.tsx', 'app/homecoming-week.tsx',
+    'app/(tabs)/boundaries.tsx', 'app/family-outcomes.tsx', 'app/family-visitation-plan.tsx', 'app/holiday-plan.tsx', 'app/prosecutor-letter.tsx', 'app/homecoming-week.tsx',
     'app/diy-intervention-planner.tsx', 'app/community.tsx', 'app/book-coaching.tsx',
     'src/components/tracker/WillingnessWindowCard.tsx', 'src/components/treatment/TheySaidYesMode.tsx',
     'src/components/video/PlanReviewBookingCard.tsx', 'src/components/video/PremierVideoSchedulingCard.tsx',
@@ -147,7 +147,7 @@ test('native keeps the protected store; web gets the session store', async () =>
 });
 
 test('the plan stores and their screens are wired for web', () => {
-  for (const file of ['treatmentActionPlan', 'familyVisitationPlan', 'holidayPlan', 'homecomingWeek', 'diyInterventionPlanner']) {
+  for (const file of ['treatmentActionPlan', 'familyVisitationPlan', 'holidayPlan', 'prosecutorLetter', 'homecomingWeek', 'diyInterventionPlanner']) {
     const source = read(`src/storage/${file}.ts`);
     assert.match(source, /const SecureStore = choosePlanStore\(Platform\.OS, NativeSecureStore, globalThis\)/, file);
     assert.match(source, /WHEN_UNLOCKED_THIS_DEVICE_ONLY/, file);
@@ -156,7 +156,7 @@ test('the plan stores and their screens are wired for web', () => {
       assert.equal(typeof copy.webSessionNotice, 'string', `${lang}/${file} has the web notice`);
     }
   }
-  for (const screen of ['app/family-visitation-plan.tsx', 'app/holiday-plan.tsx', 'app/homecoming-week.tsx', 'app/diy-intervention-planner.tsx']) {
+  for (const screen of ['app/family-visitation-plan.tsx', 'app/holiday-plan.tsx', 'app/prosecutor-letter.tsx', 'app/homecoming-week.tsx', 'app/diy-intervention-planner.tsx']) {
     assert.match(read(screen), /isSessionOnlyPlanStorage\(Platform\.OS\) \?[\s\S]{0,160}t\('webSessionNotice'\)/, screen);
   }
 });

@@ -82,9 +82,18 @@ test('the FAQ answers the arrest, court-ordered treatment, and medication questi
   ]) {
     assert.ok(enQuestions.includes(question), `${question} is answered`);
   }
-  const tail = (items: { q: string; a: string }[]) => items.slice(-3);
-  const [arrestEn, commitmentEn, medicationEn] = tail(en);
-  const [arrestEs, commitmentEs, medicationEs] = tail(es);
+  // Same order in both languages: arrest, court-ordered treatment, the
+  // prosecutor letter, medication.
+  const tail = (items: { q: string; a: string }[]) => items.slice(-4);
+  const [arrestEn, commitmentEn, prosecutorEn, medicationEn] = tail(en);
+  const [arrestEs, commitmentEs, prosecutorEs, medicationEs] = tail(es);
+  assert.equal(prosecutorEn.q, 'Can we ask the prosecutor for treatment instead of jail?');
+  for (const pattern of [/complete it/, /written progress updates/, /in-person meeting/, /continue or be reduced/, /defense attorney first/, /signs a release/]) {
+    assert.match(prosecutorEn.a, pattern);
+  }
+  for (const pattern of [/complete/, /informes escritos/, /reunión en persona/, /continuar o reducirse/, /abogado defensor/, /autorización/]) {
+    assert.match(prosecutorEs.a, pattern);
+  }
   assert.match(arrestEn.a, /Crisis Mode/);
   assert.match(arrestEs.a, /Modo Crisis/);
   for (const name of ['Marchman Act', "Casey's Law", 'Section 35']) {
