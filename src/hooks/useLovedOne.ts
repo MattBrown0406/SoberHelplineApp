@@ -37,8 +37,8 @@ export interface LovedOneInput {
 
 /** Device copy of "her loved one died", so Today is right before (or without) the network read. */
 function rememberBereaved(accountId: string, bereaved: boolean): void {
-  const key = bereavedCacheKey(accountId);
-  void (bereaved ? AsyncStorage.setItem(key, '1') : AsyncStorage.removeItem(key)).catch(() => undefined);
+  // '0' is an answer too: a missing key means "not known on this device yet".
+  void AsyncStorage.setItem(bereavedCacheKey(accountId), bereaved ? '1' : '0').catch(() => undefined);
 }
 
 /** CRUD for the account's single loved-one record. */
@@ -60,8 +60,10 @@ export function useLovedOne(accountId: string | null) {
     }
     let cancelled = false;
     AsyncStorage.getItem(bereavedCacheKey(accountId))
-      .then((value) => { if (!cancelled) setCached({ accountId, bereaved: value === '1' }); })
-      .catch(() => { if (!cancelled) setCached({ accountId, bereaved: false }); });
+      .then((value) => {
+        if (!cancelled) setCached({ accountId, bereaved: value === '1' ? true : value === '0' ? false : undefined });
+      })
+      .catch(() => { if (!cancelled) setCached({ accountId, bereaved: undefined }); });
     return () => { cancelled = true; };
   }, [accountId]);
 
@@ -158,13 +160,16 @@ export function useLovedOne(accountId: string | null) {
 
   const settled = !loading && !loadError && record.accountId === accountId;
   const cachedBereaved = cached.accountId === accountId ? cached.bereaved : undefined;
+  // A new device, a reinstall or the web has no copy: unknown until the read
+  // settles. Offline with no copy, the usual Today: never stuck.
+  const unreadable = !!loadError && record.accountId === accountId && !loading;
   return {
     lovedOne: record.accountId === accountId ? record.value : null,
     /**
      * Her loved one died: the loaded record decides; until it loads (or when
      * offline) the device's copy does. undefined only before either is known.
      */
-    bereaved: settled ? isBereaved(record.value) : cachedBereaved,
+    bereaved: settled ? isBereaved(record.value) : cachedBereaved ?? (unreadable ? false : undefined),
     loading: loading || record.accountId !== accountId,
     loadError, save, setStatus, markDied, clearDied, refresh: load,
   };

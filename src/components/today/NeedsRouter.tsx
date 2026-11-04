@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
+import { EmergencyActions } from '../safety/EmergencyActions';
 
 /**
  * Need-based front door. Families arrive with a question, not a feature in
@@ -19,12 +20,17 @@ const NEEDS: { key: string; icon: string; route?: string; scriptTag?: string }[]
 
 ];
 
-/** `bereaved`: her loved one died, so only the emergency button (every other need is about them). */
+/**
+ * `bereaved`: her loved one died. Every need here and Crisis Mode are about
+ * them, so she gets emergency help for herself instead (911, 988, text 988).
+ */
 export function NeedsRouter({ bereaved = false }: { bereaved?: boolean }) {
   const { colors } = useTheme();
   const { t } = useTranslation('today');
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
+
+  if (bereaved) return <EmergencyActions />;
 
   return (
     <View style={[styles.card, { borderColor: colors.line }]}>
@@ -38,7 +44,6 @@ export function NeedsRouter({ bereaved = false }: { bereaved?: boolean }) {
       >
         <Text style={[styles.chipText, { color: colors.ink }]}>{t('needs.crisis')}</Text>
       </TouchableOpacity>
-      {bereaved ? null : (<>
       <View style={styles.grid}>
         {NEEDS.slice(0, expanded ? NEEDS.length : 2).map(({ key, icon, route, scriptTag }) => (
           <TouchableOpacity
@@ -62,7 +67,6 @@ export function NeedsRouter({ bereaved = false }: { bereaved?: boolean }) {
         onPress={() => setExpanded(value => !value)} style={{ paddingTop: 14, minHeight: 44 }}>
         <Text style={{ color: colors.primary, fontWeight: '600' }}>{t(expanded ? 'needs.fewer' : 'needs.more')}</Text>
       </TouchableOpacity>
-      </>)}
     </View>
   );
 }

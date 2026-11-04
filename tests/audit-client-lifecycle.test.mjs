@@ -443,8 +443,15 @@ test('the device remembers "they died" per account and answers before the record
   assert.equal(f.read().bereaved, true, 'cached answer before the read returns');
   f.reads.shift().resolve({ data: { id: 'A', account_id: 'A', died_at: null }, error: null }); await settle();
   assert.equal(f.read().bereaved, false, 'the loaded record decides');
-  assert.equal(f.storage.has('@sh:bereaved:A'), false, 'and refreshes the device copy');
+  assert.equal(f.storage.get('@sh:bereaved:A'), '0', 'and refreshes the device copy');
   f.h.unmount();
+  // A new device / reinstall: no copy, so unknown (header-only Today) until the read settles.
+  const fresh = lovedOneFixture(); await settle();
+  assert.equal(fresh.read().bereaved, undefined, 'no copy yet: not assumed either way');
+  fresh.reads.shift().resolve({ data: { id: 'A', account_id: 'A', died_at: '2026-11-04T18:00:00Z' }, error: null }); await settle();
+  assert.equal(fresh.read().bereaved, true);
+  assert.equal(fresh.storage.get('@sh:bereaved:A'), '1');
+  fresh.h.unmount();
   const offline = lovedOneFixture(); await settle();
   offline.reads.shift().resolve({ data: null, error: new Error('offline') }); await settle();
   assert.equal(offline.read().bereaved, false, 'no copy and no record: the usual Today, never stuck');

@@ -100,6 +100,7 @@ function TodayContent() {
           safety: {
             situationBand: situation.band,
             checkIn: input,
+            bereaved,
           },
         });
       }, 750);
@@ -109,7 +110,7 @@ function TodayContent() {
   function queueMondayMeetingReview(): Promise<void> {
     return queueSupportCallReview({
       accountId: user?.id ?? null,
-      safety: { situationBand: situation.band },
+      safety: { situationBand: situation.band, bereaved },
     });
   }
 
@@ -127,7 +128,7 @@ function TodayContent() {
       void maybeRequestReview({
         accountId: user?.id ?? null,
         milestone: 'boundary_follow_through',
-        safety: { situationBand: situation.band },
+        safety: { situationBand: situation.band, bereaved },
       });
     }, 750);
   }

@@ -21,6 +21,7 @@ function mount(name, props = {}) {
     if (id === 'react-i18next') return { useTranslation: () => ({ t: (key, params) => params ? `${key}:${JSON.stringify(params)}` : key }) };
     if (id.includes('ThemeContext')) return { useTheme: () => ({ colors: {} }) };
     if (id.endsWith('lib/appAlert')) return { appAlert: (...args) => alerts.push(args) };
+    if (id.endsWith('safety/EmergencyActions')) return { EmergencyActions: 'EmergencyActions' };
     if (id.includes('caregiverCheckIn')) return { CAREGIVER_SUPPORT_NEEDS: ['rest', 'safety'], CAREGIVER_RESPONSE_ROUTE: {}, caregiverResponseKey: () => null };
     throw Error(id);
   };
@@ -81,6 +82,13 @@ test('safety help is actionable before save; hidden note and failed save preserv
   ui.press('checkIn.completeButton'); await new Promise(resolve => setImmediate(resolve)); ui.render();
   assert.equal(ui.alerts.length, 1); assert.equal(ui.button('checkIn.completeButton').props.disabled, false);
   assert.equal(ui.nodes().find(n => n.type === 'TextInput').props.value, 'keep this');
+});
+
+test('bereaved: the needs card is emergency help for her, not Crisis Mode about the loved one', () => {
+  const ui = mount('NeedsRouter', { bereaved: true });
+  assert.ok(ui.nodes().some((n) => n.type === 'EmergencyActions'));
+  assert.equal(ui.button('needs.crisis'), undefined);
+  assert.equal(ui.button('needs.more'), undefined);
 });
 
 test('needs front door keeps crisis immediate and reveals every secondary route', () => {

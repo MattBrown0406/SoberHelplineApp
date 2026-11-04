@@ -24,7 +24,10 @@ test('the device remembers it per account, and the deletion purge removes it', a
   // Refreshing a loaded record is silent: no loading flash, a failed refresh keeps the record.
   assert.match(hook, /const silent = settledFor\.current === accountId;/);
   assert.match(hook, /if \(!silent && scopeRef\.current === scope && scope\.request === request\) setLoadError\(error\);/);
-  assert.match(hook, /bereaved: settled \? isBereaved\(record\.value\) : cachedBereaved,/);
+  assert.match(hook, /bereaved: settled \? isBereaved\(record\.value\) : cachedBereaved \?\? \(unreadable \? false : undefined\),/);
+  // '0' is written for a known non-bereaved read; a missing key stays unknown.
+  assert.match(hook, /bereaved \? '1' : '0'/);
+  assert.match(hook, /value === '1' \? true : value === '0' \? false : undefined/);
   assert.match(hook, /rememberBereaved\(accountId, true\);/);
   assert.match(hook, /rememberBereaved\(accountId, false\);/);
 });
@@ -50,8 +53,14 @@ test('Today, the cards, Settings and Admin are wired', () => {
   assert.match(today, /if \(bereavedUnknown\) \{\s*return \(\s*<ScreenContainer[^>]*>\s*\{header\}\s*<\/ScreenContainer>/);
   assert.match(today, /<NeedsRouter bereaved \/>/);
   assert.match(today, /primaryDoor=\{bereaved \? 'free_call' : primaryDoor\}/);
+  // Crisis Mode is about the loved one: bereaved, she gets 911 / 988 for herself.
   const router = read('src/components/today/NeedsRouter.tsx');
-  assert.match(router, /\{bereaved \? null : \(<>/);
+  assert.match(router, /if \(bereaved\) return <EmergencyActions \/>;/);
+  // No App Store rating prompt for a bereaved member, from Today or anywhere.
+  assert.equal((today.match(/bereaved,\n|bereaved \}/g) ?? []).length >= 3, true);
+  const prompt = read('src/lib/reviewPrompt.ts');
+  assert.match(prompt, /from\('loved_ones'\)\.select\('died_at'\)/);
+  assert.match(prompt, /bereaved: authoritativeSafety\.bereaved \|\| safety\?\.bereaved/);
   assert.match(today, /if \(bereaved\) \{[\s\S]*<GriefCard \/>/);
   assert.match(today, /bereaved \? null : takeaway/);
   assert.match(today, /onTheyDied=\{\(\) => setDiedSheetOpen\(true\)\}/);
@@ -80,4 +89,12 @@ test('the server marks her own account only and stops the notes about the loved 
   assert.match(morning, /const copy = isMonday\s*\? \{ title: c\.mondayTitle, body: c\.mondayBody \}\s*: bereaved\s*\? \{ title: c\.morningTitle, body: c\.genericMorning \}/);
   assert.match(morning, /morningNoteData\(isMonday \|\| support \|\| bereaved \? 'support' : 'boundaries'\)/);
   assert.match(read('supabase/functions/_shared/legacy-sender-boundary.ts'), /status_changed_at, died_at\)/);
+});
+
+test('a bereaved member is never asked for a rating, and the admin alert opens Admin', async () => {
+  const { reviewPromptDecision } = await import('../src/lib/reviewPromptPolicy');
+  const { getPushDestination } = await import('../src/lib/pushRouting');
+  const decision = reviewPromptDecision({ state: { schemaVersion: 1, attempts: [] }, appVersion: '4.2.0', safety: { bereaved: true, situationBand: 'calm' } });
+  assert.deepEqual(decision, { eligible: false, reason: 'bereaved' });
+  assert.deepEqual(getPushDestination({ kind: 'admin_bereavement', member_account_id: '27000000-0000-0000-0000-000000000001' }), { pathname: '/admin' });
 });

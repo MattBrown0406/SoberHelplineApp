@@ -25,6 +25,8 @@ export type ReviewSafetyContext = {
   situationBand?: 'calm' | 'watch' | 'elevated' | 'crisis' | null;
   recentCrisisAt?: string | null;
   recentLowMood?: boolean;
+  /** Her loved one died: never ask for an App Store rating. */
+  bereaved?: boolean;
   checkIn?: {
     moodScore: MoodScore;
     capacityScore: MoodScore;
@@ -38,6 +40,7 @@ export type ReviewPromptDecision =
   | {
       eligible: false;
       reason:
+        | 'bereaved'
         | 'crisis_flow'
         | 'purchase_flow'
         | 'crisis_band'
@@ -87,6 +90,7 @@ export function reviewPromptDecision({
   safety?: ReviewSafetyContext;
   now?: Date;
 }): ReviewPromptDecision {
+  if (safety?.bereaved) return { eligible: false, reason: 'bereaved' };
   if (safety?.inCrisisFlow) return { eligible: false, reason: 'crisis_flow' };
   if (safety?.inPurchaseFlow) return { eligible: false, reason: 'purchase_flow' };
   if (safety?.situationBand === 'crisis') return { eligible: false, reason: 'crisis_band' };
