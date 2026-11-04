@@ -145,9 +145,9 @@ export type CrisisEmergencyChecklist = 'redOverdose' | 'redCustody' | 'redSuicid
 /**
  * Which emergency checklist a red result shows (crisis.json `checklist.*`).
  * An arrest that turns red is usually suicide talk on a jail call, where only
- * the jail can reach them: the custody list covers in custody and already
- * out. Weapons, violence or driving mean they are out and near her, so the
- * at-the-scene list applies.
+ * the jail can reach them: suicide always gets the custody list, which covers
+ * in custody and already out (as suicide wins everywhere else). Violence,
+ * weapons or driving without suicide talk get the at-the-scene list.
  */
 export function crisisEmergencyChecklist(
   situation: CrisisSituationKey | null,
@@ -155,6 +155,7 @@ export function crisisEmergencyChecklist(
 ): CrisisEmergencyChecklist {
   if (situation === 'overdose' || selected.notBreathing || selected.overdose) return 'redOverdose';
   if (situation === 'arrested') {
+    if (selected.suicide) return 'redCustody';
     return selected.violence || selected.weapons || selected.drivingIntoxicated ? 'redDefault' : 'redCustody';
   }
   if (situation === 'selfHarm' || selected.suicide) return 'redSuicide';

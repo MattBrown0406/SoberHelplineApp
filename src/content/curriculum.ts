@@ -472,7 +472,7 @@ export const CURRICULUM: CurriculumPiece[] = [
     practice:
       'Put one thing on your calendar this week that is just for you — lunch with a friend, a class, a walk you used to take — and keep it, even if the week gets hard.',
     prompt: 'What did you used to love doing that you quietly stopped?',
-    crisisSafe: true,
+    crisisSafe: false,
   },
   {
     id: 'cur-w24-crisis-returns',
@@ -920,7 +920,7 @@ export const CURRICULUM_ES: CurriculumPiece[] = [
     practice:
       'Pon en tu calendario esta semana una cosa que sea solo para ti (un almuerzo con una amiga, una clase, una caminata que solías hacer) y cúmplela, aunque la semana se ponga difícil.',
     prompt: '¿Qué te gustaba hacer y dejaste de hacer sin darte cuenta?',
-    crisisSafe: true,
+    crisisSafe: false,
   },
   {
     id: 'cur-w24-crisis-returns',

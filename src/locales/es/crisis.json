@@ -77,9 +77,9 @@
     ],
     "redCustody": [
       "Si sigue detenido/a: llama a la cárcel ahora. Di que habló de suicidio o que está en peligro, y pide que personal médico o de salud mental lo/la revise de inmediato. Si nadie contesta, llama al 911 y di el nombre de la cárcel.",
-      "Si ya salió: llama o envía un mensaje al 988 ahora, o llama al 911 si hay peligro inmediato. Quédate cerca solo si es seguro para ti.",
-      "Si ya salió, aleja pastillas, armas y llaves solo si puedes hacerlo con seguridad, y busca a otro adulto de confianza.",
-      "Llama o envía un mensaje al 988 también para ti, para recibir ayuda sobre qué decir y apoyo."
+      "Si ya salió: llama al 988 (marca 2 para español) o envía AYUDA al 988 ahora, o llama al 911 si hay peligro inmediato. Quédate cerca solo si es seguro para ti.",
+      "Si ya salió, aleja pastillas, armas y llaves solo si puedes hacerlo con seguridad, y busca a otro adulto de confianza. Si te amenaza o intenta manejar, ve a un lugar seguro y llama al 911.",
+      "Llama al 988 (marca 2 para español) también para ti, para recibir ayuda sobre qué decir y apoyo."
     ],
     "redDefault": [
       "Sal del lugar si la violencia o las armas son posibles. La seguridad física va primero.",

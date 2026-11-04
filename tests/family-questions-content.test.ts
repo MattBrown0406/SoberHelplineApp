@@ -107,9 +107,11 @@ test('an emergency during an arrest gets custody steps, not "stay with them" ste
   assert.match(screen, /t\(redChecklist === 'redCustody' \? 'say\.redCustody' : 'say\.red'\)/);
   assert.equal(crisisEmergencyChecklist('arrested', { suicide: true }), 'redCustody');
   assert.equal(crisisEmergencyChecklist('arrested', {}), 'redCustody');
-  // Out and near her: the at-the-scene steps.
+  // Suicide talk wins, as everywhere else: the custody list (which covers
+  // already out). Violence, weapons or driving alone: the at-the-scene steps.
   for (const tick of ['violence', 'weapons', 'drivingIntoxicated']) {
-    assert.equal(crisisEmergencyChecklist('arrested', { suicide: true, [tick]: true }), 'redDefault', tick);
+    assert.equal(crisisEmergencyChecklist('arrested', { suicide: true, [tick]: true }), 'redCustody', tick);
+    assert.equal(crisisEmergencyChecklist('arrested', { [tick]: true }), 'redDefault', tick);
   }
   assert.equal(crisisEmergencyChecklist('arrested', { overdose: true }), 'redOverdose');
   assert.equal(crisisEmergencyChecklist('arrested', { notBreathing: true, suicide: true }), 'redOverdose');
