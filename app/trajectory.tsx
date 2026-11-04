@@ -49,7 +49,7 @@ function TrajectoryContent() {
   const [sharePending, setSharePending] = useState(false);
   const shareInFlight = useRef(false);
 
-  const { points, trend, loading } = useTrajectory(user?.id ?? null, 6);
+  const { points, trend, loading } = useTrajectory(user?.id ?? null, 6, user?.timezone);
   const { send, sending, loading: threadLoading } = useThread(user?.id ?? null, threadWanted && canMessageCoach, { readOnly: !canMessageCoach });
 
   const [checked, setChecked] = useState<boolean[]>(Array(SELF_CHECK_COUNT).fill(false));
@@ -113,7 +113,7 @@ function TrajectoryContent() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
       <View style={[styles.header, { borderBottomColor: colors.line }]}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={12}>
+        <TouchableOpacity onPress={() => router.back()} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('common:a11y.back')}>
           <Text style={[styles.back, { color: colors.primary }]}>‹</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.ink }]}>

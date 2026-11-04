@@ -57,7 +57,7 @@
     "dailyErrorTitle": "Reminder change not confirmed",
     "dailyErrorBody": "Check notification permission in device Settings and retry. No reminder delivery is guaranteed.",
     "familyCallTitle": "Monday family call reminder",
-    "familyCallDesc": "A reminder 15 minutes before The Family Squares, our free family support call on Zoom (Mondays, 7:00 PM Pacific), if you've saved your spot.",
+    "familyCallDesc": "Reminders for The Family Squares, our free family support call on Zoom (Mondays, 7:00 PM Pacific): an hour before and again 15 minutes before if you've saved your spot, or 30 minutes before if you haven't.",
     "familyCallErrorTitle": "Couldn't update the reminder",
     "familyCallErrorBody": "Check your connection and try again."
   },
@@ -68,6 +68,7 @@
     "essentialPlan": "Essential",
     "essentialFeatures": "Coach messaging · live groups · practice tools",
     "websiteSource": "Your membership is through our website (soberhelpline.com or ayudasobria.com) — manage billing there.",
+    "websiteAlsoSource": "You also have a membership through our website (soberhelpline.com or ayudasobria.com). It is billed there separately — cancel it there if you no longer need it.",
     "manage": "Manage subscription",
     "restore": "Restore Purchases",
     "restoreSuccessTitle": "Purchases restored",

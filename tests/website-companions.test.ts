@@ -11,7 +11,7 @@ import {
   isCoachingMember,
 } from '../src/lib/coachingPrice';
 import { formatNextCallTime, isFamilySquaresSession } from '../src/lib/familySquaresSchedule';
-import { isWebsiteEntitlement, isWebsiteMembership, WEBSITE_MEMBERSHIP_GRANT } from '../src/lib/membershipSource';
+import { isWebsiteEntitlement, isWebsiteMembership, membershipBilling, WEBSITE_MEMBERSHIP_GRANT } from '../src/lib/membershipSource';
 
 const read = (path: string) => readFileSync(path, 'utf8');
 
@@ -190,10 +190,16 @@ test('a soberhelpline.com membership is recognised from either website grant', (
   // Premier from the App Store is not the website's membership.
   assert.equal(isWebsiteMembership([web, store], 'premium', now), false);
   assert.equal(isWebsiteMembership([], 'essential', now), false);
+  // A member billed in both places hears about both (Settings + delete warning).
+  assert.deepEqual(membershipBilling([web, store], now), { website: true, appStore: true });
+  assert.deepEqual(membershipBilling([store], now), { website: false, appStore: true });
+  assert.deepEqual(membershipBilling([imported, scholarship], now), { website: true, appStore: false });
+  assert.deepEqual(membershipBilling([{ ...store, expires_at: '2026-10-01T00:00:00Z' }], now), { website: false, appStore: false });
 
   const settings = read('app/settings.tsx');
   assert.match(settings, /granted_by:raw->>granted_by/);
-  assert.match(settings, /t\('membership\.websiteSource'\)/);
+  assert.match(settings, /'membership\.websiteSource'/);
+  assert.match(settings, /'membership\.websiteAlsoSource'/);
   assert.match(settings, /t\('account\.websiteLogin'\)/);
   for (const lang of ['en', 'es']) {
     const copy = JSON.parse(read(`src/locales/${lang}/settings.json`));
@@ -225,7 +231,7 @@ test('store builds ship on the production update channel', () => {
   assert.equal(eas.build['release-4-2-0'].autoIncrement, false);
   const app = JSON.parse(read('app.json'));
   assert.equal(app.expo.version, '4.2');
-  assert.equal(app.expo.ios.buildNumber, '2');
+  assert.equal(app.expo.ios.buildNumber, '3');
   assert.deepEqual(app.expo.runtimeVersion, { policy: 'appVersion' });
   assert.match(app.expo.updates.url, /^https:\/\/u\.expo\.dev\//);
 });

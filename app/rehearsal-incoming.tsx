@@ -510,6 +510,8 @@ function RehearsalIncomingContent() {
                 <View style={styles.ringButtons}>
                   <View style={styles.ringButtonCol}>
                     <TouchableOpacity
+                      accessibilityRole="button"
+                      accessibilityLabel={t('rehearsalIncoming:ring.decline')}
                       style={[styles.callBtn, { backgroundColor: colors.coral }]}
                       onPress={handleDecline}
                       activeOpacity={0.85}
@@ -523,6 +525,8 @@ function RehearsalIncomingContent() {
                   <View style={styles.ringButtonCol}>
                     <Animated.View style={{ transform: [{ scale: pulse }] }}>
                       <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel={t('rehearsalIncoming:ring.answer')}
                         style={[styles.callBtn, { backgroundColor: colors.green }]}
                         onPress={() => void handleAnswer()}
                         activeOpacity={0.85}

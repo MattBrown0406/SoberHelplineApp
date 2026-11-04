@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -149,7 +150,7 @@ function CommunityContent() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
       {/* Crisis routing — never a dead end (docs/legal/crisis-protocol.md) */}
       <Modal visible={crisisOpen} transparent animationType="fade" onRequestClose={() => setCrisisOpen(false)}>
-        <View style={styles.crisisOverlay}>
+        <ScrollView style={styles.crisisOverlayScroll} contentContainerStyle={styles.crisisOverlay} keyboardShouldPersistTaps="handled">
           <View style={[styles.crisisCard, { backgroundColor: colors.white }]}>
             <Text style={[styles.crisisTitle, { color: colors.ink }]}>{t('community.crisisTitle')}</Text>
             <Text style={[styles.crisisBody, { color: colors.inkSoft }]}>{t('community.crisisBody')}</Text>
@@ -186,12 +187,12 @@ function CommunityContent() {
               <Text style={[styles.crisisCloseText, { color: colors.inkSoft }]}>{t('community.crisisClose')}</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </ScrollView>
       </Modal>
 
       {/* People this member blocked, with a way to unblock (App Store 1.2). */}
       <Modal visible={blockedOpen} transparent animationType="fade" onRequestClose={() => setBlockedOpen(false)}>
-        <View style={styles.crisisOverlay}>
+        <ScrollView style={styles.crisisOverlayScroll} contentContainerStyle={styles.crisisOverlay} keyboardShouldPersistTaps="handled">
           <View style={[styles.crisisCard, { backgroundColor: colors.white }]}>
             <Text style={[styles.crisisTitle, { color: colors.ink }]}>{t('community.blockedTitle')}</Text>
             {blocks.length === 0 ? (
@@ -217,11 +218,11 @@ function CommunityContent() {
               <Text style={[styles.crisisCloseText, { color: colors.inkSoft }]}>{t('community.crisisClose')}</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </ScrollView>
       </Modal>
 
       <View style={[styles.header, { borderBottomColor: colors.line }]}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={12}>
+        <TouchableOpacity onPress={() => router.back()} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('common:a11y.back')}>
           <Text style={[styles.back, { color: colors.primary }]}>‹</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.ink }]}>{t('community.title')}</Text>
@@ -432,7 +433,9 @@ const styles = StyleSheet.create({
   postBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
   safetyFooter: { alignItems: 'center', paddingBottom: 10, paddingTop: 2 },
   safetyText: { fontSize: 11.5, fontWeight: '600' },
-  crisisOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  // Scrolls: at large text sizes Close / "post it" must stay reachable.
+  crisisOverlayScroll: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
+  crisisOverlay: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   crisisCard: { width: '100%', maxWidth: 380, borderRadius: 20, padding: 24, gap: 10 },
   crisisTitle: { fontSize: 18, fontWeight: '700', textAlign: 'center' },
   crisisBody: { fontSize: 13.5, lineHeight: 20, textAlign: 'center', marginBottom: 6 },

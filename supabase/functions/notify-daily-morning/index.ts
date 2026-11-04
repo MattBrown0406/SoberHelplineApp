@@ -89,15 +89,26 @@ function dayOfYear(d: Date): number {
   return Math.floor((d.getTime() - new Date(d.getFullYear(), 0, 0).getTime()) / 86400000);
 }
 
-// When it is sent. The dashboard cron 'daily-morning-notification' calls this
-// once a day at 16:00 UTC with an empty body ("daily" run): that is 6 AM in
-// Hawaii to noon on the US East Coast, so a member for whom it is not morning
-// (6:00 AM–12:59 PM her time — Europe, Asia, Australia…) is skipped rather than
-// told "Good morning" in the evening or at 3 AM. Called hourly with
-// {"mode":"local"}, it instead reaches each member at 9 AM her own time. Either
-// way "It's Monday" means Monday where she is.
+// When it is sent. Production's cron 'daily-morning-notification' calls this
+// hourly with {"mode":"local"}: each member gets it at her chosen reminder hour
+// (accounts.daily_push_hour, default 9 AM) her own time, and only for a morning
+// hour — for Midday/Evening/Night the app sends her check-in nudge instead.
+// An empty body ("daily" run, once at 16:00 UTC) still works as a fallback but
+// skips anyone for whom it is not 6:00 AM–12:59 PM. "It's Monday" means Monday
+// where she is.
 const DAILY_RUN_MORNING = { from: 6, until: 13 };
 const LOCAL_MORNING_HOUR = 9;
+
+/**
+ * The hour she chose for her daily reminder (accounts.daily_push_hour, NULL =
+ * the 9 AM default), or null when it is not a morning hour: the app then
+ * sends her own check-in nudge at that time instead, and this morning note
+ * would be a second notification at the wrong time.
+ */
+function morningNoteHour(dailyPushHour: number | null | undefined): number | null {
+  const hour = dailyPushHour ?? LOCAL_MORNING_HOUR;
+  return hour < 12 ? hour : null;
+}
 
 /** Day of the week (0 = Sunday) where she is. */
 function localWeekday(now: number, timezone: string | null): number {
@@ -109,6 +120,7 @@ interface Acct {
   push_token: string;
   locale: string | null;
   timezone: string | null;
+  daily_push_hour: number | null;
 }
 
 const PAGE_SIZE = 1000;
@@ -120,7 +132,7 @@ async function optedInAccounts(): Promise<Acct[] | null> {
   for (;;) {
     let query = supabase
       .from('accounts')
-      .select('id, push_token, locale, timezone')
+      .select('id, push_token, locale, timezone, daily_push_hour')
       .not('push_token', 'is', null)
       .eq('daily_push_opt_in', true)
       .order('id')
@@ -147,9 +159,10 @@ Deno.serve(async (req) => {
   if (all === null) {
     return new Response(JSON.stringify({ error: 'accounts_unavailable' }), { status: 500 });
   }
-  const accounts = hourly
-    ? all.filter((a) => localHour(started, a.timezone) === LOCAL_MORNING_HOUR)
-    : all;
+  const accounts = all.filter((a) => {
+    const target = morningNoteHour(a.daily_push_hour);
+    return target !== null && (!hourly || localHour(started, a.timezone) === target);
+  });
   if (!accounts.length) {
     return new Response(JSON.stringify({ sent: 0 }), { status: 200 });
   }
@@ -170,12 +183,13 @@ Deno.serve(async (req) => {
         counts.skipped++;
         continue;
       }
-      // Re-checked at send time with her current time zone.
+      // Re-checked at send time with her current time zone and chosen hour.
       const hour = localHour(Date.now(), a.timezone);
+      const target = morningNoteHour(a.daily_push_hour);
       if (
-        hourly
-          ? hour !== LOCAL_MORNING_HOUR || localDay(Date.now(), a.timezone) !== day
-          : hour < DAILY_RUN_MORNING.from || hour >= DAILY_RUN_MORNING.until
+        target === null || (hourly
+          ? hour !== target || localDay(Date.now(), a.timezone) !== day
+          : hour < DAILY_RUN_MORNING.from || hour >= DAILY_RUN_MORNING.until)
       ) {
         counts.skipped++;
         continue;

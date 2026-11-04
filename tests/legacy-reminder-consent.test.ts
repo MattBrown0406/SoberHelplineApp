@@ -4,7 +4,8 @@ import fs from 'node:fs';
 import ts from 'typescript';
 import { AsyncWriteBarrier } from '../src/lib/appFlowGuards';
 
-function harness(platform = 'ios', serverDailyOptIn = false) {
+function harness(platform = 'ios', serverDailyOptIn = false, server: { pushToken?: string | null; hour?: number | null } = {}) {
+  let serverHour = server.hour ?? null;
   const store = new Map<string, string>();
   const scheduled: any[] = []; const canceled: string[] = []; let writes = 0;
   const rpcCalls: { name: string; args: any }[] = [];
@@ -31,10 +32,11 @@ function harness(platform = 'ios', serverDailyOptIn = false) {
       rpc: async (name: string, args: any) => {
         writes++; rpcCalls.push({ name, args });
         if (name === 'set_daily_push_opt_in') serverDailyOptIn = args.p_enabled;
+        if (name === 'set_daily_push_hour') serverHour = args.p_hour;
         return { data: true };
       },
       auth: { getSession: async () => ({ data: { session: { user: { id: 'auth' } } } }) },
-      from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: 'A', timezone: null, daily_push_opt_in: serverDailyOptIn } }) }) }) }),
+      from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: 'A', timezone: null, daily_push_opt_in: serverDailyOptIn, daily_push_hour: serverHour, push_token: server.pushToken ?? null } }) }) }) }),
     } }, '../storage/checkIn': { getCheckIn: async () => null },
     '../lib/appFlowGuards': { AsyncWriteBarrier }, '../lib/pushRouting': {},
     '../lib/pendingPushTokenRevoke': { settlePendingPushTokenRevoke: async () => 'none' }, '../lib/pushDevice': { isDeviceSignedIn: () => true },
@@ -93,4 +95,33 @@ test('deliberate token registration alone is not consent for daily reminders', a
   const h = harness();
   await h.api.registerForPushNotifications('A');
   assert.equal(h.scheduled.length, 0);
+});
+
+// One opt-in drives the server morning note and the device nudge: a morning
+// hour is the server's (at her hour), a later hour is the device's — never both.
+const dailyNudges = (h: ReturnType<typeof harness>) => h.scheduled.filter((x) => x.identifier?.includes(':daily-'));
+test('a morning reminder hour with this device\'s token on file is sent by the server only', async () => {
+  const h = harness('ios', false, { pushToken: 'token' });
+  assert.equal(await h.api.registerForPushNotifications('A', true, true), true);
+  assert.equal(dailyNudges(h).length, 0);
+  assert.ok(h.scheduled.some((x) => x.identifier?.endsWith(':weekly')));
+});
+test('a later reminder hour is mirrored to the server and sent by the device', async () => {
+  const h = harness('ios', false, { pushToken: 'token', hour: 9 });
+  h.store.set('reminderHour', '18');
+  assert.equal(await h.api.registerForPushNotifications('A', true, true), true);
+  assert.ok(h.rpcCalls.some((c) => c.name === 'set_daily_push_hour' && c.args.p_hour === 18));
+  assert.ok(dailyNudges(h).length > 0);
+  assert.ok(dailyNudges(h).every((x) => new Date(x.trigger.date).getHours() === 18));
+});
+test('without a server push token the device keeps the morning nudge', async () => {
+  const h = harness('ios', false, { pushToken: null });
+  assert.equal(await h.api.registerForPushNotifications('A', true, true), true);
+  assert.ok(dailyNudges(h).length > 0);
+});
+
+test('when another device holds the server token, this device keeps its own nudge', async () => {
+  const h = harness('ios', false, { pushToken: 'ExponentPushToken[other-device]' });
+  assert.equal(await h.api.registerForPushNotifications('A', true, true), true);
+  assert.ok(dailyNudges(h).length > 0);
 });

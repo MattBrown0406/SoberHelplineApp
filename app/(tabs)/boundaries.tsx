@@ -62,6 +62,8 @@ export default function BoundariesScreen() {
     markWavering,
     commitWall,
     leave: leaveFamilySpace,
+    removeMember: removeFamilyMember,
+    regenerateInviteCode,
     refresh: refreshFamilySpace,
     fetchMemberCount,
   } = useFamilySpace(user?.id ?? null, { you: youLabel, member: content.journal.member });
@@ -253,6 +255,41 @@ export default function BoundariesScreen() {
     filled: checkinDates.has(date),
     isToday: i === 6,
   }));
+
+  // Owner controls: a forwarded invite code must not let someone in for good.
+  const confirmRemoveFamilyMember = useCallback((memberAccountId: string, name: string) => {
+    appAlert(tAlign('removeMemberTitle', { name }), tAlign('removeMemberBody', { name }), [
+      { text: tAlign('ownerActionCancel'), style: 'cancel' },
+      {
+        text: tAlign('removeMemberConfirm'),
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await removeFamilyMember(memberAccountId);
+          } catch {
+            appAlert(tAlign('removeMemberErrorTitle'), tAlign('actionErrorBody'));
+          }
+        },
+      },
+    ]);
+  }, [removeFamilyMember, tAlign]);
+
+  const confirmNewInviteCode = useCallback(() => {
+    appAlert(tAlign('newCodeTitle'), tAlign('newCodeBody'), [
+      { text: tAlign('ownerActionCancel'), style: 'cancel' },
+      {
+        text: tAlign('newCodeConfirm'),
+        onPress: async () => {
+          try {
+            await regenerateInviteCode();
+            setCodeCopied(false);
+          } catch {
+            appAlert(tAlign('newCodeErrorTitle'), tAlign('actionErrorBody'));
+          }
+        },
+      },
+    ]);
+  }, [regenerateInviteCode, tAlign]);
 
   const copyInviteCode = useCallback(async (code: string) => {
     await Clipboard.setStringAsync(code);
@@ -641,6 +678,30 @@ export default function BoundariesScreen() {
                 </Text>
               </TouchableOpacity>
 
+              {familySpace.createdBy === user?.id ? (
+                <View style={styles.ownerControls}>
+                  <TouchableOpacity accessibilityRole="button" style={styles.leaveFamilyBtn} onPress={confirmNewInviteCode}>
+                    <Text style={[styles.leaveFamilyText, { color: colors.primary }]}>{tAlign('newCodeButton')}</Text>
+                  </TouchableOpacity>
+                  {familySpace.members.some((member) => member.accountId !== user?.id) ? (
+                    <Text style={[styles.eyebrow, { color: colors.inkSoft, marginTop: 8 }]}>{tAlign('membersTitle')}</Text>
+                  ) : null}
+                  {familySpace.members.filter((member) => member.accountId !== user?.id).map((member) => (
+                    <View key={member.accountId} style={[styles.memberRow, { borderBottomColor: colors.line }]}>
+                      <Text style={[styles.memberName, { color: colors.ink }]}>{member.displayName}</Text>
+                      <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel={tAlign('removeMemberLabel', { name: member.displayName })}
+                        style={styles.memberRemoveBtn}
+                        onPress={() => confirmRemoveFamilyMember(member.accountId, member.displayName)}
+                      >
+                        <Text style={[styles.leaveFamilyText, { color: colors.inkSoft }]}>{tAlign('removeMemberButton')}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+
               <TouchableOpacity
                 accessibilityRole="button"
                 style={styles.leaveFamilyBtn}
@@ -858,6 +919,10 @@ const styles = StyleSheet.create({
   },
   inviteCode: { fontSize: 20, fontWeight: '800', letterSpacing: 2 },
   leaveFamilyBtn: { alignSelf: 'center', paddingVertical: 10, minHeight: 44, justifyContent: 'center' },
+  ownerControls: { marginTop: 4 },
+  memberRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: StyleSheet.hairlineWidth, minHeight: 44 },
+  memberName: { fontSize: 15, fontWeight: '600', flexShrink: 1 },
+  memberRemoveBtn: { paddingVertical: 10, paddingLeft: 12, minHeight: 44, justifyContent: 'center' },
   leaveFamilyText: { fontSize: 13, fontWeight: '700', textDecorationLine: 'underline' },
   inviteLabel: { fontSize: 11, marginTop: 2 },
   noFamilyTitle: { fontSize: 15, fontWeight: '700', marginBottom: 6 },

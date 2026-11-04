@@ -5,6 +5,18 @@ SELECT no_plan();
 
 -- ── Crisis screen ────────────────────────────────────────────────────────────
 SELECT is(public._community_post_crisis(x), 'block', 'blocked: ' || x) FROM unnest(ARRAY[
+  -- Spanish self-harm, clitic-first, pronoun-last, again/ongoing, past and someone else (2026-11-03).
+  'me hice daño a propósito', 'me corté a propósito', 'me corté las muñecas', 'mi hija se cortó las venas',
+  
+  
+  'Me voy a cortar las venas', 'ME QUIERO CORTAR LAS VENAS', 'me voy a cortar las muñecas', 
+  
+  'me corté las piernas', 'voy a hacerme daño esta noche',
+  
+  
+  'pienso en terminar con mi vida', 'quiero dejar de existir',
+  'mi hijo amenaza con tirarse de un puente', 
+  'mi hija dice que ya no quiere vivir', 'my daughter says she doesn''t want to live anymore',
   'My son overdosed and he is not breathing',
   'Mi hijo tuvo una sobredosis y no respira',
   'I don''t want to live anymore',
@@ -204,6 +216,23 @@ SELECT is(public._community_post_crisis(x), 'block', 'blocked: ' || x) FROM unne
 ]) x;
 
 SELECT is(public._community_post_crisis(x), 'resources', 'posts with resources: ' || x) FROM unnest(ARRAY[
+  -- Ambiguous "end it" (marriage or life) and the 2026-11-03 safety net: a human look plus 988/911.
+  'estoy pensando en acabar con todo', 'a veces pienso en acabar con todo', 'mi hijo dice que quiere acabar con todo',
+  'me estoy haciendo daño',
+  'me lastimo a propósito', 'Ya no aguanto, quiero desaparecer para siempre', 'mi hijo se encerró en el baño con una navaja', 'I want to stop living',
+  -- Ambiguous in Spanish ("me cortó" = he hung up): a human look, never a refusal.
+  'me voy a hacer daño', 'me quiero hacer daño', 'quiero lastimarme', 'me voy a lastimar', 'me voy a cortar', 'quiero cortarme', 'me quiero cortar', 'me corté', 'me corté otra vez', 'me voy a cortar de nuevo esta noche', 'me quiero hacer daño de nuevo', 'me volví a cortar', 'volví a cortarme', 'me he cortado otra vez', 'me sigo cortando', 'no puedo dejar de cortarme', 'tengo ganas de cortarme', 'Me corté en los brazos', 'me voy a cortar con el cuchillo', 'mi hija dice que se va a cortar', 'mi hija se cortó otra vez', 'mi hija se quiere cortar', 'mi hijo se va a cortar las venas', 'mi hijo se quiere hacer daño', 'quisiera no despertar',
+  'mi hijo dejó una carta de despedida',
+  'I just took all my anxiety meds. I''m so tired of all of this.', 'Me tomé un montón de mis pastillas para dormir', 'Me tomé 20 rivotril',
+  'He''s in and out of consciousness after using', 'Respira muy lento', 'My husband is driving drunk with our kids in the car right now',
+  'My toddler swallowed one of his pills', 'Amenazó con llevarse a los niños y matarlos', 'He hit my daughter tonight. She''s 9.',
+  'Me dio una cachetada', 'No me deja salir de la casa', 'My daughter is cutting again. I found fresh cuts on her arms tonight.',
+  'Mi hija se ha estado cortando. Encontré cortadas en sus brazos.', 'He says he wishes he was dead.', 'Amenaza con tomarse todas sus pastillas',
+  'I hope I die in my sleep tonight.', 'Ojalá me muera esta noche.', 'He buscado formas de morir.',
+  'my son says he wants to end it all', 'My son told me he''s going to end it', 'My husband said he wants to end it',
+  'mi hijo se quitó la vida', 'encontré a mi hijo sin vida', 'Esta es mi despedida', 'le estoy dando rcp',
+  'tiene los labios azules', 'mi hijo se tomó 20 pastillas', 'no quiero bivir', 'He has a machete',
+  'My son is out of control and I''m scared for my life', 'I love you all. I''m sorry. I can''t do this anymore. Goodbye',
   'My daughter attempted suicide last year…',
   'He keeps talking about suicide when he drinks',
   'My son OD''d twice last year and I still jump at every phone call',
@@ -230,6 +259,20 @@ SELECT is(public._community_post_crisis(x), 'resources', 'posts with resources: 
 ]) x;
 
 SELECT is(public._community_post_crisis(x), NULL, 'posts plainly: ' || x) FROM unnest(ARRAY[
+  'me corté el pelo', 'me voy a cortar el pelo', 'me corté cocinando', 'voy a cortar con él',
+  'si sigo así me voy a lastimar', 'me voy a lastimar la espalda', 'quiero que me corte el pelo',
+  'me voy a cortar el fleco', 'me corté jugando futbol', 'me corté con un papel', 'me corté el dedo', 'me hice daño en la rodilla',
+  'me voy a cortar con él', 'ya me voy a cortar de él', 'no me voy a cortar', 'nunca me voy a cortar', 'no quiero lastimarme',
+  'se va a cortar la luz', 'la llamada se va a cortar', 'se cortó la llamada', 'mi hija se va a cortar el pelo',
+  'me estoy cortando el pelo', 'me he cortado el pelo', 'mañana me voy a cortar las uñas',
+  'quisiera no despertar tan temprano', 'pienso en terminar con mi carrera', 'mi hijo dice que no quiere vivir aquí',
+  'Creo que la llamada se cortó a propósito', 'Nunca he pensado en terminar con mi vida, pero estoy agotada', 'No creo que me lastime a propósito, es su adicción hablando',
+  'Update on my last post: he went to detox', 'Gracias por sus respuestas en mi último mensaje', 'Ya no puedo más con sus mentiras',
+  'I know I''m better off without him', 'We said goodbye and he walked into rehab', 'Me pidió perdón por todo',
+  'I''m ending it. He has to be out by Sunday.', 'he''s cutting back on drinking', 'she started cutting class again',
+  'Me corté ayer el pelo.', 'Me corté lavando los platos.', 'Mi hija prometió que no se va a cortar más.', 'Dice que no va a lastimarse.',
+  'Nunca me he cortado, pero entiendo a las que sí.', 'Si lo dejo volver me voy a hacer daño otra vez.', 'Me sigo lastimando, no aprendo.',
+  'my son said he doesn''t want to live with us anymore', 'she said she doesn''t want to live in that house',
   'Today was a good day — he went to his first meeting',
   'I''m killing myself working two jobs to pay his rent',
   'I am cutting myself off from his drama',

@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   useWindowDimensions,
+  ScrollView,
 } from 'react-native';
 import { supabase } from '../../src/lib/supabase';
 import { recordVerifiedPurchase, withTimeoutFallback } from '../../src/lib/authBootstrap';
@@ -102,7 +103,12 @@ function CrisisSheet({
         activeOpacity={1}
         onPress={onClose}
       />
-      <View style={[styles.sheet, { backgroundColor: colors.white, left: sheetOffset, right: sheetOffset }]}>
+      <ScrollView
+        style={[styles.sheet, { backgroundColor: colors.white, left: sheetOffset, right: sheetOffset }]}
+        contentContainerStyle={styles.sheetContent}
+        keyboardShouldPersistTaps="handled"
+        bounces={false}
+      >
         <View style={[styles.sheetHandle, { backgroundColor: colors.line }]} />
 
         <Text style={[styles.sheetTitle, { color: colors.ink }]}>
@@ -203,7 +209,7 @@ function CrisisSheet({
             <SituationOffRamp door={door} onBeforeNavigate={onClose} compact hidePrice />
           </View>
         )}
-      </View>
+      </ScrollView>
     </Modal>
   );
 }
@@ -244,7 +250,12 @@ function CrisisProtocolSheet({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose} />
-      <View style={[styles.sheet, { backgroundColor: colors.white, left: sheetOffset, right: sheetOffset }]}>
+      <ScrollView
+        style={[styles.sheet, { backgroundColor: colors.white, left: sheetOffset, right: sheetOffset }]}
+        contentContainerStyle={styles.sheetContent}
+        keyboardShouldPersistTaps="handled"
+        bounces={false}
+      >
         <View style={[styles.sheetHandle, { backgroundColor: colors.line }]} />
         <Text style={[styles.sheetTitle, { color: colors.ink }]}>
           {t('crisisProtocol.heading')}
@@ -294,7 +305,7 @@ function CrisisProtocolSheet({
             {t('crisisProtocol.close')}
           </Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </Modal>
   );
 }
@@ -317,7 +328,12 @@ function ProviderSheet({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose} />
-      <View style={[styles.sheet, { backgroundColor: colors.white, left: sheetOffset, right: sheetOffset }]}>
+      <ScrollView
+        style={[styles.sheet, { backgroundColor: colors.white, left: sheetOffset, right: sheetOffset }]}
+        contentContainerStyle={styles.sheetContent}
+        keyboardShouldPersistTaps="handled"
+        bounces={false}
+      >
         <View style={[styles.sheetHandle, { backgroundColor: colors.line }]} />
         <Text style={[styles.sheetTitle, { color: colors.ink }]}>
           {t('providerSheet.title')}
@@ -362,7 +378,7 @@ function ProviderSheet({
             {t('providerSheet.close')}
           </Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </Modal>
   );
 }
@@ -395,7 +411,12 @@ function UpgradeSheet({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose} />
-      <View style={[styles.sheet, { backgroundColor: colors.white, left: sheetOffset, right: sheetOffset }]}>
+      <ScrollView
+        style={[styles.sheet, { backgroundColor: colors.white, left: sheetOffset, right: sheetOffset }]}
+        contentContainerStyle={styles.sheetContent}
+        keyboardShouldPersistTaps="handled"
+        bounces={false}
+      >
         <View style={[styles.sheetHandle, { backgroundColor: colors.line }]} />
         <Text style={[styles.sheetTitle, { color: colors.ink }]}>
           {t(`tier.${tier}Name`)}
@@ -452,7 +473,7 @@ function UpgradeSheet({
             {t('upgradeSheet.close')}
           </Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </Modal>
   );
 }
@@ -688,7 +709,7 @@ export default function SupportScreen() {
         {/* Header */}
         <View style={styles.headerRow}>
           <Text style={[styles.heading, { color: colors.ink }]}>{t('header')}</Text>
-          <TouchableOpacity onPress={() => router.push('/settings')} hitSlop={12}>
+          <TouchableOpacity onPress={() => router.push('/settings')} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('common:a11y.settings')}>
             <Text style={[styles.settingsIcon, { color: colors.inkSoft }]}>⚙</Text>
           </TouchableOpacity>
         </View>
@@ -1605,21 +1626,23 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.35)',
   },
+  // Scrolls: at large accessibility text sizes the content is taller than
+  // the screen, and its top (title, coach buttons) must stay reachable.
   sheet: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
+    maxHeight: '92%',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    padding: 24,
-    paddingBottom: 40,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.12,
     shadowRadius: 12,
     elevation: 20,
   },
+  sheetContent: { padding: 24, paddingBottom: 40 },
   sheetHandle: {
     width: 40,
     height: 4,

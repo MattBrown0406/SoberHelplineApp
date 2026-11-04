@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { openEmergencyLink } from '../../lib/emergencyLinks';
-import { text988Url } from '../safety/text988Url';
+import { hotlineTextUrl, text988Url } from '../safety/text988Url';
 import { FIELD_SETUP_STEP, type ScreenedField } from '../../lib/invitationScreen';
 import { EngineCard, Kicker, SecondaryButton, TextLink } from './ui';
 
@@ -42,7 +42,7 @@ export function CrisisResourcesPanel({
       <Text style={[styles.section, { color: colors.ink }]}>{t('safety.hotlineTitle')}</Text>
       <View style={styles.row}>
         <Action label={t('safety.callHotline')} color={colors.primary} onPress={() => openEmergencyLink('tel:18007997233', '1-800-799-7233')} />
-        <Action label={t('safety.textHotline')} color={colors.primary} onPress={() => openEmergencyLink('sms:88788', '88788')} />
+        <Action label={t('safety.textHotline')} color={colors.primary} onPress={() => openEmergencyLink(hotlineTextUrl(Platform.OS), '88788')} />
       </View>
       <Action label={t('safety.mattButton')} color={colors.green} onPress={() => router.push('/situation-brief' as never)} />
       {/* Where the words came from, so she can review them — never a bypass. */}

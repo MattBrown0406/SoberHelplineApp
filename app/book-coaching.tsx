@@ -184,7 +184,7 @@ export default function BookCoachingScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
       <View style={[styles.header, { borderBottomColor: colors.line }]}>
-        <TouchableOpacity onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(tabs)/support'); }} hitSlop={12}>
+        <TouchableOpacity onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(tabs)/support'); }} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('common:a11y.back')}>
           <Text style={[styles.back, { color: colors.primary }]}>‹</Text>
         </TouchableOpacity>
         <View>

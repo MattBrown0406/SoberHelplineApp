@@ -24,13 +24,14 @@ export default function ScriptsScreen() {
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('scripts');
   const { t: tCommon } = useTranslation('common');
-  const { q } = useLocalSearchParams<{ q?: string }>();
+  const { q, n } = useLocalSearchParams<{ q?: string; n?: string }>();
   const [query, setQuery] = useState('');
 
-  // Deep links (e.g. Today's "What do you need right now?") pre-fill the search.
+  // Deep links (e.g. Today's "What do you need right now?") pre-fill the search;
+  // `n` changes on every tap, so the same need fills it again.
   useEffect(() => {
     if (typeof q === 'string' && q.length > 0) setQuery(q);
-  }, [q]);
+  }, [q, n]);
 
   // Both the library and rotation are bundled. Opening this route performs no
   // account, loved-one, feed, or Supabase request.

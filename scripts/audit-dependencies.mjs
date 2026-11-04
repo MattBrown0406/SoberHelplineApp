@@ -20,7 +20,15 @@ const acceptedHighAdvisories = new Set([
   // PKCS#1 v1.5 signature parsing. Used only by Expo's CLI code-signing tools;
   // on-device update verification is native, and this project doesn't sign
   // updates. No patched release as of 2026-10-02 (1.4.0 is latest and affected).
+  // Overridden to the patched 1.4.2 since 2026-11-03.
   'https://github.com/advisories/GHSA-86w9-cpqp-85rv',
+  // decode-uri-component 0.2.2 (via expo-router → query-string 7): DoS on
+  // malformed %-escapes. The fix (0.5.1) is ESM-only and query-string 7
+  // require()s it; expo-router's fix needs a newer Expo SDK. Mitigated: every
+  // system-provided URL passes app/+native-intent.tsx, which sends a
+  // malformed or oversized one to '/' before expo-router parses it. Remove
+  // with the Expo SDK upgrade.
+  'https://github.com/advisories/GHSA-qr28-fpjm-wq7f',
 ]);
 
 let stdout = '';

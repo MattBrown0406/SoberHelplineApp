@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Linking,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -63,7 +64,7 @@ export default function InviteCodeScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
-      <View style={styles.body}>
+      <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
         <Text style={[styles.title, { color: colors.ink }]}>{t('invite.title')}</Text>
         <Text style={[styles.subtitle, { color: colors.inkSoft }]}>
           {t('invite.subtitle')}
@@ -131,7 +132,7 @@ export default function InviteCodeScreen() {
               )}
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => router.push('/(onboarding)/notifications')}
+              onPress={() => router.push('/(onboarding)/loved-one')}
               style={styles.skipBtn}
             >
               <Text style={[styles.skipText, { color: colors.inkSoft }]}>
@@ -140,14 +141,15 @@ export default function InviteCodeScreen() {
             </TouchableOpacity>
           </>
         )}
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  body: { flex: 1, justifyContent: 'center', padding: 28, alignSelf: 'center', width: '100%', maxWidth: 480 },
+  // A ScrollView: large accessibility text sizes must never push the buttons off screen.
+  body: { flexGrow: 1, justifyContent: 'center', padding: 28, alignSelf: 'center', width: '100%', maxWidth: 480 },
   title: { fontSize: 23, fontWeight: '700', letterSpacing: -0.3 },
   subtitle: { fontSize: 14, lineHeight: 21, marginTop: 8, marginBottom: 24 },
   input: {

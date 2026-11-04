@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { useLovedOne, type LovedOneStatus } from '../../src/hooks/useLovedOne';
+import { lovedOneChanges } from '../../src/lib/lovedOneForm';
 
 const RELATIONSHIPS = ['son', 'daughter', 'spouse', 'partner', 'parent', 'sibling', 'friend', 'other'] as const;
 const SUBSTANCES = ['alcohol', 'opioids', 'stimulants', 'cannabis', 'prescription', 'other'] as const;
@@ -25,7 +26,7 @@ export default function LovedOneScreen() {
   const { t } = useTranslation('onboarding');
   const { user } = useAccount();
   const router = useRouter();
-  const { save } = useLovedOne(user?.id ?? null);
+  const { lovedOne, save } = useLovedOne(user?.id ?? null);
 
   const [relationship, setRelationship] = useState<string | null>(null);
   const [firstName, setFirstName] = useState('');
@@ -34,6 +35,19 @@ export default function LovedOneScreen() {
   const [status, setStatus] = useState<LovedOneStatus | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // Onboarding can run again on a reinstall or a second phone: start from
+  // what she already saved instead of a blank form.
+  const prefilled = useRef<string | null>(null);
+  useEffect(() => {
+    if (!lovedOne || prefilled.current === lovedOne.id) return;
+    prefilled.current = lovedOne.id;
+    setRelationship(lovedOne.relationship);
+    setFirstName(lovedOne.first_name ?? '');
+    setSubstances(lovedOne.substances ?? []);
+    setStage(lovedOne.stage);
+    setStatus(lovedOne.status === 'unknown' ? null : lovedOne.status);
+  }, [lovedOne]);
+
   function toggleSubstance(s: string) {
     setSubstances((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
   }
@@ -41,13 +55,8 @@ export default function LovedOneScreen() {
   async function handleContinue() {
     setSaving(true);
     try {
-      await save({
-        relationship,
-        first_name: firstName.trim() || null,
-        substances,
-        stage,
-        status: status ?? 'unknown',
-      });
+      const input = lovedOneChanges(lovedOne, { relationship, firstName, substances, stage, status });
+      if (Object.keys(input).length) await save(input);
       router.push('/(onboarding)/notifications');
     } catch {
       appAlert(t('saveError.title'), t('saveError.body'));

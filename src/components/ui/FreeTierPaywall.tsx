@@ -50,8 +50,9 @@ export function FreeTierPaywall({ inline = false, feature }: { inline?: boolean;
 }
 
 const styles = StyleSheet.create({
+  // flexGrow, not flex: a taller-than-screen card (large text) must scroll.
   container: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,

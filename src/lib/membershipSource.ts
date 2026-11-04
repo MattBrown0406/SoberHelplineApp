@@ -47,3 +47,20 @@ export function isWebsiteMembership(
   );
   return websiteRank > 0 && websiteRank >= TIER_RANK[currentTier];
 }
+
+/**
+ * Every place an active membership is billed, independent of which tier the
+ * app shows: a member can pay the website and the App Store at once (e.g. a
+ * website Essential who upgraded to Premier in the app), and each keeps
+ * charging until it is cancelled where it was bought.
+ */
+export function membershipBilling(
+  rows: readonly MembershipEntitlementRow[],
+  now = new Date(),
+): { website: boolean; appStore: boolean } {
+  const active = rows.filter((row) => isActive(row, now));
+  return {
+    website: active.some(isWebsiteEntitlement),
+    appStore: active.some((row) => row.source === 'revenuecat'),
+  };
+}

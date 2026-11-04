@@ -72,5 +72,11 @@
   },
   "provider": {
     "credentialFull": "Profesional Certificado en Intervención"
+  },
+  "a11y": {
+    "back": "Atrás",
+    "send": "Enviar mensaje",
+    "addPhoto": "Agregar una foto",
+    "settings": "Configuración"
   }
 }

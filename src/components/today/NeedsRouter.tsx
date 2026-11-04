@@ -45,7 +45,8 @@ export function NeedsRouter() {
             style={[styles.chip, { borderColor: colors.line }]}
             activeOpacity={0.8}
             onPress={() => router.push((scriptTag
-              ? `/(tabs)/scripts?q=${encodeURIComponent(t(`scripts:tags.${scriptTag}`).toLowerCase())}`
+              // `n` makes a repeat tap search again after she cleared the box.
+              ? `/(tabs)/scripts?q=${encodeURIComponent(t(`scripts:tags.${scriptTag}`).toLowerCase())}&n=${Date.now()}`
               : route) as never)}
           >
             <Text style={styles.chipIcon}>{icon}</Text>

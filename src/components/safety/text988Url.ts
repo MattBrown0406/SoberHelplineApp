@@ -7,3 +7,8 @@ export function text988Url(language: string | undefined, os: string): string {
   if (!language?.startsWith('es')) return 'sms:988';
   return os === 'ios' ? 'sms:988&body=AYUDA' : 'sms:988?body=AYUDA';
 }
+
+/** "Text START to 88788" (Domestic Violence Hotline) with the body prefilled. */
+export function hotlineTextUrl(os: string): string {
+  return os === 'ios' ? 'sms:88788&body=START' : 'sms:88788?body=START';
+}

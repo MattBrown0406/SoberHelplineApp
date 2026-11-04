@@ -348,7 +348,7 @@ export default function LetterScreen() {
       {/* Recipient entry */}
       {step === 'recipient' && (
         <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backRow} hitSlop={12}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backRow} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('common:a11y.back')}>
             <Text style={[styles.backChevron, { color: colors.primary }]}>‹</Text>
           </TouchableOpacity>
 
@@ -384,6 +384,8 @@ export default function LetterScreen() {
           {/* Header */}
           <View style={[styles.header, { borderBottomColor: colors.line }]}>
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={t('common:a11y.back')}
               onPress={() => (stepIndex === 0 ? setStep('recipient') : setStep(STEPS[stepIndex - 1]))}
               hitSlop={12}
             >

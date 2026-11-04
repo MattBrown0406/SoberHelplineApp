@@ -1,9 +1,10 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { openEmergencyLink } from '../../lib/emergencyLinks';
+import { hotlineTextUrl } from '../safety/text988Url';
 import { EngineCard, Kicker } from './ui';
 
 /**
@@ -42,7 +43,7 @@ export function SafetyFirstPanel() {
         <EmergencyButton
           label={t('safety.textHotline')}
           color={colors.primary}
-          onPress={() => openEmergencyLink('sms:88788', '88788')}
+          onPress={() => openEmergencyLink(hotlineTextUrl(Platform.OS), '88788')}
         />
       </View>
 

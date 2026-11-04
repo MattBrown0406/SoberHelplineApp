@@ -1,7 +1,7 @@
 import { Stack, useNavigationContainerRef, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, AppState, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AccountProvider, useAccount } from '../src/contexts/AccountContext';
 import { ThemeProvider } from '../src/contexts/ThemeContext';
@@ -166,7 +166,10 @@ function InitialLayout() {
   );
 
   if (layoutState === 'account-error') {
-    return renderLayout(<View accessibilityRole="alert" accessibilityLiveRegion="assertive" style={{ flex: 1, padding: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F7F2E8', gap: 14 }}>
+    // Scrolls (and clears the notch): at large text sizes the emergency
+    // buttons below Retry must stay reachable.
+    return renderLayout(<ScrollView style={{ flex: 1, backgroundColor: '#F7F2E8' }} contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ flexGrow: 1 }}>
+    <View accessibilityRole="alert" accessibilityLiveRegion="assertive" style={{ flexGrow: 1, padding: 28, alignItems: 'center', justifyContent: 'center', gap: 14 }}>
       <Text style={{ fontSize: 24, fontWeight: '900', textAlign: 'center', color: '#173B3F' }}>{t('accountLoad.title')}</Text>
       <Text style={{ fontSize: 16, lineHeight: 23, textAlign: 'center', color: '#52676A' }}>{t('accountLoad.body')}</Text>
       <TouchableOpacity
@@ -181,12 +184,14 @@ function InitialLayout() {
       <View style={{ width: '100%', maxWidth: 480, marginTop: 12 }}>
         <EmergencyActions />
       </View>
-    </View>);
+    </View>
+    </ScrollView>);
   }
 
   if (layoutState === 'bootstrap') {
     return renderLayout(
-      <View accessibilityLiveRegion="polite" style={{ flex: 1, padding: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F7F2E8', gap: 16 }}>
+      <ScrollView style={{ flex: 1, backgroundColor: '#F7F2E8' }} contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ flexGrow: 1 }}>
+      <View accessibilityLiveRegion="polite" style={{ flexGrow: 1, padding: 28, alignItems: 'center', justifyContent: 'center', gap: 16 }}>
         <ActivityIndicator
           accessibilityRole="progressbar"
           accessibilityLabel={t('authBootstrap.title')}
@@ -203,6 +208,7 @@ function InitialLayout() {
           <EmergencyActions />
         </View>
       </View>
+      </ScrollView>
     );
   }
 

@@ -87,7 +87,7 @@ export default function InquiryScreen() {
   return (
     <ScreenContainer backgroundColor={colors.cream}>
       <View style={styles.bar}>
-        <TouchableOpacity onPress={() => router.back()} style={[styles.back, { borderColor: colors.line }]}>
+        <TouchableOpacity onPress={() => router.back()} style={[styles.back, { borderColor: colors.line }]} accessibilityRole="button" accessibilityLabel={t('common:a11y.back')}>
           <Text style={[styles.backIcon, { color: colors.primary }]}>‹</Text>
         </TouchableOpacity>
         <Text style={[styles.barTitle, { color: colors.primary }]}>{t('inquiry.barTitle')}</Text>

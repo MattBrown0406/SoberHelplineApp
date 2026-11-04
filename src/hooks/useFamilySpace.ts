@@ -293,6 +293,22 @@ export function useFamilySpace(accountId: string | null, labels: FamilySpaceLabe
     announceChange();
   }, [reload, announceChange]);
 
+  /** Owner only: removes a member (un-sharing what she shared, as on leave). */
+  const removeMember = useCallback(async (memberAccountId: string): Promise<void> => {
+    const { error } = await supabase.rpc('remove_family_member', { p_account_id: memberAccountId });
+    if (error) throw error;
+    await reload();
+    announceChange();
+  }, [reload, announceChange]);
+
+  /** Owner only: replaces the invite code so a forwarded code stops working. */
+  const regenerateInviteCode = useCallback(async (): Promise<void> => {
+    const { error } = await supabase.rpc('regenerate_family_invite_code');
+    if (error) throw error;
+    await reload();
+    announceChange();
+  }, [reload, announceChange]);
+
   const markWavering = useCallback(async (sharedWallId: string, shareWithFamily: boolean): Promise<void> => {
     const { data: eventId, error } = await supabase.rpc('record_wall_wavering', {
       p_shared_wall_id: sharedWallId,
@@ -334,6 +350,8 @@ export function useFamilySpace(accountId: string | null, labels: FamilySpaceLabe
     markWavering,
     commitWall,
     leave,
+    removeMember,
+    regenerateInviteCode,
     reload,
     refresh,
     fetchMemberCount,

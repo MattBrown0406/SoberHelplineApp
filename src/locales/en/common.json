@@ -72,5 +72,11 @@
   },
   "provider": {
     "credentialFull": "Certified Intervention Professional"
+  },
+  "a11y": {
+    "back": "Back",
+    "send": "Send message",
+    "addPhoto": "Add a photo",
+    "settings": "Settings"
   }
 }

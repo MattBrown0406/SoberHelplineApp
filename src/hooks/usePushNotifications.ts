@@ -28,6 +28,12 @@ async function setServerDailyOptIn(enabled: boolean): Promise<void> {
   if (error) throw error;
 }
 
+/** Mirrors the chosen reminder hour, which decides who sends the daily note. */
+async function setServerDailyHour(hour: number): Promise<void> {
+  const { error } = await supabase.rpc('set_daily_push_hour', { p_hour: hour });
+  if (error) throw error;
+}
+
 export async function disableDailyNudges(accountId: string): Promise<void> {
   await setServerDailyOptIn(false);
   await AsyncStorage.setItem(LEGACY_OPT_IN_KEY + accountId, 'false');
@@ -49,9 +55,15 @@ Notifications.setNotificationHandler({
 
 const REMINDER_HOUR_KEY = 'reminderHour';
 export const DEFAULT_REMINDER_HOUR = 9;
+// notify-daily-morning sends its note at the chosen hour only before noon.
+const MORNING_NOTE_BEFORE_HOUR = 12;
 const NUDGE_DAYS = 7; // schedule a week of nudges ahead so non-openers still get pinged
 const pushWriteBarrier = new AsyncWriteBarrier();
 let activePushAccountId: string | null = null;
+// The Expo token this device registered for an account. accounts.push_token
+// holds one token (the last device opened), so the server morning note only
+// covers this device's daily nudge when that token is this device's.
+let devicePushToken: { accountId: string; token: string } | null = null;
 let nudgeRearmQueue: Promise<void> = Promise.resolve();
 
 /** Null this account's server-side push token (used to settle an offline sign-out). */
@@ -74,6 +86,7 @@ export async function settleRevokeThenRegister(accountId: string): Promise<boole
 /** Invalidate token acquisition and wait for an already-started write to settle. */
 export async function cancelPushRegistration(accountId: string): Promise<void> {
   if (activePushAccountId === accountId) activePushAccountId = null;
+  if (devicePushToken?.accountId === accountId) devicePushToken = null;
   await pushWriteBarrier.cancelAndWait(accountId);
   await rearmDailyNudge();
 }
@@ -112,11 +125,16 @@ async function performDailyNudgeRearm(): Promise<void> {
   // Resolve the account before touching the schedule: offline the lookup
   // fails, and cancelling first would leave the week with no reminders.
   const { data: { session } } = await supabase.auth.getSession();
-  let account: { id: string; timezone: string | null; daily_push_opt_in: boolean } | null = null;
+  let account: {
+    id: string; timezone: string | null; daily_push_opt_in: boolean;
+    daily_push_hour: number | null; push_token: string | null;
+  } | null = null;
+  // The server morning note reaches her (via the token on file) at this hour.
+  let serverMorningNote = false;
   if (accountId && session?.user.id) {
     const { data, error } = await supabase
       .from('accounts')
-      .select('id, timezone, daily_push_opt_in')
+      .select('id, timezone, daily_push_opt_in, daily_push_hour, push_token')
       .eq('user_id', session.user.id)
       .maybeSingle();
     if (error) return;
@@ -124,9 +142,18 @@ async function performDailyNudgeRearm(): Promise<void> {
     // Only an explicit opt-in on this device consents to the server's daily
     // push; keep the server in step (older builds never reported it).
     const optedIn = await isDailyNudgeEnabled(accountId);
-    if (account?.id === accountId && account.daily_push_opt_in !== optedIn && current()) {
-      await setServerDailyOptIn(optedIn).catch(() => undefined);
+    let serverOptIn = account?.daily_push_opt_in ?? false;
+    if (account?.id === accountId && serverOptIn !== optedIn && current()) {
+      serverOptIn = await setServerDailyOptIn(optedIn).then(() => optedIn, () => serverOptIn);
     }
+    const chosenHour = await getReminderHour();
+    let serverHour = account?.daily_push_hour ?? DEFAULT_REMINDER_HOUR;
+    if (account?.id === accountId && serverHour !== chosenHour && current()) {
+      serverHour = await setServerDailyHour(chosenHour).then(() => chosenHour, () => serverHour);
+    }
+    serverMorningNote = account?.id === accountId && serverOptIn && !!account.push_token
+      && devicePushToken?.accountId === accountId && devicePushToken.token === account.push_token
+      && serverHour === chosenHour && chosenHour < MORNING_NOTE_BEFORE_HOUR;
   }
 
   // Only cancel identifiers this scheduler owns; unknown pre-namespace requests
@@ -154,7 +181,9 @@ async function performDailyNudgeRearm(): Promise<void> {
   const checkedInToday = (await getCheckIn(storageOwner, new Date(), timezone)) !== null;
   const now = new Date();
 
-  for (let i = 0; i < NUDGE_DAYS; i++) {
+  // A morning hour is covered by the server's morning note at that hour; a
+  // second, local notification at the same moment would be a duplicate.
+  for (let i = 0; i < (serverMorningNote ? 0 : NUDGE_DAYS); i++) {
     const fire = new Date();
     fire.setHours(hour, 0, 0, 0);
     fire.setDate(fire.getDate() + i);
@@ -227,6 +256,7 @@ export async function registerForPushNotifications(accountId: string, requestPer
     const { data, error } = await tokenWrite;
     if (error || data !== true) throw error ?? new Error('push_token_not_registered');
     if (!pushWriteBarrier.isCurrent(accountId, generation) || activePushAccountId !== accountId) return false;
+    devicePushToken = { accountId, token };
 
     // Only onboarding/daily-reminder Settings actions pass this third flag.
     // RSVP, practice pushes and automatic device registration are not daily consent.

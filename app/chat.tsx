@@ -12,6 +12,7 @@ import {
   Modal,
   Pressable,
   Image,
+  ScrollView,
 } from 'react-native';
 import { appAlert } from '../src/lib/appAlert';
 import * as ImagePicker from 'expo-image-picker';
@@ -160,7 +161,7 @@ function ChatContent() {
         <TouchableOpacity accessibilityRole="button" style={{ minHeight: 44, justifyContent: 'center', paddingHorizontal: 20 }} onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(tabs)/support'); }}>
           <Text style={{ color: colors.primary }}>‹ {t('textline.back')}</Text>
         </TouchableOpacity>
-        <View style={styles.gatedWrap}>
+        <ScrollView contentContainerStyle={styles.gatedWrap}>
           <Text style={[styles.gatedTitle, { color: colors.ink }]}>{t('textline.gatedTitle')}</Text>
           <TouchableOpacity accessibilityRole="button" style={{ minHeight: 44, justifyContent: 'center', padding: 12 }} onPress={() => router.push('/crisis-mode')}>
             <Text style={{ color: colors.primary }}>{t('textline.freeUrgentHelp')}</Text>
@@ -169,7 +170,7 @@ function ChatContent() {
           <TouchableOpacity style={[styles.gatedButton, { backgroundColor: colors.primary }]} onPress={() => router.push('/(tabs)/support')}>
             <Text style={styles.gatedButtonText}>{t('textline.viewPlans')}</Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -209,7 +210,7 @@ function ChatContent() {
       </Modal>
 
       <View style={[styles.header, { borderBottomColor: colors.line }]}>
-        <TouchableOpacity onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(tabs)/support'); }} hitSlop={12}>
+        <TouchableOpacity onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(tabs)/support'); }} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('common:a11y.back')}>
           <Text style={[styles.back, { color: colors.primary }]}>‹</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
@@ -366,6 +367,8 @@ function ChatContent() {
 
           <View style={[styles.inputRow, { borderTopColor: colors.line }]}>
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={t('common:a11y.addPhoto')}
               style={[styles.attachBtn, { borderColor: colors.line }]}
               onPress={() => void pickAttachment()}
               disabled={sending || pendingAttachments.length >= 3}
@@ -382,6 +385,8 @@ function ChatContent() {
               multiline
             />
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={t('common:a11y.send')}
               style={[styles.sendBtn, { backgroundColor: canSend && !sending ? colors.primary : colors.line }]}
               onPress={() => void handleSend()}
               disabled={!canSend || sending}
@@ -406,7 +411,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   chatColumn: { flex: 1, alignSelf: 'center', width: '100%', maxWidth: MAX_CONTENT_WIDTH },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  gatedWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28 },
+  gatedWrap: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 28 },
   gatedTitle: { fontSize: 24, fontWeight: '800', textAlign: 'center', marginBottom: 10 },
   gatedBody: { fontSize: 15, lineHeight: 22, textAlign: 'center', marginBottom: 18 },
   gatedButton: { borderRadius: 12, paddingVertical: 12, paddingHorizontal: 22 },

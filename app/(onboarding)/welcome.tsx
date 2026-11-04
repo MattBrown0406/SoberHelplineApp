@@ -40,11 +40,12 @@ function WelcomeContent() {
         </TouchableOpacity>
 
         {/* Direct path skips coach-sharing consent — per consent-architecture,
-            direct users are asked at first coach interaction instead. */}
+            direct users are asked at first coach interaction instead — but
+            still gets the loved-one intake (it has its own Skip). */}
         <TouchableOpacity
           style={[styles.choiceBtn, styles.choiceBtnOutline]}
           activeOpacity={0.85}
-          onPress={() => router.push('/(onboarding)/notifications')}
+          onPress={() => router.push('/(onboarding)/loved-one')}
         >
           <Text style={[styles.choiceTitle, { color: '#fff' }]}>
             {t('welcome.directButton')}

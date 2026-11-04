@@ -39,13 +39,18 @@ Deno.serve(async (req) => {
       return new Response('no Family Squares session row — link NOT saved', { status: 500 });
     }
     const nextAt = nextFamilySquaresStart(new Date()).toISOString();
-    const { data: current } = await supabase.from('sessions').select('zoom_url, next_at').eq('id', sessionId).maybeSingle();
+    const { data: current } = await supabase.from('sessions')
+      .select('zoom_url, next_at, zoom_url_override_until').eq('id', sessionId).maybeSingle();
     const sameNext = current?.next_at && new Date(current.next_at as string).toISOString() === nextAt;
-    if (current?.zoom_url === link && sameNext) return new Response('unchanged');
+    // A link Matt set in Admin holds until that call ends (admin_update_family_squares_zoom_url).
+    const overridden = typeof current?.zoom_url_override_until === 'string'
+      && Date.parse(current.zoom_url_override_until) > Date.now();
+    const zoomUrl = overridden ? current?.zoom_url : link;
+    if (current?.zoom_url === zoomUrl && sameNext) return new Response(overridden ? 'unchanged (admin link)' : 'unchanged');
 
-    const { error } = await supabase.from('sessions').update({ zoom_url: link, next_at: nextAt }).eq('id', sessionId);
+    const { error } = await supabase.from('sessions').update({ zoom_url: zoomUrl, next_at: nextAt }).eq('id', sessionId);
     if (error) return new Response('update failed', { status: 500 });
-    return new Response(`updated → ${nextAt}${current?.zoom_url === link ? '' : ' (new link)'}`);
+    return new Response(`updated → ${nextAt}${current?.zoom_url === zoomUrl ? '' : ' (new link)'}`);
   } catch {
     return new Response('sync failed', { status: 500 });
   }

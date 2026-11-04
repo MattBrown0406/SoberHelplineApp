@@ -38,7 +38,7 @@ import { openStoreReviewFromSettings } from '../src/lib/reviewPrompt';
 import { isOfflineFallbackError } from '../src/lib/offlineAccountCache';
 import { offlineOutbox } from '../src/lib/offlineOutbox';
 import { hasOutboxImpact, outboxImpact } from '../src/lib/localSignOut';
-import { isWebsiteMembership, type MembershipEntitlementRow } from '../src/lib/membershipSource';
+import { membershipBilling, type MembershipEntitlementRow } from '../src/lib/membershipSource';
 
 const CONSENT_SHARE_CHECKINS = '2';
 const CONSENT_VERSION = '1.0';
@@ -109,20 +109,21 @@ export default function SettingsScreen() {
     return () => { active = false; };
   }, [user?.id]);
 
-  // Where this member's Essential/Premier comes from: a soberhelpline.com
-  // membership is billed there (plain text only — App Store 3.1.1).
-  const [websiteMembership, setWebsiteMembership] = useState(false);
+  // Where this member's Essential/Premier is billed: a soberhelpline.com
+  // membership is billed there (plain text only — App Store 3.1.1), and she
+  // may also have an App Store subscription; each keeps charging on its own.
+  const [billing, setBilling] = useState({ website: false, appStore: false });
+  const websiteMembership = billing.website;
   useEffect(() => {
-    setWebsiteMembership(false);
+    setBilling({ website: false, appStore: false });
     if (!user || isAttached || accountState === 'direct-free') return;
-    const currentTier = accountState === 'direct-premium' ? 'premium' : 'essential';
     let active = true;
     void supabase
       .from('entitlements')
       .select('source, tier, expires_at, granted_by:raw->>granted_by')
       .then(({ data, error }) => {
         if (!active || error || !data) return;
-        setWebsiteMembership(isWebsiteMembership(data as MembershipEntitlementRow[], currentTier));
+        setBilling(membershipBilling(data as MembershipEntitlementRow[]));
       });
     return () => { active = false; };
   }, [user?.id, isAttached, accountState]);
@@ -446,7 +447,12 @@ export default function SettingsScreen() {
     appAlert(
       t('deleteAccount.confirmTitle'),
       hasOwnSubscription
-        ? `${t('deleteAccount.confirmMessage')}\n\n${t(websiteMembership ? 'deleteAccount.subscriptionNoteWeb' : 'deleteAccount.subscriptionNote')}`
+        ? [
+          t('deleteAccount.confirmMessage'),
+          ...(billing.website ? [t('deleteAccount.subscriptionNoteWeb')] : []),
+          // Unknown source (e.g. a purchase not mirrored yet) keeps the App Store note.
+          ...(billing.appStore || !billing.website ? [t('deleteAccount.subscriptionNote')] : []),
+        ].join('\n\n')
         : t('deleteAccount.confirmMessage'),
       [
         { text: t('deleteAccount.cancelButton'), style: 'cancel' },
@@ -505,7 +511,7 @@ export default function SettingsScreen() {
     <ScreenContainer backgroundColor={colors.cream}>
         {/* Header */}
         <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(tabs)'); }} hitSlop={12}>
+          <TouchableOpacity onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(tabs)'); }} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('common:a11y.back')}>
             <Text style={[styles.backChevron, { color: colors.primary }]}>‹</Text>
           </TouchableOpacity>
           <Text style={[styles.heading, { color: colors.ink }]}>{t('title')}</Text>
@@ -593,7 +599,7 @@ export default function SettingsScreen() {
                 </Text>
                 {websiteMembership ? (
                   <Text style={[styles.infoLabel, { color: colors.ink, marginBottom: 12 }]}>
-                    {t('membership.websiteSource')}
+                    {t(billing.appStore ? 'membership.websiteAlsoSource' : 'membership.websiteSource')}
                   </Text>
                 ) : null}
                 {/* Kept for everyone: App Store billing (if any) is managed there. */}

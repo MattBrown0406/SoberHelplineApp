@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -45,7 +45,7 @@ export default function ConsentScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
-      <View style={styles.body}>
+      <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
         <Text style={styles.icon}>🤝</Text>
         <Text style={[styles.title, { color: colors.ink }]}>{t('consent.title')}</Text>
         <Text style={[styles.bodyText, { color: colors.inkSoft }]}>
@@ -69,14 +69,15 @@ export default function ConsentScreen() {
             {t('consent.declineButton')}
           </Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  body: { flex: 1, justifyContent: 'center', padding: 28, alignSelf: 'center', width: '100%', maxWidth: 480 },
+  // A ScrollView: large accessibility text sizes must never push the buttons off screen.
+  body: { flexGrow: 1, justifyContent: 'center', padding: 28, alignSelf: 'center', width: '100%', maxWidth: 480 },
   icon: { fontSize: 40, marginBottom: 12 },
   title: { fontSize: 23, fontWeight: '700', letterSpacing: -0.3 },
   bodyText: { fontSize: 14.5, lineHeight: 22, marginTop: 10, marginBottom: 30 },

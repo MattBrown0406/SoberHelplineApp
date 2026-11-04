@@ -149,7 +149,7 @@ test('safety-first panel offers 911, the DV hotline (call and text) and Matt', (
   ui.press('safety.callHotline');
   ui.press('safety.textHotline');
   ui.press('safety.mattButton');
-  assert.deepEqual(links, [['tel:911'], ['tel:18007997233', '1-800-799-7233'], ['sms:88788', '88788']]);
+  assert.deepEqual(links, [['tel:911'], ['tel:18007997233', '1-800-799-7233'], ['sms:88788&body=START', '88788']]);
   assert.deepEqual(ui.routes, ['/situation-brief']);
   assert.match(ui.text(), /safety\.body/);
   assert.doesNotMatch(ui.text(), /familyBody/, 'never says someone in the family flagged anything');
@@ -262,7 +262,7 @@ test('crisis resources offer 911, 988 (call and text), the DV hotline and Matt â
   const { mount } = harness({ '../../lib/emergencyLinks': { openEmergencyLink: (...args: unknown[]) => links.push(args) } });
   const ui = mount('src/components/invitation/CrisisResourcesPanel.tsx', 'CrisisResourcesPanel', {});
   for (const label of ['crisis.call911', 'crisis.call988', 'crisis.text988', 'safety.callHotline', 'safety.textHotline', 'safety.mattButton']) ui.press(label);
-  assert.deepEqual(links, [['tel:911'], ['tel:988'], ['sms:988', '988'], ['tel:18007997233', '1-800-799-7233'], ['sms:88788', '88788']]);
+  assert.deepEqual(links, [['tel:911'], ['tel:988'], ['sms:988', '988'], ['tel:18007997233', '1-800-799-7233'], ['sms:88788&body=START', '88788']]);
   assert.deepEqual(ui.routes, ['/situation-brief']);
   assert.doesNotMatch(ui.text(), /kit\.|lines\./);
 });

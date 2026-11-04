@@ -183,7 +183,9 @@ SELECT is(pg_temp.delivery(id),NULL,'removed report already acted upon') FROM wo
 DELETE FROM invitation_attempts WHERE id='dd900000-0000-0000-0000-000000000003';
 SELECT is(pg_temp.delivery(id),NULL,'deleted yes event is no longer relevant') FROM work WHERE kind='yes';
 UPDATE threads SET last_admin_read_at=NULL,archived_at=now() WHERE id='dd900000-0000-0000-0000-000000000004';
-SELECT is(pg_temp.delivery(id),NULL,'archived textline no longer prompts reply') FROM work WHERE kind='textline';
+SELECT ok(pg_temp.delivery(id) IS NOT NULL,'a textline archived with an unread member message still prompts reply') FROM work WHERE kind='textline';
+UPDATE threads SET last_admin_read_at=now() WHERE id='dd900000-0000-0000-0000-000000000004';
+SELECT is(pg_temp.delivery(id),NULL,'once read, an archived textline no longer prompts reply') FROM work WHERE kind='textline';
 
 
 -- Current free-call preferences and RSVP are rechecked using an explicit clock
@@ -193,6 +195,13 @@ CREATE FUNCTION pg_temp.call_delivery(k text,at_time timestamptz DEFAULT '2026-1
 $$;
 DELETE FROM session_rsvps WHERE account_id=pg_temp.aid(1);
 SELECT ok(pg_temp.call_delivery('family_call_30min') IS NOT NULL,'free family call positive control');
+-- 6:30 PM Pacific is 2:30 AM in London: never invite her in the middle of her night.
+CREATE TEMP TABLE saved_tz AS SELECT timezone FROM accounts WHERE id=pg_temp.aid(1);
+UPDATE accounts SET timezone='Europe/London' WHERE id=pg_temp.aid(1);
+SELECT is(pg_temp.call_delivery('family_call_30min'),NULL,'free family call invite waits for daytime where she is');
+UPDATE accounts SET timezone='America/New_York' WHERE id=pg_temp.aid(1);
+SELECT ok(pg_temp.call_delivery('family_call_30min') IS NOT NULL,'and still reaches US members in the evening');
+UPDATE accounts SET timezone=(SELECT timezone FROM saved_tz) WHERE id=pg_temp.aid(1);
 SELECT is(pg_temp.call_delivery('session_reminder','2026-10-06T01:05:00Z'),NULL,'session reminder requires going RSVP');
 INSERT INTO session_rsvps(account_id,session_id,status) VALUES(pg_temp.aid(1),family_squares_session_id(),'going');
 SELECT ok(pg_temp.call_delivery('session_reminder','2026-10-06T01:05:00Z') IS NOT NULL,'going RSVP valid');

@@ -264,7 +264,7 @@ test('every crisis card shows 911, 988 and the DV hotline; the kind only orders 
   assert.match(card, /openEmergencyLink\('tel:18007997233', '1-800-799-7233'\)/);
   assert.match(card, /openEmergencyLink\(hotlineTextUrl\(\), '88788'\)/);
   // START is prefilled (iOS uses &body=, Android ?body=).
-  assert.match(card, /os === 'ios' \? 'sms:88788&body=START' : 'sms:88788\?body=START'/);
+  assert.match(readFileSync('src/components/safety/text988Url.ts', 'utf8'), /os === 'ios' \? 'sms:88788&body=START' : 'sms:88788\?body=START'/);
   const order = card.slice(card.indexOf('const ORDER'), card.indexOf('};', card.indexOf('const ORDER')));
   for (const kind of ['self_harm', 'abuse', 'unknown']) {
     const line = order.split('\n').find((l) => l.trim().startsWith(`${kind}:`)) ?? '';

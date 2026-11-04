@@ -113,3 +113,11 @@ test('universal links are declared for the /app namespace only and push routing 
   const layout = readFileSync('app/_layout.tsx', 'utf8');
   assert.match(layout, /router\.replace\(\(takePendingDeepLink\(\) \?\? '\/\(tabs\)'\) as never\)/);
 });
+
+test('a malformed or oversized incoming URL never reaches expo-router\'s query parser', () => {
+  // decode-uri-component 0.2 is exponential on malformed %-escapes (GHSA-qr28-fpjm-wq7f).
+  assert.equal(redirectSystemPath({ path: 'sober-helpline://x?a=' + '%C2'.repeat(50) + '%E0%A4%A', initial: true }), '/');
+  assert.equal(redirectSystemPath({ path: 'sober-helpline://x?a=' + 'b'.repeat(5000), initial: false }), '/');
+  // Well-formed escapes still pass through untouched.
+  assert.equal(redirectSystemPath({ path: 'sober-helpline://x?a=%C3%A5', initial: false }), 'sober-helpline://x?a=%C3%A5');
+});

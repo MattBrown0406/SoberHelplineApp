@@ -60,7 +60,7 @@ export default function PlanInterventionScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
         <View style={[styles.header, { borderBottomColor: colors.line }]}>
-          <TouchableOpacity onPress={() => router.back()} hitSlop={12} accessibilityRole="button">
+          <TouchableOpacity onPress={() => router.back()} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('common:a11y.back')}>
             <Text style={[styles.back, { color: colors.primary }]}>‹</Text>
           </TouchableOpacity>
         </View>
@@ -94,7 +94,7 @@ export default function PlanInterventionScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
         <View style={[styles.header, { borderBottomColor: colors.line }]}>
-          <TouchableOpacity onPress={() => router.back()} hitSlop={12} accessibilityRole="button">
+          <TouchableOpacity onPress={() => router.back()} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('common:a11y.back')}>
             <Text style={[styles.back, { color: colors.primary }]}>‹</Text>
           </TouchableOpacity>
         </View>
@@ -135,7 +135,7 @@ export default function PlanInterventionScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
       <View style={[styles.header, { borderBottomColor: colors.line }]}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={12}>
+        <TouchableOpacity onPress={() => router.back()} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('common:a11y.back')}>
           <Text style={[styles.back, { color: colors.primary }]}>‹</Text>
         </TouchableOpacity>
       </View>

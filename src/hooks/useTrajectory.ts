@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { trajectoryWeeks } from '../lib/trackerWeek';
 
 export interface WeekPoint {
   week: string; // YYYY-MM-DD (Monday)
@@ -10,17 +11,12 @@ export interface WeekPoint {
 
 export type TrajectoryTrend = 'improving' | 'worsening' | 'steady' | 'none';
 
-function mondayOf(d: Date): Date {
-  const day = d.getUTCDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + diff));
-}
 
 /**
  * Weekly warning/recovery aggregates from tracker_logs over the last `weeks`
  * weeks (continuous, zero-filled), plus a coarse trend read for the funnel.
  */
-export function useTrajectory(accountId: string | null, weeks = 6) {
+export function useTrajectory(accountId: string | null, weeks = 6, timezone?: string | null) {
   const [points, setPoints] = useState<WeekPoint[]>([]);
   const [trend, setTrend] = useState<TrajectoryTrend>('none');
   const [loading, setLoading] = useState(true);
@@ -34,9 +30,8 @@ export function useTrajectory(accountId: string | null, weeks = 6) {
     }
     setLoading(true);
 
-    const start = mondayOf(new Date());
-    start.setUTCDate(start.getUTCDate() - (weeks - 1) * 7);
-    const startStr = start.toISOString().slice(0, 10);
+    const weekKeys = trajectoryWeeks(new Date(), weeks, timezone);
+    const startStr = weekKeys[0];
 
     const { data } = await supabase
       .from('tracker_logs')
@@ -45,11 +40,7 @@ export function useTrajectory(accountId: string | null, weeks = 6) {
       .gte('week', startStr);
 
     const buckets = new Map<string, { warnings: number; recoveries: number }>();
-    for (let i = 0; i < weeks; i++) {
-      const d = new Date(start);
-      d.setUTCDate(d.getUTCDate() + i * 7);
-      buckets.set(d.toISOString().slice(0, 10), { warnings: 0, recoveries: 0 });
-    }
+    for (const week of weekKeys) buckets.set(week, { warnings: 0, recoveries: 0 });
     (data ?? []).forEach((r) => {
       const wk = String(r.week).slice(0, 10);
       const b = buckets.get(wk);
@@ -68,7 +59,7 @@ export function useTrajectory(accountId: string | null, weeks = 6) {
     setPoints(pts);
     setTrend(computeTrend(pts));
     setLoading(false);
-  }, [accountId, weeks]);
+  }, [accountId, weeks, timezone]);
 
   useEffect(() => {
     void load();

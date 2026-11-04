@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { useTranslation } from 'react-i18next';
+import { appAlert } from '../../src/lib/appAlert';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -103,6 +104,8 @@ function TodayContent() {
     try {
       newlyHeld = await holdLog.save(result, share);
     } catch {
+      // Same message as the Boundaries tab's hold log.
+      appAlert(i18n.t('alignment:holdLog.errorTitle'), i18n.t('alignment:holdLog.errorMessage'));
       return;
     }
     if (!newlyHeld) return;

@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { openEmergencyLink } from '../../lib/emergencyLinks';
-import { text988Url } from '../safety/text988Url';
+import { hotlineTextUrl as sharedHotlineTextUrl, text988Url } from '../safety/text988Url';
 import type { SafetyKind } from '../../hooks/useRehearsalPartner';
 
 type Resource = 'call911' | 'call988' | 'text988' | 'callHotline' | 'textHotline';
@@ -19,7 +19,7 @@ const ORDER: Record<SafetyKind, Resource[]> = {
 
 /** "Text START to 88788" with the body prefilled (iOS and Android spell the query differently). */
 export function hotlineTextUrl(os: string = Platform.OS): string {
-  return os === 'ios' ? 'sms:88788&body=START' : 'sms:88788?body=START';
+  return sharedHotlineTextUrl(os);
 }
 
 function open(resource: Resource, language: string): void {

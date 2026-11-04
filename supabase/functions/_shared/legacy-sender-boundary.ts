@@ -59,7 +59,7 @@ export function remaining(deadline: number): number {
 export async function freshDailyAccount(db: SupabaseClient, id: string, day?: string) {
   const since7 = new Date(Date.now() - 7 * 86400000).toISOString();
   const since14 = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
-  let query = db.from('accounts').select(`id, push_token, locale, timezone, daily_push_opt_in,
+  let query = db.from('accounts').select(`id, push_token, locale, timezone, daily_push_opt_in, daily_push_hour,
     recent_checkins:checkins(mood), today_checkins:checkins(checkin_date),
     tracker_logs(kind), loved_ones(status, stage, stage_changed_at, status_changed_at)`)
     .eq('id', id).gte('recent_checkins.created_at', since7).gte('tracker_logs.week', since14);
