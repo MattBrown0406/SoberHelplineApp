@@ -17,43 +17,43 @@ Password: APPREVIEW
 A free account; paid features unlock after a sandbox purchase.
 
 WHAT'S NEW IN 4.2
-- Members using the app in Spanish see La Sobremesa, our free Spanish Monday call (from AyudaSobria.com, personal Zoom link); English members keep The Family Squares. Spanish education opens on AyudaSobria.com; iOS prompts are in Spanish on Spanish devices.
-- Today leads with the free Monday call: save a seat, send a question ahead, see "this week's one thing"; the next morning, one note with it (only with Monday call reminders on).
-- Holiday Plan (Tools tab; a Today card Nov 1 to Jan 6): who is invited, on what terms, and what happens if the terms break. Saved only on the device; "Share this plan" opens the iOS share sheet.
-- Today asks, in one tap, where things stand with her loved one, so the support it shows matches.
-- A 26-week family reading; Crisis Mode adds "Arrested, in jail, or calling from jail"; the FAQ covers bail, court-ordered treatment and medication; Tools adds a letter asking a prosecutor for treatment instead of jail (general information, not legal or medical advice).
+- Today leads with the free Monday call (The Family Squares; La Sobremesa for members using Spanish, from AyudaSobria.com): save a seat, send a question ahead, and one note the next morning (only with call reminders on).
+- Tools tab: Holiday Plan (also a Today card Nov 1 to Jan 6), "How to choose a treatment program", and a letter asking a prosecutor for treatment instead of jail. Plans and letters are saved only on the device; sharing uses the iOS share sheet.
+- Crisis Mode adds "Arrested, in jail, or calling from jail"; the FAQ covers bail, court-ordered treatment and medication. General information, not legal or medical advice.
+- Today asks in one tap where things stand with her loved one; a 26-week family reading.
+- If a member says her loved one died (Today or Settings), Today shows grief resources (988, GRASP, The Compassionate Friends), loved-one content and related notifications stop, and she can pause all reminders. Undo is in Settings.
 - If an App Store free trial is offered, the plan screen states its length, the price after it and how to cancel; ineligible members never see one.
-- Restore Purchases waits for the server to confirm. The community feed is no longer offered.
+- The community feed is no longer offered.
 
 WHAT THE APP IS
 Support for families of people struggling with addiction: check-ins, boundary tools, education, conversation practice, peer support and coaches. Coaching, education and peer support only, not medical care, therapy or treatment.
 
 IN-APP PURCHASES
-Essential and Premier auto-renewable subscriptions are sold only through Apple in-app purchase. The app never links to another way to buy a membership or any digital content.
+Essential and Premier auto-renewable subscriptions are sold only through Apple in-app purchase. The app never links to another way to buy a membership or digital content.
 
 1:1 COACHING (Guideline 3.1.3(d))
-"Book coaching" opens soberhelpline.com/book-consultation in Safari, where the member books and pays for a live, real-time one-to-one session with a person (a Sober Helpline coach). The same screen has a no-payment request form. Essential members may book a 60-minute live plan review with a coach and pay on the website; Premier members get it in their Apple subscription.
+"Book coaching" opens soberhelpline.com/book-consultation in Safari, where the member books and pays for a live one-to-one session with a person (a Sober Helpline coach). A no-payment request form is on the same screen. Essential members may book a 60-minute plan review and pay on the website; Premier includes it.
 
-WEBSITE PAGES OPENED FROM THE APP
-Coaching booking, the members' library, recordings and the forum open in Safari with a single-use sign-in token and a "from the app" marker (Spanish: AyudaSobria.com, same way). Those pages hide all membership purchase links.
+WEBSITE PAGES
+Coaching booking, the members' library, recordings and the forum open in Safari with a single-use sign-in token and a "from the app" marker (Spanish: AyudaSobria.com). Those pages hide all membership purchase links.
 
 LIVE SUPPORT GROUPS (Guideline 1.2)
-Support tab > Groups > "Join live" (Essential and Premier, while a host is live). Groups are hosted by our staff; members can chat in the room, and the host can remove and ban a participant.
+Support > Groups > "Join live" (Essential and Premier, while a host is live). Hosted by our staff; members can chat, and the host can remove and ban a participant.
 
 QUESTIONS FOR THE MONDAY CALL
-Members who saved a seat for The Family Squares can send a question ahead (Today > "Send a question for the call", or Support). Questions go only to our team, never to other members. A question describing an emergency shows 911, 988 and Poison Control at once and alerts our team; if one cannot be sent, the same numbers show with a retry.
+Questions go only to our team. One describing an emergency shows 911, 988 and Poison Control at once and alerts our team; if one cannot be sent, the same numbers show with a retry.
 
 CRISIS / SAFETY
-911 and 988 are prominent and never behind a paywall. The app is not an emergency service; this is stated in the app and the description. Practice tools pause and show 911, 988 and the Domestic Violence Hotline if a member describes a crisis or abuse.
+911 and 988 are prominent and never behind a paywall. The app is not an emergency service, as stated in the app and the description. Practice tools pause and show 911, 988 and the Domestic Violence Hotline if a member describes a crisis or abuse.
 
 PROVIDER ACCOUNTS
 Some families join through an invited provider and see its branding. The demo account is direct.
 
 CAMERA / MIC
-Used only when a host goes live in a group or in a 1:1 coaching call. Attendees are view-only.
+Only when a host goes live in a group or in a 1:1 coaching call. Attendees are view-only.
 
 ACCOUNT DELETION
-Support tab > Settings (gear) > Delete account.
+Support > Settings (gear) > Delete account.
 
 PRIVACY
 https://soberhelpline.com/privacy and https://soberhelpline.com/app-terms. Check-ins, letters and messages are private to the user (and her coach), never sold or used for ads.
