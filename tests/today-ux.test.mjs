@@ -100,8 +100,10 @@ test('both Today tiers place needs and check-in ahead of event/share promotions'
   const source = readFileSync(new URL('../app/(tabs)/index.tsx', import.meta.url), 'utf8');
   const screens = source.split('<ScreenContainer').slice(1); assert.equal(screens.length, 2);
   for (const screen of screens) {
-    assert.ok(screen.indexOf('<NeedsRouter') < screen.indexOf('<SituationCard'));
-    assert.ok(screen.indexOf('{checkInCard}') < screen.indexOf('<SituationCard'));
+    // Immediate help first; then the free Monday call leads (saving a seat is
+    // a new member's first step), then the check-in.
+    assert.ok(screen.indexOf('<NeedsRouter') < screen.indexOf('{mondayCallCard}'));
+    assert.ok(screen.indexOf('{mondayCallCard}') < screen.indexOf('{checkInCard}'));
     assert.ok(screen.indexOf('disclosure.connection') < screen.indexOf('<PassItOnCard'));
     assert.ok(screen.includes('<MoodChart'));
   }

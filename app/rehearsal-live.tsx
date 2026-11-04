@@ -1,3 +1,4 @@
+import { logToolUsage } from '../src/lib/toolUsage';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -334,6 +335,7 @@ function RehearsalLiveContent() {
     if (safetyBreak) return;
     handledDebriefRef.current = debrief;
     void increment();
+    logToolUsage('rehearsal', 'finished');
     const spoken = messages.filter((m) => m.role === 'user');
     const report = analyzeDelivery(
       spoken.map((m) => ({ text: m.text, clips: m.clips })),

@@ -4,6 +4,7 @@ import { useAccount } from '../contexts/AccountContext';
 import Purchases, { type PurchasesOfferings, type PurchasesPackage } from 'react-native-purchases';
 import { purchaseRevenueCatPackage } from '../lib/revenueCat';
 import { setReviewPromptPurchaseFlow } from '../lib/reviewPrompt';
+import { freeTrialOffer, type TrialOffer } from '../lib/subscriptionTrial';
 
 export type SubscriptionTier = 'essential' | 'premium';
 export type PurchaseResult = 'success' | 'cancelled' | 'failed';
@@ -46,6 +47,8 @@ export function useIAP() {
   const [purchasing, setPurchasing] = useState(false);
   const [iapError, setIapError] = useState<string | null>(null);
   const [prices, setPrices] = useState<Partial<Record<SubscriptionTier, string>>>({});
+  // A free trial the store will give her (eligibility checked), per tier.
+  const [trials, setTrials] = useState<Partial<Record<SubscriptionTier, TrialOffer>>>({});
 
   const [priceAttempt, setPriceAttempt] = useState(0);
   const retryPrices = () => setPriceAttempt((value) => value + 1);
@@ -65,6 +68,25 @@ export function useIAP() {
           ...(premium ? { premium: premium.product.priceString } : {}),
         });
         if (essential && premium) autoRetries.current = 0;
+        const packages = { essential, premium };
+        const ids = [essential, premium].flatMap((pkg) => (pkg?.product.introPrice ? [pkg.product.identifier] : []));
+        if (!ids.length) {
+          setTrials({});
+          return;
+        }
+        // No answer means no trial shown: the purchase sheet still states the terms.
+        Purchases.checkTrialOrIntroductoryPriceEligibility(ids)
+          .then((eligibility) => {
+            if (!active) return;
+            const next: Partial<Record<SubscriptionTier, TrialOffer>> = {};
+            for (const tier of ['essential', 'premium'] as const) {
+              const pkg = packages[tier];
+              const offer = pkg ? freeTrialOffer(pkg.product.introPrice, eligibility[pkg.product.identifier]?.status) : null;
+              if (offer) next[tier] = offer;
+            }
+            setTrials(next);
+          })
+          .catch(() => { if (active) setTrials({}); });
       })
       .catch(() => {
         // Do not invent a price. The buy buttons stay disabled until a load
@@ -134,6 +156,7 @@ export function useIAP() {
     purchasing: purchasing && lifetime.purchasing,
     iapError,
     prices,
+    trials,
     retryPrices,
   };
 }

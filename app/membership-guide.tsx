@@ -1,3 +1,4 @@
+import { useToolOpened } from '../src/hooks/useToolOpened';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -12,6 +13,7 @@ import { walletMembershipCopy } from '../src/content/walletMembershipCopy';
 import { membershipGuideContent } from '../src/membershipGuide/content';
 
 export default function MembershipGuide() {
+  useToolOpened('membership_guide');
   const router = useRouter();
   const { i18n } = useTranslation();
   const { colors } = useTheme();

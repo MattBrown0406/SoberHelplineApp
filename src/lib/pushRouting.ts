@@ -1,5 +1,6 @@
 import type { Entitlements, ProductFeature } from '../api/types';
 import { canAccessFeature } from './featureAccess';
+import { COMMUNITY_FEED_VISIBLE } from './communityFeed';
 
 /**
  * Push `data` contract — the only thing a notification tap may say to the app.
@@ -14,7 +15,8 @@ import { canAccessFeature } from './featureAccess';
  * | practice_incoming          | event_id, expires_at   | /rehearsal-incoming (discarded when expired)  |
  * | coach_message              | thread_id?             | /chat (coach messaging) else Support           |
  * | member_message             | thread_id?             | /admin-thread (coach device)                   |
- * | session_reminder           | session_id?, room_name?| /live-room (community) or Support + session_id |
+ * | session_reminder           | session_id?, room_name?, ask? | /live-room (community) or Support + session_id (ask=question opens its question sheet) |
+ * | family_call_followup       | meeting_date?          | Today (this week's one thing, next Monday's seat) |
  * | morning_note, daily_nudge  | screen? (tab name)     | that tab, default Today                        |
  * | winback                    | —                      | /guided-journey                                |
  * | family_backup              | wavering_event_id?     | Boundaries (where the family wall lives)       |
@@ -79,7 +81,7 @@ export type PushDestination =
   | { pathname: '/invitation-engine' }
   | { pathname: '/crisis-mode'; params: { focus: 'session' } }
   | { pathname: '/(tabs)' }
-  | { pathname: '/(tabs)/support'; params?: { sessionId: string } }
+  | { pathname: '/(tabs)/support'; params?: { sessionId: string; ask?: 'question' } }
   | { pathname: '/(tabs)/boundaries' }
   | { pathname: '/(tabs)/tracker' }
   | { pathname: '/(tabs)/learn' };
@@ -151,7 +153,16 @@ export function getPushDestination(data: PushData, options: PushRoutingOptions |
       return { pathname: '/live-room', params: { room: roomName } };
     }
     const sessionId = uuidField(data, 'session_id');
-    return sessionId ? { pathname: '/(tabs)/support', params: { sessionId } } : SUPPORT;
+    if (!sessionId) return SUPPORT;
+    // The hour-before reminder invites a question for the call.
+    return data.ask === 'question'
+      ? { pathname: '/(tabs)/support', params: { sessionId, ask: 'question' } }
+      : { pathname: '/(tabs)/support', params: { sessionId } };
+  }
+
+  // Tuesday after The Family Squares: this week's one thing is on Today.
+  if (kind === 'family_call_followup') {
+    return HOME;
   }
 
   if (kind === 'morning_note' || kind === 'daily_nudge') {
@@ -187,7 +198,7 @@ export function getPushDestination(data: PushData, options: PushRoutingOptions |
 
   // Someone supported the member's community post.
   if (kind === 'community_support') {
-    return allowed('community') ? { pathname: '/community' } : SUPPORT;
+    return COMMUNITY_FEED_VISIBLE && allowed('community') ? { pathname: '/community' } : SUPPORT;
   }
 
   if (kind === 'group_live') {

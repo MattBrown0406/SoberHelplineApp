@@ -21,6 +21,8 @@ import { isAdminEmail } from '../src/lib/admin';
 import { supabase } from '../src/lib/supabase';
 import { useAdminVideoSessions } from '../src/hooks/useAdminVideoSessions';
 import type { AdminBriefRow } from '../src/lib/situationBrief';
+import { FamilyCallTakeawayCard } from '../src/components/admin/FamilyCallTakeawayCard';
+import { ToolUsageCard } from '../src/components/admin/ToolUsageCard';
 
 type FunnelStats = {
   members: number;
@@ -48,7 +50,7 @@ type ReferralResourceStats = {
   last_30_days: { monday_call_share_requests: number; boundary_print_requests: number };
 };
 type RsvpRow = { first_name: string; last_name: string; email: string; rsvped_at: string };
-type QuestionRow = { id: string; first_name: string; last_name: string; question: string; submitted_at: string };
+type QuestionRow = { id: string; first_name: string; last_name: string; question: string; submitted_at: string; crisis_tier?: string | null };
 type ThreadRow = {
   thread_id: string;
   first_name: string;
@@ -184,6 +186,7 @@ export default function AdminScreen() {
       <Text style={[styles.heading, { color: colors.ink }]}>Admin</Text>
 
       <InvitationStatsCard />
+      <ToolUsageCard />
 
       {/* ── Funnel & family health ── */}
       <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
@@ -311,6 +314,8 @@ export default function AdminScreen() {
         )}
       </View>
 
+      <FamilyCallTakeawayCard />
+
       {/* ── RSVP List ── */}
       <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
         <Text style={[styles.cardTitle, { color: colors.ink }]}>
@@ -365,6 +370,11 @@ export default function AdminScreen() {
             )}
             renderItem={({ item }) => (
               <View style={styles.questionRow}>
+                {item.crisis_tier ? (
+                  <Text accessibilityRole="alert" style={[styles.questionText, { color: colors.coral, fontWeight: '700', marginBottom: 4 }]}>
+                    Needs a look now: mentions a possible emergency
+                  </Text>
+                ) : null}
                 <Text style={[styles.questionText, { color: colors.ink }]}>"{item.question}"</Text>
                 <Text style={[styles.rsvpName, { color: colors.inkSoft, marginTop: 4 }]}>
                   — {item.first_name} {item.last_name} · {new Date(item.submitted_at).toLocaleDateString()}

@@ -1,3 +1,5 @@
+import { logToolUsage } from '../src/lib/toolUsage';
+import { useToolOpened } from '../src/hooks/useToolOpened';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -11,6 +13,7 @@ import { content } from '../src/samplePractice/content';
 import { advance, back, loadPractice, resetPractice, savePractice, type Practice, type Language } from '../src/samplePractice/model';
 
 export default function FreePracticeRoute() {
+  useToolOpened('free_practice');
   const { user } = useAccount();
   const { i18n } = useTranslation();
   const language: Language = i18n.language.startsWith('es') ? 'es' : 'en';
@@ -50,6 +53,7 @@ export function FreePracticeScreen({ userId, language }: {
     return () => { mounted.current = false; };
   }, [userId]);
   function persist(next: Practice) {
+    if (next.completed && !practice?.completed) logToolUsage('free_practice', 'finished');
     if (userId) void run(async () => { return await savePractice(AsyncStorage, userId, next); }, next.completed && !practice?.completed);
   }
   function withDraft(): Practice {

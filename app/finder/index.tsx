@@ -1,3 +1,4 @@
+import { useToolOpened } from '../../src/hooks/useToolOpened';
 import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
@@ -39,6 +40,7 @@ const CAT_EMOJI: Record<ProviderType, string> = {
 const CAT_ORDER: ProviderType[] = ['center', 'interventionist', 'coach'];
 
 export default function FinderScreen() {
+  useToolOpened('finder');
   const { colors } = useTheme();
   const { t } = useTranslation('finder');
   const router = useRouter();

@@ -1,3 +1,4 @@
+import { useToolOpened } from '../src/hooks/useToolOpened';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
@@ -30,6 +31,7 @@ function weekLabel(week: string): string {
 }
 
 export default function TrajectoryScreen() {
+  useToolOpened('trajectory');
   const { user } = useAccount();
   return <TrajectoryContent key={user?.id ?? 'signed-out'} />;
 }

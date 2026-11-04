@@ -6,7 +6,7 @@ import { isFamilySquaresReminderHour } from "../_shared/family-squares-time.ts";
 
 // Engagement push dispatcher. pg_cron invokes it with { job }:
 //   drain            — send queued push_outbox rows (community hearts, etc.)
-//   session_reminder — "Monday group starts soon" to everyone RSVP'd going
+//   session_reminder — "Monday group starts soon" to everyone RSVP'd going (asks for a question)
 //   winback          — gentle nudge to members silent for 5+ days
 // All sends go through Expo's push API using tokens stored on accounts.
 
@@ -527,12 +527,14 @@ serve(async (req) => {
             : halfHour
             ? (es ? "Llamada gratuita de apoyo familiar por Zoom a las 7:00 PM (Pacífico). Ven tal como estás — toca para unirte."
               : "Free family support call on Zoom at 7:00 PM Pacific. Come as you are — tap to join.")
-            : (es ? "Tu grupo comienza en aproximadamente una hora. Tu lugar está guardado — ven tal como estás."
-              : "Your group starts in about an hour. Your seat is saved — come as you are."),
+            : (es ? "Empieza en aproximadamente una hora y tu lugar está guardado. ¿Algo que quieras que se trate? Toca para enviar una pregunta."
+              : "Starts in about an hour and your seat is saved. Anything you'd like covered? Tap to send a question."),
           sound: "default", expiresAt: force === true && !winback
             ? new Date(Math.min(Date.parse(target.expires_at), Date.now() + (halfHour ? 1800 : 3600) * 1000)).toISOString()
             : target.expires_at,
-          data: winback ? winbackData() : sessionReminderData(target.session_id),
+          data: winback ? winbackData()
+            // The hour-before reminder is for members who saved a seat: invite a question.
+            : sessionReminderData(target.session_id, { askQuestion: !halfHour }),
         };
       }), clearDeadTokens, async (index) => {
         const target = targets[index];

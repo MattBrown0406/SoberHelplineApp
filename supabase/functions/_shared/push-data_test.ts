@@ -39,6 +39,8 @@ Deno.test('ids are attached under fixed keys and only when they are uuids', () =
   assertEquals(memberMessageData(UUID), { kind: 'member_message', thread_id: UUID }, 'member thread');
   assertEquals(sessionReminderData(UUID), { kind: 'session_reminder', session_id: UUID }, 'session');
   assertEquals(sessionReminderData(undefined), { kind: 'session_reminder' }, 'session without id');
+  assertEquals(sessionReminderData(UUID, { askQuestion: true }), { kind: 'session_reminder', session_id: UUID, ask: 'question' }, 'hour-before reminder asks for a question');
+  assertEquals(sessionReminderData(undefined, { askQuestion: true }), { kind: 'session_reminder' }, 'no question sheet without a session');
   assertEquals(familyBackupData(UUID), { kind: 'family_backup', wavering_event_id: UUID }, 'backup');
   assertEquals(familyBackupData(42), { kind: 'family_backup' }, 'backup non-string');
 });

@@ -52,7 +52,7 @@ for (const [file, wrapper, child] of [
 ]) test(`${wrapper}: private form lifetime is keyed to account, stable on token refresh`, () => {
   let user = { id: 'A' };
   const element = (type, props) => ({ type, props });
-  const run = callback(file, wrapper, { React: { createElement: element }, useAccount: () => ({ user }), [child]: child });
+  const run = callback(file, wrapper, { React: { createElement: element }, useAccount: () => ({ user }), useToolOpened: () => {}, [child]: child });
   assert.equal(run({}).props.key, 'A'); user = { id: 'A', token: 'refresh' }; assert.equal(run({}).props.key, 'A');
   user = { id: 'B' }; assert.equal(run({}).props.key, 'B'); user = null; assert.equal(run({}).props.key, 'signed-out');
 });
@@ -198,6 +198,7 @@ test('trajectory first share sends once using the real enabled hook, never the o
     '../src/hooks/useTrajectory': { useTrajectory: () => ({ points: [], loading: false, trend: 'steady' }) },
     '../src/hooks/useThread': { useThread: f.useThread }, '../src/lib/supabase': { supabase: f.supabase },
     '../src/lib/appAlert': { appAlert: x => alerts.push(x) }, '../src/components/ui/ScreenContainer': { MAX_CONTENT_WIDTH: 800 },
+    '../src/hooks/useToolOpened': { useToolOpened: () => {} },
   });
   const render = () => { const root = mod.default(); return typeof root.type === 'function' ? root.type(root.props) : root; };
   const walk = node => !node || typeof node !== 'object' ? [] : [node, ...(node.props?.children ?? []).flat(Infinity).flatMap(walk)];

@@ -1,3 +1,5 @@
+import { logToolUsage } from '../src/lib/toolUsage';
+import { useToolOpened } from '../src/hooks/useToolOpened';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -57,6 +59,7 @@ function formatBookingTime(value: string, timeZone: string | undefined, language
 }
 
 export default function BookCoachingScreen() {
+  useToolOpened('book_coaching');
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('support');
   const { user } = useAccount();
@@ -160,6 +163,7 @@ export default function BookCoachingScreen() {
       if (error) throw error;
       if (submissionScope.current !== scope) return;
       setSubmitted(true);
+      logToolUsage('book_coaching', 'finished');
       setSelectedDate(null);
       setSelectedPeriod(null);
       setContact('');

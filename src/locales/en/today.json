@@ -460,7 +460,10 @@
     "interventionSub": "When it's time for more than an app, Matt will walk with you step by step.",
     "finderLink": "Find treatment & support near you →",
     "sendBrief": "Send Matt this week",
-    "sendBriefSub": "Put your last two weeks in front of Matt — your check-ins, warning signs, and boundaries. He reads every brief and replies personally."
+    "sendBriefSub": "Put your last two weeks in front of Matt — your check-ins, warning signs, and boundaries. He reads every brief and replies personally.",
+    "askQuestion": "Send a question for the call",
+    "oneThing": "THIS WEEK'S ONE THING",
+    "oneThingFromCall": "THIS WEEK'S ONE THING · FROM MONDAY'S CALL"
   },
   "curriculum": {
     "weekLabel": "WEEK {{week}}",

@@ -1,3 +1,4 @@
+import { useToolOpened } from '../../src/hooks/useToolOpened';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
 import { randomUUID } from 'expo-crypto';
@@ -40,6 +41,7 @@ import type { BoundaryWall } from '../../src/api/types';
 type BoundariesContent = typeof enContent;
 
 export default function BoundariesScreen() {
+  useToolOpened('boundaries');
   const { colors } = useTheme();
   const { user, isAttached } = useAccount();
   const { t: tCommon, i18n } = useTranslation('common');

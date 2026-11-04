@@ -1,3 +1,4 @@
+import { useToolOpened } from '../src/hooks/useToolOpened';
 import React, { useMemo, useState } from 'react';
 import {
   Share,
@@ -68,6 +69,7 @@ function SelectionRow({
 }
 
 export default function EnablingCostsScreen() {
+  useToolOpened('enabling_costs');
   const router = useRouter();
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('enablingCosts');

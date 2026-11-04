@@ -1,3 +1,4 @@
+import { useToolOpened } from '../src/hooks/useToolOpened';
 import React, { useEffect } from 'react';
 import {
   View,
@@ -25,6 +26,7 @@ import { treatmentActionProgress } from '../src/lib/treatmentActionPlan';
  * even then it's an invitation, never a push. Safety lines stay primary.
  */
 export default function PlanInterventionScreen() {
+  useToolOpened('plan_intervention');
   const { colors } = useTheme();
   const { t } = useTranslation('support');
   const { t: tActionPlan } = useTranslation('treatmentActionPlan');

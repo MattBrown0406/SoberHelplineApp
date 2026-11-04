@@ -1,3 +1,4 @@
+import { logToolUsage } from '../../src/lib/toolUsage';
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -46,6 +47,7 @@ export default function InquiryScreen() {
         note: note.trim() || undefined,
       });
       setSubmitted(true);
+      logToolUsage('finder', 'finished');
     } catch {
       appAlert(t('inquiry.errorTitle'), t('inquiry.errorBody'));
     } finally {

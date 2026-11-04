@@ -1,3 +1,5 @@
+import { logToolUsage } from '../src/lib/toolUsage';
+import { useToolOpened } from '../src/hooks/useToolOpened';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
@@ -115,6 +117,7 @@ function StepDot({ active, done, colors }: { active: boolean; done: boolean; col
 // ── Main screen ───────────────────────────────────────────────────────────────
 
 export default function LetterScreen() {
+  useToolOpened('letter');
   const { colors } = useTheme();
   const { user, isAttached } = useAccount();
   const { t, i18n } = useTranslation('letter');
@@ -322,6 +325,7 @@ export default function LetterScreen() {
     setFinishing(true);
     try {
       await updateDraft({ status: 'complete' });
+      logToolUsage('letter', 'finished');
       if (accountIdRef.current !== user.id) return;
       setTimeout(() => {
         if (accountIdRef.current !== user.id) return;

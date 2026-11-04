@@ -40,7 +40,7 @@ function screen(kind, os, delayed) {
     } } },
     Platform: { OS: os }, FileSystem: { cacheDirectory: 'cache/', EncodingType: { Base64: 'base64' }, writeAsStringAsync: async () => {} },
     messages: [{ role: 'user', text: 'hello' }, { role: 'partner', text: 'reply' }],
-    debrief: null, handledDebriefRef: { current: null }, increment() {}, analyzeDelivery() { return {}; }, language: 'en', practiceText: null,
+    debrief: null, handledDebriefRef: { current: null }, increment() {}, logToolUsage() {}, analyzeDelivery() { return {}; }, language: 'en', practiceText: null,
     setDelivery() {}, setDifficulty() {}, persistSession() {}, user: null,
     finishBlocked: false, hangUpBlocked: false, requestDebrief() { scope.debrief = {}; },
     setStage(value) { scope.stage = value; }, transcriptBeforeUserTurn() { return []; }, restore() { scope.debrief = null; },

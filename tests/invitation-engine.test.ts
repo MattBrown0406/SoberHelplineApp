@@ -218,14 +218,17 @@ test('a logged yes opens They Said Yes mode; the plan screen honours focus=yes',
   assert.doesNotMatch(plan, /Alert\.alert/);
 });
 
-test('Today shows the engine card on both tiers, after check-in and before events', () => {
+test('Today shows the engine card on both tiers, after check-in; the Monday call card leads', () => {
   const today = readFileSync('app/(tabs)/index.tsx', 'utf8');
   const screens = today.split('<ScreenContainer').slice(1);
   assert.equal(screens.length, 2);
   for (const screen of screens) {
     assert.ok(screen.includes('{invitationCard}'));
     assert.ok(screen.indexOf('{checkInCard}') < screen.indexOf('{invitationCard}'));
-    assert.ok(screen.indexOf('{invitationCard}') < screen.indexOf('<SituationCard'));
+    // The free Monday call leads, right after immediate help (NeedsRouter).
+    assert.ok(screen.indexOf('<NeedsRouter') < screen.indexOf('{mondayCallCard}'));
+    assert.ok(screen.indexOf('{mondayCallCard}') < screen.indexOf('{checkInCard}'));
+    assert.ok(!screen.includes('<SituationCard'), 'rendered once, through mondayCallCard');
   }
 });
 

@@ -1,3 +1,4 @@
+import { useToolOpened } from '../src/hooks/useToolOpened';
 import React, { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -10,6 +11,7 @@ import { REMINDER_CATEGORIES, type ReminderCategory } from '../src/reminders/per
 import { usePersonalReminders } from '../src/reminders/usePersonalReminders';
 
 export default function PersonalRemindersScreen() {
+  useToolOpened('personal_reminders');
   const { user, isLoading } = useAccount();
   return <ReminderContent key={user?.id ?? 'signed-out'} accountId={user?.id ?? null} loadingAccount={isLoading} />;
 }

@@ -1,3 +1,4 @@
+import { useToolOpened } from '../../src/hooks/useToolOpened';
 import { useMemo, useState } from 'react';
 import { Text, TextInput, TouchableOpacity, View, StyleSheet } from 'react-native';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
@@ -42,6 +43,7 @@ function FaqRow({ item, colors }: { item: FaqItem; colors: ReturnType<typeof use
 }
 
 export default function LearnScreen() {
+  useToolOpened('learn');
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('learn');
   // AyudaSobria's library (/recursos) is public and La Sobremesa is not

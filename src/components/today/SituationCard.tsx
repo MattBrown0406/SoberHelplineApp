@@ -11,20 +11,29 @@ import { useSessionSchedule } from '../../hooks/useSessionSchedule';
 import { isFamilySquaresSession, isLaSobremesaSession } from '../../lib/familySquaresSchedule';
 import { withAppContext } from '../../lib/websiteLinks';
 
+/** This week's one thing: Matt's line from the call, else her own week's practice. */
+export interface WeeklyOneThing {
+  text: string;
+  fromCall: boolean;
+}
+
 interface Props {
   nextFreeCall: FreeCall | null;
   primaryDoor: FunnelDoor;
+  weeklyOneThing?: WeeklyOneThing | null;
   onRsvp: () => void;
   onSupportCallJoin?: () => Promise<void>;
   onSupportCallOpenFailed?: () => Promise<void>;
 }
 
 /**
- * Today's lead card. The free Monday call is the daily anchor; below it, when
+ * Today's lead card, first on the screen after immediate help. The free
+ * Monday call is the daily anchor (saving a seat is the first thing a new
+ * member is asked to do), with this week's one thing from it; below, when
  * the family's situation warrants it, a higher-intent door (coaching or
  * intervention) is offered. The free call is never gated — it's the entry rung.
  */
-export function SituationCard({ nextFreeCall, primaryDoor, onRsvp, onSupportCallJoin, onSupportCallOpenFailed }: Props) {
+export function SituationCard({ nextFreeCall, primaryDoor, weeklyOneThing, onRsvp, onSupportCallJoin, onSupportCallOpenFailed }: Props) {
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('today');
   const router = useRouter();
@@ -101,11 +110,30 @@ export function SituationCard({ nextFreeCall, primaryDoor, onRsvp, onSupportCall
         </TouchableOpacity>
       )}
 
+      {isFamilySquares && nextFreeCall?.rsvped && (
+        <TouchableOpacity
+          accessibilityRole="button"
+          onPress={() => router.push({ pathname: '/(tabs)/support', params: { sessionId: nextFreeCall.id, ask: 'question' } })}
+          activeOpacity={0.75}
+          style={styles.rsvpLink}
+        >
+          <Text style={[styles.rsvpLinkText, { color: colors.primary }]}>{t('situationCta.askQuestion')}</Text>
+        </TouchableOpacity>
+      )}
       {isFamilySquares && (
         <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:familySquares.rsvpNote')}</Text>
       )}
       {isLaSobremesaSession(nextFreeCall) && (
         <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:laSobremesa.note')}</Text>
+      )}
+
+      {weeklyOneThing && (
+        <View style={[styles.oneThing, { borderTopColor: colors.line }]}>
+          <Text style={[styles.oneThingLabel, { color: colors.primary }]}>
+            {t(weeklyOneThing.fromCall ? 'situationCta.oneThingFromCall' : 'situationCta.oneThing')}
+          </Text>
+          <Text style={[styles.oneThingText, { color: colors.ink }]}>{weeklyOneThing.text}</Text>
+        </View>
       )}
 
       {primaryDoor !== 'free_call' && doorRoute && (
@@ -191,4 +219,7 @@ const styles = StyleSheet.create({
   rsvpLink: { alignItems: 'center', marginTop: 10 },
   rsvpLinkText: { fontSize: 13, fontWeight: '600' },
   rsvpNote: { fontSize: 12, lineHeight: 17, marginTop: 10 },
+  oneThing: { marginTop: 16, paddingTop: 14, borderTopWidth: 1 },
+  oneThingLabel: { fontSize: 11.5, fontWeight: '800', letterSpacing: 0.6, marginBottom: 6 },
+  oneThingText: { fontSize: 14.5, lineHeight: 21 },
 });

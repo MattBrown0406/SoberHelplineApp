@@ -1,3 +1,4 @@
+import { useToolOpened } from '../src/hooks/useToolOpened';
 import React, { useMemo } from 'react';
 import {
   ActivityIndicator,
@@ -34,6 +35,7 @@ type Controller = ReturnType<typeof useHomecomingWeek>;
 type ChoiceOption = { value: string; label: string };
 
 export default function HomecomingWeekScreen() {
+  useToolOpened('homecoming_week');
   const router = useRouter();
   const { t } = useTranslation('homecomingWeek');
   const { colors } = useTheme();

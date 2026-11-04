@@ -9,7 +9,12 @@ export type PushTab = "today" | "support" | "boundaries" | "tracker" | "learn";
 export type PushData =
   | { kind: "coach_message"; thread_id?: string }
   | { kind: "member_message"; thread_id?: string }
-  | { kind: "session_reminder"; session_id?: string; room_name?: string }
+  // ask: "question" — the reminder invites a question for the call; the app
+  // opens the question sheet for that session.
+  | { kind: "session_reminder"; session_id?: string; room_name?: string; ask?: "question" }
+  // Tuesday after The Family Squares: enqueued in SQL
+  // (enqueue_family_call_followups) with exactly this payload. Opens Today.
+  | { kind: "family_call_followup"; meeting_date?: string }
   | { kind: "morning_note"; screen: PushTab }
   | { kind: "daily_nudge"; screen: PushTab }
   | { kind: "winback" }
@@ -33,8 +38,13 @@ export function memberMessageData(threadId: unknown): PushData {
   return { kind: "member_message", ...(uuidOrUndefined(threadId) ? { thread_id: uuidOrUndefined(threadId) } : {}) };
 }
 
-export function sessionReminderData(sessionId: unknown): PushData {
-  return { kind: "session_reminder", ...(uuidOrUndefined(sessionId) ? { session_id: uuidOrUndefined(sessionId) } : {}) };
+export function sessionReminderData(sessionId: unknown, options: { askQuestion?: boolean } = {}): PushData {
+  const id = uuidOrUndefined(sessionId);
+  return {
+    kind: "session_reminder",
+    ...(id ? { session_id: id } : {}),
+    ...(id && options.askQuestion ? { ask: "question" as const } : {}),
+  };
 }
 
 export function morningNoteData(screen: PushTab): PushData {

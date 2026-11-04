@@ -1,3 +1,4 @@
+import { useToolOpened } from '../src/hooks/useToolOpened';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -53,6 +54,7 @@ const FIT_RISKS = ['recentViolence', 'weaponInHouse', 'activePsychosis', 'overdo
 const FIT_CAPABILITIES = ['familyUnitedOnOneSolution', 'canExecuteBasicsWithoutTutorial'] as const;
 
 export default function DiyInterventionPlannerScreen() {
+  useToolOpened('diy_planner');
   return (
     <Gate
       feature="diyIntervention"

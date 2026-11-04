@@ -1,3 +1,4 @@
+import { useToolOpened } from '../src/hooks/useToolOpened';
 import React, { useMemo } from 'react';
 import {
   ActivityIndicator,
@@ -26,6 +27,7 @@ import {
 type TextFieldKey = Exclude<keyof FamilyVisitationPlan, 'commitments' | 'updatedAt'>;
 
 export default function FamilyVisitationPlanScreen() {
+  useToolOpened('visitation_plan');
   const router = useRouter();
   const { t } = useTranslation('familyVisitationPlan');
   const { colors } = useTheme();

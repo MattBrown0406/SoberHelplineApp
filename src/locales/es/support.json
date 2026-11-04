@@ -60,7 +60,14 @@
     "viewPlans": "Ver planes",
     "subscribeEssential": "Suscribirse a Essential · {{price}}/mes",
     "subscribePremium": "Mejorar a Premier · {{price}}/mes",
-    "autoRenewDisclosure": "Essential cuesta {{essentialPrice}} al mes y Premier cuesta {{premiumPrice}} al mes, facturados a tu cuenta de Apple. Las suscripciones se renuevan automáticamente a menos que se desactiven al menos 24 horas antes del final del período actual. Administra o cancela en cualquier momento en la configuración de tu cuenta de Apple."
+    "autoRenewDisclosure": "Essential cuesta {{essentialPrice}} al mes y Premier cuesta {{premiumPrice}} al mes, facturados a tu cuenta de Apple. Las suscripciones se renuevan automáticamente a menos que se desactiven al menos 24 horas antes del final del período actual. Administra o cancela en cualquier momento en la configuración de tu cuenta de Apple.",
+    "trialDays_one": "prueba gratis de {{count}} día",
+    "trialDays_other": "prueba gratis de {{count}} días",
+    "trialMonths_one": "prueba gratis de {{count}} mes",
+    "trialMonths_other": "prueba gratis de {{count}} meses",
+    "trialThen": "Incluye una {{trial}}; luego {{price}}/mes",
+    "startTrial": "Empezar {{trial}} · luego {{price}}/mes",
+    "trialDisclosure": "Una prueba gratis se convierte en una suscripción pagada al terminar, a menos que la canceles al menos 24 horas antes de que termine."
   },
   "mondayGroup": {
     "eyebrow": "ACCESO GRATUITO",
@@ -98,7 +105,8 @@
     "iapNoOfferings": "Las suscripciones no están disponibles ahora. Inténtalo más tarde.",
     "close": "Ahora no",
     "privacyPolicy": "Política de privacidad",
-    "termsOfUse": "Términos de uso"
+    "termsOfUse": "Términos de uso",
+    "trialRenewalNote": "Primero, una {{trial}}; luego {{price}} al mes, cobrado a tu Cuenta de Apple. Si cancelas al menos 24 horas antes de que termine la prueba, no se te cobrará. Se renueva automáticamente a menos que lo desactives al menos 24 horas antes de que termine el período. Administra o cancela cuando quieras en los ajustes de tu Cuenta de Apple."
   },
   "questionModal": {
     "button": "Hacer una pregunta",
@@ -109,7 +117,9 @@
     "submitted": "¡Pregunta enviada!",
     "errorTitle": "La pregunta no se envió",
     "errorBody": "Tu pregunta no se guardó. Revisa tu conexión e inténtalo de nuevo.",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "crisisNote": "Tu pregunta se envió. Si alguien está en peligro ahora mismo, no esperes a la llamada del lunes. Busca ayuda ya:",
+    "done": "Listo"
   },
   "groups": {
     "eyebrow": "Grupos moderados",

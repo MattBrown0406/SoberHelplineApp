@@ -1,3 +1,5 @@
+import { logToolUsage } from '../src/lib/toolUsage';
+import { useToolOpened } from '../src/hooks/useToolOpened';
 import React, { useMemo, useState } from 'react';
 import {
   View,
@@ -34,6 +36,7 @@ const BAND_COLOR: Record<SituationBand, string> = {
 };
 
 export default function SituationBriefScreen() {
+  useToolOpened('situation_brief');
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('brief');
   const { t: tTracker } = useTranslation('tracker');
@@ -82,6 +85,7 @@ export default function SituationBriefScreen() {
     const result = await send(note);
     if (result.ok) {
       setPhase('sent');
+      logToolUsage('situation_brief', 'finished');
     } else if (result.code === 'too_soon') {
       setPhase('tooSoon');
     } else {

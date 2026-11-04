@@ -1,3 +1,4 @@
+import { useToolOpened } from '../src/hooks/useToolOpened';
 import React, { useRef, useState } from 'react';
 import {
   View,
@@ -31,6 +32,7 @@ import { MAX_CONTENT_WIDTH } from '../src/components/ui/ScreenContainer';
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😢', '😮', '👎'] as const;
 
 export default function ChatScreen() {
+  useToolOpened('chat');
   const { user } = useAccount();
   return <ChatContent key={user?.id ?? 'signed-out'} />;
 }

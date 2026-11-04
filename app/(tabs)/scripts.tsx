@@ -1,3 +1,4 @@
+import { useToolOpened } from '../../src/hooks/useToolOpened';
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
@@ -21,6 +22,7 @@ export function localDailyScriptSlot(date = new Date()): number {
 }
 
 export default function ScriptsScreen() {
+  useToolOpened('scripts');
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('scripts');
   const { t: tCommon } = useTranslation('common');

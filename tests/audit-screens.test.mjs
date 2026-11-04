@@ -8,7 +8,8 @@ import ts from 'typescript';
 // Execute the actual screen callbacks, not copied implementations. Native UI,
 // network and React state setters are replaced with deterministic test doubles.
 function action(file, name, bindings, kind = 'function') {
-  bindings = { submissionScope: { current: { accountId: bindings.user?.id } }, ...bindings };
+  // Usage events (src/lib/toolUsage) are fire-and-forget; screens' outcomes never depend on them.
+  bindings = { submissionScope: { current: { accountId: bindings.user?.id } }, logToolUsage: () => true, ...bindings };
   const source = process.env.AUDIT_SCREENS_BASELINE
     ? execFileSync('git', ['show', `HEAD:app/${file}`], { cwd: fileURLToPath(new URL('..', import.meta.url)), encoding: 'utf8' })
     : readFileSync(new URL(`../app/${file}`, import.meta.url), 'utf8');

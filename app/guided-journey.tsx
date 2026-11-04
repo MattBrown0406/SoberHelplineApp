@@ -1,3 +1,4 @@
+import { useToolOpened } from '../src/hooks/useToolOpened';
 import React, { useState } from 'react';
 import { Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -10,6 +11,7 @@ import { useGuidedStart } from '../src/hooks/useGuidedStart';
 import { guidedStartCopy } from '../src/content/guidedStartCopy';
 import { JOURNEY_STEPS, JOURNEY_ROUTES, completeJourneyStep } from '../src/lib/guidedStart';
 export default function GuidedJourneyScreen() {
+  useToolOpened('guided_journey');
   const { user } = useAccount();
   return <Journey key={user?.id ?? 'none'} accountId={user?.id ?? null} />;
 }

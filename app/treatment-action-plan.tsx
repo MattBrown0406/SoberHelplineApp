@@ -1,3 +1,4 @@
+import { useToolOpened } from '../src/hooks/useToolOpened';
 import React, { useMemo } from 'react';
 import {
   ActivityIndicator,
@@ -30,6 +31,7 @@ const CATEGORIES = ['admission', 'departure', 'coverage'] as const;
 const STATUSES: TreatmentActionStatus[] = ['not_started', 'working', 'confirmed'];
 
 export default function TreatmentActionPlanScreen() {
+  useToolOpened('treatment_action_plan');
   const router = useRouter();
   const { colors } = useTheme();
   const { t } = useTranslation('treatmentActionPlan');

@@ -1,3 +1,5 @@
+import { logToolUsage } from '../src/lib/toolUsage';
+import { useToolOpened } from '../src/hooks/useToolOpened';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -21,6 +23,7 @@ type Phase = 'prompt' | 'recording' | 'playback' | 'selfcheck' | 'done';
 const SELF_CHECK_QUESTIONS = ['calm', 'additions', 'pace'] as const;
 
 export default function RehearsalScreen() {
+  useToolOpened('rehearsal');
   return <RouteActivationGate><RehearsalContent /></RouteActivationGate>;
 }
 
@@ -150,6 +153,7 @@ function RehearsalContent() {
       setQuestionIndex((i) => i + 1);
     } else {
       increment();
+      logToolUsage('rehearsal', 'finished');
       setPhase('done');
     }
   }

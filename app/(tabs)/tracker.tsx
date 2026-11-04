@@ -1,3 +1,4 @@
+import { useToolOpened } from '../../src/hooks/useToolOpened';
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   View,
@@ -97,6 +98,7 @@ function SignToggle({
 }
 
 export default function TrackerScreen() {
+  useToolOpened('tracker');
   return <Gate feature="tracker"><TrackerContent /></Gate>;
 }
 

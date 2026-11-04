@@ -1,3 +1,4 @@
+import { useToolOpened } from '../src/hooks/useToolOpened';
 import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -27,6 +28,7 @@ import {
 } from '../src/lib/familyOutcomes';
 
 export default function FamilyOutcomesScreen() {
+  useToolOpened('family_outcomes');
   const router = useRouter();
   const params = useLocalSearchParams<{ event?: string; pathway?: string }>();
   const { t } = useTranslation('familyOutcomes');

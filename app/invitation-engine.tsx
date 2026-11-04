@@ -1,3 +1,4 @@
+import { useToolOpened } from '../src/hooks/useToolOpened';
 import React, { useState } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, Switch, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -29,6 +30,7 @@ import { formatLocalDate } from '../src/lib/invitationCopy';
  * chosen by the canAccessInvitationEngine entitlement (engineStage).
  */
 export default function InvitationEngineScreen() {
+  useToolOpened('invitation_engine');
   const { user } = useAccount();
   return <InvitationEngineContent key={user?.id ?? 'signed-out'} />;
 }

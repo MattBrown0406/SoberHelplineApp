@@ -1,3 +1,4 @@
+import { useToolOpened } from '../../src/hooks/useToolOpened';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -45,6 +46,9 @@ import { logFunnelEvent } from '../../src/lib/funnel';
 import { isAdminEmail } from '../../src/lib/admin';
 import { openEmergencyLink } from '../../src/lib/emergencyLinks';
 import { setReviewPromptPaywallVisible } from '../../src/lib/reviewPrompt';
+import { COMMUNITY_FEED_VISIBLE } from '../../src/lib/communityFeed';
+import { EmergencyActions } from '../../src/components/safety/EmergencyActions';
+import { trialLabelKey } from '../../src/lib/subscriptionTrial';
 import type { StaffMember, SupportGroup } from '../../src/api/types';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -390,6 +394,7 @@ function UpgradeSheet({
   tier,
   priceLabel,
   priceAvailable,
+  trial,
   onClose,
   onPurchase,
   purchasing,
@@ -401,6 +406,8 @@ function UpgradeSheet({
   tier: SubscriptionTier;
   priceLabel: string;
   priceAvailable: boolean;
+  /** "7-day free trial" when the store will give her one; price stays the headline. */
+  trial: string | null;
   onClose: () => void;
   onPurchase: () => void;
   purchasing: boolean;
@@ -421,9 +428,14 @@ function UpgradeSheet({
         <Text style={[styles.sheetTitle, { color: colors.ink }]}>
           {t(`tier.${tier}Name`)}
         </Text>
-        <Text style={[styles.tierPrice, { color: colors.ink, marginBottom: 12 }]}>
+        <Text style={[styles.tierPrice, { color: colors.ink, marginBottom: trial && priceAvailable ? 4 : 12 }]}>
           {priceLabel}
         </Text>
+        {trial && priceAvailable && (
+          <Text style={[styles.sheetSub, { color: colors.primary, marginBottom: 12 }]}>
+            {t('paywall.trialThen', { trial, price: priceLabel })}
+          </Text>
+        )}
 
         <Text style={[styles.sheetSub, { color: colors.inkSoft, marginBottom: 6 }]}>
           {t('upgradeSheet.featuresHeaderGeneric')}
@@ -437,7 +449,9 @@ function UpgradeSheet({
             above and on the disabled button instead. */}
         {priceAvailable ? (
           <Text style={[styles.sheetSub, { color: colors.inkSoft, marginTop: 12, marginBottom: 16 }]}>
-            {t('upgradeSheet.renewalNote', { price: priceLabel })}
+            {trial
+              ? t('upgradeSheet.trialRenewalNote', { trial, price: priceLabel })
+              : t('upgradeSheet.renewalNote', { price: priceLabel })}
           </Text>
         ) : <View style={{ height: 16 }} />}
 
@@ -453,7 +467,9 @@ function UpgradeSheet({
         >
           <Text style={styles.solidBtnText}>
             {purchasing ? '...' : priceAvailable
-              ? t(tier === 'essential' ? 'paywall.subscribeEssential' : 'paywall.subscribePremium', { price: priceLabel })
+              ? trial
+                ? t('paywall.startTrial', { trial, price: priceLabel })
+                : t(tier === 'essential' ? 'paywall.subscribeEssential' : 'paywall.subscribePremium', { price: priceLabel })
               : priceLabel}
           </Text>
         </TouchableOpacity>
@@ -512,18 +528,26 @@ function StaffChip({
 // ── Main screen ───────────────────────────────────────────────────────────────
 
 export default function SupportScreen() {
+  useToolOpened('support');
   const { colors } = useTheme();
   const { user, isAttached, accountState, entitlements, refreshAccount } = useAccount();
   // A session-reminder push carries the RSVP'd session id so the card it is about stands out.
   // soberhelpline.com/app/family-squares opens Support with focus=family-squares.
-  const { sessionId: sessionIdParam, focus } = useLocalSearchParams<{ sessionId?: string; focus?: string }>();
+  // ask=question (the hour-before reminder) opens that session's question sheet.
+  const { sessionId: sessionIdParam, focus, ask } = useLocalSearchParams<{ sessionId?: string; focus?: string; ask?: string }>();
   const { t } = useTranslation('support');
   const { current, change, languages } = useLanguage();
   const copy = walletMembershipCopy(current);
   const router = useRouter();
   const { width: screenWidth } = useWindowDimensions();
   const sheetOffset = Math.max(0, (screenWidth - 520) / 2);
-  const { purchasePremium, purchaseEssential, purchasing, prices: subscriptionPrices, retryPrices } = useIAP();
+  const { purchasePremium, purchaseEssential, purchasing, prices: subscriptionPrices, trials, retryPrices } = useIAP();
+  const trialLabel = (tier: SubscriptionTier): string | null => {
+    const trial = trials[tier];
+    if (!trial || !subscriptionPrices[tier]) return null;
+    const { key, count } = trialLabelKey(trial);
+    return t(key, { count });
+  };
   const { openWithSSO } = useWebSSO();
   const coachingRate = useCoachingRate();
   const scheduleFor = useSessionSchedule();
@@ -538,6 +562,15 @@ export default function SupportScreen() {
   const [questionText, setQuestionText] = useState('');
   const [questionSubmitting, setQuestionSubmitting] = useState(false);
   const [questionSubmitted, setQuestionSubmitted] = useState(false);
+  // The question reads like an emergency: 911/988 stay on screen until she closes it.
+  const [questionCrisis, setQuestionCrisis] = useState(false);
+
+  function closeQuestionSheet() {
+    setQuestionSession(null);
+    setQuestionText('');
+    setQuestionSubmitted(false);
+    setQuestionCrisis(false);
+  }
 
   useEffect(() => () => setReviewPromptPaywallVisible(false), []);
 
@@ -545,18 +578,20 @@ export default function SupportScreen() {
     if (!questionText.trim() || !questionSession || !user?.id) return;
     setQuestionSubmitting(true);
     try {
-      const { error } = await supabase.from('session_questions').insert({
+      const { data, error } = await supabase.from('session_questions').insert({
         account_id: user.id,
         session_id: questionSession.id,
         question: questionText.trim(),
-      });
+      }).select('crisis_tier').single();
       if (error) throw error;
       setQuestionSubmitted(true);
-      setTimeout(() => {
-        setQuestionSession(null);
-        setQuestionText('');
-        setQuestionSubmitted(false);
-      }, 1500);
+      // The server reads every question with the community crisis screen and
+      // alerts an admin; she sees emergency help now rather than on Monday.
+      if ((data as { crisis_tier?: string | null } | null)?.crisis_tier) {
+        setQuestionCrisis(true);
+        return;
+      }
+      setTimeout(closeQuestionSheet, 1500);
     } catch {
       appAlert(t('questionModal.errorTitle'), t('questionModal.errorBody'));
     } finally {
@@ -622,6 +657,15 @@ export default function SupportScreen() {
     ?? (focus === 'family-squares'
       ? sessions.find((s) => isFamilySquaresSession(s) || isLaSobremesaSession(s))?.id
       : undefined);
+  // Opened from the hour-before reminder (or Today's "Send a question"): open
+  // the question sheet once, and only while she still has a seat.
+  useEffect(() => {
+    if (ask !== 'question' || !focusedSessionId) return;
+    const session = sessions.find((s) => s.id === focusedSessionId);
+    if (!session) return;
+    router.setParams({ ask: undefined } as never);
+    if (session.rsvped && !isLaSobremesaSession(session)) setQuestionSession(session);
+  }, [ask, focusedSessionId, sessions, router]);
   const handleSessionRsvp = async (session: DbSession) => {
     const saved = await toggleRsvp(session);
     if (saved === 'not_available') appAlert(t('sessions.rsvpErrorTitle'), t('common:laSobremesa.notAvailable'));
@@ -698,6 +742,7 @@ export default function SupportScreen() {
         tier={upgradeTier}
         priceLabel={subscriptionPrices[upgradeTier] ?? copy.priceUnavailable}
         priceAvailable={!!subscriptionPrices[upgradeTier]}
+        trial={trialLabel(upgradeTier)}
         onClose={closeUpgrade}
         onPurchase={() => void handlePurchase()}
         purchasing={purchasing}
@@ -991,6 +1036,11 @@ export default function SupportScreen() {
                 </View>
                 <Text style={[styles.tierPrice, { color: colors.primary }]}>{subscriptionPrices.essential ? `${subscriptionPrices.essential}${copy.month}` : copy.priceUnavailable}</Text>
               </View>
+              {trialLabel('essential') && (
+                <Text style={[styles.tierFeatures, { color: colors.primary, marginBottom: 8 }]}>
+                  {t('paywall.trialThen', { trial: trialLabel('essential'), price: subscriptionPrices.essential })}
+                </Text>
+              )}
               <TouchableOpacity
                 style={[styles.solidBtn, { backgroundColor: colors.primary }]}
                 activeOpacity={0.85}
@@ -998,7 +1048,9 @@ export default function SupportScreen() {
                 onPress={() => openUpgrade('essential')}
               >
                 <Text style={styles.solidBtnText}>
-                  {purchasing ? '...' : t('paywall.subscribeEssential', { price: subscriptionPrices.essential ?? copy.priceUnavailable })}
+                  {purchasing ? '...' : trialLabel('essential')
+                    ? t('paywall.startTrial', { trial: trialLabel('essential'), price: subscriptionPrices.essential })
+                    : t('paywall.subscribeEssential', { price: subscriptionPrices.essential ?? copy.priceUnavailable })}
                 </Text>
               </TouchableOpacity>
 
@@ -1010,6 +1062,11 @@ export default function SupportScreen() {
                 </View>
                 <Text style={[styles.tierPrice, { color: colors.ink }]}>{subscriptionPrices.premium ? `${subscriptionPrices.premium}${copy.month}` : copy.priceUnavailable}</Text>
               </View>
+              {trialLabel('premium') && (
+                <Text style={[styles.tierFeatures, { color: colors.primary, marginTop: 4 }]}>
+                  {t('paywall.trialThen', { trial: trialLabel('premium'), price: subscriptionPrices.premium })}
+                </Text>
+              )}
               <TouchableOpacity
                 style={[styles.outlineBtn, { borderColor: colors.primary, marginTop: 8 }]}
                 activeOpacity={0.85}
@@ -1017,7 +1074,9 @@ export default function SupportScreen() {
                 onPress={() => openUpgrade('premium')}
               >
                 <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
-                  {t('paywall.subscribePremium', { price: subscriptionPrices.premium ?? copy.priceUnavailable })}
+                  {trialLabel('premium')
+                    ? t('paywall.startTrial', { trial: trialLabel('premium'), price: subscriptionPrices.premium })
+                    : t('paywall.subscribePremium', { price: subscriptionPrices.premium ?? copy.priceUnavailable })}
                 </Text>
               </TouchableOpacity>
 
@@ -1027,6 +1086,7 @@ export default function SupportScreen() {
                   essentialPrice: subscriptionPrices.essential ?? copy.priceUnavailable,
                   premiumPrice: subscriptionPrices.premium ?? copy.priceUnavailable,
                 })}
+                {(trialLabel('essential') || trialLabel('premium')) ? ` ${t('paywall.trialDisclosure')}` : ''}
               </Text>
               <View style={styles.legalRow}>
                 <TouchableOpacity onPress={() => void Linking.openURL(TERMS_OF_USE_URL)}>
@@ -1287,16 +1347,18 @@ export default function SupportScreen() {
               </View>
             );
           })}
-          <TouchableOpacity
-            style={[styles.communityRow, { borderColor: colors.line }]}
-            activeOpacity={0.8}
-            onPress={() => router.push('/community')}
-          >
-            <Text style={[styles.communityRowText, { color: colors.ink }]}>
-              {t('community.openLink')}
-            </Text>
-            <Text style={{ color: colors.primary, fontSize: 20, fontWeight: '700' }}>›</Text>
-          </TouchableOpacity>
+          {COMMUNITY_FEED_VISIBLE && (
+            <TouchableOpacity
+              style={[styles.communityRow, { borderColor: colors.line }]}
+              activeOpacity={0.8}
+              onPress={() => router.push('/community')}
+            >
+              <Text style={[styles.communityRowText, { color: colors.ink }]}>
+                {t('community.openLink')}
+              </Text>
+              <Text style={{ color: colors.primary, fontSize: 20, fontWeight: '700' }}>›</Text>
+            </TouchableOpacity>
+          )}
           {/* The family forum is a members-only soberhelpline.com page: open it
               signed in, and only for members (it would be a website paywall
               for anyone else). */}
@@ -1352,7 +1414,7 @@ export default function SupportScreen() {
           </View>
         </View>
       {/* ── Question modal ── */}
-      <Modal visible={questionSession !== null} animationType="slide" transparent onRequestClose={() => setQuestionSession(null)}>
+      <Modal visible={questionSession !== null} animationType="slide" transparent onRequestClose={closeQuestionSheet}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.questionModalKAV}
@@ -1360,14 +1422,24 @@ export default function SupportScreen() {
           <TouchableOpacity
             style={[StyleSheet.absoluteFill, styles.modalOverlay]}
             activeOpacity={1}
-            onPress={() => setQuestionSession(null)}
+            onPress={closeQuestionSheet}
           />
           <View style={[styles.questionSheet, { backgroundColor: colors.white, marginHorizontal: sheetOffset }]}>
             <View style={[styles.sheetHandle, { backgroundColor: colors.line }]} />
             <Text style={[styles.sheetTitle, { color: colors.ink }]}>{t('questionModal.title')}</Text>
             <Text style={[styles.sheetSub, { color: colors.inkSoft, marginBottom: 14 }]}>{t('questionModal.sub')}</Text>
 
-            {questionSubmitted ? (
+            {questionSubmitted && questionCrisis ? (
+              <ScrollView style={styles.questionCrisisScroll} contentContainerStyle={{ paddingBottom: 8 }}>
+                <Text accessibilityRole="alert" style={[styles.sheetSub, { color: colors.ink, marginBottom: 12 }]}>
+                  {t('questionModal.crisisNote')}
+                </Text>
+                <EmergencyActions prominent />
+                <TouchableOpacity style={[styles.solidBtn, { backgroundColor: colors.primary, marginTop: 12 }]} onPress={closeQuestionSheet} activeOpacity={0.85}>
+                  <Text style={styles.solidBtnText}>{t('questionModal.done')}</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            ) : questionSubmitted ? (
               <Text style={[styles.sheetTitle, { color: colors.green, fontSize: 16, textAlign: 'center', marginVertical: 24 }]}>
                 {t('questionModal.submitted')}
               </Text>
@@ -1393,7 +1465,7 @@ export default function SupportScreen() {
                     ? <ActivityIndicator color="#fff" />
                     : <Text style={styles.solidBtnText}>{t('questionModal.submit')}</Text>}
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.sheetRow, styles.sheetRowLast, { marginTop: 4 }]} onPress={() => setQuestionSession(null)}>
+                <TouchableOpacity style={[styles.sheetRow, styles.sheetRowLast, { marginTop: 4 }]} onPress={closeQuestionSheet}>
                   <Text style={[styles.sheetRowName, { color: colors.inkSoft }]}>{t('questionModal.cancel')}</Text>
                 </TouchableOpacity>
               </>
@@ -1406,6 +1478,7 @@ export default function SupportScreen() {
 }
 
 const styles = StyleSheet.create({
+  questionCrisisScroll: { maxHeight: 460 },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

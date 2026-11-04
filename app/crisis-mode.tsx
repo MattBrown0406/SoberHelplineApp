@@ -1,3 +1,4 @@
+import { useToolOpened } from '../src/hooks/useToolOpened';
 import React, { useMemo, useState } from 'react';
 import {
   ScrollView,
@@ -103,6 +104,7 @@ function buildBoundary(draft: SafetyBoundary, t: TFunction<'crisis'>) {
 }
 
 export default function CrisisModeScreen() {
+  useToolOpened('crisis_mode');
   const { user } = useAccount();
   return <CrisisModeContent key={user?.id ?? 'signed-out'} />;
 }

@@ -460,7 +460,10 @@
     "interventionSub": "Cuando es momento de más que una app, Matt te acompañará paso a paso.",
     "finderLink": "Encuentra tratamiento y apoyo cerca de ti →",
     "sendBrief": "Envíale tu semana a Matt",
-    "sendBriefSub": "Pon tus últimas dos semanas frente a Matt — tus registros, señales de alerta y límites. Él lee cada informe y responde personalmente."
+    "sendBriefSub": "Pon tus últimas dos semanas frente a Matt — tus registros, señales de alerta y límites. Él lee cada informe y responde personalmente.",
+    "askQuestion": "Envía una pregunta para la llamada",
+    "oneThing": "LO DE ESTA SEMANA",
+    "oneThingFromCall": "LO DE ESTA SEMANA · DE LA LLAMADA DEL LUNES"
   },
   "curriculum": {
     "weekLabel": "SEMANA {{week}}",

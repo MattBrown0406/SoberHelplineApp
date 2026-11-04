@@ -13,7 +13,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useAccount } from '../src/contexts/AccountContext';
@@ -23,6 +23,7 @@ import { Gate } from '../src/components/auth/Gate';
 import { useCommunity, CrisisContentError, PostRateLimitedError, type CommunityPost } from '../src/hooks/useCommunity';
 import { useSessionSchedule } from '../src/hooks/useSessionSchedule';
 import { MAX_CONTENT_WIDTH } from '../src/components/ui/ScreenContainer';
+import { COMMUNITY_FEED_VISIBLE } from '../src/lib/communityFeed';
 
 
 function relativeTime(iso: string, t: (k: string, o?: Record<string, unknown>) => string): string {
@@ -35,6 +36,8 @@ function relativeTime(iso: string, t: (k: string, o?: Record<string, unknown>) =
 }
 
 export default function CommunityScreen() {
+  // Hidden for now (src/lib/communityFeed.ts): an old link or push lands on Support.
+  if (!COMMUNITY_FEED_VISIBLE) return <Redirect href="/(tabs)/support" />;
   return <Gate feature="community"><CommunityContent /></Gate>;
 }
 

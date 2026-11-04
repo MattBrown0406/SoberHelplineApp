@@ -1,3 +1,4 @@
+import { useToolOpened } from '../src/hooks/useToolOpened';
 import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -68,6 +69,7 @@ const EMPTY_INCIDENT: IncidentDraft = {
 };
 
 export default function SafetyWalletScreen() {
+  useToolOpened('safety_wallet');
   const { user } = useAccount();
   return <AccountSafetyWallet key={user?.id ?? 'signed-out'} />;
 }

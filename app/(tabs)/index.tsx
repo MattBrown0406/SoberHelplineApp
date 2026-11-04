@@ -14,7 +14,7 @@ import { CheckInCard } from '../../src/components/today/CheckInCard';
 import { RecoveryPathwayCard } from '../../src/components/today/RecoveryPathwayCard';
 import { MoodChart } from '../../src/components/today/MoodChart';
 import { FreeTierPaywall } from '../../src/components/ui/FreeTierPaywall';
-import { SituationCard } from '../../src/components/today/SituationCard';
+import { SituationCard, type WeeklyOneThing } from '../../src/components/today/SituationCard';
 import { NeedsRouter } from '../../src/components/today/NeedsRouter';
 import { ContinueLetterCard } from '../../src/components/today/ContinueLetterCard';
 import { WeekReviewCard } from '../../src/components/today/WeekReviewCard';
@@ -29,6 +29,7 @@ import { useTodayFeed } from '../../src/hooks/useTodayFeed';
 import { useLovedOne } from '../../src/hooks/useLovedOne';
 import { useFamilySpace } from '../../src/hooks/useFamilySpace';
 import { useHoldLog } from '../../src/hooks/useHoldLog';
+import { useFamilyCallTakeaway } from '../../src/hooks/useFamilyCallTakeaway';
 import { getDailyScripts } from '../../src/content/scripts';
 import { PHASE_LABEL_KEY, selectCurriculumPiece } from '../../src/content/curriculum';
 import { useFeatureAccess } from '../../src/hooks/useFeatureAccess';
@@ -71,6 +72,7 @@ function TodayContent() {
     }, [refreshFamilySpace, reloadHoldLog]),
   );
   const canAccessFullToday = useFeatureAccess('todayFull');
+  const takeaway = useFamilyCallTakeaway(user?.id ?? null);
 
   const firstName = user?.firstName?.trim() ?? '';
   const greeting = timeGreeting(t, firstName);
@@ -144,6 +146,23 @@ function TodayContent() {
   // Null when the band is elevated/crisis and no crisis-safe piece fits: a
   // family whose week is on fire gets the support surface, not an exercise.
   const curriculumPiece = selectCurriculumPiece(curriculumWeek, situation.band, i18n.language);
+  // This week's one thing: Matt's line from The Family Squares (English call)
+  // when he wrote one, otherwise her own week's practice.
+  const weeklyOneThing: WeeklyOneThing | null = takeaway && !i18n.language.startsWith('es')
+    ? { text: takeaway.body, fromCall: true }
+    : curriculumPiece ? { text: curriculumPiece.practice, fromCall: false } : null;
+  // The free Monday call leads Today, right after immediate help: saving a
+  // seat is the first thing a new member is asked to do.
+  const mondayCallCard = (
+    <SituationCard
+      nextFreeCall={nextFreeCall}
+      primaryDoor={primaryDoor}
+      weeklyOneThing={weeklyOneThing}
+      onRsvp={rsvpFreeCall}
+      onSupportCallJoin={queueMondayMeetingReview}
+      onSupportCallOpenFailed={() => cancelQueuedSupportCallReview(user?.id ?? null)}
+    />
+  );
 
   const header = (
     <View style={styles.headerRow}>
@@ -178,6 +197,7 @@ function TodayContent() {
         {header}
         <NeedsRouter />
         {willingnessWindowAlert}
+        {mondayCallCard}
         {checkInCard}
         <CheckInFeedbackCard checkIn={todayCheckIn} />
         {invitationCard}
@@ -186,13 +206,6 @@ function TodayContent() {
           {pathwayCard}
         </TodayDisclosure>
         <TodayDisclosure title={t('disclosure.connection')}>
-        <SituationCard
-          nextFreeCall={nextFreeCall}
-          primaryDoor={primaryDoor}
-          onRsvp={rsvpFreeCall}
-          onSupportCallJoin={queueMondayMeetingReview}
-          onSupportCallOpenFailed={() => cancelQueuedSupportCallReview(user?.id ?? null)}
-        />
         <PassItOnCard />
         </TodayDisclosure>
         <TodayDisclosure title={t('disclosure.practice')}>
@@ -236,6 +249,7 @@ function TodayContent() {
       {header}
       <NeedsRouter />
       {willingnessWindowAlert}
+      {mondayCallCard}
       {checkInCard}
       <CheckInFeedbackCard checkIn={todayCheckIn} />
       {invitationCard}
@@ -244,14 +258,6 @@ function TodayContent() {
         {pathwayCard}
       </TodayDisclosure>
       <TodayDisclosure title={t('disclosure.connection')}>
-      <SituationCard
-        nextFreeCall={nextFreeCall}
-        primaryDoor={primaryDoor}
-        onRsvp={rsvpFreeCall}
-        onSupportCallJoin={queueMondayMeetingReview}
-        onSupportCallOpenFailed={() => cancelQueuedSupportCallReview(user?.id ?? null)}
-      />
-
       <PassItOnCard />
       </TodayDisclosure>
       <TodayDisclosure title={t('disclosure.practice')}>
