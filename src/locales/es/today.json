@@ -529,8 +529,8 @@
       "openError": "No pudimos abrir esa página. Visita {{site}} en tu navegador.",
       "pause": "Pausar todos los recordatorios",
       "resume": "Volver a activar los recordatorios",
-      "pausedNote": "Los recordatorios y las notas están en pausa. Los mensajes de Matt o de un coach siguen llegando.",
-      "quietError": "No pudimos cambiarlo. Inténtalo de nuevo."
+      "pausedNote": "Los recordatorios y las notas están en pausa. Los mensajes de Matt, de un coach o de tu familia, y las sesiones que agendaste, siguen llegando.",
+      "quietError": "No pudimos cambiar tus recordatorios. Inténtalo de nuevo."
     }
   }
 }

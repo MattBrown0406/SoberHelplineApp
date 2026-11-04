@@ -142,15 +142,24 @@ export function useLovedOne(accountId: string | null) {
 
   // "They died": her own account only (the RPC reads the signed-in account).
   // `contact` lets an admin know so someone can reach out.
-  const markDied = useCallback(async (contact: boolean, quiet = false): Promise<void> => {
+  const markDied = useCallback(async (contact: boolean, quiet = false): Promise<{ quietFailed: boolean }> => {
     if (!accountId || scopeRef.current.accountId !== accountId) throw new Error('Cannot update without the active account');
     const { error } = await supabase.rpc('mark_loved_one_died', { p_contact: contact });
     if (error) throw error;
-    // Pausing reminders is a second, separate choice; the death is saved either way.
-    if (quiet) await supabase.rpc('set_bereavement_quiet', { p_quiet: true });
+    // Pausing reminders is a second, separate choice; the death is saved either
+    // way. A failed pause is reported so she can try again from Today.
+    let quietFailed = false;
+    if (quiet) {
+      const paused = await supabase.rpc('set_bereavement_quiet', { p_quiet: true }).then(
+        (result) => !result.error,
+        () => false,
+      );
+      quietFailed = !paused;
+    }
     rememberBereaved(accountId, true);
     setCached({ accountId, bereaved: true });
     await load().catch(() => undefined);
+    return { quietFailed };
   }, [accountId, load]);
 
   const clearDied = useCallback(async (): Promise<void> => {

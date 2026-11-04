@@ -138,6 +138,7 @@
     "errorTitle": "Couldn't save",
     "errorBody": "Please check your connection and try again.",
     "remindersLabel": "Reminders and notes",
-    "remindersDesc": "Turn off to pause every reminder and note for as long as you need. Messages from Matt or a coach still come through."
+    "remindersDesc": "Turn off to pause every reminder and note for as long as you need. Messages from Matt, a coach, or your family, and sessions you've booked, still come through.",
+    "quietFailed": "Your loved one's death is saved, but reminders weren't paused. Use the switch below to try again."
   }
 }

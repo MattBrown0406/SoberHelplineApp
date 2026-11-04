@@ -79,7 +79,8 @@ export function BereavementSettingsCard({ accountId }: { accountId: string | nul
         visible={sheetOpen}
         onCancel={() => setSheetOpen(false)}
         onConfirm={async (contact, quietChoice) => {
-          await markDied(contact, quietChoice);
+          const { quietFailed } = await markDied(contact, quietChoice);
+          if (quietFailed) appAlert(t('bereavement.errorTitle'), t('bereavement.quietFailed'));
           syncDevice();
           setSheetOpen(false);
         }}

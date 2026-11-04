@@ -41,16 +41,17 @@ function quietModule() {
   return { api: exports, store, calls, items: () => items };
 }
 
-test('pausing her own reminders remembers the ones that were on, and turning back on restores exactly those', async () => {
+test('pausing her own reminders happens once, remembers the ones that were on, and turning back on restores them', async () => {
   const m = quietModule();
   await m.api.pausePersonalRemindersForQuiet('A');
   assert.deepEqual(m.calls, ['set:A', 'pause:boundary']);
   assert.equal(m.items().every((r) => !r.enabled), true, 'nothing left scheduled');
   const remembered = JSON.parse(m.store.get(m.api.quietRemindersKey('A')) ?? '[]');
   assert.deepEqual(remembered.map((r: core.PersonalReminder) => r.category), ['boundary']);
-  // A second pause (e.g. another foreground) keeps the list.
+  // Later foregrounds while paused change nothing, even for a reminder she turned on herself.
+  m.calls.length = 0;
   await m.api.pausePersonalRemindersForQuiet('A');
-  assert.deepEqual(JSON.parse(m.store.get(m.api.quietRemindersKey('A')) ?? '[]').map((r: core.PersonalReminder) => r.category), ['boundary']);
+  assert.equal(m.calls.length, 0, 'no second pause');
   await m.api.resumePersonalRemindersAfterQuiet('A');
   assert.ok(m.calls.includes('restore:A:boundary'));
   assert.equal(m.store.has(m.api.quietRemindersKey('A')), false, 'the device list is cleared after restoring');
@@ -58,6 +59,15 @@ test('pausing her own reminders remembers the ones that were on, and turning bac
   const fresh = quietModule();
   await fresh.api.resumePersonalRemindersAfterQuiet('A');
   assert.deepEqual(fresh.calls, []);
+});
+
+test('the pause starts even with nothing on, so a reminder enabled afterwards is never re-paused', async () => {
+  const m = quietModule();
+  await m.api.pausePersonalRemindersForQuiet('A');
+  m.calls.length = 0;
+  await m.api.pausePersonalRemindersForQuiet('A');
+  assert.equal(m.calls.length, 0);
+  assert.ok(m.store.has(m.api.quietRemindersKey('A')));
 });
 
 test('the device list is account scoped, so the deletion purge removes it', async () => {
@@ -76,17 +86,22 @@ test('the pause is offered in the sheet (off by default), on the grief card, and
   const settings = read('src/components/bereavement/BereavementSettingsCard.tsx');
   assert.match(settings, /<Switch[\s\S]*value=\{!quiet\}/);
   const today = read('app/(tabs)/index.tsx');
-  assert.match(today, /await markDied\(contact, quiet\);/);
+  assert.match(today, /const \{ quietFailed \} = await markDied\(contact, quiet\);\s*if \(quietFailed\) appAlert\(t\('bereavement\.grief\.quietError'\)\);/);
+  assert.match(settings, /if \(quietFailed\) appAlert\(/);
   assert.match(today, /onSetQuiet=\{async \(quiet\) => \{\s*await setQuiet\(quiet\);\s*void rearmDailyNudge\(\)/);
   const hook = read('src/hooks/useLovedOne.ts');
   assert.match(hook, /rpc\('set_bereavement_quiet', \{ p_quiet: quiet \}\)/);
-  assert.match(hook, /if \(quiet\) await supabase\.rpc\('set_bereavement_quiet', \{ p_quiet: true \}\);/);
+  assert.match(hook, /return \{ quietFailed \};/);
   for (const lang of ['en', 'es']) {
     const todayCopy = JSON.parse(read(`src/locales/${lang}/today.json`)).bereavement;
     const settingsCopy = JSON.parse(read(`src/locales/${lang}/settings.json`)).bereavement;
     for (const key of ['pause', 'resume', 'pausedNote', 'quietError']) assert.ok(todayCopy.grief[key], `${lang} grief.${key}`);
     assert.ok(todayCopy.sheet.quiet, `${lang} sheet.quiet`);
-    assert.ok(settingsCopy.remindersLabel && settingsCopy.remindersDesc, `${lang} settings`);
+    assert.ok(settingsCopy.remindersLabel && settingsCopy.remindersDesc && settingsCopy.quietFailed, `${lang} settings`);
+    // Booked sessions and family messages still arrive: the copy says so.
+    for (const text of [settingsCopy.remindersDesc, todayCopy.grief.pausedNote]) {
+      assert.match(text, lang === 'en' ? /your family, and sessions you've booked/ : /tu familia, y las sesiones que agendaste/);
+    }
   }
 });
 
@@ -101,5 +116,6 @@ test('the server pause covers the direct senders too', () => {
   assert.match(read('supabase/functions/notify-la-sobremesa/index.ts'), /remindersPausedFor\(a\.loved_ones\)/);
   const device = read('src/hooks/usePushNotifications.ts');
   assert.match(device, /loved_ones\(died_at, bereavement_quiet\)/);
-  assert.match(device, /if \(remindersPaused\) return;/);
+  assert.match(device, /serverMorningNote = !remindersPaused &&/);
+  assert.match(device, /await followBereavementQuiet\(accountId, remindersPaused\)/);
 });

@@ -138,6 +138,7 @@
     "errorTitle": "No se pudo guardar",
     "errorBody": "Revisa tu conexión e inténtalo de nuevo.",
     "remindersLabel": "Recordatorios y notas",
-    "remindersDesc": "Apágalo para pausar todos los recordatorios y notas el tiempo que necesites. Los mensajes de Matt o de un coach siguen llegando."
+    "remindersDesc": "Apágalo para pausar todos los recordatorios y notas el tiempo que necesites. Los mensajes de Matt, de un coach o de tu familia, y las sesiones que agendaste, siguen llegando.",
+    "quietFailed": "Guardamos que tu ser querido falleció, pero no se pausaron los recordatorios. Usa el interruptor de abajo para intentarlo de nuevo."
   }
 }

@@ -28,6 +28,7 @@ function harness(platform = 'ios', serverDailyOptIn = false, server: { pushToken
     'expo-router': {}, '@react-native-async-storage/async-storage': {
       getItem: async (key: string) => store.get(key) ?? null,
       setItem: async (key: string, value: string) => { store.set(key, value); },
+      removeItem: async (key: string) => { store.delete(key); },
     }, '../i18n': { t: () => 'copy', language: 'en' },
     '../lib/supabase': { supabase: {
       rpc: async (name: string, args: any) => {
@@ -134,13 +135,26 @@ test('when another device holds the server token, this device keeps its own nudg
 test('a bereaved member who paused reminders gets nothing scheduled on this device; turning them back on restores', async () => {
   const quiet = harness('ios', false, { pushToken: null, quiet: true });
   quiet.store.set('reminderHour', '18');
-  await quiet.api.registerForPushNotifications('A', true, true);
+  quiet.store.set('legacy-daily-nudge-opt-in:v1:A', 'true');
+  await quiet.api.registerForPushNotifications('A', false);
   assert.equal(quiet.scheduled.length, 0, 'no daily nudge, no week review');
   assert.ok(quiet.canceled.includes('legacy-daily-nudge:v1:daily-1'), 'already scheduled nudges are cancelled');
   assert.ok(quiet.quietCalls.includes('pause:A'), 'personal reminders pause too');
+  assert.equal(quiet.store.get('legacy-daily-nudge:quiet:v1:A'), 'on', 'the earlier setting is remembered');
+  assert.equal(quiet.store.get('legacy-daily-nudge-opt-in:v1:A'), 'false');
+  // She turns the daily reminder on herself during the pause: respected, from this device.
+  await quiet.api.registerForPushNotifications('A', true, true);
+  assert.ok(dailyNudges(quiet).length > 0, 'an explicit "on" during the pause schedules');
+  await quiet.api.rearmDailyNudge();
+  assert.equal(quiet.store.get('legacy-daily-nudge-opt-in:v1:A'), 'true', 'and is not switched off again');
+  // Reminders back on: the earlier setting comes back and the marker is cleared.
   const back = harness('ios', false, { pushToken: null, quiet: false });
   back.store.set('reminderHour', '18');
-  await back.api.registerForPushNotifications('A', true, true);
+  back.store.set('legacy-daily-nudge:quiet:v1:A', 'on');
+  back.store.set('legacy-daily-nudge-opt-in:v1:A', 'false');
+  await back.api.registerForPushNotifications('A', false);
+  assert.equal(back.store.get('legacy-daily-nudge-opt-in:v1:A'), 'true');
+  assert.equal(back.store.has('legacy-daily-nudge:quiet:v1:A'), false);
   assert.ok(back.quietCalls.includes('resume:A'));
   assert.ok(dailyNudges(back).length > 0, 'nudges are scheduled again');
 });

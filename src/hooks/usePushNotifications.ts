@@ -35,6 +35,27 @@ async function setServerDailyHour(hour: number): Promise<void> {
   if (error) throw error;
 }
 
+/**
+ * A bereaved member paused reminders: the daily reminder is switched off once,
+ * when the pause starts, and its earlier setting remembered here (the key
+ * holds the account id, so the deletion purge removes it). A daily reminder
+ * she turns on herself during the pause is respected; turning reminders back
+ * on restores the earlier setting.
+ */
+export const DAILY_QUIET_KEY = 'legacy-daily-nudge:quiet:v1:';
+
+async function followBereavementQuiet(accountId: string, paused: boolean): Promise<void> {
+  const marker = await AsyncStorage.getItem(DAILY_QUIET_KEY + accountId);
+  if (paused && marker === null) {
+    const wasOn = await isDailyNudgeEnabled(accountId);
+    await AsyncStorage.setItem(DAILY_QUIET_KEY + accountId, wasOn ? 'on' : 'off');
+    if (wasOn) await AsyncStorage.setItem(LEGACY_OPT_IN_KEY + accountId, 'false');
+  } else if (!paused && marker !== null) {
+    if (marker === 'on') await AsyncStorage.setItem(LEGACY_OPT_IN_KEY + accountId, 'true');
+    await AsyncStorage.removeItem(DAILY_QUIET_KEY + accountId);
+  }
+}
+
 export async function disableDailyNudges(accountId: string): Promise<void> {
   await setServerDailyOptIn(false);
   await AsyncStorage.setItem(LEGACY_OPT_IN_KEY + accountId, 'false');
@@ -151,6 +172,11 @@ async function performDailyNudgeRearm(): Promise<void> {
     account = data as DailyAccount | null;
     remindersPaused = account?.id === accountId && !!account.loved_ones?.died_at
       && account.loved_ones.bereavement_quiet === true;
+    // The pause turns the daily reminder off once (and back on after); before
+    // the opt-in below is mirrored to the server.
+    if (account?.id === accountId && current()) {
+      await followBereavementQuiet(accountId, remindersPaused).catch(() => undefined);
+    }
     // Only an explicit opt-in on this device consents to the server's daily
     // push; keep the server in step (older builds never reported it).
     const optedIn = await isDailyNudgeEnabled(accountId);
@@ -163,7 +189,9 @@ async function performDailyNudgeRearm(): Promise<void> {
     if (account?.id === accountId && serverHour !== chosenHour && current()) {
       serverHour = await setServerDailyHour(chosenHour).then(() => chosenHour, () => serverHour);
     }
-    serverMorningNote = account?.id === accountId && serverOptIn && !!account.push_token
+    // While she is paused the server sends no morning note: a daily reminder
+    // she turned on during the pause comes from this device.
+    serverMorningNote = !remindersPaused && account?.id === accountId && serverOptIn && !!account.push_token
       && devicePushToken?.accountId === accountId && devicePushToken.token === account.push_token
       && serverHour === chosenHour && chosenHour < MORNING_NOTE_BEFORE_HOUR;
   }
@@ -182,7 +210,6 @@ async function performDailyNudgeRearm(): Promise<void> {
     await (remindersPaused ? pausePersonalRemindersForQuiet(accountId) : resumePersonalRemindersAfterQuiet(accountId))
       .catch(() => undefined);
   }
-  if (remindersPaused) return;
 
   if (!accountId || !current() || !(await isDailyNudgeEnabled(accountId))) return;
   const { status } = await Notifications.getPermissionsAsync();

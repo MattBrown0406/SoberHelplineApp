@@ -529,8 +529,8 @@
       "openError": "We couldn't open that page. Visit {{site}} in your browser.",
       "pause": "Pause all reminders",
       "resume": "Turn reminders back on",
-      "pausedNote": "Reminders and notes are paused. Messages from Matt or a coach still come through.",
-      "quietError": "We couldn't change that. Please try again."
+      "pausedNote": "Reminders and notes are paused. Messages from Matt, a coach, or your family, and sessions you've booked, still come through.",
+      "quietError": "We couldn't change your reminders. Please try again."
     }
   }
 }

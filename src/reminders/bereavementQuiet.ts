@@ -27,17 +27,20 @@ function parseArmed(raw: string | null): PersonalReminder[] {
   }
 }
 
+/**
+ * Runs on every re-arm while she is paused, but pauses only once: when the
+ * pause starts (no remembered list yet). A reminder she turns on herself
+ * during the pause is hers and stays on.
+ */
 export async function pausePersonalRemindersForQuiet(accountId: string): Promise<void> {
+  const key = quietRemindersKey(accountId);
+  if ((await AsyncStorage.getItem(key)) !== null) return;
   await personalReminders.setAccount(accountId);
   const snapshot = personalReminders.snapshot();
   if (snapshot.accountId !== accountId || !snapshot.ready) return;
   const armed = snapshot.items.filter((item) => item.enabled);
-  if (!armed.length) return;
-  // Remember every reminder that was on, including ones paused earlier.
-  const earlier = parseArmed(await AsyncStorage.getItem(quietRemindersKey(accountId)));
-  const remembered = [...earlier.filter((item) => !armed.some((r) => r.category === item.category)), ...armed]
-    .map((item) => ({ ...item, enabled: true }));
-  await AsyncStorage.setItem(quietRemindersKey(accountId), JSON.stringify(remembered));
+  // Written even when nothing was on: the pause has started.
+  await AsyncStorage.setItem(key, JSON.stringify(armed));
   for (const item of armed) {
     await personalReminders.pause(item.category).catch(() => undefined);
   }

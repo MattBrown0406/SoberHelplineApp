@@ -438,6 +438,22 @@ test('a refresh of a loaded loved-one record is silent and keeps the record when
   f.h.unmount();
 });
 
+test('a failed reminder pause keeps the death saved and is reported', async () => {
+  const f = lovedOneFixture();
+  f.reads.shift().resolve({ data: { id: 'A', account_id: 'A' }, error: null }); await settle();
+  const marking = f.read().markDied(true, true);
+  f.statuses.shift().resolve({ error: null }); await settle();
+  f.statuses.shift().resolve({ error: new Error('offline') }); await settle();
+  f.reads.shift().resolve({ data: { id: 'A', account_id: 'A', died_at: '2026-11-04T18:00:00Z' }, error: null });
+  assert.equal((await marking).quietFailed, true);
+  assert.equal(f.read().bereaved, true, 'the death is saved');
+  const calm = f.read().markDied(false, false);
+  f.statuses.shift().resolve({ error: null }); await settle();
+  f.reads.shift().resolve({ data: { id: 'A', account_id: 'A', died_at: '2026-11-04T18:00:00Z' }, error: null });
+  assert.equal((await calm).quietFailed, false);
+  f.h.unmount();
+});
+
 test('the device remembers "they died" per account and answers before the record loads', async () => {
   const f = lovedOneFixture({ '@sh:bereaved:A': '1' }); await settle();
   assert.equal(f.read().bereaved, true, 'cached answer before the read returns');

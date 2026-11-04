@@ -168,7 +168,8 @@ function TodayContent() {
       visible={diedSheetOpen}
       onCancel={() => setDiedSheetOpen(false)}
       onConfirm={async (contact, quiet) => {
-        await markDied(contact, quiet);
+        const { quietFailed } = await markDied(contact, quiet);
+        if (quietFailed) appAlert(t('bereavement.grief.quietError'));
         // The device's own reminders follow the server's pause.
         void rearmDailyNudge().catch(() => undefined);
         setDiedSheetOpen(false);
