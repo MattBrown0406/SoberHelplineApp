@@ -4,7 +4,8 @@ import fs from 'node:fs';
 import ts from 'typescript';
 import { AsyncWriteBarrier } from '../src/lib/appFlowGuards';
 
-function harness(platform = 'ios', serverDailyOptIn = false, server: { pushToken?: string | null; hour?: number | null; quiet?: boolean } = {}) {
+function harness(platform = 'ios', serverDailyOptIn = false, server: { pushToken?: string | null; hour?: number | null; quiet?: boolean; oldSchema?: boolean } = {}) {
+  const selects: string[] = [];
   const quietCalls: string[] = [];
   let serverHour = server.hour ?? null;
   const store = new Map<string, string>();
@@ -38,7 +39,9 @@ function harness(platform = 'ios', serverDailyOptIn = false, server: { pushToken
         return { data: true };
       },
       auth: { getSession: async () => ({ data: { session: { user: { id: 'auth' } } } }) },
-      from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: 'A', timezone: null, daily_push_opt_in: serverDailyOptIn, daily_push_hour: serverHour, push_token: server.pushToken ?? null, loved_ones: server.quiet === undefined ? null : { died_at: '2026-11-04T00:00:00Z', bereavement_quiet: server.quiet } } }) }) }) }),
+      from: () => ({ select: (columns: string) => ({ eq: () => ({ maybeSingle: async () => (selects.push(columns), server.oldSchema && columns.includes('bereavement_quiet')
+        ? { data: null, error: { code: '42703', message: 'column loved_ones_1.bereavement_quiet does not exist' } }
+        : { data: { id: 'A', timezone: null, daily_push_opt_in: serverDailyOptIn, daily_push_hour: serverHour, push_token: server.pushToken ?? null, loved_ones: server.quiet === undefined ? null : { died_at: '2026-11-04T00:00:00Z', bereavement_quiet: server.quiet } } }) }) }) }),
     } }, '../storage/checkIn': { getCheckIn: async () => null },
     '../lib/appFlowGuards': { AsyncWriteBarrier }, '../lib/pushRouting': {},
     '../lib/pendingPushTokenRevoke': { settlePendingPushTokenRevoke: async () => 'none' }, '../lib/pushDevice': { isDeviceSignedIn: () => true },
@@ -53,7 +56,7 @@ function harness(platform = 'ios', serverDailyOptIn = false, server: { pushToken
   }).outputText;
   const exports: any = {};
   new Function('require', 'exports', code)((name: string) => modules[name], exports);
-  return { api: exports, store, scheduled, canceled, writes: () => writes, rpcCalls, quietCalls };
+  return { api: exports, store, scheduled, canceled, writes: () => writes, rpcCalls, quietCalls, selects };
 }
 
 test('web logout preserves token barrier without invoking an unavailable native scheduler', async () => {
@@ -157,4 +160,24 @@ test('a bereaved member who paused reminders gets nothing scheduled on this devi
   assert.equal(back.store.has('legacy-daily-nudge:quiet:v1:A'), false);
   assert.ok(back.quietCalls.includes('resume:A'));
   assert.ok(dailyNudges(back).length > 0, 'nudges are scheduled again');
+});
+
+test('turning the daily reminder off during the pause stays off afterwards', async () => {
+  const h = harness('ios', false, { pushToken: null, quiet: true });
+  h.store.set('reminderHour', '18');
+  h.store.set('legacy-daily-nudge-opt-in:v1:A', 'true');
+  await h.api.registerForPushNotifications('A', false);
+  assert.equal(h.store.get('legacy-daily-nudge:quiet:v1:A'), 'on');
+  await h.api.registerForPushNotifications('A', true, true);
+  await h.api.disableDailyNudges('A');
+  assert.equal(h.store.get('legacy-daily-nudge:quiet:v1:A'), 'off', 'her explicit choice replaces the earlier setting');
+});
+
+test('a backend without the pause column still re-arms the daily reminder', async () => {
+  const h = harness('ios', false, { pushToken: null, oldSchema: true });
+  h.store.set('reminderHour', '18');
+  await h.api.registerForPushNotifications('A', true, true);
+  assert.ok(h.selects.some((c) => c.includes('bereavement_quiet')) && h.selects.some((c) => !c.includes('loved_ones')), 'retried without the column');
+  assert.ok(dailyNudges(h).length > 0, 'nudges are still scheduled');
+  assert.ok(h.quietCalls.includes('resume:A'), 'treated as not paused');
 });

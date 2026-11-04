@@ -6,7 +6,8 @@ import * as core from '../src/reminders/personalReminders';
 
 const read = (path: string) => fs.readFileSync(path, 'utf8');
 
-function quietModule() {
+function quietModule(options: { permitted?: boolean } = {}) {
+  const permitted = options.permitted ?? true;
   const store = new Map<string, string>();
   const calls: string[] = [];
   let items: core.PersonalReminder[] = [
@@ -22,7 +23,11 @@ function quietModule() {
     },
     restoreAfterAbortedExit: async (id: string, armed: core.PersonalReminder[]) => {
       calls.push(`restore:${id}:${armed.map((r) => r.category).join(',')}`);
+      // Like the real service: without notification permission nothing is scheduled.
+      if (!permitted) return;
+      items = items.map((r) => armed.some((a) => a.category === r.category) ? { ...r, enabled: true, notificationId: `personal-reminder-v1-${r.category}` } : r);
     },
+    remove: (category: string) => { items = items.filter((r) => r.category !== category); },
   };
   const modules: Record<string, unknown> = {
     '@react-native-async-storage/async-storage': { __esModule: true, default: {
@@ -38,7 +43,7 @@ function quietModule() {
   }).outputText;
   const exports: Record<string, any> = {};
   new Function('require', 'exports', code)((id: string) => modules[id], exports);
-  return { api: exports, store, calls, items: () => items };
+  return { api: exports, store, calls, items: () => items, service };
 }
 
 test('pausing her own reminders happens once, remembers the ones that were on, and turning back on restores them', async () => {
@@ -70,6 +75,22 @@ test('the pause starts even with nothing on, so a reminder enabled afterwards is
   assert.ok(m.store.has(m.api.quietRemindersKey('A')));
 });
 
+test('a reminder she removed during the pause is not re-created, and a restore without permission retries later', async () => {
+  const removed = quietModule();
+  await removed.api.pausePersonalRemindersForQuiet('A');
+  removed.service.remove('boundary');
+  await removed.api.resumePersonalRemindersAfterQuiet('A');
+  assert.ok(!removed.calls.some((c) => c.startsWith('restore:')), 'nothing to restore');
+  assert.equal(removed.items().some((r) => r.category === 'boundary'), false);
+  assert.equal(removed.store.has(removed.api.quietRemindersKey('A')), false);
+
+  const blocked = quietModule({ permitted: false });
+  await blocked.api.pausePersonalRemindersForQuiet('A');
+  await blocked.api.resumePersonalRemindersAfterQuiet('A');
+  assert.ok(blocked.store.has(blocked.api.quietRemindersKey('A')), 'permission off: the list is kept for the next foreground');
+  assert.equal(blocked.items().find((r) => r.category === 'boundary')?.enabled, false);
+});
+
 test('the device list is account scoped, so the deletion purge removes it', async () => {
   const { accountLocalKeys } = await import('../src/lib/accountLocalKeys');
   const m = quietModule();
@@ -84,6 +105,9 @@ test('the pause is offered in the sheet (off by default), on the grief card, and
   assert.match(sheet, /await onConfirm\(contact, quiet\);/);
   assert.match(read('src/components/bereavement/GriefCard.tsx'), /t\(quiet \? 'bereavement\.grief\.resume' : 'bereavement\.grief\.pause'\)/);
   const settings = read('src/components/bereavement/BereavementSettingsCard.tsx');
+  // Settings shows the daily reminder as it is once the device has followed a pause.
+  assert.match(settings, /rearmDailyNudge\(\)\.catch\(\(\) => undefined\)\.then\(\(\) => onRemindersChanged\?\.\(\)\)/);
+  assert.match(read('app/settings.tsx'), /onRemindersChanged=\{\(\) => \{[\s\S]*isDailyNudgeEnabled\(accountId\)/);
   assert.match(settings, /<Switch[\s\S]*value=\{!quiet\}/);
   const today = read('app/(tabs)/index.tsx');
   assert.match(today, /const \{ quietFailed \} = await markDied\(contact, quiet\);\s*if \(quietFailed\) appAlert\(t\('bereavement\.grief\.quietError'\)\);/);

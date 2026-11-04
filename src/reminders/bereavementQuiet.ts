@@ -46,11 +46,26 @@ export async function pausePersonalRemindersForQuiet(accountId: string): Promise
   }
 }
 
+/**
+ * Turning reminders back on brings back the ones that were on, except any she
+ * removed during the pause. If a restore cannot run (notification permission
+ * off, storage busy) the remembered list stays and the next foreground retries.
+ */
 export async function resumePersonalRemindersAfterQuiet(accountId: string): Promise<void> {
   const key = quietRemindersKey(accountId);
   const raw = await AsyncStorage.getItem(key);
   if (raw === null) return;
-  const armed = parseArmed(raw);
-  await personalReminders.restoreAfterAbortedExit(accountId, armed);
+  await personalReminders.setAccount(accountId);
+  const before = personalReminders.snapshot();
+  if (before.accountId !== accountId || !before.ready) return;
+  const stillThere = new Set(before.items.map((item) => item.category));
+  const armed = parseArmed(raw).filter((item) => stillThere.has(item.category));
+  if (armed.length) await personalReminders.restoreAfterAbortedExit(accountId, armed);
+  const after = personalReminders.snapshot();
+  const waiting = armed.filter((item) => !after.items.some((r) => r.category === item.category && r.enabled));
+  if (after.accountId === accountId && waiting.length) {
+    await AsyncStorage.setItem(key, JSON.stringify(waiting));
+    return;
+  }
   await AsyncStorage.removeItem(key);
 }

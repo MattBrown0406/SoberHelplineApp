@@ -9,7 +9,8 @@ import { isBereaved } from '../../lib/bereavement';
 import { BereavementSheet } from './BereavementSheet';
 
 /** Settings: tell us your loved one died, or undo it if it was a mistake. */
-export function BereavementSettingsCard({ accountId }: { accountId: string | null }) {
+/** `onRemindersChanged`: Settings re-reads its own reminder switches once the device has followed. */
+export function BereavementSettingsCard({ accountId, onRemindersChanged }: { accountId: string | null; onRemindersChanged?: () => void }) {
   const { colors } = useTheme();
   const { t } = useTranslation('settings');
   const { lovedOne, loading, loadError, markDied, clearDied, setQuiet } = useLovedOne(accountId);
@@ -21,12 +22,12 @@ export function BereavementSettingsCard({ accountId }: { accountId: string | nul
   const bereaved = isBereaved(lovedOne);
   const quiet = lovedOne?.bereavement_quiet === true;
   // The device's own reminders follow every change.
-  const syncDevice = () => { void rearmDailyNudge().catch(() => undefined); };
+  const syncDevice = () => rearmDailyNudge().catch(() => undefined).then(() => onRemindersChanged?.());
 
   const toggleReminders = (remindersOn: boolean) => {
     setQuietBusy(true);
     void setQuiet(!remindersOn)
-      .then(syncDevice)
+      .then(() => syncDevice())
       .catch(() => appAlert(t('bereavement.errorTitle'), t('bereavement.errorBody')))
       .finally(() => setQuietBusy(false));
   };
@@ -38,7 +39,7 @@ export function BereavementSettingsCard({ accountId }: { accountId: string | nul
       onPress: () => {
         setUndoing(true);
         void clearDied()
-          .then(syncDevice)
+          .then(() => syncDevice())
           .catch(() => appAlert(t('bereavement.errorTitle'), t('bereavement.errorBody')))
           .finally(() => setUndoing(false));
       },
@@ -81,7 +82,7 @@ export function BereavementSettingsCard({ accountId }: { accountId: string | nul
         onConfirm={async (contact, quietChoice) => {
           const { quietFailed } = await markDied(contact, quietChoice);
           if (quietFailed) appAlert(t('bereavement.errorTitle'), t('bereavement.quietFailed'));
-          syncDevice();
+          void syncDevice();
           setSheetOpen(false);
         }}
       />

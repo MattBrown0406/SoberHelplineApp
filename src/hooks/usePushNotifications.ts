@@ -44,6 +44,12 @@ async function setServerDailyHour(hour: number): Promise<void> {
  */
 export const DAILY_QUIET_KEY = 'legacy-daily-nudge:quiet:v1:';
 
+/** PostgREST / Postgres "no such column" (an older schema). */
+export function isMissingColumn(error: { code?: string; message?: string } | null | undefined): boolean {
+  return error?.code === '42703' || error?.code === 'PGRST204'
+    || /column .* does not exist|could not find .* column/i.test(error?.message ?? '');
+}
+
 async function followBereavementQuiet(accountId: string, paused: boolean): Promise<void> {
   const marker = await AsyncStorage.getItem(DAILY_QUIET_KEY + accountId);
   if (paused && marker === null) {
@@ -56,9 +62,17 @@ async function followBereavementQuiet(accountId: string, paused: boolean): Promi
   }
 }
 
+/** Her explicit daily choice during a pause is what comes back after it. */
+async function rememberDailyChoiceDuringQuiet(accountId: string, on: boolean): Promise<void> {
+  if ((await AsyncStorage.getItem(DAILY_QUIET_KEY + accountId)) !== null) {
+    await AsyncStorage.setItem(DAILY_QUIET_KEY + accountId, on ? 'on' : 'off');
+  }
+}
+
 export async function disableDailyNudges(accountId: string): Promise<void> {
   await setServerDailyOptIn(false);
   await AsyncStorage.setItem(LEGACY_OPT_IN_KEY + accountId, 'false');
+  await rememberDailyChoiceDuringQuiet(accountId, false).catch(() => undefined);
   await rearmDailyNudge();
 }
 
@@ -163,11 +177,13 @@ async function performDailyNudgeRearm(): Promise<void> {
   // The server morning note reaches her (via the token on file) at this hour.
   let serverMorningNote = false;
   if (accountId && session?.user.id) {
-    const { data, error } = await supabase
-      .from('accounts')
-      .select('id, timezone, daily_push_opt_in, daily_push_hour, push_token, loved_ones(died_at, bereavement_quiet)')
-      .eq('user_id', session.user.id)
-      .maybeSingle();
+    const select = (columns: string) => supabase.from('accounts').select(columns).eq('user_id', session.user.id).maybeSingle();
+    let { data, error } = await select('id, timezone, daily_push_opt_in, daily_push_hour, push_token, loved_ones(died_at, bereavement_quiet)');
+    // A backend without the pause column yet (the migration lags this build):
+    // read without it, as not paused, instead of stopping every re-arm.
+    if (error && isMissingColumn(error)) {
+      ({ data, error } = await select('id, timezone, daily_push_opt_in, daily_push_hour, push_token'));
+    }
     if (error) return;
     account = data as DailyAccount | null;
     remindersPaused = account?.id === accountId && !!account.loved_ones?.died_at
@@ -314,6 +330,7 @@ export async function registerForPushNotifications(accountId: string, requestPer
     if (optInDailyNudges && requestPermission) {
       await pushWriteBarrier.track(accountId, setServerDailyOptIn(true));
       await pushWriteBarrier.track(accountId, AsyncStorage.setItem(LEGACY_OPT_IN_KEY + accountId, 'true'));
+      await rememberDailyChoiceDuringQuiet(accountId, true).catch(() => undefined);
       if (!pushWriteBarrier.isCurrent(accountId, generation) || activePushAccountId !== accountId) return false;
     }
     await rearmDailyNudge().catch((error) => {

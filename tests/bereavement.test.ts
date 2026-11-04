@@ -68,7 +68,7 @@ test('Today, the cards, Settings and Admin are wired', () => {
   assert.match(today, /refreshLovedOne\(\)/);
   assert.match(read('src/components/today/LovedOneCheckCard.tsx'), /t\('bereavement\.link'\)/);
   assert.match(read('src/components/today/RecoveryPathwayCard.tsx'), /t\('bereavement\.link'\)/);
-  assert.match(read('app/settings.tsx'), /<BereavementSettingsCard accountId=/);
+  assert.match(read('app/settings.tsx'), /<BereavementSettingsCard\s+accountId=/);
   assert.match(read('app/admin.tsx'), /<BereavementContactsCard \/>/);
   const hook = read('src/hooks/useLovedOne.ts');
   assert.match(hook, /rpc\('mark_loved_one_died', \{ p_contact: contact \}\)/);

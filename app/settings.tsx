@@ -646,7 +646,17 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
-        <BereavementSettingsCard accountId={user?.id ?? null} />
+        <BereavementSettingsCard
+          accountId={user?.id ?? null}
+          // A pause or its end changes the daily reminder: show what is on now.
+          onRemindersChanged={() => {
+            const accountId = user?.id;
+            if (!accountId) return;
+            void isDailyNudgeEnabled(accountId).then((enabled) => {
+              if (practiceAccountRef.current === accountId) setDailyEnabled(enabled);
+            }).catch(() => undefined);
+          }}
+        />
 
         {/* Language */}
         <View style={[styles.card, { borderColor: colors.line }]}>
