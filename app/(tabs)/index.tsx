@@ -24,6 +24,8 @@ import { CurriculumCard } from '../../src/components/today/CurriculumCard';
 import { WillingnessWindowAlert } from '../../src/components/today/WillingnessWindowAlert';
 import { PassItOnCard } from '../../src/components/today/PassItOnCard';
 import { InvitationTodayCard } from '../../src/components/invitation/InvitationTodayCard';
+import { LovedOneCheckCard } from '../../src/components/today/LovedOneCheckCard';
+import { HolidayPlanTodayCard } from '../../src/components/today/HolidayPlanTodayCard';
 import { useCheckIn } from '../../src/hooks/useCheckIn';
 import { useTodayFeed } from '../../src/hooks/useTodayFeed';
 import { useLovedOne } from '../../src/hooks/useLovedOne';
@@ -56,7 +58,7 @@ function TodayContent() {
   const { t, i18n } = useTranslation('today');
   const router = useRouter();
   const { todayCheckIn, streak, saveCheckIn, pendingSync } = useCheckIn(user?.id ?? null, user?.timezone);
-  const { lovedOne, loading: lovedOneLoading, save: saveLovedOne } = useLovedOne(user?.id ?? null);
+  const { lovedOne, loading: lovedOneLoading, loadError: lovedOneLoadError, save: saveLovedOne } = useLovedOne(user?.id ?? null);
   const { dayCount, boundariesHeld, groupSessions, quoteIndex, scriptSlot, curriculumWeek, curriculumPhase, situation, primaryDoor, nextFreeCall, rsvpFreeCall, reload: reloadFeed } =
     useTodayFeed(user?.id ?? null, user?.joinedAt ?? null);
   const youLabel = user?.firstName || t('boundaries:journal.you');
@@ -121,20 +123,32 @@ function TodayContent() {
   }
 
   const lovedOneStatus = lovedOne?.status ?? situation.drivers.loved_one_status;
+  // Treatment or recovery also clears a stale using/escalating/crisis
+  // status; then re-read the situation so Today reflects it.
+  const saveLovedOnePhase = async (stage: Parameters<typeof pathwayPhaseUpdate>[0]) => {
+    const saved = await saveLovedOne(pathwayPhaseUpdate(stage, lovedOneStatus));
+    void reloadFeed();
+    return saved;
+  };
   const pathwayCard = (
     <RecoveryPathwayCard
       stage={lovedOne?.stage}
       status={lovedOneStatus}
       loading={lovedOneLoading}
-      // Treatment or recovery also clears a stale using/escalating/crisis
-      // status; then re-read the situation so Today reflects it.
-      onSavePhase={async (stage) => {
-        const saved = await saveLovedOne(pathwayPhaseUpdate(stage, lovedOneStatus));
-        void reloadFeed();
-        return saved;
-      }}
+      onSavePhase={saveLovedOnePhase}
     />
   );
+  // Signup lets her skip the loved-one step: ask again on Today, in one tap.
+  const lovedOneCheckCard = (
+    <LovedOneCheckCard
+      accountId={user?.id ?? null}
+      lovedOne={lovedOne}
+      ready={!lovedOneLoading && !lovedOneLoadError}
+      pressureScore={todayCheckIn?.pressureScore}
+      onSavePhase={saveLovedOnePhase}
+    />
+  );
+  const holidayCard = <HolidayPlanTodayCard accountId={user?.id ?? null} />;
   const willingnessWindowAlert = (
     <WillingnessWindowAlert accountId={user?.id ?? null} situation={situation} />
   );
@@ -203,6 +217,8 @@ function TodayContent() {
         {mondayCallCard}
         {checkInCard}
         <CheckInFeedbackCard checkIn={todayCheckIn} />
+        {lovedOneCheckCard}
+        {holidayCard}
         {invitationCard}
         <GuidedStartPanel />
         <TodayDisclosure title={t('disclosure.pathway')}>
@@ -255,6 +271,8 @@ function TodayContent() {
       {mondayCallCard}
       {checkInCard}
       <CheckInFeedbackCard checkIn={todayCheckIn} />
+      {lovedOneCheckCard}
+      {holidayCard}
       {invitationCard}
         <GuidedStartPanel />
       <TodayDisclosure title={t('disclosure.pathway')}>

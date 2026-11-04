@@ -478,5 +478,20 @@
       "familyRecovery": "Tu propia recuperación",
       "durability": "Que dure"
     }
+  },
+  "lovedOneCheck": {
+    "eyebrow": "UNA PREGUNTA RÁPIDA",
+    "titleMissing": "¿Cómo están las cosas con {{name}} ahora mismo?",
+    "titleMissingNoName": "¿Cómo están las cosas con tu ser querido ahora mismo?",
+    "titleStale": "¿Ha cambiado algo con {{name}}?",
+    "titleStaleNoName": "¿Ha cambiado algo con tu ser querido?",
+    "titlePressure": "Hoy se siente pesado. ¿Ha cambiado algo con {{name}}?",
+    "titlePressureNoName": "Hoy se siente pesado. ¿Ha cambiado algo con tu ser querido?",
+    "body": "Un toque mantiene Hoy al día con lo que está pasando: el apoyo que te ofrece, la lectura de la semana y cuándo te sugiere una llamada.",
+    "same": "Sigue igual: {{phase}}",
+    "sameAccessibility": "Sigue igual: {{phase}}. Guarda que nada ha cambiado.",
+    "saveError": "No pudimos guardarlo. Inténtalo de nuevo.",
+    "notNow": "Ahora no",
+    "thanks": "Gracias. Hoy ya refleja dónde están las cosas."
   }
 }

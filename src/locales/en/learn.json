@@ -27,6 +27,10 @@
     "visitationBody": "Write the visit before you drive: no cash, no promises of home, a fixed leave time, and a parking-lot exit plan.",
     "visitationButton": "Write the visit",
     "visitationBadge": "Free · Visit planning",
+    "holidayTitle": "Holiday Plan",
+    "holidayBody": "Who's invited, on what terms, what happens if they show up using, and what to tell the relatives. Written before the day, shared with everyone hosting.",
+    "holidayButton": "Write the holiday plan",
+    "holidayBadge": "Free · Holidays",
     "learningEyebrow": "LEARN · FREE RESOURCES",
     "diyIncluded": "Included with your current access.",
     "diyPaid": "Paid feature · Essential or Premier membership required.",
@@ -161,6 +165,18 @@
       {
         "q": "When is it an emergency?",
         "a": "Call 911 for overdose signs — unresponsive, blue lips, slow or stopped breathing, gurgling. Call or text 988 for any talk of suicide or self-harm. Don't wait to be sure; being wrong and safe beats being right and late. Save both numbers in your phone now, and if opioids are involved, keep naloxone (Narcan) at home — Narcan nasal spray is available over the counter at pharmacies nationwide."
+      },
+      {
+        "q": "They've been arrested. Should we bail them out?",
+        "a": "Not on reflex. Unless there's a medical or safety reason, bail can usually wait a night, and custody is often the safest place they've been in weeks. Tell the jail's medical staff about their substance use, because withdrawal from alcohol or benzodiazepines can be dangerous. Then get a criminal defense attorney or the public defender, and ask about drug court, diversion, or treatment as a condition of release. Don't discuss the case on jail calls; they're recorded. If you help, make treatment the condition. Crisis Mode has a step-by-step plan for this. This is general information, not legal advice."
+      },
+      {
+        "q": "Can we make them go to treatment?",
+        "a": "Sometimes. Most states have a civil commitment law for addiction (Florida's Marchman Act, Kentucky's Casey's Law, and Massachusetts' Section 35 are well-known examples), but the rules vary widely. Usually a family member petitions a court, there's an evaluation, and you have to show danger to self or others or an inability to care for themselves. Stays are often short, and some states have no such law. A criminal court can also order treatment through drug court or diversion. Ask a local attorney or the county court clerk how it works where you live. Many families reach the same goal without a court through a planned, professional intervention, and a Sober Helpline coach can help you weigh it. This is general information, not legal advice."
+      },
+      {
+        "q": "Isn't medication just trading one drug for another?",
+        "a": "No, though it's a fair question. For opioid addiction, buprenorphine (Suboxone), methadone, and naltrexone (Vivitrol) are proven treatments, and buprenorphine or methadone taken as prescribed cuts the risk of dying from an overdose roughly in half. At a stable prescribed dose they don't produce a high; they quiet cravings and withdrawal so people can work, parent, and do the rest of recovery. For alcohol, naltrexone and acamprosate can reduce cravings. Medication works best alongside counseling and support. Ask any program whether it offers or allows medication, and leave the choice of medication to a doctor."
       }
     ],
     "collapseHint": "Collapses this answer",

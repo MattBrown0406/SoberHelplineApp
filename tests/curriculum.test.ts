@@ -74,15 +74,55 @@ test('exact week match wins', () => {
   assert.equal(selectCurriculumPiece(8, 'calm')?.week, 8);
 });
 
-test('past the authored range it holds at the last piece instead of going empty', () => {
-  const piece = selectCurriculumPiece(40, 'calm');
-  assert.ok(piece, 'a partial library must never yield a null card for a calm family');
-  assert.equal(piece?.week, 8);
+test('weeks 9–26 are authored and match exactly in both languages', () => {
+  for (const week of [9, 13, 14, 18, 21, 26]) {
+    assert.equal(selectCurriculumPiece(week, 'calm')?.week, week);
+    assert.equal(selectCurriculumPiece(week, 'calm', 'es')?.week, week);
+    assert.equal(selectCurriculumPiece(week, 'calm')?.phase, 'durability');
+  }
+  assert.equal(selectCurriculumPiece(26, 'calm', 'es')?.id, 'cur-w26-long-haul');
+});
+
+test('past week 26 it cycles through the durability pieces instead of repeating one', () => {
+  assert.equal(selectCurriculumPiece(27, 'calm')?.week, 9);
+  assert.equal(selectCurriculumPiece(28, 'calm')?.week, 10);
+  assert.equal(selectCurriculumPiece(44, 'calm')?.week, 26);
+  assert.equal(selectCurriculumPiece(45, 'calm')?.week, 9);
+  assert.equal(selectCurriculumPiece(27, 'calm', 'es')?.id, selectCurriculumPiece(27, 'calm')?.id);
+  // Deterministic, and never the same piece two weeks running.
+  for (let week = 27; week <= 120; week += 1) {
+    const piece = selectCurriculumPiece(week, 'calm');
+    assert.ok(piece, `week ${week} produced no piece`);
+    assert.equal(piece?.phase, 'durability');
+    assert.equal(selectCurriculumPiece(week, 'calm')?.id, piece?.id);
+    assert.notEqual(selectCurriculumPiece(week + 1, 'calm')?.id, piece?.id, `week ${week} repeated`);
+  }
+});
+
+test('guarded cycling past week 26 only serves crisis-safe durability pieces and still rotates', () => {
+  const safeCycle = CURRICULUM.filter((piece) => piece.phase === 'durability' && piece.crisisSafe)
+    .sort((a, b) => a.week - b.week);
+  assert.ok(safeCycle.length >= 9, 'at least half the durability pieces are crisis-safe');
+  assert.equal(selectCurriculumPiece(27, 'crisis')?.id, safeCycle[0].id);
+  assert.equal(selectCurriculumPiece(28, 'elevated')?.id, safeCycle[1].id);
+  const seen = new Set<string>();
+  for (let week = 27; week < 27 + safeCycle.length; week += 1) {
+    const piece = selectCurriculumPiece(week, 'crisis', 'es');
+    assert.equal(piece?.crisisSafe, true);
+    seen.add(piece!.id);
+  }
+  assert.equal(seen.size, safeCycle.length, 'guarded cycle visits every crisis-safe piece');
+});
+
+test('relapse pieces are always crisis-safe', () => {
+  for (const piece of CURRICULUM.filter((p) => p.tag === 'WHEN THEY RELAPSE')) {
+    assert.equal(piece.crisisSafe, true, `${piece.id} must reach a family in crisis`);
+  }
 });
 
 test('elevated and crisis bands only receive crisis-safe pieces', () => {
   for (const band of ['elevated', 'crisis'] as const) {
-    for (let week = 1; week <= 12; week += 1) {
+    for (let week = 1; week <= 60; week += 1) {
       const piece = selectCurriculumPiece(week, band);
       if (piece) {
         assert.equal(piece.crisisSafe, true, `week ${week} leaked an unsafe piece to ${band}`);
@@ -130,6 +170,7 @@ test('Spanish text is actually translated, not copied through', () => {
     assert.notEqual(match.mechanism, piece.mechanism, `${piece.id} mechanism untranslated`);
     assert.notEqual(match.practice, piece.practice, `${piece.id} practice untranslated`);
     assert.notEqual(match.prompt, piece.prompt, `${piece.id} prompt untranslated`);
+    assert.notEqual(match.tag, piece.tag, `${piece.id} tag untranslated`);
   }
 });
 
@@ -165,10 +206,29 @@ test('no piece ships empty prose', () => {
       assert.ok(piece[field].trim().length > 0, `${piece.id}.${field} is empty`);
     }
     assert.ok(piece.mechanism.length > 200, `${piece.id} mechanism is too thin to teach`);
+    // The practice doubles as Today's "this week's one thing".
+    assert.ok(piece.practice.length < 400, `${piece.id} practice is too long for Today`);
   }
 });
 
 test('backlog signal fires only past the authored range', () => {
   assert.equal(isBeyondAuthoredCurriculum(8), false);
-  assert.equal(isBeyondAuthoredCurriculum(9), true);
+  assert.equal(isBeyondAuthoredCurriculum(26), false);
+  assert.equal(isBeyondAuthoredCurriculum(27), true);
+  assert.equal(isBeyondAuthoredCurriculum(26, 'es'), false);
+});
+
+test('library covers weeks 1–26 in both languages', () => {
+  assert.equal(CURRICULUM.length, 26);
+  assert.equal(CURRICULUM_ES.length, 26);
+  assert.deepEqual(CURRICULUM_ES.map((p) => p.week), CURRICULUM.map((p) => p.week));
+  assert.deepEqual(CURRICULUM_ES.map((p) => p.id), CURRICULUM.map((p) => p.id));
+});
+
+test('English pieces refer to the loved one as they/them, not he or she', () => {
+  for (const piece of CURRICULUM) {
+    for (const field of ['title', 'mechanism', 'practice', 'prompt'] as const) {
+      assert.doesNotMatch(piece[field], /\b(he|she|him|his|hers|himself|herself)\b/i, `${piece.id}.${field}`);
+    }
+  }
 });

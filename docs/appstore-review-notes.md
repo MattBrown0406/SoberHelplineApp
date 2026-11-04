@@ -21,6 +21,9 @@ WHAT'S NEW IN 4.2 (build 3)
 - The morning after a call she saved a seat for or joined, one note with that week's one thing (only with Monday call reminders on; Settings > Notifications).
 - If an App Store free trial is offered for a plan, the plan screen states its length, the price charged after it and how to cancel; members who are not eligible never see one.
 - The community feed is no longer offered.
+- Holiday Plan (Learn > Tools; a Today card from November 1 to January 6): a family writes who is invited, on what terms, and what happens if the terms break. Saved only on the device in protected storage; "Share this plan" opens the iOS share sheet with the text she wrote.
+- Today asks, in one tap, where things are with her loved one (when she skipped it at signup, monthly, and after a heavy check-in), so the support it shows matches.
+- The weekly family reading now runs 26 weeks and then rotates; Crisis Mode adds "Arrested, in jail, or calling from jail"; the FAQ answers bail, court-ordered treatment, and medication for addiction. General information, not legal or medical advice.
 
 WHAT'S NEW IN 4.2
 - Spanish: members using the app in Spanish see La Sobremesa, our free Spanish-language Monday call (8:00 PM Pacific, from our Spanish site AyudaSobria.com), with a personal Zoom link; English members keep The Family Squares (7:00 PM Pacific).

@@ -27,6 +27,10 @@
     "visitationBody": "Escribe la visita antes de conducir: sin efectivo, sin promesas de volver a casa, hora fija de salida y plan para el estacionamiento.",
     "visitationButton": "Escribir la visita",
     "visitationBadge": "Gratis · Plan de visita",
+    "holidayTitle": "Plan para las fiestas",
+    "holidayBody": "Quién está invitado, con qué condiciones, qué pasa si llega intoxicado/a y qué decir a los familiares. Escrito antes del día y compartido con todos los que reciben.",
+    "holidayButton": "Escribir el plan",
+    "holidayBadge": "Gratis · Fiestas",
     "learningEyebrow": "APRENDE · RECURSOS GRATUITOS",
     "diyIncluded": "Incluido con tu acceso actual.",
     "diyPaid": "Función de pago · requiere membresía Essential o Premier.",
@@ -161,6 +165,18 @@
       {
         "q": "¿Cuándo es una emergencia?",
         "a": "Llama al 911 ante señales de sobredosis — no responde, labios azules, respiración lenta o detenida, gorgoteo. Llama al 988 (marca 2 para español) o envía AYUDA al 988 ante cualquier mención de suicidio o autolesión. No esperes a estar segura; equivocarse y estar a salvo es mejor que tener razón y llegar tarde. Guarda ambos números en tu teléfono ahora, y si hay opioides, ten naloxona (Narcan) en casa — el aerosol nasal Narcan está disponible sin receta en farmacias de todo el país."
+      },
+      {
+        "q": "Arrestaron a mi ser querido. ¿Pagamos la fianza?",
+        "a": "No por reflejo. Salvo que haya una razón médica o de seguridad, la fianza casi siempre puede esperar una noche, y la detención suele ser el lugar más seguro donde ha estado en semanas. Avisa al personal médico de la cárcel sobre su consumo, porque la abstinencia de alcohol o de benzodiacepinas puede ser peligrosa. Luego busca un abogado penalista o al defensor público, y pregunta por la corte de drogas, un programa de desvío o tratamiento como condición para salir. No hablen del caso en las llamadas de la cárcel; se graban. Si ayudas, pon el tratamiento como condición. El Modo Crisis tiene un plan paso a paso para esto. Es información general, no asesoría legal."
+      },
+      {
+        "q": "¿Podemos obligar a nuestro ser querido a ir a tratamiento?",
+        "a": "A veces. La mayoría de los estados tiene una ley de internamiento civil por adicción (la Marchman Act de Florida, la Casey's Law de Kentucky y la Section 35 de Massachusetts son ejemplos conocidos), pero las reglas varían mucho. Por lo general, un familiar lo pide ante un tribunal, hay una evaluación y debe haber peligro para sí o para otros, o incapacidad de cuidarse. Los internamientos suelen ser cortos, y algunos estados no tienen esta ley. Un tribunal penal también puede ordenar tratamiento mediante la corte de drogas o un programa de desvío. Pregunta a un abogado local o al tribunal de tu condado cómo funciona donde vives. Muchas familias logran lo mismo sin un tribunal, con una intervención profesional planificada, y un coach de Sober Helpline puede ayudarte a evaluarlo. Es información general, no asesoría legal."
+      },
+      {
+        "q": "¿La medicación no es solo cambiar una droga por otra?",
+        "a": "No, aunque es una pregunta justa. Para la adicción a los opioides, la buprenorfina (Suboxone), la metadona y la naltrexona (Vivitrol) son tratamientos comprobados, y la buprenorfina o la metadona, tomadas como se recetan, reducen aproximadamente a la mitad el riesgo de morir por sobredosis. A una dosis estable recetada no producen euforia: calman el deseo de consumir y la abstinencia, para que la persona pueda trabajar, criar a sus hijos y hacer el resto de su recuperación. Para el alcohol, la naltrexona y el acamprosato pueden reducir el deseo de beber. La medicación funciona mejor junto con terapia y apoyo. Pregunta a cualquier programa si ofrece o permite medicación, y deja la elección del medicamento a un médico."
       }
     ],
     "collapseHint": "Oculta esta respuesta",

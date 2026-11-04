@@ -13,6 +13,10 @@ const ESSENTIAL = entitlementsForAccountState('direct-essential');
 
 const followupSql = readFileSync('supabase/migrations/20261104100000_monday_call_followup.sql', 'utf8');
 const usageSql = readFileSync('supabase/migrations/20261104120000_tool_usage_events.sql', 'utf8');
+const latestUsageToolsSql = readdirSync('supabase/migrations')
+  .filter((file) => file.endsWith('.sql')).sort().reverse()
+  .map((file) => readFileSync(`supabase/migrations/${file}`, 'utf8'))
+  .find((sql) => /FUNCTION public\._usage_tools\(\)/.test(sql)) ?? '';
 
 test('the Tuesday follow-up opens Today; the hour-before reminder opens the question sheet', () => {
   assert.deepEqual(getPushDestination({ kind: 'family_call_followup', meeting_date: '2026-11-09' }), { pathname: '/(tabs)' });
@@ -94,7 +98,8 @@ test('trial copy keeps the price and the cancel terms next to the trial', () => 
 });
 
 test('usage events: the client tool names are exactly the server allowlist, one per day', () => {
-  const sqlList = /SELECT ARRAY\[([\s\S]*?)\]::text\[\]/.exec(usageSql)?.[1] ?? '';
+  // The newest migration that redefines the allowlist is the one in force.
+  const sqlList = /SELECT ARRAY\[([\s\S]*?)\]::text\[\]/.exec(latestUsageToolsSql)?.[1] ?? '';
   const serverTools = [...sqlList.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]).sort();
   assert.deepEqual([...USAGE_TOOLS].sort(), serverTools);
   assert.equal(toolUsageKey('letter', 'opened', Date.parse('2026-11-04T01:00:00Z')),

@@ -478,5 +478,20 @@
       "familyRecovery": "Your own recovery",
       "durability": "Making it last"
     }
+  },
+  "lovedOneCheck": {
+    "eyebrow": "A QUICK CHECK",
+    "titleMissing": "Where are things with {{name}} right now?",
+    "titleMissingNoName": "Where are things with your loved one right now?",
+    "titleStale": "Has anything changed with {{name}}?",
+    "titleStaleNoName": "Has anything changed with your loved one?",
+    "titlePressure": "Today sounds heavy. Has something changed with {{name}}?",
+    "titlePressureNoName": "Today sounds heavy. Has something changed with your loved one?",
+    "body": "One tap keeps Today matched to where things are: the support it offers, the weekly reading, and when it suggests a call.",
+    "same": "Still the same: {{phase}}",
+    "sameAccessibility": "Still the same: {{phase}}. Saves that nothing has changed.",
+    "saveError": "We couldn't save that. Please try again.",
+    "notNow": "Not now",
+    "thanks": "Thanks. Today now fits where things are."
   }
 }
