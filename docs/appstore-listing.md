@@ -75,6 +75,11 @@ The entire app, including the support that matters most, in both languages.
 MEMBERSHIP
 Sober Helpline is free to download. Optional subscriptions unlock coach messaging, live support groups, and coaching calls. Families connected to a provider organization access everything through their provider.
 
+Subscriptions renew automatically unless canceled at least 24 hours before the end of the current period. Payment is charged to your Apple Account at confirmation of purchase. Manage or cancel anytime in your App Store account settings.
+
+Terms of Use: https://soberhelpline.com/app-terms
+Privacy Policy: https://soberhelpline.com/privacy
+
 Sober Helpline offers family coaching, education, and support. It is not medical care, therapy, legal advice, or a substitute for professional treatment. If you or someone else is in danger, call 911. For a mental health crisis, call or text 988.
 
 Hope. Help. Recovery.
@@ -143,6 +148,11 @@ Toda la app, incluido el apoyo que más importa, en ambos idiomas.
 
 MEMBRESÍA
 Sober Helpline es gratis para descargar. Las suscripciones opcionales desbloquean mensajes con un coach, grupos de apoyo en vivo y llamadas de coaching. Las familias conectadas con una organización proveedora acceden a todo a través de su proveedor.
+
+Las suscripciones se renuevan automáticamente, a menos que las canceles al menos 24 horas antes de que termine el periodo actual. El pago se carga a tu cuenta de Apple al confirmar la compra. Puedes administrarlas o cancelarlas en cualquier momento en la configuración de tu cuenta del App Store.
+
+Términos de uso: https://soberhelpline.com/app-terms
+Política de privacidad: https://soberhelpline.com/privacy
 
 Sober Helpline ofrece coaching, educación y apoyo para familias. No es atención médica, terapia, asesoría legal ni un sustituto del tratamiento profesional. Si tú o alguien más está en peligro, llama al 911. Para una crisis de salud mental, llama o envía un mensaje al 988.
 
