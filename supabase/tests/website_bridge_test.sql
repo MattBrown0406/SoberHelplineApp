@@ -85,6 +85,29 @@ SELECT is(public.service_family_squares_push_reachable(
   now()-interval '1 day'),
   ARRAY['going@example.com','reminders@example.com'],
   'confirmed device + call reminder on; verified only; returned lower-cased');
+
+-- ── D2. Reminder preferences (what she told the app) ────────────────────────
+SELECT ok(NOT has_function_privilege('anon','public.service_family_squares_reminder_preferences(text[],timestamptz)','EXECUTE')
+  AND NOT has_function_privilege('authenticated','public.service_family_squares_reminder_preferences(text[],timestamptz)','EXECUTE')
+  AND has_function_privilege('service_role','public.service_family_squares_reminder_preferences(text[],timestamptz)','EXECUTE'),
+  'reminder-preferences lookup is service-role only');
+SELECT is(ARRAY(SELECT row(email,reminders_off,declined)::text FROM public.service_family_squares_reminder_preferences(
+  ARRAY[' GOING@example.com','asker@example.com','stale@example.com','unverified@example.com',
+        'reminders@example.com','notoken@example.com','declined@example.com','nobody@example.com',''],
+  now()-interval '1 day')),
+  ARRAY[row('asker@example.com',true,false)::text, row('declined@example.com',false,true)::text, row('stale@example.com',true,false)::text],
+  'reminders off, or declined this week; verified only; nobody else is listed; last week''s answers do not count');
+SELECT is((SELECT count(*)::int FROM public.service_family_squares_reminder_preferences(
+  ARRAY['going@example.com','reminders@example.com','notoken@example.com'], now()-interval '1 day')), 0,
+  'reminders on and going (or no answer) = nothing to tell the website');
+UPDATE session_rsvps SET status='going', created_at=now()-interval '1 hour'
+ WHERE session_id=public.family_squares_session_id() AND account_id='41000000-0000-0000-0000-000000000002';
+SELECT is((SELECT count(*)::int FROM public.service_family_squares_reminder_preferences(ARRAY['declined@example.com'], now()-interval '1 day')), 0,
+  'changing the answer to going removes her from the declined list');
+UPDATE session_rsvps SET status='declined', created_at=now()-interval '2 hours'
+ WHERE session_id=public.family_squares_session_id() AND account_id='41000000-0000-0000-0000-000000000002';
+SELECT throws_ok($$SELECT * FROM public.service_family_squares_reminder_preferences(ARRAY['a@x.com'], NULL)$$, '22023', 'invalid_since', 'a window start is required');
+
 UPDATE accounts SET family_call_reminders=false WHERE id='41000000-0000-0000-0000-000000000001';
 UPDATE accounts SET push_token='ExponentPushToken[bridge-2]' WHERE id='41000000-0000-0000-0000-000000000002';
 SELECT is(public.service_family_squares_push_reachable(

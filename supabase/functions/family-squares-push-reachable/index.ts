@@ -7,6 +7,13 @@
 // same rule the app's reminder dispatcher uses).
 // The website skips its reminder emails for those, and fails open (sends them)
 // if this call fails.
+//
+// The answer also carries what members told the app, so the website can
+// respect it:
+//   reminders_off: string[]: she turned the Monday call reminder off
+//   declined:      string[]: she answered "can't make it" for this week's call
+// Both are left out (not sent as empty) if that lookup fails, so an older or
+// failing lookup can never look like "nobody declined".
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { requireSyncSecret } from '../_shared/sync-secret.ts';
@@ -34,5 +41,18 @@ Deno.serve(async (req) => {
     console.error('family-squares-push-reachable: lookup failed', error?.code ?? 'invalid_response');
     return json({ error: 'unavailable' }, 503);
   }
-  return json({ handled_by_app: data.filter((e): e is string => typeof e === 'string') });
+  const handled = data.filter((e): e is string => typeof e === 'string');
+
+  const preferences = await supabase.rpc('service_family_squares_reminder_preferences', {
+    p_emails: emails,
+    p_since: familySquaresSyncWindow(new Date()).previousCallEnd.toISOString(),
+  });
+  if (preferences.error || !Array.isArray(preferences.data)) {
+    console.error('family-squares-push-reachable: preferences lookup failed', preferences.error?.code ?? 'invalid_response');
+    return json({ handled_by_app: handled });
+  }
+  const rows = preferences.data as { email?: unknown; reminders_off?: unknown; declined?: unknown }[];
+  const emailsWhere = (flag: 'reminders_off' | 'declined') =>
+    rows.filter((r) => r?.[flag] === true && typeof r.email === 'string').map((r) => r.email as string);
+  return json({ handled_by_app: handled, reminders_off: emailsWhere('reminders_off'), declined: emailsWhere('declined') });
 });
