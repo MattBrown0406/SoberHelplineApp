@@ -15,7 +15,8 @@
     "divider": "Contactos de emergencia — sin suscripción",
     "line911": "911 — Emergencia que pone en riesgo la vida",
     "line988": "988 Línea de Prevención del Suicidio y Crisis (marca 2 para español)",
-    "lineSh": "Línea de crisis de Sober Helpline",
+    "lineSh": "Sober Helpline (orientación para familias, no es 24/7)",
+    "guidanceDivider": "Orientación para familias",
     "freeNote": "La guía inmediata de crisis y los contactos de emergencia son gratuitos, sin suscripción. El coaching de pago es aparte y no es atención de emergencias."
   },
   "team": {
@@ -274,6 +275,7 @@
     "paymentNote": "{{rate}}. Matt confirmará tu horario y te enviará los detalles de pago por mensaje dentro de un día hábil.",
     "submitted": "✓ Solicitud recibida — nos comunicaremos para confirmar tu horario y coordinar el pago.",
     "myBookings": "Mis sesiones",
+    "websiteBookingsNote": "Las sesiones que reservas en el sitio web se confirman por correo y no aparecen en esta lista.",
     "statusRequested": "Solicitada · esperando pago y confirmación",
     "statusPaidPending": "Pagada · esperando confirmación de horario",
     "statusConfirmed": "Confirmada",

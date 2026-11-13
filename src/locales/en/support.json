@@ -15,7 +15,8 @@
     "divider": "Emergency contacts — no subscription needed",
     "line911": "911 — Life-threatening emergency",
     "line988": "988 — Suicide & Crisis Lifeline",
-    "lineSh": "Sober Helpline crisis line",
+    "lineSh": "Sober Helpline (family guidance, not 24/7)",
+    "guidanceDivider": "Family guidance",
     "freeNote": "Immediate crisis guidance and emergency contacts are free — no subscription needed. Paid coaching is separate and is not emergency care."
   },
   "team": {
@@ -274,6 +275,7 @@
     "paymentNote": "{{rate}}. Matt will confirm your time and send payment details by message within one business day.",
     "submitted": "✓ Request received — we will be in touch to confirm your time and arrange payment.",
     "myBookings": "My sessions",
+    "websiteBookingsNote": "Sessions booked on the website are confirmed by email and do not appear in this list.",
     "statusRequested": "Requested · awaiting payment & confirmation",
     "statusPaidPending": "Paid · awaiting time confirmation",
     "statusConfirmed": "Confirmed",

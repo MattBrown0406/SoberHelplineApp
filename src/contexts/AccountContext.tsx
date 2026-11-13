@@ -33,6 +33,9 @@ import { setDeviceSignedIn, stopDevicePushDelivery } from '../lib/pushDevice';
 
 const DEFAULT_ENTITLEMENTS: Entitlements = entitlementsForAccountState('direct-free');
 
+/** A return to the foreground re-checks the membership at most this often. */
+const FOREGROUND_MEMBERSHIP_CHECK_INTERVAL_MS = 10 * 60 * 1000;
+
 interface AccountContextValue {
   user: AuthUser | null;
   accountState: AccountState;
@@ -354,6 +357,11 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   const [accountReadFailed, setAccountReadFailed] = useState(false);
   const isOfflineAccountFallbackRef = useRef(false);
   isOfflineAccountFallbackRef.current = isOfflineAccountFallback;
+  const entitlementsSettledRef = useRef(true);
+  entitlementsSettledRef.current = entitlementsSettled;
+  // Account refreshes still running, and the last foreground membership check.
+  const refreshesInFlightRef = useRef(0);
+  const lastForegroundCheckRef = useRef<{ authUserId: string; at: number } | null>(null);
   const authGenerationRef = useRef(0);
   const accountRequestGateRef = useRef(new AccountRequestGate());
   const authUserRef = useRef<User | null>(null);
@@ -511,6 +519,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       isLoadingRef.current = true;
       setIsLoading(true);
     }
+    refreshesInFlightRef.current += 1;
     try {
       const load = await fetchCoreAccount(currentAuthUser, lastKnownStateFor(currentAuthUser.id));
       if (
@@ -589,6 +598,8 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         captureAppError(error);
       }
       throw error;
+    } finally {
+      refreshesInFlightRef.current -= 1;
     }
   }, [cacheIfVerified, lastKnownStateFor]);
 
@@ -758,6 +769,41 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       subscription.remove();
     };
   }, [accountReadFailed, isOfflineAccountFallback, refreshAccount]);
+
+  // Someone who joins on the website (in Safari) and switches back must not
+  // stay on the free plan until the next launch. When the app returns from the
+  // background, run the same refresh sign-in and Restore use (it asks
+  // sync-web-membership): at most once every 10 minutes, and never while
+  // another account load is running. The offline fallback and a failed read
+  // keep their own foreground retries above, so this one stands down for them.
+  const signedInAuthUserId = authUser?.id ?? null;
+  useEffect(() => {
+    if (!signedInAuthUserId || accountReadFailed || isOfflineAccountFallback) return;
+    let wasBackgrounded = false;
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'background') {
+        wasBackgrounded = true;
+        return;
+      }
+      if (state !== 'active' || !wasBackgrounded) return;
+      wasBackgrounded = false;
+      const sessionUser = authUserRef.current;
+      const account = userRef.current;
+      // Provider-covered accounts have no website membership to check.
+      if (!sessionUser || !account || account.accountState === 'attached') return;
+      if (isLoadingRef.current || !entitlementsSettledRef.current || refreshesInFlightRef.current > 0) return;
+      const now = Date.now();
+      const last = lastForegroundCheckRef.current;
+      if (
+        last
+        && last.authUserId === sessionUser.id
+        && now - last.at < FOREGROUND_MEMBERSHIP_CHECK_INTERVAL_MS
+      ) return;
+      lastForegroundCheckRef.current = { authUserId: sessionUser.id, at: now };
+      void refreshAccount({ keepCurrentOnFailure: true }).catch(() => undefined);
+    });
+    return () => subscription.remove();
+  }, [signedInAuthUserId, accountReadFailed, isOfflineAccountFallback, refreshAccount]);
 
   const accountState = user?.accountState ?? 'direct-free';
   useEffect(() => {

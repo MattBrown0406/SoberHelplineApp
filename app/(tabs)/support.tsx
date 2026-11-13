@@ -181,15 +181,6 @@ function CrisisSheet({
 
         <TouchableOpacity
           accessibilityRole="button"
-          style={[styles.sheetRow, { borderBottomColor: colors.line }]}
-          onPress={() => openEmergencyLink(CRISIS_LINE_TEL, CRISIS_LINE_DISPLAY)}
-        >
-          <Text style={[styles.sheetRowName, { color: colors.ink }]}>{t('crisis.lineSh')}</Text>
-          <Text style={[styles.sheetRowAction, { color: colors.primary }]}>{t('crisis.callButton')}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          accessibilityRole="button"
           style={[styles.sheetRow, styles.sheetRowLast, { borderBottomColor: colors.line }]}
           onPress={() => openEmergencyLink('tel:911')}
         >
@@ -203,6 +194,23 @@ function CrisisSheet({
           onPress={() => openEmergencyLink('tel:988')}
         >
           <Text style={[styles.sheetRowName, { color: colors.ink }]}>{t('crisis.line988')}</Text>
+          <Text style={[styles.sheetRowAction, { color: colors.primary }]}>{t('crisis.callButton')}</Text>
+        </TouchableOpacity>
+
+        {/* Sober Helpline is family guidance, not an emergency service and not
+            staffed around the clock, so it sits in its own group below 911/988. */}
+        <View style={[styles.dividerRow, { borderTopColor: colors.line }]}>
+          <Text style={[styles.dividerText, { color: colors.inkSoft }]}>
+            {t('crisis.guidanceDivider')}
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          accessibilityRole="button"
+          style={[styles.sheetRow, styles.sheetRowLast]}
+          onPress={() => openEmergencyLink(CRISIS_LINE_TEL, CRISIS_LINE_DISPLAY)}
+        >
+          <Text style={[styles.sheetRowName, { color: colors.ink }]}>{t('crisis.lineSh')}</Text>
           <Text style={[styles.sheetRowAction, { color: colors.primary }]}>{t('crisis.callButton')}</Text>
         </TouchableOpacity>
 
