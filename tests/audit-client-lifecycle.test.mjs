@@ -227,7 +227,10 @@ function directAccountFixture({ cachedState = 'direct-premium' } = {}) {
   });
   const read = () => h.render(() => AccountProvider({ children: null })).props.value;
   read(); h.effects();
-  return { h, read, io, cacheWrites, foreground: () => appState.forEach((fn) => fn('active')), listeners: () => appState.size };
+  return {
+    h, read, io, cacheWrites, foreground: () => appState.forEach((fn) => fn('active')), listeners: () => appState.size,
+    appEvent: (state) => appState.forEach((fn) => fn(state)),
+  };
 }
 const drain = async () => { for (let i = 0; i < 6; i++) { await settle(); await new Promise((r) => setImmediate(r)); } };
 
@@ -255,8 +258,57 @@ test('a failed entitlements read keeps the paying tier, caches nothing, and reco
   f.foreground(); await drain(); f.read(); f.h.effects();
   assert.equal(f.read().accountState, 'direct-essential');
   assert.ok(f.cacheWrites.length > 0 && f.cacheWrites.every((state) => state === 'direct-essential'));
-  assert.equal(f.listeners(), 0, 'no more retries once a read succeeds');
+  // Only the throttled membership re-check listens now; it ignores a bare
+  // 'active' (no return from the background), so nothing is re-read.
+  assert.equal(f.listeners(), 1, 'the retry listener is gone once a read succeeds');
+  let reads = 0; const account = f.io.account; f.io.account = () => { reads += 1; return account(); };
+  f.foreground(); await drain();
+  assert.equal(reads, 0, 'no more retries once a read succeeds');
   f.h.unmount();
+  assert.equal(f.listeners(), 0);
+});
+
+test('a return from the background re-checks the membership, throttled and never overlapping', async () => {
+  const f = directAccountFixture({ cachedState: null });
+  f.io.entitlements = () => Promise.resolve({ data: [], error: null });
+  await drain(); f.read(); f.h.effects();
+  assert.equal(f.read().accountState, 'direct-free');
+  assert.equal(f.listeners(), 1);
+  let reads = 0; let account = f.io.account; f.io.account = () => { reads += 1; return account(); };
+  const backAndForth = async () => { f.appEvent('inactive'); f.appEvent('background'); f.appEvent('active'); await drain(); f.read(); f.h.effects(); };
+  const realNow = Date.now; let clock = realNow();
+  Date.now = () => clock;
+  try {
+    // A system sheet (inactive → active) is not a return from the background.
+    f.appEvent('inactive'); f.appEvent('active'); await drain();
+    assert.equal(reads, 0);
+
+    // She joined on the website in Safari and switched back.
+    f.io.entitlements = () => Promise.resolve({ data: [{ tier: 'essential', expires_at: null }], error: null });
+    await backAndForth();
+    assert.equal(reads, 1);
+    assert.equal(f.read().accountState, 'direct-essential');
+
+    // Within 10 minutes: no second check.
+    clock += 9 * 60 * 1000;
+    await backAndForth();
+    assert.equal(reads, 1);
+
+    // After 10 minutes: one more, and none on top of it while it is running.
+    clock += 2 * 60 * 1000;
+    const pending = deferred(); const row = await account(); account = () => pending.promise;
+    f.appEvent('background'); f.appEvent('active'); await settle();
+    assert.equal(reads, 2);
+    clock += 11 * 60 * 1000;
+    f.appEvent('background'); f.appEvent('active'); await settle();
+    assert.equal(reads, 2, 'never overlaps a check already in flight');
+    pending.resolve(row); await drain(); f.read(); f.h.effects();
+    assert.equal(f.read().accountState, 'direct-essential');
+  } finally {
+    Date.now = realNow;
+  }
+  f.h.unmount();
+  assert.equal(f.listeners(), 0, 'the listener is removed on unmount');
 });
 
 test('with nothing cached, a failed read falls back to free without caching it', async () => {

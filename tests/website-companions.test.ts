@@ -218,6 +218,32 @@ test('the phone line is (458) 298-8008; the WhatsApp number is never dialed', ()
   assert.doesNotMatch(support, /tel:\+?1?5038362136/);
 });
 
+test('the helpline is not listed as an emergency line, and website members are told how the app finds them', () => {
+  const support = read('app/(tabs)/support.tsx');
+  const settings = read('app/settings.tsx');
+  // 911 and 988 stay under "Emergency contacts"; the helpline follows in its own group.
+  const order = ['crisis.divider', 'crisis.line911', 'crisis.line988', 'crisis.guidanceDivider', 'crisis.lineSh']
+    .map((key) => support.indexOf(`t('${key}')`));
+  assert.ok(order.every((at, i) => at > 0 && (i === 0 || at > order[i - 1])), `sheet order: ${order.join(', ')}`);
+  // Restore reports the plan the refresh found (any source), not only the store's answer.
+  assert.match(settings, /await refreshAccount\(\);\n\s+setRestoreOutcome\(\{ storeRestored: hasEntitlement \}\);/);
+  assert.match(settings, /else if \(planActive\) \{\n\s+appAlert\(t\('membership\.restoreActiveTitle'\), t\('membership\.restoreActiveBody'\)\);/);
+  // The same-email hint is for free accounts only.
+  assert.match(settings, /accountState === 'direct-free' && user \? \(\n\s+<Text [^\n]+\n\s+\{user\.email\n\s+\? t\('membership\.websiteMemberHintWithEmail', \{ email: user\.email \}\)\n\s+: t\('membership\.websiteMemberHint'\)\}/);
+  assert.match(read('app/book-coaching.tsx'), /t\('coaching\.websiteBookingsNote'\)/);
+  for (const lang of ['en', 'es']) {
+    const copy = JSON.parse(read(`src/locales/${lang}/support.json`));
+    const membership = JSON.parse(read(`src/locales/${lang}/settings.json`)).membership;
+    assert.doesNotMatch(copy.crisis.lineSh, /crisis|emergenc/i);
+    assert.match(copy.crisis.lineSh, /24\/7/);
+    assert.ok(copy.crisis.guidanceDivider && copy.coaching.websiteBookingsNote);
+    assert.match(membership.websiteMemberHint, /soberhelpline\.com/);
+    assert.match(membership.websiteMemberHintWithEmail, /\{\{email\}\}/);
+    assert.ok(membership.websiteMemberHintWithEmail.startsWith(membership.websiteMemberHint));
+    assert.ok(membership.restoreActiveTitle && membership.restoreActiveBody);
+  }
+});
+
 test('email confirmation lands on soberhelpline.com', () => {
   assert.match(read('app/(auth)/sign-up.tsx'), /emailRedirectTo: 'https:\/\/soberhelpline\.com\/app-confirmed\.html'/);
   assert.match(read('supabase/functions/confirm-landing/index.ts'), /'https:\/\/soberhelpline\.com\/app-confirmed\.html'/);

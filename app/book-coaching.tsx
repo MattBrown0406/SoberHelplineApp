@@ -410,6 +410,10 @@ export default function BookCoachingScreen() {
                 ) : null}
               </View>
             ))}
+            {/* This list is the app's own requests; website bookings never land here. */}
+            <Text style={[styles.confirmNote, { color: colors.inkSoft }]}>
+              {t('coaching.websiteBookingsNote')}
+            </Text>
           </View>
         )}
       </ScrollView>

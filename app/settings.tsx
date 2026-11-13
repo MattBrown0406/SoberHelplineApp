@@ -81,6 +81,9 @@ export default function SettingsScreen() {
   const [shareCheckIns, setShareCheckIns] = useState(false);
   const [consentLoading, setConsentLoading] = useState(true);
   const [restoring, setRestoring] = useState(false);
+  // Set when a restore finishes. The message is chosen on the next render, once
+  // the refreshed plan (App Store or website membership) is the one on screen.
+  const [restoreOutcome, setRestoreOutcome] = useState<{ storeRestored: boolean } | null>(null);
   const [openingReview, setOpeningReview] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const isAdmin = isAdminEmail(user?.email);
@@ -128,6 +131,21 @@ export default function SettingsScreen() {
       });
     return () => { active = false; };
   }, [user?.id, isAttached, accountState]);
+
+  // After Restore: the store found a purchase, or the refresh found a plan from
+  // anywhere else (a website membership), or the account is still free.
+  useEffect(() => {
+    if (!restoreOutcome) return;
+    setRestoreOutcome(null);
+    const planActive = accountState === 'direct-essential' || accountState === 'direct-premium';
+    if (restoreOutcome.storeRestored) {
+      appAlert(t('membership.restoreSuccessTitle'), t('membership.restoreSuccessBody'));
+    } else if (planActive) {
+      appAlert(t('membership.restoreActiveTitle'), t('membership.restoreActiveBody'));
+    } else {
+      appAlert(t('membership.restoreNoneTitle'), t('membership.restoreNoneBody'));
+    }
+  }, [restoreOutcome, accountState, t]);
 
   useEffect(() => {
     if (!user) return;
@@ -423,10 +441,7 @@ export default function SettingsScreen() {
         }
       }
       await refreshAccount();
-      appAlert(
-        hasEntitlement ? t('membership.restoreSuccessTitle') : t('membership.restoreNoneTitle'),
-        hasEntitlement ? t('membership.restoreSuccessBody') : t('membership.restoreNoneBody'),
-      );
+      setRestoreOutcome({ storeRestored: hasEntitlement });
     } catch {
       appAlert(t('membership.restoreErrorTitle'), t('membership.restoreErrorBody'));
     } finally {
@@ -614,6 +629,16 @@ export default function SettingsScreen() {
                 </TouchableOpacity>
               </>
             )}
+
+            {/* Free accounts only, plain text (no link): a website membership
+                unlocks the app only when both accounts use the same email. */}
+            {accountState === 'direct-free' && user ? (
+              <Text style={[styles.infoLabel, { color: colors.inkSoft, marginBottom: 12 }]}>
+                {user.email
+                  ? t('membership.websiteMemberHintWithEmail', { email: user.email })
+                  : t('membership.websiteMemberHint')}
+              </Text>
+            ) : null}
 
             <TouchableOpacity
               style={[
