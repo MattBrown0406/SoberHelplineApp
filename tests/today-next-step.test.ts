@@ -35,7 +35,16 @@ test('a card with nothing to show never takes the slot and is not listed under M
 test('the always-there fallback waits for the cards above it before taking the slot', () => {
   assert.equal(NEXT_STEP_FALLBACK, 'guidedStart');
   // Still waiting: the slot stays empty rather than showing a card that is about to be replaced.
-  assert.deepEqual(chooseNextStep(showing('guidedStart'), { fallbackReady: false }), { slot: null, more: ['guidedStart'] });
+  // And it is not listed under More meanwhile: the "More for this week" toggle must not
+  // show for a second and a half and then vanish when the card takes the slot.
+  assert.deepEqual(chooseNextStep(showing('guidedStart'), { fallbackReady: false }), { slot: null, more: [] });
+  // The toggle never goes away once shown for these cards: before and after the wait agree.
+  for (const cards of [['guidedStart'], ['invitation', 'guidedStart'], ['holidayPlan', 'invitation', 'guidedStart'], ['holidayPlan']] as const) {
+    const waiting = chooseNextStep(showing(...cards), { fallbackReady: false });
+    const settled = chooseNextStep(showing(...cards), { fallbackReady: true });
+    assert.ok(waiting.more.length <= settled.more.length, cards.join('+'));
+    if (waiting.more.length) assert.deepEqual(waiting, settled, cards.join('+'));
+  }
   // A card that is ready takes the slot at once, waiting or not.
   assert.deepEqual(chooseNextStep(showing('invitation', 'guidedStart'), { fallbackReady: false }), { slot: 'invitation', more: ['guidedStart'] });
   assert.deepEqual(chooseNextStep(showing('guidedStart'), { fallbackReady: true }), { slot: 'guidedStart', more: [] });

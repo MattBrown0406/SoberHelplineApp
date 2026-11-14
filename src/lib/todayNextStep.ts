@@ -27,7 +27,7 @@ export const NEXT_STEP_FALLBACK_WAIT_MS = 1500;
 export interface NextStepChoice {
   /** The one card in the slot, or null while nothing has anything to show. */
   slot: NextStepCard | null;
-  /** The other cards with something to show, in priority order. */
+  /** The other cards with something to show, in priority order (empty until the slot is decided). */
   more: NextStepCard[];
 }
 
@@ -38,5 +38,9 @@ export function chooseNextStep(
   const fallbackReady = options.fallbackReady ?? true;
   const visible = NEXT_STEP_PRIORITY.filter((card) => showing[card] === true);
   const slot = visible.find((card) => card !== NEXT_STEP_FALLBACK || fallbackReady) ?? null;
-  return { slot, more: visible.filter((card) => card !== slot) };
+  // Until a card holds the slot, nothing is listed under "More for this week".
+  // The only card that can be showing without the slot is the fallback while
+  // it waits; listing it made the "More" toggle appear for a second and a
+  // half and then vanish as that card took the slot.
+  return { slot, more: slot === null ? [] : visible.filter((card) => card !== slot) };
 }
