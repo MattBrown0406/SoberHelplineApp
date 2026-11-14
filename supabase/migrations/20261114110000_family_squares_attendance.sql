@@ -9,7 +9,9 @@
 -- 2. family_squares_meeting_stats keeps each meeting's RSVP counts. RSVPs are
 --    cleared every Tuesday at 2 AM Pacific, so without it last night's numbers
 --    are gone by morning. The weekly reset records them just before it clears
---    (see 20261114120000).
+--    (see 20261114120000). The first recording for a meeting is kept: running
+--    the reset again never replaces it. Admins and Spanish members are not
+--    counted, like the Join and ten-minute figures shown beside them.
 -- 3. admin_funnel_stats() also returns family_squares_weeks: for the coming
 --    meeting and the three before it, RSVPs, "can't make it" answers, Join
 --    taps and members who stayed ten minutes. Every key older admin builds
@@ -136,6 +138,8 @@ REVOKE ALL ON TABLE public.family_squares_meeting_stats FROM PUBLIC, anon, authe
 -- "Going" and "can't make it" answers for one meeting. A dated row (4.2+)
 -- names its meeting; an undated row (4.1) belongs to the meeting after the
 -- call it was made after (the rule the Tuesday follow-up already uses).
+-- The same people as the Join and ten-minute figures beside it in Admin:
+-- admins host and Spanish members join La Sobremesa, so neither is counted.
 CREATE OR REPLACE FUNCTION public._family_squares_rsvp_counts(p_meeting_date date)
 RETURNS TABLE(going integer, declined integer)
 LANGUAGE sql
@@ -145,15 +149,21 @@ AS $$
   SELECT count(*) FILTER (WHERE r.status = 'going')::integer,
          count(*) FILTER (WHERE r.status = 'declined')::integer
   FROM public.session_rsvps r
+  JOIN public.accounts a ON a.id = r.account_id
   WHERE r.session_id = public.family_squares_session_id()
     AND (r.family_squares_meeting_date = p_meeting_date
       OR (r.family_squares_meeting_date IS NULL
         AND r.created_at > ((p_meeting_date - 7) + time '20:00') AT TIME ZONE 'America/Los_Angeles'
-        AND r.created_at < (p_meeting_date + time '20:00') AT TIME ZONE 'America/Los_Angeles'));
+        AND r.created_at < (p_meeting_date + time '20:00') AT TIME ZONE 'America/Los_Angeles'))
+    AND coalesce(a.locale, 'en') NOT LIKE 'es%'
+    AND NOT public._dispatcher_admin(r.account_id);
 $$;
 REVOKE ALL ON FUNCTION public._family_squares_rsvp_counts(date) FROM PUBLIC, anon, authenticated;
 
 -- Called by the weekly reset just before it clears that meeting's RSVPs.
+-- The first recording for a meeting is the one that is kept: a second run of
+-- the reset in the same hour counts the rows the first run already cleared,
+-- and would replace the real numbers with zeros.
 CREATE OR REPLACE FUNCTION public._family_squares_record_meeting_stats(p_meeting_date date)
 RETURNS void
 LANGUAGE plpgsql
@@ -164,8 +174,7 @@ BEGIN
   INSERT INTO public.family_squares_meeting_stats (meeting_date, rsvps, declined, recorded_at)
   SELECT p_meeting_date, c.going, c.declined, now()
   FROM public._family_squares_rsvp_counts(p_meeting_date) c
-  ON CONFLICT (meeting_date) DO UPDATE
-    SET rsvps = EXCLUDED.rsvps, declined = EXCLUDED.declined, recorded_at = EXCLUDED.recorded_at;
+  ON CONFLICT (meeting_date) DO NOTHING;
 END;
 $$;
 REVOKE ALL ON FUNCTION public._family_squares_record_meeting_stats(date) FROM PUBLIC, anon, authenticated;
@@ -251,21 +260,25 @@ BEGIN
         'meeting_date', w.meeting_date,
         'rsvps', coalesce(s.rsvps, CASE WHEN w.live THEN c.going END),
         'declined', coalesce(s.declined, CASE WHEN w.live THEN c.declined END),
-        -- Tapped Join around the meeting (an hour before to half an hour
-        -- after, as the Tuesday note counts it). Spanish members join
-        -- La Sobremesa and admins host, so neither is counted.
+        -- Tapped Join around the meeting (from 5 PM Pacific, since people
+        -- join early, to half an hour after, as the Tuesday note counts it).
+        -- All four figures count the same people: Spanish members join
+        -- La Sobremesa and admins host, so neither is counted in any of them
+        -- (rsvps and declined: see _family_squares_rsvp_counts).
         'join_taps', (SELECT count(DISTINCT e.account_id)
           FROM public.funnel_events e
           JOIN public.accounts a ON a.id = e.account_id
           WHERE e.stage = 'attended'
-            AND e.created_at >= (w.meeting_date + time '18:00') AT TIME ZONE 'America/Los_Angeles'
+            AND e.created_at >= (w.meeting_date + time '17:00') AT TIME ZONE 'America/Los_Angeles'
             AND e.created_at < (w.meeting_date + time '20:30') AT TIME ZONE 'America/Los_Angeles'
             AND coalesce(a.locale, 'en') NOT LIKE 'es%'
             AND NOT public._dispatcher_admin(e.account_id)),
         'attended_10min', (SELECT count(DISTINCT e.account_id)
           FROM public.funnel_events e
+          JOIN public.accounts a ON a.id = e.account_id
           WHERE e.stage = 'attended_10min'
             AND e.metadata ->> 'meeting_date' = w.meeting_date::text
+            AND coalesce(a.locale, 'en') NOT LIKE 'es%'
             AND NOT public._dispatcher_admin(e.account_id))
       ) ORDER BY w.meeting_date DESC), '[]'::jsonb)
       FROM weeks w

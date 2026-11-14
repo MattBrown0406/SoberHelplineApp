@@ -422,8 +422,12 @@ test('a member who saved a seat and never tapped Join gets her own Tuesday note,
   // Who saved a seat is read as before: 1 AM Tuesday, before the 2 AM reset.
   assert.match(FOLLOWUP_SQL, /IF extract\(isodow FROM v_local\) <> 2 OR extract\(hour FROM v_local\) <> 1 OR v_session IS NULL THEN\s+RETURN 0;/);
   assert.match(FOLLOWUP_SQL, /r\.status = 'going'\s+AND \(r\.family_squares_meeting_date = v_meeting[\s\S]*?OR \(r\.family_squares_meeting_date IS NULL AND r\.created_at > v_prev_end AND r\.created_at < v_end\)\)\s+\) AS had_seat,/);
-  assert.match(FOLLOWUP_SQL, /e\.stage = 'attended'\s+AND e\.created_at >= v_start - interval '1 hour' AND e\.created_at < v_end \+ interval '30 minutes'/);
-  assert.match(FOLLOWUP_SQL, /\(c\.had_seat AND NOT c\.joined\) AS missed\s+FROM candidates c\s+WHERE c\.had_seat OR c\.joined/);
+  // A Join tap counts from 5 PM Pacific (people join early), and so does a confirmed stay in the meeting.
+  assert.match(FOLLOWUP_SQL, /v_join_from := \(v_meeting \+ time '17:00'\) AT TIME ZONE 'America\/Los_Angeles';/);
+  assert.match(FOLLOWUP_SQL, /e\.stage = 'attended'\s+AND e\.created_at >= v_join_from AND e\.created_at < v_end \+ interval '30 minutes'/);
+  assert.match(FOLLOWUP_SQL, /e\.stage = 'attended_10min'/);
+  // "Save my seat every Monday" is never "missed": her seat is automatic and she may join where the app cannot see.
+  assert.match(FOLLOWUP_SQL, /\(c\.had_seat AND NOT c\.joined AND NOT c\.weekly_seat\) AS missed/);
   // The same people as before are eligible.
   assert.match(FOLLOWUP_SQL, /WHERE nullif\(a\.push_token, ''\) IS NOT NULL\s+AND coalesce\(a\.family_call_reminders, false\)[\s\S]*?AND coalesce\(a\.locale, 'en'\) NOT LIKE 'es%'/);
   // Contract branching: only 4.2 (3)+ builds get the new note; the others keep every older wording.

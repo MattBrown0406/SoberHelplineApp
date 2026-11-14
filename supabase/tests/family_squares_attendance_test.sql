@@ -50,7 +50,13 @@ INSERT INTO public.session_rsvps(session_id, account_id, status, family_squares_
   -- 4.1 writes no meeting date: saved during the week before the meeting.
   (public.family_squares_session_id(), '2a000000-0000-0000-0000-000000000003', 'going', NULL, '2026-11-14T18:00:00Z'),
   -- Already saved for the meeting after this one.
-  (public.family_squares_session_id(), '2a000000-0000-0000-0000-000000000004', 'going', '2026-11-23', '2026-11-12T18:00:00Z');
+  (public.family_squares_session_id(), '2a000000-0000-0000-0000-000000000004', 'going', '2026-11-23', '2026-11-12T18:00:00Z'),
+  -- A Spanish member's row for Family Squares: she joins La Sobremesa.
+  (public.family_squares_session_id(), '2a000000-0000-0000-0000-000000000005', 'going', '2026-11-16', '2026-11-12T18:00:00Z');
+-- The admin hosts: his own seat is not an RSVP to count.
+INSERT INTO public.session_rsvps(session_id, account_id, status, family_squares_meeting_date, created_at)
+SELECT public.family_squares_session_id(), a.id, 'going', '2026-11-16', '2026-11-12T18:00:00Z'
+FROM public.accounts a WHERE a.user_id = '1a000000-0000-0000-0000-0000000000ff';
 
 INSERT INTO public.funnel_events(account_id, stage, metadata, created_at) VALUES
   ('2a000000-0000-0000-0000-000000000001', 'attended', '{"source":"today"}', '2026-11-16 19:05 America/Los_Angeles'),
@@ -59,24 +65,39 @@ INSERT INTO public.funnel_events(account_id, stage, metadata, created_at) VALUES
   ('2a000000-0000-0000-0000-000000000005', 'attended', '{"source":"support"}', '2026-11-16 19:50 America/Los_Angeles'),
   -- Tapped Join in the middle of the week: not this meeting.
   ('2a000000-0000-0000-0000-000000000002', 'attended', '{"source":"today"}', '2026-11-13 10:00 America/Los_Angeles'),
+  -- Opened the meeting early, at 5:30 PM Pacific: counted. At 4:30 PM: not.
+  ('2a000000-0000-0000-0000-000000000004', 'attended', '{"source":"push"}', '2026-11-16 17:30 America/Los_Angeles'),
+  ('2a000000-0000-0000-0000-000000000003', 'attended', '{"source":"today"}', '2026-11-16 16:30 America/Los_Angeles'),
+  -- A Spanish member's ten minutes were at La Sobremesa.
+  ('2a000000-0000-0000-0000-000000000005', 'attended_10min', '{"meeting_date":"2026-11-16","source":"support"}', '2026-11-16 20:05 America/Los_Angeles'),
   -- Last week's meeting.
   ('2a000000-0000-0000-0000-000000000003', 'attended', '{"source":"today"}', '2026-11-09 19:10 America/Los_Angeles'),
   ('2a000000-0000-0000-0000-000000000003', 'attended_10min', '{"meeting_date":"2026-11-09","source":"today"}', '2026-11-09 20:05 America/Los_Angeles');
 INSERT INTO public.funnel_events(account_id, stage, metadata, created_at)
-SELECT a.id, 'attended', '{"source":"today"}', '2026-11-16 19:01 America/Los_Angeles'
-FROM public.accounts a WHERE a.user_id = '1a000000-0000-0000-0000-0000000000ff';
+SELECT a.id, e.stage, e.metadata::jsonb, e.logged_at::timestamptz
+FROM public.accounts a,
+  (VALUES ('attended', '{"source":"today"}', '2026-11-16 19:01 America/Los_Angeles'),
+          ('attended_10min', '{"meeting_date":"2026-11-16","source":"today"}', '2026-11-16 19:30 America/Los_Angeles')) AS e(stage, metadata, logged_at)
+WHERE a.user_id = '1a000000-0000-0000-0000-0000000000ff';
 INSERT INTO public.family_squares_meeting_stats(meeting_date, rsvps, declined) VALUES ('2026-11-09', 5, 1);
 
 -- ── The counts for one meeting ──────────────────────────────────────────────
 SELECT is((SELECT row(going, declined)::text FROM public._family_squares_rsvp_counts('2026-11-16')), row(2, 1)::text,
-  'dated answers for that Monday plus undated (4.1) seats saved the week before it');
+  'dated answers for that Monday plus undated (4.1) seats saved the week before it; not the admin''s or a Spanish member''s');
 SELECT is((SELECT row(going, declined)::text FROM public._family_squares_rsvp_counts('2026-11-23')), row(1, 0)::text,
   'next week''s early seat counts for next week only');
 SELECT lives_ok($$SELECT public._family_squares_record_meeting_stats('2026-11-16')$$, 'the reset can record a meeting''s counts');
 UPDATE public.session_rsvps SET status = 'declined' WHERE account_id = '2a000000-0000-0000-0000-000000000003';
 SELECT lives_ok($$SELECT public._family_squares_record_meeting_stats('2026-11-16')$$, 'recording twice is safe');
-SELECT is((SELECT row(rsvps, declined)::text FROM public.family_squares_meeting_stats WHERE meeting_date = '2026-11-16'), row(1, 2)::text,
-  'a second recording replaces the first');
+SELECT is((SELECT row(rsvps, declined)::text FROM public.family_squares_meeting_stats WHERE meeting_date = '2026-11-16'), row(2, 1)::text,
+  'a second recording never replaces the first');
+-- The reset run a second time in the same hour: the RSVPs are already cleared.
+CREATE TEMP TABLE cleared AS SELECT * FROM public.session_rsvps WHERE session_id = public.family_squares_session_id();
+DELETE FROM public.session_rsvps WHERE session_id = public.family_squares_session_id();
+SELECT lives_ok($$SELECT public._family_squares_record_meeting_stats('2026-11-16')$$, 'recording after the RSVPs were cleared is safe');
+SELECT is((SELECT row(rsvps, declined)::text FROM public.family_squares_meeting_stats WHERE meeting_date = '2026-11-16'), row(2, 1)::text,
+  'and the counts are not replaced with zeros');
+INSERT INTO public.session_rsvps SELECT * FROM cleared;
 DELETE FROM public.family_squares_meeting_stats WHERE meeting_date = '2026-11-16';
 UPDATE public.session_rsvps SET status = 'going' WHERE account_id = '2a000000-0000-0000-0000-000000000003';
 
@@ -124,8 +145,8 @@ SELECT ok((SELECT s ?& ARRAY['members', 'paid_accounts', 'onboarded_loved_one', 
   'every key older admin builds read is still there');
 SELECT is((SELECT jsonb_array_length(s -> 'family_squares_weeks') FROM stats), 4, 'the coming meeting and the three before it');
 SELECT is((SELECT s -> 'family_squares_weeks' -> 0 FROM stats),
-  '{"meeting_date":"2026-11-16","rsvps":2,"declined":1,"join_taps":1,"attended_10min":2}'::jsonb,
-  'tonight''s meeting: live RSVPs, one member''s Join taps (not the admin''s or a Spanish member''s), two who stayed');
+  '{"meeting_date":"2026-11-16","rsvps":2,"declined":1,"join_taps":2,"attended_10min":2}'::jsonb,
+  'tonight''s meeting: all four figures count the same members, never the admin or a Spanish member; an early Join tap counts');
 SELECT is((SELECT s -> 'family_squares_weeks' -> 1 FROM stats),
   '{"meeting_date":"2026-11-09","rsvps":5,"declined":1,"join_taps":1,"attended_10min":1}'::jsonb,
   'last week: the RSVP counts recorded before the reset cleared them');

@@ -203,28 +203,58 @@ test('"Save my seat every Monday" is offered after a saved seat on Today, Suppor
   assert.match(panel, /<Switch\s+value=\{weekly\.enabled\}[\s\S]*?accessibilityRole="switch"\s+accessibilityLabel=\{t\('familySquares\.weekly\.title'\)\}/);
 });
 
-test('the weekly reset saves next Monday\'s seat only for verified members who asked', () => {
+test('a weekly seat is saved only after the website says yes, and only for members who asked', () => {
   const sql = read('supabase/migrations/20261114120000_family_squares_weekly_seat_and_decline.sql');
   assert.match(sql, /ADD COLUMN IF NOT EXISTS family_squares_weekly_seat boolean NOT NULL DEFAULT false;/);
-  const restore = /FUNCTION public\._family_squares_restore_weekly_seats\(p_meeting_date date\)[\s\S]*?\$\$;/.exec(sql)?.[0] ?? '';
+  // The Tuesday reset no longer writes seats in SQL: that skipped the website's
+  // answer (a cancelled Monday, a blocked attendee).
+  assert.doesNotMatch(sql, /_family_squares_restore_weekly_seats/);
+  const reset = /FUNCTION public\.reset_family_squares_weekly_rsvps\(\)[\s\S]*?\$function\$;/.exec(latestSql('reset_family_squares_weekly_rsvps'))?.[0] ?? '';
+  assert.match(reset, /PERFORM public\._family_squares_record_meeting_stats\(v_local_now::date - 1\);[\s\S]*?DELETE FROM public\.session_rsvps/);
+  assert.doesNotMatch(reset, /INSERT INTO public\.session_rsvps/);
+  // Counting must never stop the reset itself.
+  assert.equal((reset.match(/EXCEPTION WHEN OTHERS THEN\s+RAISE WARNING/g) ?? []).length, 1);
+
+  // Who the 15-minute job may ask the website about.
+  const candidates = /FUNCTION public\.service_family_squares_weekly_seat_candidates\(p_meeting_date date\)[\s\S]*?\$\$;/.exec(sql)?.[0] ?? '';
   for (const rule of [
     /WHERE a\.family_squares_weekly_seat/,
     /u\.email_confirmed_at IS NOT NULL/,
     /u\.deleted_at IS NULL/,
     /NOT coalesce\(u\.is_anonymous, false\)/,
     /coalesce\(a\.locale, 'en'\) NOT LIKE 'es%'/,
+    // Not while her reminders are paused (bereavement), and not once she has stopped using the app.
+    /NOT public\._account_reminders_paused\(a\.id\)/,
+    /> now\(\) - interval '35 days'/,
     // An answer already given for that meeting (going or declined) is kept.
-    /ON CONFLICT \(session_id, account_id\) DO NOTHING;/,
-    /SELECT v_session, a\.id, 'going', p_meeting_date, now\(\)/,
-  ]) assert.match(restore, rule);
-  // The reset in force is this one: it clears first, then saves next Monday (Tuesday + 6 days).
-  const reset = /FUNCTION public\.reset_family_squares_weekly_rsvps\(\)[\s\S]*?\$function\$;/.exec(latestSql('reset_family_squares_weekly_rsvps'))?.[0] ?? '';
-  assert.match(reset, /DELETE FROM public\.session_rsvps\s+WHERE session_id = public\.family_squares_session_id\(\)[\s\S]*?PERFORM public\._family_squares_restore_weekly_seats\(v_local_now::date \+ 6\);/);
-  assert.match(reset, /PERFORM public\._family_squares_record_meeting_stats\(v_local_now::date - 1\);[\s\S]*?DELETE FROM public\.session_rsvps/);
-  // Neither extra step can stop or undo the reset itself.
-  assert.equal((reset.match(/EXCEPTION WHEN OTHERS THEN\s+RAISE WARNING/g) ?? []).length, 2);
-  assert.match(sql, /REVOKE ALL ON FUNCTION public\._family_squares_restore_weekly_seats\(date\) FROM PUBLIC, anon, authenticated;/);
+    /NOT EXISTS \(\s+SELECT 1 FROM public\.session_rsvps r\s+WHERE r\.session_id = v_session AND r\.account_id = a\.id\s+\)/,
+    // A cancelled meeting stops the whole run; a refused attendee is not asked again that week.
+    /h\.reason = 'meeting_cancelled'/,
+    /h\.reason = 'registration_unavailable'/,
+    // Only ever the coming meeting, and only a few people per run.
+    /p_meeting_date IS DISTINCT FROM public\._family_squares_coming_meeting_date\(now\(\)\)/,
+    /LIMIT 10;/,
+  ]) assert.match(candidates, rule);
+
+  // Saving: insert only, still wanted, never replacing her own answer.
+  const save = /FUNCTION public\.service_family_squares_save_weekly_seat\(p_account_id uuid, p_meeting_date date\)[\s\S]*?\$\$;/.exec(sql)?.[0] ?? '';
+  assert.match(save, /SELECT v_session, a\.id, 'going', p_meeting_date, now\(\)\s+FROM public\.accounts a\s+WHERE a\.id = p_account_id AND a\.family_squares_weekly_seat\s+ON CONFLICT \(session_id, account_id\) DO NOTHING;/);
+
+  // Members and visitors can call none of the three service helpers.
+  for (const fn of [
+    'service_family_squares_weekly_seat_candidates(date)',
+    'service_family_squares_save_weekly_seat(uuid, date)',
+  ]) {
+    assert.ok(sql.includes(`REVOKE ALL ON FUNCTION public.${fn} FROM PUBLIC, anon, authenticated;`), fn);
+    assert.ok(sql.includes(`GRANT EXECUTE ON FUNCTION public.${fn} TO service_role;`), fn);
+  }
   assert.match(sql, /REVOKE ALL ON FUNCTION public\.set_family_squares_weekly_seat\(boolean\) FROM PUBLIC, anon;\nGRANT EXECUTE ON FUNCTION public\.set_family_squares_weekly_seat\(boolean\) TO authenticated;/);
+
+  // The job asks the website the same question family-squares-register asks, and saves only on yes.
+  const job = read('supabase/functions/family-squares-web-sync/index.ts');
+  assert.match(job, /ensureWebsiteRegistration/);
+  assert.match(job, /service_family_squares_weekly_seat_candidates/);
+  assert.match(job, /service_family_squares_save_weekly_seat/);
 });
 
 // ── 4. "Can't make it this week" ────────────────────────────────────────────

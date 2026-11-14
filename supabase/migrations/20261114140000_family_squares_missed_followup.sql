@@ -6,12 +6,22 @@
 -- note written for people who were there.
 --
 -- Now, on builds that register push_app_contract >= 1 (4.2 (3)+):
---   * saved a seat ('going' for that meeting) and no Join tap in the app:
---     "If Monday got away from you, we missed you. Next Monday's seat is one
---     tap away, and ..." followed by where recordings of past meetings are
---     (her library for a member; "members can watch" for anyone else).
---   * tapped Join (with or without a seat): the note she always got.
+--   * saved a seat herself ('going' for that meeting) and no sign in the app
+--     that she joined: "If Monday got away from you, we missed you. Next
+--     Monday's seat is one tap away, and ..." followed by where recordings of
+--     past meetings are (her library for a member; "members can watch" for
+--     anyone else).
+--   * joined (with or without a seat): the note she always got.
+--   * has "Save my seat every Monday" on: always the note she always got,
+--     never "we missed you". Her seat is saved for her, and she may join from
+--     her calendar, an email link or another device, none of which the app
+--     can see, so a missing Join tap says nothing about her. Her note ends
+--     with her seat being saved automatically instead of "one tap away".
 -- Older builds keep the wording they already had, whoever they are.
+--
+-- "Joined" means a Join tap in the app from 5 PM Pacific on the meeting day
+-- (people open the meeting early) until half an hour after it ends, or the
+-- app's "stayed ten minutes" mark for that meeting.
 --
 -- How it knows who saved a seat: exactly as before. This runs at 1 AM Pacific
 -- on Tuesday, an hour before the 2 AM reset clears Monday's RSVPs, and reads
@@ -36,7 +46,7 @@ DECLARE
   v_local timestamp := p_now AT TIME ZONE 'America/Los_Angeles';
   v_session uuid := public.family_squares_session_id();
   v_meeting date;
-  v_start timestamptz;
+  v_join_from timestamptz;
   v_end timestamptz;
   v_prev_end timestamptz;
   v_takeaway text;
@@ -48,7 +58,8 @@ BEGIN
     RETURN 0;
   END IF;
   v_meeting := v_local::date - 1;
-  v_start := (v_meeting + time '19:00') AT TIME ZONE 'America/Los_Angeles';
+  -- The meeting starts at 7 PM; a Join tap counts from 5 PM.
+  v_join_from := (v_meeting + time '17:00') AT TIME ZONE 'America/Los_Angeles';
   v_end := (v_meeting + time '20:00') AT TIME ZONE 'America/Los_Angeles';
   v_prev_end := ((v_meeting - 7) + time '20:00') AT TIME ZONE 'America/Los_Angeles';
 
@@ -56,6 +67,7 @@ BEGIN
 
   WITH candidates AS (
     SELECT a.id, a.push_app_contract,
+      coalesce(a.family_squares_weekly_seat, false) AS weekly_seat,
       CASE WHEN nullif(btrim(coalesce(a.timezone, '')), '') IS NULL THEN 'America/Los_Angeles'
         ELSE public._invitation_valid_tz(a.timezone) END AS tz,
       EXISTS (
@@ -70,7 +82,7 @@ BEGIN
         EXISTS (
           SELECT 1 FROM public.funnel_events e
           WHERE e.account_id = a.id AND e.stage = 'attended'
-            AND e.created_at >= v_start - interval '1 hour' AND e.created_at < v_end + interval '30 minutes'
+            AND e.created_at >= v_join_from AND e.created_at < v_end + interval '30 minutes'
         )
         -- Stayed ten minutes: she was there, whenever the Join tap was logged.
         OR EXISTS (
@@ -85,13 +97,14 @@ BEGIN
       -- Spanish members are invited to La Sobremesa, not The Family Squares.
       AND coalesce(a.locale, 'en') NOT LIKE 'es%'
   ), targets AS (
-    SELECT c.id, c.push_app_contract, c.tz,
-      -- Saved a seat and never tapped Join in the app.
-      (c.had_seat AND NOT c.joined) AS missed
+    SELECT c.id, c.push_app_contract, c.tz, c.weekly_seat,
+      -- Saved a seat herself and never tapped Join in the app. Never a member
+      -- whose seat is saved for her every Monday: see the top of this file.
+      (c.had_seat AND NOT c.joined AND NOT c.weekly_seat) AS missed
     FROM candidates c
     WHERE c.had_seat OR c.joined
   ), scheduled AS (
-    SELECT t.id, t.tz, t.push_app_contract, t.missed,
+    SELECT t.id, t.tz, t.push_app_contract, t.missed, t.weekly_seat,
       CASE
         WHEN (p_now AT TIME ZONE t.tz)::time < time '10:30'
           THEN ((p_now AT TIME ZONE t.tz)::date + time '10:30') AT TIME ZONE t.tz
@@ -115,6 +128,10 @@ BEGIN
         || CASE WHEN public._dispatcher_member_access(s.id)
           THEN 'recordings of past meetings are in your library, under Tools.'
           ELSE 'members can watch recordings of past meetings.' END
+      -- Her seat is saved for her every Monday, so there is nothing to tap.
+      -- (With Matt's line written she gets that line, like everyone who came.)
+      WHEN s.weekly_seat AND v_takeaway IS NULL AND coalesce(s.push_app_contract, 0) >= 1 THEN
+        'Your one thing to try this week is on Today, and your seat for next Monday is saved automatically.'
       -- Self-contained on any build.
       WHEN v_takeaway IS NOT NULL THEN 'This week''s one thing: ' || v_takeaway
       WHEN coalesce(s.push_app_contract, 0) >= 1 THEN

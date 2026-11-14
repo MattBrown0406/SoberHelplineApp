@@ -264,21 +264,25 @@ BEGIN
         'meeting_date', w.meeting_date,
         'rsvps', coalesce(s.rsvps, CASE WHEN w.live THEN c.going END),
         'declined', coalesce(s.declined, CASE WHEN w.live THEN c.declined END),
-        -- Tapped Join around the meeting (an hour before to half an hour
-        -- after, as the Tuesday note counts it). Spanish members join
-        -- La Sobremesa and admins host, so neither is counted.
+        -- Tapped Join around the meeting (from 5 PM Pacific, since people
+        -- join early, to half an hour after, as the Tuesday note counts it).
+        -- All four figures count the same people: Spanish members join
+        -- La Sobremesa and admins host, so neither is counted in any of them
+        -- (rsvps and declined: see _family_squares_rsvp_counts).
         'join_taps', (SELECT count(DISTINCT e.account_id)
           FROM public.funnel_events e
           JOIN public.accounts a ON a.id = e.account_id
           WHERE e.stage = 'attended'
-            AND e.created_at >= (w.meeting_date + time '18:00') AT TIME ZONE 'America/Los_Angeles'
+            AND e.created_at >= (w.meeting_date + time '17:00') AT TIME ZONE 'America/Los_Angeles'
             AND e.created_at < (w.meeting_date + time '20:30') AT TIME ZONE 'America/Los_Angeles'
             AND coalesce(a.locale, 'en') NOT LIKE 'es%'
             AND NOT public._dispatcher_admin(e.account_id)),
         'attended_10min', (SELECT count(DISTINCT e.account_id)
           FROM public.funnel_events e
+          JOIN public.accounts a ON a.id = e.account_id
           WHERE e.stage = 'attended_10min'
             AND e.metadata ->> 'meeting_date' = w.meeting_date::text
+            AND coalesce(a.locale, 'en') NOT LIKE 'es%'
             AND NOT public._dispatcher_admin(e.account_id))
       ) ORDER BY w.meeting_date DESC), '[]'::jsonb)
       FROM weeks w

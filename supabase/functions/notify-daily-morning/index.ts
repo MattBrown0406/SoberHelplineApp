@@ -123,6 +123,30 @@ interface Acct {
   daily_push_hour: number | null;
 }
 
+/**
+ * True when she answered "can't make it" for the coming Family Squares
+ * meeting (decline_family_squares_rsvp). The Tuesday reset clears every
+ * earlier answer, so a declined row is about the coming Monday; one dated
+ * before today (Pacific) is left over and ignored. Any failure answers false:
+ * she gets the Monday note she always got.
+ */
+async function declinedFamilySquares(sessionId: string | null, accountId: string): Promise<boolean> {
+  if (!sessionId) return false;
+  try {
+    const { data, error } = await supabase
+      .from('session_rsvps')
+      .select('status, family_squares_meeting_date')
+      .eq('session_id', sessionId)
+      .eq('account_id', accountId)
+      .maybeSingle();
+    if (error || data?.status !== 'declined') return false;
+    const meetingDate = data.family_squares_meeting_date as string | null;
+    return !meetingDate || meetingDate >= localDay(Date.now(), 'America/Los_Angeles');
+  } catch {
+    return false;
+  }
+}
+
 const PAGE_SIZE = 1000;
 
 // Only members who opted into daily reminders; paged past PostgREST's row cap.
@@ -169,6 +193,12 @@ Deno.serve(async (req) => {
 
   const challenge = DAILY_CHALLENGES[dayOfYear(now) % DAILY_CHALLENGES.length];
   const counts = tally();
+  // Looked up once, and only when someone's Monday note needs it.
+  let familySquaresSession: Promise<string | null> | undefined;
+  const familySquaresSessionId = () =>
+    familySquaresSession ??= Promise.resolve(supabase.rpc('family_squares_session_id'))
+      .then(({ data, error }) => (!error && typeof data === 'string' && data ? data : null))
+      .catch(() => null);
   for (const candidate of accounts) {
     // Her own day, pinned before IO: "today" cannot become tomorrow.
     const day = localDay(started, candidate.timezone);
@@ -194,9 +224,13 @@ Deno.serve(async (req) => {
         counts.skipped++;
         continue;
       }
-      const isMonday = localWeekday(Date.now(), a.timezone) === 1;
       const band = a.band;
       const lang = a.locale === 'es' ? 'es' : 'en';
+      // Monday's note invites her to tonight's meeting. A member who said she
+      // can't make it this week gets her ordinary morning note instead.
+      // (Spanish members are invited to La Sobremesa, which has no decline.)
+      const isMonday = localWeekday(Date.now(), a.timezone) === 1 &&
+        !(lang === 'en' && await declinedFamilySquares(await familySquaresSessionId(), a.id));
       const c = COPY[lang];
       const support = band === 'elevated' || band === 'crisis';
       // After her loved one died the daily boundaries challenge stops; she
