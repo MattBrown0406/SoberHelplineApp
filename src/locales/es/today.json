@@ -7,6 +7,16 @@
     "afternoonNoName": "Buenas tardes",
     "eveningNoName": "Buenas noches"
   },
+  "welcomeBack": {
+    "title": "Qué gusto verte",
+    "body": "Empieza hoy por donde tú quieras.",
+    "saveSeat": "Reservar mi lugar para el lunes",
+    "saveSeatLabel": "Reservar mi lugar en la reunión del lunes",
+    "checkIn": "Hacer mi registro",
+    "checkInLabel": "Ir al registro de hoy",
+    "dismiss": "Cerrar",
+    "dismissLabel": "Cerrar este saludo"
+  },
   "hero": {
     "dayLabel": "DÍA {{count}} — {{context}}",
     "contextAttached": "PROGRAMA DE APOYO FAMILIAR",

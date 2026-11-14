@@ -1,5 +1,5 @@
-import React, { useCallback, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useCallback, useRef, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, type LayoutChangeEvent, type ScrollView } from 'react-native';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { useTranslation } from 'react-i18next';
 import { appAlert } from '../../src/lib/appAlert';
@@ -8,6 +8,7 @@ import { useTheme } from '../../src/contexts/ThemeContext';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { TodayDisclosure, TodayDisclosureToggle } from '../../src/components/today/TodayDisclosure';
 import { NextStepItem, useNextStep } from '../../src/components/today/NextStepItem';
+import { WelcomeBackCard } from '../../src/components/today/WelcomeBackCard';
 import { HeroCard } from '../../src/components/today/HeroCard';
 import { CheckInFeedbackCard } from '../../src/components/today/CheckInFeedbackCard';
 import { GuidedStartPanel } from '../../src/components/today/GuidedStartPanel';
@@ -35,12 +36,15 @@ import { useLovedOne } from '../../src/hooks/useLovedOne';
 import { useFamilySpace } from '../../src/hooks/useFamilySpace';
 import { useHoldLog } from '../../src/hooks/useHoldLog';
 import { useFamilyCallTakeaway } from '../../src/hooks/useFamilyCallTakeaway';
+import { useWelcomeBack } from '../../src/hooks/useWelcomeBack';
 import { rearmDailyNudge } from '../../src/hooks/usePushNotifications';
 import { getDailyScripts } from '../../src/content/scripts';
 import { PHASE_LABEL_KEY, selectCurriculumPiece } from '../../src/content/curriculum';
 import { useFeatureAccess } from '../../src/hooks/useFeatureAccess';
 import { pathwayPhaseUpdate } from '../../src/lib/recoveryPathway';
 import { NEXT_STEP_PRIORITY, type NextStepCard } from '../../src/lib/todayNextStep';
+import { welcomeBackActions } from '../../src/lib/welcomeBack';
+import { isFamilySquaresSession, isLaSobremesaSession } from '../../src/lib/familySquaresSchedule';
 import {
   cancelQueuedSupportCallReview,
   maybeRequestReview,
@@ -88,9 +92,14 @@ function TodayContent() {
   );
   const canAccessFullToday = useFeatureAccess('todayFull');
   const takeaway = useFamilyCallTakeaway(user?.id ?? null);
+  // Back after a week or more away: one small hello at the top, for this visit.
+  const welcome = useWelcomeBack(user?.id ?? null);
   // The one "next step" under the check-in, and what waits under "More for this week".
   const nextStep = useNextStep();
   const [moreOpen, setMoreOpen] = useState(false);
+  const scrollRef = useRef<ScrollView | null>(null);
+  const checkInY = useRef(0);
+  const scrollToCheckIn = useRef(false);
 
   const firstName = user?.firstName?.trim() ?? '';
   const greeting = timeGreeting(t, firstName);
@@ -242,6 +251,32 @@ function TodayContent() {
     />
   );
 
+  const onCheckInLayout = (event: LayoutChangeEvent) => {
+    checkInY.current = event.nativeEvent.layout.y;
+    // "Check in" on the welcome-back card: scroll once the card above has gone.
+    if (!scrollToCheckIn.current) return;
+    scrollToCheckIn.current = false;
+    scrollRef.current?.scrollTo({ y: Math.max(0, checkInY.current - 8), animated: true });
+  };
+  // The Monday meeting she can still save a seat at (not one she already answered for).
+  const seatOpen = !!nextFreeCall && (isFamilySquaresSession(nextFreeCall) || isLaSobremesaSession(nextFreeCall))
+    && !nextFreeCall.rsvped && !nextFreeCall.declined;
+  // Either action (or Close) puts the card away until the next week-long gap.
+  const welcomeBackCard = welcome.visible ? (
+    <WelcomeBackCard
+      actions={welcomeBackActions({ seatOpen, checkedInToday: !!todayCheckIn })}
+      onSaveSeat={() => {
+        welcome.dismiss();
+        void rsvpFreeCall();
+      }}
+      onCheckIn={() => {
+        scrollToCheckIn.current = true;
+        welcome.dismiss();
+      }}
+      onDismiss={welcome.dismiss}
+    />
+  ) : null;
+
   // One "next step" under the check-in: the first of these with something to
   // show takes the slot (chooseNextStep); the rest wait under "More for this
   // week". Each card still decides for itself whether it shows.
@@ -317,11 +352,14 @@ function TodayContent() {
   if (!canAccessFullToday) {
     const freeScript = getDailyScripts(scriptSlot, i18n.language)[0];
     return (
-      <ScreenContainer backgroundColor={colors.cream}>
+      <ScreenContainer backgroundColor={colors.cream} scrollRef={scrollRef}>
         {header}
+        {welcomeBackCard}
         {mondayCallCard}
-        {checkInCard}
-        <CheckInFeedbackCard checkIn={todayCheckIn} />
+        <View onLayout={onCheckInLayout}>
+          {checkInCard}
+          <CheckInFeedbackCard checkIn={todayCheckIn} />
+        </View>
         {[...nextStepSlot, <NeedsRouter key="needs" />, ...moreForThisWeek]}
         <TodayDisclosure title={t('disclosure.pathway')}>
           {pathwayCard}
@@ -367,11 +405,14 @@ function TodayContent() {
   }
 
   return (
-    <ScreenContainer backgroundColor={colors.cream}>
+    <ScreenContainer backgroundColor={colors.cream} scrollRef={scrollRef}>
       {header}
+      {welcomeBackCard}
       {mondayCallCard}
-      {checkInCard}
-      <CheckInFeedbackCard checkIn={todayCheckIn} />
+      <View onLayout={onCheckInLayout}>
+        {checkInCard}
+        <CheckInFeedbackCard checkIn={todayCheckIn} />
+      </View>
       {[...nextStepSlot, <NeedsRouter key="needs" />, ...moreForThisWeek]}
       <TodayDisclosure title={t('disclosure.pathway')}>
         {pathwayCard}

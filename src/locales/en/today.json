@@ -7,6 +7,16 @@
     "afternoonNoName": "Good afternoon",
     "eveningNoName": "Good evening"
   },
+  "welcomeBack": {
+    "title": "Good to see you",
+    "body": "Start wherever feels right today.",
+    "saveSeat": "Save my seat for Monday",
+    "saveSeatLabel": "Save my seat at Monday's meeting",
+    "checkIn": "Check in",
+    "checkInLabel": "Go to today's check-in",
+    "dismiss": "Close",
+    "dismissLabel": "Close this welcome note"
+  },
   "hero": {
     "dayLabel": "DAY {{count}} — {{context}}",
     "contextAttached": "FAMILY SUPPORT PROGRAM",
