@@ -124,8 +124,9 @@
   "disclosure": {
     "show": "Mostrar",
     "hide": "Ocultar",
+    "more": "Más para esta semana",
     "pathway": "El camino de tu familia",
-    "connection": "Llamada gratuita del lunes y conexión",
+    "invite": "Invita a alguien a Family Squares",
     "practice": "Guiones, práctica y tu progreso",
     "membership": "Explorar la membresía"
   },

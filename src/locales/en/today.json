@@ -124,8 +124,9 @@
   "disclosure": {
     "show": "Show",
     "hide": "Hide",
+    "more": "More for this week",
     "pathway": "Your family pathway",
-    "connection": "Free Monday call & connection",
+    "invite": "Invite someone to Family Squares",
     "practice": "Scripts, practice & your progress",
     "membership": "Explore membership"
   },

@@ -6,7 +6,8 @@ import { appAlert } from '../../src/lib/appAlert';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { TodayDisclosure } from '../../src/components/today/TodayDisclosure';
+import { TodayDisclosure, TodayDisclosureToggle } from '../../src/components/today/TodayDisclosure';
+import { NextStepItem, useNextStep } from '../../src/components/today/NextStepItem';
 import { HeroCard } from '../../src/components/today/HeroCard';
 import { CheckInFeedbackCard } from '../../src/components/today/CheckInFeedbackCard';
 import { GuidedStartPanel } from '../../src/components/today/GuidedStartPanel';
@@ -39,6 +40,7 @@ import { getDailyScripts } from '../../src/content/scripts';
 import { PHASE_LABEL_KEY, selectCurriculumPiece } from '../../src/content/curriculum';
 import { useFeatureAccess } from '../../src/hooks/useFeatureAccess';
 import { pathwayPhaseUpdate } from '../../src/lib/recoveryPathway';
+import { NEXT_STEP_PRIORITY, type NextStepCard } from '../../src/lib/todayNextStep';
 import {
   cancelQueuedSupportCallReview,
   maybeRequestReview,
@@ -86,6 +88,9 @@ function TodayContent() {
   );
   const canAccessFullToday = useFeatureAccess('todayFull');
   const takeaway = useFamilyCallTakeaway(user?.id ?? null);
+  // The one "next step" under the check-in, and what waits under "More for this week".
+  const nextStep = useNextStep();
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const firstName = user?.firstName?.trim() ?? '';
   const greeting = timeGreeting(t, firstName);
@@ -237,7 +242,38 @@ function TodayContent() {
     />
   );
 
-  // Immediate help and the daily check-in lead for every membership tier.
+  // One "next step" under the check-in: the first of these with something to
+  // show takes the slot (chooseNextStep); the rest wait under "More for this
+  // week". Each card still decides for itself whether it shows.
+  const nextStepCards: Record<NextStepCard, React.ReactNode> = {
+    willingnessWindow: willingnessWindowAlert,
+    lovedOneCheck: lovedOneCheckCard,
+    holidayPlan: holidayCard,
+    invitation: invitationCard,
+    guidedStart: <GuidedStartPanel />,
+  };
+  const nextStepItem = (card: NextStepCard, shown: boolean) => (
+    <NextStepItem key={card} shown={shown} onShowing={(showing) => nextStep.report(card, showing)}>
+      {nextStepCards[card]}
+    </NextStepItem>
+  );
+  // Both lists go into one keyed list on the screen, so a card stays mounted
+  // (and keeps what she typed) when it moves between the slot and "More".
+  const nextStepSlot = nextStep.slot ? [nextStepItem(nextStep.slot, true)] : [];
+  const moreForThisWeek = [
+    ...(nextStep.more.length ? [
+      <TodayDisclosureToggle
+        key="more"
+        title={t('disclosure.more')}
+        expanded={moreOpen}
+        onPress={() => setMoreOpen((open) => !open)}
+      />,
+    ] : []),
+    ...NEXT_STEP_PRIORITY.filter((card) => card !== nextStep.slot)
+      .map((card) => nextStepItem(card, moreOpen && nextStep.more.includes(card))),
+  ];
+
+  // The Monday call and the daily check-in lead for every membership tier.
   // After her loved one died: immediate help, the grief card, the Monday call
   // and her own check-in — nothing about their recovery.
   // A moment on a cold start: neither the record nor the device's copy is known.
@@ -275,25 +311,22 @@ function TodayContent() {
     );
   }
 
-  // Secondary content stays reachable without overwhelming the first screen.
+  // Secondary content stays reachable without overwhelming the first screen:
+  // greeting, the Monday call, the check-in, one next step, then "What do you
+  // need right now?" and the tucked-away sections.
   if (!canAccessFullToday) {
     const freeScript = getDailyScripts(scriptSlot, i18n.language)[0];
     return (
       <ScreenContainer backgroundColor={colors.cream}>
         {header}
-        <NeedsRouter />
-        {willingnessWindowAlert}
         {mondayCallCard}
         {checkInCard}
         <CheckInFeedbackCard checkIn={todayCheckIn} />
-        {lovedOneCheckCard}
-        {holidayCard}
-        {invitationCard}
-        <GuidedStartPanel />
+        {[...nextStepSlot, <NeedsRouter key="needs" />, ...moreForThisWeek]}
         <TodayDisclosure title={t('disclosure.pathway')}>
           {pathwayCard}
         </TodayDisclosure>
-        <TodayDisclosure title={t('disclosure.connection')}>
+        <TodayDisclosure title={t('disclosure.invite')}>
         <PassItOnCard />
         </TodayDisclosure>
         <TodayDisclosure title={t('disclosure.practice')}>
@@ -336,19 +369,14 @@ function TodayContent() {
   return (
     <ScreenContainer backgroundColor={colors.cream}>
       {header}
-      <NeedsRouter />
-      {willingnessWindowAlert}
       {mondayCallCard}
       {checkInCard}
       <CheckInFeedbackCard checkIn={todayCheckIn} />
-      {lovedOneCheckCard}
-      {holidayCard}
-      {invitationCard}
-        <GuidedStartPanel />
+      {[...nextStepSlot, <NeedsRouter key="needs" />, ...moreForThisWeek]}
       <TodayDisclosure title={t('disclosure.pathway')}>
         {pathwayCard}
       </TodayDisclosure>
-      <TodayDisclosure title={t('disclosure.connection')}>
+      <TodayDisclosure title={t('disclosure.invite')}>
       <PassItOnCard />
       </TodayDisclosure>
       <TodayDisclosure title={t('disclosure.practice')}>
