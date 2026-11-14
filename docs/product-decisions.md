@@ -8,7 +8,7 @@ Living record of the decisions behind the Sober Helpline app. Last updated June 
 
 **Direct (App Store, no org).** No assigned coach — that UI does not exist for them. Crisis access routes to the **platform crisis network** controlled by the super admin: on-call coach answers by default; members can pick any coach showing available. Tiers:
 
-- **Essential** ($19/mo, IAP): messaging with the on-call coach, full app, groups.
+- **Essential** ($9.99/mo, IAP, monthly only; the same price as the soberhelpline.com membership, which includes this plan): messaging with the on-call coach, full app, groups. Owner decision 2026-11-13: no annual plan in the app; the free trial is the intro offer configured in App Store Connect.
 - **Premium** ($49/mo): live phone/video with a coach during the coach's local business hours.
 - **After-hours calls**: add-on, pricing TBD.
 
