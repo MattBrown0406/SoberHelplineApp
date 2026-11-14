@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { DOOR_COPY_KEY, DOOR_ROUTE, type FunnelDoor } from '../../lib/situation';
-import { logFunnelEvent } from '../../lib/funnel';
+import { logFunnelEvent, logFunnelEventAndWait } from '../../lib/funnel';
 import type { FreeCall } from '../../hooks/useTodayFeed';
 import { useCoachingRate } from '../../hooks/useCoachingRate';
 import { useSessionSchedule } from '../../hooks/useSessionSchedule';
@@ -60,6 +60,7 @@ export function SituationCard({ accountId = null, nextFreeCall, primaryDoor, wee
   // headcount but never a gate ("push of a button", no link required).
   const canJoin = !!nextFreeCall?.zoom_url;
   const doorRoute = DOOR_ROUTE[primaryDoor];
+  const joining = useRef(false);
 
   return (
     <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
@@ -74,19 +75,28 @@ export function SituationCard({ accountId = null, nextFreeCall, primaryDoor, wee
             accessibilityLabel={t('situationCta.joinLabel', { name: title })}
             style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
             onPress={() => void (async () => {
+              // One Join at a time: a second tap while this one is on its way does nothing.
+              if (joining.current) return;
+              joining.current = true;
               try {
-                await onSupportCallJoin?.();
-              } catch {
-                // Review instrumentation must never block access to the meeting.
-              }
-              // Noted before Zoom opens, so coming back ten minutes later can count as attending.
-              if (isFamilySquares) await markFamilySquaresJoin(accountId, 'today');
-              try {
-                await Linking.openURL(withAppContext(nextFreeCall!.zoom_url!));
-                logFunnelEvent('attended', { source: 'today' });
-              } catch {
-                if (isFamilySquares) await clearFamilySquaresJoin(accountId);
-                await onSupportCallOpenFailed?.();
+                try {
+                  await onSupportCallJoin?.();
+                } catch {
+                  // Review instrumentation must never block access to the meeting.
+                }
+                // Noted before Zoom opens, so coming back ten minutes later can count as attending.
+                if (isFamilySquares) await markFamilySquaresJoin(accountId, 'today');
+                // Sent before Zoom opens too: once the app is in the background the
+                // request may never leave. Waits a moment at most (funnel).
+                await logFunnelEventAndWait('attended', { source: 'today' });
+                try {
+                  await Linking.openURL(withAppContext(nextFreeCall!.zoom_url!));
+                } catch {
+                  if (isFamilySquares) await clearFamilySquaresJoin(accountId);
+                  await onSupportCallOpenFailed?.();
+                }
+              } finally {
+                joining.current = false;
               }
             })()}
             activeOpacity={0.85}

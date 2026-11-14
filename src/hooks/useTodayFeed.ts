@@ -19,6 +19,7 @@ import type { CurriculumPhase } from '../api/types';
 import { chooseFreeCall, isLaSobremesaSession, isFamilySquaresSession } from '../lib/familySquaresSchedule';
 import { reserveLaSobremesa, withPersonalLinks } from '../lib/laSobremesa';
 import { withFreshAnswer } from '../lib/freshAnswer';
+import { rememberFamilySquaresSession } from '../lib/familySquaresSessionCache';
 import { appAlert } from '../lib/appAlert';
 import i18n from 'i18next';
 import { useTranslation } from 'react-i18next';
@@ -153,6 +154,8 @@ export function useTodayFeed(
     // Next free call: The Family Squares during its live hour, else the
     // soonest upcoming group session, else the soonest overall.
     // La Sobremesa's Join opens the member's personal link.
+    // (Remembered on the device, so a reminder tap knows which session is Family Squares.)
+    rememberFamilySquaresSession(sessRes.data);
     const groups = await withPersonalLinks((sessRes.data ?? []) as Omit<FreeCall, 'rsvped'>[]);
     if (request !== generation.current) return;
     const going = new Set((rsvpRowsRes.data ?? []).filter((r) => r.status === 'going').map((r) => r.session_id as string));

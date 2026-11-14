@@ -35,16 +35,49 @@ export type FunnelStage =
   | 'membership_invite_shown'
   | 'membership_invite_tapped';
 
+/** Sends one event; resolves when the server has answered. Never rejects. */
+function sendFunnelEvent(stage: FunnelStage, metadata?: Record<string, unknown>): Promise<void> {
+  try {
+    return Promise.resolve(supabase.rpc('log_funnel_event', { p_stage: stage, p_metadata: metadata ?? {} }))
+      .then(({ error }) => {
+        if (error) console.warn('[funnel] log failed:', stage, error.message);
+      })
+      .catch(() => undefined);
+  } catch {
+    return Promise.resolve();
+  }
+}
+
 /**
  * Fire-and-forget funnel event. Never throws — analytics must not break a flow.
  * No-ops server-side when the caller isn't authenticated.
  */
 export function logFunnelEvent(stage: FunnelStage, metadata?: Record<string, unknown>): void {
-  void supabase
-    .rpc('log_funnel_event', { p_stage: stage, p_metadata: metadata ?? {} })
-    .then(({ error }) => {
-      if (error) console.warn('[funnel] log failed:', stage, error.message);
+  void sendFunnelEvent(stage, metadata);
+}
+
+/** The longest a Join waits for its event before opening the meeting anyway. */
+export const FUNNEL_SEND_WAIT_MS = 800;
+
+/**
+ * For the moment just before the app hands over to another app (a Join opens
+ * Zoom): an event fired after that is sent as the app goes to the background
+ * and can be lost. This one is sent first and waited for, but never for longer
+ * than `waitMs`, so a slow network does not noticeably delay joining (the
+ * request carries on by itself after that). Never throws.
+ */
+export function logFunnelEventAndWait(
+  stage: FunnelStage,
+  metadata?: Record<string, unknown>,
+  waitMs: number = FUNNEL_SEND_WAIT_MS,
+): Promise<void> {
+  return new Promise<void>((resolve) => {
+    const timer = setTimeout(resolve, waitMs);
+    void sendFunnelEvent(stage, metadata).then(() => {
+      clearTimeout(timer);
+      resolve();
     });
+  });
 }
 
 /**

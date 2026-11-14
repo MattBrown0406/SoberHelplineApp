@@ -56,6 +56,29 @@ export function familySquaresReminderTapPlan(
   return { action: 'open_meeting', url, meetingDate: window.meetingDate };
 }
 
+/**
+ * What the device already knows about the session a reminder names, before
+ * any network: it remembers which session row is Family Squares
+ * (familySquaresSessionCache).
+ * - 'other'          — a different session (La Sobremesa, a group): the tap
+ *                      opens what it always opened, at once, with no lookup.
+ * - 'family_squares' — look the link up, briefly; if that is slow or fails,
+ *                      Today's call card (which has the Join button).
+ * - 'unknown'        — this device has not seen the session list yet: look
+ *                      up, briefly; if that is slow or fails, the usual destination.
+ */
+export type ReminderSessionKnowledge = 'family_squares' | 'other' | 'unknown';
+
+export function reminderSessionKnowledge(sessionId: string, knownFamilySquaresId: string | null | undefined): ReminderSessionKnowledge {
+  if (!knownFamilySquaresId) return 'unknown';
+  return knownFamilySquaresId.toLowerCase() === sessionId.toLowerCase() ? 'family_squares' : 'other';
+}
+
+/** Where the tap goes when the lookup is slow or fails. */
+export function reminderLookupFallback(knowledge: ReminderSessionKnowledge): ReminderTapPlan {
+  return knowledge === 'family_squares' ? { action: 'call_card' } : { action: 'default' };
+}
+
 // ── Real attendance ─────────────────────────────────────────────────────────
 // A Join tap only says she opened Zoom, and the Join button works from 30
 // minutes before the start. She attended when she is back in the app after the

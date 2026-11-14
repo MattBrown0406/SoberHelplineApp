@@ -125,6 +125,7 @@ function sessionsHook() {
     '../lib/familySquaresSchedule': load('src/lib/familySquaresSchedule.ts'),
     '../lib/laSobremesa': { reserveLaSobremesa: async () => ({ ok: false }), withPersonalLinks: async (rows) => rows },
     '../lib/freshAnswer': load('src/lib/freshAnswer.ts'),
+    '../lib/familySquaresSessionCache': { rememberFamilySquaresSession() {} },
   }).useSessions;
   const render = () => r.render(() => hook('account-A'));
   return {

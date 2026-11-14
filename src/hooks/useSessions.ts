@@ -9,6 +9,7 @@ import { declineFamilySquares } from '../lib/familySquaresSeat';
 import { isLaSobremesaSession, isFamilySquaresSession } from '../lib/familySquaresSchedule';
 import { reserveLaSobremesa, withPersonalLinks } from '../lib/laSobremesa';
 import { withFreshAnswer } from '../lib/freshAnswer';
+import { rememberFamilySquaresSession } from '../lib/familySquaresSessionCache';
 
 export interface DbSession {
   id: string;
@@ -48,6 +49,8 @@ export function useSessions(accountId: string | null) {
       supabase.from('session_rsvps').select('session_id, status, family_squares_meeting_date').in('status', ['going', 'declined']).eq('account_id', accountId!),
     ]);
     const going = new Set((rsvps ?? []).filter((r) => r.status === 'going').map((r) => r.session_id as string));
+    // (Remembered on the device, so a reminder tap knows which session is Family Squares.)
+    rememberFamilySquaresSession(rows as { id: string; title: string }[] | null);
     // La Sobremesa's Join opens the member's personal link.
     const withLinks = await withPersonalLinks((rows as Omit<DbSession, 'rsvped' | 'declined'>[]) ?? []);
     if (request !== generation.current || identity.current !== accountId) return;

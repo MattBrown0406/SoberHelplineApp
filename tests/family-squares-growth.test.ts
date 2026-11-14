@@ -16,6 +16,8 @@ import {
   newJoinMark,
   parseJoinMark,
   reminderJoinSessionId,
+  reminderLookupFallback,
+  reminderSessionKnowledge,
   type JoinMark,
 } from '../src/lib/familySquaresJoin';
 
@@ -145,10 +147,28 @@ test('the tap handler looks the session up, opens Zoom once, and logs the Join l
   assert.match(hook, /const joinSessionId = reminderJoinSessionId\(destination\);[\s\S]*?const plan = await planReminderJoin\(joinSessionId\);[\s\S]*?if \(!shouldHandlePushResponse\(data, response\.notification\.request\.identifier\)\) return true;[\s\S]*?router\.push\(route as never\);[\s\S]*?if \(meetingUrl\) void joinFamilySquaresFromPush\(accountId, meetingUrl\);/);
   assert.match(hook, /if \(plan\.action !== 'default'\) route = \{ pathname: '\/\(tabs\)' \};/);
   const join = read('src/lib/familySquaresPushJoin.ts');
-  assert.match(join, /await markFamilySquaresJoin\(accountId, 'push'\);\s+try \{\s+await Linking\.openURL\(withAppContext\(url\)\);\s+logFunnelEvent\('attended', \{ source: 'push' \}\);/);
+  // The mark, then the funnel event (sent before Zoom takes the app to the background), then Zoom.
+  assert.match(join, /await markFamilySquaresJoin\(accountId, 'push'\);\s+(\/\/[^\n]*\n\s+)+await logFunnelEventAndWait\('attended', \{ source: 'push' \}\);\s+try \{\s+await Linking\.openURL\(withAppContext\(url\)\);/);
   assert.match(join, /\} catch \{\s+await clearFamilySquaresJoin\(accountId\);\s+return false;/);
-  // A failed lookup keeps the push's usual destination.
-  assert.match(join, /if \(error \|\| !data\) return \{ action: 'default' \};/);
+  // A failed lookup: the call card when it is Family Squares, else the push's usual destination.
+  assert.match(join, /if \(error \|\| !data\) return fallback;/);
+  assert.match(join, /if \(knowledge === 'other'\) return \{ action: 'default' \};\s+const fallback = reminderLookupFallback\(knowledge\);\s+return withTimeoutFallback\(lookUpPlan\(sessionId, fallback\), LOOKUP_TIMEOUT_MS, fallback\);/);
+  assert.match(join, /export const LOOKUP_TIMEOUT_MS = 1_500;/);
+});
+
+test('what the device knows about a reminder\'s session decides whether anything is looked up', () => {
+  const OTHER = '223e4567-e89b-42d3-a456-426614174333';
+  assert.equal(reminderSessionKnowledge(SESSION, SESSION), 'family_squares');
+  assert.equal(reminderSessionKnowledge(SESSION, SESSION.toUpperCase()), 'family_squares');
+  assert.equal(reminderSessionKnowledge(OTHER, SESSION), 'other', 'La Sobremesa or a group: opens at once');
+  assert.equal(reminderSessionKnowledge(SESSION, null), 'unknown');
+  assert.equal(reminderSessionKnowledge(SESSION, ''), 'unknown');
+  assert.deepEqual(reminderLookupFallback('family_squares'), { action: 'call_card' });
+  assert.deepEqual(reminderLookupFallback('unknown'), { action: 'default' });
+  assert.deepEqual(reminderLookupFallback('other'), { action: 'default' });
+  // Today and Support teach the device which session is Family Squares whenever they load.
+  assert.match(read('src/hooks/useTodayFeed.ts'), /rememberFamilySquaresSession\(sessRes\.data\);/);
+  assert.match(read('src/hooks/useSessions.ts'), /rememberFamilySquaresSession\(rows as \{ id: string; title: string \}\[\] \| null\);/);
 });
 
 // ── 3. Every Monday, and the calendar file ──────────────────────────────────
@@ -321,7 +341,10 @@ test('an early return keeps the join mark on the device; only a decision removes
 
 test('every Join button leaves the mark, and returning to any screen logs it', () => {
   const card = read('src/components/today/SituationCard.tsx');
-  assert.match(card, /if \(isFamilySquares\) await markFamilySquaresJoin\(accountId, 'today'\);\s+try \{\s+await Linking\.openURL\(withAppContext\(nextFreeCall!\.zoom_url!\)\);\s+logFunnelEvent\('attended', \{ source: 'today' \}\);/);
+  // The funnel event goes out before Zoom opens (afterwards the app is in the background and it can be lost).
+  assert.match(card, /if \(isFamilySquares\) await markFamilySquaresJoin\(accountId, 'today'\);\s+(\/\/[^\n]*\n\s+)+await logFunnelEventAndWait\('attended', \{ source: 'today' \}\);\s+try \{\s+await Linking\.openURL\(withAppContext\(nextFreeCall!\.zoom_url!\)\);/);
+  assert.doesNotMatch(card, /logFunnelEvent\('attended'/);
+  assert.match(card, /if \(joining\.current\) return;\s+joining\.current = true;/);
   assert.match(card, /if \(isFamilySquares\) await clearFamilySquaresJoin\(accountId\);/);
   const support = read('app/(tabs)/support.tsx');
   assert.match(support, /if \(session\.kind === 'group'\) logFunnelEvent\('attended', \{ source: 'support' \}\);/);
