@@ -108,6 +108,8 @@ function CrisisSheet({
       onRequestClose={onClose}
     >
       <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel={t('common:a11y.close')}
         style={styles.modalOverlay}
         activeOpacity={1}
         onPress={onClose}
@@ -133,6 +135,7 @@ function CrisisSheet({
             <Text style={[styles.copilotBody, { color: colors.inkSoft }]}>{t('crisis.copilotBody')}</Text>
           </View>
           <TouchableOpacity
+            accessibilityRole="button"
             style={[styles.copilotButton, { backgroundColor: colors.primary }]}
             onPress={() => { onClose(); onCopilot(); }}
           >
@@ -266,7 +269,7 @@ function CrisisProtocolSheet({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose} />
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('common:a11y.close')} style={styles.modalOverlay} activeOpacity={1} onPress={onClose} />
       <ScrollView
         style={[styles.sheet, { backgroundColor: colors.white, left: sheetOffset, right: sheetOffset }]}
         contentContainerStyle={styles.sheetContent}
@@ -286,6 +289,8 @@ function CrisisProtocolSheet({
           {tabs.map((tb) => (
             <TouchableOpacity
               key={tb.key}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: tab === tb.key }}
               style={[
                 styles.protocolTab,
                 tab === tb.key && { borderBottomColor: colors.primary, borderBottomWidth: 2 },
@@ -317,7 +322,7 @@ function CrisisProtocolSheet({
           ))}
         </View>
 
-        <TouchableOpacity style={[styles.sheetRow, styles.sheetRowLast, { marginTop: 4 }]} onPress={onClose}>
+        <TouchableOpacity accessibilityRole="button" style={[styles.sheetRow, styles.sheetRowLast, { marginTop: 4 }]} onPress={onClose}>
           <Text style={[styles.sheetRowName, { color: colors.inkSoft }]}>
             {t('crisisProtocol.close')}
           </Text>
@@ -344,7 +349,7 @@ function ProviderSheet({
 }) {
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose} />
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('common:a11y.close')} style={styles.modalOverlay} activeOpacity={1} onPress={onClose} />
       <ScrollView
         style={[styles.sheet, { backgroundColor: colors.white, left: sheetOffset, right: sheetOffset }]}
         contentContainerStyle={styles.sheetContent}
@@ -371,6 +376,8 @@ function ProviderSheet({
         </View>
 
         <TouchableOpacity
+          accessibilityRole="link"
+          accessibilityLabel={t('providerSheet.emailButton', { name: FEATURED_PROVIDER.name })}
           style={[styles.sheetRow, { borderBottomColor: colors.line }]}
           onPress={() => void Linking.openURL(`mailto:${FEATURED_PROVIDER.email}`)}
         >
@@ -381,6 +388,8 @@ function ProviderSheet({
         </TouchableOpacity>
 
         <TouchableOpacity
+          accessibilityRole="link"
+          accessibilityLabel={t('providerSheet.webButton')}
           style={[styles.sheetRow, styles.sheetRowLast, { borderBottomColor: colors.line }]}
           onPress={() => void Linking.openURL(FEATURED_PROVIDER.web)}
         >
@@ -390,7 +399,7 @@ function ProviderSheet({
           <Text style={[styles.sheetRowAction, { color: colors.primary }]}>→</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.sheetRow, styles.sheetRowLast]} onPress={onClose}>
+        <TouchableOpacity accessibilityRole="button" style={[styles.sheetRow, styles.sheetRowLast]} onPress={onClose}>
           <Text style={[styles.sheetRowName, { color: colors.inkSoft }]}>
             {t('providerSheet.close')}
           </Text>
@@ -708,6 +717,8 @@ export default function SupportScreen() {
 
         {/* Crisis button — always visible */}
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={t('crisis.button')}
           style={[styles.sosButton, { backgroundColor: colors.coral }]}
           onPress={() => setCrisisOpen(true)}
           activeOpacity={0.85}
@@ -724,6 +735,7 @@ export default function SupportScreen() {
                 {t('messages.eyebrow')}
               </Text>
               <TouchableOpacity
+                accessibilityRole="button"
                 style={[styles.outlineBtn, { borderColor: colors.primary, marginTop: 0 }]}
                 activeOpacity={0.8}
                 onPress={() => router.push('/chat')}
@@ -752,6 +764,8 @@ export default function SupportScreen() {
 
         {/* Crisis protocol guide */}
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={`${t('crisisProtocol.heading')}. ${t('crisisProtocol.sub')}`}
           style={[styles.protocolCard, { borderColor: colors.line, backgroundColor: colors.white }]}
           onPress={() => setCrisisProtocolOpen(true)}
           activeOpacity={0.85}
@@ -815,6 +829,7 @@ export default function SupportScreen() {
                 <StaffChip key={s.id} staff={s} label="" colors={colors} />
               ))}
               <TouchableOpacity
+                accessibilityRole="button"
                 style={[styles.outlineBtn, { borderColor: colors.primary }]}
                 activeOpacity={0.8}
                 onPress={() => router.push('/chat')}
@@ -912,6 +927,7 @@ export default function SupportScreen() {
                 </View>
 
                 <TouchableOpacity
+                  accessibilityRole="button"
                   style={[styles.solidBtn, { backgroundColor: colors.primary }]}
                   activeOpacity={0.85}
                   onPress={() => router.push('/crisis-mode')}
@@ -945,6 +961,7 @@ export default function SupportScreen() {
                 {t('coaching.cardBody', { rate: coachingRate.hourly })}
               </Text>
               <TouchableOpacity
+                accessibilityRole="button"
                 style={[styles.outlineBtn, { borderColor: colors.primary, marginTop: 12 }]}
                 activeOpacity={0.8}
                 onPress={() => router.push('/book-coaching')}
@@ -973,6 +990,7 @@ export default function SupportScreen() {
                 {t('referral.body')}
               </Text>
               <TouchableOpacity
+                accessibilityRole="button"
                 style={[styles.outlineBtn, { borderColor: colors.secondary, marginTop: 12 }]}
                 activeOpacity={0.8}
                 onPress={() => setProviderOpen(true)}
@@ -987,6 +1005,7 @@ export default function SupportScreen() {
 
         {/* Treatment Finder — all account types */}
         <TouchableOpacity
+          accessibilityRole="button"
           activeOpacity={0.85}
           onPress={() => router.push('/finder')}
           style={[styles.finderCard, { backgroundColor: colors.primary }]}
@@ -1025,6 +1044,8 @@ export default function SupportScreen() {
                 {/* Status button */}
                 {isMyRoom ? (
                   <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel={`${group.name}: ${t('groups.goLive')}`}
                     style={[styles.joinBtn, { borderColor: colors.coral, backgroundColor: colors.coral }]}
                     activeOpacity={0.8}
                     onPress={() => router.push({ pathname: '/live-room' as never, params: { room: room ?? '' } })}
@@ -1088,6 +1109,8 @@ export default function SupportScreen() {
           })}
           {COMMUNITY_FEED_VISIBLE && (
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={t('community.openLink')}
               style={[styles.communityRow, { borderColor: colors.line }]}
               activeOpacity={0.8}
               onPress={() => router.push('/community')}
@@ -1129,6 +1152,9 @@ export default function SupportScreen() {
               return (
                 <TouchableOpacity
                   key={lang.code}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: active }}
+                  aria-checked={active}
                   style={[
                     styles.pill,
                     {
@@ -1159,6 +1185,8 @@ export default function SupportScreen() {
           style={styles.questionModalKAV}
         >
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={t('common:a11y.close')}
             style={[StyleSheet.absoluteFill, styles.modalOverlay]}
             activeOpacity={1}
             onPress={closeQuestionSheet}
@@ -1176,6 +1204,9 @@ export default function SupportScreen() {
                 <EmergencyActions prominent offline={questionCrisis === 'unsent'} />
                 {questionCrisis === 'unsent' && (
                   <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel={t('questionModal.retry')}
+                    accessibilityState={{ disabled: questionSubmitting, busy: questionSubmitting }}
                     style={[styles.solidBtn, { backgroundColor: colors.primary, marginTop: 12 }]}
                     disabled={questionSubmitting}
                     onPress={() => void submitQuestion()}
@@ -1187,6 +1218,7 @@ export default function SupportScreen() {
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity
+                  accessibilityRole="button"
                   style={[questionCrisis === 'sent' ? styles.solidBtn : styles.sheetRow, questionCrisis === 'sent' ? { backgroundColor: colors.primary, marginTop: 12 } : styles.sheetRowLast]}
                   onPress={closeQuestionSheet}
                   activeOpacity={0.85}
@@ -1213,6 +1245,9 @@ export default function SupportScreen() {
                   autoFocus
                 />
                 <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel={t('questionModal.submit')}
+                  accessibilityState={{ disabled: !questionText.trim() || questionSubmitting, busy: questionSubmitting }}
                   style={[styles.solidBtn, { backgroundColor: questionText.trim() ? colors.primary : colors.line, marginTop: 12 }]}
                   disabled={!questionText.trim() || questionSubmitting}
                   onPress={submitQuestion}
@@ -1222,7 +1257,7 @@ export default function SupportScreen() {
                     ? <ActivityIndicator color="#fff" />
                     : <Text style={styles.solidBtnText}>{t('questionModal.submit')}</Text>}
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.sheetRow, styles.sheetRowLast, { marginTop: 4 }]} onPress={closeQuestionSheet}>
+                <TouchableOpacity accessibilityRole="button" style={[styles.sheetRow, styles.sheetRowLast, { marginTop: 4 }]} onPress={closeQuestionSheet}>
                   <Text style={[styles.sheetRowName, { color: colors.inkSoft }]}>{t('questionModal.cancel')}</Text>
                 </TouchableOpacity>
               </>

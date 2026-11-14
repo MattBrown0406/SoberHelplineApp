@@ -29,6 +29,7 @@ function WelcomeContent() {
         {choosing ? <GuidedStartPanel onContinue={() => setChoosing(false)} /> : <>
         <View style={{ backgroundColor: colors.white, borderRadius: 12, marginBottom: 12 }}><GuidedButton label={guidedStartCopy(i18n.language).change} onPress={() => setChoosing(true)} /></View>
         <TouchableOpacity
+          accessibilityRole="button"
           style={styles.choiceBtn}
           activeOpacity={0.85}
           onPress={() => router.push('/(onboarding)/invite-code')}
@@ -43,6 +44,7 @@ function WelcomeContent() {
             direct users are asked at first coach interaction instead — but
             still gets the loved-one intake (it has its own Skip). */}
         <TouchableOpacity
+          accessibilityRole="button"
           style={[styles.choiceBtn, styles.choiceBtnOutline]}
           activeOpacity={0.85}
           onPress={() => router.push('/(onboarding)/loved-one')}

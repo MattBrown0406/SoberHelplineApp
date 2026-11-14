@@ -147,6 +147,7 @@ export default function NotificationsScreen() {
           )}
 
           <TouchableOpacity
+            accessibilityRole="button"
             style={[styles.primaryBtn, { backgroundColor: '#fff' }]}
             onPress={() => router.replace('/(tabs)')}
             activeOpacity={0.85}
@@ -171,13 +172,14 @@ export default function NotificationsScreen() {
           {t('notifications.body')}
         </Text>
         <TouchableOpacity
+          accessibilityRole="button"
           style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
           onPress={() => finish(true)}
           activeOpacity={0.85}
         >
           <Text style={styles.primaryBtnText}>{t('notifications.acceptButton')}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.skipBtn} onPress={() => finish(false)}>
+        <TouchableOpacity accessibilityRole="button" style={styles.skipBtn} onPress={() => finish(false)}>
           <Text style={[styles.skipText, { color: colors.inkSoft }]}>
             {t('notifications.declineButton')}
           </Text>

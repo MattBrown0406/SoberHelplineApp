@@ -245,9 +245,18 @@ function TodayContent() {
   const header = (
     <View style={styles.headerRow}>
       <Text style={[styles.greeting, { color: colors.ink }]}>{greeting}</Text>
-      <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-        <Text style={styles.avatarText}>{firstName ? firstName.charAt(0).toUpperCase() : '•'}</Text>
-      </View>
+      {/* Her initial opens Settings, on every version of Today (free, member and bereaved). */}
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel={t('common:a11y.settings')}
+        onPress={() => router.push('/settings')}
+        activeOpacity={0.8}
+        style={styles.avatarButton}
+      >
+        <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+          <Text style={styles.avatarText}>{firstName ? firstName.charAt(0).toUpperCase() : '•'}</Text>
+        </View>
+      </TouchableOpacity>
     </View>
   );
 
@@ -354,7 +363,7 @@ function TodayContent() {
         <CheckInFeedbackCard checkIn={todayCheckIn} />
         <MoodChart accountId={user?.id ?? null} timezone={user?.timezone} />
         {isAdmin && (
-          <TouchableOpacity onPress={() => router.push('/admin')} style={styles.adminLink}>
+          <TouchableOpacity accessibilityRole="button" onPress={() => router.push('/admin')} style={styles.adminLink}>
             <Text style={[styles.adminLinkText, { color: colors.inkSoft }]}>Admin</Text>
           </TouchableOpacity>
         )}
@@ -486,7 +495,7 @@ function TodayContent() {
       )}
       </TodayDisclosure>
       {isAdmin && (
-        <TouchableOpacity onPress={() => router.push('/admin')} style={styles.adminLink}>
+        <TouchableOpacity accessibilityRole="button" onPress={() => router.push('/admin')} style={styles.adminLink}>
           <Text style={[styles.adminLinkText, { color: colors.inkSoft }]}>Admin</Text>
         </TouchableOpacity>
       )}
@@ -514,6 +523,15 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     letterSpacing: -0.4,
+  },
+  // A full 44-point target around the 38-point circle; the negative margin
+  // keeps the header exactly where it was.
+  avatarButton: {
+    minWidth: 44,
+    minHeight: 44,
+    margin: -3,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   avatar: {
     width: 38,

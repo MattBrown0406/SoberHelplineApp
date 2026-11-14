@@ -177,6 +177,7 @@ export function SituationCard({ accountId = null, nextFreeCall, primaryDoor, wee
             {t('situationCta.sendBriefSub')}
           </Text>
           <TouchableOpacity
+            accessibilityRole="button"
             style={[styles.briefBtn, { backgroundColor: colors.coral }]}
             onPress={() => {
               logFunnelEvent('brief_opened', { source: 'today_door' });
@@ -190,6 +191,7 @@ export function SituationCard({ accountId = null, nextFreeCall, primaryDoor, wee
             {t(`situationCta.${primaryDoor}Sub`, { rate: coachingRate.rate })}
           </Text>
           <TouchableOpacity
+            accessibilityRole="button"
             style={[styles.doorBtn, { borderColor: colors.primary }]}
             onPress={() => router.push(doorRoute as never)}
             activeOpacity={0.85}
@@ -201,6 +203,7 @@ export function SituationCard({ accountId = null, nextFreeCall, primaryDoor, wee
           {/* An escalated situation is exactly when "where do we get help" is
               the live question — the finder is the answer, so offer it here. */}
           <TouchableOpacity
+            accessibilityRole="button"
             onPress={() => router.push('/finder')}
             activeOpacity={0.75}
             style={styles.finderLink}

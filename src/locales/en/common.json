@@ -122,6 +122,7 @@
     "back": "Back",
     "send": "Send message",
     "addPhoto": "Add a photo",
-    "settings": "Settings"
+    "settings": "Settings",
+    "close": "Close"
   }
 }
