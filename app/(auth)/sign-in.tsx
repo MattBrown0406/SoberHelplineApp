@@ -19,6 +19,8 @@ import { supabase } from '../../src/lib/supabase';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { addAppBreadcrumb, captureAppError } from '../../src/lib/monitoring';
 import { EmergencyActions } from '../../src/components/safety/EmergencyActions';
+import { ResendConfirmationNote } from '../../src/components/auth/ResendConfirmationNote';
+import { isEmailNotConfirmed } from '../../src/lib/frontDoor';
 const LOGO = require('../../assets/images/logo.png');
 
 export default function SignInScreen() {
@@ -32,23 +34,36 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The address a sign-in was just refused for because it is not confirmed
+  // yet: "Send the confirmation email again" is offered for that address, and
+  // goes away when she types a different one. (The address only, in memory.)
+  const [unconfirmedFor, setUnconfirmedFor] = useState<string | null>(null);
+
+  function changeEmail(value: string) {
+    setEmail(value);
+    if (unconfirmedFor !== null && value.trim() !== unconfirmedFor) setUnconfirmedFor(null);
+  }
 
   async function handleEmailSignIn() {
     setError(null);
+    setUnconfirmedFor(null);
     setLoading(true);
     let authenticated = false;
     addAppBreadcrumb('auth.sign_in_started');
 
     try {
+      const typedEmail = email.trim();
       const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
+        email: typedEmail,
         password,
       });
 
       if (authError) {
         addAppBreadcrumb('auth.sign_in_rejected', 'warning');
-        const unconfirmed = authError.code === 'email_not_confirmed'
-          || authError.message.toLowerCase().includes('not confirmed');
+        const unconfirmed = isEmailNotConfirmed(authError);
+        // After the app was closed this is the only place a new link can be
+        // asked for (the confirm step is gone, and links expire).
+        if (unconfirmed) setUnconfirmedFor(typedEmail);
         setError(
           unconfirmed
             ? t('signIn.errorUnconfirmed')
@@ -106,6 +121,8 @@ export default function SignInScreen() {
                 <Text style={[styles.errorText, { color: colors.coral }]}>{error}</Text>
               </View>
             )}
+            {/* Keyed by the address: another address starts with a fresh button. */}
+            {unconfirmedFor ? <ResendConfirmationNote key={unconfirmedFor} email={unconfirmedFor} /> : null}
 
             <View style={styles.field}>
               <Text style={[styles.label, { color: colors.ink }]}>{t('signIn.emailLabel')}</Text>
@@ -114,7 +131,7 @@ export default function SignInScreen() {
                 placeholder={t('signIn.emailPlaceholder')}
                 placeholderTextColor={colors.inkSoft}
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={changeEmail}
                 autoCapitalize="none"
                 keyboardType="email-address"
                 autoComplete="email"

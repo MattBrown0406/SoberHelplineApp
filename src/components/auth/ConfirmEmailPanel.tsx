@@ -8,9 +8,9 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useAccount } from '../../contexts/AccountContext';
 import { supabase } from '../../lib/supabase';
 import { addAppBreadcrumb, captureAppError } from '../../lib/monitoring';
+import { noteConfirmationEmailSent, resendSignUpConfirmation } from '../../lib/confirmationEmail';
 import {
   PASSWORD_MEMORY_BACKGROUND_LIMIT_MS,
-  SIGN_UP_CONFIRM_REDIRECT_URL,
   confirmSignInOutcome,
   resendSecondsLeft,
   shouldAutoTryOnReturn,
@@ -64,6 +64,9 @@ export function ConfirmEmailPanel({ email, password, onForgetPassword, onUseDiff
     mounted.current = true;
     return () => { mounted.current = false; };
   }, []);
+  // Sign-up sent the first email a moment ago: "send again" on the sign-in
+  // screen rests for the same minute (in memory only).
+  useEffect(() => { noteConfirmationEmailSent(email); }, [email]);
 
   const secondsLeft = resendSecondsLeft(lastSentAt, now);
   useEffect(() => {
@@ -165,19 +168,10 @@ export function ConfirmEmailPanel({ email, password, onForgetPassword, onUseDiff
     if (busyRef.current || resendSecondsLeft(lastSentAt, Date.now()) > 0) return;
     busyRef.current = true;
     setBusy('resending');
-    let sent = false;
-    let limited = false;
-    try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email,
-        options: { emailRedirectTo: SIGN_UP_CONFIRM_REDIRECT_URL },
-      });
-      sent = !error;
-      limited = error?.status === 429;
-    } catch (resendError) {
-      captureAppError(resendError);
-    }
+    // The one resend request, shared with the sign-in screen (confirmationEmail).
+    const outcome = await resendSignUpConfirmation(email);
+    const sent = outcome === 'sent';
+    const limited = outcome === 'limited';
     busyRef.current = false;
     if (!mounted.current) return;
     setBusy(null);
@@ -273,6 +267,20 @@ export function ConfirmEmailPanel({ email, password, onForgetPassword, onUseDiff
           >
             <Text style={[styles.linkText, { color: colors.primary }]}>{t('confirmEmail.differentEmail')}</Text>
           </TouchableOpacity>
+
+          {/* No email comes for an address that already has an account (the
+              server does not say which it is): the way to sign-in is always here. */}
+          {hasPassword || signedIn ? (
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !canLeave }}
+              style={styles.linkBtn}
+              onPress={goToSignIn}
+              disabled={!canLeave}
+            >
+              <Text style={[styles.linkText, { color: colors.primary }]}>{t('signUp.hasAccountButton')}</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
 
         <View style={styles.emergency}>

@@ -215,8 +215,10 @@ test('the confirm step shows her address, continues into the normal first sign-i
   // "Not confirmed yet" is a calm note, not an error.
   assert.match(panel, /accessibilityLiveRegion="polite"/);
   assert.doesNotMatch(panel, /colors\.coral|accessibilityRole="alert"/);
-  // Resend is the sign-up resend, and the button rests while the cooldown runs.
-  assert.match(panel, /supabase\.auth\.resend\(\{\s+type: 'signup',/);
+  // Resend is the sign-up resend (one request, shared with the sign-in screen), and the button rests while the cooldown runs.
+  assert.match(panel, /const outcome = await resendSignUpConfirmation\(email\);/);
+  assert.doesNotMatch(panel, /supabase\.auth\.resend/);
+  assert.match(read('src/lib/confirmationEmail.ts'), /supabase\.auth\.resend\(\{\s+type: 'signup',\s+email,\s+options: \{ emailRedirectTo: SIGN_UP_CONFIRM_REDIRECT_URL \},\s+\}\);/);
   assert.match(panel, /if \(busyRef\.current \|\| resendSecondsLeft\(lastSentAt, Date\.now\(\)\) > 0\) return;/);
   assert.match(panel, /const \[lastSentAt, setLastSentAt\] = useState<number \| null>\(\(\) => Date\.now\(\)\);/);
   // Every pre-sign-in screen keeps the emergency block.
@@ -258,4 +260,88 @@ test('the new words exist in both languages, and Spanish speaks to her', () => {
   }
   assert.equal(es.signIn.title, 'Bienvenida de vuelta');
   assert.doesNotMatch(JSON.stringify(es.confirmEmail), /usted|\bsu\b|Bienvenido/);
+});
+
+// ── A sign-up that was never confirmed (audit round 2, M3 + L9) ─────────────
+
+test('a sign-in refused for an unconfirmed address is told apart, and a resend is read plainly', async () => {
+  const { isEmailNotConfirmed, confirmationResendOutcome } = await import('../src/lib/frontDoor');
+  assert.equal(isEmailNotConfirmed({ code: 'email_not_confirmed', message: 'Email not confirmed', status: 400 }), true);
+  assert.equal(isEmailNotConfirmed({ message: 'Email not confirmed' }), true);
+  assert.equal(isEmailNotConfirmed({ code: 'invalid_credentials', message: 'Invalid login credentials', status: 400 }), false);
+  assert.equal(isEmailNotConfirmed({ message: 'Network request failed' }), false);
+  assert.equal(isEmailNotConfirmed(null), false);
+  assert.equal(isEmailNotConfirmed({}), false);
+  assert.equal(confirmationResendOutcome(null), 'sent');
+  assert.equal(confirmationResendOutcome(undefined), 'sent');
+  // "Too soon": nothing went out, but the button rests all the same.
+  assert.equal(confirmationResendOutcome({ status: 429 }), 'limited');
+  assert.equal(confirmationResendOutcome({ status: 500 }), 'failed');
+  assert.equal(confirmationResendOutcome({}), 'failed');
+});
+
+test('sign-in offers "Send the confirmation email again" for the address it was refused for', () => {
+  const signIn = read('app/(auth)/sign-in.tsx');
+  // Shown only after an "email not confirmed" answer, for the address that was typed then.
+  assert.match(signIn, /const unconfirmed = isEmailNotConfirmed\(authError\);[\s\S]*?if \(unconfirmed\) setUnconfirmedFor\(typedEmail\);/);
+  assert.match(signIn, /async function handleEmailSignIn\(\) \{\s+setError\(null\);\s+setUnconfirmedFor\(null\);/);
+  assert.match(signIn, /\{unconfirmedFor \? <ResendConfirmationNote key=\{unconfirmedFor\} email=\{unconfirmedFor\} \/> : null\}/);
+  // It sits under the message, and goes away when she types another address.
+  assert.ok(signIn.indexOf('<ResendConfirmationNote') > signIn.indexOf('{error && ('));
+  assert.ok(signIn.indexOf('<ResendConfirmationNote') < signIn.indexOf("t('signIn.emailLabel')"));
+  assert.match(signIn, /if \(unconfirmedFor !== null && value\.trim\(\) !== unconfirmedFor\) setUnconfirmedFor\(null\);/);
+  assert.match(signIn, /onChangeText=\{changeEmail\}/);
+
+  const note = read('src/components/auth/ResendConfirmationNote.tsx');
+  // The same request, redirect address and 60-second rest as the confirm step.
+  assert.match(note, /const outcome = await resendSignUpConfirmation\(email\);/);
+  assert.match(note, /if \(busyRef\.current \|\| resendSecondsLeft\(lastSentAt, Date\.now\(\)\) > 0\) return;/);
+  assert.match(note, /useState<number \| null>\(\(\) => confirmationEmailLastSentAt\(email\)\)/);
+  assert.match(note, /if \(outcome !== 'failed'\) \{\s+const sentAt = Date\.now\(\);\s+setLastSentAt\(sentAt\);/);
+  assert.match(note, /setNotice\(outcome === 'sent' \? 'resent' : 'resendFailed'\);/);
+  // Calm "sent" and "could not send" states, with the confirm step's own words.
+  assert.match(note, /t\(`confirmEmail\.\$\{notice\}`\)/);
+  assert.match(note, /t\('confirmEmail\.resendWait', \{ seconds: secondsLeft \}\)/);
+  assert.match(note, /t\('signIn\.unconfirmedExpired'\)/);
+  assert.match(note, /accessibilityRole="button"/);
+  assert.match(note, /accessibilityLiveRegion="polite"/);
+  assert.doesNotMatch(note, /colors\.coral|accessibilityRole="alert"/);
+  // The password never reaches it, and nothing about the address is stored or logged.
+  for (const [name, source] of [['note', note], ['lib', read('src/lib/confirmationEmail.ts')]] as const) {
+    assert.doesNotMatch(source, /password/i, `${name}: never the password`);
+    assert.doesNotMatch(source, /AsyncStorage|SecureStore|localStorage|expo-file-system|console\.\w+\(|logFunnelEvent|addAppBreadcrumb/, `${name}: memory only`);
+  }
+  assert.doesNotMatch(signIn, /ResendConfirmationNote[^\n]*password/);
+
+  const en = JSON.parse(read('src/locales/en/auth.json'));
+  const es = JSON.parse(read('src/locales/es/auth.json'));
+  assert.equal(en.signIn.resendConfirmation, 'Send the confirmation email again');
+  assert.match(en.signIn.unconfirmedExpired, /may have expired/);
+  assert.ok(es.signIn.resendConfirmation && es.signIn.unconfirmedExpired);
+  assert.doesNotMatch(JSON.stringify(es.signIn), /usted|\bsu\b/);
+});
+
+test('the 60-second rest carries between the confirm step and sign-in, in memory only', async () => {
+  // (The module is read as text: importing it would start the real auth client.)
+  const lib = read('src/lib/confirmationEmail.ts');
+  assert.match(lib, /const lastSentAt = new Map<string, number>\(\);/);
+  assert.match(lib, /return email\.trim\(\)\.toLowerCase\(\);/);
+  assert.match(lib, /if \(outcome !== 'failed'\) noteConfirmationEmailSent\(email\);/);
+  assert.match(lib, /\} catch \(resendError\) \{\s+captureAppError\(resendError\);\s+\}/);
+  assert.match(read('src/components/auth/ConfirmEmailPanel.tsx'), /useEffect\(\(\) => \{ noteConfirmationEmailSent\(email\); \}, \[email\]\);/);
+});
+
+test('the confirm step is true for an address that already has an account, and offers the way to sign in', () => {
+  const en = JSON.parse(read('src/locales/en/auth.json')).confirmEmail;
+  const es = JSON.parse(read('src/locales/es/auth.json')).confirmEmail;
+  // Nothing is sent for an address with a confirmed account, and the server does not say which it is.
+  assert.match(en.sentTo, /^If this is a new account,/);
+  assert.match(en.resent, /^If this address is waiting to be confirmed,/);
+  assert.doesNotMatch(en.sentTo + en.resent, /We sent|^Sent\b/);
+  assert.match(es.sentTo, /^Si es una cuenta nueva,/);
+  assert.match(es.resent, /^Si este correo está pendiente de confirmar,/);
+  const panel = read('src/components/auth/ConfirmEmailPanel.tsx');
+  // "I already have an account" goes to sign-in with the address filled in, and forgets the password on the way.
+  assert.match(panel, /onPress=\{goToSignIn\}\s+disabled=\{!canLeave\}\s+>\s+<Text style=\{\[styles\.linkText, \{ color: colors\.primary \}\]\}>\{t\('signUp\.hasAccountButton'\)\}<\/Text>/);
+  assert.match(panel, /function goToSignIn\(\) \{\s+forgetRef\.current\(\);[\s\S]*?router\.replace\(\{ pathname: '\/\(auth\)\/sign-in', params: Platform\.OS !== 'web' \? \{ email \} : \{\} \}\);/);
 });

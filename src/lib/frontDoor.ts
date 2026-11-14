@@ -144,6 +144,27 @@ export function shouldAutoTryOnReturn(input: {
   return true;
 }
 
+/**
+ * How "Send the email again" went. 'limited' is the server saying "too soon":
+ * nothing was sent, and the button rests for a cooldown all the same.
+ */
+export type ConfirmationResendOutcome = 'sent' | 'limited' | 'failed';
+
+export function confirmationResendOutcome(
+  error: { status?: number | null } | null | undefined,
+): ConfirmationResendOutcome {
+  if (!error) return 'sent';
+  return error.status === 429 ? 'limited' : 'failed';
+}
+
+type AuthFailure = { code?: string | null; message?: string | null; status?: number | null };
+
+/** True when a sign-in was refused only because the address has not been confirmed yet. */
+export function isEmailNotConfirmed(error: AuthFailure | null | undefined): boolean {
+  if (!error) return false;
+  return error.code === 'email_not_confirmed' || (error.message ?? '').toLowerCase().includes('not confirmed');
+}
+
 export type ConfirmSignInOutcome = 'signed-in' | 'not-confirmed' | 'wrong-password' | 'failed';
 
 /**
@@ -158,7 +179,7 @@ export function confirmSignInOutcome(result: {
   const error = result.error;
   if (!error) return result.hasSession ? 'signed-in' : 'failed';
   const message = (error.message ?? '').toLowerCase();
-  if (error.code === 'email_not_confirmed' || message.includes('not confirmed')) return 'not-confirmed';
+  if (isEmailNotConfirmed(error)) return 'not-confirmed';
   if (error.code === 'invalid_credentials' || message.includes('invalid')) return 'wrong-password';
   return 'failed';
 }
