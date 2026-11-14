@@ -69,9 +69,9 @@ function ReviewPromptCoordinator() {
 }
 
 /**
- * Real attendance at Family Squares: when the app is in front again ten
- * minutes or more after a Join tap (from Today, Support or a reminder push),
- * log it once for that meeting. Unlike the rating prompt above, this runs on
+ * Real attendance at Family Squares: when the app is in front again at least
+ * ten minutes into the meeting and ten minutes after a Join tap (from Today,
+ * Support or a reminder push), log it once for that meeting. Unlike the rating prompt above, this runs on
  * whatever screen she comes back to.
  */
 function MeetingAttendanceCoordinator() {
@@ -81,7 +81,8 @@ function MeetingAttendanceCoordinator() {
     if (!user?.id) return;
     const accountId = user.id;
     let active = true;
-    // Back ten minutes or more after a Join tap: she attended. For a free
+    // Back once the meeting has been going ten minutes, and ten minutes or
+    // more after her Join tap (never before it starts): she attended. For a free
     // member that is also the moment Today may offer the after-meeting
     // invitation (afterMeetingInvite decides whether it does).
     const flushAttendance = () => void flushFamilySquaresAttendance(accountId).then((attended) => {

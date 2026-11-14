@@ -43,8 +43,10 @@ export async function clearFamilySquaresJoin(accountId: string | null | undefine
 
 /**
  * Called whenever the app is in front again. Logs `attended_10min` once per
- * meeting when she comes back ten minutes or more after tapping Join; a quick
- * return or a stale mark logs nothing. Returns true when it logged.
+ * meeting when she is back after the meeting has been going ten minutes and
+ * ten minutes or more after tapping Join. An earlier return keeps the mark for
+ * her next one; a mark from an evening that is over logs nothing. Returns true
+ * when it logged.
  */
 export async function flushFamilySquaresAttendance(accountId: string | null | undefined, nowMs = Date.now()): Promise<boolean> {
   if (!accountId) return false;

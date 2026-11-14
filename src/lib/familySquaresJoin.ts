@@ -57,19 +57,33 @@ export function familySquaresReminderTapPlan(
 }
 
 // ── Real attendance ─────────────────────────────────────────────────────────
-// A Join tap only says she opened Zoom. Coming back to the app ten minutes or
-// more later says she stayed (the same signal the rating prompt already uses).
+// A Join tap only says she opened Zoom, and the Join button works from 30
+// minutes before the start. She attended when she is back in the app after the
+// meeting has been going for ten minutes AND ten minutes or more after her tap.
 
 export type JoinSource = 'today' | 'support' | 'push';
 const JOIN_SOURCES: readonly JoinSource[] = ['today', 'support', 'push'];
 
-/** Kept on the device from the Join tap until she is back in the app. */
+/** Kept on the device from the Join tap until attendance is logged or the evening is over. */
 export type JoinMark = { schemaVersion: 1; joinedAt: string; meetingDate: string; source: JoinSource };
 
 export const ATTENDED_MINIMUM_MS = 10 * 60_000;
-export const ATTENDED_MAXIMUM_MS = 3 * 60 * 60_000;
-/** The app can flicker to "active" while Zoom is opening; that is not a return. */
-export const JOIN_SETTLE_MS = 5_000;
+/** Family Squares runs for an hour (family-squares-time). */
+export const MEETING_LENGTH_MS = 60 * 60_000;
+/** A return this long after the meeting's end still counts; after it the mark is stale. */
+export const RETURN_GRACE_MS = 2 * 60 * 60_000;
+
+/**
+ * When the meeting a mark belongs to starts, or null for a mark that was not
+ * made inside that meeting's join window (never trusted).
+ */
+export function joinMarkMeetingStartMs(mark: JoinMark): number | null {
+  const joinedAt = new Date(mark.joinedAt);
+  const { meetingDate, start } = familySquaresSyncWindow(joinedAt);
+  const startMs = start.getTime();
+  if (meetingDate !== mark.meetingDate || startMs - joinedAt.getTime() > JOIN_LEAD_MS) return null;
+  return startMs;
+}
 
 /** A mark for a Join tap made at meeting time; null at any other time of the week. */
 export function newJoinMark(source: JoinSource, now: Date = new Date()): JoinMark | null {
@@ -97,17 +111,26 @@ export function parseJoinMark(raw: string | null | undefined): JoinMark | null {
 
 /**
  * What to do with a Join mark when the app is in front again:
- * - 'keep'    — Zoom is still opening (a few seconds in); look again next time.
- * - 'discard' — back within ten minutes, a stale mark, or this meeting is already logged.
- * - 'log'     — she stayed ten minutes or more: record `attended_10min` once.
+ * - 'keep'    — too early to say (the meeting has not been going ten minutes,
+ *               or she tapped less than ten minutes ago): look again on her
+ *               next return, so a quick look at the app mid-meeting never
+ *               throws her attendance away.
+ * - 'discard' — this meeting is already logged, or the evening is over
+ *               (the meeting's end plus the grace period), or the clock is off.
+ * - 'log'     — record `attended_10min`, once per meeting date.
  */
 export function attendanceDecision(
   mark: JoinMark,
   nowMs: number,
   lastLoggedMeetingDate: string | null,
 ): 'keep' | 'discard' | 'log' {
-  const elapsed = nowMs - Date.parse(mark.joinedAt);
-  if (elapsed >= 0 && elapsed < JOIN_SETTLE_MS) return 'keep';
-  if (elapsed < ATTENDED_MINIMUM_MS || elapsed > ATTENDED_MAXIMUM_MS) return 'discard';
-  return lastLoggedMeetingDate === mark.meetingDate ? 'discard' : 'log';
+  if (lastLoggedMeetingDate === mark.meetingDate) return 'discard';
+  const joinedMs = Date.parse(mark.joinedAt);
+  const startMs = joinMarkMeetingStartMs(mark);
+  // A mark that is not from a join window, or a clock that moved backwards.
+  if (startMs === null || nowMs < joinedMs) return 'discard';
+  if (nowMs > startMs + MEETING_LENGTH_MS + RETURN_GRACE_MS) return 'discard';
+  // Never before the meeting has started: an early tap waits for start + 10.
+  const countsFromMs = Math.max(joinedMs, startMs) + ATTENDED_MINIMUM_MS;
+  return nowMs >= countsFromMs ? 'log' : 'keep';
 }

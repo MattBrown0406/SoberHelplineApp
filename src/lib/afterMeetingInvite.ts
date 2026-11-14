@@ -1,8 +1,9 @@
 /**
  * The moment for the after-Family-Squares invitation.
  *
- * A free member who comes back to the app ten minutes or more after tapping
- * Join (the same signal that logs `attended_10min`) may be shown one soft
+ * A free member who comes back to the app at least ten minutes into the
+ * meeting and ten minutes after tapping Join (the same signal that logs
+ * `attended_10min`; never before the meeting starts) may be shown one soft
  * invitation on Today: keep talking with a coach between Mondays.
  *
  * It never shares a visit with the App Store rating prompt. Coming back from

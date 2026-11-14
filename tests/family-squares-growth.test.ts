@@ -6,7 +6,9 @@ import { entitlementsForAccountState } from '../src/lib/featureAccess';
 import { FAMILY_SQUARES_NAME_KEY, sessionDisplayTitle } from '../src/lib/familySquaresSchedule';
 import { FAMILY_SQUARES_CALENDAR_URL, WEBSITE_ORIGIN } from '../src/lib/websiteLinks';
 import {
-  ATTENDED_MAXIMUM_MS,
+  MEETING_LENGTH_MS,
+  RETURN_GRACE_MS,
+  joinMarkMeetingStartMs,
   ATTENDED_MINIMUM_MS,
   attendanceDecision,
   familySquaresJoinWindow,
@@ -274,15 +276,47 @@ test('only a Join tap at meeting time leaves a mark', () => {
 test('coming back ten minutes or more later counts, once per meeting', () => {
   const mark = newJoinMark('today', at(0)) as JoinMark;
   const after = (ms: number) => START + ms;
+  assert.equal(joinMarkMeetingStartMs(mark), START);
   assert.equal(attendanceDecision(mark, after(2_000), null), 'keep', 'Zoom is still opening');
-  assert.equal(attendanceDecision(mark, after(2 * 60_000), null), 'discard', 'a quick look and back');
-  assert.equal(attendanceDecision(mark, after(ATTENDED_MINIMUM_MS - 1), null), 'discard');
+  // A quick look at the app mid-meeting no longer throws the mark away.
+  assert.equal(attendanceDecision(mark, after(2 * 60_000), null), 'keep', 'a quick look and back');
+  assert.equal(attendanceDecision(mark, after(ATTENDED_MINIMUM_MS - 1), null), 'keep');
   assert.equal(attendanceDecision(mark, after(ATTENDED_MINIMUM_MS), null), 'log');
   assert.equal(attendanceDecision(mark, after(65 * 60_000), null), 'log');
-  assert.equal(attendanceDecision(mark, after(ATTENDED_MAXIMUM_MS + 1), null), 'discard', 'a stale mark the next day');
+  assert.equal(attendanceDecision(mark, after(MEETING_LENGTH_MS + RETURN_GRACE_MS), null), 'log', 'still the same evening');
+  assert.equal(attendanceDecision(mark, after(MEETING_LENGTH_MS + RETURN_GRACE_MS + 1), null), 'discard', 'a stale mark the next day');
   assert.equal(attendanceDecision(mark, after(65 * 60_000), '2026-11-16'), 'discard', 'already logged for this meeting');
+  assert.equal(attendanceDecision(mark, after(2 * 60_000), '2026-11-16'), 'discard', 'already logged: nothing left to wait for');
   assert.equal(attendanceDecision(mark, after(65 * 60_000), '2026-11-09'), 'log', 'last week does not block this week');
   assert.equal(attendanceDecision(mark, after(-60_000), null), 'discard', 'a clock that moved backwards');
+});
+
+test('a Join tap before the meeting starts never counts before start + 10 minutes', () => {
+  // Join opens 30 minutes early: 6:35 PM tap, back in the app at 6:50 PM.
+  const early = newJoinMark('push', at(-25)) as JoinMark;
+  const minutes = (m: number) => START + m * 60_000;
+  assert.equal(attendanceDecision(early, minutes(-10), null), 'keep', '15 minutes after the tap, 10 before the start');
+  assert.equal(attendanceDecision(early, minutes(0), null), 'keep', 'the meeting is only starting');
+  assert.equal(attendanceDecision(early, minutes(10) - 1, null), 'keep');
+  assert.equal(attendanceDecision(early, minutes(10), null), 'log', 'ten minutes into the meeting');
+  // A late tap still needs its own ten minutes.
+  const late = newJoinMark('today', at(8)) as JoinMark;
+  assert.equal(attendanceDecision(late, minutes(12), null), 'keep', 'start + 10 has passed, her ten minutes have not');
+  assert.equal(attendanceDecision(late, minutes(18), null), 'log');
+  // Early return, then a real one: the kept mark still counts, once.
+  assert.equal(attendanceDecision(early, minutes(-20), null), 'keep');
+  assert.equal(attendanceDecision(early, minutes(62), null), 'log');
+  assert.equal(attendanceDecision(early, minutes(62), early.meetingDate), 'discard');
+  // A mark that was not made inside the meeting's join window is never trusted.
+  const forged = { ...early, joinedAt: new Date(START - 3 * 86_400_000).toISOString() };
+  assert.equal(joinMarkMeetingStartMs(forged), null);
+  assert.equal(attendanceDecision(forged, minutes(30), null), 'discard');
+  assert.equal(attendanceDecision({ ...early, meetingDate: '2026-11-09' }, minutes(30), null), 'discard');
+});
+
+test('an early return keeps the join mark on the device; only a decision removes it', () => {
+  const flush = read('src/lib/meetingAttendance.ts');
+  assert.match(flush, /if \(decision === 'keep'\) return false;\s+await AsyncStorage\.removeItem\(joinKey\);\s+if \(decision !== 'log'\) return false;/);
 });
 
 test('every Join button leaves the mark, and returning to any screen logs it', () => {
