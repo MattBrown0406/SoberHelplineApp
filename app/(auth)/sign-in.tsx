@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Link } from 'expo-router';
+import { Link, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { supabase } from '../../src/lib/supabase';
@@ -25,8 +25,10 @@ export default function SignInScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation('auth');
   const { completeSignIn } = useAccount();
+  // "Confirm your email" hands over the address she already typed (never the password).
+  const params = useLocalSearchParams<{ email?: string }>();
 
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(typeof params.email === 'string' ? params.email : '');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -142,6 +144,9 @@ export default function SignInScreen() {
             </View>
 
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={t('signIn.submitButton')}
+              accessibilityState={{ disabled: loading || !email || !password, busy: loading }}
               style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
               onPress={handleEmailSignIn}
               disabled={loading || !email || !password}
@@ -159,7 +164,7 @@ export default function SignInScreen() {
           <View style={styles.footer}>
             <Text style={[styles.footerText, { color: colors.inkSoft }]}>{t('signIn.noAccount')} </Text>
             <Link href="/(auth)/sign-up" asChild>
-              <TouchableOpacity>
+              <TouchableOpacity accessibilityRole="link" hitSlop={8}>
                 <Text style={[styles.footerLink, { color: colors.primary }]}>{t('signIn.signUpLink')}</Text>
               </TouchableOpacity>
             </Link>

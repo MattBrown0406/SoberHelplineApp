@@ -250,7 +250,10 @@ test('the helpline is not listed as an emergency line, and website members are t
 });
 
 test('email confirmation lands on soberhelpline.com', () => {
-  assert.match(read('app/(auth)/sign-up.tsx'), /emailRedirectTo: 'https:\/\/soberhelpline\.com\/app-confirmed\.html'/);
+  // One address for sign-up and for "Send the email again" on the confirm step.
+  assert.match(read('src/lib/frontDoor.ts'), /SIGN_UP_CONFIRM_REDIRECT_URL = 'https:\/\/soberhelpline\.com\/app-confirmed\.html'/);
+  assert.match(read('app/(auth)/sign-up.tsx'), /emailRedirectTo: SIGN_UP_CONFIRM_REDIRECT_URL/);
+  assert.match(read('src/components/auth/ConfirmEmailPanel.tsx'), /type: 'signup',\s+email,\s+options: \{ emailRedirectTo: SIGN_UP_CONFIRM_REDIRECT_URL \}/);
   assert.match(read('supabase/functions/confirm-landing/index.ts'), /'https:\/\/soberhelpline\.com\/app-confirmed\.html'/);
   assert.match(read('supabase/config.toml'), /additional_redirect_urls = \[\n\s+"https:\/\/soberhelpline\.com\/app-confirmed\.html"/);
 });
