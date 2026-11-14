@@ -14,15 +14,21 @@ export function useFamilySquaresWeeklySeat(accountId: string | null) {
   const identity = useRef(accountId);
   identity.current = accountId;
   const saving = useRef(false);
+  // Goes up with every read and every change, so a slow read can tell that
+  // something newer has happened since it began.
+  const generation = useRef(0);
 
   const load = useCallback(async () => {
+    const request = ++generation.current;
     if (!accountId) {
       setEnabledState(false);
       return;
     }
     const saved = await loadWeeklySeat(accountId);
-    // A failed read keeps what is on screen; a change in flight wins over a slow read.
-    if (saved !== null && identity.current === accountId && !saving.current) setEnabledState(saved);
+    // A failed read keeps what is on screen. A read that began before a newer
+    // read or before a change she made (even one that has since finished
+    // saving) is out of date and is dropped.
+    if (saved !== null && request === generation.current && identity.current === accountId && !saving.current) setEnabledState(saved);
   }, [accountId]);
 
   useEffect(() => {
@@ -38,12 +44,17 @@ export function useFamilySquaresWeeklySeat(accountId: string | null) {
   const setEnabled = useCallback(async (next: boolean): Promise<boolean> => {
     if (!accountId || saving.current) return false;
     saving.current = true;
+    ++generation.current;
     setBusy(true);
     setEnabledState(next);
     const saved = await saveWeeklySeat(accountId, next);
     saving.current = false;
-    if (identity.current !== accountId) return saved;
+    // Reads that began while this was saving may have seen the old value.
+    ++generation.current;
+    // "Saving" is over whoever is signed in now: it must never stay stuck on
+    // because the account changed while this was in flight.
     setBusy(false);
+    if (identity.current !== accountId) return saved;
     if (!saved) setEnabledState(!next);
     return saved;
   }, [accountId]);

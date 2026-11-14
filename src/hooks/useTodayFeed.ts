@@ -18,6 +18,7 @@ import {
 import type { CurriculumPhase } from '../api/types';
 import { chooseFreeCall, isLaSobremesaSession, isFamilySquaresSession } from '../lib/familySquaresSchedule';
 import { reserveLaSobremesa, withPersonalLinks } from '../lib/laSobremesa';
+import { withFreshAnswer } from '../lib/freshAnswer';
 import { appAlert } from '../lib/appAlert';
 import i18n from 'i18next';
 import { useTranslation } from 'react-i18next';
@@ -78,9 +79,15 @@ export function useTodayFeed(
   const identity = useRef(accountId);
   identity.current = accountId;
   useEffect(() => () => { identity.current = null; }, []);
+  // Goes up with every answer she gives (seat saved, "can't make it", RSVP):
+  // a read that began before it must not put the old answer back (freshAnswer).
+  const answers = useRef(0);
+  // True while an RSVP write (or a registration) is on its way to the server.
+  const reserving = useRef(false);
 
   const load = useCallback(async () => {
     const request = ++generation.current;
+    const answersAtStart = answers.current;
     if (!accountId) {
       setSituation(DEFAULT_SITUATION);
       setSituationAccountId(null);
@@ -122,7 +129,8 @@ export function useTodayFeed(
     const doy = dayOfYear(now);
 
     setBoundariesHeld(wallsRes.count ?? 0);
-    setGroupSessions(rsvpCountRes.count ?? 0);
+    // (A count read before an answer she has since given would be one out.)
+    if (answersAtStart === answers.current && !reserving.current) setGroupSessions(rsvpCountRes.count ?? 0);
     setQuoteIndex(doy % QUOTE_COUNT);
     setScriptSlot(doy % 14);
     setDayCount(
@@ -154,9 +162,13 @@ export function useTodayFeed(
       ? rsvpRowsRes.data?.find((r) => r.session_id === chosen.id)
       : undefined;
     const answerIsCurrent = familySquaresRsvpIsCurrent(answer?.family_squares_meeting_date, now);
-    setNextFreeCall(chosen ? { ...chosen,
+    const loadedCall: FreeCall | null = chosen ? { ...chosen,
       rsvped: isFamilySquaresSession(chosen) ? answerIsCurrent && answer?.status === 'going' : going.has(chosen.id),
-      declined: answerIsCurrent && answer?.status === 'declined' } : null);
+      declined: answerIsCurrent && answer?.status === 'declined' } : null;
+    // She answered while this read was in flight (or the answer is still
+    // being saved): her answer stays as it is.
+    const answeredSince = answersAtStart !== answers.current || reserving.current;
+    setNextFreeCall((prev) => (loadedCall ? withFreshAnswer(loadedCall, prev, answeredSince) : null));
 
     if (!failed) loadedFor.current = accountId;
     setLoading(false);
@@ -187,7 +199,6 @@ export function useTodayFeed(
     return () => appState.remove();
   }, [load]);
 
-  const reserving = useRef(false);
   const rsvpFreeCall = useCallback(async () => {
     if (!accountId || !nextFreeCall) return;
     // One RSVP write (or La Sobremesa registration, which can take seconds) at a time.
@@ -201,6 +212,7 @@ export function useTodayFeed(
         appAlert(i18n.t('support:sessions.rsvpErrorTitle'), i18n.t('support:sessions.rsvpErrorBody'));
         return;
       }
+      ++answers.current;
       setNextFreeCall((prev) => prev?.id === nextFreeCall.id ? { ...prev, rsvped: true, declined: false } : prev);
       // A legacy/stale going row already contributes to the total even when
       // this occurrence was not registered. Ensure may update, not insert it.
@@ -235,10 +247,12 @@ export function useTodayFeed(
         );
         return;
       }
+      ++answers.current;
       setNextFreeCall((prev) => (prev ? { ...prev, rsvped: true, zoom_url: reserved.joinUrl } : prev));
       if (!wasRsvped) setGroupSessions((c) => c + 1);
       return;
     }
+    ++answers.current;
     setNextFreeCall((prev) => (prev ? { ...prev, rsvped: !prev.rsvped } : prev));
     setGroupSessions((c) => Math.max(0, c + (wasRsvped ? -1 : 1)));
     reserving.current = true;
@@ -260,6 +274,8 @@ export function useTodayFeed(
       failed = true;
     } finally {
       reserving.current = false;
+      // Reads that began while this was saving may have seen the old answer.
+      ++answers.current;
     }
     if (failed) {
       // Undo the optimistic change: a "Going" that wasn't saved gets no reminder.
@@ -276,6 +292,7 @@ export function useTodayFeed(
     reserving.current = true;
     const declined = await declineFamilySquares().finally(() => { reserving.current = false; });
     if (identity.current !== accountId || !declined) return declined;
+    ++answers.current;
     setNextFreeCall((prev) => prev?.id === nextFreeCall.id ? { ...prev, rsvped: false, declined: true } : prev);
     // One fewer "going" in the count Today shows.
     setGroupSessions((c) => Math.max(0, c - 1));
