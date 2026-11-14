@@ -107,6 +107,7 @@ test('the push hook settles a pending revoke before re-registering, and skips re
     '../lib/pushRouting': {}, '../lib/familySquaresPushJoin': {}, '../reminders/personalReminders': { REMINDER_PREFIX: 'personal-reminder:' }, '../reminders/bereavementQuiet': { pausePersonalRemindersForQuiet: async () => {}, resumePersonalRemindersAfterQuiet: async () => {} },
     '../lib/pushDevice': { isDeviceSignedIn: () => true },
     '../lib/pushColdStart': { shouldDeferPushRouting: () => false },
+    '../lib/featureAccess': { canAccessFeature: () => false },
     '../lib/familySpaceRefresh': { requestFamilySpaceRefresh: () => undefined },
     '../contexts/AccountContext': { useAccount: () => ({ entitlementsSettled: true }) },
     '../lib/pendingPushTokenRevoke': {

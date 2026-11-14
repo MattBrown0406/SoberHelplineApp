@@ -111,9 +111,95 @@ test('deliberate token registration alone is not consent for daily reminders', a
 const dailyNudges = (h: ReturnType<typeof harness>) => h.scheduled.filter((x) => x.identifier?.includes(':daily-'));
 test('a morning reminder hour with this device\'s token on file is sent by the server only', async () => {
   const h = harness('ios', false, { pushToken: 'token' });
+  // A member whose Today shows the week review still gets the Sunday note.
+  await h.api.setWeekReviewAccess('A', true);
   assert.equal(await h.api.registerForPushNotifications('A', true, true), true);
   assert.equal(dailyNudges(h).length, 0);
   assert.ok(h.scheduled.some((x) => x.identifier?.endsWith(':weekly')));
+});
+
+// The Sunday 6pm "Your week, at a glance" note points at the WeekReviewCard,
+// which only the paid Today shows.
+const weekly = (h: ReturnType<typeof harness>) => h.scheduled.filter((x) => x.identifier === 'legacy-daily-nudge:v1:weekly');
+test('the Sunday week-review note is scheduled only for a member who can see the week review', async () => {
+  assert.equal(harness().api.shouldScheduleWeekReview({ canSeeWeekReview: true, bereaved: false }), true);
+  assert.equal(harness().api.shouldScheduleWeekReview({ canSeeWeekReview: false, bereaved: false }), false);
+  assert.equal(harness().api.shouldScheduleWeekReview({ canSeeWeekReview: null, bereaved: false }), false, 'not while her access is still unknown');
+  assert.equal(harness().api.shouldScheduleWeekReview({ canSeeWeekReview: true, bereaved: true }), false, 'the bereaved Today has no week review');
+
+  const paid = harness();
+  await paid.api.setWeekReviewAccess('A', true);
+  assert.equal(await paid.api.registerForPushNotifications('A', true, true), true);
+  assert.equal(weekly(paid).length, 1);
+  assert.equal(new Date(weekly(paid)[0].trigger.date).getDay(), 0, 'on a Sunday');
+  assert.equal(new Date(weekly(paid)[0].trigger.date).getHours(), 18);
+
+  const free = harness();
+  await free.api.setWeekReviewAccess('A', false);
+  assert.equal(await free.api.registerForPushNotifications('A', true, true), true);
+  assert.ok(dailyNudges(free).length > 0, 'her daily reminder is untouched');
+  assert.equal(weekly(free).length, 0);
+  assert.ok(free.canceled.includes('legacy-daily-nudge:v1:weekly'), 'one already scheduled is cancelled');
+
+  // Access not known yet (cold start): nothing is scheduled on a guess.
+  const unknown = harness();
+  assert.equal(await unknown.api.registerForPushNotifications('A', true, true), true);
+  assert.equal(weekly(unknown).length, 0);
+
+  // Another account's access never counts for this one.
+  const other = harness();
+  await other.api.setWeekReviewAccess('B', true);
+  assert.equal(await other.api.registerForPushNotifications('A', true, true), true);
+  assert.equal(weekly(other).length, 0);
+});
+
+test('a plan that ends cancels the Sunday note; a new plan schedules it', async () => {
+  const h = harness();
+  await h.api.setWeekReviewAccess('A', true);
+  assert.equal(await h.api.registerForPushNotifications('A', true, true), true);
+  assert.equal(weekly(h).length, 1);
+  h.scheduled.length = 0; h.canceled.length = 0;
+  // Her plan ended: telling the scheduler re-arms by itself.
+  await h.api.setWeekReviewAccess('A', false);
+  assert.equal(weekly(h).length, 0);
+  assert.ok(h.canceled.includes('legacy-daily-nudge:v1:weekly'));
+  assert.ok(dailyNudges(h).length > 0);
+  h.scheduled.length = 0;
+  await h.api.setWeekReviewAccess('A', true);
+  assert.equal(weekly(h).length, 1);
+  // Nothing changed: no needless re-arm.
+  h.scheduled.length = 0;
+  await h.api.setWeekReviewAccess('A', true);
+  assert.equal(h.scheduled.length, 0);
+});
+
+test('noting week-review access before the device is registered never cancels her reminders', async () => {
+  const h = harness();
+  await h.api.setWeekReviewAccess('A', false);
+  await h.api.setWeekReviewAccess('A', true);
+  await h.api.setWeekReviewAccess(null, null);
+  assert.deepEqual(h.canceled, [], 'no re-arm, so nothing already scheduled is touched');
+  assert.equal(h.scheduled.length, 0);
+});
+
+test('a bereaved member gets no Sunday week-review note, paused or not', async () => {
+  const h = harness('ios', false, { pushToken: null, quiet: false });
+  h.store.set('reminderHour', '18');
+  await h.api.setWeekReviewAccess('A', true);
+  assert.equal(await h.api.registerForPushNotifications('A', true, true), true);
+  assert.ok(dailyNudges(h).length > 0, 'the daily reminder she chose still comes');
+  assert.equal(weekly(h).length, 0);
+});
+
+test('the push hook reads week-review access from the feature map once entitlements have settled', () => {
+  const source = fs.readFileSync('src/hooks/usePushNotifications.ts', 'utf8');
+  assert.match(source, /entitlements && entitlementsSettled\s*\? canAccessFeature\(\{ feature: 'todayFull', entitlements \}\)\s*: null/);
+  assert.match(source, /void setWeekReviewAccess\(accountId, canSeeWeekReview\)/);
+  // Today shows the WeekReviewCard only on the full (paid) Today, behind the same feature.
+  const today = fs.readFileSync('app/(tabs)/index.tsx', 'utf8');
+  assert.match(today, /const canAccessFullToday = useFeatureAccess\('todayFull'\);/);
+  assert.match(today, /if \(!canAccessFullToday\) \{[\s\S]*?\n  \}\n\n  return \([\s\S]*<WeekReviewCard/);
+  assert.equal((today.match(/<WeekReviewCard/g) ?? []).length, 1);
 });
 test('a later reminder hour is mirrored to the server and sent by the device', async () => {
   const h = harness('ios', false, { pushToken: 'token', hour: 9 });

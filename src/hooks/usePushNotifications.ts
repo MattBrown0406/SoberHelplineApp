@@ -15,6 +15,7 @@ import { shouldDeferPushRouting } from '../lib/pushColdStart';
 import { requestFamilySpaceRefresh } from '../lib/familySpaceRefresh';
 import { joinFamilySquaresFromPush, planReminderJoin, reminderJoinSessionId } from '../lib/familySquaresPushJoin';
 import { useAccount } from '../contexts/AccountContext';
+import { canAccessFeature } from '../lib/featureAccess';
 import type { Entitlements } from '../api/types';
 import { pausePersonalRemindersForQuiet, resumePersonalRemindersAfterQuiet } from '../reminders/bereavementQuiet';
 export const LEGACY_NUDGE_PREFIX = 'legacy-daily-nudge:v1:';
@@ -107,6 +108,34 @@ let activePushAccountId: string | null = null;
 // covers this device's daily nudge when that token is this device's.
 let devicePushToken: { accountId: string; token: string } | null = null;
 let nudgeRearmQueue: Promise<void> = Promise.resolve();
+const WEEK_REVIEW_ID = LEGACY_NUDGE_PREFIX + 'weekly';
+// Whether this account's Today shows the week review (the paid Today). Unknown
+// (null) until the account's access has settled after a cold start.
+let weekReviewAccess: { accountId: string; canSee: boolean } | null = null;
+
+/**
+ * The Sunday 6pm "Your week, at a glance" note points at the week review on
+ * Today, which only the paid Today shows (and never the bereaved Today). It is
+ * scheduled only for someone who will find that card when she taps it.
+ */
+export function shouldScheduleWeekReview(input: { canSeeWeekReview: boolean | null; bereaved: boolean }): boolean {
+  return input.canSeeWeekReview === true && !input.bereaved;
+}
+
+/**
+ * Tells the scheduler whether this account can see the week review, then
+ * re-arms: a plan that ended has its Sunday note cancelled, a new one gets it.
+ */
+export function setWeekReviewAccess(accountId: string | null, canSee: boolean | null): Promise<void> {
+  const next = accountId && canSee !== null ? { accountId, canSee } : null;
+  if (next?.accountId === weekReviewAccess?.accountId && next?.canSee === weekReviewAccess?.canSee) return Promise.resolve();
+  weekReviewAccess = next;
+  // Only for the account this device is registered for. Before registration
+  // (app start) a re-arm would cancel her reminders with nothing to put back;
+  // registering re-arms by itself and reads the access noted here.
+  if (!next || activePushAccountId !== next.accountId) return Promise.resolve();
+  return rearmDailyNudge();
+}
 
 /** Null this account's server-side push token (used to settle an offline sign-out). */
 export async function revokePushToken(accountId: string): Promise<void> {
@@ -164,6 +193,13 @@ async function performDailyNudgeRearm(): Promise<void> {
   const generation = accountId ? pushWriteBarrier.begin(accountId) : -1;
   const current = () => !!accountId && activePushAccountId === accountId
     && pushWriteBarrier.isCurrent(accountId, generation);
+  const canSeeWeekReview = accountId && weekReviewAccess?.accountId === accountId ? weekReviewAccess.canSee : null;
+  // Known not to see the week review (free, or a plan that ended): cancel a
+  // Sunday note that is already scheduled, even if the account read below
+  // fails offline and nothing else is touched.
+  if (canSeeWeekReview === false) {
+    await Notifications.cancelScheduledNotificationAsync(WEEK_REVIEW_ID).catch(() => undefined);
+  }
   // Resolve the account before touching the schedule: offline the lookup
   // fails, and cancelling first would leave the week with no reminders.
   const { data: { session } } = await supabase.auth.getSession();
@@ -175,6 +211,8 @@ async function performDailyNudgeRearm(): Promise<void> {
   let account: DailyAccount | null = null;
   // Bereaved and asked for quiet: nothing scheduled on this device either.
   let remindersPaused = false;
+  // Her loved one died: the bereaved Today has no week review.
+  let bereaved = false;
   // The server morning note reaches her (via the token on file) at this hour.
   let serverMorningNote = false;
   if (accountId && session?.user.id) {
@@ -187,8 +225,8 @@ async function performDailyNudgeRearm(): Promise<void> {
     }
     if (error) return;
     account = data as DailyAccount | null;
-    remindersPaused = account?.id === accountId && !!account.loved_ones?.died_at
-      && account.loved_ones.bereavement_quiet === true;
+    bereaved = account?.id === accountId && !!account.loved_ones?.died_at;
+    remindersPaused = bereaved && account?.loved_ones?.bereavement_quiet === true;
     // The pause turns the daily reminder off once (and back on after); before
     // the opt-in below is mirrored to the server.
     if (account?.id === accountId && current()) {
@@ -261,14 +299,17 @@ async function performDailyNudgeRearm(): Promise<void> {
   }
 
   // Sunday 6pm week-in-review — the weekly payoff that pairs with the
-  // WeekReviewCard on Today. One-shot; re-armed on every foreground.
+  // WeekReviewCard on Today. One-shot; re-armed on every foreground. Only for
+  // members whose Today shows that card: for anyone else the one scheduled
+  // earlier was cancelled above and is not put back.
+  if (!shouldScheduleWeekReview({ canSeeWeekReview, bereaved })) return;
   const sunday = new Date();
   sunday.setHours(18, 0, 0, 0);
   sunday.setDate(sunday.getDate() + ((7 - sunday.getDay()) % 7));
   if (sunday <= now) sunday.setDate(sunday.getDate() + 7);
   if (!current()) return;
   await Notifications.scheduleNotificationAsync({
-    identifier: LEGACY_NUDGE_PREFIX + 'weekly',
+    identifier: WEEK_REVIEW_ID,
     content: {
       title: i18n.t('settings:notifications.weekReviewTitle'),
       body: i18n.t('settings:notifications.weekReviewBody'),
@@ -375,6 +416,15 @@ export function usePushNotifications(
       void cancelPushRegistration(accountId).catch(error => console.warn('[push] cleanup failed', error));
     };
   }, [accountId]);
+
+  // The Sunday week-review note follows what her plan lets her see on Today.
+  // Not decided while the entitlements are still a cold-start fallback.
+  const canSeeWeekReview = entitlements && entitlementsSettled
+    ? canAccessFeature({ feature: 'todayFull', entitlements })
+    : null;
+  useEffect(() => {
+    void setWeekReviewAccess(accountId, canSeeWeekReview).catch(error => console.warn('[push] rearm failed', error));
+  }, [accountId, canSeeWeekReview]);
 
   useEffect(() => {
     if (!accountId || !navigationReady) return;
