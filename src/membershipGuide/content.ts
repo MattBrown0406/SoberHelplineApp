@@ -2,7 +2,7 @@ export const membershipGuideContent = {
   en: {
     title: 'Guidance for the family—not control over your loved one',
     introLabel: 'A written introduction',
-    intro: 'Matt Brown is the founder of Sober Helpline and an interventionist with 22 years of experience. Family coaching helps you think through boundaries, communication, and your next practical step. You do not have to control someone else’s choices to care for yourself.',
+    intro: 'Matt Brown is the founder of Sober Helpline and an interventionist with 20+ years of experience. Family coaching helps you think through boundaries, communication, and your next practical step. You do not have to control someone else’s choices to care for yourself.',
     safety: 'If someone is in immediate danger, call your local emergency number (911 in the U.S.). Do not wait for a coaching reply. Coaching is not emergency care, diagnosis, or medical treatment and cannot guarantee sobriety.',
     urgent: 'Free urgent-help guidance',
     wallet: 'Free emergency contacts · Safety Wallet',
@@ -22,7 +22,7 @@ export const membershipGuideContent = {
   es: {
     title: 'Orientación para la familia, no control sobre tu ser querido',
     introLabel: 'Una introducción escrita',
-    intro: 'Matt Brown es el fundador de Sober Helpline y un intervencionista con 22 años de experiencia. El coaching familiar te ayuda a pensar en límites, comunicación y tu próximo paso práctico. No tienes que controlar las decisiones de otra persona para cuidar de ti.',
+    intro: 'Matt Brown es el fundador de Sober Helpline y un intervencionista con más de 20 años de experiencia. El coaching familiar te ayuda a pensar en límites, comunicación y tu próximo paso práctico. No tienes que controlar las decisiones de otra persona para cuidar de ti.',
     safety: 'Si alguien está en peligro inmediato, llama al número local de emergencias (911 en EE. UU.). No esperes una respuesta del coach. El coaching no es atención de emergencia, diagnóstico ni tratamiento médico, y no puede garantizar la sobriedad.',
     urgent: 'Orientación urgente gratuita',
     wallet: 'Contactos de emergencia gratuitos · Cartera de Seguridad',
