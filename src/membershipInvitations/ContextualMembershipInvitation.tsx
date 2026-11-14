@@ -45,8 +45,18 @@ export function ContextualMembershipInvitation({ accountId, completed, placement
   useEffect(() => {
     const rising = previous.current.scope === scope && !previous.current.completed && completed;
     previous.current = { scope, completed };
-    if (!allowed || !scope) { setShownFor(null); return; }
+    // The moment is over (or she may no longer see it): the card is gone, so
+    // its claim goes back too. Without this a card she ignored came back at the
+    // next moment with no claim at all (past the limits), and every other
+    // placement was refused until the app restarted. (Today never unmounts.)
+    if (!allowed || !scope || !completed) {
+      setShownFor(null);
+      if (owned.current) { policy.release(owned.current); owned.current = null; }
+      return;
+    }
     if (!rising) return;
+    // A new moment starts with nothing showing: only a fresh claim shows it.
+    setShownFor(null);
     let active = true;
     const current = () => active && live.current.scope === scope && live.current.allowed;
     void policy.claim(scope, placement, current).then(show => {

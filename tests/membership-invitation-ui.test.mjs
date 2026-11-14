@@ -10,7 +10,7 @@ const settle = () => new Promise(resolve => setImmediate(resolve));
 // The card's words come from the plans namespace; the tests read the real English file.
 const plans = JSON.parse(readFileSync(new URL('../src/locales/en/plans.json', import.meta.url), 'utf8'));
 const translate = key => key.split('.').reduce((node, part) => node?.[part], plans) ?? key;
-function mount({ completed = false, account = {}, delayed = false, placement = 'practice-completed' } = {}) {
+function mount({ completed = false, account = {}, delayed = false, placement = 'practice-completed', claimAnswers = [] } = {}) {
   let state = { user: { id: 'a' }, isAuthenticated: true, isLoading: false, accountError: null, isOfflineAccountFallback: false, isAdmin: false, isAttached: false, accountState: 'direct-free', ...account };
   let props = { accountId: 'a', completed, placement };
   const slots = [], pending = [], claims = [], releases = [], dismissals = [], routes = [], logged = [];
@@ -22,7 +22,7 @@ function mount({ completed = false, account = {}, delayed = false, placement = '
     useEffect(fn, deps) { const i = cursor++; const old = slots[i]; if (!old || deps.some((d, j) => !Object.is(d, old.deps[j]))) { pending.push(() => { old?.cleanup?.(); slots[i] = { deps, cleanup: fn() }; }); } },
   };
   const policy = {
-    claim(...args) { claims.push(args); return delayed ? new Promise(resolve => { resolveClaim = resolve; }) : Promise.resolve(true); },
+    claim(...args) { claims.push(args); return delayed ? new Promise(resolve => { resolveClaim = resolve; }) : Promise.resolve(claimAnswers.length ? claimAnswers.shift() : true); },
     release(id) { releases.push(id); },
     dismiss(...args) { dismissals.push(args); return Promise.resolve(true); },
   };
@@ -128,4 +128,30 @@ test('after Family Squares: its own words, the after_meeting source, and the sam
     const other = mount({ placement: 'after-meeting', account }); other.render({ completed: true }); await settle(); other.render();
     assert.equal(other.claims.length, 0, JSON.stringify(account)); assert.equal(other.visible(), false);
   }
+});
+
+test('an ignored card gives its claim back when the moment ends, and cannot reappear without a new claim', async () => {
+  // First return from the meeting: claimed and shown. Second: the policy says no (14-day limit).
+  const ui = mount({ placement: 'after-meeting', claimAnswers: [true, false] });
+  ui.render({ completed: true }); await settle(); ui.render();
+  assert.equal(ui.visible(), true); assert.deepEqual(ui.releases, []);
+  // She ignores it and leaves the app: the moment is over.
+  ui.render({ completed: false }); ui.render();
+  assert.equal(ui.visible(), false);
+  assert.deepEqual(ui.releases, ['a'], 'the visible claim is released, so other placements are not starved');
+  // Next Monday in the same app process (Today never unmounts).
+  ui.render({ completed: true }); await settle(); ui.render();
+  assert.equal(ui.claims.length, 2, 'it asks the policy again');
+  assert.equal(ui.visible(), false, 'refused by the policy: nothing is shown');
+  assert.equal(ui.logged.length, 1, 'shown (and logged) once only');
+  assert.deepEqual(ui.releases, ['a'], 'nothing was claimed the second time, so nothing more to release');
+  ui.unmount(); assert.deepEqual(ui.releases, ['a']);
+});
+
+test('losing eligibility while the card shows also gives the claim back, once', async () => {
+  const ui = mount(); ui.render({ completed: true }); await settle(); ui.render();
+  assert.equal(ui.visible(), true);
+  ui.render({}, { accountState: 'direct-essential' }); ui.render();
+  assert.equal(ui.visible(), false); assert.deepEqual(ui.releases, ['a']);
+  ui.unmount(); assert.deepEqual(ui.releases, ['a']);
 });
