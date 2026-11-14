@@ -32,9 +32,9 @@ const COPY: Record<
   }
 > = {
   en: {
-    mondayTitle: 'Family call tonight',
+    mondayTitle: 'Family Squares tonight',
     mondayBody:
-      "It's Monday — join The Family Squares Zoom meeting tonight at 7:00 PM Pacific. Be with people who understand what you're going through.",
+      "It's Monday — join the Family Squares Zoom meeting tonight at 7:00 PM Pacific. Be with people who understand what you're going through.",
     supportTitle: 'A gentle start',
     supportBody:
       'Take one quiet breath before the day begins. Open the app whenever you want support.',
