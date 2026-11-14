@@ -33,7 +33,10 @@
     "typeGroup": "Grupo",
     "typeOneOnOne": "Individual",
     "typeFamily": "Familiar",
-    "joinZoom": "Unirse al Zoom"
+    "joinZoom": "Unirse al Zoom",
+    "joinLabel": "Unirse a {{name}} por Zoom",
+    "rsvpLabel": "Confirmar asistencia a {{name}}",
+    "confirmLabel": "Tu asistencia a {{name}} está confirmada"
   },
   "tier": {
     "eyebrow": "Guía de crisis y revisión del plan",
@@ -111,6 +114,7 @@
   },
   "questionModal": {
     "button": "Hacer una pregunta",
+    "buttonLabel": "Hacer una pregunta para {{name}}",
     "title": "Enviar una pregunta",
     "sub": "Tu pregunta será revisada antes de la reunión.",
     "placeholder": "¿Qué te gustaría que se respondiera en la llamada?",

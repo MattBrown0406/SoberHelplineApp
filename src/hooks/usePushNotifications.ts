@@ -13,6 +13,7 @@ import { settlePendingPushTokenRevoke } from '../lib/pendingPushTokenRevoke';
 import { isDeviceSignedIn } from '../lib/pushDevice';
 import { shouldDeferPushRouting } from '../lib/pushColdStart';
 import { requestFamilySpaceRefresh } from '../lib/familySpaceRefresh';
+import { joinFamilySquaresFromPush, planReminderJoin, reminderJoinSessionId } from '../lib/familySquaresPushJoin';
 import { useAccount } from '../contexts/AccountContext';
 import type { Entitlements } from '../api/types';
 import { pausePersonalRemindersForQuiet, resumePersonalRemindersAfterQuiet } from '../reminders/bereavementQuiet';
@@ -407,18 +408,32 @@ export function usePushNotifications(
         if (valid !== true) return true;
       }
 
+      // "Tap to join": a Family Squares reminder opens the meeting itself when
+      // it is about to start or under way, and Today's call card otherwise.
+      // Looked up before the duplicate check below, so Zoom opens only once.
+      let route = destination;
+      let meetingUrl: string | null = null;
+      const joinSessionId = reminderJoinSessionId(destination);
+      if (joinSessionId) {
+        const plan = await planReminderJoin(joinSessionId);
+        if (plan.action !== 'default') route = { pathname: '/(tabs)' };
+        if (plan.action === 'open_meeting') meetingUrl = plan.url;
+      }
+
       if (!effectActive) return false;
       if (!shouldHandlePushResponse(data, response.notification.request.identifier)) return true;
       // A relative's backup notice lands on the already-mounted Boundaries tab
       // (and Today keeps its own copy): re-read the family space now.
       if (data.kind === 'family_backup') requestFamilySpaceRefresh();
       try {
-        router.push(destination as never);
-        return true;
+        router.push(route as never);
       } catch (error) {
         console.warn('[push] notification navigation failed', error);
         return false;
       }
+      // Today is underneath, so that is where she is when she comes back from Zoom.
+      if (meetingUrl) void joinFamilySquaresFromPush(accountId, meetingUrl);
+      return true;
     };
 
     const responseSub = Notifications.addNotificationResponseReceivedListener((response) => {

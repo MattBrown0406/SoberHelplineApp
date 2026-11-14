@@ -61,9 +61,39 @@
     "hourly": "{{price}}/hour"
   },
   "familySquares": {
+    "name": "Family Squares",
     "scheduleFallback": "Mondays · 7:00 PM Pacific",
     "rsvpNote": "Your RSVP and questions go to Matt along with soberhelpline.com registrations. If it's your first call, you may get a follow-up email afterward.",
-    "alreadyRegistered": "You’re already registered. We look forward to seeing you Monday evening!"
+    "alreadyRegistered": "You’re already registered. We look forward to seeing you Monday evening!",
+    "weekly": {
+      "title": "Save my seat every Monday",
+      "desc": "We'll save your seat at Family Squares each week, so you don't have to do it again.",
+      "errorTitle": "Couldn't save that",
+      "errorBody": "Check your connection and try again."
+    },
+    "calendar": {
+      "button": "Add to my calendar",
+      "label": "Add Family Squares to my calendar",
+      "errorTitle": "The calendar didn't open",
+      "errorBody": "Please try again in a moment."
+    },
+    "decline": {
+      "button": "Can't make it this week",
+      "label": "Tell us you can't make it to Family Squares this week",
+      "done": "You're sitting this week out. If that changes, you can save your spot again.",
+      "doneWeekly": "You're sitting this week out. Your seat is saved again from next Monday. If this week changes, you can save your spot again.",
+      "errorTitle": "That wasn't saved",
+      "errorBody": "Check your connection and try again."
+    },
+    "firstTime": {
+      "title": "What to expect your first time",
+      "zoom": "It's on Zoom. Tapping Join opens it for you.",
+      "camera": "Camera on or off is up to you, and a first name is all you need.",
+      "listen": "You're welcome to just listen. Nobody has to speak.",
+      "length": "It lasts about an hour, Matt Brown leads it, and it's free.",
+      "dismiss": "Got it",
+      "dismissLabel": "Hide what to expect at Family Squares"
+    }
   },
   "laSobremesa": {
     "scheduleFallback": "Mondays · 8:00 PM Pacific",

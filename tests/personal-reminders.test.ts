@@ -67,7 +67,7 @@ test('actual existing nudge rearm preserves personal schedules; automatic regist
     '@react-native-async-storage/async-storage': { getItem: async () => null },
     '../i18n': { t: () => 'reminder' }, '../lib/supabase': { supabase: { auth: { getSession: async () => ({ data: { session: null } }) } } },
     '../storage/checkIn': { getCheckIn: async () => null }, '../lib/appFlowGuards': { AsyncWriteBarrier: Barrier },
-    '../lib/pushRouting': {}, '../reminders/personalReminders': core, '../reminders/bereavementQuiet': { pausePersonalRemindersForQuiet: async () => {}, resumePersonalRemindersAfterQuiet: async () => {} },
+    '../lib/pushRouting': {}, '../lib/familySquaresPushJoin': {}, '../reminders/personalReminders': core, '../reminders/bereavementQuiet': { pausePersonalRemindersForQuiet: async () => {}, resumePersonalRemindersAfterQuiet: async () => {} },
     '../lib/pendingPushTokenRevoke': { settlePendingPushTokenRevoke: async () => 'none' },
     '../lib/pushDevice': { isDeviceSignedIn: () => true },
     '../lib/pushColdStart': { shouldDeferPushRouting: () => false },

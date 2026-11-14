@@ -8,8 +8,11 @@ import { logFunnelEvent } from '../../lib/funnel';
 import type { FreeCall } from '../../hooks/useTodayFeed';
 import { useCoachingRate } from '../../hooks/useCoachingRate';
 import { useSessionSchedule } from '../../hooks/useSessionSchedule';
-import { isFamilySquaresSession, isLaSobremesaSession } from '../../lib/familySquaresSchedule';
+import { isFamilySquaresSession, isLaSobremesaSession, sessionDisplayTitle } from '../../lib/familySquaresSchedule';
 import { withAppContext } from '../../lib/websiteLinks';
+import { clearFamilySquaresJoin, markFamilySquaresJoin } from '../../lib/meetingAttendance';
+import { FamilySquaresSeatPanel } from '../familySquares/FamilySquaresSeatPanel';
+import { FamilySquaresFirstTimerNote } from '../familySquares/FamilySquaresFirstTimerNote';
 
 /** This week's one thing: Matt's line from the call, else her own week's practice. */
 export interface WeeklyOneThing {
@@ -18,10 +21,14 @@ export interface WeeklyOneThing {
 }
 
 interface Props {
+  /** Whose seat preferences and first-timer note this card shows. */
+  accountId?: string | null;
   nextFreeCall: FreeCall | null;
   primaryDoor: FunnelDoor;
   weeklyOneThing?: WeeklyOneThing | null;
   onRsvp: () => void;
+  /** "Can't make it this week" for Family Squares; answers false when it was not saved. */
+  onDecline?: () => Promise<boolean>;
   onSupportCallJoin?: () => Promise<void>;
   onSupportCallOpenFailed?: () => Promise<void>;
 }
@@ -33,15 +40,16 @@ interface Props {
  * the family's situation warrants it, a higher-intent door (coaching or
  * intervention) is offered. The free call is never gated — it's the entry rung.
  */
-export function SituationCard({ nextFreeCall, primaryDoor, weeklyOneThing, onRsvp, onSupportCallJoin, onSupportCallOpenFailed }: Props) {
+export function SituationCard({ accountId = null, nextFreeCall, primaryDoor, weeklyOneThing, onRsvp, onDecline, onSupportCallJoin, onSupportCallOpenFailed }: Props) {
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('today');
   const router = useRouter();
   const coachingRate = useCoachingRate();
   const scheduleFor = useSessionSchedule();
 
-  const title = nextFreeCall?.title ?? t('situationCta.freeCallTitle');
-  // The Family Squares shows its real next start in the member's time zone.
+  // Family Squares is shown under its one name, not the database row's title.
+  const title = nextFreeCall ? sessionDisplayTitle(nextFreeCall, t) : t('situationCta.freeCallTitle');
+  // Family Squares shows its real next start in the member's time zone.
   const schedule = nextFreeCall
     ? scheduleFor(nextFreeCall)
     : t(i18n.language.startsWith('es') ? 'common:laSobremesa.scheduleFallback' : 'common:familySquares.scheduleFallback');
@@ -60,6 +68,8 @@ export function SituationCard({ nextFreeCall, primaryDoor, weeklyOneThing, onRsv
       {canJoin ? (
         <>
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={t('situationCta.joinLabel', { name: title })}
             style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
             onPress={() => void (async () => {
               try {
@@ -67,10 +77,13 @@ export function SituationCard({ nextFreeCall, primaryDoor, weeklyOneThing, onRsv
               } catch {
                 // Review instrumentation must never block access to the meeting.
               }
+              // Noted before Zoom opens, so coming back ten minutes later can count as attending.
+              if (isFamilySquares) await markFamilySquaresJoin(accountId, 'today');
               try {
                 await Linking.openURL(withAppContext(nextFreeCall!.zoom_url!));
                 logFunnelEvent('attended', { source: 'today' });
               } catch {
+                if (isFamilySquares) await clearFamilySquaresJoin(accountId);
                 await onSupportCallOpenFailed?.();
               }
             })()}
@@ -79,7 +92,13 @@ export function SituationCard({ nextFreeCall, primaryDoor, weeklyOneThing, onRsv
             <Text style={styles.primaryBtnText}>{t('situationCta.join')}</Text>
           </TouchableOpacity>
           {!nextFreeCall?.rsvped && (
-            <TouchableOpacity onPress={onRsvp} activeOpacity={0.75} style={styles.rsvpLink}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={t('situationCta.rsvpLabel', { name: title })}
+              onPress={onRsvp}
+              activeOpacity={0.75}
+              style={styles.rsvpLink}
+            >
               <Text style={[styles.rsvpLinkText, { color: colors.primary }]}>
                 {t('situationCta.rsvp')}
               </Text>
@@ -88,6 +107,8 @@ export function SituationCard({ nextFreeCall, primaryDoor, weeklyOneThing, onRsv
         </>
       ) : (
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={t(nextFreeCall?.rsvped ? 'situationCta.goingLabel' : 'situationCta.rsvpLabel', { name: title })}
           style={[
             styles.primaryBtn,
             {
@@ -122,6 +143,16 @@ export function SituationCard({ nextFreeCall, primaryDoor, weeklyOneThing, onRsv
       )}
       {isFamilySquares && (
         <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:familySquares.rsvpNote')}</Text>
+      )}
+      {/* Family Squares only: what a first visit is like, and (once her seat is
+          saved) every Monday, the calendar file and "can't make it this week". */}
+      {isFamilySquares && <FamilySquaresFirstTimerNote accountId={accountId} />}
+      {isFamilySquares && onDecline && (
+        <FamilySquaresSeatPanel
+          accountId={accountId}
+          rsvp={nextFreeCall?.rsvped ? 'going' : nextFreeCall?.declined ? 'declined' : 'none'}
+          onDecline={onDecline}
+        />
       )}
       {isLaSobremesaSession(nextFreeCall) && (
         <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:laSobremesa.note')}</Text>
@@ -216,7 +247,7 @@ const styles = StyleSheet.create({
   doorBtnText: { fontSize: 14.5, fontWeight: '700' },
   finderLink: { alignItems: 'center', marginTop: 12 },
   finderLinkText: { fontSize: 13, fontWeight: '600' },
-  rsvpLink: { alignItems: 'center', marginTop: 10 },
+  rsvpLink: { alignItems: 'center', justifyContent: 'center', minHeight: 44, marginTop: 4 },
   askLink: { alignItems: 'center', justifyContent: 'center', minHeight: 44, marginTop: 4 },
   rsvpLinkText: { fontSize: 13, fontWeight: '600' },
   rsvpNote: { fontSize: 12, lineHeight: 17, marginTop: 10 },

@@ -3,6 +3,7 @@ import { AppState } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { reserveFamilySquares, familySquaresRsvpIsCurrent, FAMILY_SQUARES_ALREADY_REGISTERED } from '../lib/familySquaresRegistration';
+import { declineFamilySquares } from '../lib/familySquaresSeat';
 import {
   DEFAULT_SITUATION,
   funnelDoor,
@@ -31,6 +32,8 @@ export interface FreeCall {
   next_at: string | null;
   zoom_url: string | null;
   rsvped: boolean;
+  /** Family Squares only: she answered "can't make it" for this meeting. */
+  declined?: boolean;
 }
 
 export interface TodayFeedData {
@@ -48,6 +51,8 @@ export interface TodayFeedData {
   primaryDoor: FunnelDoor;
   nextFreeCall: FreeCall | null;
   rsvpFreeCall: () => Promise<void>;
+  /** "Can't make it this week" for Family Squares; false when it was not saved. */
+  declineFreeCall: () => Promise<boolean>;
   /** Re-read the feed (e.g. after the loved one's phase or status changed). */
   reload: () => Promise<void>;
   loading: boolean;
@@ -98,7 +103,8 @@ export function useTodayFeed(
         .select('id, title, schedule_label, next_at, zoom_url')
         .eq('kind', 'group')
         .order('next_at', { ascending: true }),
-      supabase.from('session_rsvps').select('session_id, family_squares_meeting_date').eq('status', 'going').eq('account_id', accountId!),
+      // "Can't make it" answers too: the card says so instead of offering the seat as new.
+      supabase.from('session_rsvps').select('session_id, status, family_squares_meeting_date').in('status', ['going', 'declined']).eq('account_id', accountId!),
       supabase.rpc('my_situation'),
     ]);
 
@@ -141,11 +147,16 @@ export function useTodayFeed(
     // La Sobremesa's Join opens the member's personal link.
     const groups = await withPersonalLinks((sessRes.data ?? []) as Omit<FreeCall, 'rsvped'>[]);
     if (request !== generation.current) return;
-    const going = new Set((rsvpRowsRes.data ?? []).map((r) => r.session_id as string));
+    const going = new Set((rsvpRowsRes.data ?? []).filter((r) => r.status === 'going').map((r) => r.session_id as string));
     const chosen = chooseFreeCall(groups, now);
-    setNextFreeCall(chosen ? { ...chosen, rsvped: isFamilySquaresSession(chosen)
-      ? familySquaresRsvpIsCurrent(rsvpRowsRes.data?.find((r) => r.session_id === chosen.id)?.family_squares_meeting_date, now)
-      : going.has(chosen.id) } : null);
+    // A Family Squares answer counts only for the meeting it was given for.
+    const answer = chosen && isFamilySquaresSession(chosen)
+      ? rsvpRowsRes.data?.find((r) => r.session_id === chosen.id)
+      : undefined;
+    const answerIsCurrent = familySquaresRsvpIsCurrent(answer?.family_squares_meeting_date, now);
+    setNextFreeCall(chosen ? { ...chosen,
+      rsvped: isFamilySquaresSession(chosen) ? answerIsCurrent && answer?.status === 'going' : going.has(chosen.id),
+      declined: answerIsCurrent && answer?.status === 'declined' } : null);
 
     if (!failed) loadedFor.current = accountId;
     setLoading(false);
@@ -190,7 +201,7 @@ export function useTodayFeed(
         appAlert(i18n.t('support:sessions.rsvpErrorTitle'), i18n.t('support:sessions.rsvpErrorBody'));
         return;
       }
-      setNextFreeCall((prev) => prev?.id === nextFreeCall.id ? { ...prev, rsvped: true } : prev);
+      setNextFreeCall((prev) => prev?.id === nextFreeCall.id ? { ...prev, rsvped: true, declined: false } : prev);
       // A legacy/stale going row already contributes to the total even when
       // this occurrence was not registered. Ensure may update, not insert it.
       try {
@@ -258,6 +269,19 @@ export function useTodayFeed(
     }
   }, [accountId, nextFreeCall]);
 
+  const declineFreeCall = useCallback(async (): Promise<boolean> => {
+    if (!accountId || !nextFreeCall || !isFamilySquaresSession(nextFreeCall)) return false;
+    // Never while a seat is being saved: the two answers must not cross.
+    if (reserving.current) return false;
+    reserving.current = true;
+    const declined = await declineFamilySquares().finally(() => { reserving.current = false; });
+    if (identity.current !== accountId || !declined) return declined;
+    setNextFreeCall((prev) => prev?.id === nextFreeCall.id ? { ...prev, rsvped: false, declined: true } : prev);
+    // One fewer "going" in the count Today shows.
+    setGroupSessions((c) => Math.max(0, c - 1));
+    return true;
+  }, [accountId, nextFreeCall]);
+
   const visibleSituation = situationAccountId === accountId ? situation : DEFAULT_SITUATION;
 
   return {
@@ -273,6 +297,7 @@ export function useTodayFeed(
     primaryDoor: funnelDoor(visibleSituation),
     nextFreeCall,
     rsvpFreeCall,
+    declineFreeCall,
     reload: load,
     loading,
   };

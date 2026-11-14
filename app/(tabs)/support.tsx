@@ -38,7 +38,10 @@ import { WEBSITE_PATHS, withAppContext } from '../../src/lib/websiteLinks';
 import { useCoachingRate } from '../../src/hooks/useCoachingRate';
 import { COACHING_MEMBER_PRICE, fillCoachingRates } from '../../src/lib/coachingPrice';
 import { useSessionSchedule } from '../../src/hooks/useSessionSchedule';
-import { isFamilySquaresSession, isLaSobremesaSession } from '../../src/lib/familySquaresSchedule';
+import { isFamilySquaresSession, isLaSobremesaSession, sessionDisplayTitle } from '../../src/lib/familySquaresSchedule';
+import { clearFamilySquaresJoin, markFamilySquaresJoin } from '../../src/lib/meetingAttendance';
+import { FamilySquaresSeatPanel } from '../../src/components/familySquares/FamilySquaresSeatPanel';
+import { FamilySquaresFirstTimerNote } from '../../src/components/familySquares/FamilySquaresFirstTimerNote';
 import { useIAP, type SubscriptionTier } from '../../src/hooks/useIAP';
 import { useSituation } from '../../src/hooks/useSituation';
 import { funnelDoor, type FunnelDoor } from '../../src/lib/situation';
@@ -683,7 +686,7 @@ export default function SupportScreen() {
   const crisisDoor = funnelDoor(situation);
 
   const roster = { primaryOnCall: PRIMARY_ON_CALL, available: [] as StaffMember[] };
-  const { sessions, toggleRsvp } = useSessions(user?.id ?? null);
+  const { sessions, toggleRsvp, declineRsvp } = useSessions(user?.id ?? null);
   const focusedSessionId = sessionIdParam
     ?? (focus === 'family-squares'
       ? sessions.find((s) => isFamilySquaresSession(s) || isLaSobremesaSession(s))?.id
@@ -720,6 +723,87 @@ export default function SupportScreen() {
     const saved = await toggleRsvp(session);
     if (saved === 'not_available') appAlert(t('sessions.rsvpErrorTitle'), t('common:laSobremesa.notAvailable'));
     else if (!saved) appAlert(t('sessions.rsvpErrorTitle'), t('sessions.rsvpErrorBody'));
+  };
+  const joinSession = (session: DbSession) => {
+    if (!session.zoom_url) return;
+    const url = withAppContext(session.zoom_url);
+    if (session.kind === 'group') logFunnelEvent('attended', { source: 'support' });
+    if (!isFamilySquaresSession(session)) {
+      void Linking.openURL(url).catch(() => undefined);
+      return;
+    }
+    // Noted before Zoom opens, so coming back ten minutes later can count as attending.
+    void markFamilySquaresJoin(user?.id, 'support')
+      .then(() => Linking.openURL(url))
+      .catch(() => clearFamilySquaresJoin(user?.id));
+  };
+  // One session row, used by every list on this screen. Family Squares shows
+  // under its one name and, once her seat is saved, offers every Monday, the
+  // calendar file and "can't make it this week".
+  const renderSession = (sess: DbSession, showType: boolean) => {
+    const name = sessionDisplayTitle(sess, t);
+    const familySquares = isFamilySquaresSession(sess);
+    return (
+      <View key={sess.id} style={[styles.sessionOuter, { borderBottomColor: colors.line }, sess.id === focusedSessionId && { backgroundColor: colors.primaryLight }]}>
+        <View style={styles.sessionRow}>
+          <View style={styles.sessionInfo}>
+            <Text style={[styles.sessionTitle, { color: colors.ink }]}>{name}</Text>
+            <Text style={[styles.sessionMeta, { color: colors.inkSoft }]}>
+              {showType ? `${sessionTypeKey(sess.kind, t)} · ${scheduleFor(sess)}` : scheduleFor(sess)}
+            </Text>
+          </View>
+          {sess.zoom_url ? (
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={t('sessions.joinLabel', { name })}
+              style={[styles.sessionBtn, { backgroundColor: colors.green, borderColor: colors.green }]}
+              activeOpacity={0.8}
+              onPress={() => joinSession(sess)}
+            >
+              <Text style={[styles.sessionBtnText, { color: '#fff' }]}>{t('sessions.joinZoom')}</Text>
+            </TouchableOpacity>
+          ) : null}
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={t(sess.rsvped ? 'sessions.confirmLabel' : 'sessions.rsvpLabel', { name })}
+            style={[styles.sessionBtn, { backgroundColor: sess.rsvped ? colors.greenLight : colors.primaryLight, borderColor: sess.rsvped ? colors.green : colors.primary }]}
+            activeOpacity={0.8}
+            onPress={() => void handleSessionRsvp(sess)}
+          >
+            <Text style={[styles.sessionBtnText, { color: sess.rsvped ? colors.green : colors.primary }]}>
+              {sess.rsvped ? t('sessions.confirmButton') : t('sessions.rsvpButton')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        {sess.rsvped && !isLaSobremesaSession(sess) && (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={t('questionModal.buttonLabel', { name })}
+            style={[styles.questionBtn, { borderColor: colors.primary }]}
+            activeOpacity={0.8}
+            onPress={() => setQuestionSession(sess)}
+          >
+            <Text style={[styles.questionBtnText, { color: colors.primary }]}>
+              {t('questionModal.button')}
+            </Text>
+          </TouchableOpacity>
+        )}
+        {familySquares ? (
+          <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:familySquares.rsvpNote')}</Text>
+        ) : isLaSobremesaSession(sess) ? (
+          <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:laSobremesa.note')}</Text>
+        ) : null}
+        {/* The first-timer note here is the RSVP confirmation; Today's card shows it before too. */}
+        {familySquares && sess.rsvped && <FamilySquaresFirstTimerNote accountId={user?.id ?? null} />}
+        {familySquares && (
+          <FamilySquaresSeatPanel
+            accountId={user?.id ?? null}
+            rsvp={sess.rsvped ? 'going' : sess.declined ? 'declined' : 'none'}
+            onDecline={() => declineRsvp(sess)}
+          />
+        )}
+      </View>
+    );
   };
   const groups = getSupportGroups((key) => t(key as never));
   const { myRooms, liveRooms } = useGroupPresence(user?.id ?? null);
@@ -930,55 +1014,7 @@ export default function SupportScreen() {
               <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
                 {t('sessions.eyebrow')}
               </Text>
-              {sessions.map((sess) => (
-                <View key={sess.id} style={[styles.sessionOuter, { borderBottomColor: colors.line }, sess.id === focusedSessionId && { backgroundColor: colors.primaryLight }]}>
-                  <View style={styles.sessionRow}>
-                    <View style={styles.sessionInfo}>
-                      <Text style={[styles.sessionTitle, { color: colors.ink }]}>{sess.title}</Text>
-                      <Text style={[styles.sessionMeta, { color: colors.inkSoft }]}>
-                        {sessionTypeKey(sess.kind, t)} · {scheduleFor(sess)}
-                      </Text>
-                    </View>
-                    {sess.zoom_url ? (
-                      <TouchableOpacity
-                        style={[styles.sessionBtn, { backgroundColor: colors.green, borderColor: colors.green }]}
-                        activeOpacity={0.8}
-                        onPress={() => {
-                          if (sess.kind === 'group') logFunnelEvent('attended', { source: 'support' });
-                          Linking.openURL(withAppContext(sess.zoom_url!));
-                        }}
-                      >
-                        <Text style={[styles.sessionBtnText, { color: '#fff' }]}>{t('sessions.joinZoom')}</Text>
-                      </TouchableOpacity>
-                    ) : null}
-                    <TouchableOpacity
-                      style={[styles.sessionBtn, { backgroundColor: sess.rsvped ? colors.greenLight : colors.primaryLight, borderColor: sess.rsvped ? colors.green : colors.primary }]}
-                      activeOpacity={0.8}
-                      onPress={() => void handleSessionRsvp(sess)}
-                    >
-                      <Text style={[styles.sessionBtnText, { color: sess.rsvped ? colors.green : colors.primary }]}>
-                        {sess.rsvped ? t('sessions.confirmButton') : t('sessions.rsvpButton')}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                  {sess.rsvped && !isLaSobremesaSession(sess) && (
-                    <TouchableOpacity
-                      style={[styles.questionBtn, { borderColor: colors.primary }]}
-                      activeOpacity={0.8}
-                      onPress={() => setQuestionSession(sess)}
-                    >
-                      <Text style={[styles.questionBtnText, { color: colors.primary }]}>
-                        {t('questionModal.button')}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                  {isFamilySquaresSession(sess) ? (
-                    <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:familySquares.rsvpNote')}</Text>
-                  ) : isLaSobremesaSession(sess) ? (
-                    <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:laSobremesa.note')}</Text>
-                  ) : null}
-                </View>
-              ))}
+              {sessions.map((sess) => renderSession(sess, true))}
             </View>
 
             <View style={[styles.card, { borderColor: colors.line }]}>
@@ -1024,55 +1060,7 @@ export default function SupportScreen() {
               <Text style={[styles.referralBody, { color: colors.inkSoft }]}>
                 {t('mondayGroup.sub')}
               </Text>
-              {sessions.filter((s) => s.kind === 'group').map((sess) => (
-                <View key={sess.id} style={[styles.sessionOuter, { borderBottomColor: colors.line }, sess.id === focusedSessionId && { backgroundColor: colors.primaryLight }]}>
-                  <View style={styles.sessionRow}>
-                    <View style={styles.sessionInfo}>
-                      <Text style={[styles.sessionTitle, { color: colors.ink }]}>{sess.title}</Text>
-                      <Text style={[styles.sessionMeta, { color: colors.inkSoft }]}>
-                        {scheduleFor(sess)}
-                      </Text>
-                    </View>
-                    {sess.zoom_url ? (
-                      <TouchableOpacity
-                        style={[styles.sessionBtn, { backgroundColor: colors.green, borderColor: colors.green }]}
-                        activeOpacity={0.8}
-                        onPress={() => {
-                          if (sess.kind === 'group') logFunnelEvent('attended', { source: 'support' });
-                          Linking.openURL(withAppContext(sess.zoom_url!));
-                        }}
-                      >
-                        <Text style={[styles.sessionBtnText, { color: '#fff' }]}>{t('sessions.joinZoom')}</Text>
-                      </TouchableOpacity>
-                    ) : null}
-                    <TouchableOpacity
-                      style={[styles.sessionBtn, { backgroundColor: sess.rsvped ? colors.greenLight : colors.primaryLight, borderColor: sess.rsvped ? colors.green : colors.primary }]}
-                      activeOpacity={0.8}
-                      onPress={() => void handleSessionRsvp(sess)}
-                    >
-                      <Text style={[styles.sessionBtnText, { color: sess.rsvped ? colors.green : colors.primary }]}>
-                        {sess.rsvped ? t('sessions.confirmButton') : t('sessions.rsvpButton')}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                  {sess.rsvped && !isLaSobremesaSession(sess) && (
-                    <TouchableOpacity
-                      style={[styles.questionBtn, { borderColor: colors.primary }]}
-                      activeOpacity={0.8}
-                      onPress={() => setQuestionSession(sess)}
-                    >
-                      <Text style={[styles.questionBtnText, { color: colors.primary }]}>
-                        {t('questionModal.button')}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                  {isFamilySquaresSession(sess) ? (
-                    <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:familySquares.rsvpNote')}</Text>
-                  ) : isLaSobremesaSession(sess) ? (
-                    <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:laSobremesa.note')}</Text>
-                  ) : null}
-                </View>
-              ))}
+              {sessions.filter((s) => s.kind === 'group').map((sess) => renderSession(sess, false))}
             </View>
 
             <View style={[styles.card, { borderColor: colors.line }]}>
@@ -1236,55 +1224,7 @@ export default function SupportScreen() {
               <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
                 {t('sessions.eyebrow')}
               </Text>
-              {sessions.map((sess) => (
-                <View key={sess.id} style={[styles.sessionOuter, { borderBottomColor: colors.line }, sess.id === focusedSessionId && { backgroundColor: colors.primaryLight }]}>
-                  <View style={styles.sessionRow}>
-                    <View style={styles.sessionInfo}>
-                      <Text style={[styles.sessionTitle, { color: colors.ink }]}>{sess.title}</Text>
-                      <Text style={[styles.sessionMeta, { color: colors.inkSoft }]}>
-                        {sessionTypeKey(sess.kind, t)} · {scheduleFor(sess)}
-                      </Text>
-                    </View>
-                    {sess.zoom_url ? (
-                      <TouchableOpacity
-                        style={[styles.sessionBtn, { backgroundColor: colors.green, borderColor: colors.green }]}
-                        activeOpacity={0.8}
-                        onPress={() => {
-                          if (sess.kind === 'group') logFunnelEvent('attended', { source: 'support' });
-                          Linking.openURL(withAppContext(sess.zoom_url!));
-                        }}
-                      >
-                        <Text style={[styles.sessionBtnText, { color: '#fff' }]}>{t('sessions.joinZoom')}</Text>
-                      </TouchableOpacity>
-                    ) : null}
-                    <TouchableOpacity
-                      style={[styles.sessionBtn, { backgroundColor: sess.rsvped ? colors.greenLight : colors.primaryLight, borderColor: sess.rsvped ? colors.green : colors.primary }]}
-                      activeOpacity={0.8}
-                      onPress={() => void handleSessionRsvp(sess)}
-                    >
-                      <Text style={[styles.sessionBtnText, { color: sess.rsvped ? colors.green : colors.primary }]}>
-                        {sess.rsvped ? t('sessions.confirmButton') : t('sessions.rsvpButton')}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                  {sess.rsvped && !isLaSobremesaSession(sess) && (
-                    <TouchableOpacity
-                      style={[styles.questionBtn, { borderColor: colors.primary }]}
-                      activeOpacity={0.8}
-                      onPress={() => setQuestionSession(sess)}
-                    >
-                      <Text style={[styles.questionBtnText, { color: colors.primary }]}>
-                        {t('questionModal.button')}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                  {isFamilySquaresSession(sess) ? (
-                    <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:familySquares.rsvpNote')}</Text>
-                  ) : isLaSobremesaSession(sess) ? (
-                    <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:laSobremesa.note')}</Text>
-                  ) : null}
-                </View>
-              ))}
+              {sessions.map((sess) => renderSession(sess, true))}
             </View>
 
             <View style={[styles.card, { borderColor: colors.line }]}>

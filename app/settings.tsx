@@ -23,6 +23,8 @@ import { recordVerifiedPurchase, withTimeoutFallback } from '../src/lib/authBoot
 import { purgeAccountLocalData } from '../src/lib/accountLocalData';
 import { captureAppError } from '../src/lib/monitoring';
 import { appAlert } from '../src/lib/appAlert';
+import { useFamilySquaresWeeklySeat } from '../src/hooks/useFamilySquaresWeeklySeat';
+import { saveComingSeatIfUnanswered } from '../src/lib/familySquaresSeat';
 import { cancelPersonalRemindersForLogout, personalReminders } from '../src/reminders/native';
 import type { PersonalReminder } from '../src/reminders/personalReminders';
 import {
@@ -92,6 +94,8 @@ export default function SettingsScreen() {
   const [dailyBusy, setDailyBusy] = useState(false);
   const [familyCallReminders, setFamilyCallReminders] = useState(true);
   const [familyCallBusy, setFamilyCallBusy] = useState(false);
+  // "Save my seat every Monday" (Family Squares; the same switch as on Today and Support).
+  const weeklySeat = useFamilySquaresWeeklySeat(user?.id ?? null);
   const dailyBusyRef = useRef(false);
   // Personal reminders that were on when a sign-out/deletion began.
   const remindersBeforeExit = useRef<readonly PersonalReminder[]>([]);
@@ -174,6 +178,17 @@ export default function SettingsScreen() {
       setFamilyCallReminders(previous);
       appAlert(t('notifications.familyCallErrorTitle'), t('notifications.familyCallErrorBody'));
     }
+  }
+
+  async function toggleWeeklySeat(enabled: boolean) {
+    if (!user) return;
+    if (!(await weeklySeat.setEnabled(enabled))) {
+      appAlert(t('common:familySquares.weekly.errorTitle'), t('common:familySquares.weekly.errorBody'));
+      return;
+    }
+    // "Every Monday" starts with the coming one: save it now, unless she has
+    // already answered for it (a "can't make it" stays as she left it).
+    if (enabled) void saveComingSeatIfUnanswered(user.id);
   }
 
   async function chooseReminderHour(hour: number | null) {
@@ -784,6 +799,28 @@ export default function SettingsScreen() {
               accessibilityLabel={t('notifications.familyCallTitle')}
             />
           </View>
+          {/* Family Squares is the English meeting; Spanish members reserve La Sobremesa week by week. */}
+          {current !== 'es' && (
+            <View style={[styles.toggleRow, styles.toggleRowNext, { borderTopColor: colors.line }]}>
+              <View style={styles.toggleTextWrap}>
+                <Text style={[styles.toggleLabel, { color: colors.ink }]}>
+                  {t('common:familySquares.weekly.title')}
+                </Text>
+                <Text style={[styles.toggleDesc, { color: colors.inkSoft }]}>
+                  {t('common:familySquares.weekly.desc')}
+                </Text>
+              </View>
+              <Switch
+                value={weeklySeat.enabled}
+                onValueChange={(value) => void toggleWeeklySeat(value)}
+                disabled={weeklySeat.busy}
+                trackColor={{ false: colors.line, true: colors.primary }}
+                thumbColor="#fff"
+                accessibilityRole="switch"
+                accessibilityLabel={t('common:familySquares.weekly.title')}
+              />
+            </View>
+          )}
         </View>
 
         {/* Opt-in AI-initiated practice calls. Remote pushes contain no family
@@ -1056,6 +1093,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   toggleTextWrap: { flex: 1 },
+  toggleRowNext: { marginTop: 14, paddingTop: 14, borderTopWidth: 1 },
   toggleLabel: { fontSize: 14, fontWeight: '600' },
   toggleDesc: { fontSize: 12, marginTop: 3, lineHeight: 17 },
 

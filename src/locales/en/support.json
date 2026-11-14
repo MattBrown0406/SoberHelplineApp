@@ -33,7 +33,10 @@
     "typeGroup": "Group",
     "typeOneOnOne": "1-on-1",
     "typeFamily": "Family",
-    "joinZoom": "Join Zoom"
+    "joinZoom": "Join Zoom",
+    "joinLabel": "Join {{name}} on Zoom",
+    "rsvpLabel": "RSVP for {{name}}",
+    "confirmLabel": "You're confirmed for {{name}}"
   },
   "tier": {
     "eyebrow": "Crisis guide & plan review",
@@ -72,7 +75,7 @@
   },
   "mondayGroup": {
     "eyebrow": "FREE ACCESS",
-    "heading": "Monday Family Support Group",
+    "heading": "Family Squares",
     "sub": "Our free weekly group call — no subscription needed. RSVP to get the Zoom link."
   },
   "messages": {
@@ -111,6 +114,7 @@
   },
   "questionModal": {
     "button": "Ask a question",
+    "buttonLabel": "Ask a question for {{name}}",
     "title": "Submit a question",
     "sub": "Your question will be reviewed before the meeting.",
     "placeholder": "What would you like answered on the call?",

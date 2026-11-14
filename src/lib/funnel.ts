@@ -4,11 +4,14 @@ import { supabase } from './supabase';
  * Funnel stages logged client-side to funnel_events. `rsvp` and
  * `coaching_requested` already have source-of-truth tables (session_rsvps,
  * coaching_bookings), so instrumentation focuses on the gap stages:
- * `attended`, `intervention_viewed`, `intervention_started`.
+ * `attended` (tapped Join), `attended_10min` (stayed), `intervention_viewed`,
+ * `intervention_started`. The server keeps its own allow-list (log_funnel_event).
  */
 export type FunnelStage =
   | 'rsvp'
   | 'attended'
+  // Came back to the app ten minutes or more after tapping Join during the meeting.
+  | 'attended_10min'
   | 'coaching_requested'
   | 'intervention_viewed'
   | 'intervention_started'

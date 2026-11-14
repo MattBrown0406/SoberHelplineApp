@@ -18,6 +18,7 @@ import { getInitialLayoutState, isPushNavigationReady } from '../src/lib/authBoo
 import { addAppBreadcrumb } from '../src/lib/monitoring';
 import { collapseAppStack } from '../src/lib/appStack';
 import { flushQueuedSupportCallReview, setReviewPromptRoute } from '../src/lib/reviewPrompt';
+import { flushFamilySquaresAttendance } from '../src/lib/meetingAttendance';
 import { clearPendingDeepLink, subscribePendingDeepLink, takePendingDeepLink } from '../src/lib/pendingDeepLink';
 
 function ReviewPromptCoordinator() {
@@ -58,6 +59,32 @@ function ReviewPromptCoordinator() {
       subscription.remove();
     };
   }, [user?.id, routePath]);
+
+  return null;
+}
+
+/**
+ * Real attendance at Family Squares: when the app is in front again ten
+ * minutes or more after a Join tap (from Today, Support or a reminder push),
+ * log it once for that meeting. Unlike the rating prompt above, this runs on
+ * whatever screen she comes back to.
+ */
+function MeetingAttendanceCoordinator() {
+  const { user } = useAccount();
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const accountId = user.id;
+    // Also covers reopening the app after it was closed during the meeting.
+    void flushFamilySquaresAttendance(accountId);
+    let previousState = AppState.currentState;
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      const returnedToForeground = previousState !== 'active' && nextState === 'active';
+      previousState = nextState;
+      if (returnedToForeground) void flushFamilySquaresAttendance(accountId);
+    });
+    return () => subscription.remove();
+  }, [user?.id]);
 
   return null;
 }
@@ -230,6 +257,7 @@ export default function RootLayout() {
         <ThemeProvider>
           <InitialLayout />
           <ReviewPromptCoordinator />
+          <MeetingAttendanceCoordinator />
           <SafetyShortcut />
           <StatusBar style="auto" />
         </ThemeProvider>

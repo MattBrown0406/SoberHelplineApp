@@ -15,6 +15,22 @@ export function isFamilySquaresSession(session: { title?: string | null } | null
   return !!session?.title && FAMILY_SQUARES_TITLES.has(session.title.trim());
 }
 
+/** i18n key of the meeting's one name ("Family Squares"). */
+export const FAMILY_SQUARES_NAME_KEY = 'common:familySquares.name';
+
+/**
+ * What a session is called on screen. The Family Squares row keeps its own
+ * title in the database (SQL helpers find it by that title), so the name
+ * people see comes from the locale files. Every other session, La Sobremesa
+ * included, shows its title as it is.
+ */
+export function sessionDisplayTitle(
+  session: { title?: string | null } | null | undefined,
+  t: (key: string) => string,
+): string {
+  return isFamilySquaresSession(session) ? t(FAMILY_SQUARES_NAME_KEY) : session?.title ?? '';
+}
+
 /** La Sobremesa: AyudaSobria.com's Spanish Monday call (8:00 PM Pacific). */
 export const LA_SOBREMESA_TITLE = 'La Sobremesa';
 export const LA_SOBREMESA_CALL_LENGTH_MS = LA_SOBREMESA_LENGTH_MS;

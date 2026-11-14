@@ -68,7 +68,7 @@ function TodayContent() {
   const bereaved = bereavedState === true;
   const bereavedUnknown = bereavedState === undefined;
   const [diedSheetOpen, setDiedSheetOpen] = useState(false);
-  const { dayCount, boundariesHeld, groupSessions, quoteIndex, scriptSlot, curriculumWeek, curriculumPhase, situation, primaryDoor, nextFreeCall, rsvpFreeCall, reload: reloadFeed } =
+  const { dayCount, boundariesHeld, groupSessions, quoteIndex, scriptSlot, curriculumWeek, curriculumPhase, situation, primaryDoor, nextFreeCall, rsvpFreeCall, declineFreeCall, reload: reloadFeed } =
     useTodayFeed(user?.id ?? null, user?.joinedAt ?? null);
   const youLabel = user?.firstName || t('boundaries:journal.you');
   const { space: familySpace, refresh: refreshFamilySpace } = useFamilySpace(user?.id ?? null, { you: youLabel, member: t('boundaries:journal.member') });
@@ -201,11 +201,13 @@ function TodayContent() {
   // seat is the first thing a new member is asked to do.
   const mondayCallCard = (
     <SituationCard
+      accountId={user?.id ?? null}
       nextFreeCall={nextFreeCall}
       // No coaching or intervention door about a loved one who died.
       primaryDoor={bereaved ? 'free_call' : primaryDoor}
       weeklyOneThing={weeklyOneThing}
       onRsvp={rsvpFreeCall}
+      onDecline={declineFreeCall}
       onSupportCallJoin={queueMondayMeetingReview}
       onSupportCallOpenFailed={() => cancelQueuedSupportCallReview(user?.id ?? null)}
     />

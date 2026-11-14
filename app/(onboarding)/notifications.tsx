@@ -10,6 +10,9 @@ import { supabase } from '../../src/lib/supabase';
 import { appAlert } from '../../src/lib/appAlert';
 import { reserveLaSobremesa } from '../../src/lib/laSobremesa';
 import { reserveFamilySquares, FAMILY_SQUARES_ALREADY_REGISTERED } from '../../src/lib/familySquaresRegistration';
+import { declineFamilySquares } from '../../src/lib/familySquaresSeat';
+import { FamilySquaresSeatPanel } from '../../src/components/familySquares/FamilySquaresSeatPanel';
+import { FamilySquaresFirstTimerNote } from '../../src/components/familySquares/FamilySquaresFirstTimerNote';
 import { markOnboarded } from '../../src/onboarding/state';
 
 export default function NotificationsScreen() {
@@ -26,6 +29,8 @@ export default function NotificationsScreen() {
   // offered — never whichever group session happens to come first.
   const [nextGroupId, setNextGroupId] = useState<string | null>(null);
   const [rsvped, setRsvped] = useState(false);
+  // Family Squares only: she saved her spot, then said she can't make it this week.
+  const [declined, setDeclined] = useState(false);
   const [reserving, setReserving] = useState(false);
   const reservationLock = useRef(false);
   const identity = useRef(user?.id);
@@ -68,6 +73,18 @@ export default function NotificationsScreen() {
     }
   }
 
+  async function declineSpot(): Promise<boolean> {
+    if (reservationLock.current) return false;
+    const accountId = user?.id;
+    reservationLock.current = true;
+    const saved = await declineFamilySquares().finally(() => { reservationLock.current = false; });
+    if (saved && identity.current === accountId) {
+      setDeclined(true);
+      setRsvped(false);
+    }
+    return saved;
+  }
+
   async function finish(askPermission: boolean) {
     if (askPermission && Platform.OS !== 'web' && user?.id) {
       try {
@@ -91,6 +108,9 @@ export default function NotificationsScreen() {
 
           {nextGroupId && (
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={rsvped ? t('done.rsvpDone') : t('done.rsvpButton')}
+              accessibilityState={{ disabled: reserving || (spanish && rsvped), busy: reserving }}
               style={[
                 styles.rsvpBtn,
                 { borderColor: '#fff', backgroundColor: rsvped ? '#fff' : 'transparent' },
@@ -108,6 +128,19 @@ export default function NotificationsScreen() {
             <Text style={[styles.rsvpNote, { color: 'rgba(255,255,255,0.8)' }]}>
               {t(spanish ? 'common:laSobremesa.note' : 'common:familySquares.rsvpNote')}
             </Text>
+          )}
+          {/* Family Squares (English) only, once her spot is saved: what a first
+              meeting is like, every Monday, the calendar file, and a way to take it back. */}
+          {nextGroupId && !spanish && (rsvped || declined) && (
+            <View style={styles.seatOptions}>
+              {rsvped && <FamilySquaresFirstTimerNote accountId={user?.id ?? null} tone="onPrimary" />}
+              <FamilySquaresSeatPanel
+                accountId={user?.id ?? null}
+                rsvp={rsvped ? 'going' : 'declined'}
+                onDecline={declineSpot}
+                tone="onPrimary"
+              />
+            </View>
           )}
 
           <TouchableOpacity
@@ -163,6 +196,7 @@ const styles = StyleSheet.create({
   rsvpBtn: { borderRadius: 99, borderWidth: 1.5, paddingVertical: 14, alignItems: 'center', marginBottom: 12 },
   rsvpBtnText: { fontSize: 15, fontWeight: '700' },
   rsvpNote: { fontSize: 12.5, lineHeight: 18, textAlign: 'center', marginBottom: 16 },
+  seatOptions: { marginBottom: 20 },
   skipBtn: { alignItems: 'center', marginTop: 16 },
   skipText: { fontSize: 14, fontWeight: '600' },
 });
