@@ -21,6 +21,7 @@ import { MAX_CONTENT_WIDTH } from '../src/components/ui/ScreenContainer';
 import { formatInTimeZone } from '../src/lib/videoScheduling';
 import { useWebSSO } from '../src/hooks/useWebSSO';
 import { useCoachingRate } from '../src/hooks/useCoachingRate';
+import { useWebsiteCoachingSessions } from '../src/hooks/useWebsiteCoachingSessions';
 import { WEBSITE_PATHS, withAppContext } from '../src/lib/websiteLinks';
 import { COACHING_MEMBER_PRICE, COACHING_STANDARD_PRICE } from '../src/lib/coachingPrice';
 
@@ -66,6 +67,8 @@ export default function BookCoachingScreen() {
   const router = useRouter();
   const { openWithSSO } = useWebSSO();
   const coachingRate = useCoachingRate();
+  // Sessions booked on soberhelpline.com under the same verified email.
+  const { sessions: websiteSessions } = useWebsiteCoachingSessions(user?.id);
   // soberhelpline.com/app/coaching/booked returns here after a website booking.
   const { booked } = useLocalSearchParams<{ booked?: string }>();
   const showBooked = booked === '1';
@@ -382,11 +385,43 @@ export default function BookCoachingScreen() {
           </View>
         )}
 
-        {bookings.length > 0 && (
+        {(bookings.length > 0 || websiteSessions.length > 0) && (
           <View style={[styles.card, { borderColor: colors.line }]}>
             <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
               {t('coaching.myBookings')}
             </Text>
+            {websiteSessions.map((s) => {
+              const upcoming = s.status === 'confirmed' && Date.parse(s.ends_at) > Date.now();
+              return (
+                <View key={`web-${s.id}`} style={[styles.bookingRow, { borderBottomColor: colors.line }]}>
+                  <View style={styles.bookingInfo}>
+                    <Text style={[styles.bookingTimes, { color: colors.ink }]} numberOfLines={1}>
+                      {formatBookingTime(s.starts_at, user?.timezone, i18n.language)}
+                    </Text>
+                    <Text style={[styles.bookingStatus, { color: colors.inkSoft }]}>
+                      {t('coaching.websiteSessionStatus', {
+                        status: s.status === 'completed' ? t('coaching.statusCompleted') : t('coaching.statusConfirmed'),
+                      })}
+                    </Text>
+                    {upcoming && !s.join_url ? (
+                      <Text style={[styles.bookingStatus, { color: colors.inkSoft }]}>
+                        {t('coaching.websiteLinkPending')}
+                      </Text>
+                    ) : null}
+                  </View>
+                  {upcoming && s.join_url ? (
+                    <TouchableOpacity
+                      style={[styles.joinBtn, { backgroundColor: colors.green }]}
+                      onPress={() => Linking.openURL(s.join_url!)}
+                      activeOpacity={0.85}
+                      accessibilityRole="button"
+                    >
+                      <Text style={styles.joinBtnText}>{t('sessions.joinZoom')}</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              );
+            })}
             {bookings.map((b) => (
               <View key={b.id} style={[styles.bookingRow, { borderBottomColor: colors.line }]}>
                 <View style={styles.bookingInfo}>
@@ -410,7 +445,7 @@ export default function BookCoachingScreen() {
                 ) : null}
               </View>
             ))}
-            {/* This list is the app's own requests; website bookings never land here. */}
+            {/* The app's own requests, plus sessions booked on the website under the same verified email. */}
             <Text style={[styles.confirmNote, { color: colors.inkSoft }]}>
               {t('coaching.websiteBookingsNote')}
             </Text>
