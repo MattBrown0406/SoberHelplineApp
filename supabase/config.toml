@@ -440,6 +440,10 @@ verify_jwt = false
 [functions.membership-import]
 verify_jwt = false
 
+# soberhelpline.com says a member deleted their website account (secret header).
+[functions.website-account-deleted]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

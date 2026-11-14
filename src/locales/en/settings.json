@@ -109,13 +109,14 @@
   "deleteAccount": {
     "button": "Delete account",
     "confirmTitle": "Delete your account?",
-    "confirmMessage": "Your data will be permanently deleted within 30 days. This cannot be undone.",
+    "confirmMessage": "Your data will be permanently deleted within 30 days. This cannot be undone. If you have a soberhelpline.com account with this email, it is deleted too.",
     "subscriptionNote": "Deleting your account does not cancel an App Store subscription. Cancel it first in your Apple ID subscriptions so you aren't charged again.",
-    "subscriptionNoteWeb": "Deleting your account does not cancel a membership you bought on our website. Cancel it there first so you aren't charged again.",
+    "subscriptionNoteWeb": "A website membership billed through PayPal is cancelled automatically when you delete your account.",
     "confirmButton": "Yes, delete my account",
     "cancelButton": "Cancel",
     "errorTitle": "Account not deleted",
     "errorMessage": "We couldn't delete your account. You are still signed in and no deletion was completed. Please try again.",
+    "websiteErrorMessage": "We couldn't remove your soberhelpline.com account or cancel its membership, so nothing was deleted. You are still signed in. Please try again in a few minutes.",
     "cleanupErrorTitle": "Account deleted",
     "cleanupErrorMessage": "Your account was deleted, but this device couldn't finish signing out. Close and reopen the app to clear the old session."
   },

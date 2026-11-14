@@ -490,6 +490,15 @@ export default function SettingsScreen() {
                 appAlert(t('deleteAccount.errorTitle'), t('deleteAccount.errorMessage'));
                 return;
               }
+              // "Delete my account" means everywhere: the soberhelpline.com account with
+              // this email goes too, and a website membership billed through PayPal is
+              // cancelled. If the website can't finish, stop here so nothing is half done.
+              const { data: websiteOutcome, error: websiteError } = await supabase.functions.invoke('delete-website-account');
+              if (websiteError || websiteOutcome?.ok !== true) {
+                restoreRemindersAfterAbortedExit();
+                appAlert(t('deleteAccount.errorTitle'), t('deleteAccount.websiteErrorMessage'));
+                return;
+              }
               const { error: deletionError } = await supabase.rpc('delete_own_account');
               if (deletionError) {
                 restoreRemindersAfterAbortedExit();
