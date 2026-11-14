@@ -9,6 +9,7 @@ SELECT no_plan();
 
 -- ── Fixtures: Monday 2025-12-08's meeting (7 PM Pacific) ────────────────────
 DELETE FROM public.session_rsvps;
+DELETE FROM public.family_squares_meeting_status;
 INSERT INTO auth.users(id, email, raw_app_meta_data, raw_user_meta_data, aud, role, email_confirmed_at) VALUES
   ('1c000000-0000-0000-0000-000000000001', 'mf-a@example.com', '{}', '{}', 'authenticated', 'authenticated', now()),
   ('1c000000-0000-0000-0000-000000000002', 'mf-b@example.com', '{}', '{}', 'authenticated', 'authenticated', now()),
@@ -68,8 +69,11 @@ SELECT is(pg_temp.note('1'),
   'Family Squares | If Monday got away from you, we missed you. Next Monday''s seat is one tap away, and members can watch recordings of past meetings.',
   'A saved her own seat and never tapped Join: the "we missed you" note');
 SELECT is(pg_temp.note('2'),
-  'After Monday''s call | Your one thing to try this week is on Today, and your seat for next Monday is saved automatically.',
+  'After Monday''s call | Your one thing to try this week is on Today, and your weekly seat is on for next Monday.',
   'B has a weekly seat and no Join tap in the app: never "we missed you", and nothing about tapping to save a seat');
+SELECT ok(NOT EXISTS (
+    SELECT 1 FROM push_outbox o WHERE o.kind = 'family_call_followup' AND o.body ~* 'is saved|saved automatically|will be saved'),
+  'no note promises a saved seat: the sync saves it only once the website agrees, and not for every member');
 SELECT is(pg_temp.note('3'),
   'After Monday''s call | Your one thing to try this week is on Today, and next Monday''s seat is one tap away.',
   'C tapped Join at 5:30 PM Pacific: an early Join counts as joined');
@@ -103,6 +107,31 @@ SELECT is(ARRAY(SELECT right(account_id::text, 1) || ': ' || body FROM push_outb
     WHERE idempotency_key LIKE 'family-call-followup:2025-12-15:%' ORDER BY 1),
   ARRAY['2: This week''s one thing: Rest is part of the work.', '6: This week''s one thing: Rest is part of the work.'],
   'weekly-seat members get Matt''s line like everyone who came, week after week, whether or not the app saw them join');
+
+-- ── A Monday the website cancelled: no Tuesday note at all ──────────────────
+-- 2025-12-22: B and F still have their seats (saved before the cancellation),
+-- and H tapped Join anyway.
+UPDATE public.session_rsvps SET family_squares_meeting_date = '2025-12-22'
+WHERE session_id = public.family_squares_session_id()
+  AND account_id IN ('2c000000-0000-0000-0000-000000000002', '2c000000-0000-0000-0000-000000000006');
+INSERT INTO public.funnel_events(account_id, stage, metadata, created_at)
+VALUES ('2c000000-0000-0000-0000-000000000008', 'attended', '{"source":"today"}', '2025-12-22 18:55 America/Los_Angeles');
+INSERT INTO public.family_squares_meeting_status(meeting_date, cancelled) VALUES ('2025-12-22', true), ('2025-12-15', false);
+SELECT is(public.enqueue_family_call_followups('2025-12-23 01:10 America/Los_Angeles'), 0, 'a cancelled meeting is not followed up');
+SELECT is((SELECT count(*)::integer FROM push_outbox WHERE idempotency_key LIKE 'family-call-followup:2025-12-22:%'), 0,
+  'nobody is told "we missed you" or handed a takeaway for a meeting that did not happen');
+-- The website's answer changes before the job runs again: the notes go out.
+UPDATE public.family_squares_meeting_status SET cancelled = false WHERE meeting_date = '2025-12-22';
+SELECT is(public.enqueue_family_call_followups('2025-12-23 01:20 America/Los_Angeles'), 3, 'a meeting that was on is followed up as before');
+SELECT is(ARRAY(SELECT right(account_id::text, 1) || ': ' || body FROM push_outbox
+    WHERE idempotency_key LIKE 'family-call-followup:2025-12-22:%' ORDER BY 1),
+  ARRAY['2: Your one thing to try this week is on Today, and your weekly seat is on for next Monday.',
+    '6: Your one thing to try this week is on Today, and your weekly seat is on for next Monday.',
+    '8: Your one thing to try this week is on Today, and next Monday''s seat is one tap away.'],
+  'weekly-seat members are told their weekly seat is on; everyone else that a seat is one tap away');
+-- Only that Monday: a cancelled status for another week changes nothing.
+UPDATE public.family_squares_meeting_status SET cancelled = true WHERE meeting_date = '2025-12-15';
+SELECT is(public.enqueue_family_call_followups('2025-12-23 01:30 America/Los_Angeles'), 0, 'one note per member per meeting, as before');
 
 SELECT * FROM finish();
 ROLLBACK;

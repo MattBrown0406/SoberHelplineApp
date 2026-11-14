@@ -16,8 +16,14 @@
 --     never "we missed you". Her seat is saved for her, and she may join from
 --     her calendar, an email link or another device, none of which the app
 --     can see, so a missing Join tap says nothing about her. Her note ends
---     with her seat being saved automatically instead of "one tap away".
+--     with her weekly seat being on instead of "one tap away". It does not
+--     say that next Monday's seat is saved: the 15-minute job saves it only
+--     once the website agrees, and skips a few members (an unverified email,
+--     no sign of app use in 35 days), so that would not be true for everyone.
 -- Older builds keep the wording they already had, whoever they are.
+--
+-- A cancelled Monday (family_squares_meeting_cancelled, 20261114120000) gets
+-- no Tuesday note at all: there was no meeting to follow up on or to miss.
 --
 -- "Joined" means a Join tap in the app from 5 PM Pacific on the meeting day
 -- (people open the meeting early) until half an hour after it ends, or the
@@ -58,6 +64,12 @@ BEGIN
     RETURN 0;
   END IF;
   v_meeting := v_local::date - 1;
+  -- The website cancelled last night's meeting: nobody was there and nobody
+  -- missed it. (If that cannot be read the answer is "not cancelled", and the
+  -- notes go out as before.)
+  IF public.family_squares_meeting_cancelled(v_meeting) THEN
+    RETURN 0;
+  END IF;
   -- The meeting starts at 7 PM; a Join tap counts from 5 PM.
   v_join_from := (v_meeting + time '17:00') AT TIME ZONE 'America/Los_Angeles';
   v_end := (v_meeting + time '20:00') AT TIME ZONE 'America/Los_Angeles';
@@ -128,10 +140,11 @@ BEGIN
         || CASE WHEN public._dispatcher_member_access(s.id)
           THEN 'recordings of past meetings are in your library, under Tools.'
           ELSE 'members can watch recordings of past meetings.' END
-      -- Her seat is saved for her every Monday, so there is nothing to tap.
+      -- Her weekly seat is on, so there is nothing to tap. Only what is true
+      -- for everyone with the switch on is said: not that the seat is saved.
       -- (With Matt's line written she gets that line, like everyone who came.)
       WHEN s.weekly_seat AND v_takeaway IS NULL AND coalesce(s.push_app_contract, 0) >= 1 THEN
-        'Your one thing to try this week is on Today, and your seat for next Monday is saved automatically.'
+        'Your one thing to try this week is on Today, and your weekly seat is on for next Monday.'
       -- Self-contained on any build.
       WHEN v_takeaway IS NOT NULL THEN 'This week''s one thing: ' || v_takeaway
       WHEN coalesce(s.push_app_contract, 0) >= 1 THEN

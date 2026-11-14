@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import {
   dayDeadline,
   deliverLegacy,
+  familySquaresCancelled,
   freshDailyAccount,
   localDay,
   localHour,
@@ -199,6 +200,10 @@ Deno.serve(async (req) => {
     familySquaresSession ??= Promise.resolve(supabase.rpc('family_squares_session_id'))
       .then(({ data, error }) => (!error && typeof data === 'string' && data ? data : null))
       .catch(() => null);
+  // Also once: has the website cancelled the coming meeting? (Never a reason
+  // to send nothing; a failed lookup answers "not cancelled".)
+  let familySquaresOff: Promise<boolean> | undefined;
+  const familySquaresIsCancelled = () => familySquaresOff ??= familySquaresCancelled(supabase);
   for (const candidate of accounts) {
     // Her own day, pinned before IO: "today" cannot become tomorrow.
     const day = localDay(started, candidate.timezone);
@@ -226,11 +231,13 @@ Deno.serve(async (req) => {
       }
       const band = a.band;
       const lang = a.locale === 'es' ? 'es' : 'en';
-      // Monday's note invites her to tonight's meeting. A member who said she
-      // can't make it this week gets her ordinary morning note instead.
-      // (Spanish members are invited to La Sobremesa, which has no decline.)
+      // Monday's note invites her to tonight's meeting. When the website has
+      // cancelled it, or she said she can't make it this week, she gets her
+      // ordinary morning note instead. (Spanish members are invited to
+      // La Sobremesa, which is not cancelled here and has no decline.)
       const isMonday = localWeekday(Date.now(), a.timezone) === 1 &&
-        !(lang === 'en' && await declinedFamilySquares(await familySquaresSessionId(), a.id));
+        !(lang === 'en' && (await familySquaresIsCancelled() ||
+          await declinedFamilySquares(await familySquaresSessionId(), a.id)));
       const c = COPY[lang];
       const support = band === 'elevated' || band === 'crisis';
       // After her loved one died the daily boundaries challenge stops; she

@@ -17,8 +17,10 @@ SELECT ok((SELECT bool_and(NOT has_function_privilege('anon', f, 'EXECUTE')
       AND has_function_privilege('service_role', f, 'EXECUTE'))
     FROM unnest(ARRAY['public.service_family_squares_weekly_seat_candidates(date)',
       'public.service_family_squares_save_weekly_seat(uuid,date)',
-      'public.service_family_squares_hold_weekly_seat(uuid,date,text)']) AS f),
-  'only the service role (the 15-minute sync) asks who needs a weekly seat and saves one');
+      'public.service_family_squares_hold_weekly_seat(uuid,date,text)',
+      'public.service_family_squares_note_meeting_status(date,boolean)',
+      'public.service_family_squares_coming_meeting_cancelled()']) AS f),
+  'only the service role (the 15-minute sync and the push senders) asks who needs a weekly seat, saves one, or keeps what the website said');
 SELECT ok(NOT has_function_privilege('anon', 'public._family_squares_coming_meeting_date(timestamptz)', 'EXECUTE')
   AND NOT has_function_privilege('authenticated', 'public._family_squares_coming_meeting_date(timestamptz)', 'EXECUTE'),
   'the date helper is internal');
@@ -27,6 +29,17 @@ SELECT ok(NOT has_table_privilege('anon', 'public.family_squares_weekly_seat_hol
   AND NOT has_table_privilege('authenticated', 'public.family_squares_weekly_seat_holds', 'INSERT')
   AND (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.family_squares_weekly_seat_holds'::regclass),
   'what the website answered is not readable or writable by clients');
+SELECT ok(NOT has_table_privilege('anon', 'public.family_squares_meeting_status', 'SELECT')
+  AND NOT has_table_privilege('authenticated', 'public.family_squares_meeting_status', 'SELECT')
+  AND NOT has_table_privilege('authenticated', 'public.family_squares_meeting_status', 'INSERT')
+  AND NOT has_table_privilege('authenticated', 'public.family_squares_meeting_status', 'UPDATE')
+  AND NOT has_table_privilege('authenticated', 'public.family_squares_meeting_status', 'DELETE')
+  AND (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.family_squares_meeting_status'::regclass),
+  'whether a Monday is cancelled is written by the service role only, and never read from the table by clients');
+SELECT ok(NOT has_function_privilege('anon', 'public.family_squares_meeting_cancelled(date)', 'EXECUTE')
+  AND has_function_privilege('authenticated', 'public.family_squares_meeting_cancelled(date)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.family_squares_meeting_cancelled(date)', 'EXECUTE'),
+  'a signed-in member (the app) and the service role can ask whether a Monday is cancelled; a visitor cannot');
 SELECT ok(NOT has_function_privilege('anon', 'public.reset_family_squares_weekly_rsvps()', 'EXECUTE')
   AND NOT has_function_privilege('authenticated', 'public.reset_family_squares_weekly_rsvps()', 'EXECUTE')
   AND has_function_privilege('service_role', 'public.reset_family_squares_weekly_rsvps()', 'EXECUTE'),
@@ -41,6 +54,9 @@ SELECT ok(NOT has_column_privilege('authenticated', 'public.accounts', 'family_s
 DELETE FROM public.session_rsvps;
 DELETE FROM public.family_squares_meeting_stats;
 DELETE FROM public.family_squares_weekly_seat_holds;
+DELETE FROM public.family_squares_meeting_status;
+-- The helpers only ever act on the coming meeting, read from the real clock.
+CREATE TEMP TABLE coming AS SELECT public._family_squares_coming_meeting_date(now()) AS d;
 INSERT INTO auth.users(id, email, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, aud, role) VALUES
   ('1b000000-0000-0000-0000-000000000001', 'seat-a@example.com', now(), '{}', '{"first_name":"Ana"}', 'authenticated', 'authenticated'),
   ('1b000000-0000-0000-0000-000000000002', 'seat-b@example.com', now(), '{}', '{}', 'authenticated', 'authenticated'),
@@ -85,8 +101,17 @@ SELECT is(ARRAY(SELECT right(id::text, 1) FROM public.accounts WHERE id::text LI
 
 -- ── "Can't make it this week" ───────────────────────────────────────────────
 INSERT INTO public.session_rsvps(session_id, account_id, status, family_squares_meeting_date, created_at) VALUES
-  (public.family_squares_session_id(), '2b000000-0000-0000-0000-000000000001', 'going', '2026-10-05', now() - interval '2 hours'),
-  (public.family_squares_session_id(), '2b000000-0000-0000-0000-000000000002', 'going', '2026-10-05', now() - interval '2 hours');
+  (public.family_squares_session_id(), '2b000000-0000-0000-0000-000000000001', 'going', (SELECT d FROM coming), now() - interval '2 hours'),
+  (public.family_squares_session_id(), '2b000000-0000-0000-0000-000000000002', 'going', (SELECT d FROM coming), now() - interval '2 hours'),
+  -- G's row is still last week's meeting's (what a row looks like between
+  -- Monday 8 PM and the Tuesday 2 AM reset). C saved a seat on 4.1, which
+  -- writes no meeting date, before last week's meeting ended; D did the same
+  -- after it ended, so hers is for the coming meeting.
+  (public.family_squares_session_id(), '2b000000-0000-0000-0000-000000000007', 'going', (SELECT d FROM coming) - 7, now() - interval '2 hours'),
+  (public.family_squares_session_id(), '2b000000-0000-0000-0000-000000000003', 'going', NULL,
+    (((SELECT d FROM coming) - 7) + time '19:30') AT TIME ZONE 'America/Los_Angeles'),
+  (public.family_squares_session_id(), '2b000000-0000-0000-0000-000000000004', 'going', NULL,
+    (((SELECT d FROM coming) - 7) + time '20:01') AT TIME ZONE 'America/Los_Angeles');
 -- Another session she is going to must not be touched.
 INSERT INTO public.session_rsvps(session_id, account_id, status)
 SELECT s.id, '2b000000-0000-0000-0000-000000000001', 'going' FROM public.sessions s
@@ -101,12 +126,30 @@ SELECT is(public.decline_family_squares_rsvp(), true, 'A says she can''t make it
 SELECT is(public.decline_family_squares_rsvp(), false, 'declining twice changes nothing');
 SELECT set_config('request.jwt.claims', '{"sub":"1b000000-0000-0000-0000-000000000005","email":"seat-off@example.com","role":"authenticated"}', true);
 SELECT is(public.decline_family_squares_rsvp(), false, 'no saved seat: nothing to decline');
+-- Only a seat for the coming meeting can be declined.
+SELECT set_config('request.jwt.claims', '{"sub":"1b000000-0000-0000-0000-000000000007","email":"seat-early@example.com","role":"authenticated"}', true);
+SELECT is(public.decline_family_squares_rsvp(), false,
+  'a tap from a stale screen does not decline the meeting that already happened');
+SELECT set_config('request.jwt.claims', '{"sub":"1b000000-0000-0000-0000-000000000003","email":"seat-unverified@example.com","role":"authenticated"}', true);
+SELECT is(public.decline_family_squares_rsvp(), false,
+  'nor an undated (4.1) seat saved before that meeting ended');
+SELECT set_config('request.jwt.claims', '{"sub":"1b000000-0000-0000-0000-000000000004","email":"seat-es@example.com","role":"authenticated"}', true);
+SELECT is(public.decline_family_squares_rsvp(), true,
+  'an undated seat saved after it ended is for the coming meeting, and can be declined');
 RESET ROLE;
 SELECT set_config('request.jwt.claims', '', true);
+SELECT is(ARRAY(SELECT right(account_id::text, 1) || ':' || status FROM public.session_rsvps
+    WHERE session_id = public.family_squares_session_id()
+      AND account_id IN ('2b000000-0000-0000-0000-000000000003', '2b000000-0000-0000-0000-000000000004', '2b000000-0000-0000-0000-000000000007')
+    ORDER BY 1),
+  ARRAY['3:going', '4:declined', '7:going'],
+  'last week''s rows are left exactly as they were for the Tuesday note and the recorded counts');
+DELETE FROM public.session_rsvps WHERE session_id = public.family_squares_session_id()
+  AND account_id IN ('2b000000-0000-0000-0000-000000000003', '2b000000-0000-0000-0000-000000000004', '2b000000-0000-0000-0000-000000000007');
 
 SELECT is((SELECT row(status, family_squares_meeting_date)::text FROM public.session_rsvps
   WHERE session_id = public.family_squares_session_id() AND account_id = '2b000000-0000-0000-0000-000000000001'),
-  row('declined', '2026-10-05'::date)::text, 'her RSVP is declined for the same meeting');
+  row('declined', (SELECT d FROM coming))::text, 'her RSVP is declined for the same meeting');
 SELECT is((SELECT status FROM public.session_rsvps
   WHERE session_id = public.family_squares_session_id() AND account_id = '2b000000-0000-0000-0000-000000000002'),
   'going', 'nobody else''s RSVP changed');
@@ -123,8 +166,6 @@ SELECT is((SELECT rsvp FROM public.service_family_squares_attendees(now() - inte
   'declined', 'the website hears that she declined');
 
 -- ── Who the 15-minute sync asks the website about ───────────────────────────
--- The helpers only ever act on the coming meeting, read from the real clock.
-CREATE TEMP TABLE coming AS SELECT public._family_squares_coming_meeting_date(now()) AS d;
 CREATE FUNCTION pg_temp.candidates() RETURNS text[] LANGUAGE sql AS $$
   SELECT ARRAY(SELECT right(c.account_id::text, 1)
     FROM public.service_family_squares_weekly_seat_candidates((SELECT d FROM coming)) c ORDER BY 1)
@@ -175,6 +216,12 @@ INSERT INTO public.funnel_events(account_id, stage, metadata, created_at)
 VALUES ('2b000000-0000-0000-0000-000000000002', 'attended', '{"source":"today"}', now() - interval '5 days');
 SELECT is(pg_temp.candidates(), ARRAY['1', '2'], 'so does something she did in the app (a Join tap)');
 DELETE FROM public.funnel_events WHERE account_id = '2b000000-0000-0000-0000-000000000002';
+INSERT INTO public.checkins(account_id, mood, created_at)
+VALUES ('2b000000-0000-0000-0000-000000000002', 3, now() - interval '36 days');
+SELECT is(pg_temp.candidates(), ARRAY['1'], 'a daily check-in 36 days ago is too long ago');
+UPDATE public.checkins SET created_at = now() - interval '4 days' WHERE account_id = '2b000000-0000-0000-0000-000000000002';
+SELECT is(pg_temp.candidates(), ARRAY['1', '2'], 'her latest daily check-in counts as using the app');
+DELETE FROM public.checkins WHERE account_id = '2b000000-0000-0000-0000-000000000002';
 SELECT is(pg_temp.candidates(), ARRAY['1'], 'with no sign of her, her seat is not saved for ever');
 
 -- The same people family-squares-register accepts.
@@ -190,7 +237,9 @@ UPDATE public.loved_ones SET bereavement_quiet = true WHERE account_id = '2b0000
 
 -- ── What the website answered ───────────────────────────────────────────────
 SELECT throws_ok($$SELECT public.service_family_squares_hold_weekly_seat('2b000000-0000-0000-0000-000000000001', current_date, 'because')$$,
-  '22023', 'invalid_hold', 'only the website''s two refusals are kept');
+  '22023', 'invalid_hold', 'only the three answers the sync understands are kept');
+SELECT throws_ok($$INSERT INTO public.family_squares_weekly_seat_holds(account_id, meeting_date, reason)
+  VALUES ('2b000000-0000-0000-0000-000000000005', current_date, 'because')$$, '23514', NULL, 'the table refuses any other reason too');
 INSERT INTO public.family_squares_weekly_seat_holds(account_id, meeting_date, reason)
 VALUES ('2b000000-0000-0000-0000-000000000005', (SELECT d FROM coming) - 35, 'meeting_cancelled');
 -- A cancelled Monday (the website said so when asked about G).
@@ -201,6 +250,24 @@ SELECT is((SELECT count(*)::integer FROM public.family_squares_weekly_seat_holds
   'answers about meetings long past are removed');
 UPDATE public.family_squares_weekly_seat_holds SET noted_at = now() - interval '7 hours';
 SELECT is(pg_temp.candidates(), ARRAY['1'], 'six hours later the website is asked again, in case the meeting is back on');
+
+-- The website could not answer for A (an error, a malformed reply).
+SELECT lives_ok($$SELECT public.service_family_squares_hold_weekly_seat('2b000000-0000-0000-0000-000000000001', (SELECT d FROM coming), 'no_answer')$$,
+  'no usable answer for one member is remembered');
+SELECT is(pg_temp.candidates(), ARRAY[]::text[], 'she is not asked about again every 15 minutes');
+SELECT is((SELECT count(*)::integer FROM public.session_rsvps WHERE session_id = public.family_squares_session_id()
+  AND account_id = '2b000000-0000-0000-0000-000000000001'), 0, 'and nothing was written for her');
+-- B shows a sign of app use again: someone else's hold never stops her.
+UPDATE public.accounts SET push_token_seen_at = now() WHERE id = '2b000000-0000-0000-0000-000000000002';
+SELECT is(pg_temp.candidates(), ARRAY['2'], 'the others are still asked about');
+UPDATE public.accounts SET push_token_seen_at = now() - interval '36 days' WHERE id = '2b000000-0000-0000-0000-000000000002';
+UPDATE public.family_squares_weekly_seat_holds SET noted_at = now() - interval '5 hours 50 minutes'
+WHERE account_id = '2b000000-0000-0000-0000-000000000001';
+SELECT is(pg_temp.candidates(), ARRAY[]::text[], 'still left alone just under six hours later');
+UPDATE public.family_squares_weekly_seat_holds SET noted_at = now() - interval '6 hours 10 minutes'
+WHERE account_id = '2b000000-0000-0000-0000-000000000001';
+SELECT is(pg_temp.candidates(), ARRAY['1'], 'after six hours the website is asked about her again');
+
 -- The website will not register A.
 SELECT public.service_family_squares_hold_weekly_seat('2b000000-0000-0000-0000-000000000001', (SELECT d FROM coming), 'registration_unavailable');
 SELECT is(pg_temp.candidates(), ARRAY[]::text[], 'a member the website refused is not asked about again for that meeting');
@@ -208,6 +275,59 @@ UPDATE public.family_squares_weekly_seat_holds SET noted_at = now() - interval '
 SELECT is(pg_temp.candidates(), ARRAY[]::text[], 'however long ago it refused');
 SELECT is((SELECT count(*)::integer FROM public.session_rsvps WHERE session_id = public.family_squares_session_id()
   AND account_id = '2b000000-0000-0000-0000-000000000001'), 0, 'and nothing was written for her');
+
+-- ── A cancelled Monday, as the website's sync reply tells it ────────────────
+DELETE FROM public.family_squares_weekly_seat_holds;
+SELECT is(pg_temp.candidates(), ARRAY['1'], 'before the website says anything, A is asked about');
+SELECT is(public.family_squares_meeting_cancelled((SELECT d FROM coming)), false, 'no row: the meeting is on');
+SELECT is(public.family_squares_meeting_cancelled(NULL), false, 'no date: not cancelled');
+SELECT is(public.service_family_squares_coming_meeting_cancelled(), false, 'and so is the coming one, asked without a date');
+SELECT throws_ok($$SELECT public.service_family_squares_note_meeting_status(NULL, true)$$, '22023', 'invalid_meeting_status', 'a status needs a date');
+SELECT throws_ok($$SELECT public.service_family_squares_note_meeting_status((SELECT d FROM coming), NULL)$$, '22023', 'invalid_meeting_status', 'and an answer');
+SELECT throws_ok($$SELECT public.service_family_squares_note_meeting_status((SELECT d FROM coming) + 7, true)$$, '22023', 'invalid_meeting_status',
+  'only the coming meeting, or the one that just ended');
+SELECT throws_ok($$SELECT public.service_family_squares_note_meeting_status((SELECT d FROM coming) - 1, true)$$, '22023', 'invalid_meeting_status',
+  'never a day that is not a meeting');
+INSERT INTO public.family_squares_meeting_status(meeting_date, cancelled) VALUES ((SELECT d FROM coming) - 63, true);
+
+SELECT lives_ok($$SELECT public.service_family_squares_note_meeting_status((SELECT d FROM coming), true)$$, 'the website says the coming Monday is cancelled');
+SELECT is(public.family_squares_meeting_cancelled((SELECT d FROM coming)), true, 'the app and the pushes are told');
+SELECT is(public.service_family_squares_coming_meeting_cancelled(), true, 'the Edge Functions too');
+SELECT is(public.family_squares_meeting_cancelled((SELECT d FROM coming) - 7), false, 'only that Monday');
+SELECT is(public.family_squares_meeting_cancelled((SELECT d FROM coming) + 7), false, 'not the one after');
+SELECT is((SELECT count(*)::integer FROM public.family_squares_meeting_status WHERE meeting_date < (SELECT d FROM coming) - 56), 0,
+  'answers about meetings long past are removed');
+SELECT is(pg_temp.candidates(), ARRAY[]::text[], 'cancelled: no weekly seat is asked about, without calling the website');
+UPDATE public.family_squares_meeting_status SET noted_at = now() - interval '3 days';
+SELECT is(pg_temp.candidates(), ARRAY[]::text[], 'for as long as the website says so');
+SELECT lives_ok($$SELECT public.service_family_squares_note_meeting_status((SELECT d FROM coming) - 7, true)$$,
+  'an answer that arrives just after a meeting ended is still kept for that meeting');
+SELECT is((SELECT count(*)::integer FROM public.family_squares_meeting_status WHERE meeting_date = (SELECT d FROM coming)), 1, 'one row per Monday');
+
+-- A member (the app) reads the answer through the function, never from the
+-- table, and cannot write it.
+SELECT set_config('test.coming', (SELECT d::text FROM coming), true);
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims', '{"sub":"1b000000-0000-0000-0000-000000000001","email":"seat-a@example.com","role":"authenticated"}', true);
+SELECT is(public.family_squares_meeting_cancelled(current_setting('test.coming')::date), true, 'a member can ask whether the coming Monday is cancelled');
+SELECT is(public.family_squares_meeting_cancelled(current_setting('test.coming')::date + 7), false, 'and gets "not cancelled" for a Monday nobody has said anything about');
+SELECT throws_ok($$SELECT * FROM public.family_squares_meeting_status$$, '42501', NULL, 'she cannot read the table');
+SELECT throws_ok($$SELECT public.service_family_squares_note_meeting_status(current_setting('test.coming')::date, false)$$, '42501', NULL,
+  'or put a cancelled meeting back on herself');
+SELECT throws_ok($$SELECT public.service_family_squares_coming_meeting_cancelled()$$, '42501', NULL, 'the Edge Functions'' own question is not hers to ask');
+RESET ROLE;
+SELECT set_config('request.jwt.claims', '', true);
+
+-- The meeting is put back on.
+SELECT public.service_family_squares_hold_weekly_seat('2b000000-0000-0000-0000-000000000007', (SELECT d FROM coming), 'meeting_cancelled');
+SELECT public.service_family_squares_hold_weekly_seat('2b000000-0000-0000-0000-000000000006', (SELECT d FROM coming), 'registration_unavailable');
+SELECT lives_ok($$SELECT public.service_family_squares_note_meeting_status((SELECT d FROM coming), false)$$, 'the website says the meeting is on again');
+SELECT is(public.family_squares_meeting_cancelled((SELECT d FROM coming)), false, 'it is announced again');
+SELECT is(ARRAY(SELECT reason FROM public.family_squares_weekly_seat_holds WHERE meeting_date = (SELECT d FROM coming) ORDER BY 1),
+  ARRAY['registration_unavailable'], 'an earlier "cancelled" answer about one member no longer stands; a refusal does');
+SELECT is(pg_temp.candidates(), ARRAY['1'], 'and weekly seats are asked about again at once');
+DELETE FROM public.family_squares_weekly_seat_holds;
+SELECT public.service_family_squares_hold_weekly_seat('2b000000-0000-0000-0000-000000000001', (SELECT d FROM coming), 'registration_unavailable');
 
 -- ── Saving the seat, once the website has said yes ──────────────────────────
 SELECT is(public.service_family_squares_save_weekly_seat('2b000000-0000-0000-0000-000000000001', (SELECT d FROM coming) + 7), false,

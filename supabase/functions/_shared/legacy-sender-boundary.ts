@@ -91,6 +91,20 @@ export function remindersPausedFor(lovedOne: unknown): boolean {
   const row = lovedOne as { died_at?: string | null; bereavement_quiet?: boolean | null } | null;
   return !!row?.died_at && row.bereavement_quiet === true;
 }
+/**
+ * True when soberhelpline.com cancelled the coming Family Squares meeting
+ * (tonight's, until it ends). The database knows which Monday that is and what
+ * the website last said about it. Any failure answers false: a reminder is
+ * never lost because this could not be read.
+ */
+export async function familySquaresCancelled(db: SupabaseClient): Promise<boolean> {
+  try {
+    const { data, error } = await db.rpc('service_family_squares_coming_meeting_cancelled');
+    return !error && data === true;
+  } catch {
+    return false;
+  }
+}
 /** Latest event (including private events), both memberships and token together.
  * Do NOT filter shared_with_family=true in SQL: that hides newer withdrawals.
  */

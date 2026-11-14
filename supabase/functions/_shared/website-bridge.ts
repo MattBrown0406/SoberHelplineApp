@@ -110,6 +110,19 @@ export function summarizeAttendees(attendees: Attendee[]) {
   };
 }
 
+/**
+ * What the website's sync reply says about the Monday that was sent: true
+ * (cancelled), false (on), or null when it does not say. A reply that names
+ * another meeting says nothing about this one. A refusal whose error is
+ * meeting_cancelled is the same answer as `cancelled: true`.
+ */
+export function websiteMeetingCancelled(body: unknown, meetingDate: string): boolean | null {
+  const reply = body && typeof body === 'object' && !Array.isArray(body) ? body as Record<string, unknown> : {};
+  if (typeof reply.meeting_date === 'string' && reply.meeting_date !== meetingDate) return null;
+  if (reply.error === 'meeting_cancelled') return true;
+  return typeof reply.cancelled === 'boolean' ? reply.cancelled : null;
+}
+
 /** The website's { ok, upserted, removed, skipped } as counts (skipped may be a list). */
 export function summarizeWebsiteSyncResponse(body: unknown): {
   upserted: number | null;
@@ -136,6 +149,13 @@ export function summarizeWebsiteSyncResponse(body: unknown): {
 export type EnsureRegistrationOutcome =
   /** The website registered her (or already had her) for exactly this meeting. */
   | { outcome: 'registered'; alreadyRegistered: boolean }
+  /**
+   * The website has no objection (the Monday is on and she is not blocked) but
+   * could not write its own row: 500 registration_failed. Her seat is saved
+   * here and the 15-minute sync carries it to the website, exactly as
+   * family-squares-register does for a seat she saves herself.
+   */
+  | { outcome: 'no_objection' }
   /** That Monday is cancelled. True for everyone: stop asking this run. */
   | { outcome: 'meeting_cancelled' }
   /** The website will not register this person. */
@@ -155,7 +175,10 @@ export function ensureRegistrationRequest(meetingDate: string, email: string, na
 /**
  * Reads the website's answer. Only an explicit yes for the meeting that was
  * asked about counts as registered; only the website's two named refusals
- * count as decisions. Everything else is "no answer".
+ * count as decisions. The website checks, in order: is that Monday cancelled,
+ * is she blocked, and only then writes its own row. So a 500
+ * registration_failed means both checks passed: "no objection". Everything
+ * else is "no answer".
  */
 export function interpretEnsureRegistration(
   status: number,
@@ -172,6 +195,7 @@ export function interpretEnsureRegistration(
   }
   if (reply.error === 'meeting_cancelled') return { outcome: 'meeting_cancelled' };
   if (reply.error === 'registration_unavailable') return { outcome: 'registration_unavailable' };
+  if (status === 500 && reply.ok !== true && reply.error === 'registration_failed') return { outcome: 'no_objection' };
   return { outcome: 'unavailable', reason: status === 404 ? 'not_deployed' : 'unexpected_reply' };
 }
 

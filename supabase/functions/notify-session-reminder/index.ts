@@ -5,6 +5,7 @@ import { isFamilySquaresReminderHour } from '../_shared/family-squares-time.ts';
 import {
   checked,
   deliverLegacy,
+  familySquaresCancelled,
   recordDelivery,
   remaining,
   remindersPausedFor,
@@ -34,6 +35,10 @@ Deno.serve(async (req) => {
   const deadline = force ? started + 15 * 60000 : sessionDeadline(started);
   const counts = tally();
   try {
+    // The website cancelled tonight's meeting: nobody is told it starts in 15
+    // minutes, whenever her seat was saved. (A failed lookup answers "not
+    // cancelled", and the reminder goes out as before.)
+    if (await familySquaresCancelled(supabase)) return new Response('meeting cancelled');
     const sessionId = await checked(supabase.rpc('family_squares_session_id'));
     if (!sessionId) return new Response('no subscribers');
     // Discover stable identities, never reverse-map a cached token list. A token

@@ -15,6 +15,7 @@ import {
   summarizeWebsiteSyncResponse,
   TooManyAttendeesError,
   websiteFunctionUrl,
+  websiteMeetingCancelled,
 } from './website-bridge.ts';
 
 function assertEquals(actual: unknown, expected: unknown, message = ''): void {
@@ -80,6 +81,25 @@ Deno.test('the website sync response is reduced to counts', () => {
   assertEquals(summarizeWebsiteSyncResponse({ ok: true, upserted: 3, removed: 1, skipped: ['blocked@x.com'] }),
     { upserted: 3, removed: 1, skipped: 1 });
   assertEquals(summarizeWebsiteSyncResponse(null), { upserted: null, removed: null, skipped: null });
+});
+
+Deno.test('the sync reply says whether the Monday that was sent is cancelled, or says nothing', () => {
+  const sent = '2026-11-23';
+  assertEquals(websiteMeetingCancelled({ ok: true, upserted: 3, cancelled: true }, sent), true);
+  assertEquals(websiteMeetingCancelled({ ok: true, upserted: 3, cancelled: false }, sent), false);
+  assertEquals(websiteMeetingCancelled({ ok: true, meeting_date: sent, cancelled: true }, sent), true);
+  // A refusal of the whole sync because that Monday is cancelled is the same answer.
+  assertEquals(websiteMeetingCancelled({ ok: false, error: 'meeting_cancelled' }, sent), true);
+  // No field, not a boolean, not an object: nothing is known, so nothing is recorded.
+  assertEquals(websiteMeetingCancelled({ ok: true, upserted: 3 }, sent), null);
+  assertEquals(websiteMeetingCancelled({ ok: true, cancelled: 'yes' }, sent), null);
+  assertEquals(websiteMeetingCancelled({ ok: true, cancelled: 1 }, sent), null);
+  assertEquals(websiteMeetingCancelled({ ok: false, error: 'server_error' }, sent), null);
+  assertEquals(websiteMeetingCancelled(null, sent), null);
+  assertEquals(websiteMeetingCancelled([{ cancelled: true }], sent), null);
+  assertEquals(websiteMeetingCancelled('cancelled', sent), null);
+  // An answer about another Monday says nothing about this one.
+  assertEquals(websiteMeetingCancelled({ ok: true, meeting_date: '2026-11-16', cancelled: true }, sent), null);
 });
 
 Deno.test('push-reachable lookups take at most 1000 string emails', () => {
@@ -174,10 +194,37 @@ Deno.test('only an explicit yes for the meeting asked about is a registration', 
   assertEquals(interpretEnsureRegistration(500, { ok: true, already_registered: true, meeting_date: MONDAY }, MONDAY), noAnswer);
   assertEquals(interpretEnsureRegistration(200, null, MONDAY), noAnswer);
   assertEquals(interpretEnsureRegistration(200, [], MONDAY), noAnswer);
-  // A website without the one-person question, or one that failed.
+  // A website without the one-person question, or one that failed some other way.
   assertEquals(interpretEnsureRegistration(400, { ok: false, error: 'attendees_required' }, MONDAY), noAnswer);
-  assertEquals(interpretEnsureRegistration(500, { ok: false, error: 'registration_failed' }, MONDAY), noAnswer);
+  assertEquals(interpretEnsureRegistration(500, { ok: false, error: 'server_error' }, MONDAY), noAnswer);
+  assertEquals(interpretEnsureRegistration(500, null, MONDAY), noAnswer);
+  assertEquals(interpretEnsureRegistration(502, 'Bad Gateway', MONDAY), noAnswer);
+  assertEquals(interpretEnsureRegistration(401, { ok: false, error: 'unauthorized' }, MONDAY), noAnswer);
   assertEquals(interpretEnsureRegistration(404, null, MONDAY), { outcome: 'unavailable', reason: 'not_deployed' });
+});
+
+Deno.test('a 500 registration_failed is "no objection": the website checked her and could not write its own row', () => {
+  // Today's live website: not cancelled, not blocked, then its own write fails.
+  assertEquals(
+    interpretEnsureRegistration(500, { ok: false, error: 'registration_failed' }, MONDAY),
+    { outcome: 'no_objection' },
+  );
+  assertEquals(interpretEnsureRegistration(500, { error: 'registration_failed' }, MONDAY), { outcome: 'no_objection' });
+  // Only that status with that error. The same word on another status, or a
+  // reply that also claims success, is not an answer.
+  const noAnswer = { outcome: 'unavailable', reason: 'unexpected_reply' };
+  assertEquals(interpretEnsureRegistration(200, { ok: false, error: 'registration_failed' }, MONDAY), noAnswer);
+  assertEquals(interpretEnsureRegistration(400, { ok: false, error: 'registration_failed' }, MONDAY), noAnswer);
+  assertEquals(interpretEnsureRegistration(503, { ok: false, error: 'registration_failed' }, MONDAY), noAnswer);
+  assertEquals(interpretEnsureRegistration(500, { ok: true, error: 'registration_failed' }, MONDAY), noAnswer);
+  assertEquals(interpretEnsureRegistration(404, { ok: false, error: 'registration_failed' }, MONDAY),
+    { outcome: 'unavailable', reason: 'not_deployed' });
+  // The website's two decisions still win, whatever the status.
+  assertEquals(interpretEnsureRegistration(500, { ok: false, error: 'meeting_cancelled' }, MONDAY), { outcome: 'meeting_cancelled' });
+  assertEquals(
+    interpretEnsureRegistration(500, { ok: false, error: 'registration_unavailable' }, MONDAY),
+    { outcome: 'registration_unavailable' },
+  );
 });
 
 Deno.test('a cancelled Monday and a blocked attendee are the website\'s decisions', () => {
@@ -220,6 +267,8 @@ Deno.test('asking the website: one POST with the shared secret; an outage is "no
   });
 
   assertEquals(await ask(reply(409, { ok: false, error: 'meeting_cancelled' })), { outcome: 'meeting_cancelled' });
+  assertEquals(await ask(reply(500, { ok: false, error: 'registration_failed' })), { outcome: 'no_objection' });
+  assertEquals(await ask(reply(500, 'Internal Server Error')), { outcome: 'unavailable', reason: 'unexpected_reply' });
   assertEquals(await ask(reply(200, 'not json')), { outcome: 'unavailable', reason: 'unexpected_reply' });
   assertEquals(await ask(reply(404, 'Not Found')), { outcome: 'unavailable', reason: 'not_deployed' });
   assertEquals(
