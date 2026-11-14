@@ -19,6 +19,18 @@ function serializeIdentity<T>(operation: () => Promise<T>): Promise<T> {
   return result;
 }
 
+/**
+ * Puts RevenueCat on this account: the one login call, used at sign-in and,
+ * when that one failed (a bad network), once more just before a purchase.
+ * Only ever called inside the identity queue.
+ */
+async function identifyAs(userId: string): Promise<void> {
+  const currentUserId = await Purchases.getAppUserID();
+  if (currentUserId === userId) return;
+  if (!currentUserId.startsWith('$RCAnonymousID:')) await Purchases.logOut();
+  await Purchases.logIn(userId);
+}
+
 /** Configure RevenueCat and finish customer identification before entitlement reads. */
 export function configureRevenueCat(userId?: string): Promise<boolean> {
   // Web billing is optional. If no key is configured for the active platform,
@@ -28,13 +40,7 @@ export function configureRevenueCat(userId?: string): Promise<boolean> {
   return serializeIdentity(async () => {
     try {
       ensureConfigured();
-      if (userId) {
-        const currentUserId = await Purchases.getAppUserID();
-        if (currentUserId !== userId) {
-          if (!currentUserId.startsWith('$RCAnonymousID:')) await Purchases.logOut();
-          await Purchases.logIn(userId);
-        }
-      }
+      if (userId) await identifyAs(userId);
       return true;
     } catch (err) {
       console.warn('[RevenueCat] configure/login failed:', err);
@@ -57,24 +63,68 @@ export function resetRevenueCatUser(): Promise<void> {
   });
 }
 
-/** Thrown when the screen or the account changed before the store was asked: nothing was bought. */
+/** Thrown when she left (or the screen or account changed) before the store was asked: nothing was bought. */
 export const PURCHASE_NOT_STARTED = 'purchase_session_changed';
+
+/**
+ * Thrown when RevenueCat is not on this account and could not be put on it:
+ * nothing was bought, and the purchase cannot start. Unlike PURCHASE_NOT_STARTED
+ * this is a failure she must be told about (otherwise Subscribe does nothing,
+ * every time, with no word why).
+ */
+export const PURCHASE_NOT_IDENTIFIED = 'purchase_identity_unconfirmed';
+
+export interface PurchaseStartOptions {
+  /** Called at the moment the store's own purchase call is made, and not before. */
+  onStoreCall?: () => void;
+  /**
+   * Asked before RevenueCat is moved onto `expectedOwner`: true only when the
+   * signed-in account is still that one. Without it RevenueCat is never moved.
+   */
+  confirmOwner?: () => Promise<boolean>;
+}
 
 /**
  * `mayStart` is asked only BEFORE the store is called. Once the store has
  * answered, the result is always returned: the purchase was made as
  * `expectedOwner` (identity changes wait in the same queue), and dropping it
  * because the screen has gone would leave her charged but still "free".
+ *
+ * When RevenueCat is on another customer (its login failed at sign-in), it is
+ * identified once here, with the same login call, and the purchase goes on if
+ * that worked. It never buys as anyone but `expectedOwner`.
  */
 export function purchaseRevenueCatPackage(
   pkg: PurchasesPackage,
   expectedOwner: string,
   mayStart: () => boolean,
+  options: PurchaseStartOptions = {},
 ) {
   return serializeIdentity(async () => {
     if (!expectedOwner || !mayStart()) throw new Error(PURCHASE_NOT_STARTED);
-    const owner = await Purchases.getAppUserID();
-    if (!mayStart() || owner !== expectedOwner) throw new Error(PURCHASE_NOT_STARTED);
+    let owner = await Purchases.getAppUserID();
+    if (!mayStart()) throw new Error(PURCHASE_NOT_STARTED);
+    if (owner !== expectedOwner) {
+      // Only for the account that is really signed in: never on a guess.
+      const confirmed = options.confirmOwner
+        ? await options.confirmOwner().catch(() => false)
+        : false;
+      if (!mayStart()) throw new Error(PURCHASE_NOT_STARTED);
+      if (!confirmed) throw new Error(PURCHASE_NOT_IDENTIFIED);
+      try {
+        await identifyAs(expectedOwner);
+        owner = await Purchases.getAppUserID();
+      } catch (err) {
+        console.warn('[RevenueCat] login before purchase failed:', err);
+        throw new Error(PURCHASE_NOT_IDENTIFIED);
+      }
+      // She may have left while it was logging in.
+      if (!mayStart()) throw new Error(PURCHASE_NOT_STARTED);
+      if (owner !== expectedOwner) throw new Error(PURCHASE_NOT_IDENTIFIED);
+    }
+    // From here the store is involved. (Nothing may come between the check
+    // above and this call: the caller locks the screen on `onStoreCall`.)
+    options.onStoreCall?.();
     return Purchases.purchasePackage(pkg);
   });
 }

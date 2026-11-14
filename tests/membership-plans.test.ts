@@ -107,8 +107,11 @@ test('each step is logged at the real moment, once', () => {
   assert.equal(screen.split("logMembershipPath('plans_viewed'").length - 1, 1);
   const purchase = read('src/hooks/usePlanPurchase.ts');
   assert.match(purchase, /setUpgradeOpen\(true\);\s+logMembershipPath\('plan_sheet_opened', \{ tier, source \}\);/);
-  // Started just before the store call; the ending only for the session that started it.
-  assert.match(purchase, /logMembershipPath\('purchase_started', \{ tier: upgradeTier, source \}\);\s+const result = upgradeTier === 'essential'\s+\? await purchaseEssential\(\)\s+: await purchasePremium\(\);\s+const session = await sameSession\(\);[\s\S]*?if \(!session\) return;\s+logMembershipPath\(\s+result === 'success' \? 'purchase_succeeded' : result === 'failed' \? 'purchase_failed' : 'purchase_cancelled',/);
+  // Started just before the purchase call; the ending only for the session that started it.
+  assert.match(purchase, /logMembershipPath\('purchase_started', \{ tier: upgradeTier, source \}\);\s+const result = upgradeTier === 'essential'\s+\? await purchaseEssential\(control\)\s+: await purchasePremium\(control\);[\s\S]*?session = await sameSession\(\);[\s\S]*?if \(checked && !session\) return;\s+if \(session\) \{\s+logMembershipPath\(\s+result === 'success' \? 'purchase_succeeded' : result === 'failed' \? 'purchase_failed' : 'purchase_cancelled',/);
+  // One start, one ending: neither is logged anywhere else in the flow.
+  assert.equal(purchase.split("logMembershipPath('purchase_started'").length - 1, 1);
+  assert.equal(purchase.split("'purchase_cancelled',").length - 1, 1);
   // No other file logs a purchase or a plans view.
   for (const file of sourceFiles()) {
     if (file.endsWith(join('hooks', 'usePlanPurchase.ts')) || file.endsWith(join('app', 'plans.tsx')) || file.endsWith(join('lib', 'membershipPath.ts')) || file.endsWith(join('lib', 'funnel.ts'))) continue;

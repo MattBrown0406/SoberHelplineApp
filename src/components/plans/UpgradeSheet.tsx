@@ -31,9 +31,10 @@ export function UpgradeSheet({
   onPurchase: () => void;
   purchasing: boolean;
   /**
-   * True while the App Store has not answered a purchase: the sheet cannot be
-   * closed (button, backdrop or Android back) until it has, so the result of a
-   * purchase she may be charged for always has somewhere to land.
+   * True while the App Store's purchase call is in flight: the sheet cannot be
+   * closed (button, backdrop or Android back) until it has answered, so the
+   * result of a purchase she may be charged for always has somewhere to land.
+   * Before that call it can be closed, which ends the attempt.
    */
   closeDisabled?: boolean;
 }) {

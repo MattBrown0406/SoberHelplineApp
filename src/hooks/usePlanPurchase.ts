@@ -6,6 +6,7 @@ import { recordVerifiedPurchase, withTimeoutFallback } from '../lib/authBootstra
 import { appAlert } from '../lib/appAlert';
 import { logMembershipPath } from '../lib/funnel';
 import type { PlanSource } from '../lib/membershipPath';
+import { PRE_STORE_STEP_MS, beforeStoreStep, newPurchaseAttempt, type PurchaseAttempt, type PurchaseControl } from '../lib/purchaseSteps';
 import { setReviewPromptPaywallVisible } from '../lib/reviewPrompt';
 import { trialLabelKey } from '../lib/subscriptionTrial';
 import { useIAP, type SubscriptionTier } from './useIAP';
@@ -31,6 +32,8 @@ export function usePlanOffers() {
 }
 
 export type PlanOffers = ReturnType<typeof usePlanOffers>;
+
+type FlowPhase = 'idle' | 'preparing' | 'store' | 'finishing';
 
 /**
  * The one place a plan is bought. The plans screen owns the purchase sheet
@@ -67,10 +70,17 @@ export function usePlanPurchase(source: PlanSource | 'unknown') {
   }, [purchaseOwner]);
 
   // One purchase at a time, from the tap until everything after it is done.
-  // 'store' = the App Store has not answered yet (she must not leave);
+  // 'preparing' = she tapped, but the App Store has not been asked yet: nothing
+  //               is bought, so she may still close the sheet or go back, and
+  //               that ends the attempt;
+  // 'store'     = the App Store's purchase call is in flight (she must not leave);
   // 'finishing' = it said yes and the membership is being switched on.
-  const purchaseFlow = useRef<{ phase: 'idle' | 'store' | 'finishing' }>({ phase: 'idle' });
-  const [flowPhase, setFlowPhase] = useState<'idle' | 'store' | 'finishing'>('idle');
+  const purchaseFlow = useRef<{ phase: FlowPhase; attempt: PurchaseAttempt | null }>({ phase: 'idle', attempt: null });
+  const [flowPhase, setFlowPhase] = useState<FlowPhase>('idle');
+  // Leaving the screen before the store was asked ends the attempt as well.
+  useEffect(() => () => {
+    if (purchaseFlow.current.phase === 'preparing') purchaseFlow.current.attempt?.leave();
+  }, []);
 
   async function handlePurchase() {
     const generation = purchaseOwner.generation;
@@ -82,14 +92,29 @@ export function usePlanPurchase(source: PlanSource | 'unknown') {
     // A fast second tap must not log a second start, nor a "cancelled" for a
     // purchase that is still going.
     if (purchaseFlow.current.phase !== 'idle') return;
-    const setPhase = (phase: 'idle' | 'store' | 'finishing') => {
+    const attempt = newPurchaseAttempt();
+    purchaseFlow.current.attempt = attempt;
+    // Only the attempt that owns the flow moves it: one she has left (the flow
+    // is already free again, perhaps for a newer tap) changes nothing.
+    const setPhase = (phase: FlowPhase) => {
+      if (purchaseFlow.current.attempt !== attempt) return;
       purchaseFlow.current.phase = phase;
+      if (phase === 'idle') purchaseFlow.current.attempt = null;
       setFlowPhase(phase);
     };
-    setPhase('store');
+    setPhase('preparing');
     try {
-      const { data: { session: purchaseSession } } = await supabase.auth.getSession();
-      if (!onScreen() || !purchaseSession) return;
+      // Every step before the store is asked has a time limit, and stops at
+      // once if she leaves (purchaseSteps): a stalled connection must never
+      // hold her on this screen with no payment sheet in sight.
+      const sessionStep = await beforeStoreStep(supabase.auth.getSession(), { limitMs: PRE_STORE_STEP_MS, left: attempt.whenLeft });
+      if (sessionStep.outcome === 'left' || !onScreen()) return;
+      if (sessionStep.outcome === 'timeout') {
+        appAlert(t('upgradeSheet.title'), t('upgradeSheet.iapError'));
+        return;
+      }
+      const purchaseSession = sessionStep.value.data.session;
+      if (!purchaseSession) return;
       // The same person is still signed in. Deliberately NOT tied to this
       // screen: a purchase the store finished after the screen closed is still
       // hers, and must be recorded or she is charged but stays "free".
@@ -98,22 +123,43 @@ export function usePlanPurchase(source: PlanSource | 'unknown') {
         const { data: { session } } = await supabase.auth.getSession();
         return purchaseOwnerRef.current === purchaseOwner && session?.user.id === purchaseSession.user.id ? session : null;
       };
-      // The App Store purchase starts here.
+      const control: PurchaseControl = {
+        // She closed the sheet or went back: the store is not asked afterwards.
+        mayStart: () => !attempt.left,
+        left: attempt.whenLeft,
+        // The exits lock here, and only here: when the store is really asked.
+        onStoreCall: () => setPhase('store'),
+        confirmOwner: async () => (await sameSession()) !== null,
+      };
+      // The purchase starts here; the App Store is asked inside (onStoreCall).
       logMembershipPath('purchase_started', { tier: upgradeTier, source });
       const result = upgradeTier === 'essential'
-        ? await purchaseEssential()
-        : await purchasePremium();
-      const session = await sameSession();
+        ? await purchaseEssential(control)
+        : await purchasePremium(control);
+      // The store has answered (or was never asked): she may leave again. A
+      // purchase that did not go through also frees the buy buttons at once.
+      setPhase(result === 'success' ? 'finishing' : 'idle');
+      // Whether the same person is still signed in. Only a success waits for
+      // this without limit (it must be recorded); the rest is logging.
+      let session: Awaited<ReturnType<typeof sameSession>> = null;
+      let checked = true;
+      if (result === 'success') {
+        session = await sameSession();
+      } else {
+        const check = await beforeStoreStep(sameSession(), { limitMs: PRE_STORE_STEP_MS });
+        checked = check.outcome === 'done';
+        session = check.outcome === 'done' ? check.value : null;
+      }
       // A different account must not be credited with how this purchase
       // ended, so nothing is logged or recorded for it.
-      if (!session) return;
-      logMembershipPath(
-        result === 'success' ? 'purchase_succeeded' : result === 'failed' ? 'purchase_failed' : 'purchase_cancelled',
-        { tier: upgradeTier, source },
-      );
-      if (result === 'success') {
-        // She may leave from here on: the rest finishes without this screen.
-        setPhase('finishing');
+      if (checked && !session) return;
+      if (session) {
+        logMembershipPath(
+          result === 'success' ? 'purchase_succeeded' : result === 'failed' ? 'purchase_failed' : 'purchase_cancelled',
+          { tier: upgradeTier, source },
+        );
+      }
+      if (result === 'success' && session) {
         // The store verified it: unlock now, then let the server mirror catch up.
         // A failed refresh must not leave the sheet open inviting a second purchase.
         if (user) recordVerifiedPurchase(user.id, upgradeTier);
@@ -132,6 +178,9 @@ export function usePlanPurchase(source: PlanSource | 'unknown') {
         if (!onScreen()) return;
         closeUpgrade();
       } else if (result === 'failed') {
+        // Includes a step that timed out and a purchase that could not start
+        // (RevenueCat not on this account). Only her own leaving, or her
+        // cancelling in the store's sheet, is silent.
         if (onScreen()) appAlert(t('upgradeSheet.title'), t('upgradeSheet.iapError'));
       }
     } finally {
@@ -153,8 +202,17 @@ export function usePlanPurchase(source: PlanSource | 'unknown') {
   }
 
   function closeUpgrade() {
-    // The App Store has not answered yet: the sheet stays until it does.
-    if (purchaseFlow.current.phase === 'store') return;
+    const flow = purchaseFlow.current;
+    // The App Store has been asked and has not answered yet: the sheet stays until it does.
+    if (flow.phase === 'store') return;
+    // Before the store is asked nothing has been bought: closing ends the
+    // attempt, quietly, and the buy buttons are free again straight away.
+    if (flow.phase === 'preparing') {
+      flow.attempt?.leave();
+      flow.attempt = null;
+      flow.phase = 'idle';
+      setFlowPhase('idle');
+    }
     setReviewPromptPaywallVisible(false);
     upgradeOpenRef.current = false;
     setUpgradeOpen(false);
@@ -165,8 +223,9 @@ export function usePlanPurchase(source: PlanSource | 'unknown') {
     trialLabel,
     // The buy buttons stay off until the whole flow is done.
     purchasing: purchasing || flowPhase !== 'idle',
-    // True only while the App Store has not answered: no leaving, no closing.
-    purchaseInFlight: purchasing || flowPhase === 'store',
+    // True only while the App Store's own purchase call is in flight: no
+    // leaving, no closing. Before that call she can always close or go back.
+    purchaseInFlight: flowPhase === 'store',
     retryPrices,
     upgradeOpen,
     upgradeTier,

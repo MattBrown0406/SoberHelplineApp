@@ -69,9 +69,12 @@ export default function PlansScreen() {
   // Cleared only when the screen goes: a re-render must not cancel the opening.
   useEffect(() => () => { if (sheetTimer.current) clearTimeout(sheetTimer.current); }, []);
 
-  // While the App Store has not answered, she stays here: leaving used to
-  // drop the result of a purchase she was charged for. Android's back button
-  // is swallowed, the swipe-back is off, and the back arrow is disabled.
+  // While the App Store's own purchase call is in flight, she stays here:
+  // leaving used to drop the result of a purchase she was charged for.
+  // Android's back button is swallowed, the swipe-back is off, and the back
+  // arrow is disabled. Before that call (the session, the store's products and
+  // RevenueCat are still being read, each with a time limit) nothing has been
+  // bought, so every exit works and leaving simply ends the attempt.
   const { purchaseInFlight } = plan;
   useEffect(() => {
     if (!purchaseInFlight) return;

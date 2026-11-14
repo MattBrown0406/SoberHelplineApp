@@ -73,15 +73,17 @@ test('rehearsal delayed completion and delayed 401 parsing never refresh B',asyn
   r.auth.refreshSession=async()=>{refreshes++;};const api=r.render();await settle();
   const pending=api.send('private');await settle();r.switchAuth('B');body.resolve({code:'unauthorized'});await pending;assert.equal(refreshes,0);
 });
-function iap() {
-  const h=harness(),price=deferred(),purchases=[];let owner='account-A',rcOwner=owner,reads=0;
+// The real pre-store helpers; `limitMs` shortens the 15-second limit for tests that wait it out.
+const purchaseSteps=(limitMs)=>{const real=load('src/lib/purchaseSteps.ts',{});return limitMs?{...real,PRE_STORE_STEP_MS:limitMs}:real;};
+function iap({rcOwner:startOwner,limitMs}={}) {
+  const h=harness(),price=deferred(),purchases=[];let owner='account-A',rcOwner=startOwner??owner,reads=0;
   const pkg={product:{identifier:'sh_premium_monthly',priceString:'$1'}};
   const offerings={all:{main:{availablePackages:[pkg]}}};
   const sdk={configure(){},async getAppUserID(){return rcOwner;},async logOut(){rcOwner='$RCAnonymousID:test';},async logIn(id){rcOwner=id;},getOfferings(){return ++reads===1?Promise.resolve(offerings):price.promise;},async purchasePackage(){purchases.push(rcOwner);return {customerInfo:{entitlements:{active:{premium:{}}}}};}};
   const rc=load('src/lib/revenueCat.ts',{'react-native-purchases':{default:sdk},'../config':{RC_API_KEY:'public-test'}});
-  const hook=load('src/hooks/useIAP.ts',{react:h.react,'../contexts/AccountContext':{useAccount:()=>({user:{id:owner}})},'react-native-purchases':{default:sdk},'../lib/revenueCat':rc,'../lib/reviewPrompt':{setReviewPromptPurchaseFlow(){}},'../lib/subscriptionTrial':{freeTrialOffer:()=>null},'react-native':{AppState:{addEventListener:()=>({remove(){}})}}}).useIAP;
+  const hook=load('src/hooks/useIAP.ts',{react:h.react,'../contexts/AccountContext':{useAccount:()=>({user:{id:owner}})},'react-native-purchases':{default:sdk},'../lib/revenueCat':rc,'../lib/purchaseSteps':purchaseSteps(limitMs),'../lib/reviewPrompt':{setReviewPromptPurchaseFlow(){}},'../lib/subscriptionTrial':{freeTrialOffer:()=>null},'react-native':{AppState:{addEventListener:()=>({remove(){}})}}}).useIAP;
   const render=()=>h.render(hook);
-  return {h,price,purchases,offerings,render,rc,pkg,sdk,switchAccount(){owner='account-B';render();}};
+  return {h,price,purchases,offerings,render,rc,pkg,sdk,rcOwner:()=>rcOwner,switchAccount(){owner='account-B';render();}};
 }
 for(const why of ['unmount','account'])test(`IAP ${why} during offerings never buys as B`,async()=>{
   const x=iap(),api=x.render(),pending=api.purchasePremium();await settle();
@@ -122,9 +124,12 @@ test('native SDK resolved no-op is reported rather than claiming OFF',async()=>{
   let alerts=0;const fn=extract('app/video-session.native.tsx','toggleMedia',{localParticipant:{isMicrophoneEnabled:true,setMicrophoneEnabled:async()=>{}},mediaBusy:{current:false},mediaActive:{current:true},setMediaPending(){},Alert:{alert(){alerts++;}},t:x=>x});await fn('microphone');assert.equal(alerts,1);
 });
 // The purchase flow lives in the plans hook (the Support tab only opens the plans screen).
+const asked=control=>control?.onStoreCall?.();
 function planPurchase(overrides={}) {
   const owner={owner:'A',active:true,generation:0},calls=[],logged=[],auth={id:'auth-A'};
-  const scope={source:'support_tab',logMembershipPath:(step,meta)=>{logged.push([step,meta.tier,meta.source]);},purchaseOwner:owner,purchaseOwnerRef:{current:owner},purchaseFlow:{current:{phase:'idle'}},setFlowPhase(){},subscriptionPrices:{premium:'$1',essential:'$1'},upgradeTier:'premium',purchasePremium:async()=>'success',purchaseEssential:async()=>'success',user:{id:'A'},recordVerifiedPurchase(){calls.push('record');},retryPrices(){},withTimeoutFallback:p=>p,supabase:{auth:{getSession:async()=>({data:{session:{user:{id:auth.id},access_token:'token-A'}}})},functions:{invoke:async()=>{calls.push('sync');return {};}}},refreshAccount:async()=>{calls.push('refresh');},closeUpgrade(){calls.push('close');},appAlert(){calls.push('alert');},t:x=>x,...overrides};
+  const steps=purchaseSteps(overrides.limitMs);
+  // (The doubles for the store ask it at once: `asked` is what useIAP does when the store's purchase call is made.)
+  const scope={source:'support_tab',logMembershipPath:(step,meta)=>{logged.push([step,meta.tier,meta.source]);},purchaseOwner:owner,purchaseOwnerRef:{current:owner},purchaseFlow:{current:{phase:'idle',attempt:null}},setFlowPhase(){},subscriptionPrices:{premium:'$1',essential:'$1'},upgradeTier:'premium',purchasePremium:async control=>{asked(control);return 'success';},purchaseEssential:async control=>{asked(control);return 'success';},beforeStoreStep:steps.beforeStoreStep,newPurchaseAttempt:steps.newPurchaseAttempt,PRE_STORE_STEP_MS:steps.PRE_STORE_STEP_MS,user:{id:'A'},recordVerifiedPurchase(){calls.push('record');},retryPrices(){},withTimeoutFallback:p=>p,supabase:{auth:{getSession:async()=>({data:{session:{user:{id:auth.id},access_token:'token-A'}}})},functions:{invoke:async()=>{calls.push('sync');return {};}}},refreshAccount:async()=>{calls.push('refresh');},closeUpgrade(){calls.push('close');},appAlert(){calls.push('alert');},t:x=>x,...overrides};
   return {owner,calls,logged,auth,scope,fn:extract('src/hooks/usePlanPurchase.ts','handlePurchase',scope)};
 }
 // M-A: a purchase the store completes after the screen closed is still hers.
@@ -132,7 +137,7 @@ for(const stage of ['purchase','sync','refresh'])test(`plans screen closed durin
   const gate=deferred(),held=[];
   const wait=async(name,result)=>{held.push(name);if(stage===name)await gate.promise;return result;};
   // (Overrides go in at creation: the sandbox copies the top-level scope.)
-  const x=planPurchase({purchasePremium:()=>wait('purchase','success'),refreshAccount:async()=>{x.calls.push('refresh');await wait('refresh');}});
+  const x=planPurchase({purchasePremium:control=>{asked(control);return wait('purchase','success');},refreshAccount:async()=>{x.calls.push('refresh');await wait('refresh');}});
   x.scope.supabase.functions.invoke=async()=>{x.calls.push('sync');return wait('sync',{});};
   const pending=x.fn();await settle();assert.equal(x.scope.purchaseFlow.current.phase,stage==='purchase'?'store':'finishing');
   x.owner.active=false;x.owner.generation+=1;gate.resolve();await pending;
@@ -142,7 +147,7 @@ for(const stage of ['purchase','sync','refresh'])test(`plans screen closed durin
 });
 for(const stage of ['purchase','sync'])for(const how of ['account','session'])test(`a different ${how} after ${stage} is never credited with the purchase`,async()=>{
   const gate=deferred();
-  const x=planPurchase({purchasePremium:async()=>{if(stage==='purchase')await gate.promise;return 'success';}});
+  const x=planPurchase({purchasePremium:async control=>{asked(control);if(stage==='purchase')await gate.promise;return 'success';}});
   x.scope.supabase.functions.invoke=async()=>{x.calls.push('sync');if(stage==='sync')await gate.promise;return {};};
   const pending=x.fn();await settle();
   if(how==='account')x.scope.purchaseOwnerRef.current={owner:'B',active:true,generation:0};else x.auth.id='auth-B';
@@ -153,7 +158,7 @@ for(const stage of ['purchase','sync'])for(const how of ['account','session'])te
 });
 test('a fast double tap starts one purchase, logs one start and never a false cancel',async()=>{
   const gate=deferred();let purchases=0;
-  const x=planPurchase({purchasePremium:async()=>{purchases++;await gate.promise;return 'success';}});
+  const x=planPurchase({purchasePremium:async control=>{asked(control);purchases++;await gate.promise;return 'success';}});
   const first=x.fn(),second=x.fn();await settle();const third=x.fn();
   gate.resolve();await Promise.all([first,second,third]);
   assert.equal(purchases,1);
@@ -162,7 +167,7 @@ test('a fast double tap starts one purchase, logs one start and never a false ca
 });
 test('a purchase that fails after the screen closed is logged but shows no alert there',async()=>{
   const gate=deferred();
-  const x=planPurchase({purchasePremium:async()=>{await gate.promise;return 'failed';}});
+  const x=planPurchase({purchasePremium:async control=>{asked(control);await gate.promise;return 'failed';}});
   const pending=x.fn();await settle();x.owner.active=false;gate.resolve();await pending;
   assert.deepEqual(x.calls,[]);
   assert.deepEqual(x.logged.map(entry=>entry[0]),['purchase_started','purchase_failed']);
@@ -226,4 +231,170 @@ test('native successful toggle verifies actual SDK change without alert',async()
   let alerts=0;const participant={isMicrophoneEnabled:true,async setMicrophoneEnabled(next){this.isMicrophoneEnabled=next;}};
   const fn=extract('app/video-session.native.tsx','toggleMedia',{localParticipant:participant,mediaBusy:{current:false},mediaActive:{current:true},setMediaPending(){},Alert:{alert(){alerts++;}},t:x=>x});
   await fn('microphone');assert.equal(participant.isMicrophoneEnabled,false);assert.equal(alerts,0);
+});
+
+// ── M1: the exits lock only while the store's own purchase call is in flight ──
+const never=()=>new Promise(()=>{});
+const tick=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+test('before the store step: done, too slow, or she left; and the stop is told at once',async()=>{
+  const steps=purchaseSteps();
+  assert.equal(steps.PRE_STORE_STEP_MS,15000);
+  assert.deepEqual({...await steps.beforeStoreStep(Promise.resolve('x'))},{outcome:'done',value:'x'});
+  const stops=[];
+  assert.deepEqual({...await steps.beforeStoreStep(never(),{limitMs:5,onStop:why=>stops.push(why)})},{outcome:'timeout'});
+  const attempt=steps.newPurchaseAttempt();assert.equal(attempt.left,false);
+  const waiting=steps.beforeStoreStep(never(),{limitMs:60_000,left:attempt.whenLeft,onStop:why=>stops.push(why)});
+  attempt.leave();attempt.leave();
+  assert.deepEqual({...await waiting},{outcome:'left'});assert.equal(attempt.left,true);
+  assert.deepEqual(stops,['timeout','left']);
+  // A step that fails still fails (the caller reports it), and a late failure after a stop is not left unhandled.
+  await assert.rejects(steps.beforeStoreStep(Promise.reject(Error('offline'))));
+  const late=deferred();assert.equal((await steps.beforeStoreStep(late.promise,{limitMs:5})).outcome,'timeout');late.reject(Error('late'));await settle();
+});
+test('plans: the flow is "preparing" until the store is asked, and only then locks the exits',async()=>{
+  const gate=deferred(),store=deferred();let control;
+  const x=planPurchase({purchasePremium:async c=>{control=c;await gate.promise;c.onStoreCall();return store.promise;}});
+  const close=extract('src/hooks/usePlanPurchase.ts','closeUpgrade',{...x.scope,setReviewPromptPaywallVisible(){},upgradeOpenRef:{current:true},setUpgradeOpen(){x.calls.push('sheet-closed');}});
+  const pending=x.fn();await settle();
+  assert.equal(x.scope.purchaseFlow.current.phase,'preparing','no payment sheet yet: she can still leave');
+  assert.equal(control.mayStart(),true);
+  gate.resolve();await settle();
+  assert.equal(x.scope.purchaseFlow.current.phase,'store');
+  close();assert.deepEqual(x.calls,[],'the sheet stays while the store has not answered');
+  store.resolve('cancelled');await pending;
+  assert.equal(x.scope.purchaseFlow.current.phase,'idle');
+  assert.deepEqual(x.logged.map(entry=>entry[0]),['purchase_started','purchase_cancelled']);
+  assert.ok(!x.calls.includes('alert'),'cancelling in the store sheet is silent');
+  const hook=source('src/hooks/usePlanPurchase.ts');
+  assert.match(hook,/purchaseInFlight: flowPhase === 'store',/);
+  assert.doesNotMatch(hook,/purchaseInFlight: purchasing/);
+  assert.match(hook,/onStoreCall: \(\) => setPhase\('store'\),/);
+  assert.equal(hook.split("setPhase('store')").length-1,1,'the lock is set in one place: when the store is asked');
+  // Leaving the screen before the store is asked ends the attempt too.
+  assert.match(hook,/useEffect\(\(\) => \(\) => \{\s+if \(purchaseFlow\.current\.phase === 'preparing'\) purchaseFlow\.current\.attempt\?\.leave\(\);\s+\}, \[\]\);/);
+});
+for(const when of ['session','store products'])test(`plans: closing the sheet while the ${when} are still loading ends the attempt cleanly`,async()=>{
+  let control,purchases=0;const offerings=deferred();
+  const x=planPurchase({purchasePremium:async c=>{control=c;purchases++;await Promise.race([offerings.promise,c.left]);return c.mayStart()?'success':'cancelled';}});
+  if(when==='session')x.scope.supabase.auth.getSession=never;
+  const fn=when==='session'?extract('src/hooks/usePlanPurchase.ts','handlePurchase',x.scope):x.fn;
+  const close=extract('src/hooks/usePlanPurchase.ts','closeUpgrade',{...x.scope,setReviewPromptPaywallVisible(){},upgradeOpenRef:{current:true},setUpgradeOpen(){x.calls.push('sheet-closed');}});
+  const pending=fn();await settle();
+  assert.equal(x.scope.purchaseFlow.current.phase,'preparing');
+  close();
+  assert.deepEqual(x.calls,['sheet-closed'],'Close works before the store is asked');
+  assert.equal(x.scope.purchaseFlow.current.phase,'idle','and the buy buttons are free again at once');
+  await pending;offerings.resolve();await settle();
+  assert.ok(!x.calls.includes('alert')&&!x.calls.includes('record'),'no error, nothing recorded');
+  if(when==='session'){assert.equal(purchases,0);assert.deepEqual(x.logged,[],'never started, so nothing is logged');}
+  else{assert.equal(control.mayStart(),false,'the store is not asked afterwards');assert.deepEqual(x.logged.map(entry=>entry[0]),['purchase_started','purchase_cancelled']);}
+  // A new tap starts a fresh attempt; the old one cannot disturb it.
+  const again=planPurchase();await again.fn();assert.deepEqual(again.calls,['record','sync','refresh','close']);
+});
+test('plans: a session read that never answers stops with the purchase-error message, never a stuck screen',async()=>{
+  let purchases=0;
+  const x=planPurchase({limitMs:5,purchasePremium:async()=>{purchases++;return 'success';}});
+  x.scope.supabase.auth.getSession=never;
+  await extract('src/hooks/usePlanPurchase.ts','handlePurchase',x.scope)();
+  assert.equal(purchases,0);assert.deepEqual(x.calls,['alert']);
+  assert.equal(x.scope.purchaseFlow.current.phase,'idle');
+});
+test('plans: a failed or cancelled purchase frees the buy buttons before the logging read; a slow read still shows the failure',async()=>{
+  const x=planPurchase({limitMs:5,purchasePremium:async c=>{asked(c);return 'failed';}});
+  let reads=0;const real=x.scope.supabase.auth.getSession;
+  x.scope.supabase.auth.getSession=()=>++reads===1?real():never();
+  const pending=extract('src/hooks/usePlanPurchase.ts','handlePurchase',x.scope)();await settle();
+  assert.equal(x.scope.purchaseFlow.current.phase,'idle','free again as soon as the store has answered');
+  await pending;
+  assert.deepEqual(x.calls,['alert']);assert.deepEqual(x.logged.map(entry=>entry[0]),['purchase_started']);
+});
+test('IAP: store products that never load fail after the limit, and nothing is bought later',async()=>{
+  const x=iap({limitMs:5}),api=x.render(),pending=api.purchasePremium();
+  assert.equal(await pending,'failed');
+  x.price.resolve(x.offerings);await settle();assert.deepEqual(x.purchases,[]);
+  // Not stuck: the next tap can buy.
+  const again=x.render();assert.equal(await again.purchasePremium(),'success');assert.deepEqual(x.purchases,['account-A']);
+});
+test('IAP: a login that stalls ahead of the purchase fails after the limit, and its late answer buys nothing',async()=>{
+  const x=iap({limitMs:5}),gate=deferred();x.sdk.logIn=()=>gate.promise;
+  // A sign-in elsewhere in the queue that has stalled (the bad-network case).
+  const login=x.rc.configureRevenueCat('account-B');await settle();
+  const api=x.render();let asked=0;
+  const pending=api.purchasePremium({onStoreCall:()=>{asked++;}});x.price.resolve(x.offerings);
+  assert.equal(await pending,'failed');
+  gate.resolve();await login;await settle();await tick(1);
+  assert.deepEqual(x.purchases,[]);assert.equal(asked,0);
+});
+test('IAP: leaving while the store products load is a quiet cancel; once the store is asked its answer is always waited for',async()=>{
+  const steps=purchaseSteps();
+  const x=iap(),api=x.render(),attempt=steps.newPurchaseAttempt();
+  const pending=api.purchasePremium({mayStart:()=>!attempt.left,left:attempt.whenLeft});await settle();
+  attempt.leave();assert.equal(await pending,'cancelled');
+  x.price.resolve(x.offerings);await settle();assert.deepEqual(x.purchases,[]);
+  // The time limit covers the wait until the store is asked, not the store's own sheet.
+  const y=iap({limitMs:5}),gate=deferred();y.sdk.purchasePackage=async()=>{y.purchases.push('account-A');return gate.promise;};
+  let storeCalls=0;const buying=y.render().purchasePremium({onStoreCall:()=>{storeCalls++;}});y.price.resolve(y.offerings);
+  await tick(30);assert.equal(storeCalls,1);assert.deepEqual(y.purchases,['account-A']);
+  gate.resolve({customerInfo:{entitlements:{active:{premium:{}}}}});assert.equal(await buying,'success');
+});
+test('plans screen: every exit follows the store call, not the tap',()=>{
+  const screen=source('app/plans.tsx');
+  assert.match(screen,/const \{ purchaseInFlight \} = plan;\s+useEffect\(\(\) => \{\s+if \(!purchaseInFlight\) return;\s+const subscription = BackHandler\.addEventListener\('hardwareBackPress', \(\) => true\);/);
+  assert.match(screen,/closeDisabled=\{purchaseInFlight\}/);
+  assert.match(source('src/hooks/useIAP.ts'),/beforeStoreStep\(Purchases\.getOfferings\(\), \{ limitMs: PRE_STORE_STEP_MS, left: control\.left, onStop: giveUp \}\)/);
+  assert.match(source('src/hooks/useIAP.ts'),/beforeStoreStep\(untilStore, \{ limitMs: PRE_STORE_STEP_MS, left: control\.left, onStop: giveUp \}\)/);
+  assert.match(source('src/hooks/usePlanPurchase.ts'),/beforeStoreStep\(supabase\.auth\.getSession\(\), \{ limitMs: PRE_STORE_STEP_MS, left: attempt\.whenLeft \}\)/);
+  // The store is asked right after the last "may it start" check, with nothing in between.
+  assert.match(source('src/lib/revenueCat.ts'),/options\.onStoreCall\?\.\(\);\s+return Purchases\.purchasePackage\(pkg\);/);
+});
+
+// ── M2: a purchase that cannot start says so ────────────────────────────────
+test('RevenueCat left anonymous by a failed sign-in login: identified once, then bought as her',async()=>{
+  const x=iap({rcOwner:'$RCAnonymousID:test'});const logins=[];const realLogIn=x.sdk.logIn;x.sdk.logIn=async id=>{logins.push(id);return realLogIn(id);};
+  let storeCalls=0;
+  const p=x.render().purchasePremium({confirmOwner:async()=>true,onStoreCall:()=>{storeCalls++;}});x.price.resolve(x.offerings);
+  assert.equal(await p,'success');assert.deepEqual(logins,['account-A']);assert.deepEqual(x.purchases,['account-A']);assert.equal(storeCalls,1);
+  // Another customer's identity is logged out first, exactly as sign-in does it.
+  const y=iap({rcOwner:'account-B'});let out=0;const realOut=y.sdk.logOut;y.sdk.logOut=async()=>{out++;return realOut();};
+  const q=y.render().purchasePremium({confirmOwner:async()=>true});y.price.resolve(y.offerings);
+  assert.equal(await q,'success');assert.equal(out,1);assert.deepEqual(y.purchases,['account-A']);
+});
+test('RevenueCat cannot be put on her account: a failure she is told about, never a silent nothing',async()=>{
+  const original=console.error,warn=console.warn;console.error=()=>{};console.warn=()=>{};
+  try{
+    // The login fails again.
+    const x=iap({rcOwner:'$RCAnonymousID:test'});x.sdk.logIn=async()=>{throw Error('offline');};
+    const p=x.render().purchasePremium({confirmOwner:async()=>true});x.price.resolve(x.offerings);
+    assert.equal(await p,'failed');assert.deepEqual(x.purchases,[]);
+    // The signed-in account could not be confirmed: RevenueCat is not moved, and nothing is bought.
+    for(const confirmOwner of [async()=>false,async()=>{throw Error('no session');},undefined]){
+      const y=iap({rcOwner:'account-B'});let logins=0;y.sdk.logIn=async()=>{logins++;};
+      const q=y.render().purchasePremium(confirmOwner?{confirmOwner}:{});y.price.resolve(y.offerings);
+      assert.equal(await q,'failed');assert.equal(logins,0);assert.deepEqual(y.purchases,[]);assert.equal(y.rcOwner(),'account-B');
+    }
+    // She left while it was logging in: quiet, and nothing is bought.
+    const z=iap({rcOwner:'$RCAnonymousID:test'}),gate=deferred();z.sdk.logIn=()=>gate.promise;let may=true;
+    const r=z.render().purchasePremium({confirmOwner:async()=>true,mayStart:()=>may});z.price.resolve(z.offerings);await settle();
+    may=false;gate.resolve();assert.equal(await r,'cancelled');assert.deepEqual(z.purchases,[]);
+  }finally{console.error=original;console.warn=warn;}
+  const rc=source('src/lib/revenueCat.ts');
+  assert.match(rc,/export const PURCHASE_NOT_IDENTIFIED = 'purchase_identity_unconfirmed';/);
+  // Sign-in and the purchase use the one login call.
+  assert.equal(rc.split('await Purchases.logIn(').length-1,1);
+  assert.match(rc,/if \(userId\) await identifyAs\(userId\);/);
+  assert.match(rc,/await identifyAs\(expectedOwner\);/);
+  assert.match(source('src/hooks/useIAP.ts'),/if \(rcErr\.message === PURCHASE_NOT_STARTED\) return 'cancelled';/);
+  assert.doesNotMatch(source('src/hooks/useIAP.ts'),/PURCHASE_NOT_IDENTIFIED\) return 'cancelled'/);
+});
+test('plans: a purchase that could not start shows the purchase-error alert and logs purchase_failed',async()=>{
+  let confirmed;
+  const x=planPurchase({purchasePremium:async c=>{confirmed=await c.confirmOwner();return 'failed';}});
+  await x.fn();
+  assert.equal(confirmed,true,'the signed-in session is what confirms her account');
+  assert.deepEqual(x.calls,['alert']);
+  assert.deepEqual(x.logged.map(entry=>entry[0]),['purchase_started','purchase_failed']);
+  assert.equal(x.scope.purchaseFlow.current.phase,'idle');
+  // A different session is never confirmed.
+  const y=planPurchase({purchasePremium:async c=>{y.auth.id='auth-B';confirmed=await c.confirmOwner();return 'failed';}});
+  await y.fn();assert.equal(confirmed,false);
 });
