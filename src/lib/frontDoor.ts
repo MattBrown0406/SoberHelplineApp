@@ -13,6 +13,17 @@
  */
 export const SIGNED_IN_BEFORE_KEY = '@sh:front-door:signed-in-before';
 
+/**
+ * Device storage key for "a sign-up was sent from this phone". Set the moment
+ * creating an account succeeds, before any session exists: she may confirm by
+ * email hours later and reopen the app after iOS closed it, and must then land
+ * on sign-in, not on an empty "Create your account". Holds only '1' as well.
+ */
+export const SIGN_UP_SUBMITTED_KEY = '@sh:front-door:sign-up-submitted';
+
+/** What the device remembers. Neither flag says anything about who it was. */
+export type FrontDoorFlags = { signedInBefore: boolean; signUpSubmitted: boolean };
+
 export type FrontDoorRoute = '/(auth)/sign-up' | '/(auth)/sign-in';
 
 /** What the device flag says. Anything but the stored '1' (or an unreadable store) is "never". */
@@ -30,12 +41,38 @@ export function hasEarlierSignInTrace(deviceKeys: readonly string[]): boolean {
 
 /**
  * A brand-new person opens on creating an account; once any account has signed
- * in on the device (including this session, before the flag reaches storage),
- * signed-out people land on sign-in: after sign-out, account deletion, or an
- * expired session.
+ * in on the device (including this session, before the flag reaches storage)
+ * or a sign-up has been sent from it, signed-out people land on sign-in: after
+ * sign-out, account deletion, an expired session, or a sign-up that was
+ * confirmed by email while the app was closed.
  */
-export function frontDoorRoute(input: { signedInBefore: boolean; signedInThisSession: boolean }): FrontDoorRoute {
-  return input.signedInBefore || input.signedInThisSession ? '/(auth)/sign-in' : '/(auth)/sign-up';
+export function frontDoorRoute(input: { signedInBefore: boolean; signedInThisSession: boolean; signUpSubmitted?: boolean }): FrontDoorRoute {
+  return input.signedInBefore || input.signedInThisSession || input.signUpSubmitted === true
+    ? '/(auth)/sign-in'
+    : '/(auth)/sign-up';
+}
+
+/** How long the app waits for the device flags before treating the phone as new. */
+export const FRONT_DOOR_READ_TIMEOUT_MS = 1500;
+
+/**
+ * The device flags arrived after that wait had already answered "new phone".
+ * - 'wait'    — she has not been routed yet; the normal routing will use the flags.
+ * - 'sign-in' — she is on an untouched "Create your account": move her once.
+ * - 'done'    — nothing to correct, or she has started the form (never yank it away).
+ */
+export function lateFrontDoorAction(input: {
+  flags: FrontDoorFlags;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  inAuth: boolean;
+  onSignUp: boolean;
+  formStarted: boolean;
+}): 'wait' | 'sign-in' | 'done' {
+  if (input.isAuthenticated) return 'done';
+  if (frontDoorRoute({ ...input.flags, signedInThisSession: false }) !== '/(auth)/sign-in') return 'done';
+  if (input.isLoading || !input.inAuth) return 'wait';
+  return input.onSignUp && !input.formStarted ? 'sign-in' : 'done';
 }
 
 // ── Confirm your email ───────────────────────────────────────────────────────

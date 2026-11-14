@@ -14,9 +14,9 @@ import { isOnboarded, subscribeOnboarded } from '../src/onboarding/state';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { SafetyShortcut } from '../src/components/safety/SafetyShortcut';
 import { EmergencyActions } from '../src/components/safety/EmergencyActions';
-import { getInitialLayoutState, isPushNavigationReady, withTimeoutFallback } from '../src/lib/authBootstrap';
-import { frontDoorRoute } from '../src/lib/frontDoor';
-import { markSignedInBefore, readSignedInBefore } from '../src/lib/frontDoorStore';
+import { getInitialLayoutState, isPushNavigationReady } from '../src/lib/authBootstrap';
+import { FRONT_DOOR_READ_TIMEOUT_MS, frontDoorRoute, lateFrontDoorAction, type FrontDoorFlags } from '../src/lib/frontDoor';
+import { markSignedInBefore, readFrontDoorFlags, signUpFormStarted } from '../src/lib/frontDoorStore';
 import { addAppBreadcrumb } from '../src/lib/monitoring';
 import { collapseAppStack } from '../src/lib/appStack';
 import { flushQueuedSupportCallReview, setReviewPromptRoute } from '../src/lib/reviewPrompt';
@@ -158,23 +158,42 @@ function InitialLayout() {
     };
   }, [user?.id]);
 
-  // The front door: a device nobody has signed in on opens on creating an
-  // account; after any sign-in, signed-out people land on sign-in as before.
-  const [signedInBefore, setSignedInBefore] = useState<boolean | null>(null);
+  // The front door: a device nobody has signed in on (or signed up from) opens
+  // on creating an account; after either, signed-out people land on sign-in.
+  const [deviceFlags, setDeviceFlags] = useState<FrontDoorFlags | null>(null);
+  // True when the device store answered only after the wait below gave up.
+  const [lateFlags, setLateFlags] = useState(false);
   const signedInThisSession = useRef(false);
   if (isAuthenticated) signedInThisSession.current = true;
   useEffect(() => {
     let active = true;
-    // A slow device store must not hold a signed-out person on a blank app.
-    void withTimeoutFallback(readSignedInBefore(), 1500, false).then((value) => {
-      if (active) setSignedInBefore((current) => current ?? value);
+    let gaveUp = false;
+    // A slow device store must not hold a signed-out person on a blank app:
+    // after the wait she is treated as new...
+    const timer = setTimeout(() => {
+      gaveUp = true;
+      if (active) setDeviceFlags((current) => current ?? { signedInBefore: false, signUpSubmitted: false });
+    }, FRONT_DOOR_READ_TIMEOUT_MS);
+    void readFrontDoorFlags().then((flags) => {
+      clearTimeout(timer);
+      if (!active) return;
+      if (!gaveUp) {
+        setDeviceFlags((current) => current ?? flags);
+        return;
+      }
+      // ...but the real answer still counts when it arrives (see below).
+      setDeviceFlags((current) => ({
+        signedInBefore: flags.signedInBefore || current?.signedInBefore === true,
+        signUpSubmitted: flags.signUpSubmitted || current?.signUpSubmitted === true,
+      }));
+      setLateFlags(true);
     });
-    return () => { active = false; };
+    return () => { active = false; clearTimeout(timer); };
   }, []);
   useEffect(() => {
     if (!isAuthenticated) return;
     markSignedInBefore();
-    setSignedInBefore(true);
+    setDeviceFlags((current) => ({ signUpSubmitted: current?.signUpSubmitted === true, signedInBefore: true }));
   }, [isAuthenticated]);
 
   // A soberhelpline.com/app link that arrives while signed out is kept until
@@ -192,9 +211,10 @@ function InitialLayout() {
     if (!isAuthenticated) {
       if (!inAuth) {
         // The device flag is a moment away; sign-out never waits for it.
-        if (signedInBefore === null && !signedInThisSession.current) return;
+        if (deviceFlags === null && !signedInThisSession.current) return;
         const door = frontDoorRoute({
-          signedInBefore: signedInBefore === true,
+          signedInBefore: deviceFlags?.signedInBefore === true,
+          signUpSubmitted: deviceFlags?.signUpSubmitted === true,
           signedInThisSession: signedInThisSession.current,
         });
         addAppBreadcrumb(door === '/(auth)/sign-up' ? 'auth.navigation_sign_up' : 'auth.navigation_sign_in');
@@ -216,7 +236,28 @@ function InitialLayout() {
       // Signed in and in the app: the link already opened its screen.
       clearPendingDeepLink();
     }
-  }, [user, isAuthenticated, isLoading, onboarded, segments[0], deepLinkSignal, signedInBefore]);
+  }, [user, isAuthenticated, isLoading, onboarded, segments[0], deepLinkSignal, deviceFlags]);
+
+  // The device flags came late and she was already shown "Create your
+  // account" as if the phone were new: move her to sign-in once, and only if
+  // she has not started the form (a form in progress is never taken away).
+  const onSignUp = segments[0] === '(auth)' && (segments as string[])[1] === 'sign-up';
+  useEffect(() => {
+    if (!lateFlags || deviceFlags === null) return;
+    const action = lateFrontDoorAction({
+      flags: deviceFlags,
+      isLoading,
+      isAuthenticated,
+      inAuth: segments[0] === '(auth)',
+      onSignUp,
+      formStarted: signUpFormStarted(),
+    });
+    if (action === 'wait') return;
+    setLateFlags(false);
+    if (action !== 'sign-in') return;
+    addAppBreadcrumb('auth.navigation_sign_in');
+    router.replace(frontDoorRoute({ ...deviceFlags, signedInThisSession: false }));
+  }, [lateFlags, deviceFlags, isLoading, isAuthenticated, segments[0], onSignUp]);
 
   // Keep one router stack mounted through auth/onboarding hydration. Unmounting
   // it discards the incoming deep link and can choose an unrelated default route.

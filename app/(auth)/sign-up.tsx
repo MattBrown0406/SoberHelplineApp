@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import { EmergencyActions } from '../../src/components/safety/EmergencyActions';
 import { AppLogo } from '../../src/components/ui/AppLogo';
 import { ConfirmEmailPanel } from '../../src/components/auth/ConfirmEmailPanel';
 import { SIGN_UP_CONFIRM_REDIRECT_URL } from '../../src/lib/frontDoor';
+import { markSignUpSubmitted, noteSignUpFormStarted } from '../../src/lib/frontDoorStore';
 import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '../../src/config';
 
 const TERMS_VERSION = '1.0';
@@ -47,6 +48,12 @@ export default function SignUpScreen() {
   const [error, setError] = useState<string | null>(null);
   const [checkEmail, setCheckEmail] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+
+  // Only a yes/no leaves this screen (never anything she typed): the root
+  // layout must not move her off a form she has started.
+  const formStarted = !!(firstName || lastName || email || password || acceptedTerms || checkEmail);
+  useEffect(() => { noteSignUpFormStarted(formStarted); }, [formStarted]);
+  useEffect(() => () => noteSignUpFormStarted(false), []);
 
   async function handleEmailSignUp() {
     if (loading) return;
@@ -83,6 +90,11 @@ export default function SignUpScreen() {
         );
         return;
       }
+
+      // Remembered on the device (a bare flag, nothing about who): if she
+      // confirms by email later and reopens the app, it opens on sign-in
+      // instead of an empty "Create your account".
+      markSignUpSubmitted();
 
       // AccountContext records explicit metadata consent after authenticated
       // bootstrap. Confirmation-required signups cannot query account tables yet.

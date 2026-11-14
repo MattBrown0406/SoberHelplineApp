@@ -5,11 +5,14 @@ import {
   AUTO_TRY_MIN_GAP_MS,
   PASSWORD_MEMORY_BACKGROUND_LIMIT_MS,
   RESEND_COOLDOWN_SECONDS,
+  FRONT_DOOR_READ_TIMEOUT_MS,
   SIGNED_IN_BEFORE_KEY,
   SIGN_UP_CONFIRM_REDIRECT_URL,
+  SIGN_UP_SUBMITTED_KEY,
   confirmSignInOutcome,
   frontDoorRoute,
   hasEarlierSignInTrace,
+  lateFrontDoorAction,
   parseSignedInBefore,
   resendSecondsLeft,
   shouldAutoTryOnReturn,
@@ -28,6 +31,47 @@ test('a device nobody has signed in on opens on creating an account; after any s
   assert.equal(frontDoorRoute({ signedInBefore: true, signedInThisSession: true }), '/(auth)/sign-in');
 });
 
+test('a sign-up sent from this phone opens on sign-in next time, even though nobody has signed in yet', () => {
+  // She signed up at night, confirmed by email in the morning, and iOS had closed the app.
+  assert.equal(frontDoorRoute({ signedInBefore: false, signedInThisSession: false, signUpSubmitted: true }), '/(auth)/sign-in');
+  assert.equal(frontDoorRoute({ signedInBefore: false, signedInThisSession: false, signUpSubmitted: false }), '/(auth)/sign-up');
+  // The flag is set the moment creating the account succeeds, before any session.
+  const signUp = read('app/(auth)/sign-up.tsx');
+  assert.match(signUp, /if \(err\) \{[\s\S]*?return;\s+\}\s+(\/\/[^\n]*\n\s+)+markSignUpSubmitted\(\);/);
+  assert.equal(signUp.split('markSignUpSubmitted()').length - 1, 1);
+  const store = read('src/lib/frontDoorStore.ts');
+  assert.match(store, /export function markSignUpSubmitted\(\): void \{\s+if \(submitted === true\) return;\s+submitted = true;\s+void AsyncStorage\.setItem\(SIGN_UP_SUBMITTED_KEY, '1'\)\.catch\(\(\) => undefined\);/);
+  assert.match(store, /stored = parseSignedInBefore\(await AsyncStorage\.getItem\(SIGN_UP_SUBMITTED_KEY\)\);/);
+  // Like the other flag it carries no identity, so account deletion leaves it.
+  const accountId = '3f0c2a54-9d1e-4a7b-8c11-2f6d5e7a9b10';
+  assert.deepEqual(accountLocalKeys([SIGN_UP_SUBMITTED_KEY, `@sh:onboarded:${accountId}`], [accountId]), [`@sh:onboarded:${accountId}`]);
+});
+
+test('device flags that arrive after the wait still count, but never take a started form away', () => {
+  assert.equal(FRONT_DOOR_READ_TIMEOUT_MS, 1500);
+  const returning = { signedInBefore: true, signUpSubmitted: false };
+  const base = { flags: returning, isLoading: false, isAuthenticated: false, inAuth: true, onSignUp: true, formStarted: false };
+  assert.equal(lateFrontDoorAction(base), 'sign-in', 'an untouched "Create your account" is corrected once');
+  assert.equal(lateFrontDoorAction({ ...base, flags: { signedInBefore: false, signUpSubmitted: true } }), 'sign-in');
+  assert.equal(lateFrontDoorAction({ ...base, formStarted: true }), 'done', 'she has started typing: she stays');
+  assert.equal(lateFrontDoorAction({ ...base, onSignUp: false }), 'done', 'already on sign-in or reset-password');
+  assert.equal(lateFrontDoorAction({ ...base, isAuthenticated: true }), 'done');
+  assert.equal(lateFrontDoorAction({ ...base, flags: { signedInBefore: false, signUpSubmitted: false } }), 'done', 'a new phone after all');
+  // Not routed yet: the normal routing will use the corrected flags.
+  assert.equal(lateFrontDoorAction({ ...base, isLoading: true }), 'wait');
+  assert.equal(lateFrontDoorAction({ ...base, inAuth: false, onSignUp: false }), 'wait');
+
+  const layout = read('app/_layout.tsx');
+  // The late answer replaces the "new phone" fallback instead of being dropped.
+  assert.match(layout, /if \(!gaveUp\) \{\s+setDeviceFlags\(\(current\) => current \?\? flags\);\s+return;\s+\}[\s\S]*?setLateFlags\(true\);/);
+  assert.match(layout, /formStarted: signUpFormStarted\(\),/);
+  assert.match(layout, /if \(action === 'wait'\) return;\s+setLateFlags\(false\);\s+if \(action !== 'sign-in'\) return;/);
+  // Sign-up reports only a yes/no, never what was typed.
+  const signUp = read('app/(auth)/sign-up.tsx');
+  assert.match(signUp, /const formStarted = !!\(firstName \|\| lastName \|\| email \|\| password \|\| acceptedTerms \|\| checkEmail\);\s+useEffect\(\(\) => \{ noteSignUpFormStarted\(formStarted\); \}, \[formStarted\]\);/);
+  assert.match(read('src/lib/frontDoorStore.ts'), /export function noteSignUpFormStarted\(started: boolean\): void \{\s+formStarted = started;\s+\}/);
+});
+
 test('the device flag is only ever "1", holds no identity, and survives account deletion', () => {
   assert.equal(parseSignedInBefore('1'), true);
   for (const stored of [null, undefined, '', '0', 'true', '{"email":"x"}']) assert.equal(parseSignedInBefore(stored), false);
@@ -36,7 +80,10 @@ test('the device flag is only ever "1", holds no identity, and survives account 
   assert.deepEqual(accountLocalKeys([SIGNED_IN_BEFORE_KEY, `@sh:onboarded:${accountId}`], [accountId]), [`@sh:onboarded:${accountId}`]);
   const store = read('src/lib/frontDoorStore.ts');
   assert.match(store, /AsyncStorage\.setItem\(SIGNED_IN_BEFORE_KEY, '1'\)/);
-  assert.equal((store.match(/AsyncStorage\.setItem\(/g) ?? []).length, 2, 'only the flag is ever written');
+  assert.match(store, /AsyncStorage\.setItem\(SIGN_UP_SUBMITTED_KEY, '1'\)/);
+  // Three writes, each of the bare '1': two for "signed in before", one for "sign-up sent".
+  assert.equal((store.match(/AsyncStorage\.setItem\(/g) ?? []).length, 3, 'only the flags are ever written');
+  assert.equal((store.match(/AsyncStorage\.setItem\((SIGNED_IN_BEFORE_KEY|SIGN_UP_SUBMITTED_KEY), '1'\)/g) ?? []).length, 3);
   assert.doesNotMatch(store, /email|password|accountId|user/i);
 });
 
@@ -51,17 +98,19 @@ test('a phone that had the app before the flag existed still counts as signed in
 test('the root layout chooses the first screen from the flag and still sends sign-out to sign-in', () => {
   const layout = read('app/_layout.tsx');
   assert.match(layout, /if \(isAuthenticated\) signedInThisSession\.current = true;/);
-  assert.match(layout, /if \(signedInBefore === null && !signedInThisSession\.current\) return;/);
-  assert.match(layout, /const door = frontDoorRoute\(\{\s+signedInBefore: signedInBefore === true,\s+signedInThisSession: signedInThisSession\.current,\s+\}\);/);
+  assert.match(layout, /if \(deviceFlags === null && !signedInThisSession\.current\) return;/);
+  assert.match(layout, /const door = frontDoorRoute\(\{\s+signedInBefore: deviceFlags\?\.signedInBefore === true,\s+signUpSubmitted: deviceFlags\?\.signUpSubmitted === true,\s+signedInThisSession: signedInThisSession\.current,\s+\}\);/);
   assert.match(layout, /router\.replace\(door\);/);
   assert.doesNotMatch(layout, /router\.replace\('\/\(auth\)\/sign-in'\)/);
-  // A session (new or restored) is what marks the device; sign-up alone never does.
-  assert.match(layout, /if \(!isAuthenticated\) return;\s+markSignedInBefore\(\);\s+setSignedInBefore\(true\);/);
+  // A session (new or restored) is what marks "signed in before"; sign-up alone never does
+  // (it sets its own "sign-up sent" flag).
+  assert.match(layout, /if \(!isAuthenticated\) return;\s+markSignedInBefore\(\);\s+setDeviceFlags\(\(current\) => \(\{ signUpSubmitted: current\?\.signUpSubmitted === true, signedInBefore: true \}\)\);/);
   // A slow device store never leaves a signed-out person waiting.
-  assert.match(layout, /withTimeoutFallback\(readSignedInBefore\(\), 1500, false\)/);
+  assert.match(layout, /const timer = setTimeout\(\(\) => \{\s+gaveUp = true;\s+if \(active\) setDeviceFlags\(\(current\) => current \?\? \{ signedInBefore: false, signUpSubmitted: false \}\);\s+\}, FRONT_DOOR_READ_TIMEOUT_MS\);/);
   for (const file of ['app/(auth)/sign-up.tsx', 'src/components/auth/ConfirmEmailPanel.tsx']) {
-    assert.doesNotMatch(read(file), /markSignedInBefore|frontDoorStore/, `${file} must not mark the device`);
+    assert.doesNotMatch(read(file), /markSignedInBefore/, `${file} must not mark the device as signed in`);
   }
+  assert.doesNotMatch(read('src/components/auth/ConfirmEmailPanel.tsx'), /frontDoorStore/);
 });
 
 test('"Send the email again" rests for 60 seconds after every email', () => {
