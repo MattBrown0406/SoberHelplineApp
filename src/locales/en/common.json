@@ -95,6 +95,21 @@
       "dismissLabel": "Hide what to expect at Family Squares"
     }
   },
+  "reminderAsk": {
+    "seatBody": "Want a reminder? We'll send one an hour before, and a tap-to-join when it starts.",
+    "todayBody": "Want a reminder before Monday's meeting? We'll let you know when it's coming up, with a tap to join.",
+    "remindMe": "Remind me",
+    "remindMeLabel": "Remind me about the Monday meeting",
+    "notNow": "Not now",
+    "notNowLabel": "Not now. Hide this reminder offer",
+    "settingsBody": "Reminders are off for Sober Helpline on this device. You can turn them on in Settings.",
+    "openSettings": "Open Settings",
+    "openSettingsLabel": "Open this device's Settings to allow notifications",
+    "on": "Reminders are on. We'll let you know before the meeting.",
+    "failed": "We couldn't turn reminders on just now. Check your connection and try again.",
+    "tryAgain": "Try again",
+    "tryAgainLabel": "Try turning reminders on again"
+  },
   "laSobremesa": {
     "scheduleFallback": "Mondays · 8:00 PM Pacific",
     "note": "La Sobremesa is AyudaSobria's Spanish-language meeting. Reserving gives you your personal link here and by email. By reserving you agree to respect the privacy and confidentiality of the other families.",

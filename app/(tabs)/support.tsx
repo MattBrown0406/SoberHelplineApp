@@ -800,6 +800,7 @@ export default function SupportScreen() {
             accountId={user?.id ?? null}
             rsvp={sess.rsvped ? 'going' : sess.declined ? 'declined' : 'none'}
             onDecline={() => declineRsvp(sess)}
+            reminderAsk
           />
         )}
       </View>

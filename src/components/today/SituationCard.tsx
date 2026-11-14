@@ -145,13 +145,14 @@ export function SituationCard({ accountId = null, nextFreeCall, primaryDoor, wee
         <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:familySquares.rsvpNote')}</Text>
       )}
       {/* Family Squares only: what a first visit is like, and (once her seat is
-          saved) every Monday, the calendar file and "can't make it this week". */}
+          saved) a reminder ask, every Monday, the calendar file and "can't make it this week". */}
       {isFamilySquares && <FamilySquaresFirstTimerNote accountId={accountId} />}
       {isFamilySquares && onDecline && (
         <FamilySquaresSeatPanel
           accountId={accountId}
           rsvp={nextFreeCall?.rsvped ? 'going' : nextFreeCall?.declined ? 'declined' : 'none'}
           onDecline={onDecline}
+          reminderAsk
         />
       )}
       {isLaSobremesaSession(nextFreeCall) && (

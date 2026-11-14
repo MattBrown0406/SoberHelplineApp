@@ -95,6 +95,21 @@
       "dismissLabel": "Ocultar qué esperar en Family Squares"
     }
   },
+  "reminderAsk": {
+    "seatBody": "¿Quieres un recordatorio? Te avisamos una hora antes y, cuando empiece, te enviamos otro para unirte con un toque.",
+    "todayBody": "¿Quieres un recordatorio antes de la reunión del lunes? Te avisamos cuando se acerque, para que te unas con un toque.",
+    "remindMe": "Recordármelo",
+    "remindMeLabel": "Recordarme la reunión del lunes",
+    "notNow": "Ahora no",
+    "notNowLabel": "Ahora no. Ocultar este aviso de recordatorios",
+    "settingsBody": "Los recordatorios de Sober Helpline están desactivados en este dispositivo. Puedes activarlos en Configuración.",
+    "openSettings": "Abrir Configuración",
+    "openSettingsLabel": "Abrir la configuración del dispositivo para permitir notificaciones",
+    "on": "Los recordatorios están activados. Te avisaremos antes de la reunión.",
+    "failed": "No pudimos activar los recordatorios en este momento. Revisa tu conexión e inténtalo de nuevo.",
+    "tryAgain": "Intentar de nuevo",
+    "tryAgainLabel": "Intentar activar los recordatorios de nuevo"
+  },
   "laSobremesa": {
     "scheduleFallback": "Lunes · 8:00 p. m. del Pacífico",
     "note": "La Sobremesa es nuestra reunión en español de AyudaSobria. Al reservar recibes tu enlace personal aquí y por correo. Al reservar aceptas respetar la privacidad y la confidencialidad de las demás familias.",

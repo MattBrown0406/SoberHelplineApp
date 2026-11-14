@@ -14,6 +14,7 @@ import { declineFamilySquares } from '../../src/lib/familySquaresSeat';
 import { FamilySquaresSeatPanel } from '../../src/components/familySquares/FamilySquaresSeatPanel';
 import { FamilySquaresFirstTimerNote } from '../../src/components/familySquares/FamilySquaresFirstTimerNote';
 import { markOnboarded } from '../../src/onboarding/state';
+import { rememberReminderAsk } from '../../src/lib/reminderAskStore';
 
 export default function NotificationsScreen() {
   const { colors } = useTheme();
@@ -93,6 +94,8 @@ export default function NotificationsScreen() {
     }
     if (!user?.id) return;
     await markOnboarded(user.id);
+    // Today's later, gentler ask for reminders never comes on this same day.
+    void rememberReminderAsk(user.id, { onboardedAt: new Date().toISOString() });
     setDone(true);
   }
 

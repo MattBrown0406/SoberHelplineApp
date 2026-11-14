@@ -5,6 +5,8 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { appAlert } from '../../lib/appAlert';
 import { FAMILY_SQUARES_CALENDAR_URL } from '../../lib/websiteLinks';
 import { useFamilySquaresWeeklySeat } from '../../hooks/useFamilySquaresWeeklySeat';
+import { useSeatReminderAsk } from '../../hooks/useReminderAsk';
+import { ReminderAskNote } from '../reminders/ReminderAskNote';
 
 /** Her answer for the coming Family Squares meeting. */
 export type FamilySquaresRsvp = 'going' | 'declined' | 'none';
@@ -16,6 +18,12 @@ interface Props {
   onDecline: () => Promise<boolean>;
   /** 'onPrimary' is for the onboarding done screen (white on the brand colour). */
   tone?: 'card' | 'onPrimary';
+  /**
+   * Today and Support: right after she saves her seat, offer a reminder if
+   * this device has no notification permission. Left off on the onboarding
+   * done screen, which asked a moment earlier.
+   */
+  reminderAsk?: boolean;
 }
 
 /**
@@ -26,12 +34,16 @@ interface Props {
  * - "Add to my calendar": opens the meeting's calendar file.
  * - "Can't make it this week": for this meeting only; the reminders stop.
  * After she declines, it says so and how to come back.
+ * With `reminderAsk`, a seat she has just saved is followed by a short ask to
+ * turn on reminders (see ReminderAskNote).
  */
-export function FamilySquaresSeatPanel({ accountId, rsvp, onDecline, tone = 'card' }: Props) {
+export function FamilySquaresSeatPanel({ accountId, rsvp, onDecline, tone = 'card', reminderAsk = false }: Props) {
   const { colors } = useTheme();
   const { t } = useTranslation('common');
   const weekly = useFamilySquaresWeeklySeat(accountId);
   const [declining, setDeclining] = useState(false);
+  // Watches for the moment her seat is saved, so it runs for every answer.
+  const reminders = useSeatReminderAsk(accountId, rsvp, reminderAsk);
 
   if (rsvp === 'none') return null;
 
@@ -75,6 +87,7 @@ export function FamilySquaresSeatPanel({ accountId, rsvp, onDecline, tone = 'car
 
   return (
     <View style={[styles.panel, { borderTopColor: rule }]}>
+      <ReminderAskNote ask={reminders} place="seat" />
       <View style={styles.row}>
         <View style={styles.rowText}>
           <Text style={[styles.label, { color: ink }]}>{t('familySquares.weekly.title')}</Text>

@@ -9,6 +9,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { TodayDisclosure, TodayDisclosureToggle } from '../../src/components/today/TodayDisclosure';
 import { NextStepItem, useNextStep } from '../../src/components/today/NextStepItem';
 import { WelcomeBackCard } from '../../src/components/today/WelcomeBackCard';
+import { ReminderAskNote } from '../../src/components/reminders/ReminderAskNote';
 import { HeroCard } from '../../src/components/today/HeroCard';
 import { CheckInFeedbackCard } from '../../src/components/today/CheckInFeedbackCard';
 import { GuidedStartPanel } from '../../src/components/today/GuidedStartPanel';
@@ -37,6 +38,7 @@ import { useFamilySpace } from '../../src/hooks/useFamilySpace';
 import { useHoldLog } from '../../src/hooks/useHoldLog';
 import { useFamilyCallTakeaway } from '../../src/hooks/useFamilyCallTakeaway';
 import { useWelcomeBack } from '../../src/hooks/useWelcomeBack';
+import { useTodayReminderAsk } from '../../src/hooks/useReminderAsk';
 import { rearmDailyNudge } from '../../src/hooks/usePushNotifications';
 import { getDailyScripts } from '../../src/content/scripts';
 import { PHASE_LABEL_KEY, selectCurriculumPiece } from '../../src/content/curriculum';
@@ -94,6 +96,10 @@ function TodayContent() {
   const takeaway = useFamilyCallTakeaway(user?.id ?? null);
   // Back after a week or more away: one small hello at the top, for this visit.
   const welcome = useWelcomeBack(user?.id ?? null);
+  // A gentle second chance to turn on reminders. Not on the bereaved Today,
+  // and not on a visit that opened with the welcome-back card (or before we
+  // know whether it did).
+  const reminderAsk = useTodayReminderAsk(bereaved || bereavedUnknown ? null : user?.id ?? null, user?.joinedAt, !welcome.ready || welcome.returned);
   // The one "next step" under the check-in, and what waits under "More for this week".
   const nextStep = useNextStep();
   const [moreOpen, setMoreOpen] = useState(false);
@@ -276,6 +282,7 @@ function TodayContent() {
       onDismiss={welcome.dismiss}
     />
   ) : null;
+  const reminderAskCard = <ReminderAskNote ask={reminderAsk} place="today" />;
 
   // One "next step" under the check-in: the first of these with something to
   // show takes the slot (chooseNextStep); the rest wait under "More for this
@@ -356,6 +363,7 @@ function TodayContent() {
         {header}
         {welcomeBackCard}
         {mondayCallCard}
+        {reminderAskCard}
         <View onLayout={onCheckInLayout}>
           {checkInCard}
           <CheckInFeedbackCard checkIn={todayCheckIn} />
@@ -409,6 +417,7 @@ function TodayContent() {
       {header}
       {welcomeBackCard}
       {mondayCallCard}
+      {reminderAskCard}
       <View onLayout={onCheckInLayout}>
         {checkInCard}
         <CheckInFeedbackCard checkIn={todayCheckIn} />
