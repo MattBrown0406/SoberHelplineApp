@@ -1,15 +1,18 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { DOOR_COPY_KEY, DOOR_ROUTE, type FunnelDoor } from '../../lib/situation';
-import { logFunnelEvent } from '../../lib/funnel';
+import { logFunnelEvent, logFunnelEventAndWait } from '../../lib/funnel';
 import type { FreeCall } from '../../hooks/useTodayFeed';
 import { useCoachingRate } from '../../hooks/useCoachingRate';
 import { useSessionSchedule } from '../../hooks/useSessionSchedule';
-import { isFamilySquaresSession, isLaSobremesaSession } from '../../lib/familySquaresSchedule';
+import { isFamilySquaresSession, isLaSobremesaSession, sessionDisplayTitle } from '../../lib/familySquaresSchedule';
 import { withAppContext } from '../../lib/websiteLinks';
+import { clearFamilySquaresJoin, markFamilySquaresJoin } from '../../lib/meetingAttendance';
+import { FamilySquaresSeatPanel } from '../familySquares/FamilySquaresSeatPanel';
+import { FamilySquaresFirstTimerNote } from '../familySquares/FamilySquaresFirstTimerNote';
 
 /** This week's one thing: Matt's line from the call, else her own week's practice. */
 export interface WeeklyOneThing {
@@ -18,12 +21,18 @@ export interface WeeklyOneThing {
 }
 
 interface Props {
+  /** Whose seat preferences and first-timer note this card shows. */
+  accountId?: string | null;
   nextFreeCall: FreeCall | null;
   primaryDoor: FunnelDoor;
   weeklyOneThing?: WeeklyOneThing | null;
   onRsvp: () => void;
+  /** "Can't make it this week" for Family Squares; answers false when it was not saved. */
+  onDecline?: () => Promise<boolean>;
   onSupportCallJoin?: () => Promise<void>;
   onSupportCallOpenFailed?: () => Promise<void>;
+  /** False on the bereaved Today: a saved seat is never followed by a reminder ask there. */
+  seatReminderAsk?: boolean;
 }
 
 /**
@@ -33,15 +42,16 @@ interface Props {
  * the family's situation warrants it, a higher-intent door (coaching or
  * intervention) is offered. The free call is never gated — it's the entry rung.
  */
-export function SituationCard({ nextFreeCall, primaryDoor, weeklyOneThing, onRsvp, onSupportCallJoin, onSupportCallOpenFailed }: Props) {
+export function SituationCard({ accountId = null, nextFreeCall, primaryDoor, weeklyOneThing, onRsvp, onDecline, onSupportCallJoin, onSupportCallOpenFailed, seatReminderAsk = true }: Props) {
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('today');
   const router = useRouter();
   const coachingRate = useCoachingRate();
   const scheduleFor = useSessionSchedule();
 
-  const title = nextFreeCall?.title ?? t('situationCta.freeCallTitle');
-  // The Family Squares shows its real next start in the member's time zone.
+  // Family Squares is shown under its one name, not the database row's title.
+  const title = nextFreeCall ? sessionDisplayTitle(nextFreeCall, t) : t('situationCta.freeCallTitle');
+  // Family Squares shows its real next start in the member's time zone.
   const schedule = nextFreeCall
     ? scheduleFor(nextFreeCall)
     : t(i18n.language.startsWith('es') ? 'common:laSobremesa.scheduleFallback' : 'common:familySquares.scheduleFallback');
@@ -50,6 +60,7 @@ export function SituationCard({ nextFreeCall, primaryDoor, weeklyOneThing, onRsv
   // headcount but never a gate ("push of a button", no link required).
   const canJoin = !!nextFreeCall?.zoom_url;
   const doorRoute = DOOR_ROUTE[primaryDoor];
+  const joining = useRef(false);
 
   return (
     <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
@@ -60,18 +71,32 @@ export function SituationCard({ nextFreeCall, primaryDoor, weeklyOneThing, onRsv
       {canJoin ? (
         <>
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={t('situationCta.joinLabel', { name: title })}
             style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
             onPress={() => void (async () => {
+              // One Join at a time: a second tap while this one is on its way does nothing.
+              if (joining.current) return;
+              joining.current = true;
               try {
-                await onSupportCallJoin?.();
-              } catch {
-                // Review instrumentation must never block access to the meeting.
-              }
-              try {
-                await Linking.openURL(withAppContext(nextFreeCall!.zoom_url!));
-                logFunnelEvent('attended', { source: 'today' });
-              } catch {
-                await onSupportCallOpenFailed?.();
+                try {
+                  await onSupportCallJoin?.();
+                } catch {
+                  // Review instrumentation must never block access to the meeting.
+                }
+                // Noted before Zoom opens, so coming back ten minutes later can count as attending.
+                if (isFamilySquares) await markFamilySquaresJoin(accountId, 'today');
+                // Sent before Zoom opens too: once the app is in the background the
+                // request may never leave. Waits a moment at most (funnel).
+                await logFunnelEventAndWait('attended', { source: 'today' });
+                try {
+                  await Linking.openURL(withAppContext(nextFreeCall!.zoom_url!));
+                } catch {
+                  if (isFamilySquares) await clearFamilySquaresJoin(accountId);
+                  await onSupportCallOpenFailed?.();
+                }
+              } finally {
+                joining.current = false;
               }
             })()}
             activeOpacity={0.85}
@@ -79,7 +104,13 @@ export function SituationCard({ nextFreeCall, primaryDoor, weeklyOneThing, onRsv
             <Text style={styles.primaryBtnText}>{t('situationCta.join')}</Text>
           </TouchableOpacity>
           {!nextFreeCall?.rsvped && (
-            <TouchableOpacity onPress={onRsvp} activeOpacity={0.75} style={styles.rsvpLink}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={t('situationCta.rsvpLabel', { name: title })}
+              onPress={onRsvp}
+              activeOpacity={0.75}
+              style={styles.rsvpLink}
+            >
               <Text style={[styles.rsvpLinkText, { color: colors.primary }]}>
                 {t('situationCta.rsvp')}
               </Text>
@@ -88,6 +119,8 @@ export function SituationCard({ nextFreeCall, primaryDoor, weeklyOneThing, onRsv
         </>
       ) : (
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={t(nextFreeCall?.rsvped ? 'situationCta.goingLabel' : 'situationCta.rsvpLabel', { name: title })}
           style={[
             styles.primaryBtn,
             {
@@ -123,6 +156,17 @@ export function SituationCard({ nextFreeCall, primaryDoor, weeklyOneThing, onRsv
       {isFamilySquares && (
         <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:familySquares.rsvpNote')}</Text>
       )}
+      {/* Family Squares only: what a first visit is like, and (once her seat is
+          saved) a reminder ask, every Monday, the calendar file and "can't make it this week". */}
+      {isFamilySquares && <FamilySquaresFirstTimerNote accountId={accountId} />}
+      {isFamilySquares && onDecline && (
+        <FamilySquaresSeatPanel
+          accountId={accountId}
+          rsvp={nextFreeCall?.rsvped ? 'going' : nextFreeCall?.declined ? 'declined' : 'none'}
+          onDecline={onDecline}
+          reminderAsk={seatReminderAsk}
+        />
+      )}
       {isLaSobremesaSession(nextFreeCall) && (
         <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:laSobremesa.note')}</Text>
       )}
@@ -145,6 +189,7 @@ export function SituationCard({ nextFreeCall, primaryDoor, weeklyOneThing, onRsv
             {t('situationCta.sendBriefSub')}
           </Text>
           <TouchableOpacity
+            accessibilityRole="button"
             style={[styles.briefBtn, { backgroundColor: colors.coral }]}
             onPress={() => {
               logFunnelEvent('brief_opened', { source: 'today_door' });
@@ -158,6 +203,7 @@ export function SituationCard({ nextFreeCall, primaryDoor, weeklyOneThing, onRsv
             {t(`situationCta.${primaryDoor}Sub`, { rate: coachingRate.rate })}
           </Text>
           <TouchableOpacity
+            accessibilityRole="button"
             style={[styles.doorBtn, { borderColor: colors.primary }]}
             onPress={() => router.push(doorRoute as never)}
             activeOpacity={0.85}
@@ -169,6 +215,7 @@ export function SituationCard({ nextFreeCall, primaryDoor, weeklyOneThing, onRsv
           {/* An escalated situation is exactly when "where do we get help" is
               the live question — the finder is the answer, so offer it here. */}
           <TouchableOpacity
+            accessibilityRole="button"
             onPress={() => router.push('/finder')}
             activeOpacity={0.75}
             style={styles.finderLink}
@@ -216,7 +263,7 @@ const styles = StyleSheet.create({
   doorBtnText: { fontSize: 14.5, fontWeight: '700' },
   finderLink: { alignItems: 'center', marginTop: 12 },
   finderLinkText: { fontSize: 13, fontWeight: '600' },
-  rsvpLink: { alignItems: 'center', marginTop: 10 },
+  rsvpLink: { alignItems: 'center', justifyContent: 'center', minHeight: 44, marginTop: 4 },
   askLink: { alignItems: 'center', justifyContent: 'center', minHeight: 44, marginTop: 4 },
   rsvpLinkText: { fontSize: 13, fontWeight: '600' },
   rsvpNote: { fontSize: 12, lineHeight: 17, marginTop: 10 },

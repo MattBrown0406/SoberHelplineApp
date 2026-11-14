@@ -18,6 +18,7 @@ import { useTrajectory, type WeekPoint } from '../src/hooks/useTrajectory';
 import { useThread } from '../src/hooks/useThread';
 import { supabase } from '../src/lib/supabase';
 import { appAlert } from '../src/lib/appAlert';
+import { plansHref } from '../src/lib/membershipPath';
 import { MAX_CONTENT_WIDTH } from '../src/components/ui/ScreenContainer';
 
 const CONSENT_SHARE_CHECKINS = '2';
@@ -230,7 +231,7 @@ function TrajectoryContent() {
               <TouchableOpacity accessibilityRole="link" onPress={() => router.push('/situation-brief' as never)} activeOpacity={0.8} style={styles.shareLink}>
                 <Text style={[styles.shareBtnText, { color: colors.primary }]}>{t('trajectory.shareBriefLink')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity accessibilityRole="link" onPress={() => router.push('/(tabs)/support' as never)} activeOpacity={0.8} style={styles.shareLink}>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('trajectory.sharePlansLink')} onPress={() => router.push(plansHref('tracker_share'))} activeOpacity={0.8} style={styles.shareLink}>
                 <Text style={[styles.shareBtnText, { color: colors.primary }]}>{t('trajectory.sharePlansLink')}</Text>
               </TouchableOpacity>
             </View>

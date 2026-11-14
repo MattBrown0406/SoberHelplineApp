@@ -531,8 +531,8 @@ serve(async (req) => {
         return {
           to: target.push_token,
           title: winback ? "Sober Helpline" : halfHour
-            ? (es ? "The Family Squares comienza en 30 minutos" : "The Family Squares starts in 30 minutes")
-            : "The Family Squares",
+            ? (es ? "Family Squares comienza en 30 minutos" : "Family Squares starts in 30 minutes")
+            : "Family Squares",
           body: winback
             ? (es ? "Seguimos aquí. 90 segundos para ti cuando quieras — sin tener que ponerte al día."
               : "We're still here. 90 seconds for yourself whenever you're ready — no catching up required.")

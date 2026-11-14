@@ -3,6 +3,8 @@
 //
 // - Contract C: family-squares-web-sync sends the website the complete set of
 //   app members who RSVP'd to / asked a question for the next Monday call.
+//   Before a seat is saved for one member, the website is asked about her
+//   alone (ensureWebsiteRegistration, the one helper here that does IO).
 // - Contract D: family-squares-push-reachable tells the website which of its
 //   reminder recipients the app already reminds by push.
 // - Contract E: membership-export / membership-import replace the website's
@@ -121,6 +123,83 @@ export function summarizeWebsiteSyncResponse(body: unknown): {
     return null;
   };
   return { upserted: count(record.upserted), removed: count(record.removed), skipped: count(record.skipped) };
+}
+
+// ── Contract C, one person: "may this member have a seat?" ──────────────────
+//
+// The website decides whether a Family Squares seat can be saved: a cancelled
+// Monday and a blocked attendee are its decisions, not the app's.
+// family-squares-register asks it when a member saves her own seat, and
+// family-squares-web-sync asks the same question, the same way, before it
+// saves a "seat every Monday" for her.
+
+export type EnsureRegistrationOutcome =
+  /** The website registered her (or already had her) for exactly this meeting. */
+  | { outcome: 'registered'; alreadyRegistered: boolean }
+  /** That Monday is cancelled. True for everyone: stop asking this run. */
+  | { outcome: 'meeting_cancelled' }
+  /** The website will not register this person. */
+  | { outcome: 'registration_unavailable' }
+  /** No usable answer (not deployed, unreachable, an error, a malformed reply). */
+  | { outcome: 'unavailable'; reason: 'not_deployed' | 'unreachable' | 'unexpected_reply' };
+
+/** The request body the website's app-family-squares-sync expects for one person. */
+export function ensureRegistrationRequest(meetingDate: string, email: string, name: string) {
+  return {
+    action: 'ensure-registration',
+    meeting_date: meetingDate,
+    attendee: { email: email.trim().toLowerCase(), name },
+  };
+}
+
+/**
+ * Reads the website's answer. Only an explicit yes for the meeting that was
+ * asked about counts as registered; only the website's two named refusals
+ * count as decisions. Everything else is "no answer".
+ */
+export function interpretEnsureRegistration(
+  status: number,
+  body: unknown,
+  meetingDate: string,
+): EnsureRegistrationOutcome {
+  const reply = body && typeof body === 'object' && !Array.isArray(body) ? body as Record<string, unknown> : {};
+  const ok = status >= 200 && status < 300;
+  if (
+    ok && reply.ok === true && typeof reply.already_registered === 'boolean' &&
+    reply.meeting_date === meetingDate
+  ) {
+    return { outcome: 'registered', alreadyRegistered: reply.already_registered };
+  }
+  if (reply.error === 'meeting_cancelled') return { outcome: 'meeting_cancelled' };
+  if (reply.error === 'registration_unavailable') return { outcome: 'registration_unavailable' };
+  return { outcome: 'unavailable', reason: status === 404 ? 'not_deployed' : 'unexpected_reply' };
+}
+
+/**
+ * Asks the website once. Never throws and never logs: the caller decides what
+ * an outage means. `fetcher` is only replaced in tests.
+ */
+export async function ensureWebsiteRegistration(request: {
+  url: string;
+  secret: string;
+  meetingDate: string;
+  email: string;
+  name: string;
+  timeoutMs: number;
+  fetcher?: typeof fetch;
+}): Promise<EnsureRegistrationOutcome> {
+  try {
+    const response = await (request.fetcher ?? fetch)(request.url, {
+      method: 'POST',
+      signal: AbortSignal.timeout(request.timeoutMs),
+      headers: { 'Content-Type': 'application/json', 'x-membership-sync-secret': request.secret },
+      body: JSON.stringify(ensureRegistrationRequest(request.meetingDate, request.email, request.name)),
+    });
+    const body = await response.json().catch(() => null);
+    return interpretEnsureRegistration(response.status, body, request.meetingDate);
+  } catch {
+    return { outcome: 'unavailable', reason: 'unreachable' };
+  }
 }
 
 // ── Contract D ──────────────────────────────────────────────────────────────

@@ -61,9 +61,54 @@
     "hourly": "{{price}}/hora"
   },
   "familySquares": {
+    "name": "Family Squares",
     "scheduleFallback": "Lunes · 7:00 p. m. del Pacífico",
     "rsvpNote": "Tu confirmación y tus preguntas le llegan a Matt junto con las inscripciones de soberhelpline.com. Si es tu primera llamada, puede que recibas un correo de seguimiento después.",
-    "alreadyRegistered": "Ya estás inscrita. ¡Te esperamos el lunes por la noche!"
+    "alreadyRegistered": "Ya estás inscrita. ¡Te esperamos el lunes por la noche!",
+    "weekly": {
+      "title": "Guardar mi lugar todos los lunes",
+      "desc": "Guardamos tu lugar en Family Squares cada semana, para que no tengas que hacerlo otra vez.",
+      "errorTitle": "No se pudo guardar",
+      "errorBody": "Revisa tu conexión e inténtalo de nuevo."
+    },
+    "calendar": {
+      "button": "Agregar a mi calendario",
+      "label": "Agregar Family Squares a mi calendario",
+      "errorTitle": "El calendario no se abrió",
+      "errorBody": "Inténtalo de nuevo en un momento."
+    },
+    "decline": {
+      "button": "Esta semana no puedo ir",
+      "label": "Avisar que esta semana no puedes ir a Family Squares",
+      "done": "Esta semana no vas. Si eso cambia, puedes reservar tu lugar de nuevo.",
+      "doneWeekly": "Esta semana no vas. Tu lugar queda guardado otra vez a partir del próximo lunes. Si esta semana cambia, puedes reservar tu lugar de nuevo.",
+      "errorTitle": "No se guardó",
+      "errorBody": "Revisa tu conexión e inténtalo de nuevo."
+    },
+    "firstTime": {
+      "title": "Qué esperar tu primera vez",
+      "zoom": "Es por Zoom. Solo toca Unirse y se abre.",
+      "camera": "Con cámara o sin ella, tú decides, y basta con tu nombre de pila.",
+      "listen": "Eres bienvenida aunque solo quieras escuchar. Nadie tiene que hablar.",
+      "length": "Dura cerca de una hora, la dirige Matt Brown y es gratis.",
+      "dismiss": "Entendido",
+      "dismissLabel": "Ocultar qué esperar en Family Squares"
+    }
+  },
+  "reminderAsk": {
+    "seatBody": "¿Quieres un recordatorio? Te avisamos una hora antes y, 15 minutos antes de que empiece, te enviamos otro para unirte con un toque.",
+    "todayBody": "¿Quieres un recordatorio antes de la reunión del lunes? Te avisamos cuando se acerque, para que te unas con un toque.",
+    "remindMe": "Recordármelo",
+    "remindMeLabel": "Recordarme la reunión del lunes",
+    "notNow": "Ahora no",
+    "notNowLabel": "Ahora no. Ocultar este aviso de recordatorios",
+    "settingsBody": "Los recordatorios de Sober Helpline están desactivados en este dispositivo. Puedes activarlos en Configuración.",
+    "openSettings": "Abrir Configuración",
+    "openSettingsLabel": "Abrir la configuración del dispositivo para permitir notificaciones",
+    "on": "Los recordatorios están activados. Te avisaremos antes de la reunión.",
+    "failed": "No pudimos activar los recordatorios en este momento. Revisa tu conexión e inténtalo de nuevo.",
+    "tryAgain": "Intentar de nuevo",
+    "tryAgainLabel": "Intentar activar los recordatorios de nuevo"
   },
   "laSobremesa": {
     "scheduleFallback": "Lunes · 8:00 p. m. del Pacífico",
@@ -77,6 +122,7 @@
     "back": "Atrás",
     "send": "Enviar mensaje",
     "addPhoto": "Agregar una foto",
-    "settings": "Configuración"
+    "settings": "Configuración",
+    "close": "Cerrar"
   }
 }

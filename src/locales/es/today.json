@@ -7,6 +7,16 @@
     "afternoonNoName": "Buenas tardes",
     "eveningNoName": "Buenas noches"
   },
+  "welcomeBack": {
+    "title": "Qué gusto verte",
+    "body": "Empieza hoy por donde tú quieras.",
+    "saveSeat": "Reservar mi lugar para el lunes",
+    "saveSeatLabel": "Reservar mi lugar en la reunión del lunes",
+    "checkIn": "Hacer mi registro",
+    "checkInLabel": "Ir al registro de hoy",
+    "dismiss": "Cerrar",
+    "dismissLabel": "Cerrar este saludo"
+  },
   "hero": {
     "dayLabel": "DÍA {{count}} — {{context}}",
     "contextAttached": "PROGRAMA DE APOYO FAMILIAR",
@@ -124,14 +134,15 @@
   "disclosure": {
     "show": "Mostrar",
     "hide": "Ocultar",
+    "more": "Más para esta semana",
     "pathway": "El camino de tu familia",
-    "connection": "Llamada gratuita del lunes y conexión",
+    "invite": "Invita a alguien a Family Squares",
     "practice": "Guiones, práctica y tu progreso",
     "membership": "Explorar la membresía"
   },
   "freeDaily": {
-    "eyebrow": "Guion gratuito de hoy",
-    "note": "Cada día se desbloquea aquí un nuevo guion de conversación."
+    "eyebrow": "Guion de hoy",
+    "note": "Este es el guion de hoy. La biblioteca completa está en la pestaña {{tab}}."
   },
   "passItOn": {
     "eyebrow": "Compártelo",
@@ -452,6 +463,9 @@
     "join": "Unirse al Zoom",
     "rsvp": "Reservar mi lugar",
     "going": "Asistirás ✓",
+    "joinLabel": "Unirse a {{name}} por Zoom",
+    "rsvpLabel": "Reservar mi lugar en {{name}}",
+    "goingLabel": "Vas a asistir a {{name}}",
     "freeCall": "Reservar mi lugar en la llamada gratuita",
     "coaching": "Habla 1 a 1 con un coach",
     "intervention": "Planear una intervención con Matt",

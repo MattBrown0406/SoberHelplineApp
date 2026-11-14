@@ -57,18 +57,25 @@ export function resetRevenueCatUser(): Promise<void> {
   });
 }
 
+/** Thrown when the screen or the account changed before the store was asked: nothing was bought. */
+export const PURCHASE_NOT_STARTED = 'purchase_session_changed';
+
+/**
+ * `mayStart` is asked only BEFORE the store is called. Once the store has
+ * answered, the result is always returned: the purchase was made as
+ * `expectedOwner` (identity changes wait in the same queue), and dropping it
+ * because the screen has gone would leave her charged but still "free".
+ */
 export function purchaseRevenueCatPackage(
   pkg: PurchasesPackage,
   expectedOwner: string,
-  isActive: () => boolean,
+  mayStart: () => boolean,
 ) {
   return serializeIdentity(async () => {
-    if (!expectedOwner || !isActive()) throw new Error('purchase_session_changed');
+    if (!expectedOwner || !mayStart()) throw new Error(PURCHASE_NOT_STARTED);
     const owner = await Purchases.getAppUserID();
-    if (!isActive() || owner !== expectedOwner) throw new Error('purchase_session_changed');
-    const result = await Purchases.purchasePackage(pkg);
-    if (!isActive()) throw new Error('purchase_session_changed');
-    return result;
+    if (!mayStart() || owner !== expectedOwner) throw new Error(PURCHASE_NOT_STARTED);
+    return Purchases.purchasePackage(pkg);
   });
 }
 

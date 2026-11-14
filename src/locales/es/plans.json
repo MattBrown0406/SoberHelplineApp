@@ -1,0 +1,84 @@
+{
+  "title": "Planes de membresía",
+  "intro": "Family Squares, la guía de crisis y tus herramientas de cada día siguen siendo gratis. Un plan te suma un coach entre una reunión y otra.",
+  "monthly": "Los dos planes se cobran cada mes.",
+  "summarySeparator": " · ",
+  "headings": {
+    "free": "Sigue siendo gratis",
+    "essential": "Lo que recibes",
+    "premier": "Todo lo de Essential, y además",
+    "premierShort": "Todo lo de Essential"
+  },
+  "benefits": {
+    "free": {
+      "familySquares": "Family Squares y La Sobremesa, las reuniones gratuitas de cada semana",
+      "crisisGuide": "La guía de crisis, los pasos de seguridad y la Cartera de Seguridad",
+      "everydayTools": "Límites, el seguimiento y tu registro diario",
+      "scripts": "La biblioteca completa de guiones y la práctica guiada",
+      "planning": "El buscador de tratamiento y las herramientas para planear",
+      "patternMap": "Tu mapa de patrones del Motor de Invitación"
+    },
+    "essential": {
+      "coachMessaging": "Escríbele a un coach entre una reunión y otra",
+      "liveGroups": "Grupos en vivo con otras familias",
+      "rehearsal": "Ensayo de conversaciones con un personaje simulado",
+      "interventionPlanner": "El Planificador de Intervención DIY",
+      "invitationEngine": "El Motor de Invitación completo: pasos diarios, pronóstico y kit",
+      "practiceCalls": "Llamadas de práctica a las horas que tú elijas",
+      "todayFull": "Tu semana en resumen y tu progreso en Hoy",
+      "memberRate": "El precio de miembro en el coaching privado",
+      "library": "La biblioteca de educación familiar y las grabaciones de Family Squares"
+    },
+    "premier": {
+      "privateVideo": "Video privado con un coach, sujeto a programación",
+      "planReview": "Revisión del plan incluida",
+      "commandPlan": "El Plan de Comando Familiar"
+    }
+  },
+  "notEmergency": "Los mensajes son para preguntas que pueden esperar. No son atención de emergencia ni garantizan una respuesta inmediata.",
+  "yourPlan": "Tu plan",
+  "currentPlan": "Plan actual",
+  "covered": "Tu organización cubre tu membresía. No tienes nada que comprar.",
+  "perMonth": "{{price}}/mes",
+  "priceUnavailable": "Precio de la tienda no disponible",
+  "retryPrices": "Reintentar precios",
+  "retryPricesLabel": "Volver a cargar los precios de la tienda",
+  "seePlans": "Ver planes",
+  "seePlansLabel": "Ver los planes de membresía",
+  "choose": {
+    "closeLabel": "Cerrar sin suscribirte",
+    "termsLabel": "Abrir los Términos de uso",
+    "privacyLabel": "Abrir la Política de privacidad"
+  },
+  "restore": {
+    "button": "Restaurar compras",
+    "label": "Restaurar las compras hechas con esta cuenta de Apple",
+    "busy": "Restaurando"
+  },
+  "support": {
+    "eyebrow": "MEMBRESÍA",
+    "title": "Un coach entre una reunión y otra",
+    "more": "Mira todo lo que incluye cada plan y lo que sigue siendo gratis.",
+    "upgradeLabel": "Ver lo que suma Premier"
+  },
+  "paywall": {
+    "heading": "Esto es parte de la membresía",
+    "lead": "Essential incluye:",
+    "free": "La guía de crisis, los contactos de emergencia y Family Squares siguen siendo gratis."
+  },
+  "locked": {
+    "todayLine": "Con una membresía, aquí ves tu semana en resumen y tu progreso.",
+    "todayLabel": "Con una membresía, aquí ves tu semana en resumen y tu progreso. Ver los planes de membresía."
+  },
+  "invite": {
+    "title": "Más apoyo, si lo deseas",
+    "body": "Mira los planes a tu ritmo. Puedes seguir usando las herramientas gratuitas.",
+    "cta": "Ver planes",
+    "later": "Ahora no",
+    "never": "No volver a mostrar",
+    "practiceCompleted": "Ya practicaste una conversación. ¿Te ayudaría contar con práctica continua y orientación para la próxima? Tu resumen sigue siendo gratis.",
+    "boundarySaved": "Guardaste un punto de partida. La membresía puede ayudarte a practicar y ajustar tu enfoque. Tu límite sigue siendo tuyo.",
+    "afterMeetingTitle": "Sigue la conversación entre lunes y lunes",
+    "afterMeeting": "Family Squares es una vez por semana. Con una membresía puedes escribirle a un coach los días de en medio."
+  }
+}

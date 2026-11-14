@@ -1,7 +1,7 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SET search_path = public, extensions;
-SELECT plan(46);
+SELECT plan(60);
 
 -- ── Which call is "this week's" ───────────────────────────────────────────
 SELECT is(public._family_squares_latest_meeting_date('2026-11-09 18:59 America/Los_Angeles'), date '2026-11-02',
@@ -23,6 +23,7 @@ INSERT INTO auth.users(id, email, raw_app_meta_data, raw_user_meta_data, aud, ro
   ('16000000-0000-0000-0000-000000000005', 'fu-e@example.com', '{}', '{}', 'authenticated', 'authenticated', now()),
   ('16000000-0000-0000-0000-000000000006', 'fu-f@example.com', '{}', '{}', 'authenticated', 'authenticated', now()),
   ('16000000-0000-0000-0000-000000000007', 'fu-g@example.com', '{}', '{}', 'authenticated', 'authenticated', now()),
+  ('16000000-0000-0000-0000-000000000008', 'fu-h@example.com', '{}', '{}', 'authenticated', 'authenticated', now()),
   ('16000000-0000-0000-0000-0000000000ff', 'matt@soberhelpline.com', '{}', '{}', 'authenticated', 'authenticated', now())
 ON CONFLICT (id) DO NOTHING;
 UPDATE public.accounts SET id = ('26000000-0000-0000-0000-00000000000' || right(user_id::text, 1))::uuid
@@ -99,11 +100,70 @@ SELECT ok(NOT has_function_privilege('authenticated', 'public.enqueue_family_cal
 UPDATE public.accounts SET push_app_contract = 1 WHERE id = '26000000-0000-0000-0000-000000000001';
 UPDATE public.session_rsvps SET family_squares_meeting_date = '2025-11-17'
 WHERE account_id = '26000000-0000-0000-0000-000000000001' AND session_id = public.family_squares_session_id();
+-- A tapped Join at that call: she gets the note written for people who came.
+INSERT INTO public.funnel_events(account_id, stage, metadata, created_at)
+VALUES ('26000000-0000-0000-0000-000000000001', 'attended', '{"source":"today"}', '2025-11-17 19:05 America/Los_Angeles');
 SELECT is(public.enqueue_family_call_followups('2025-11-18 01:10 America/Los_Angeles'), 2, 'next week: A (seat moved) and G');
 SELECT is((SELECT body FROM push_outbox WHERE idempotency_key = 'family-call-followup:2025-11-17:26000000-0000-0000-0000-000000000001'),
   'Your one thing to try this week is on Today, and next Monday''s seat is one tap away.', '4.2 (3)+: points at Today''s card');
 SELECT is((SELECT body FROM push_outbox WHERE idempotency_key = 'family-call-followup:2025-11-17:26000000-0000-0000-0000-000000000007'),
   'Next Monday''s call is free too. You can save your seat in the app.', 'older builds: nothing they cannot find');
+
+-- ── Saved a seat and never tapped Join: a kinder note (4.2 (3)+ only) ─────
+SELECT is((SELECT title FROM push_outbox WHERE idempotency_key = 'family-call-followup:2025-11-17:26000000-0000-0000-0000-000000000001'),
+  'After Monday''s call', 'the note for people who came keeps its title');
+-- Monday 2025-11-24. A (4.2 (3), free) and B (4.2 (3), a member) saved a seat
+-- and never tapped Join. F saved a seat and stayed ten minutes. G is on an
+-- older build with a seat and no Join tap. H said she can't make it.
+UPDATE public.accounts SET push_app_contract = 1
+WHERE id IN ('26000000-0000-0000-0000-000000000002', '26000000-0000-0000-0000-000000000006');
+INSERT INTO public.entitlements(account_id, source, tier, expires_at)
+VALUES ('26000000-0000-0000-0000-000000000002', 'revenuecat', 'essential', now() + interval '30 days');
+UPDATE public.session_rsvps SET family_squares_meeting_date = '2025-11-24'
+WHERE session_id = public.family_squares_session_id()
+  AND account_id IN ('26000000-0000-0000-0000-000000000001', '26000000-0000-0000-0000-000000000002', '26000000-0000-0000-0000-000000000007');
+INSERT INTO public.session_rsvps(account_id, session_id, status, family_squares_meeting_date, created_at) VALUES
+  ('26000000-0000-0000-0000-000000000006', public.family_squares_session_id(), 'going', '2025-11-24', '2025-11-20 10:00 America/Los_Angeles'),
+  ('26000000-0000-0000-0000-000000000008', public.family_squares_session_id(), 'declined', '2025-11-24', '2025-11-20 10:00 America/Los_Angeles')
+ON CONFLICT DO NOTHING;
+INSERT INTO public.funnel_events(account_id, stage, metadata, created_at)
+VALUES ('26000000-0000-0000-0000-000000000006', 'attended_10min', '{"meeting_date":"2025-11-24","source":"push"}', '2025-11-24 20:10 America/Los_Angeles');
+SELECT is(public.enqueue_family_call_followups('2025-11-25 01:10 America/Los_Angeles'), 4,
+  'A, B, F and G; not H, who said she can''t make it');
+SELECT is((SELECT body FROM push_outbox WHERE idempotency_key = 'family-call-followup:2025-11-24:26000000-0000-0000-0000-000000000001'),
+  'If Monday got away from you, we missed you. Next Monday''s seat is one tap away, and members can watch recordings of past meetings.',
+  'a seat and no Join tap, not a member: recordings are something members can watch');
+SELECT is((SELECT title FROM push_outbox WHERE idempotency_key = 'family-call-followup:2025-11-24:26000000-0000-0000-0000-000000000001'),
+  'Family Squares', 'under the meeting''s name, not "After Monday''s call"');
+SELECT is((SELECT body FROM push_outbox WHERE idempotency_key = 'family-call-followup:2025-11-24:26000000-0000-0000-0000-000000000002'),
+  'If Monday got away from you, we missed you. Next Monday''s seat is one tap away, and recordings of past meetings are in your library, under Tools.',
+  'a member is told where her recordings are');
+SELECT is((SELECT body FROM push_outbox WHERE idempotency_key = 'family-call-followup:2025-11-24:26000000-0000-0000-0000-000000000006'),
+  'Your one thing to try this week is on Today, and next Monday''s seat is one tap away.',
+  'she stayed ten minutes: the note for people who came, unchanged');
+SELECT is((SELECT body FROM push_outbox WHERE idempotency_key = 'family-call-followup:2025-11-24:26000000-0000-0000-0000-000000000007'),
+  'Next Monday''s call is free too. You can save your seat in the app.',
+  'an older build keeps its wording, Join tap or not');
+SELECT is((SELECT metadata FROM push_outbox WHERE idempotency_key = 'family-call-followup:2025-11-24:26000000-0000-0000-0000-000000000001'),
+  '{"kind":"family_call_followup","meeting_date":"2025-11-24"}'::jsonb, 'the same routed payload: it opens Today');
+SELECT is((SELECT scheduled_for FROM push_outbox WHERE idempotency_key = 'family-call-followup:2025-11-24:26000000-0000-0000-0000-000000000001'),
+  '2025-11-25 10:30 America/New_York'::timestamptz, 'at the same time of her morning');
+SELECT is((SELECT expires_at FROM push_outbox WHERE idempotency_key = 'family-call-followup:2025-11-24:26000000-0000-0000-0000-000000000001'),
+  '2025-11-25 21:00 America/New_York'::timestamptz, 'and never after 9 PM her time');
+SELECT ok((SELECT bool_and(body !~* 'this week''s recording|last night''s recording|is posted|soberhelpline') FROM push_outbox
+    WHERE idempotency_key LIKE 'family-call-followup:2025-11-24:%'),
+  'no note promises this week''s recording or names the website');
+-- With Matt's line written, people who came still get it; she still gets hers.
+INSERT INTO public.family_call_takeaways(meeting_date, body) VALUES ('2025-12-01', 'Rest is part of the work.');
+UPDATE public.session_rsvps SET family_squares_meeting_date = '2025-12-01'
+WHERE session_id = public.family_squares_session_id()
+  AND account_id IN ('26000000-0000-0000-0000-000000000001', '26000000-0000-0000-0000-000000000007');
+SELECT is(public.enqueue_family_call_followups('2025-12-02 01:10 America/Los_Angeles'), 2, 'the week after: A and G');
+SELECT is((SELECT body FROM push_outbox WHERE idempotency_key = 'family-call-followup:2025-12-01:26000000-0000-0000-0000-000000000001'),
+  'If Monday got away from you, we missed you. Next Monday''s seat is one tap away, and members can watch recordings of past meetings.',
+  'her note does not become the one thing from a meeting she may have missed');
+SELECT is((SELECT body FROM push_outbox WHERE idempotency_key = 'family-call-followup:2025-12-01:26000000-0000-0000-0000-000000000007'),
+  'This week''s one thing: Rest is part of the work.', 'an older build still gets the line, as before');
 
 -- Registering a device records which build it is.
 SET LOCAL ROLE authenticated;

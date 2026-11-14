@@ -9,6 +9,7 @@ import { useAccount } from '../../src/contexts/AccountContext';
 import { useWebSSO } from '../../src/hooks/useWebSSO';
 import { useFeatureAccess } from '../../src/hooks/useFeatureAccess';
 import { WEBSITE_PATHS } from '../../src/lib/websiteLinks';
+import { plansHref } from '../../src/lib/membershipPath';
 
 
 type ContentSection = { key: 'education' | 'recordings'; path: string };
@@ -298,7 +299,7 @@ export default function LearnScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={t('membersLibrary.button')}
                 style={[styles.cardButton, { backgroundColor: colors.primary }]}
-                onPress={() => router.push('/(tabs)/support' as never)}
+                onPress={() => router.push(plansHref('learn_library'))}
                 activeOpacity={0.85}
               >
                 <Text style={styles.cardButtonText}>{t('membersLibrary.button')}</Text>

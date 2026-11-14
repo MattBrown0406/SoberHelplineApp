@@ -226,8 +226,13 @@ test('the helpline is not listed as an emergency line, and website members are t
     .map((key) => support.indexOf(`t('${key}')`));
   assert.ok(order.every((at, i) => at > 0 && (i === 0 || at > order[i - 1])), `sheet order: ${order.join(', ')}`);
   // Restore reports the plan the refresh found (any source), not only the store's answer.
-  assert.match(settings, /await refreshAccount\(\);\n\s+setRestoreOutcome\(\{ storeRestored: hasEntitlement \}\);/);
-  assert.match(settings, /else if \(planActive\) \{\n\s+appAlert\(t\('membership\.restoreActiveTitle'\), t\('membership\.restoreActiveBody'\)\);/);
+  // Restore is one hook, shared by Settings and the plans screen.
+  const restore = read('src/hooks/useRestorePurchases.ts');
+  assert.match(restore, /await refreshAccount\(\);\n\s+setRestoreOutcome\(\{ storeRestored: hasEntitlement \}\);/);
+  assert.match(restore, /else if \(planActive\) \{\n\s+appAlert\(t\('membership\.restoreActiveTitle'\), t\('membership\.restoreActiveBody'\)\);/);
+  assert.match(restore, /useTranslation\('settings'\)/);
+  assert.match(settings, /const \{ restoring, handleRestore \} = useRestorePurchases\(\);/);
+  assert.match(read('app/plans.tsx'), /const \{ restoring, handleRestore \} = useRestorePurchases\(\);/);
   // The same-email hint is for free accounts only.
   assert.match(settings, /accountState === 'direct-free' && user \? \(\n\s+<Text [^\n]+\n\s+\{user\.email\n\s+\? t\('membership\.websiteMemberHintWithEmail', \{ email: user\.email \}\)\n\s+: t\('membership\.websiteMemberHint'\)\}/);
   assert.match(read('app/book-coaching.tsx'), /t\('coaching\.websiteBookingsNote'\)/);
@@ -245,7 +250,10 @@ test('the helpline is not listed as an emergency line, and website members are t
 });
 
 test('email confirmation lands on soberhelpline.com', () => {
-  assert.match(read('app/(auth)/sign-up.tsx'), /emailRedirectTo: 'https:\/\/soberhelpline\.com\/app-confirmed\.html'/);
+  // One address for sign-up and for "Send the email again" on the confirm step.
+  assert.match(read('src/lib/frontDoor.ts'), /SIGN_UP_CONFIRM_REDIRECT_URL = 'https:\/\/soberhelpline\.com\/app-confirmed\.html'/);
+  assert.match(read('app/(auth)/sign-up.tsx'), /emailRedirectTo: SIGN_UP_CONFIRM_REDIRECT_URL/);
+  assert.match(read('src/components/auth/ConfirmEmailPanel.tsx'), /type: 'signup',\s+email,\s+options: \{ emailRedirectTo: SIGN_UP_CONFIRM_REDIRECT_URL \}/);
   assert.match(read('supabase/functions/confirm-landing/index.ts'), /'https:\/\/soberhelpline\.com\/app-confirmed\.html'/);
   assert.match(read('supabase/config.toml'), /additional_redirect_urls = \[\n\s+"https:\/\/soberhelpline\.com\/app-confirmed\.html"/);
 });

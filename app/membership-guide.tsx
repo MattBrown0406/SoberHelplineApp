@@ -11,11 +11,15 @@ import { useCoachingRate } from '../src/hooks/useCoachingRate';
 import { COACHING_MEMBER_PRICE, fillCoachingRates } from '../src/lib/coachingPrice';
 import { walletMembershipCopy } from '../src/content/walletMembershipCopy';
 import { membershipGuideContent } from '../src/membershipGuide/content';
+import { BenefitList } from '../src/components/plans/BenefitList';
+import { plansHref } from '../src/lib/membershipPath';
 
 export default function MembershipGuide() {
   useToolOpened('membership_guide');
   const router = useRouter();
   const { i18n } = useTranslation();
+  const { t: tPlans } = useTranslation('plans');
+  const { t: tSupport } = useTranslation('support');
   const { colors } = useTheme();
   const { user } = useAccount();
   const { prices, retryPrices } = useIAP();
@@ -50,8 +54,14 @@ export default function MembershipGuide() {
       {body(c.response)}
     </View>
     {heading(c.options)}
-    {body(membership.essential)}
-    {body(membership.premier)}
+    {/* The one benefits list (plans.json): Essential, then what Premier adds. */}
+    <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line, borderWidth: 1 }]}>
+      {heading(tSupport('tier.essentialName'))}
+      <BenefitList plan="essential" />
+      {heading(tSupport('tier.premiumName'))}
+      {body(tPlans('headings.premier'))}
+      <BenefitList plan="premier" />
+    </View>
     {body(c.timing)}
     {body(fillCoachingRates(membership.service, { rate: coachingRate.hourly, memberRate: COACHING_MEMBER_PRICE }))}
     {heading(c.prices)}
@@ -59,7 +69,7 @@ export default function MembershipGuide() {
     {body(`Premier: ${prices.premium ? prices.premium + membership.month : membership.priceUnavailable}`)}
     {(!prices.essential || !prices.premium) && button(membership.retryPrices, retryPrices)}
     {body(user ? c.signedIn : c.signedOut)}
-    {button(c.compare, () => router.push('/(tabs)/support'))}
+    {button(tPlans('seePlans'), () => router.push(plansHref('membership_guide')))}
   </ScreenContainer>;
 }
 

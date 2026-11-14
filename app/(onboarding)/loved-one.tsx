@@ -69,16 +69,22 @@ export default function LovedOneScreen() {
     router.push('/(onboarding)/notifications');
   }
 
+  // One answer per question is a radio; substances take several, so a checkbox.
   const Chip = ({
     label,
     selected,
     onPress,
+    role = 'radio',
   }: {
     label: string;
     selected: boolean;
     onPress: () => void;
+    role?: 'radio' | 'checkbox';
   }) => (
     <TouchableOpacity
+      accessibilityRole={role}
+      accessibilityState={{ checked: selected }}
+      aria-checked={selected}
       onPress={onPress}
       activeOpacity={0.8}
       style={[
@@ -130,6 +136,7 @@ export default function LovedOneScreen() {
               label={t(`lovedOne.substances.${s}`)}
               selected={substances.includes(s)}
               onPress={() => toggleSubstance(s)}
+              role="checkbox"
             />
           ))}
         </View>
@@ -159,6 +166,8 @@ export default function LovedOneScreen() {
         </View>
 
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityState={{ disabled: saving, busy: saving }}
           style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
           onPress={handleContinue}
           disabled={saving}
@@ -166,7 +175,7 @@ export default function LovedOneScreen() {
         >
           <Text style={styles.primaryBtnText}>{t('lovedOne.saveButton')}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.skipBtn} onPress={skip} disabled={saving}>
+        <TouchableOpacity accessibilityRole="button" accessibilityState={{ disabled: saving }} style={styles.skipBtn} onPress={skip} disabled={saving}>
           <Text style={[styles.skipText, { color: colors.inkSoft }]}>{t('lovedOne.skipButton')}</Text>
         </TouchableOpacity>
       </ScrollView>

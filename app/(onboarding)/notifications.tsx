@@ -10,7 +10,11 @@ import { supabase } from '../../src/lib/supabase';
 import { appAlert } from '../../src/lib/appAlert';
 import { reserveLaSobremesa } from '../../src/lib/laSobremesa';
 import { reserveFamilySquares, FAMILY_SQUARES_ALREADY_REGISTERED } from '../../src/lib/familySquaresRegistration';
+import { declineFamilySquares } from '../../src/lib/familySquaresSeat';
+import { FamilySquaresSeatPanel } from '../../src/components/familySquares/FamilySquaresSeatPanel';
+import { FamilySquaresFirstTimerNote } from '../../src/components/familySquares/FamilySquaresFirstTimerNote';
 import { markOnboarded } from '../../src/onboarding/state';
+import { rememberReminderAsk } from '../../src/lib/reminderAskStore';
 
 export default function NotificationsScreen() {
   const { colors } = useTheme();
@@ -26,6 +30,8 @@ export default function NotificationsScreen() {
   // offered — never whichever group session happens to come first.
   const [nextGroupId, setNextGroupId] = useState<string | null>(null);
   const [rsvped, setRsvped] = useState(false);
+  // Family Squares only: she saved her spot, then said she can't make it this week.
+  const [declined, setDeclined] = useState(false);
   const [reserving, setReserving] = useState(false);
   const reservationLock = useRef(false);
   const identity = useRef(user?.id);
@@ -68,6 +74,18 @@ export default function NotificationsScreen() {
     }
   }
 
+  async function declineSpot(): Promise<boolean> {
+    if (reservationLock.current) return false;
+    const accountId = user?.id;
+    reservationLock.current = true;
+    const saved = await declineFamilySquares().finally(() => { reservationLock.current = false; });
+    if (saved && identity.current === accountId) {
+      setDeclined(true);
+      setRsvped(false);
+    }
+    return saved;
+  }
+
   async function finish(askPermission: boolean) {
     if (askPermission && Platform.OS !== 'web' && user?.id) {
       try {
@@ -76,6 +94,8 @@ export default function NotificationsScreen() {
     }
     if (!user?.id) return;
     await markOnboarded(user.id);
+    // Today's later, gentler ask for reminders never comes on this same day.
+    void rememberReminderAsk(user.id, { onboardedAt: new Date().toISOString() });
     setDone(true);
   }
 
@@ -91,6 +111,9 @@ export default function NotificationsScreen() {
 
           {nextGroupId && (
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={rsvped ? t('done.rsvpDone') : t('done.rsvpButton')}
+              accessibilityState={{ disabled: reserving || (spanish && rsvped), busy: reserving }}
               style={[
                 styles.rsvpBtn,
                 { borderColor: '#fff', backgroundColor: rsvped ? '#fff' : 'transparent' },
@@ -109,8 +132,22 @@ export default function NotificationsScreen() {
               {t(spanish ? 'common:laSobremesa.note' : 'common:familySquares.rsvpNote')}
             </Text>
           )}
+          {/* Family Squares (English) only, once her spot is saved: what a first
+              meeting is like, every Monday, the calendar file, and a way to take it back. */}
+          {nextGroupId && !spanish && (rsvped || declined) && (
+            <View style={styles.seatOptions}>
+              {rsvped && <FamilySquaresFirstTimerNote accountId={user?.id ?? null} tone="onPrimary" />}
+              <FamilySquaresSeatPanel
+                accountId={user?.id ?? null}
+                rsvp={rsvped ? 'going' : 'declined'}
+                onDecline={declineSpot}
+                tone="onPrimary"
+              />
+            </View>
+          )}
 
           <TouchableOpacity
+            accessibilityRole="button"
             style={[styles.primaryBtn, { backgroundColor: '#fff' }]}
             onPress={() => router.replace('/(tabs)')}
             activeOpacity={0.85}
@@ -135,13 +172,14 @@ export default function NotificationsScreen() {
           {t('notifications.body')}
         </Text>
         <TouchableOpacity
+          accessibilityRole="button"
           style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
           onPress={() => finish(true)}
           activeOpacity={0.85}
         >
           <Text style={styles.primaryBtnText}>{t('notifications.acceptButton')}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.skipBtn} onPress={() => finish(false)}>
+        <TouchableOpacity accessibilityRole="button" style={styles.skipBtn} onPress={() => finish(false)}>
           <Text style={[styles.skipText, { color: colors.inkSoft }]}>
             {t('notifications.declineButton')}
           </Text>
@@ -163,6 +201,7 @@ const styles = StyleSheet.create({
   rsvpBtn: { borderRadius: 99, borderWidth: 1.5, paddingVertical: 14, alignItems: 'center', marginBottom: 12 },
   rsvpBtnText: { fontSize: 15, fontWeight: '700' },
   rsvpNote: { fontSize: 12.5, lineHeight: 18, textAlign: 'center', marginBottom: 16 },
+  seatOptions: { marginBottom: 20 },
   skipBtn: { alignItems: 'center', marginTop: 16 },
   skipText: { fontSize: 14, fontWeight: '600' },
 });

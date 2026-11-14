@@ -16,6 +16,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { appAlert } from '../src/lib/appAlert';
+import { plansHref } from '../src/lib/membershipPath';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -169,7 +170,7 @@ function ChatContent() {
             <Text style={{ color: colors.primary }}>{t('textline.freeUrgentHelp')}</Text>
           </TouchableOpacity>
           <Text style={[styles.gatedBody, { color: colors.inkSoft }]}>{t('textline.gatedBody')}</Text>
-          <TouchableOpacity style={[styles.gatedButton, { backgroundColor: colors.primary }]} onPress={() => router.push('/(tabs)/support')}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('textline.viewPlans')} style={[styles.gatedButton, { backgroundColor: colors.primary }]} onPress={() => router.push(plansHref('chat_gate'))}>
             <Text style={styles.gatedButtonText}>{t('textline.viewPlans')}</Text>
           </TouchableOpacity>
         </ScrollView>
@@ -348,7 +349,7 @@ function ChatContent() {
           {!canUseTextLine ? (
             <View style={[styles.readOnlyBar, { borderTopColor: colors.line }]}>
               <Text style={[styles.gatedBody, { color: colors.inkSoft }]}>{t('textline.gatedBody')}</Text>
-              <TouchableOpacity style={[styles.gatedButton, { backgroundColor: colors.primary }]} onPress={() => router.push('/(tabs)/support')}>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('textline.viewPlans')} style={[styles.gatedButton, { backgroundColor: colors.primary }]} onPress={() => router.push(plansHref('chat_gate'))}>
                 <Text style={styles.gatedButtonText}>{t('textline.viewPlans')}</Text>
               </TouchableOpacity>
             </View>

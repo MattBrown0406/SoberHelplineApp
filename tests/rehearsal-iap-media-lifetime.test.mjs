@@ -121,12 +121,94 @@ for(const kind of ['microphone','camera'])test(`native ${kind}: rejected SDK tog
 test('native SDK resolved no-op is reported rather than claiming OFF',async()=>{
   let alerts=0;const fn=extract('app/video-session.native.tsx','toggleMedia',{localParticipant:{isMicrophoneEnabled:true,setMicrophoneEnabled:async()=>{}},mediaBusy:{current:false},mediaActive:{current:true},setMediaPending(){},Alert:{alert(){alerts++;}},t:x=>x});await fn('microphone');assert.equal(alerts,1);
 });
-for(const stage of ['purchase','sync','refresh'])test(`support stale ${stage} completion suppresses subsequent effects`,async()=>{
-  const gate=deferred(),owner={owner:'A',active:true},calls=[];
-  const wait=async(name,result)=>{calls.push(name);if(stage===name)await gate.promise;return result;};
-  const fn=extract('app/(tabs)/support.tsx','handlePurchase',{purchaseOwner:owner,purchaseOwnerRef:{current:owner},subscriptionPrices:{premium:'$1'},upgradeTier:'premium',purchasePremium:()=>wait('purchase','success'),purchaseEssential:()=>{},user:{id:'A'},recordVerifiedPurchase(){calls.push('record');},retryPrices(){},withTimeoutFallback:p=>p,supabase:{auth:{getSession:async()=>({data:{session:{user:{id:'auth-A'},access_token:'token-A'}}})},functions:{invoke:()=>wait('sync',{})}},refreshAccount:()=>wait('refresh'),closeUpgrade(){calls.push('close');},appAlert(){calls.push('alert');},t:x=>x});
-  const pending=fn();await settle();owner.active=false;gate.resolve();await pending;
-  assert.ok(!calls.includes('close'));if(stage==='purchase')assert.deepEqual(calls,['purchase']);if(stage==='sync')assert.ok(!calls.includes('refresh'));
+// The purchase flow lives in the plans hook (the Support tab only opens the plans screen).
+function planPurchase(overrides={}) {
+  const owner={owner:'A',active:true,generation:0},calls=[],logged=[],auth={id:'auth-A'};
+  const scope={source:'support_tab',logMembershipPath:(step,meta)=>{logged.push([step,meta.tier,meta.source]);},purchaseOwner:owner,purchaseOwnerRef:{current:owner},purchaseFlow:{current:{phase:'idle'}},setFlowPhase(){},subscriptionPrices:{premium:'$1',essential:'$1'},upgradeTier:'premium',purchasePremium:async()=>'success',purchaseEssential:async()=>'success',user:{id:'A'},recordVerifiedPurchase(){calls.push('record');},retryPrices(){},withTimeoutFallback:p=>p,supabase:{auth:{getSession:async()=>({data:{session:{user:{id:auth.id},access_token:'token-A'}}})},functions:{invoke:async()=>{calls.push('sync');return {};}}},refreshAccount:async()=>{calls.push('refresh');},closeUpgrade(){calls.push('close');},appAlert(){calls.push('alert');},t:x=>x,...overrides};
+  return {owner,calls,logged,auth,scope,fn:extract('src/hooks/usePlanPurchase.ts','handlePurchase',scope)};
+}
+// M-A: a purchase the store completes after the screen closed is still hers.
+for(const stage of ['purchase','sync','refresh'])test(`plans screen closed during ${stage}: the purchase is still recorded, synced and refreshed; only the sheet is left alone`,async()=>{
+  const gate=deferred(),held=[];
+  const wait=async(name,result)=>{held.push(name);if(stage===name)await gate.promise;return result;};
+  // (Overrides go in at creation: the sandbox copies the top-level scope.)
+  const x=planPurchase({purchasePremium:()=>wait('purchase','success'),refreshAccount:async()=>{x.calls.push('refresh');await wait('refresh');}});
+  x.scope.supabase.functions.invoke=async()=>{x.calls.push('sync');return wait('sync',{});};
+  const pending=x.fn();await settle();assert.equal(x.scope.purchaseFlow.current.phase,stage==='purchase'?'store':'finishing');
+  x.owner.active=false;x.owner.generation+=1;gate.resolve();await pending;
+  assert.deepEqual(x.calls,['record','sync','refresh']);
+  assert.deepEqual(x.logged,[['purchase_started','premium','support_tab'],['purchase_succeeded','premium','support_tab']]);
+  assert.equal(x.scope.purchaseFlow.current.phase,'idle');
+});
+for(const stage of ['purchase','sync'])for(const how of ['account','session'])test(`a different ${how} after ${stage} is never credited with the purchase`,async()=>{
+  const gate=deferred();
+  const x=planPurchase({purchasePremium:async()=>{if(stage==='purchase')await gate.promise;return 'success';}});
+  x.scope.supabase.functions.invoke=async()=>{x.calls.push('sync');if(stage==='sync')await gate.promise;return {};};
+  const pending=x.fn();await settle();
+  if(how==='account')x.scope.purchaseOwnerRef.current={owner:'B',active:true,generation:0};else x.auth.id='auth-B';
+  gate.resolve();await pending;
+  assert.ok(!x.calls.includes('close'));assert.ok(!x.calls.includes('refresh'));
+  if(stage==='purchase'){assert.deepEqual(x.calls,[]);assert.deepEqual(x.logged,[['purchase_started','premium','support_tab']]);}
+  assert.equal(x.scope.purchaseFlow.current.phase,'idle');
+});
+test('a fast double tap starts one purchase, logs one start and never a false cancel',async()=>{
+  const gate=deferred();let purchases=0;
+  const x=planPurchase({purchasePremium:async()=>{purchases++;await gate.promise;return 'success';}});
+  const first=x.fn(),second=x.fn();await settle();const third=x.fn();
+  gate.resolve();await Promise.all([first,second,third]);
+  assert.equal(purchases,1);
+  assert.deepEqual(x.logged.map(entry=>entry[0]),['purchase_started','purchase_succeeded']);
+  assert.deepEqual(x.calls,['record','sync','refresh','close']);
+});
+test('a purchase that fails after the screen closed is logged but shows no alert there',async()=>{
+  const gate=deferred();
+  const x=planPurchase({purchasePremium:async()=>{await gate.promise;return 'failed';}});
+  const pending=x.fn();await settle();x.owner.active=false;gate.resolve();await pending;
+  assert.deepEqual(x.calls,[]);
+  assert.deepEqual(x.logged.map(entry=>entry[0]),['purchase_started','purchase_failed']);
+});
+test('the sheet cannot be closed, nor a second sheet opened, while the App Store has not answered',()=>{
+  const calls=[];
+  const scope={purchaseFlow:{current:{phase:'store'}},upgradeOpenRef:{current:true},setReviewPromptPaywallVisible:v=>calls.push(['paywall',v]),setUpgradeOpen:v=>calls.push(['open',v]),setUpgradeTier(){},setSheetAttempt(){calls.push(['attempt']);},logMembershipPath(){calls.push(['log']);},source:'support_tab'};
+  const close=extract('src/hooks/usePlanPurchase.ts','closeUpgrade',scope),open=extract('src/hooks/usePlanPurchase.ts','openUpgrade',scope);
+  close();open('premium');assert.deepEqual(calls,[]);
+  scope.purchaseFlow.current.phase='finishing';close();
+  assert.deepEqual(JSON.parse(JSON.stringify(calls)),[['paywall',false],['open',false]]);assert.equal(scope.upgradeOpenRef.current,false);
+});
+test('a plan button always presents the sheet, even when state already says it is open',()=>{
+  const calls=[];
+  const scope={purchaseFlow:{current:{phase:'idle'}},upgradeOpenRef:{current:false},setReviewPromptPaywallVisible(){},setUpgradeOpen:v=>calls.push(['open',v]),setUpgradeTier:v=>calls.push(['tier',v]),setSheetAttempt:f=>calls.push(['attempt',f(0)]),logMembershipPath(){},source:'support_tab'};
+  const open=extract('src/hooks/usePlanPurchase.ts','openUpgrade',scope);
+  open('essential');assert.deepEqual(JSON.parse(JSON.stringify(calls)),[['tier','essential'],['open',true]]);
+  // iOS dropped the presentation: state still says open, she taps a plan again.
+  calls.length=0;open('premium');
+  assert.deepEqual(JSON.parse(JSON.stringify(calls)),[['tier','premium'],['attempt',1],['open',true]]);
+});
+test('IAP: the store answering after the screen closed is still reported as a success',async()=>{
+  const x=iap(),gate=deferred();x.sdk.purchasePackage=async()=>{x.purchases.push('account-A');return gate.promise;};
+  const api=x.render(),pending=api.purchasePremium();x.price.resolve(x.offerings);await settle();
+  assert.deepEqual(x.purchases,['account-A']);
+  x.h.unmount();gate.resolve({customerInfo:{entitlements:{active:{premium:{}}}}});
+  assert.equal(await pending,'success');
+});
+test('IAP: a real store failure is a failure, and "never reached the store" is not',async()=>{
+  const x=iap();x.sdk.purchasePackage=async()=>{throw Error('store down');};
+  const original=console.error;console.error=()=>{};
+  try{const api=x.render(),p=api.purchasePremium();x.price.resolve(x.offerings);assert.equal(await p,'failed');}finally{console.error=original;}
+  const y=iap();y.sdk.purchasePackage=async()=>{throw Object.assign(Error('no'),{userCancelled:true});};
+  const api=y.render(),p=api.purchasePremium();y.price.resolve(y.offerings);assert.equal(await p,'cancelled');
+});
+for(const [result,step,alerted] of [['success','purchase_succeeded',false],['cancelled','purchase_cancelled',false],['failed','purchase_failed',true]])test(`plan purchase logs ${step} with the tier and source only`,async()=>{
+  const logged=[];
+  const x=planPurchase({source:'after_meeting',logMembershipPath:(name,meta)=>{logged.push([name,meta]);},subscriptionPrices:{essential:'$1'},upgradeTier:'essential',purchasePremium:()=>{throw Error('wrong tier');},purchaseEssential:async()=>result});
+  await x.fn();
+  // (Through JSON: the objects were made inside the sandbox.)
+  assert.deepEqual(JSON.parse(JSON.stringify(logged)),[['purchase_started',{tier:'essential',source:'after_meeting'}],[step,{tier:'essential',source:'after_meeting'}]]);
+  assert.equal(x.calls.includes('alert'),alerted);assert.equal(x.calls.includes('close'),result==='success');
+});
+test('no store price: nothing is started and nothing is logged',async()=>{
+  const x=planPurchase({source:'chat_gate',subscriptionPrices:{},upgradeTier:'essential',purchaseEssential:()=>{throw Error('must not purchase');},purchasePremium:()=>{throw Error('must not purchase');}});
+  await x.fn();assert.deepEqual(x.logged,[]);assert.equal(x.scope.purchaseFlow.current.phase,'idle');
 });
 test('rehearsal initial request waits for session binding; late private result is discarded',async()=>{
   const response=deferred();const r=rehearsal(()=>response.promise);const api=r.render();

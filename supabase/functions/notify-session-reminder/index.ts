@@ -18,7 +18,7 @@ const supabase = createClient(
 const COPY = {
   en: {
     title: 'Starting in 15 minutes',
-    body: 'The Family Squares is tonight at 7:00 PM Pacific — tap to join',
+    body: 'Family Squares is tonight at 7:00 PM Pacific — tap to join',
   },
 };
 Deno.serve(async (req) => {

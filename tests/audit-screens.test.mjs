@@ -177,14 +177,40 @@ test('late coaching submission cannot clear or reload another account', async ()
 test('signup releases loading on rejection and never queries account tables anonymously',async()=>{
  const state={};await action('(auth)/sign-up.tsx','handleEmailSignUp',{
   loading:false,acceptedTerms:true,password:'longpassword',email:'test@example.test',firstName:'Test',lastName:'Audit',TERMS_VERSION:'1.0',t:k=>k,
+  SIGN_UP_CONFIRM_REDIRECT_URL:'https://soberhelpline.com/app-confirmed.html',
   setError:v=>state.error=v,setLoading:v=>state.loading=v,setCheckEmail:v=>state.check=v,
+  markSignUpSubmitted:()=>{state.marked=true},
   supabase:{auth:{signUp:async()=>{throw Error('offline')}},from:()=>assert.fail('anonymous account lookup')}
  })();assert.equal(state.loading,false);assert.equal(state.error,'signUp.errorGeneric');assert.equal(state.check,undefined);
+ // Nothing was sent, so the phone is not marked as one a sign-up came from.
+ assert.equal(state.marked,undefined);
 });
 test('confirmation-required signup displays email instructions without account-table access',async()=>{
  const state={};await action('(auth)/sign-up.tsx','handleEmailSignUp',{
   loading:false,acceptedTerms:true,password:'longpassword',email:'test@example.test',firstName:'Test',lastName:'Audit',TERMS_VERSION:'1.0',t:k=>k,
+  SIGN_UP_CONFIRM_REDIRECT_URL:'https://soberhelpline.com/app-confirmed.html',
   setError:v=>state.error=v,setLoading:v=>state.loading=v,setCheckEmail:v=>state.check=v,
-  supabase:{auth:{signUp:async()=>({data:{user:{id:'A'},session:null},error:null})},from:()=>assert.fail('anonymous account lookup')}
+  markSignUpSubmitted:()=>{state.marked=(state.marked??0)+1},
+  supabase:{auth:{signUp:async request=>{state.request=request;return {data:{user:{id:'A'},session:null},error:null}}},from:()=>assert.fail('anonymous account lookup')}
  })();assert.equal(state.loading,false);assert.equal(state.check,true);assert.equal(state.error,null);
+ // The sign-up went through: the phone remembers it (once), so reopening lands on sign-in.
+ assert.equal(state.marked,1);
+ // The confirm step opens with the same redirect address and the terms consent as before.
+ assert.equal(state.request.options.emailRedirectTo,'https://soberhelpline.com/app-confirmed.html');
+ assert.equal(state.request.options.data.terms_version,'1.0');
+});
+test('signup keeps its checks: terms, password length and an already-registered email',async()=>{
+ const run=async(overrides,signUp=async()=>assert.fail('must not reach the server'))=>{const state={};await action('(auth)/sign-up.tsx','handleEmailSignUp',{
+  loading:false,acceptedTerms:true,password:'longpassword',email:'test@example.test',firstName:'Test',lastName:'Audit',TERMS_VERSION:'1.0',t:k=>k,
+  SIGN_UP_CONFIRM_REDIRECT_URL:'https://soberhelpline.com/app-confirmed.html',
+  setError:v=>state.error=v,setLoading:v=>state.loading=v,setCheckEmail:v=>state.check=v,
+  markSignUpSubmitted:()=>{state.marked=true},
+  supabase:{auth:{signUp},from:()=>assert.fail('anonymous account lookup')},...overrides
+ })();return state;};
+ assert.equal((await run({acceptedTerms:false})).error,'signUp.errorTermsRequired');
+ assert.equal((await run({password:'short'})).error,'signUp.errorWeakPassword');
+ const taken=await run({},async()=>({data:{user:null,session:null},error:{message:'User already registered',status:422}}));
+ assert.equal(taken.error,'signUp.errorEmailTaken');assert.equal(taken.check,undefined);assert.equal(taken.loading,false);
+ // A refused sign-up does not mark the phone either.
+ assert.equal(taken.marked,undefined);assert.equal((await run({password:'short'})).marked,undefined);
 });

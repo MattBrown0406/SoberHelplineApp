@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { useAccount } from '../contexts/AccountContext';
 import Purchases, { type PurchasesOfferings, type PurchasesPackage } from 'react-native-purchases';
-import { purchaseRevenueCatPackage } from '../lib/revenueCat';
+import { PURCHASE_NOT_STARTED, purchaseRevenueCatPackage } from '../lib/revenueCat';
 import { setReviewPromptPurchaseFlow } from '../lib/reviewPrompt';
 import { freeTrialOffer, type TrialOffer } from '../lib/subscriptionTrial';
 
@@ -112,6 +112,11 @@ export function useIAP() {
 
   async function purchaseTier(tier: SubscriptionTier): Promise<PurchaseResult> {
     const generation = lifetime.generation;
+    // "On screen": this screen is still mounted for the account that tapped.
+    // It decides whether a purchase may START and whether this hook's own
+    // state is updated. It never decides how a purchase the store has already
+    // answered is reported: she may have been charged, and the caller
+    // (usePlanPurchase) must hear about it even after the screen has gone.
     const current = () => isActive() && generation === lifetime.generation;
     if (!owner || !current() || lifetime.purchasing) return 'cancelled';
     lifetime.purchasing = true;
@@ -121,6 +126,7 @@ export function useIAP() {
     setIapError(null);
     try {
       const offerings = await Purchases.getOfferings();
+      // Nothing has been bought yet: a screen that has gone starts nothing.
       if (!current()) return 'cancelled';
       const pkg = findPackage(offerings, tier);
       if (!pkg) {
@@ -128,19 +134,21 @@ export function useIAP() {
         return 'failed';
       }
 
+      // Bought as `owner` (checked inside the identity queue, which also holds
+      // every sign-in and sign-out until the store has answered).
       const result = await purchaseRevenueCatPackage(pkg, owner, current);
-      if (!current()) return 'cancelled';
       if (!result.customerInfo.entitlements.active[tier]) {
-        setIapError('entitlement_not_granted');
+        if (current()) setIapError('entitlement_not_granted');
         return 'failed';
       }
       return 'success';
     } catch (err: unknown) {
-      if (!current()) return 'cancelled';
       const rcErr = err as { userCancelled?: boolean; message?: string };
       if (rcErr.userCancelled) return 'cancelled';
+      // The screen or the account changed before the store was asked: not a failure.
+      if (rcErr.message === PURCHASE_NOT_STARTED) return 'cancelled';
       console.error(`[useIAP] ${tier} purchase failed:`, err);
-      setIapError(rcErr.message ?? 'purchase_failed');
+      if (current()) setIapError(rcErr.message ?? 'purchase_failed');
       return 'failed';
     } finally {
       lifetime.purchasing = false;

@@ -24,6 +24,7 @@ import type { AdminBriefRow } from '../src/lib/situationBrief';
 import { FamilyCallTakeawayCard } from '../src/components/admin/FamilyCallTakeawayCard';
 import { ToolUsageCard } from '../src/components/admin/ToolUsageCard';
 import { BereavementContactsCard } from '../src/components/admin/BereavementContactsCard';
+import type { MembershipPathStage } from '../src/lib/membershipPath';
 
 type FunnelStats = {
   members: number;
@@ -36,6 +37,17 @@ type FunnelStats = {
   intervention_viewed: number;
   intervention_started: number;
   bands: { calm: number; watch: number; elevated: number; crisis: number };
+  /** Newest first. Missing on an older backend; rsvps/declined are null for meetings before counts were kept. */
+  family_squares_weeks?: FamilySquaresWeek[];
+  /** Members (not events) at each step of the membership path in the last 30 days. Missing on an older backend. */
+  membership_path_30d?: Partial<Record<MembershipPathStage, number>>;
+};
+type FamilySquaresWeek = {
+  meeting_date: string;
+  rsvps: number | null;
+  declined: number | null;
+  join_taps: number;
+  attended_10min: number;
 };
 type ReviewPromptStats = {
   eligible_events: number;
@@ -202,12 +214,44 @@ export default function AdminScreen() {
               <FunnelStat label="Paid accounts" value={funnel.paid_accounts} colors={colors} />
               <FunnelStat label="Loved one set" value={funnel.onboarded_loved_one} colors={colors} />
             </View>
-            <Text style={[styles.funnelStage, { color: colors.inkSoft }]}>
-              Funnel: {funnel.free_rsvps} RSVP&apos;d → {funnel.attended} attended → {funnel.coaching_requested} requested coaching → {funnel.coaching_confirmed} confirmed → {funnel.intervention_started} planning intervention
-            </Text>
+            {/* Family Squares, meeting by meeting (newer backends); the all-time line is the fallback. */}
+            {funnel.family_squares_weeks?.length ? (
+              <>
+                <Text style={[styles.funnelSubhead, { color: colors.ink }]}>Family Squares, by meeting</Text>
+                {funnel.family_squares_weeks.map((week, index) => (
+                  <Text key={week.meeting_date} style={[styles.funnelWeek, { color: colors.inkSoft }]}>
+                    {meetingLabel(week.meeting_date)}{index === 0 ? ' (coming)' : ''}: {week.rsvps ?? '–'} RSVP&apos;d
+                    {week.declined ? ` (${week.declined} can't make it)` : ''} → {week.join_taps} tapped Join → {week.attended_10min} stayed 10+ min
+                  </Text>
+                ))}
+                <Text style={[styles.funnelStage, { color: colors.inkSoft, marginTop: 8 }]}>
+                  After that, all time: {funnel.coaching_requested} requested coaching → {funnel.coaching_confirmed} confirmed → {funnel.intervention_started} planning intervention
+                </Text>
+              </>
+            ) : (
+              <Text style={[styles.funnelStage, { color: colors.inkSoft }]}>
+                Funnel: {funnel.free_rsvps} RSVP&apos;d → {funnel.attended} attended → {funnel.coaching_requested} requested coaching → {funnel.coaching_confirmed} confirmed → {funnel.intervention_started} planning intervention
+              </Text>
+            )}
             <Text style={[styles.funnelStage, { color: colors.inkSoft }]}>
               ({funnel.intervention_viewed} viewed the intervention page)
             </Text>
+
+            {/* The membership path (newer backends only). */}
+            {funnel.membership_path_30d ? (
+              <>
+                <Text style={[styles.funnelSubhead, { color: colors.ink }]}>Membership path, last 30 days</Text>
+                <Text style={[styles.funnelWeek, { color: colors.inkSoft }]}>
+                  {funnel.membership_path_30d.plans_viewed ?? 0} saw the plans → {funnel.membership_path_30d.plan_sheet_opened ?? 0} opened a plan → {funnel.membership_path_30d.purchase_started ?? 0} started a purchase → {funnel.membership_path_30d.purchase_succeeded ?? 0} subscribed
+                </Text>
+                <Text style={[styles.funnelWeek, { color: colors.inkSoft }]}>
+                  Purchases not finished: {funnel.membership_path_30d.purchase_cancelled ?? 0} cancelled, {funnel.membership_path_30d.purchase_failed ?? 0} failed
+                </Text>
+                <Text style={[styles.funnelStage, { color: colors.inkSoft }]}>
+                  Invitations: {funnel.membership_path_30d.membership_invite_shown ?? 0} shown one → {funnel.membership_path_30d.membership_invite_tapped ?? 0} tapped
+                </Text>
+              </>
+            ) : null}
 
             <Text style={[styles.funnelSubhead, { color: colors.ink }]}>Readiness bands</Text>
             <View style={styles.bandsRow}>
@@ -217,7 +261,7 @@ export default function AdminScreen() {
               <BandPill label="Crisis" value={funnel.bands.crisis} color={colors.coral} colors={colors} />
             </View>
             <Text style={[styles.funnelNote, { color: colors.inkSoft }]}>
-              Paid accounts = active Essential or Premier subscriptions. RSVPs reset Tuesdays at 2:00 AM Pacific. Attended = tapped Join on a group call. Intervention = opened/started planning.
+              Paid accounts = active Essential or Premier subscriptions. RSVPs reset Tuesdays at 2:00 AM Pacific; each meeting&apos;s count is kept from then on (– = before counts were kept). Tapped Join = members who tapped Join from an hour before to half an hour after the meeting. Stayed 10+ min = came back to the app ten minutes or more after tapping Join (app builds from 4.2 on). Admins and Spanish-language members are left out of both. Intervention = opened/started planning. Membership path = members (each counted once per step) in the last 30 days, from app builds that log it; admins are left out.
             </Text>
           </>
         )}
@@ -545,6 +589,14 @@ export default function AdminScreen() {
 
 type Colors = ReturnType<typeof useTheme>['colors'];
 
+/** "Mon, Nov 16" for a meeting date (YYYY-MM-DD), without shifting it by the device's time zone. */
+function meetingLabel(meetingDate: string): string {
+  const at = new Date(`${meetingDate}T12:00:00Z`);
+  return Number.isFinite(at.getTime())
+    ? at.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
+    : meetingDate;
+}
+
 function FunnelStat({ label, value, colors }: { label: string; value: number; colors: Colors }) {
   return (
     <View style={styles.funnelStat}>
@@ -571,6 +623,7 @@ const styles = StyleSheet.create({
   funnelStatLabel: { fontSize: 12, marginTop: 2 },
   funnelStage: { fontSize: 13, lineHeight: 19, marginBottom: 14 },
   funnelSubhead: { fontSize: 13, fontWeight: '700', marginBottom: 8 },
+  funnelWeek: { fontSize: 13, lineHeight: 19, marginBottom: 4 },
   bandsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   bandPill: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 99, paddingVertical: 6, paddingHorizontal: 12 },
   bandDot: { width: 9, height: 9, borderRadius: 5 },

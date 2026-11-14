@@ -5,8 +5,11 @@ import { appAlert } from '../lib/appAlert';
 import { useFocusEffect } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { reserveFamilySquares, familySquaresRsvpIsCurrent, FAMILY_SQUARES_ALREADY_REGISTERED } from '../lib/familySquaresRegistration';
+import { declineFamilySquares } from '../lib/familySquaresSeat';
 import { isLaSobremesaSession, isFamilySquaresSession } from '../lib/familySquaresSchedule';
 import { reserveLaSobremesa, withPersonalLinks } from '../lib/laSobremesa';
+import { withFreshAnswer } from '../lib/freshAnswer';
+import { rememberFamilySquaresSession } from '../lib/familySquaresSessionCache';
 
 export interface DbSession {
   id: string;
@@ -16,6 +19,8 @@ export interface DbSession {
   next_at: string | null;
   zoom_url: string | null;
   rsvped: boolean;
+  /** Family Squares only: she answered "can't make it" for this meeting. */
+  declined?: boolean;
 }
 
 export function useSessions(accountId: string | null) {
@@ -25,29 +30,41 @@ export function useSessions(accountId: string | null) {
   identity.current = accountId;
   const generation = useRef(0);
   useEffect(() => () => { identity.current = null; ++generation.current; }, []);
+  // Goes up with every answer she gives (seat saved, "can't make it", RSVP):
+  // a read that began before it must not put the old answer back (freshAnswer).
+  const answers = useRef(0);
+  // How many plain RSVP writes are on their way to the server right now.
+  const writing = useRef(0);
 
   const load = useCallback(async () => {
     const request = ++generation.current;
+    const answersAtStart = answers.current;
     if (!accountId) return;
     const [{ data: rows }, { data: rsvps }] = await Promise.all([
       supabase
         .from('sessions')
         .select('id, kind, title, schedule_label, next_at, zoom_url')
         .order('next_at', { ascending: true }),
-      supabase.from('session_rsvps').select('session_id, family_squares_meeting_date').eq('status', 'going').eq('account_id', accountId!),
+      // "Can't make it" answers too: the row says so instead of offering the seat as new.
+      supabase.from('session_rsvps').select('session_id, status, family_squares_meeting_date').in('status', ['going', 'declined']).eq('account_id', accountId!),
     ]);
-    const going = new Set((rsvps ?? []).map((r) => r.session_id as string));
+    const going = new Set((rsvps ?? []).filter((r) => r.status === 'going').map((r) => r.session_id as string));
+    // (Remembered on the device, so a reminder tap knows which session is Family Squares.)
+    rememberFamilySquaresSession(rows as { id: string; title: string }[] | null);
     // La Sobremesa's Join opens the member's personal link.
-    const withLinks = await withPersonalLinks((rows as Omit<DbSession, 'rsvped'>[]) ?? []);
+    const withLinks = await withPersonalLinks((rows as Omit<DbSession, 'rsvped' | 'declined'>[]) ?? []);
     if (request !== generation.current || identity.current !== accountId) return;
-    setSessions(
-      withLinks.map((s) => ({
-        ...s,
-        rsvped: isFamilySquaresSession(s)
-          ? familySquaresRsvpIsCurrent(rsvps?.find((r) => r.session_id === s.id)?.family_squares_meeting_date)
-          : going.has(s.id),
-      })),
-    );
+    const loaded: DbSession[] = withLinks.map((s) => {
+      if (!isFamilySquaresSession(s)) return { ...s, rsvped: going.has(s.id) };
+      // A Family Squares answer counts only for the meeting it was given for.
+      const answer = rsvps?.find((r) => r.session_id === s.id);
+      const current = familySquaresRsvpIsCurrent(answer?.family_squares_meeting_date);
+      return { ...s, rsvped: current && answer?.status === 'going', declined: current && answer?.status === 'declined' };
+    });
+    // She answered while this read was in flight (or an answer is still being
+    // saved): her answers stay as they are.
+    const answeredSince = answersAtStart !== answers.current || writing.current > 0;
+    setSessions((prev) => loaded.map((s) => withFreshAnswer(s, prev.find((p) => p.id === s.id), answeredSince)));
     setLoading(false);
   }, [accountId]);
 
@@ -77,7 +94,8 @@ export function useSessions(accountId: string | null) {
         const reserved = await reserveFamilySquares(accountId).finally(() => { reserving.current = false; });
         if (identity.current !== accountId) return true;
         if (!reserved.ok) return false;
-        setSessions((prev) => prev.map((s) => s.id === session.id ? { ...s, rsvped: true } : s));
+        ++answers.current;
+        setSessions((prev) => prev.map((s) => s.id === session.id ? { ...s, rsvped: true, declined: false } : s));
         if (reserved.alreadyRegistered) appAlert(i18next.t(FAMILY_SQUARES_ALREADY_REGISTERED));
         return true;
       }
@@ -91,11 +109,14 @@ export function useSessions(accountId: string | null) {
           reserving.current = false;
         });
         if (!reserved.ok) return reserved.reason === 'not_available' ? 'not_available' : false;
+        ++answers.current;
         setSessions((prev) =>
           prev.map((s) => (s.id === session.id ? { ...s, rsvped: true, zoom_url: reserved.joinUrl } : s)),
         );
         return true;
       }
+      ++answers.current;
+      ++writing.current;
       setSessions((prev) =>
         prev.map((s) => (s.id === session.id ? { ...s, rsvped: !s.rsvped } : s)),
       );
@@ -118,10 +139,27 @@ export function useSessions(accountId: string | null) {
           prev.map((s) => (s.id === session.id ? { ...s, rsvped: session.rsvped } : s)),
         );
         return false;
+      } finally {
+        --writing.current;
+        // Reads that began while this was saving may have seen the old answer.
+        ++answers.current;
       }
     },
     [accountId],
   );
 
-  return { sessions, loading, toggleRsvp };
+  /** "Can't make it this week" for Family Squares; false when it was not saved. */
+  const declineRsvp = useCallback(async (session: DbSession): Promise<boolean> => {
+    if (!accountId || identity.current !== accountId || !isFamilySquaresSession(session)) return false;
+    // Never while a seat is being saved: the two answers must not cross.
+    if (reserving.current) return false;
+    reserving.current = true;
+    const declined = await declineFamilySquares().finally(() => { reserving.current = false; });
+    if (identity.current !== accountId || !declined) return declined;
+    ++answers.current;
+    setSessions((prev) => prev.map((s) => s.id === session.id ? { ...s, rsvped: false, declined: true } : s));
+    return true;
+  }, [accountId]);
+
+  return { sessions, loading, toggleRsvp, declineRsvp };
 }

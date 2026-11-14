@@ -1,12 +1,15 @@
-import React, { useCallback, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useCallback, useRef, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, type LayoutChangeEvent, type ScrollView } from 'react-native';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { useTranslation } from 'react-i18next';
 import { appAlert } from '../../src/lib/appAlert';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { TodayDisclosure } from '../../src/components/today/TodayDisclosure';
+import { TodayDisclosure, TodayDisclosureToggle } from '../../src/components/today/TodayDisclosure';
+import { NextStepItem, useNextStep } from '../../src/components/today/NextStepItem';
+import { WelcomeBackCard } from '../../src/components/today/WelcomeBackCard';
+import { ReminderAskNote } from '../../src/components/reminders/ReminderAskNote';
 import { HeroCard } from '../../src/components/today/HeroCard';
 import { CheckInFeedbackCard } from '../../src/components/today/CheckInFeedbackCard';
 import { GuidedStartPanel } from '../../src/components/today/GuidedStartPanel';
@@ -14,6 +17,9 @@ import { CheckInCard } from '../../src/components/today/CheckInCard';
 import { RecoveryPathwayCard } from '../../src/components/today/RecoveryPathwayCard';
 import { MoodChart } from '../../src/components/today/MoodChart';
 import { FreeTierPaywall } from '../../src/components/ui/FreeTierPaywall';
+import { LockedPreviewRow } from '../../src/components/plans/LockedPreviewRow';
+import { ContextualMembershipInvitation } from '../../src/membershipInvitations/ContextualMembershipInvitation';
+import { useAfterMeetingInvite } from '../../src/hooks/useAfterMeetingInvite';
 import { SituationCard, type WeeklyOneThing } from '../../src/components/today/SituationCard';
 import { NeedsRouter } from '../../src/components/today/NeedsRouter';
 import { ContinueLetterCard } from '../../src/components/today/ContinueLetterCard';
@@ -34,11 +40,16 @@ import { useLovedOne } from '../../src/hooks/useLovedOne';
 import { useFamilySpace } from '../../src/hooks/useFamilySpace';
 import { useHoldLog } from '../../src/hooks/useHoldLog';
 import { useFamilyCallTakeaway } from '../../src/hooks/useFamilyCallTakeaway';
+import { useWelcomeBack } from '../../src/hooks/useWelcomeBack';
+import { useTodayReminderAsk } from '../../src/hooks/useReminderAsk';
 import { rearmDailyNudge } from '../../src/hooks/usePushNotifications';
 import { getDailyScripts } from '../../src/content/scripts';
 import { PHASE_LABEL_KEY, selectCurriculumPiece } from '../../src/content/curriculum';
 import { useFeatureAccess } from '../../src/hooks/useFeatureAccess';
 import { pathwayPhaseUpdate } from '../../src/lib/recoveryPathway';
+import { NEXT_STEP_PRIORITY, type NextStepCard } from '../../src/lib/todayNextStep';
+import { welcomeBackActions } from '../../src/lib/welcomeBack';
+import { isFamilySquaresSession, isLaSobremesaSession } from '../../src/lib/familySquaresSchedule';
 import {
   cancelQueuedSupportCallReview,
   maybeRequestReview,
@@ -68,7 +79,7 @@ function TodayContent() {
   const bereaved = bereavedState === true;
   const bereavedUnknown = bereavedState === undefined;
   const [diedSheetOpen, setDiedSheetOpen] = useState(false);
-  const { dayCount, boundariesHeld, groupSessions, quoteIndex, scriptSlot, curriculumWeek, curriculumPhase, situation, primaryDoor, nextFreeCall, rsvpFreeCall, reload: reloadFeed } =
+  const { dayCount, boundariesHeld, groupSessions, quoteIndex, scriptSlot, curriculumWeek, curriculumPhase, situation, primaryDoor, nextFreeCall, rsvpFreeCall, declineFreeCall, reload: reloadFeed } =
     useTodayFeed(user?.id ?? null, user?.joinedAt ?? null);
   const youLabel = user?.firstName || t('boundaries:journal.you');
   const { space: familySpace, refresh: refreshFamilySpace } = useFamilySpace(user?.id ?? null, { you: youLabel, member: t('boundaries:journal.member') });
@@ -86,6 +97,24 @@ function TodayContent() {
   );
   const canAccessFullToday = useFeatureAccess('todayFull');
   const takeaway = useFamilyCallTakeaway(user?.id ?? null);
+  // Back after a week or more away: one small hello at the top, for this visit.
+  const welcome = useWelcomeBack(user?.id ?? null);
+  // A gentle second chance to turn on reminders. Not on the bereaved Today,
+  // and not on a visit that opened with the welcome-back card (or before we
+  // know whether it did: it waits for welcome.decided each time).
+  const reminderAsk = useTodayReminderAsk(bereaved || bereavedUnknown ? null : user?.id ?? null, user?.joinedAt, !welcome.ready || welcome.returned, welcome.decided);
+  // Just back from Family Squares, and no rating prompt on this visit. Never
+  // on the bereaved Today; free members only (the invitation checks that).
+  const afterMeeting = useAfterMeetingInvite(
+    bereaved || bereavedUnknown ? null : user?.id ?? null,
+    welcome.visible || !!reminderAsk.view,
+  );
+  // The one "next step" under the check-in, and what waits under "More for this week".
+  const nextStep = useNextStep();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const scrollRef = useRef<ScrollView | null>(null);
+  const checkInY = useRef(0);
+  const scrollToCheckIn = useRef(false);
 
   const firstName = user?.firstName?.trim() ?? '';
   const greeting = timeGreeting(t, firstName);
@@ -201,22 +230,35 @@ function TodayContent() {
   // seat is the first thing a new member is asked to do.
   const mondayCallCard = (
     <SituationCard
+      accountId={user?.id ?? null}
       nextFreeCall={nextFreeCall}
       // No coaching or intervention door about a loved one who died.
       primaryDoor={bereaved ? 'free_call' : primaryDoor}
       weeklyOneThing={weeklyOneThing}
       onRsvp={rsvpFreeCall}
+      onDecline={declineFreeCall}
       onSupportCallJoin={queueMondayMeetingReview}
       onSupportCallOpenFailed={() => cancelQueuedSupportCallReview(user?.id ?? null)}
+      // No prompts of any kind for a bereaved member: no reminder ask under her seat.
+      seatReminderAsk={!bereaved && !bereavedUnknown}
     />
   );
 
   const header = (
     <View style={styles.headerRow}>
       <Text style={[styles.greeting, { color: colors.ink }]}>{greeting}</Text>
-      <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-        <Text style={styles.avatarText}>{firstName ? firstName.charAt(0).toUpperCase() : '•'}</Text>
-      </View>
+      {/* Her initial opens Settings, on every version of Today (free, member and bereaved). */}
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel={t('common:a11y.settings')}
+        onPress={() => router.push('/settings')}
+        activeOpacity={0.8}
+        style={styles.avatarButton}
+      >
+        <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+          <Text style={styles.avatarText}>{firstName ? firstName.charAt(0).toUpperCase() : '•'}</Text>
+        </View>
+      </TouchableOpacity>
     </View>
   );
 
@@ -235,7 +277,65 @@ function TodayContent() {
     />
   );
 
-  // Immediate help and the daily check-in lead for every membership tier.
+  const onCheckInLayout = (event: LayoutChangeEvent) => {
+    checkInY.current = event.nativeEvent.layout.y;
+    // "Check in" on the welcome-back card: scroll once the card above has gone.
+    if (!scrollToCheckIn.current) return;
+    scrollToCheckIn.current = false;
+    scrollRef.current?.scrollTo({ y: Math.max(0, checkInY.current - 8), animated: true });
+  };
+  // The Monday meeting she can still save a seat at (not one she already answered for).
+  const seatOpen = !!nextFreeCall && (isFamilySquaresSession(nextFreeCall) || isLaSobremesaSession(nextFreeCall))
+    && !nextFreeCall.rsvped && !nextFreeCall.declined;
+  // Either action (or Close) puts the card away until the next week-long gap.
+  const welcomeBackCard = welcome.visible ? (
+    <WelcomeBackCard
+      actions={welcomeBackActions({ seatOpen, checkedInToday: !!todayCheckIn })}
+      onSaveSeat={() => {
+        welcome.dismiss();
+        void rsvpFreeCall();
+      }}
+      onCheckIn={() => {
+        scrollToCheckIn.current = true;
+        welcome.dismiss();
+      }}
+      onDismiss={welcome.dismiss}
+    />
+  ) : null;
+  const reminderAskCard = <ReminderAskNote ask={reminderAsk} place="today" />;
+
+  // One "next step" under the check-in: the first of these with something to
+  // show takes the slot (chooseNextStep); the rest wait under "More for this
+  // week". Each card still decides for itself whether it shows.
+  const nextStepCards: Record<NextStepCard, React.ReactNode> = {
+    willingnessWindow: willingnessWindowAlert,
+    lovedOneCheck: lovedOneCheckCard,
+    holidayPlan: holidayCard,
+    invitation: invitationCard,
+    guidedStart: <GuidedStartPanel />,
+  };
+  const nextStepItem = (card: NextStepCard, shown: boolean) => (
+    <NextStepItem key={card} shown={shown} onShowing={(showing) => nextStep.report(card, showing)}>
+      {nextStepCards[card]}
+    </NextStepItem>
+  );
+  // Both lists go into one keyed list on the screen, so a card stays mounted
+  // (and keeps what she typed) when it moves between the slot and "More".
+  const nextStepSlot = nextStep.slot ? [nextStepItem(nextStep.slot, true)] : [];
+  const moreForThisWeek = [
+    ...(nextStep.more.length ? [
+      <TodayDisclosureToggle
+        key="more"
+        title={t('disclosure.more')}
+        expanded={moreOpen}
+        onPress={() => setMoreOpen((open) => !open)}
+      />,
+    ] : []),
+    ...NEXT_STEP_PRIORITY.filter((card) => card !== nextStep.slot)
+      .map((card) => nextStepItem(card, moreOpen && nextStep.more.includes(card))),
+  ];
+
+  // The Monday call and the daily check-in lead for every membership tier.
   // After her loved one died: immediate help, the grief card, the Monday call
   // and her own check-in — nothing about their recovery.
   // A moment on a cold start: neither the record nor the device's copy is known.
@@ -265,7 +365,7 @@ function TodayContent() {
         <CheckInFeedbackCard checkIn={todayCheckIn} />
         <MoodChart accountId={user?.id ?? null} timezone={user?.timezone} />
         {isAdmin && (
-          <TouchableOpacity onPress={() => router.push('/admin')} style={styles.adminLink}>
+          <TouchableOpacity accessibilityRole="button" onPress={() => router.push('/admin')} style={styles.adminLink}>
             <Text style={[styles.adminLinkText, { color: colors.inkSoft }]}>Admin</Text>
           </TouchableOpacity>
         )}
@@ -273,25 +373,33 @@ function TodayContent() {
     );
   }
 
-  // Secondary content stays reachable without overwhelming the first screen.
+  // Secondary content stays reachable without overwhelming the first screen:
+  // greeting, the Monday call, the check-in, one next step, then "What do you
+  // need right now?" and the tucked-away sections.
   if (!canAccessFullToday) {
     const freeScript = getDailyScripts(scriptSlot, i18n.language)[0];
     return (
-      <ScreenContainer backgroundColor={colors.cream}>
+      <ScreenContainer backgroundColor={colors.cream} scrollRef={scrollRef}>
         {header}
-        <NeedsRouter />
-        {willingnessWindowAlert}
+        {welcomeBackCard}
         {mondayCallCard}
-        {checkInCard}
-        <CheckInFeedbackCard checkIn={todayCheckIn} />
-        {lovedOneCheckCard}
-        {holidayCard}
-        {invitationCard}
-        <GuidedStartPanel />
+        {reminderAskCard}
+        {/* One soft invitation when she is back from Family Squares: at most
+            once every 14 days, and one ask at a time on this screen. */}
+        <ContextualMembershipInvitation
+          accountId={user?.id ?? null}
+          placement="after-meeting"
+          completed={afterMeeting}
+        />
+        <View onLayout={onCheckInLayout}>
+          {checkInCard}
+          <CheckInFeedbackCard checkIn={todayCheckIn} />
+        </View>
+        {[...nextStepSlot, <NeedsRouter key="needs" />, ...moreForThisWeek]}
         <TodayDisclosure title={t('disclosure.pathway')}>
           {pathwayCard}
         </TodayDisclosure>
-        <TodayDisclosure title={t('disclosure.connection')}>
+        <TodayDisclosure title={t('disclosure.invite')}>
         <PassItOnCard />
         </TodayDisclosure>
         <TodayDisclosure title={t('disclosure.practice')}>
@@ -302,7 +410,8 @@ function TodayContent() {
             </Text>
             <ScriptCard script={freeScript} />
             <Text style={[styles.freeNote, { color: colors.inkSoft }]}>
-              {t('freeDaily.note')}
+              {/* The tab is named by the label she sees in the tab bar. */}
+              {t('freeDaily.note', { tab: t('common:navShort.scripts') })}
             </Text>
           </>
         )}
@@ -314,6 +423,13 @@ function TodayContent() {
           nameFor={(id) => familySpace?.members.find((m) => m.accountId === id)?.displayName ?? youLabel}
           onSave={(result, share) => { void saveBoundaryWin(result, share); }}
         />
+        {/* Members see their week in review and progress in this section;
+            say so in one row, with no sample or blurred data. */}
+        <LockedPreviewRow
+          source="today_locked_preview"
+          line={i18n.t('plans:locked.todayLine')}
+          label={i18n.t('plans:locked.todayLabel')}
+        />
         <MoodChart accountId={user?.id ?? null} timezone={user?.timezone} />
         {curriculumPiece && (
           <CurriculumCard
@@ -324,7 +440,7 @@ function TodayContent() {
         )}
         </TodayDisclosure>
         <TodayDisclosure title={t('disclosure.membership')}>
-          <FreeTierPaywall inline />
+          <FreeTierPaywall inline source="today_membership" />
         </TodayDisclosure>
         {bereavementSheet}
       </ScreenContainer>
@@ -332,21 +448,20 @@ function TodayContent() {
   }
 
   return (
-    <ScreenContainer backgroundColor={colors.cream}>
+    <ScreenContainer backgroundColor={colors.cream} scrollRef={scrollRef}>
       {header}
-      <NeedsRouter />
-      {willingnessWindowAlert}
+      {welcomeBackCard}
       {mondayCallCard}
-      {checkInCard}
-      <CheckInFeedbackCard checkIn={todayCheckIn} />
-      {lovedOneCheckCard}
-      {holidayCard}
-      {invitationCard}
-        <GuidedStartPanel />
+      {reminderAskCard}
+      <View onLayout={onCheckInLayout}>
+        {checkInCard}
+        <CheckInFeedbackCard checkIn={todayCheckIn} />
+      </View>
+      {[...nextStepSlot, <NeedsRouter key="needs" />, ...moreForThisWeek]}
       <TodayDisclosure title={t('disclosure.pathway')}>
         {pathwayCard}
       </TodayDisclosure>
-      <TodayDisclosure title={t('disclosure.connection')}>
+      <TodayDisclosure title={t('disclosure.invite')}>
       <PassItOnCard />
       </TodayDisclosure>
       <TodayDisclosure title={t('disclosure.practice')}>
@@ -383,7 +498,7 @@ function TodayContent() {
       )}
       </TodayDisclosure>
       {isAdmin && (
-        <TouchableOpacity onPress={() => router.push('/admin')} style={styles.adminLink}>
+        <TouchableOpacity accessibilityRole="button" onPress={() => router.push('/admin')} style={styles.adminLink}>
           <Text style={[styles.adminLinkText, { color: colors.inkSoft }]}>Admin</Text>
         </TouchableOpacity>
       )}
@@ -411,6 +526,15 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     letterSpacing: -0.4,
+  },
+  // A full 44-point target around the 38-point circle; the negative margin
+  // keeps the header exactly where it was.
+  avatarButton: {
+    minWidth: 44,
+    minHeight: 44,
+    margin: -3,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   avatar: {
     width: 38,
