@@ -146,7 +146,20 @@ test('the plans screen shows the plans, opens the sheet, and carries restore, th
   const screen = read('app/plans.tsx');
   assert.match(screen, /const source = planSource\(params\.source\);/);
   assert.match(screen, /const requestedTier = planTier\(params\.tier\);/);
-  assert.match(screen, /if \(purchasableTiers\(accountState\)\.includes\(requestedTier\)\) openUpgrade\(requestedTier\);/);
+  assert.match(screen, /if \(!purchasableTiers\(accountState\)\.includes\(requestedTier\)\) return;/);
+  // A named plan's sheet opens a beat after the screen arrives, never on mount
+  // (iOS can drop a sheet presented during the push or a closing alert).
+  assert.match(screen, /sheetTimer\.current = setTimeout\(\(\) => \{\s+sheetTimer\.current = null;[\s\S]*?if \(!sheetShowing\.current\) openUpgradeRef\.current\(requestedTier\);\s+\}, SHEET_SETTLE_MS\);/);
+  assert.match(screen, /<UpgradeSheet\s+key=\{plan\.sheetAttempt\}/);
+  // No leaving while the App Store has not answered a purchase.
+  assert.match(screen, /<Stack\.Screen options=\{\{ gestureEnabled: !purchaseInFlight \}\} \/>/);
+  assert.match(screen, /BackHandler\.addEventListener\('hardwareBackPress', \(\) => true\)/);
+  assert.match(screen, /closeDisabled=\{purchaseInFlight\}/);
+  assert.match(screen, /accessibilityLabel=\{t\('common:a11y\.back'\)\}\s+accessibilityState=\{\{ disabled: purchaseInFlight \}\}\s+disabled=\{purchaseInFlight\}/);
+  const upgradeSheet = read('src/components/plans/UpgradeSheet.tsx');
+  assert.match(upgradeSheet, /const close = \(\) => \{ if \(!closeDisabled\) onClose\(\); \};/);
+  assert.match(upgradeSheet, /onRequestClose=\{close\}/);
+  assert.doesNotMatch(upgradeSheet, /onPress=\{onClose\}|onRequestClose=\{onClose\}/);
   assert.match(screen, /<UpgradeSheet[\s\S]*?onPurchase=\{\(\) => void plan\.handlePurchase\(\)\}/);
   assert.match(screen, /<PlansCard[\s\S]*?onChoose=\{plan\.openUpgrade\}[\s\S]*?onRestore=\{\(\) => void handleRestore\(\)\}/);
   assert.match(screen, /accessibilityRole="button"\s+accessibilityLabel=\{t\('common:a11y\.back'\)\}/);

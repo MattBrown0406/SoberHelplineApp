@@ -19,6 +19,7 @@ export function UpgradeSheet({
   onClose,
   onPurchase,
   purchasing,
+  closeDisabled = false,
 }: {
   visible: boolean;
   tier: SubscriptionTier;
@@ -29,6 +30,12 @@ export function UpgradeSheet({
   onClose: () => void;
   onPurchase: () => void;
   purchasing: boolean;
+  /**
+   * True while the App Store has not answered a purchase: the sheet cannot be
+   * closed (button, backdrop or Android back) until it has, so the result of a
+   * purchase she may be charged for always has somewhere to land.
+   */
+  closeDisabled?: boolean;
 }) {
   const { colors } = useTheme();
   const { t } = useTranslation('support');
@@ -38,19 +45,22 @@ export function UpgradeSheet({
   const priceAvailable = !!price;
   const priceLabel = price ?? tPlans('priceUnavailable');
   const plan = tier === 'premium' ? 'premier' : 'essential';
+  const close = () => { if (!closeDisabled) onClose(); };
   const buyLabel = purchasing ? '...' : priceAvailable
     ? trial
       ? t('paywall.startTrial', { trial, price: priceLabel })
       : t(tier === 'essential' ? 'paywall.subscribeEssential' : 'paywall.subscribePremium', { price: priceLabel })
     : priceLabel;
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={close}>
       <TouchableOpacity
         style={styles.modalOverlay}
         activeOpacity={1}
-        onPress={onClose}
+        onPress={close}
+        disabled={closeDisabled}
         accessibilityRole="button"
         accessibilityLabel={tPlans('choose.closeLabel')}
+        accessibilityState={{ disabled: closeDisabled }}
       />
       <ScrollView
         style={[styles.sheet, { backgroundColor: colors.white, left: sheetOffset, right: sheetOffset }]}
@@ -124,9 +134,11 @@ export function UpgradeSheet({
           style={styles.closeRow}
           accessibilityRole="button"
           accessibilityLabel={t('upgradeSheet.close')}
-          onPress={onClose}
+          accessibilityState={{ disabled: closeDisabled }}
+          disabled={closeDisabled}
+          onPress={close}
         >
-          <Text style={[styles.closeText, { color: colors.inkSoft }]}>
+          <Text style={[styles.closeText, { color: colors.inkSoft, opacity: closeDisabled ? 0.4 : 1 }]}>
             {t('upgradeSheet.close')}
           </Text>
         </TouchableOpacity>
