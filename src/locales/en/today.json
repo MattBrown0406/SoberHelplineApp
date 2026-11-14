@@ -142,7 +142,7 @@
   },
   "freeDaily": {
     "eyebrow": "Today's script",
-    "note": "This is today's script. The full library is in Practice."
+    "note": "This is today's script. The full library is in the {{tab}} tab."
   },
   "passItOn": {
     "eyebrow": "Pass it on",

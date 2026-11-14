@@ -101,8 +101,8 @@ function TodayContent() {
   const welcome = useWelcomeBack(user?.id ?? null);
   // A gentle second chance to turn on reminders. Not on the bereaved Today,
   // and not on a visit that opened with the welcome-back card (or before we
-  // know whether it did).
-  const reminderAsk = useTodayReminderAsk(bereaved || bereavedUnknown ? null : user?.id ?? null, user?.joinedAt, !welcome.ready || welcome.returned);
+  // know whether it did: it waits for welcome.decided each time).
+  const reminderAsk = useTodayReminderAsk(bereaved || bereavedUnknown ? null : user?.id ?? null, user?.joinedAt, !welcome.ready || welcome.returned, welcome.decided);
   // Just back from Family Squares, and no rating prompt on this visit. Never
   // on the bereaved Today; free members only (the invitation checks that).
   const afterMeeting = useAfterMeetingInvite(
@@ -239,6 +239,8 @@ function TodayContent() {
       onDecline={declineFreeCall}
       onSupportCallJoin={queueMondayMeetingReview}
       onSupportCallOpenFailed={() => cancelQueuedSupportCallReview(user?.id ?? null)}
+      // No prompts of any kind for a bereaved member: no reminder ask under her seat.
+      seatReminderAsk={!bereaved && !bereavedUnknown}
     />
   );
 
@@ -408,7 +410,8 @@ function TodayContent() {
             </Text>
             <ScriptCard script={freeScript} />
             <Text style={[styles.freeNote, { color: colors.inkSoft }]}>
-              {t('freeDaily.note')}
+              {/* The tab is named by the label she sees in the tab bar. */}
+              {t('freeDaily.note', { tab: t('common:navShort.scripts') })}
             </Text>
           </>
         )}

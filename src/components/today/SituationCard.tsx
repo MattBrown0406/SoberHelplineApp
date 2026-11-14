@@ -31,6 +31,8 @@ interface Props {
   onDecline?: () => Promise<boolean>;
   onSupportCallJoin?: () => Promise<void>;
   onSupportCallOpenFailed?: () => Promise<void>;
+  /** False on the bereaved Today: a saved seat is never followed by a reminder ask there. */
+  seatReminderAsk?: boolean;
 }
 
 /**
@@ -40,7 +42,7 @@ interface Props {
  * the family's situation warrants it, a higher-intent door (coaching or
  * intervention) is offered. The free call is never gated — it's the entry rung.
  */
-export function SituationCard({ accountId = null, nextFreeCall, primaryDoor, weeklyOneThing, onRsvp, onDecline, onSupportCallJoin, onSupportCallOpenFailed }: Props) {
+export function SituationCard({ accountId = null, nextFreeCall, primaryDoor, weeklyOneThing, onRsvp, onDecline, onSupportCallJoin, onSupportCallOpenFailed, seatReminderAsk = true }: Props) {
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('today');
   const router = useRouter();
@@ -152,7 +154,7 @@ export function SituationCard({ accountId = null, nextFreeCall, primaryDoor, wee
           accountId={accountId}
           rsvp={nextFreeCall?.rsvped ? 'going' : nextFreeCall?.declined ? 'declined' : 'none'}
           onDecline={onDecline}
-          reminderAsk
+          reminderAsk={seatReminderAsk}
         />
       )}
       {isLaSobremesaSession(nextFreeCall) && (

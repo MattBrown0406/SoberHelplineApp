@@ -142,7 +142,7 @@
   },
   "freeDaily": {
     "eyebrow": "Guion de hoy",
-    "note": "Este es el guion de hoy. La biblioteca completa está en Práctica."
+    "note": "Este es el guion de hoy. La biblioteca completa está en la pestaña {{tab}}."
   },
   "passItOn": {
     "eyebrow": "Compártelo",

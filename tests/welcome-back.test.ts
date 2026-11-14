@@ -50,8 +50,12 @@ test('the hook welcomes a return once: it reads the last visit, then writes this
   const hook = read('src/hooks/useWelcomeBack.ts');
   assert.match(hook, /const last = await AsyncStorage\.getItem\(key\);[\s\S]*?await AsyncStorage\.setItem\(key, now\.toISOString\(\)\);[\s\S]*?isReturnAfterAbsence\(last, now\)/);
   // A week in the background counts too, not only a fresh launch.
-  assert.match(hook, /AppState\.addEventListener\('change', \(state\) => \{\s*if \(state === 'active'\) void look\(\);/);
-  assert.match(hook, /const dismiss = useCallback\(\(\) => setVisible\(false\), \[\]\);/);
+  assert.match(hook, /AppState\.addEventListener\('change', \(state\) => \{\s*if \(state === 'active'\) void start\(\);/);
+  assert.match(hook, /pending \?\?= look\(\);/);
+  assert.match(hook, /const dismiss = useCallback\(\(\) => \{\s*live\.current\.visible = false;\s*setVisible\(false\);\s*\}, \[\]\);/);
+  // Today's reminder ask waits for the welcome-back answer on every return (welcome-back-hook.test.mjs runs it).
+  assert.match(read('app/(tabs)/index.tsx'), /!welcome\.ready \|\| welcome\.returned, welcome\.decided\)/);
+  assert.match(read('src/hooks/useReminderAsk.ts'), /const welcomed = welcomeBackDecided \? await welcomeBackDecided\(\)\.catch\(\(\) => false\) : false;[\s\S]*?const kind = welcomed \? null : decide\(permission, memory, now\);/);
 });
 
 test('Today shows the card at the top; either action or Close puts it away', () => {

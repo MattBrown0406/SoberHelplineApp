@@ -14,7 +14,8 @@ interface Props {
  * The in-app ask that comes before the system permission dialog: one sentence
  * on what she gets, then "Remind me" / "Not now". Only "Remind me" opens the
  * system dialog. When she has already said no to the system, one line says
- * reminders are off and offers device Settings instead.
+ * reminders are off and offers device Settings instead; "Not now" there is a
+ * lasting no.
  */
 export function ReminderAskNote({ ask, place }: Props) {
   const { colors } = useTheme();
@@ -48,9 +49,10 @@ export function ReminderAskNote({ ask, place }: Props) {
     : view === 'failed'
       ? { text: t('reminderAsk.tryAgain'), label: t('reminderAsk.tryAgainLabel'), onPress: ask.remindMe }
       : { text: t('reminderAsk.remindMe'), label: t('reminderAsk.remindMeLabel'), onPress: ask.remindMe };
-  // Under a saved seat the "off in Settings" line is just the line and its
-  // button; everywhere else she can wave the ask away.
-  const dismissible = view === 'ask' || (onToday && view === 'settings');
+  // Both the question and the "off in Settings" line can be waved away, on
+  // Today and under a seat alike; a "Not now" to the Settings line keeps it
+  // away for 90 days (reminderAsk).
+  const dismissible = view === 'ask' || view === 'settings';
 
   return (
     <View style={frame}>

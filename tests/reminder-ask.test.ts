@@ -3,9 +3,11 @@ import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import {
   REMINDER_ASK_QUIET_DAYS,
+  REMINDER_SETTINGS_QUIET_DAYS,
   emptyReminderAskMemory,
   parseReminderAskMemory,
   reminderAskStorageKey,
+  reminderNotNowChange,
   reminderPermissionFrom,
   seatReminderAsk,
   startsTodayShowing,
@@ -113,10 +115,57 @@ test('at most one showing every 14 days, and 14 quiet days after any "Not now"',
   assert.equal(today({ memory: memory({ todayDismissedAt: new Date(now.getTime() + 3 * DAY).toISOString() }) }), null);
 });
 
+test('"Not now" on the "off in Settings" line is a lasting no: 90 days, on Today and under a seat', () => {
+  assert.equal(REMINDER_SETTINGS_QUIET_DAYS, 90);
+  const seat = (change: Partial<ReminderAskMemory>, permission: 'askable' | 'blocked' = 'blocked') =>
+    seatReminderAsk({ supported: true, justSaved: true, permission, memory: memory(change), now });
+  const todayAsk = (change: Partial<ReminderAskMemory>, permission: 'askable' | 'blocked' = 'blocked') =>
+    todayReminderAsk({ supported: true, permission, memory: memory(change), joinedAt: ago(60), now, seatAskShowing: false, welcomeBackShowing: false });
+  // What the tap records: the place, plus the lasting no only for the Settings line.
+  assert.deepEqual(reminderNotNowChange('todayDismissedAt', 'settings', now), { todayDismissedAt: now.toISOString(), settingsDismissedAt: now.toISOString() });
+  assert.deepEqual(reminderNotNowChange('seatDismissedAt', 'settings', now), { seatDismissedAt: now.toISOString(), settingsDismissedAt: now.toISOString() });
+  assert.deepEqual(reminderNotNowChange('todayDismissedAt', 'ask', now), { todayDismissedAt: now.toISOString() });
+  assert.deepEqual(reminderNotNowChange('seatDismissedAt', 'ask', now), { seatDismissedAt: now.toISOString() });
+  // Before: Today's "Reminders are off" card came back every 14 days. Now it waits 90.
+  assert.equal(todayAsk({ todayDismissedAt: ago(15), todayShownAt: ago(15), settingsDismissedAt: ago(15) }), null);
+  assert.equal(todayAsk({ todayDismissedAt: ago(89), todayShownAt: ago(89), settingsDismissedAt: ago(89) }), null);
+  assert.equal(todayAsk({ todayDismissedAt: ago(90), todayShownAt: ago(90), settingsDismissedAt: ago(90) }), 'settings');
+  // The same no holds under a seat, wherever it was said.
+  assert.equal(seat({ settingsDismissedAt: ago(15) }), null);
+  assert.equal(seat({ seatDismissedAt: ago(20), settingsDismissedAt: ago(20) }), null);
+  assert.equal(seat({ settingsDismissedAt: ago(90) }), 'settings');
+  // It is about the Settings line only: if the dialog can be shown again, the ordinary 14-day rule applies.
+  assert.equal(seat({ settingsDismissedAt: ago(15) }, 'askable'), 'ask');
+  assert.equal(todayAsk({ settingsDismissedAt: ago(15) }, 'askable'), 'ask');
+  // A plain "Not now" to the question never becomes a 90-day no.
+  assert.equal(todayAsk({ todayDismissedAt: ago(15), todayShownAt: ago(15) }), 'settings');
+  // A clock set back reads as "just said".
+  assert.equal(seat({ settingsDismissedAt: new Date(now.getTime() + DAY).toISOString() }), null);
+  // Records written before the field existed still read (as "never said").
+  const older = { schemaVersion: 1, onboardedAt: null, seatDismissedAt: ago(3), todayShownAt: null, todayDismissedAt: null };
+  assert.deepEqual(parseReminderAskMemory(JSON.stringify(older)), { ...older, settingsDismissedAt: null });
+
+  const hook = read('src/hooks/useReminderAsk.ts');
+  assert.match(hook, /const said = viewRef\.current;\s+setView\(null\);[\s\S]*?rememberReminderAsk\(accountId, reminderNotNowChange\(dismissedField, said === 'settings' \? 'settings' : 'ask', new Date\(\)\)\)/);
+});
+
+test('a bereaved member is never asked under a saved seat, on Today or Support', () => {
+  const screen = read('app/(tabs)/index.tsx');
+  assert.match(screen, /seatReminderAsk=\{!bereaved && !bereavedUnknown\}/);
+  const card = read('src/components/today/SituationCard.tsx');
+  assert.match(card, /seatReminderAsk = true \}: Props\)/);
+  assert.match(card, /<FamilySquaresSeatPanel[\s\S]*?onDecline=\{onDecline\}\s+reminderAsk=\{seatReminderAsk\}\s+\/>/);
+  // Every other seat panel (Support) asks the device's own copy before showing anything.
+  const hook = read('src/hooks/useReminderAsk.ts');
+  assert.match(hook, /readBereavedOnDevice\(accountId\)\]\)\.then\(\(\[permission, memory, bereaved\]\) => \{\s+if \(active && viewRef\.current === null\) setView\(bereaved \? null : decide\(permission, memory, new Date\(\)\)\);/);
+  const store = read('src/lib/reminderAskStore.ts');
+  assert.match(store, /return \(await AsyncStorage\.getItem\(bereavedCacheKey\(accountId\)\)\) === '1';\s+\} catch \{\s+return false;/);
+});
+
 test('what the device remembers is per account and survives bad data', () => {
   const id = '11111111-1111-4111-8111-111111111111';
   assert.deepEqual(accountLocalKeys([reminderAskStorageKey(id), reminderAskStorageKey('22222222-2222-4222-8222-222222222222')], [id]), [reminderAskStorageKey(id)]);
-  const saved = memory({ onboardedAt: ago(20), seatDismissedAt: ago(3), todayShownAt: ago(2), todayDismissedAt: ago(2) });
+  const saved = memory({ onboardedAt: ago(20), seatDismissedAt: ago(3), todayShownAt: ago(2), todayDismissedAt: ago(2), settingsDismissedAt: ago(40) });
   assert.deepEqual(parseReminderAskMemory(JSON.stringify(saved)), saved);
   for (const raw of [null, undefined, '', 'nope', '[]', '{"schemaVersion":2}', '{"schemaVersion":1,"seatDismissedAt":"yesterday","todayShownAt":7}']) {
     assert.deepEqual(parseReminderAskMemory(raw), emptyReminderAskMemory());
@@ -134,10 +183,14 @@ test('only "Remind me" can open the system dialog, and a grant registers the dev
   // A refusal ends on the Settings line; a grant that could not register can be retried.
   assert.match(hook, /setView\(registered \? 'on' : permission === 'blocked' \? 'settings' : permission === 'granted' \? 'failed' : 'ask'\)/);
   assert.match(hook, /void Linking\.openSettings\(\)\.catch\(\(\) => undefined\);/);
-  // "Remind me" also makes sure the Monday reminder is not switched off in Settings (best effort, only after a grant).
-  assert.match(hook, /if \(registered\) void Promise\.resolve\(supabase\.rpc\('set_family_call_reminders', \{ p_enabled: true \}\)\)\.catch\(\(\) => undefined\);/);
-  // Back from device Settings with notifications allowed: registered without another prompt.
+  // "Remind me" also makes sure the Monday reminder is not switched off in Settings (best effort, only
+  // after a grant) — and ONLY that tap does: nothing else may turn the preference back on.
+  assert.match(hook, /if \(registered && askSystem\) void Promise\.resolve\(supabase\.rpc\('set_family_call_reminders', \{ p_enabled: true \}\)\)\.catch\(\(\) => undefined\);/);
+  assert.equal((hook.match(/set_family_call_reminders/g) ?? []).length, 1);
+  // Back from device Settings with notifications allowed: the device is registered without another
+  // prompt, as a passive recheck (askSystem false), so her Settings switch is left as she set it.
   assert.match(hook, /if \(permission === 'granted'\) \{\s*await register\(false\);/);
+  assert.equal((hook.match(/register\((true|false)\)/g) ?? []).length, 2);
   // Reading the permission never prompts.
   const store = read('src/lib/reminderAskStore.ts');
   assert.match(store, /reminderPermissionFrom\(await Notifications\.getPermissionsAsync\(\)\)/);
@@ -162,7 +215,7 @@ test('the seat ask appears only when a seat goes from not saved to saved', () =>
   assert.match(panel, /const reminders = useSeatReminderAsk\(accountId, rsvp, reminderAsk\);\s*\n\s*if \(rsvp === 'none'\) return null;/);
   assert.match(panel, /<ReminderAskNote ask=\{reminders\} place="seat" \/>/);
   // On for Today's call card and Support; off on the onboarding done screen, which just asked.
-  assert.match(read('src/components/today/SituationCard.tsx'), /<FamilySquaresSeatPanel[\s\S]*?onDecline=\{onDecline\}\s+reminderAsk\s+\/>/);
+  assert.match(read('src/components/today/SituationCard.tsx'), /<FamilySquaresSeatPanel[\s\S]*?onDecline=\{onDecline\}\s+reminderAsk=\{seatReminderAsk\}\s+\/>/);
   assert.match(read('app/(tabs)/support.tsx'), /<FamilySquaresSeatPanel[\s\S]*?onDecline=\{\(\) => declineRsvp\(sess\)\}\s+reminderAsk\s+\/>/);
   const onboarding = read('app/(onboarding)/notifications.tsx');
   assert.doesNotMatch(/<FamilySquaresSeatPanel[\s\S]*?\/>/.exec(onboarding)?.[0] ?? 'reminderAsk', /reminderAsk/);
@@ -172,7 +225,7 @@ test('the seat ask appears only when a seat goes from not saved to saved', () =>
 
 test('Today shows its second chance under the call card, not on the bereaved Today or a welcome-back visit', () => {
   const screen = read('app/(tabs)/index.tsx');
-  assert.match(screen, /useTodayReminderAsk\(bereaved \|\| bereavedUnknown \? null : user\?\.id \?\? null, user\?\.joinedAt, !welcome\.ready \|\| welcome\.returned\)/);
+  assert.match(screen, /useTodayReminderAsk\(bereaved \|\| bereavedUnknown \? null : user\?\.id \?\? null, user\?\.joinedAt, !welcome\.ready \|\| welcome\.returned, welcome\.decided\)/);
   assert.match(screen, /const reminderAskCard = <ReminderAskNote ask=\{reminderAsk\} place="today" \/>;/);
   const screens = screen.split('<ScreenContainer').slice(1);
   assert.equal(screens.filter((part) => /\{mondayCallCard\}\s*\{reminderAskCard\}/.test(part)).length, 2);
@@ -188,8 +241,8 @@ test('the ask is one sentence with labelled buttons, in both languages', () => {
   assert.equal((note.match(/accessibilityRole="button"/g) ?? []).length, 2);
   assert.match(note, /accessibilityLabel=\{primary\.label\}/);
   assert.match(note, /accessibilityLabel=\{t\('reminderAsk\.notNowLabel'\)\}/);
-  // Under a saved seat the "off in Settings" line is just the line and its button.
-  assert.match(note, /const dismissible = view === 'ask' \|\| \(onToday && view === 'settings'\);/);
+  // The "off in Settings" line can be waved away under a saved seat too.
+  assert.match(note, /const dismissible = view === 'ask' \|\| view === 'settings';/);
   const en = JSON.parse(read('src/locales/en/common.json')).reminderAsk as Record<string, string>;
   const es = JSON.parse(read('src/locales/es/common.json')).reminderAsk as Record<string, string>;
   assert.deepEqual(Object.keys(es), Object.keys(en));
@@ -200,7 +253,11 @@ test('the ask is one sentence with labelled buttons, in both languages', () => {
   assert.equal(en.remindMe, 'Remind me');
   assert.equal(en.notNow, 'Not now');
   assert.match(en.seatBody, /an hour before/);
-  assert.match(en.seatBody, /tap-to-join when it starts/);
+  // The second push arrives 15 minutes before the start, not when it starts.
+  assert.match(en.seatBody, /15 minutes before/);
+  assert.match(es.seatBody, /una hora antes/);
+  assert.match(es.seatBody, /15 minutos antes/);
+  assert.doesNotMatch(en.seatBody + es.seatBody, /when it starts|cuando empiece/);
   // Never a price, never guilt.
   for (const copy of [en, es]) assert.doesNotMatch(Object.values(copy).join(' '), /\$|haven't|missed|a while|perdiste|hace tiempo/i);
 });

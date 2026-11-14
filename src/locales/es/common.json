@@ -96,7 +96,7 @@
     }
   },
   "reminderAsk": {
-    "seatBody": "¿Quieres un recordatorio? Te avisamos una hora antes y, cuando empiece, te enviamos otro para unirte con un toque.",
+    "seatBody": "¿Quieres un recordatorio? Te avisamos una hora antes y, 15 minutos antes de que empiece, te enviamos otro para unirte con un toque.",
     "todayBody": "¿Quieres un recordatorio antes de la reunión del lunes? Te avisamos cuando se acerque, para que te unas con un toque.",
     "remindMe": "Recordármelo",
     "remindMeLabel": "Recordarme la reunión del lunes",

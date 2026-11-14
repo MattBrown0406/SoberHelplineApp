@@ -4,6 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { registerForPushNotifications } from './usePushNotifications';
 import {
+  reminderNotNowChange,
   seatReminderAsk,
   startsTodayShowing,
   todayReminderAsk,
@@ -15,6 +16,7 @@ import {
   REMINDERS_SUPPORTED,
   isSeatReminderAskShowing,
   loadReminderAskMemory,
+  readBereavedOnDevice,
   readReminderPermission,
   rememberReminderAsk,
   reminderPermissionChanged,
@@ -55,16 +57,22 @@ function useReminderAskCore(accountId: string | null, dismissedField: 'seatDismi
     setViewState(next);
   }, []);
 
-  /** Permission is given: register this device's push token, the way onboarding does. */
+  /**
+   * Permission is given: register this device's push token, the way onboarding
+   * does. `askSystem` is true only for her own "Remind me" tap.
+   */
   const register = useCallback(async (askSystem: boolean): Promise<void> => {
     if (!accountId || busyRef.current) return;
     busyRef.current = true;
     setBusy(true);
     const registered = await registerForPushNotifications(accountId, askSystem).catch(() => false);
     const permission = registered ? 'granted' : await readReminderPermission();
-    // She asked to be reminded about Monday: make sure that reminder is not
-    // switched off in Settings. Best effort; it is on unless she turned it off.
-    if (registered) void Promise.resolve(supabase.rpc('set_family_call_reminders', { p_enabled: true })).catch(() => undefined);
+    // She tapped "Remind me": make sure the Monday reminder is not switched
+    // off in Settings (best effort). ONLY for that tap: finding permission
+    // already granted (back from device Settings, or answered on the other
+    // tab) registers the device but never turns back on a reminder she
+    // switched off herself.
+    if (registered && askSystem) void Promise.resolve(supabase.rpc('set_family_call_reminders', { p_enabled: true })).catch(() => undefined);
     busyRef.current = false;
     if (identity.current !== accountId) return;
     setBusy(false);
@@ -75,8 +83,10 @@ function useReminderAskCore(accountId: string | null, dismissedField: 'seatDismi
   const remindMe = useCallback(() => { void register(true); }, [register]);
 
   const notNow = useCallback(() => {
+    const said = viewRef.current;
     setView(null);
-    if (accountId) void rememberReminderAsk(accountId, { [dismissedField]: new Date().toISOString() });
+    // "Not now" on the "off in Settings" line is a lasting no (reminderAsk).
+    if (accountId) void rememberReminderAsk(accountId, reminderNotNowChange(dismissedField, said === 'settings' ? 'settings' : 'ask', new Date()));
   }, [accountId, dismissedField, setView]);
 
   const openSettings = useCallback(() => {
@@ -136,8 +146,10 @@ export function useSeatReminderAsk(
     }
     if (!enabled || !accountId || was === 'going') return undefined;
     let active = true;
-    void Promise.all([readReminderPermission(), loadReminderAskMemory(accountId)]).then(([permission, memory]) => {
-      if (active && viewRef.current === null) setView(decide(permission, memory, new Date()));
+    // No prompts of any kind for a bereaved member, on Today or Support
+    // (Today also switches `enabled` off; this covers every other panel).
+    void Promise.all([readReminderPermission(), loadReminderAskMemory(accountId), readBereavedOnDevice(accountId)]).then(([permission, memory, bereaved]) => {
+      if (active && viewRef.current === null) setView(bereaved ? null : decide(permission, memory, new Date()));
     });
     return () => { active = false; };
   }, [rsvp, enabled, accountId, decide, setView, viewRef]);
@@ -162,12 +174,16 @@ export function useSeatReminderAsk(
 /**
  * Today's gentle second chance for someone using the app without reminders
  * (rules in todayReminderAsk). `holdBack` keeps it away while the
- * welcome-back card is showing.
+ * welcome-back card is showing. `welcomeBackDecided` is asked first every
+ * time: coming back to the app, both this and the welcome-back look start at
+ * once, and without the wait this ask could show (and use up its one showing)
+ * a moment before the welcome-back card pushed it off the screen.
  */
 export function useTodayReminderAsk(
   accountId: string | null,
   joinedAt: string | null | undefined,
   holdBack: boolean,
+  welcomeBackDecided?: () => Promise<boolean>,
 ): ReminderAsk {
   const core = useReminderAskCore(accountId, 'todayDismissedAt');
   const { view, viewRef, busyRef, identity, setView, recheck } = core;
@@ -187,20 +203,23 @@ export function useTodayReminderAsk(
     const current = viewRef.current;
     // How her tap went stays until she leaves the screen.
     if (current === 'on' || current === 'failed') return;
+    // Welcome-back is decided first; on such a visit this ask stays away.
+    const welcomed = welcomeBackDecided ? await welcomeBackDecided().catch(() => false) : false;
+    if (identity.current !== accountId || busyRef.current) return;
     // Back from device Settings with notifications allowed: finish the job.
-    if (current === 'settings') {
+    if (viewRef.current === 'settings') {
       await recheck(decide);
       if (viewRef.current !== 'settings') return;
     }
     const [permission, memory] = await Promise.all([readReminderPermission(), loadReminderAskMemory(accountId)]);
     if (identity.current !== accountId || busyRef.current || viewRef.current === 'on' || viewRef.current === 'failed') return;
     const now = new Date();
-    const kind = decide(permission, memory, now);
+    const kind = welcomed ? null : decide(permission, memory, now);
     setView(kind);
     if (kind && memory && startsTodayShowing(memory, now)) {
       await rememberReminderAsk(accountId, { todayShownAt: now.toISOString() });
     }
-  }, [accountId, busyRef, decide, identity, recheck, setView, viewRef]);
+  }, [accountId, busyRef, decide, identity, recheck, setView, viewRef, welcomeBackDecided]);
 
   useEffect(() => {
     setView(null);

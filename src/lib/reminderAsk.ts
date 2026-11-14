@@ -4,11 +4,19 @@
  * Monday. These rules pick the better moments:
  * - right after she saves a seat at Family Squares (the ask sits under it);
  * - a gentle second chance on Today, at most once every 14 days.
+ * Someone who said no to the system dialog sees one line pointing to device
+ * Settings instead; "Not now" on that line is a lasting no (90 days).
  * The system dialog shows only once on iOS, so nothing here ever opens it:
  * these only decide whether to show the in-app ask, and only her tap on
  * "Remind me" opens the dialog. Pure, so tests pin the rules.
  */
 export const REMINDER_ASK_QUIET_DAYS = 14;
+/**
+ * After "Not now" on the "reminders are off in Settings" line (on Today or
+ * under a seat), that line stays away this long everywhere. She has refused
+ * twice by then: the system dialog, and this.
+ */
+export const REMINDER_SETTINGS_QUIET_DAYS = 90;
 
 const DAY_MS = 86_400_000;
 
@@ -43,10 +51,12 @@ export interface ReminderAskMemory {
   todayShownAt: string | null;
   /** "Not now" on Today's second chance. */
   todayDismissedAt: string | null;
+  /** "Not now" on the "off in Settings" line, in either place (added later; absent reads as null). */
+  settingsDismissedAt: string | null;
 }
 
 export function emptyReminderAskMemory(): ReminderAskMemory {
-  return { schemaVersion: 1, onboardedAt: null, seatDismissedAt: null, todayShownAt: null, todayDismissedAt: null };
+  return { schemaVersion: 1, onboardedAt: null, seatDismissedAt: null, todayShownAt: null, todayDismissedAt: null, settingsDismissedAt: null };
 }
 
 export function reminderAskStorageKey(accountId: string): string {
@@ -71,6 +81,7 @@ export function parseReminderAskMemory(raw: string | null | undefined): Reminder
       seatDismissedAt: time(memory.seatDismissedAt),
       todayShownAt: time(memory.todayShownAt),
       todayDismissedAt: time(memory.todayDismissedAt),
+      settingsDismissedAt: time(memory.settingsDismissedAt),
     };
   } catch {
     return emptyReminderAskMemory();
@@ -80,15 +91,32 @@ export function parseReminderAskMemory(raw: string | null | undefined): Reminder
 /** 'ask' shows "Remind me" / "Not now"; 'settings' shows the one line with "Open Settings". */
 export type ReminderAskKind = 'ask' | 'settings';
 
-function kindFor(permission: ReminderPermission | null): ReminderAskKind | null {
-  return permission === 'askable' ? 'ask' : permission === 'blocked' ? 'settings' : null;
-}
-
-function withinQuietDays(at: string | null, now: Date): boolean {
+function withinDays(at: string | null, now: Date, days: number): boolean {
   if (!at) return false;
   const elapsed = now.getTime() - Date.parse(at);
   // A clock set back reads as "just asked": never ask sooner on a guess.
-  return elapsed < REMINDER_ASK_QUIET_DAYS * DAY_MS;
+  return elapsed < days * DAY_MS;
+}
+
+function withinQuietDays(at: string | null, now: Date): boolean {
+  return withinDays(at, now, REMINDER_ASK_QUIET_DAYS);
+}
+
+function kindFor(permission: ReminderPermission | null, memory: ReminderAskMemory, now: Date): ReminderAskKind | null {
+  if (permission === 'askable') return 'ask';
+  if (permission !== 'blocked') return null;
+  // She waved the Settings line away: it does not keep coming back.
+  return withinDays(memory.settingsDismissedAt, now, REMINDER_SETTINGS_QUIET_DAYS) ? null : 'settings';
+}
+
+/** What "Not now" records: the place it was said, and a lasting no when it was said to the Settings line. */
+export function reminderNotNowChange(
+  dismissedField: 'seatDismissedAt' | 'todayDismissedAt',
+  view: ReminderAskKind,
+  now: Date,
+): Partial<Omit<ReminderAskMemory, 'schemaVersion'>> {
+  const at = now.toISOString();
+  return view === 'settings' ? { [dismissedField]: at, settingsDismissedAt: at } : { [dismissedField]: at };
 }
 
 function sameLocalDay(at: string | null | undefined, now: Date): boolean {
@@ -100,7 +128,7 @@ function sameLocalDay(at: string | null | undefined, now: Date): boolean {
 /**
  * The ask under a seat she has just saved: this is when a reminder is worth
  * the most to her. Shown unless reminders already work, or she said "Not now"
- * to this same ask in the last 14 days.
+ * to this same ask in the last 14 days (or to the Settings line in the last 90).
  */
 export function seatReminderAsk(input: {
   /** False on the web, where the app sends no reminders. */
@@ -113,7 +141,7 @@ export function seatReminderAsk(input: {
 }): ReminderAskKind | null {
   if (!input.supported || !input.justSaved) return null;
   if (withinQuietDays(input.memory.seatDismissedAt, input.now)) return null;
-  return kindFor(input.permission);
+  return kindFor(input.permission, input.memory, input.now);
 }
 
 /**
@@ -121,7 +149,7 @@ export function seatReminderAsk(input: {
  * reminders. At most one showing every 14 days (it stays for the day it first
  * appears, so it does not vanish mid-visit), never on the day she onboarded,
  * never beside the seat ask or the welcome-back card, and not for 14 days
- * after any "Not now".
+ * after any "Not now" (90 days for the "off in Settings" line).
  */
 export function todayReminderAsk(input: {
   supported: boolean;
@@ -139,7 +167,7 @@ export function todayReminderAsk(input: {
   if (withinQuietDays(memory.todayDismissedAt, now) || withinQuietDays(memory.seatDismissedAt, now)) return null;
   // Already shown in this 14-day stretch: only the day it first appeared still counts.
   if (withinQuietDays(memory.todayShownAt, now) && !sameLocalDay(memory.todayShownAt, now)) return null;
-  return kindFor(input.permission);
+  return kindFor(input.permission, memory, now);
 }
 
 /** True when a new showing starts now, so the caller records it once per showing. */

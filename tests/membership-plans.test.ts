@@ -471,8 +471,14 @@ test('the free Today says what members see in the progress section, with no fake
     // Today's script is not "unlocked": the whole library is free in Practice.
     const freeDaily = locale(lang, 'today').freeDaily;
     assert.doesNotMatch(`${freeDaily.eyebrow} ${freeDaily.note}`, /unlock|desbloque/i, lang);
-    assert.match(freeDaily.note, new RegExp(locale(lang, 'common').nav.scripts), `${lang}: names the Practice tab`);
+    // The tab is named by the label in the tab bar ("Words" / "Ensayo"), filled in from that same key.
+    assert.match(freeDaily.note, /\{\{tab\}\}/, `${lang}: names the tab by its visible label`);
+    assert.doesNotMatch(freeDaily.note, new RegExp(locale(lang, 'common').nav.scripts), `${lang}: not the screen heading`);
   }
+  assert.match(read('app/(tabs)/index.tsx'), /t\('freeDaily\.note', \{ tab: t\('common:navShort\.scripts'\) \}\)/);
+  assert.match(read('app/(tabs)/_layout.tsx'), /tabBarLabel: t\('navShort\.scripts'\)/);
+  assert.equal(locale('en', 'common').navShort.scripts, 'Words');
+  assert.equal(locale('es', 'common').navShort.scripts, 'Ensayo');
   assert.doesNotMatch(read('app/(tabs)/scripts.tsx'), /<Gate |useFeatureAccess\(/, 'the script library is free');
 });
 

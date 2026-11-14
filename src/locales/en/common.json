@@ -96,7 +96,7 @@
     }
   },
   "reminderAsk": {
-    "seatBody": "Want a reminder? We'll send one an hour before, and a tap-to-join when it starts.",
+    "seatBody": "Want a reminder? We'll send one an hour before, and a tap-to-join 15 minutes before it starts.",
     "todayBody": "Want a reminder before Monday's meeting? We'll let you know when it's coming up, with a tap to join.",
     "remindMe": "Remind me",
     "remindMeLabel": "Remind me about the Monday meeting",
