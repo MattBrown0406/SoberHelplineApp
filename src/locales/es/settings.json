@@ -109,13 +109,14 @@
   "deleteAccount": {
     "button": "Eliminar cuenta",
     "confirmTitle": "¿Eliminar tu cuenta?",
-    "confirmMessage": "Tus datos se eliminarán de forma permanente en un plazo de 30 días. Esta acción no se puede deshacer.",
+    "confirmMessage": "Tus datos se eliminarán de forma permanente en un plazo de 30 días. Esta acción no se puede deshacer. Si tienes una cuenta en soberhelpline.com con este correo, también se eliminará.",
     "subscriptionNote": "Eliminar tu cuenta no cancela una suscripción del App Store. Cancélala primero en las suscripciones de tu Apple ID para que no se te vuelva a cobrar.",
-    "subscriptionNoteWeb": "Eliminar tu cuenta no cancela una membresía comprada en nuestro sitio web. Cancélala allí primero para que no se te vuelva a cobrar.",
+    "subscriptionNoteWeb": "La membresía del sitio web que pagas por PayPal se cancela automáticamente al eliminar tu cuenta.",
     "confirmButton": "Sí, eliminar mi cuenta",
     "cancelButton": "Cancelar",
     "errorTitle": "La cuenta no se eliminó",
     "errorMessage": "No pudimos eliminar tu cuenta. Aún tienes la sesión iniciada y no se completó ninguna eliminación. Inténtalo de nuevo.",
+    "websiteErrorMessage": "No pudimos eliminar tu cuenta de soberhelpline.com ni cancelar su membresía, así que no se eliminó nada. Aún tienes la sesión iniciada. Inténtalo de nuevo en unos minutos.",
     "cleanupErrorTitle": "Cuenta eliminada",
     "cleanupErrorMessage": "Tu cuenta se eliminó, pero este dispositivo no pudo cerrar la sesión. Cierra y vuelve a abrir la aplicación para borrar la sesión anterior."
   },
