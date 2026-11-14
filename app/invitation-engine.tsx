@@ -132,7 +132,7 @@ function InvitationEngineContent() {
             <Text style={[styles.cardTitle, { color: colors.ink }]}>{t('engine.paywallTitle')}</Text>
             <Text style={[styles.body, { color: colors.ink }]}>{t('engine.paywallBody')}</Text>
           </EngineCard>
-          <FreeTierPaywall inline />
+          <FreeTierPaywall inline source="invitation_engine" />
           <TextLink label={t('engine.editMap')} onPress={() => router.push('/invitation-setup' as never)} />
         </>
       )}

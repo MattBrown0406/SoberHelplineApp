@@ -84,8 +84,12 @@ test('free trials show only when the store says she is eligible', () => {
 });
 
 test('members who already have a plan are never promised a trial', () => {
+  // The rule lives with the plan offers every plans surface reads (plans screen, Support tab).
+  const offers = readFileSync('src/hooks/usePlanPurchase.ts', 'utf8');
+  assert.match(offers, /if \(!trial \|\| !subscriptionPrices\[tier\] \|\| entitlements\.canAccessGroups\) return null;/);
   const support = readFileSync('app/(tabs)/support.tsx', 'utf8');
-  assert.match(support, /if \(!trial \|\| !subscriptionPrices\[tier\] \|\| entitlements\.canAccessGroups\) return null;/);
+  assert.match(support, /const planOffers = usePlanOffers\(\);/);
+  assert.doesNotMatch(support, /useIAP\(|trialLabelKey/, 'the Support tab has no trial rule of its own');
 });
 
 test('trial copy keeps the price and the cancel terms next to the trial', () => {

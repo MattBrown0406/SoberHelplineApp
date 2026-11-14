@@ -395,7 +395,7 @@ function InvitationSetupContent() {
           <PrimaryButton label={t('setup.openEngine')} onPress={() => router.dismissTo('/invitation-engine' as never)} />
         </EngineCard>
         {safetySerious && <SafetyFirstPanel />}
-        {!engine.hasAccess && <FreeTierPaywall inline />}
+        {!engine.hasAccess && <FreeTierPaywall inline source="invitation_setup" />}
       </ScreenContainer>
     );
   }

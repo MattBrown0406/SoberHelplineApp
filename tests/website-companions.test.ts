@@ -226,8 +226,13 @@ test('the helpline is not listed as an emergency line, and website members are t
     .map((key) => support.indexOf(`t('${key}')`));
   assert.ok(order.every((at, i) => at > 0 && (i === 0 || at > order[i - 1])), `sheet order: ${order.join(', ')}`);
   // Restore reports the plan the refresh found (any source), not only the store's answer.
-  assert.match(settings, /await refreshAccount\(\);\n\s+setRestoreOutcome\(\{ storeRestored: hasEntitlement \}\);/);
-  assert.match(settings, /else if \(planActive\) \{\n\s+appAlert\(t\('membership\.restoreActiveTitle'\), t\('membership\.restoreActiveBody'\)\);/);
+  // Restore is one hook, shared by Settings and the plans screen.
+  const restore = read('src/hooks/useRestorePurchases.ts');
+  assert.match(restore, /await refreshAccount\(\);\n\s+setRestoreOutcome\(\{ storeRestored: hasEntitlement \}\);/);
+  assert.match(restore, /else if \(planActive\) \{\n\s+appAlert\(t\('membership\.restoreActiveTitle'\), t\('membership\.restoreActiveBody'\)\);/);
+  assert.match(restore, /useTranslation\('settings'\)/);
+  assert.match(settings, /const \{ restoring, handleRestore \} = useRestorePurchases\(\);/);
+  assert.match(read('app/plans.tsx'), /const \{ restoring, handleRestore \} = useRestorePurchases\(\);/);
   // The same-email hint is for free accounts only.
   assert.match(settings, /accountState === 'direct-free' && user \? \(\n\s+<Text [^\n]+\n\s+\{user\.email\n\s+\? t\('membership\.websiteMemberHintWithEmail', \{ email: user\.email \}\)\n\s+: t\('membership\.websiteMemberHint'\)\}/);
   assert.match(read('app/book-coaching.tsx'), /t\('coaching\.websiteBookingsNote'\)/);

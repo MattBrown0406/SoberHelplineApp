@@ -15,9 +15,8 @@ export const membershipGuideContent = {
     response: 'Start with what you can choose: a boundary you can keep. You could say, “I care about you. I am not giving cash. I can help you look at other options.” You do not need to persuade him to agree. If the conversation feels unsafe, step away and seek help.',
     options: 'What support looks like',
     timing: 'Essential messaging is for nonurgent questions, not live chat. There is no fixed response-time guarantee. Premier private video must be scheduled and is subject to availability.',
-    compare: 'Compare memberships in Support',
-    signedIn: 'Review options for your account in Support. Opening this page does not change your membership.',
-    signedOut: 'You can read this guide without subscribing. Support shows membership options and account steps.',
+    signedIn: 'See plans shows the options for your account. Opening this page does not change your membership.',
+    signedOut: 'You can read this guide without subscribing. See plans shows the membership options.',
     prices: 'Current store subscription prices',
   },
   es: {
@@ -36,9 +35,8 @@ export const membershipGuideContent = {
     response: 'Empieza por lo que tú puedes elegir: un límite que puedas mantener. Podrías decir: “Me importas. No voy a darte dinero en efectivo. Puedo ayudarte a buscar otras opciones”. No necesitas convencerlo de que esté de acuerdo. Si la conversación deja de ser segura, aléjate y busca ayuda.',
     options: 'Cómo funciona el apoyo',
     timing: 'Los mensajes de Essential son para preguntas no urgentes, no un chat en vivo. No se garantiza un plazo fijo de respuesta. El video privado de Premier requiere programación y está sujeto a disponibilidad.',
-    compare: 'Comparar membresías en Apoyo',
-    signedIn: 'Revisa las opciones para tu cuenta en Apoyo. Abrir esta página no cambia tu membresía.',
-    signedOut: 'Puedes leer esta guía sin suscribirte. En Apoyo verás las opciones de membresía y los pasos para tu cuenta.',
+    signedIn: 'En Ver planes están las opciones para tu cuenta. Abrir esta página no cambia tu membresía.',
+    signedOut: 'Puedes leer esta guía sin suscribirte. En Ver planes verás las opciones de membresía.',
     prices: 'Precios actuales de suscripción en la tienda',
   },
 } as const;

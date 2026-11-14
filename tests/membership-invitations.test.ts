@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createInvitationPolicy, DAY, invitationKey } from '../src/membershipInvitations/policy';
+import { AFTER_MEETING_GAP, createInvitationPolicy, DAY, invitationKey } from '../src/membershipInvitations/policy';
 function fixture() {
   const data = new Map<string, string>(); let time = 100 * DAY; let writes = 0;
   const storage = { getItem: async (k: string) => data.get(k) ?? null, setItem: async (k: string, v: string) => { writes++; data.set(k, v); } };
@@ -51,4 +51,49 @@ test('runtime rejects non-neutral placement and clock rollback', async () => {
   const f = fixture(); assert.equal(await f.policy.claim('a', 'crisis' as never, yes), false);
   await f.policy.claim('a', 'boundary-saved', yes); f.policy.release('a'); f.advance(-DAY);
   assert.equal(await f.policy.claim('a', 'boundary-saved', yes), false);
+});
+test('after Family Squares: at most once every 14 days, on top of every other limit', async () => {
+  assert.equal(AFTER_MEETING_GAP, 14 * DAY);
+  const f = fixture();
+  assert.equal(await f.policy.claim('a', 'after-meeting', yes), true);
+  f.policy.release('a');
+  // A week later (the next meeting): the daily limit has passed, the 14 days have not.
+  f.advance(7 * DAY);
+  assert.equal(await f.policy.claim('a', 'after-meeting', yes), false);
+  // The other invitations keep their own daily limit and are not held back by it.
+  assert.equal(await f.policy.claim('a', 'boundary-saved', yes), true);
+  f.policy.release('a');
+  f.advance(7 * DAY - 1);
+  assert.equal(await f.policy.claim('a', 'after-meeting', yes), false);
+  f.advance(1);
+  assert.equal(await f.policy.claim('a', 'after-meeting', yes), true);
+  // A restart keeps the 14 days (they are stored, not remembered).
+  f.advance(13 * DAY);
+  assert.equal(await createInvitationPolicy(f.storage, f.clock).claim('a', 'after-meeting', yes), false);
+});
+test('after Family Squares: another invitation that day, "Not now" and "Don\'t show again" all hold it back', async () => {
+  const f = fixture();
+  assert.equal(await f.policy.claim('a', 'practice-completed', yes), true);
+  f.policy.release('a');
+  f.advance(DAY - 1);
+  assert.equal(await f.policy.claim('a', 'after-meeting', yes), false, 'one invitation a day, whichever it is');
+  f.advance(1);
+  assert.equal(await f.policy.claim('a', 'after-meeting', yes), true);
+  await f.policy.dismiss('a', false, yes);
+  f.advance(14 * DAY);
+  assert.equal(await f.policy.claim('a', 'after-meeting', yes), true, 'after "Not now" and the 14 days');
+  await f.policy.dismiss('a', true, yes);
+  f.advance(400 * DAY);
+  assert.equal(await f.policy.claim('a', 'after-meeting', yes), false, 'never again after "Don\'t show again"');
+});
+test('a record written before the after-meeting invitation existed is still read; a damaged one fails closed', async () => {
+  const f = fixture();
+  f.data.set(invitationKey('old'), JSON.stringify({ version: 1, optedOut: false, snoozedUntil: 0, lastShownAt: null }));
+  assert.equal(await f.policy.claim('old', 'after-meeting', yes), true);
+  assert.equal(JSON.parse(f.data.get(invitationKey('old'))!).afterMeetingAt, f.clock());
+  f.data.set(invitationKey('bad'), JSON.stringify({ version: 1, optedOut: false, snoozedUntil: 0, lastShownAt: null, afterMeetingAt: 'yesterday' }));
+  assert.equal(await f.policy.claim('bad', 'after-meeting', yes), false);
+  // A clock that moved backwards never brings it back early.
+  f.policy.release('old'); f.advance(-DAY);
+  assert.equal(await f.policy.claim('old', 'after-meeting', yes), false);
 });

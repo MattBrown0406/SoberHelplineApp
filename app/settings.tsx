@@ -18,8 +18,8 @@ import { useLanguage } from '../src/hooks/useLanguage';
 import { supabase } from '../src/lib/supabase';
 import { isAdminEmail } from '../src/lib/admin';
 import { useFeatureAccess } from '../src/hooks/useFeatureAccess';
-import { getActiveRevenueCatTier, restorePurchases } from '../src/lib/revenueCat';
-import { recordVerifiedPurchase, withTimeoutFallback } from '../src/lib/authBootstrap';
+import { useRestorePurchases } from '../src/hooks/useRestorePurchases';
+import { benefitSummary } from '../src/lib/membershipBenefits';
 import { purgeAccountLocalData } from '../src/lib/accountLocalData';
 import { captureAppError } from '../src/lib/monitoring';
 import { appAlert } from '../src/lib/appAlert';
@@ -75,17 +75,16 @@ const DEFAULT_PRACTICE_PUSH: PracticePushSettings = {
 
 export default function SettingsScreen() {
   const { colors } = useTheme();
-  const { user, isAttached, accountState, refreshAccount, signOutLocally } = useAccount();
+  const { user, isAttached, accountState, signOutLocally } = useAccount();
   const { t } = useTranslation('settings');
+  const { t: tPlans, i18n } = useTranslation('plans');
   const { current, change, languages } = useLanguage();
   const router = useRouter();
 
   const [shareCheckIns, setShareCheckIns] = useState(false);
   const [consentLoading, setConsentLoading] = useState(true);
-  const [restoring, setRestoring] = useState(false);
-  // Set when a restore finishes. The message is chosen on the next render, once
-  // the refreshed plan (App Store or website membership) is the one on screen.
-  const [restoreOutcome, setRestoreOutcome] = useState<{ storeRestored: boolean } | null>(null);
+  // Shared with the plans screen (useRestorePurchases).
+  const { restoring, handleRestore } = useRestorePurchases();
   const [openingReview, setOpeningReview] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const isAdmin = isAdminEmail(user?.email);
@@ -135,21 +134,6 @@ export default function SettingsScreen() {
       });
     return () => { active = false; };
   }, [user?.id, isAttached, accountState]);
-
-  // After Restore: the store found a purchase, or the refresh found a plan from
-  // anywhere else (a website membership), or the account is still free.
-  useEffect(() => {
-    if (!restoreOutcome) return;
-    setRestoreOutcome(null);
-    const planActive = accountState === 'direct-essential' || accountState === 'direct-premium';
-    if (restoreOutcome.storeRestored) {
-      appAlert(t('membership.restoreSuccessTitle'), t('membership.restoreSuccessBody'));
-    } else if (planActive) {
-      appAlert(t('membership.restoreActiveTitle'), t('membership.restoreActiveBody'));
-    } else {
-      appAlert(t('membership.restoreNoneTitle'), t('membership.restoreNoneBody'));
-    }
-  }, [restoreOutcome, accountState, t]);
 
   useEffect(() => {
     if (!user) return;
@@ -435,35 +419,6 @@ export default function SettingsScreen() {
     }
   }
 
-  async function handleRestore() {
-    setRestoring(true);
-    try {
-      const hasEntitlement = await restorePurchases();
-      if (hasEntitlement && user) {
-        // Same as a purchase: unlock from the store's answer now, and give the server
-        // mirror (RevenueCat → entitlements) time to catch up before re-reading.
-        const tier = await getActiveRevenueCatTier().catch(() => null);
-        if (tier) recordVerifiedPurchase(user.id, tier);
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          await withTimeoutFallback(
-            Promise.resolve(supabase.functions.invoke('sync-iap-entitlements', {
-              headers: { Authorization: `Bearer ${session.access_token}` },
-            })).then(() => undefined),
-            10_000,
-            undefined,
-          );
-        }
-      }
-      await refreshAccount();
-      setRestoreOutcome({ storeRestored: hasEntitlement });
-    } catch {
-      appAlert(t('membership.restoreErrorTitle'), t('membership.restoreErrorBody'));
-    } finally {
-      setRestoring(false);
-    }
-  }
-
   async function handleRateApp() {
     if (openingReview) return;
     setOpeningReview(true);
@@ -633,9 +588,8 @@ export default function SettingsScreen() {
                     : t('membership.essentialPlan')}
                 </Text>
                 <Text style={[styles.infoLabel, { color: colors.inkSoft, marginBottom: 12 }]}>
-                  {accountState === 'direct-premium'
-                    ? t('membership.premiumFeatures')
-                    : t('membership.essentialFeatures')}
+                  {/* The one benefits list (plans.json), not a second description. */}
+                  {benefitSummary(accountState === 'direct-premium' ? 'premier' : 'essential', tPlans, i18n.language)}
                 </Text>
                 {websiteMembership ? (
                   <Text style={[styles.infoLabel, { color: colors.ink, marginBottom: 12 }]}>
@@ -672,9 +626,12 @@ export default function SettingsScreen() {
                   marginTop: accountState !== 'direct-free' ? 14 : 0,
                 },
               ]}
-              onPress={handleRestore}
+              onPress={() => void handleRestore()}
               disabled={restoring}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={t('membership.restore')}
+              accessibilityState={{ disabled: restoring, busy: restoring }}
             >
               {restoring ? (
                 <ActivityIndicator color={colors.primary} />

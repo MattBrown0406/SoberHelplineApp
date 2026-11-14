@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { membershipPathMetadata, type MembershipPathStage } from './membershipPath';
 
 /**
  * Funnel stages logged client-side to funnel_events. `rsvp` and
@@ -23,7 +24,16 @@ export type FunnelStage =
   | 'monday_call_share_requested'
   | 'boundary_card_print_requested'
   | 'tool_opened'
-  | 'tool_finished';
+  | 'tool_finished'
+  // The membership path (membershipPath.ts): tier and source only.
+  | 'plans_viewed'
+  | 'plan_sheet_opened'
+  | 'purchase_started'
+  | 'purchase_succeeded'
+  | 'purchase_cancelled'
+  | 'purchase_failed'
+  | 'membership_invite_shown'
+  | 'membership_invite_tapped';
 
 /**
  * Fire-and-forget funnel event. Never throws — analytics must not break a flow.
@@ -35,4 +45,12 @@ export function logFunnelEvent(stage: FunnelStage, metadata?: Record<string, unk
     .then(({ error }) => {
       if (error) console.warn('[funnel] log failed:', stage, error.message);
     });
+}
+
+/**
+ * A step on the membership path. Only a known source label and the tier are
+ * sent, whatever the caller passes (the server enforces the same).
+ */
+export function logMembershipPath(stage: MembershipPathStage, input: { source?: unknown; tier?: unknown }): void {
+  logFunnelEvent(stage, membershipPathMetadata(input));
 }

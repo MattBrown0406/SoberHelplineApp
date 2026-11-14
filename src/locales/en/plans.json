@@ -1,0 +1,84 @@
+{
+  "title": "Membership plans",
+  "intro": "Family Squares, the crisis guide and your everyday tools stay free. A plan adds a coach between meetings.",
+  "monthly": "Both plans are billed monthly.",
+  "summarySeparator": " · ",
+  "headings": {
+    "free": "Stays free",
+    "essential": "What you get",
+    "premier": "Everything in Essential, plus",
+    "premierShort": "Everything in Essential"
+  },
+  "benefits": {
+    "free": {
+      "familySquares": "Family Squares every Monday",
+      "crisisGuide": "The crisis guide, safety steps and Safety Wallet",
+      "everydayTools": "Boundaries, the tracker and your daily check-in",
+      "scripts": "The full script library and guided practice",
+      "planning": "The treatment finder and planning tools",
+      "patternMap": "Your Invitation Engine pattern map"
+    },
+    "essential": {
+      "coachMessaging": "Message a coach between meetings",
+      "liveGroups": "Live groups with other families",
+      "rehearsal": "Conversation rehearsal with a simulated partner",
+      "interventionPlanner": "The DIY Intervention Planner",
+      "invitationEngine": "The full Invitation Engine: daily moves, forecast and kit",
+      "practiceCalls": "Practice calls at times you choose",
+      "todayFull": "Your week in review and progress on Today",
+      "memberRate": "The member rate on private coaching",
+      "library": "The family education library and past Family Squares recordings"
+    },
+    "premier": {
+      "privateVideo": "Private video with a coach, subject to scheduling",
+      "planReview": "Plan review included",
+      "commandPlan": "The Family Command Plan"
+    }
+  },
+  "notEmergency": "Messaging is for questions that can wait. It is not emergency care and does not guarantee an immediate reply.",
+  "yourPlan": "Your plan",
+  "currentPlan": "Current plan",
+  "covered": "Your organization covers your membership. There is nothing to buy.",
+  "perMonth": "{{price}}/month",
+  "priceUnavailable": "Store price unavailable",
+  "retryPrices": "Retry prices",
+  "retryPricesLabel": "Try loading the store prices again",
+  "seePlans": "See plans",
+  "seePlansLabel": "See membership plans",
+  "choose": {
+    "closeLabel": "Close without subscribing",
+    "termsLabel": "Open the Terms of Use",
+    "privacyLabel": "Open the Privacy Policy"
+  },
+  "restore": {
+    "button": "Restore purchases",
+    "label": "Restore purchases made with this Apple Account",
+    "busy": "Restoring"
+  },
+  "support": {
+    "eyebrow": "MEMBERSHIP",
+    "title": "A coach between meetings",
+    "more": "See everything each plan includes, and what stays free.",
+    "upgradeLabel": "See what Premier adds"
+  },
+  "paywall": {
+    "heading": "This is part of membership",
+    "lead": "Essential includes:",
+    "free": "The crisis guide, emergency contacts and Family Squares stay free."
+  },
+  "locked": {
+    "todayLine": "Members see their week in review and progress here.",
+    "todayLabel": "Members see their week in review and progress here. See membership plans."
+  },
+  "invite": {
+    "title": "More support, if you want it",
+    "body": "Look at the plans at your own pace. You can keep using the free tools.",
+    "cta": "See plans",
+    "later": "Not now",
+    "never": "Don’t show again",
+    "practiceCompleted": "You practiced a conversation. Would ongoing practice and coaching support help with the next one? Your take-away stays free.",
+    "boundarySaved": "You saved a starting point. Membership can help you practice and adjust your approach. Your boundary remains yours.",
+    "afterMeetingTitle": "Keep talking between Mondays",
+    "afterMeeting": "Family Squares is once a week. With a membership you can message a coach on the days in between."
+  }
+}

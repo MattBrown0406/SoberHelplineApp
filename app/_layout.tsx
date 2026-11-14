@@ -19,6 +19,7 @@ import { addAppBreadcrumb } from '../src/lib/monitoring';
 import { collapseAppStack } from '../src/lib/appStack';
 import { flushQueuedSupportCallReview, setReviewPromptRoute } from '../src/lib/reviewPrompt';
 import { flushFamilySquaresAttendance } from '../src/lib/meetingAttendance';
+import { clearMeetingReturn, noteMeetingReturn, noteReviewCheck } from '../src/lib/afterMeetingInvite';
 import { clearPendingDeepLink, subscribePendingDeepLink, takePendingDeepLink } from '../src/lib/pendingDeepLink';
 
 function ReviewPromptCoordinator() {
@@ -38,7 +39,9 @@ function ReviewPromptCoordinator() {
       if (!active || !isTodayRoute(routeRef.current)) return;
       timer = setTimeout(() => {
         if (active && isTodayRoute(routeRef.current)) {
-          void flushQueuedSupportCallReview(user.id);
+          // The after-meeting invitation waits for this answer: it never
+          // shares a visit with the rating prompt (afterMeetingInvite).
+          void flushQueuedSupportCallReview(user.id).then((outcome) => noteReviewCheck(user.id, outcome));
         }
       }, 800);
     };
@@ -75,15 +78,30 @@ function MeetingAttendanceCoordinator() {
   useEffect(() => {
     if (!user?.id) return;
     const accountId = user.id;
+    let active = true;
+    // Back ten minutes or more after a Join tap: she attended. For a free
+    // member that is also the moment Today may offer the after-meeting
+    // invitation (afterMeetingInvite decides whether it does).
+    const flushAttendance = () => void flushFamilySquaresAttendance(accountId).then((attended) => {
+      if (attended && active) noteMeetingReturn(accountId);
+    });
     // Also covers reopening the app after it was closed during the meeting.
-    void flushFamilySquaresAttendance(accountId);
+    flushAttendance();
     let previousState = AppState.currentState;
     const subscription = AppState.addEventListener('change', (nextState) => {
       const returnedToForeground = previousState !== 'active' && nextState === 'active';
+      // 'inactive' is only a system sheet or the app switcher passing over.
+      const leftForeground = nextState === 'background';
       previousState = nextState;
-      if (returnedToForeground) void flushFamilySquaresAttendance(accountId);
+      if (returnedToForeground) flushAttendance();
+      // The moment belongs to the visit she came back on.
+      if (leftForeground) clearMeetingReturn();
     });
-    return () => subscription.remove();
+    return () => {
+      active = false;
+      subscription.remove();
+      clearMeetingReturn();
+    };
   }, [user?.id]);
 
   return null;

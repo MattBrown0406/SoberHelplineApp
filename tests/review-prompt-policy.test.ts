@@ -259,8 +259,14 @@ test('post-win producers are wired after durable success and avoid unsafe false 
   assert.ok((prompt.match(/authoritativeReviewSafety\(accountId\)/g) ?? []).length >= 2);
   assert.match(prompt, /cancelQueuedSupportCallReview/);
   assert.match(iap, /setReviewPromptPurchaseFlow\(true\)[\s\S]*setReviewPromptPurchaseFlow\(false\)/);
-  assert.match(support, /function openUpgrade[\s\S]*setReviewPromptPaywallVisible\(true\)/);
-  assert.match(support, /function closeUpgrade[\s\S]*setReviewPromptPaywallVisible\(false\)/);
+  // The purchase sheet now lives on the plans screen (usePlanPurchase); the Support tab only opens it.
+  const purchase = readFileSync(resolve('src/hooks/usePlanPurchase.ts'), 'utf8');
+  assert.match(purchase, /function openUpgrade[\s\S]*setReviewPromptPaywallVisible\(true\)/);
+  assert.match(purchase, /function closeUpgrade[\s\S]*setReviewPromptPaywallVisible\(false\)/);
+  assert.match(purchase, /useEffect\(\(\) => \(\) => setReviewPromptPaywallVisible\(false\), \[\]\);/);
+  assert.doesNotMatch(support, /openUpgrade|handlePurchase|purchaseEssential|purchasePremium/);
+  // The plans screen itself counts as a paywall route: no rating prompt there.
+  assert.match(prompt, /routePath\.includes\('paywall'\) \|\| routePath\.includes\('upgrade'\)\s+\|\| routePath === 'plans'/);
   assert.doesNotMatch(safetyWallet, /maybeRequestReview|safety_wallet_ready/);
   assert.match(situationCard, /onSupportCallJoin[\s\S]*catch[\s\S]*Linking\.openURL/);
   assert.match(continueLetter, /useFocusEffect/);

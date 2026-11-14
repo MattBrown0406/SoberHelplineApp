@@ -26,6 +26,7 @@ import { walletExportItems, type WalletExportItem } from '../src/lib/safetyWalle
 import { appAlert } from '../src/lib/appAlert';
 import { crisisSessionView } from '../src/lib/crisisSessionView';
 import type { SafetyBoundary, SafetyIncident, SafetyPlan } from '../src/lib/safetyWallet';
+import { plansHref } from '../src/lib/membershipPath';
 import {
   CRISIS_SITUATION_ORDER,
   assessSituationRisk,
@@ -231,7 +232,7 @@ function CrisisModeContent() {
         : (t('inline.theFamilyCommandPlanIs')),
       [
         { text: t('inline.notNow'), style: 'cancel' },
-        { text: t('inline.viewPlans'), onPress: () => router.push('/(tabs)/support' as never) },
+        { text: t('inline.viewPlans'), onPress: () => router.push(plansHref('crisis_command_plan', tier === 'Premier' ? 'premium' : 'essential')) },
       ],
     );
   }
@@ -304,7 +305,7 @@ function CrisisModeContent() {
         {focusSession && hydrated && stage !== 'result' && (sessionView.showSessionCard || sessionView.showPlanReviewCard) ? (
           <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
             {sessionView.showSessionCard ? <PremierVideoSchedulingCard controller={privateVideo} t={t} translationRoot="premierVideo" compact onJoin={openSession} /> : null}
-            {sessionView.showPlanReviewCard ? <PlanReviewBookingCard controller={privateVideo} hasIncludedPlanReview={hasIncludedPlanReview} source={planReviewSource} t={t} consentLocale={isSpanish ? 'es' : 'en'} onUpgrade={() => router.push('/(tabs)/support' as never)} /> : null}
+            {sessionView.showPlanReviewCard ? <PlanReviewBookingCard controller={privateVideo} hasIncludedPlanReview={hasIncludedPlanReview} source={planReviewSource} t={t} consentLocale={isSpanish ? 'es' : 'en'} onUpgrade={() => router.push(plansHref('crisis_plan_review', 'premium'))} /> : null}
           </View>
         ) : null}
 
@@ -313,7 +314,7 @@ function CrisisModeContent() {
             review lives instead of an empty card. Waits for entitlements and
             her sessions so a member never flashes the gate. */}
         {focusSession && sessionView.showGate && stage !== 'result' ? (
-          <LockedCard tier="Essential" cta={t('inline.viewPlans')} title={t('planReview.gateTitle')} body={t('planReview.gateBody')} colors={colors} onPress={() => router.push('/(tabs)/support' as never)} />
+          <LockedCard tier="Essential" cta={t('inline.viewPlans')} title={t('planReview.gateTitle')} body={t('planReview.gateBody')} colors={colors} onPress={() => router.push(plansHref('crisis_plan_review'))} />
         ) : null}
         {focusSession && sessionView.showLoadError && stage !== 'result' ? (
           <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
@@ -486,7 +487,7 @@ function CrisisModeContent() {
                 <Text accessibilityRole="header" style={[styles.sectionTitle, { color: colors.ink }]}>{t('support.title')}</Text>
                 {entitlements.canMessageOnCallCoach ? <TouchableOpacity accessibilityRole="button" style={[styles.primaryBtn, { backgroundColor: colors.primary }]} onPress={() => router.push('/chat')}><Text style={styles.primaryBtnText}>{t('support.openTextline')}</Text></TouchableOpacity> : <Text style={[styles.body, { color: colors.inkSoft }]}>{t('inline.textSupportIsAvailableWith')}</Text>}
                 {sessionView.showSessionCard ? <PremierVideoSchedulingCard controller={privateVideo} t={t} translationRoot="premierVideo" compact onJoin={openSession} /> : null}
-                {sessionView.showPlanReviewCard && hydrated ? <PlanReviewBookingCard controller={privateVideo} hasIncludedPlanReview={hasIncludedPlanReview} source={planReviewSource} t={t} consentLocale={isSpanish ? 'es' : 'en'} onUpgrade={() => router.push('/(tabs)/support' as never)} /> : null}
+                {sessionView.showPlanReviewCard && hydrated ? <PlanReviewBookingCard controller={privateVideo} hasIncludedPlanReview={hasIncludedPlanReview} source={planReviewSource} t={t} consentLocale={isSpanish ? 'es' : 'en'} onUpgrade={() => router.push(plansHref('crisis_plan_review', 'premium'))} /> : null}
               </View>
             ) : null}
           </>
@@ -501,7 +502,7 @@ function ActionCard({ title, items, colors, numbered = false }: { title: string;
 }
 
 function LockedCard({ tier, cta, title, body, colors, onPress }: { tier: string; cta: string; title: string; body: string; colors: ReturnType<typeof useTheme>['colors']; onPress: () => void }) {
-  return <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}><Text style={[styles.lockBadge, { color: colors.primary }]}>{tier.toUpperCase()}</Text><Text accessibilityRole="header" style={[styles.sectionTitle, { color: colors.ink }]}>{title}</Text><Text style={[styles.body, { color: colors.inkSoft }]}>{body}</Text><TouchableOpacity accessibilityRole="button" style={[styles.primaryBtn, { backgroundColor: colors.primary }]} onPress={onPress}><Text style={styles.primaryBtnText}>{cta}</Text></TouchableOpacity></View>;
+  return <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}><Text style={[styles.lockBadge, { color: colors.primary }]}>{tier.toUpperCase()}</Text><Text accessibilityRole="header" style={[styles.sectionTitle, { color: colors.ink }]}>{title}</Text><Text style={[styles.body, { color: colors.inkSoft }]}>{body}</Text><TouchableOpacity accessibilityRole="button" accessibilityLabel={cta} style={[styles.primaryBtn, { backgroundColor: colors.primary }]} onPress={onPress}><Text style={styles.primaryBtnText}>{cta}</Text></TouchableOpacity></View>;
 }
 
 function Field({ label, value, onChangeText, placeholder, multiline = false, dark = false }: { label: string; value: string; onChangeText: (value: string) => void; placeholder: string; multiline?: boolean; dark?: boolean }) {

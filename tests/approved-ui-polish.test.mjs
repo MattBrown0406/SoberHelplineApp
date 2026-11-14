@@ -32,16 +32,34 @@ test('feature-specific paywall renders the AI feature and routes free exercise w
   const nav = [];
   const Gate = runDeclaration('src/components/ui/FreeTierPaywall.tsx', 'FreeTierPaywall', {
     React: { createElement: element }, ...native, ScreenContainer: 'ScreenContainer', useTheme: theme,
-    useTranslation: () => ({ t: k => k, i18n: { language: 'en' } }), walletMembershipCopy: () => ({ free: 'free' }),
+    useTranslation: () => ({ t: k => k, i18n: { language: 'en' } }), BenefitList: 'BenefitList',
+    plansHref: source => ({ pathname: '/plans', params: { source } }),
     useRouter: () => ({ push: path => { nav.push(path); } }), styles: {},
   });
   const tree = Gate({ feature: 'aiRehearsal' });
   assert.ok(JSON.stringify(tree).includes('practiceGate.heading'));
   const buttons = nodes(tree).filter(n => n.type === 'TouchableOpacity');
   buttons.forEach(n => n.props.onPress());
-  assert.deepEqual(nav, ['/free-practice', '/crisis-mode', '/(tabs)/support']);
-  assert.ok(JSON.stringify(Gate({})).includes('paywall.heading'));
-  assert.ok(!JSON.stringify(Gate({})).includes('practiceGate.freeAction'));
+  // "See plans" opens the plans screen and says which gate she came from.
+  assert.deepEqual(JSON.parse(JSON.stringify(nav)), ['/free-practice', '/crisis-mode', { pathname: '/plans', params: { source: 'rehearsal_gate' } }]);
+  for (const button of buttons) {
+    assert.equal(button.props.accessibilityRole, 'button');
+    assert.ok(button.props.accessibilityLabel);
+  }
+  const plain = Gate({});
+  assert.ok(JSON.stringify(plain).includes('paywall.heading'));
+  assert.ok(!JSON.stringify(plain).includes('practiceGate.freeAction'));
+  // The default gate describes Essential with the one benefits list, not a sentence of its own.
+  const list = nodes(plain).find(n => n.type === 'BenefitList');
+  assert.equal(list.props.plan, 'essential');
+  assert.ok(JSON.stringify(plain).includes('paywall.free'));
+  nav.length = 0;
+  nodes(plain).filter(n => n.type === 'TouchableOpacity').at(-1).props.onPress();
+  nodes(Gate({ source: 'diy_planner' })).filter(n => n.type === 'TouchableOpacity').at(-1).props.onPress();
+  assert.deepEqual(JSON.parse(JSON.stringify(nav)), [
+    { pathname: '/plans', params: { source: 'feature_gate' } },
+    { pathname: '/plans', params: { source: 'diy_planner' } },
+  ]);
   assert.match(read('src/components/rehearsal/PracticeHandoffPaywall.tsx'), /releasePracticeText\(handoff\)/);
   assert.match(read('app/rehearsal-live.tsx'), /Gate feature="aiRehearsal" fallback=\{<PracticeHandoffPaywall/);
 });
@@ -53,6 +71,9 @@ test('free chat gate retains plans and adds safe Back and ungated crisis route',
   assert.match(gate, /router\.replace\('\/\(tabs\)\/support'\)/);
   assert.match(gate, /router\.push\('\/crisis-mode'\)/);
   assert.match(gate, /textline.freeUrgentHelp/); assert.match(gate, /textline.viewPlans/);
+  // Both chat gates open the plans screen, and say where she came from.
+  assert.equal(screen.split("router.push(plansHref('chat_gate'))").length - 1, 2);
+  assert.doesNotMatch(screen, /router\.push\('\/\(tabs\)\/support'\)/);
 });
 
 for (const lang of ['en', 'es']) test(`${lang}: short labels retain full titles; paid messaging/practice promises stay honest`, () => {

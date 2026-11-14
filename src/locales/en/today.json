@@ -141,8 +141,8 @@
     "membership": "Explore membership"
   },
   "freeDaily": {
-    "eyebrow": "Today's free script",
-    "note": "A new conversation script unlocks here every day."
+    "eyebrow": "Today's script",
+    "note": "This is today's script. The full library is in Practice."
   },
   "passItOn": {
     "eyebrow": "Pass it on",

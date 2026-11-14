@@ -16,7 +16,6 @@ import {
   AccessibilityInfo,
 } from 'react-native';
 import { supabase } from '../../src/lib/supabase';
-import { recordVerifiedPurchase, withTimeoutFallback } from '../../src/lib/authBootstrap';
 import { appAlert } from '../../src/lib/appAlert';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
@@ -32,7 +31,7 @@ import { useGroupPresence } from '../../src/hooks/useGroupPresence';
 import { useGroupRsvps } from '../../src/hooks/useGroupRsvps';
 import { usePrivateVideoSessions } from '../../src/hooks/usePrivateVideoSessions';
 import { PremierVideoSchedulingCard } from '../../src/components/video/PremierVideoSchedulingCard';
-import { FEATURED_PROVIDER, PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '../../src/config';
+import { FEATURED_PROVIDER } from '../../src/config';
 import { useWebSSO } from '../../src/hooks/useWebSSO';
 import { WEBSITE_PATHS, withAppContext } from '../../src/lib/websiteLinks';
 import { useCoachingRate } from '../../src/hooks/useCoachingRate';
@@ -42,17 +41,19 @@ import { isFamilySquaresSession, isLaSobremesaSession, sessionDisplayTitle } fro
 import { clearFamilySquaresJoin, markFamilySquaresJoin } from '../../src/lib/meetingAttendance';
 import { FamilySquaresSeatPanel } from '../../src/components/familySquares/FamilySquaresSeatPanel';
 import { FamilySquaresFirstTimerNote } from '../../src/components/familySquares/FamilySquaresFirstTimerNote';
-import { useIAP, type SubscriptionTier } from '../../src/hooks/useIAP';
+import { usePlanOffers } from '../../src/hooks/usePlanPurchase';
+import { PlansTeaserCard } from '../../src/components/plans/PlansTeaserCard';
+import { BenefitList } from '../../src/components/plans/BenefitList';
+import { benefitSummary } from '../../src/lib/membershipBenefits';
+import { plansHref } from '../../src/lib/membershipPath';
 import { useSituation } from '../../src/hooks/useSituation';
 import { funnelDoor, type FunnelDoor } from '../../src/lib/situation';
 import { SituationOffRamp } from '../../src/components/situation/SituationOffRamp';
 import { logFunnelEvent } from '../../src/lib/funnel';
 import { isAdminEmail } from '../../src/lib/admin';
 import { openEmergencyLink } from '../../src/lib/emergencyLinks';
-import { setReviewPromptPaywallVisible } from '../../src/lib/reviewPrompt';
 import { COMMUNITY_FEED_VISIBLE } from '../../src/lib/communityFeed';
 import { EmergencyActions } from '../../src/components/safety/EmergencyActions';
-import { trialLabelKey } from '../../src/lib/subscriptionTrial';
 import type { StaffMember, SupportGroup } from '../../src/api/types';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -399,113 +400,6 @@ function ProviderSheet({
   );
 }
 
-// ── Upgrade sheet ─────────────────────────────────────────────────────────────
-
-function UpgradeSheet({
-  visible,
-  tier,
-  priceLabel,
-  priceAvailable,
-  trial,
-  onClose,
-  onPurchase,
-  purchasing,
-  t,
-  colors,
-  sheetOffset,
-}: {
-  visible: boolean;
-  tier: SubscriptionTier;
-  priceLabel: string;
-  priceAvailable: boolean;
-  /** "7-day free trial" when the store will give her one; price stays the headline. */
-  trial: string | null;
-  onClose: () => void;
-  onPurchase: () => void;
-  purchasing: boolean;
-  t: ReturnType<typeof useTranslation<'support'>>['t'];
-  colors: ReturnType<typeof useTheme>['colors'];
-  sheetOffset: number;
-}) {
-  return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose} />
-      <ScrollView
-        style={[styles.sheet, { backgroundColor: colors.white, left: sheetOffset, right: sheetOffset }]}
-        contentContainerStyle={styles.sheetContent}
-        keyboardShouldPersistTaps="handled"
-        bounces={false}
-      >
-        <View style={[styles.sheetHandle, { backgroundColor: colors.line }]} />
-        <Text style={[styles.sheetTitle, { color: colors.ink }]}>
-          {t(`tier.${tier}Name`)}
-        </Text>
-        <Text style={[styles.tierPrice, { color: colors.ink, marginBottom: trial && priceAvailable ? 4 : 12 }]}>
-          {priceLabel}
-        </Text>
-        {trial && priceAvailable && (
-          <Text style={[styles.sheetSub, { color: colors.primary, marginBottom: 12 }]}>
-            {t('paywall.trialThen', { trial, price: priceLabel })}
-          </Text>
-        )}
-
-        <Text style={[styles.sheetSub, { color: colors.inkSoft, marginBottom: 6 }]}>
-          {t('upgradeSheet.featuresHeaderGeneric')}
-        </Text>
-        <Text style={[styles.sheetSub, { color: colors.ink, marginBottom: 4 }]}>
-          {t(`tier.${tier}Features`, { memberRate: COACHING_MEMBER_PRICE })}
-        </Text>
-
-        {/* Price and renewal terms come from StoreKit (never hard-coded copy);
-            without a store price the sheet shows the "price unavailable" label
-            above and on the disabled button instead. */}
-        {priceAvailable ? (
-          <Text style={[styles.sheetSub, { color: colors.inkSoft, marginTop: 12, marginBottom: 16 }]}>
-            {trial
-              ? t('upgradeSheet.trialRenewalNote', { trial, price: priceLabel })
-              : t('upgradeSheet.renewalNote', { price: priceLabel })}
-          </Text>
-        ) : <View style={{ height: 16 }} />}
-
-        <TouchableOpacity
-          style={[
-            styles.solidBtn,
-            { backgroundColor: purchasing ? colors.inkSoft : colors.primary },
-          ]}
-          activeOpacity={0.85}
-          disabled={purchasing || !priceAvailable}
-          accessibilityState={{ disabled: purchasing || !priceAvailable }}
-          onPress={onPurchase}
-        >
-          <Text style={styles.solidBtnText}>
-            {purchasing ? '...' : priceAvailable
-              ? trial
-                ? t('paywall.startTrial', { trial, price: priceLabel })
-                : t(tier === 'essential' ? 'paywall.subscribeEssential' : 'paywall.subscribePremium', { price: priceLabel })
-              : priceLabel}
-          </Text>
-        </TouchableOpacity>
-
-        <View style={styles.legalRow}>
-          <TouchableOpacity onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}>
-            <Text style={[styles.legalLink, { color: colors.primary }]}>{t('upgradeSheet.privacyPolicy')}</Text>
-          </TouchableOpacity>
-          <Text style={[styles.legalSep, { color: colors.inkSoft }]}> · </Text>
-          <TouchableOpacity onPress={() => void Linking.openURL(TERMS_OF_USE_URL)}>
-            <Text style={[styles.legalLink, { color: colors.primary }]}>{t('upgradeSheet.termsOfUse')}</Text>
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity style={[styles.sheetRow, styles.sheetRowLast, { marginTop: 4 }]} onPress={onClose}>
-          <Text style={[styles.sheetRowName, { color: colors.inkSoft }]}>
-            {t('upgradeSheet.close')}
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </Modal>
-  );
-}
-
 // ── Staff chip ────────────────────────────────────────────────────────────────
 
 function StaffChip({
@@ -542,7 +436,7 @@ function StaffChip({
 export default function SupportScreen() {
   useToolOpened('support');
   const { colors } = useTheme();
-  const { user, isAttached, accountState, entitlements, refreshAccount } = useAccount();
+  const { user, isAttached, accountState, entitlements } = useAccount();
   // A session-reminder push carries the RSVP'd session id so the card it is about stands out.
   // soberhelpline.com/app/family-squares opens Support with focus=family-squares.
   // ask=question (the hour-before reminder) opens that session's question sheet.
@@ -553,15 +447,11 @@ export default function SupportScreen() {
   const router = useRouter();
   const { width: screenWidth } = useWindowDimensions();
   const sheetOffset = Math.max(0, (screenWidth - 520) / 2);
-  const { purchasePremium, purchaseEssential, purchasing, prices: subscriptionPrices, trials, retryPrices } = useIAP();
-  const trialLabel = (tier: SubscriptionTier): string | null => {
-    const trial = trials[tier];
-    // A member who already has a plan is upgrading: Apple judges trial
-    // eligibility per subscription group, so never promise her one.
-    if (!trial || !subscriptionPrices[tier] || entitlements.canAccessGroups) return null;
-    const { key, count } = trialLabelKey(trial);
-    return t(key, { count });
-  };
+  // Prices and trial eligibility for the plans card. Buying happens on the
+  // plans screen (app/plans.tsx); this tab only opens it.
+  const planOffers = usePlanOffers();
+  const { subscriptionPrices, retryPrices } = planOffers;
+  const { t: tPlans } = useTranslation('plans');
   const { openWithSSO } = useWebSSO();
   const coachingRate = useCoachingRate();
   const scheduleFor = useSessionSchedule();
@@ -570,8 +460,6 @@ export default function SupportScreen() {
   const [membershipExpanded, setMembershipExpanded] = useState(false);
   const [crisisProtocolOpen, setCrisisProtocolOpen] = useState(false);
   const [providerOpen, setProviderOpen] = useState(false);
-  const [upgradeOpen, setUpgradeOpen] = useState(false);
-  const [upgradeTier, setUpgradeTier] = useState<SubscriptionTier>('premium');
   const [questionSession, setQuestionSession] = useState<DbSession | null>(null);
   const [questionText, setQuestionText] = useState('');
   const [questionSubmitting, setQuestionSubmitting] = useState(false);
@@ -591,8 +479,6 @@ export default function SupportScreen() {
     setQuestionSubmitted(false);
     setQuestionCrisis(null);
   }
-
-  useEffect(() => () => setReviewPromptPaywallVisible(false), []);
 
   async function submitQuestion() {
     if (!questionText.trim() || !questionSession || !user?.id) return;
@@ -628,57 +514,6 @@ export default function SupportScreen() {
       AccessibilityInfo.announceForAccessibility(t('questionModal.crisisNotSent'));
     } finally {
       if (current()) setQuestionSubmitting(false);
-    }
-  }
-
-  const purchaseOwnerRef = useRef({ owner: user?.id, active: true, generation: 0 });
-  if (purchaseOwnerRef.current.owner !== user?.id) {
-    purchaseOwnerRef.current.active = false;
-    purchaseOwnerRef.current = { owner: user?.id, active: true, generation: 0 };
-  }
-  const purchaseOwner = purchaseOwnerRef.current;
-  useEffect(() => {
-    purchaseOwner.active = true;
-    purchaseOwner.generation += 1;
-    return () => { purchaseOwner.active = false; purchaseOwner.generation += 1; };
-  }, [purchaseOwner]);
-
-  async function handlePurchase() {
-    const generation = purchaseOwner.generation;
-    const current = () => purchaseOwner.active && purchaseOwnerRef.current === purchaseOwner && generation === purchaseOwner.generation;
-    if (!current() || !purchaseOwner.owner) return;
-    if (!subscriptionPrices[upgradeTier]) return;
-    const { data: { session: purchaseSession } } = await supabase.auth.getSession();
-    if (!current() || !purchaseSession) return;
-    const sameSession = async () => {
-      if (!current()) return null;
-      const { data: { session } } = await supabase.auth.getSession();
-      return current() && session?.user.id === purchaseSession.user.id ? session : null;
-    };
-    const result = upgradeTier === 'essential'
-      ? await purchaseEssential()
-      : await purchasePremium();
-    const session = await sameSession();
-    if (!session) return;
-    if (result === 'success') {
-      // The store verified it: unlock now, then let the server mirror catch up.
-      // A failed refresh must not leave the sheet open inviting a second purchase.
-      if (user) recordVerifiedPurchase(user.id, upgradeTier);
-      // Eligibility changed with the purchase.
-      retryPrices();
-      await withTimeoutFallback(
-        Promise.resolve(supabase.functions.invoke('sync-iap-entitlements', {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        })).then(() => undefined),
-        10_000,
-        undefined,
-      );
-      if (!current()) return;
-      await refreshAccount().catch(() => undefined);
-      if (!current()) return;
-      closeUpgrade();
-    } else if (result === 'failed') {
-      appAlert(t('upgradeSheet.title'), t('upgradeSheet.iapError'));
     }
   }
 
@@ -833,18 +668,6 @@ export default function SupportScreen() {
   const privateVideo = usePrivateVideoSessions(user?.id ?? null, canAccessPrivateVideo);
   const isAdmin = isAdminEmail(user?.email);
 
-  function openUpgrade(tier: SubscriptionTier) {
-    setReviewPromptPaywallVisible(true);
-    setUpgradeTier(tier);
-    setUpgradeOpen(true);
-  }
-
-  function closeUpgrade() {
-    setReviewPromptPaywallVisible(false);
-    setUpgradeOpen(false);
-  }
-
-
   return (
     <ScreenContainer backgroundColor={colors.cream}>
       <CrisisSheet
@@ -868,19 +691,6 @@ export default function SupportScreen() {
       <ProviderSheet
         visible={providerOpen}
         onClose={() => setProviderOpen(false)}
-        t={t}
-        colors={colors}
-        sheetOffset={sheetOffset}
-      />
-      <UpgradeSheet
-        visible={upgradeOpen}
-        tier={upgradeTier}
-        priceLabel={subscriptionPrices[upgradeTier] ?? copy.priceUnavailable}
-        priceAvailable={!!subscriptionPrices[upgradeTier]}
-        trial={trialLabel(upgradeTier)}
-        onClose={closeUpgrade}
-        onPurchase={() => void handlePurchase()}
-        purchasing={purchasing}
         t={t}
         colors={colors}
         sheetOffset={sheetOffset}
@@ -972,8 +782,12 @@ export default function SupportScreen() {
           <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={() => router.push('/membership-guide')}><Text style={{ color: colors.primary }}>{t('coachingGuideLink')}</Text></TouchableOpacity>
           <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={() => router.push('/free-practice')}><Text style={{ color: colors.primary }}>{t('freePracticeLink')}</Text></TouchableOpacity>
           <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{copy.free}</Text>
-          <Text style={[styles.referralBody, { color: colors.inkSoft, marginTop: 10 }]}>{copy.essential}</Text>
-          <Text style={[styles.referralBody, { color: colors.inkSoft, marginTop: 10 }]}>{copy.premier}</Text>
+          {/* The one benefits list (plans.json): Essential, then what Premier adds. */}
+          <Text style={[styles.tierName, { color: colors.ink, marginTop: 12 }]}>{t('tier.essentialName')}</Text>
+          <BenefitList plan="essential" />
+          <Text style={[styles.tierName, { color: colors.ink, marginTop: 12 }]}>{t('tier.premiumName')} · {tPlans('headings.premier')}</Text>
+          <BenefitList plan="premier" />
+          <Text style={[styles.referralBody, { color: colors.inkSoft, marginTop: 10 }]}>{tPlans('notEmergency')}</Text>
           <Text style={[styles.referralBody, { color: colors.inkSoft, marginTop: 10 }]}>{fillCoachingRates(copy.service, { rate: coachingRate.hourly, memberRate: COACHING_MEMBER_PRICE })}</Text>
           {hasMembershipAccess && <>
             <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={() => router.push('/safety-wallet')}><Text style={{ color: colors.primary }}>{copy.wallet}</Text></TouchableOpacity>
@@ -1064,90 +878,8 @@ export default function SupportScreen() {
               {sessions.filter((s) => s.kind === 'group').map((sess) => renderSession(sess, false))}
             </View>
 
-            <View style={[styles.card, { borderColor: colors.line }]}>
-              <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
-                {t('paywall.eyebrow')}
-              </Text>
-
-              {/* Free row */}
-              <View style={[styles.tierRow, { borderColor: colors.line, backgroundColor: colors.cream }]}>
-                <View style={styles.tierInfo}>
-                  <Text style={[styles.tierName, { color: colors.inkSoft }]}>{t('tier.freeName')}</Text>
-                  <Text style={[styles.tierFeatures, { color: colors.inkSoft }]}>{t('tier.freeFeatures')}</Text>
-                </View>
-                <Text style={[styles.tierCurrent, { color: colors.inkSoft }]}>{t('tier.freeCurrent')}</Text>
-              </View>
-
-              {/* Essential row */}
-              <View style={[styles.tierRow, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]}>
-                <View style={styles.tierInfo}>
-                  <Text style={[styles.tierName, { color: colors.primary }]}>{t('tier.essentialName')}</Text>
-                  <Text style={[styles.tierFeatures, { color: colors.inkSoft }]}>{t('tier.essentialFeatures', { memberRate: COACHING_MEMBER_PRICE })}</Text>
-                </View>
-                <Text style={[styles.tierPrice, { color: colors.primary }]}>{subscriptionPrices.essential ? `${subscriptionPrices.essential}${copy.month}` : copy.priceUnavailable}</Text>
-              </View>
-              {trialLabel('essential') && (
-                <Text style={[styles.tierFeatures, { color: colors.primary, marginBottom: 8 }]}>
-                  {t('paywall.trialThen', { trial: trialLabel('essential'), price: subscriptionPrices.essential })}
-                </Text>
-              )}
-              <TouchableOpacity
-                style={[styles.solidBtn, { backgroundColor: colors.primary }]}
-                activeOpacity={0.85}
-                disabled={purchasing}
-                onPress={() => openUpgrade('essential')}
-              >
-                <Text style={styles.solidBtnText}>
-                  {purchasing ? '...' : trialLabel('essential')
-                    ? t('paywall.startTrial', { trial: trialLabel('essential'), price: subscriptionPrices.essential })
-                    : t('paywall.subscribeEssential', { price: subscriptionPrices.essential ?? copy.priceUnavailable })}
-                </Text>
-              </TouchableOpacity>
-
-              {/* Premium row */}
-              <View style={[styles.tierRow, { borderColor: colors.line, backgroundColor: colors.white, marginTop: 12 }]}>
-                <View style={styles.tierInfo}>
-                  <Text style={[styles.tierName, { color: colors.ink }]}>{t('tier.premiumName')}</Text>
-                  <Text style={[styles.tierFeatures, { color: colors.inkSoft }]}>{t('tier.premiumFeatures')}</Text>
-                </View>
-                <Text style={[styles.tierPrice, { color: colors.ink }]}>{subscriptionPrices.premium ? `${subscriptionPrices.premium}${copy.month}` : copy.priceUnavailable}</Text>
-              </View>
-              {trialLabel('premium') && (
-                <Text style={[styles.tierFeatures, { color: colors.primary, marginTop: 4 }]}>
-                  {t('paywall.trialThen', { trial: trialLabel('premium'), price: subscriptionPrices.premium })}
-                </Text>
-              )}
-              <TouchableOpacity
-                style={[styles.outlineBtn, { borderColor: colors.primary, marginTop: 8 }]}
-                activeOpacity={0.85}
-                disabled={purchasing}
-                onPress={() => openUpgrade('premium')}
-              >
-                <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
-                  {trialLabel('premium')
-                    ? t('paywall.startTrial', { trial: trialLabel('premium'), price: subscriptionPrices.premium })
-                    : t('paywall.subscribePremium', { price: subscriptionPrices.premium ?? copy.priceUnavailable })}
-                </Text>
-              </TouchableOpacity>
-
-              {/* Auto-renewable subscription disclosure + legal links (App Store 3.1.2c) */}
-              <Text style={[styles.disclosure, { color: colors.inkSoft }]}>
-                {t('paywall.autoRenewDisclosure', {
-                  essentialPrice: subscriptionPrices.essential ?? copy.priceUnavailable,
-                  premiumPrice: subscriptionPrices.premium ?? copy.priceUnavailable,
-                })}
-                {(trialLabel('essential') || trialLabel('premium')) ? ` ${t('paywall.trialDisclosure')}` : ''}
-              </Text>
-              <View style={styles.legalRow}>
-                <TouchableOpacity onPress={() => void Linking.openURL(TERMS_OF_USE_URL)}>
-                  <Text style={[styles.legalLink, { color: colors.primary }]}>{t('upgradeSheet.termsOfUse')}</Text>
-                </TouchableOpacity>
-                <Text style={[styles.legalSep, { color: colors.inkSoft }]}> · </Text>
-                <TouchableOpacity onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}>
-                  <Text style={[styles.legalLink, { color: colors.primary }]}>{t('upgradeSheet.privacyPolicy')}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+            {/* The plans in short; the plans screen has all of it and is where a plan is bought. */}
+            <PlansTeaserCard offers={planOffers} source="support_tab" />
           </>
         )}
 
@@ -1169,7 +901,7 @@ export default function SupportScreen() {
                       {t(accountState === 'direct-premium' ? 'tier.premiumName' : 'tier.essentialName')}
                     </Text>
                     <Text style={[styles.tierFeatures, { color: colors.inkSoft }]}>
-                      {t(accountState === 'direct-premium' ? 'tier.premiumFeatures' : 'tier.essentialFeatures', { memberRate: COACHING_MEMBER_PRICE })}
+                      {benefitSummary(accountState === 'direct-premium' ? 'premier' : 'essential', tPlans as never, current)}
                     </Text>
                   </View>
                   <View style={styles.tierRight}>
@@ -1191,7 +923,9 @@ export default function SupportScreen() {
                   <TouchableOpacity
                     style={[styles.outlineBtn, { borderColor: colors.primary }]}
                     activeOpacity={0.85}
-                    onPress={() => openUpgrade('premium')}
+                    accessibilityRole="button"
+                    accessibilityLabel={tPlans('support.upgradeLabel')}
+                    onPress={() => router.push(plansHref('support_upgrade', 'premium'))}
                   >
                     <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
                       {t('tier.upgradeButton')}
@@ -1301,9 +1035,11 @@ export default function SupportScreen() {
                   <TouchableOpacity
                     style={[styles.joinBtn, { borderColor: colors.coral, backgroundColor: '#111111' }]}
                     activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${group.name}: ${t('groups.joinLive')}`}
                     onPress={() => (hasMembershipAccess
                       ? router.push({ pathname: '/live-room' as never, params: { room: room ?? '' } })
-                      : openUpgrade('essential'))}
+                      : router.push(plansHref('support_groups', 'essential')))}
                   >
                     <Text style={[styles.joinBtnText, { color: '#fff' }]}>{t('groups.joinLive')}</Text>
                   </TouchableOpacity>
@@ -1319,10 +1055,11 @@ export default function SupportScreen() {
                     activeOpacity={0.8}
                     disabled={isRsvpPending}
                     accessibilityRole="button"
+                    accessibilityLabel={`${group.name}: ${isRsvped ? t('groups.rsvpDone') : t('groups.rsvpButton')}`}
                     accessibilityState={{ disabled: isRsvpPending, selected: isRsvped, busy: isRsvpPending }}
                     onPress={async () => {
                       if (!hasMembershipAccess) {
-                        openUpgrade('essential');
+                        router.push(plansHref('support_groups', 'essential'));
                         return;
                       }
                       const saved = await toggleGroupRsvp(room);
@@ -1620,7 +1357,6 @@ const styles = StyleSheet.create({
   tierName: { fontSize: 14, fontWeight: '700' },
   tierFeatures: { fontSize: 12, marginTop: 2 },
   tierRight: { alignItems: 'flex-end' },
-  tierPrice: { fontSize: 14, fontWeight: '700' },
   tierCurrent: { fontSize: 11, marginTop: 2 },
 
 
@@ -1760,10 +1496,6 @@ const styles = StyleSheet.create({
   },
   sheetRowLast: { borderBottomWidth: 0 },
   offRampWrap: { marginTop: 14 },
-  legalRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 12, marginBottom: 4 },
-  legalLink: { fontSize: 12, fontWeight: '500', textDecorationLine: 'underline' },
-  legalSep: { fontSize: 12 },
-  disclosure: { fontSize: 11.5, lineHeight: 16, textAlign: 'center', marginTop: 14 },
   sheetRowName: { fontSize: 14, fontWeight: '600', flex: 1 },
   sheetRowSub: { fontSize: 12, marginTop: 2 },
   sheetRowAction: { fontSize: 14, fontWeight: '700' },

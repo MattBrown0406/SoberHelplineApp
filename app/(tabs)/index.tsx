@@ -17,6 +17,9 @@ import { CheckInCard } from '../../src/components/today/CheckInCard';
 import { RecoveryPathwayCard } from '../../src/components/today/RecoveryPathwayCard';
 import { MoodChart } from '../../src/components/today/MoodChart';
 import { FreeTierPaywall } from '../../src/components/ui/FreeTierPaywall';
+import { LockedPreviewRow } from '../../src/components/plans/LockedPreviewRow';
+import { ContextualMembershipInvitation } from '../../src/membershipInvitations/ContextualMembershipInvitation';
+import { useAfterMeetingInvite } from '../../src/hooks/useAfterMeetingInvite';
 import { SituationCard, type WeeklyOneThing } from '../../src/components/today/SituationCard';
 import { NeedsRouter } from '../../src/components/today/NeedsRouter';
 import { ContinueLetterCard } from '../../src/components/today/ContinueLetterCard';
@@ -100,6 +103,12 @@ function TodayContent() {
   // and not on a visit that opened with the welcome-back card (or before we
   // know whether it did).
   const reminderAsk = useTodayReminderAsk(bereaved || bereavedUnknown ? null : user?.id ?? null, user?.joinedAt, !welcome.ready || welcome.returned);
+  // Just back from Family Squares, and no rating prompt on this visit. Never
+  // on the bereaved Today; free members only (the invitation checks that).
+  const afterMeeting = useAfterMeetingInvite(
+    bereaved || bereavedUnknown ? null : user?.id ?? null,
+    welcome.visible || !!reminderAsk.view,
+  );
   // The one "next step" under the check-in, and what waits under "More for this week".
   const nextStep = useNextStep();
   const [moreOpen, setMoreOpen] = useState(false);
@@ -364,6 +373,13 @@ function TodayContent() {
         {welcomeBackCard}
         {mondayCallCard}
         {reminderAskCard}
+        {/* One soft invitation when she is back from Family Squares: at most
+            once every 14 days, and one ask at a time on this screen. */}
+        <ContextualMembershipInvitation
+          accountId={user?.id ?? null}
+          placement="after-meeting"
+          completed={afterMeeting}
+        />
         <View onLayout={onCheckInLayout}>
           {checkInCard}
           <CheckInFeedbackCard checkIn={todayCheckIn} />
@@ -395,6 +411,13 @@ function TodayContent() {
           nameFor={(id) => familySpace?.members.find((m) => m.accountId === id)?.displayName ?? youLabel}
           onSave={(result, share) => { void saveBoundaryWin(result, share); }}
         />
+        {/* Members see their week in review and progress in this section;
+            say so in one row, with no sample or blurred data. */}
+        <LockedPreviewRow
+          source="today_locked_preview"
+          line={i18n.t('plans:locked.todayLine')}
+          label={i18n.t('plans:locked.todayLabel')}
+        />
         <MoodChart accountId={user?.id ?? null} timezone={user?.timezone} />
         {curriculumPiece && (
           <CurriculumCard
@@ -405,7 +428,7 @@ function TodayContent() {
         )}
         </TodayDisclosure>
         <TodayDisclosure title={t('disclosure.membership')}>
-          <FreeTierPaywall inline />
+          <FreeTierPaywall inline source="today_membership" />
         </TodayDisclosure>
         {bereavementSheet}
       </ScreenContainer>

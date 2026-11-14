@@ -294,7 +294,9 @@ test('every Join button leaves the mark, and returning to any screen logs it', (
   assert.match(support, /void markFamilySquaresJoin\(user\?\.id, 'support'\)\s+\.then\(\(\) => Linking\.openURL\(url\)\)\s+\.catch\(\(\) => clearFamilySquaresJoin\(user\?\.id\)\);/);
   assert.match(read('src/lib/familySquaresPushJoin.ts'), /markFamilySquaresJoin\(accountId, 'push'\)/);
   const layout = read('app/_layout.tsx');
-  assert.match(layout, /if \(returnedToForeground\) void flushFamilySquaresAttendance\(accountId\);/);
+  assert.match(layout, /const flushAttendance = \(\) => void flushFamilySquaresAttendance\(accountId\)\.then\(/);
+  assert.match(layout, /\n    flushAttendance\(\);\n/, 'also on reopening the app after it was closed during the meeting');
+  assert.match(layout, /if \(returnedToForeground\) flushAttendance\(\);/);
   assert.match(layout, /<MeetingAttendanceCoordinator \/>/);
   const attendance = read('src/lib/meetingAttendance.ts');
   // Remembered on the device before it is sent, so a second return cannot log twice.

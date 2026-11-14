@@ -122,11 +122,28 @@ test('native SDK resolved no-op is reported rather than claiming OFF',async()=>{
   let alerts=0;const fn=extract('app/video-session.native.tsx','toggleMedia',{localParticipant:{isMicrophoneEnabled:true,setMicrophoneEnabled:async()=>{}},mediaBusy:{current:false},mediaActive:{current:true},setMediaPending(){},Alert:{alert(){alerts++;}},t:x=>x});await fn('microphone');assert.equal(alerts,1);
 });
 for(const stage of ['purchase','sync','refresh'])test(`support stale ${stage} completion suppresses subsequent effects`,async()=>{
-  const gate=deferred(),owner={owner:'A',active:true},calls=[];
+  const gate=deferred(),owner={owner:'A',active:true},calls=[],logged=[];
   const wait=async(name,result)=>{calls.push(name);if(stage===name)await gate.promise;return result;};
-  const fn=extract('app/(tabs)/support.tsx','handlePurchase',{purchaseOwner:owner,purchaseOwnerRef:{current:owner},subscriptionPrices:{premium:'$1'},upgradeTier:'premium',purchasePremium:()=>wait('purchase','success'),purchaseEssential:()=>{},user:{id:'A'},recordVerifiedPurchase(){calls.push('record');},retryPrices(){},withTimeoutFallback:p=>p,supabase:{auth:{getSession:async()=>({data:{session:{user:{id:'auth-A'},access_token:'token-A'}}})},functions:{invoke:()=>wait('sync',{})}},refreshAccount:()=>wait('refresh'),closeUpgrade(){calls.push('close');},appAlert(){calls.push('alert');},t:x=>x});
+  // The purchase flow lives in the plans hook (the Support tab only opens the plans screen).
+  const fn=extract('src/hooks/usePlanPurchase.ts','handlePurchase',{source:'support_tab',logMembershipPath:(step,meta)=>{logged.push([step,meta.tier,meta.source]);},purchaseOwner:owner,purchaseOwnerRef:{current:owner},subscriptionPrices:{premium:'$1'},upgradeTier:'premium',purchasePremium:()=>wait('purchase','success'),purchaseEssential:()=>{},user:{id:'A'},recordVerifiedPurchase(){calls.push('record');},retryPrices(){},withTimeoutFallback:p=>p,supabase:{auth:{getSession:async()=>({data:{session:{user:{id:'auth-A'},access_token:'token-A'}}})},functions:{invoke:()=>wait('sync',{})}},refreshAccount:()=>wait('refresh'),closeUpgrade(){calls.push('close');},appAlert(){calls.push('alert');},t:x=>x});
   const pending=fn();await settle();owner.active=false;gate.resolve();await pending;
   assert.ok(!calls.includes('close'));if(stage==='purchase')assert.deepEqual(calls,['purchase']);if(stage==='sync')assert.ok(!calls.includes('refresh'));
+  // The start is logged while she is still the one buying; an ending that arrives for a stale session is not.
+  assert.deepEqual(logged[0],['purchase_started','premium','support_tab']);
+  assert.deepEqual(logged.slice(1),stage==='purchase'?[]:[['purchase_succeeded','premium','support_tab']]);
+});
+for(const [result,step,alerted] of [['success','purchase_succeeded',false],['cancelled','purchase_cancelled',false],['failed','purchase_failed',true]])test(`plan purchase logs ${step} with the tier and source only`,async()=>{
+  const owner={owner:'A',active:true,generation:0},calls=[],logged=[];
+  const fn=extract('src/hooks/usePlanPurchase.ts','handlePurchase',{source:'after_meeting',logMembershipPath:(name,meta)=>{logged.push([name,meta]);},purchaseOwner:owner,purchaseOwnerRef:{current:owner},subscriptionPrices:{essential:'$1'},upgradeTier:'essential',purchasePremium:()=>{throw Error('wrong tier');},purchaseEssential:async()=>result,user:{id:'A'},recordVerifiedPurchase(){calls.push('record');},retryPrices(){},withTimeoutFallback:p=>p,supabase:{auth:{getSession:async()=>({data:{session:{user:{id:'auth-A'},access_token:'token-A'}}})},functions:{invoke:async()=>({})}},refreshAccount:async()=>{},closeUpgrade(){calls.push('close');},appAlert(){calls.push('alert');},t:x=>x});
+  await fn();
+  // (Through JSON: the objects were made inside the sandbox.)
+  assert.deepEqual(JSON.parse(JSON.stringify(logged)),[['purchase_started',{tier:'essential',source:'after_meeting'}],[step,{tier:'essential',source:'after_meeting'}]]);
+  assert.equal(calls.includes('alert'),alerted);assert.equal(calls.includes('close'),result==='success');
+});
+test('no store price: nothing is started and nothing is logged',async()=>{
+  const owner={owner:'A',active:true,generation:0},logged=[];
+  const fn=extract('src/hooks/usePlanPurchase.ts','handlePurchase',{source:'chat_gate',logMembershipPath:name=>{logged.push(name);},purchaseOwner:owner,purchaseOwnerRef:{current:owner},subscriptionPrices:{},upgradeTier:'essential',purchaseEssential:()=>{throw Error('must not purchase');},purchasePremium:()=>{throw Error('must not purchase');},supabase:{auth:{getSession:async()=>({data:{session:{user:{id:'auth-A'}}}})}}});
+  await fn();assert.deepEqual(logged,[]);
 });
 test('rehearsal initial request waits for session binding; late private result is discarded',async()=>{
   const response=deferred();const r=rehearsal(()=>response.promise);const api=r.render();

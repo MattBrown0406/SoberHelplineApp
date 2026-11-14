@@ -199,6 +199,7 @@ test('trajectory first share sends once using the real enabled hook, never the o
     '../src/hooks/useThread': { useThread: f.useThread }, '../src/lib/supabase': { supabase: f.supabase },
     '../src/lib/appAlert': { appAlert: x => alerts.push(x) }, '../src/components/ui/ScreenContainer': { MAX_CONTENT_WIDTH: 800 },
     '../src/hooks/useToolOpened': { useToolOpened: () => {} },
+    '../src/lib/membershipPath': { plansHref: source => ({ pathname: '/plans', params: { source } }) },
   });
   const render = () => { const root = mod.default(); return typeof root.type === 'function' ? root.type(root.props) : root; };
   const walk = node => !node || typeof node !== 'object' ? [] : [node, ...(node.props?.children ?? []).flat(Infinity).flatMap(walk)];
