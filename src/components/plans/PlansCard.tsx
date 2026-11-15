@@ -5,14 +5,23 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '../../config';
 import type { SubscriptionTier } from '../../hooks/useIAP';
 import type { PlanOffers } from '../../hooks/usePlanPurchase';
-import { planForAccountState } from '../../lib/membershipBenefits';
+import { benefitKeys, planForAccountState } from '../../lib/membershipBenefits';
 import { purchasableTiers } from '../../lib/membershipPath';
 import { BenefitList } from './BenefitList';
+import { buttonShape } from '../ui/Button';
+
+/** How many of a plan's benefits sit above its button; the rest follow below it. */
+const TOP_BENEFITS = 4;
 
 /**
- * The plans, in full: what stays free, what Essential includes and what
- * Premier adds (one list, plans.json), each plan's store price and trial,
+ * The plans, in full: what Essential includes and what Premier adds, then
+ * what stays free (one list, plans.json), each plan's store price and trial,
  * the auto-renew disclosure, Terms and Privacy, and Restore Purchases.
+ *
+ * A plan she can buy comes first, and its button sits directly under its
+ * price, trial line and first few benefits, so it is on the first screen; the
+ * rest of that plan's list follows under the button. The Free plan (what she
+ * has now) comes after the paid ones.
  *
  * Choosing a plan opens its purchase sheet through `onChoose`; this card
  * never starts a purchase itself. A plan she already has is marked and has
@@ -33,10 +42,12 @@ export function PlansCard({
 }) {
   const { colors } = useTheme();
   const { t } = useTranslation('support');
-  const { t: tPlans } = useTranslation('plans');
+  const { t: tPlans, i18n } = useTranslation('plans');
   const { subscriptionPrices, trialLabel, purchasing, retryPrices } = offers;
   const current = planForAccountState(accountState);
   const canBuy = purchasableTiers(accountState);
+  // The plans she can buy lead; a plan she already has (or cannot buy) follows.
+  const order: SubscriptionTier[] = [...canBuy, ...(['essential', 'premium'] as const).filter((tier) => !canBuy.includes(tier))];
   const priceLine = (tier: SubscriptionTier) => (subscriptionPrices[tier]
     ? tPlans('perMonth', { price: subscriptionPrices[tier] })
     : tPlans('priceUnavailable'));
@@ -52,10 +63,13 @@ export function PlansCard({
   const paidPlan = (tier: SubscriptionTier) => {
     const plan = tier === 'premium' ? 'premier' : 'essential';
     const isCurrent = current === plan;
-    const lead = tier === 'essential';
+    // The first plan on the screen is the highlighted one.
+    const lead = tier === order[0];
     const trial = trialLabel(tier);
+    const hasMore = benefitKeys(plan, i18n.language).length > TOP_BENEFITS;
     return (
       <View
+        key={tier}
         style={[
           styles.plan,
           { borderColor: lead ? colors.primary : colors.line, backgroundColor: lead ? colors.primaryLight : colors.white },
@@ -76,7 +90,7 @@ export function PlansCard({
           </Text>
         ) : null}
         <Text style={[styles.planHeading, { color: colors.inkSoft }]}>{tPlans(`headings.${plan}`)}</Text>
-        <BenefitList plan={plan} />
+        <BenefitList plan={plan} limit={TOP_BENEFITS} />
         {canBuy.includes(tier) ? (
           <TouchableOpacity
             style={[
@@ -96,6 +110,13 @@ export function PlansCard({
             </Text>
           </TouchableOpacity>
         ) : null}
+        {/* The rest of the one list, under the button: nothing is left out. */}
+        {hasMore ? (
+          <>
+            <Text style={[styles.planHeading, styles.moreHeading, { color: colors.inkSoft }]}>{tPlans('headings.more')}</Text>
+            <BenefitList plan={plan} skip={TOP_BENEFITS} />
+          </>
+        ) : null}
       </View>
     );
   };
@@ -106,7 +127,9 @@ export function PlansCard({
         <Text style={[styles.note, { color: colors.ink, marginBottom: 12 }]}>{tPlans('covered')}</Text>
       ) : null}
 
-      {/* Free: what never needs a plan. */}
+      {order.map(paidPlan)}
+
+      {/* Free: what never needs a plan (and, for a free member, what she has now). */}
       <View style={[styles.plan, { borderColor: colors.line, backgroundColor: colors.cream }]}>
         <View style={styles.planHead}>
           <Text accessibilityRole="header" style={[styles.planName, { color: colors.ink }]}>{t('tier.freeName')}</Text>
@@ -117,9 +140,6 @@ export function PlansCard({
         <Text style={[styles.planHeading, { color: colors.inkSoft }]}>{tPlans('headings.free')}</Text>
         <BenefitList plan="free" color={colors.inkSoft} />
       </View>
-
-      {paidPlan('essential')}
-      {paidPlan('premium')}
 
       <Text style={[styles.note, { color: colors.inkSoft }]}>{tPlans('notEmergency')}</Text>
 
@@ -195,27 +215,21 @@ const styles = StyleSheet.create({
   planName: { fontSize: 17, fontWeight: '700' },
   planPrice: { fontSize: 14, fontWeight: '700' },
   planHeading: { fontSize: 12, fontWeight: '700', letterSpacing: 0.4, marginTop: 10 },
+  moreHeading: { marginTop: 16 },
   trial: { fontSize: 13, lineHeight: 18, marginTop: 4 },
   note: { fontSize: 13, lineHeight: 19 },
   disclosure: { fontSize: 11.5, lineHeight: 16, textAlign: 'center', marginTop: 14 },
+  // The app's one button shape (buttonShape).
   solidBtn: {
-    minHeight: 44,
-    borderRadius: 10,
+    ...buttonShape,
     paddingVertical: 12,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
     marginTop: 14,
   },
   solidBtnText: { color: '#fff', fontWeight: '700', fontSize: 14, lineHeight: 20, textAlign: 'center', flexShrink: 1 },
   outlineBtn: {
-    minHeight: 44,
-    justifyContent: 'center',
-    borderRadius: 10,
+    ...buttonShape,
     borderWidth: 1.5,
     paddingVertical: 10,
-    paddingHorizontal: 16,
-    alignItems: 'center',
     marginTop: 14,
   },
   outlineBtnText: { fontWeight: '700', fontSize: 14, lineHeight: 20, textAlign: 'center', flexShrink: 1 },

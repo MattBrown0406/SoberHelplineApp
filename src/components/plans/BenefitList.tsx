@@ -6,12 +6,13 @@ import { benefitLines, type BenefitPlan } from '../../lib/membershipBenefits';
 
 /**
  * A plan's benefits, one short line each, read from the single list in
- * plans.json (membershipBenefits.ts). `limit` shows only the first few.
+ * plans.json (membershipBenefits.ts). `limit` shows only the first few;
+ * `skip` leaves the first few out (the rest of a list started elsewhere).
  */
-export function BenefitList({ plan, limit, color }: { plan: BenefitPlan; limit?: number; color?: string }) {
+export function BenefitList({ plan, limit, skip = 0, color }: { plan: BenefitPlan; limit?: number; skip?: number; color?: string }) {
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('plans');
-  const lines = benefitLines(plan, t as never, i18n.language);
+  const lines = benefitLines(plan, t as never, i18n.language).slice(skip);
   return (
     <View>
       {(limit ? lines.slice(0, limit) : lines).map((line) => (

@@ -3,17 +3,19 @@ import { View, Text, TouchableOpacity, StyleSheet, Linking } from 'react-native'
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
+import { buttonShape } from '../ui/Button';
 import { DOOR_COPY_KEY, DOOR_ROUTE, type FunnelDoor } from '../../lib/situation';
 import { logFunnelEvent, logFunnelEventAndWait } from '../../lib/funnel';
 import type { FreeCall } from '../../hooks/useTodayFeed';
 import { useCoachingRate } from '../../hooks/useCoachingRate';
 import { useSessionSchedule } from '../../hooks/useSessionSchedule';
-import { isFamilySquaresSession, isLaSobremesaSession, sessionDisplayTitle } from '../../lib/familySquaresSchedule';
+import { LA_SOBREMESA_CALL_LENGTH_MS, isFamilySquaresSession, isLaSobremesaSession, sessionDisplayTitle } from '../../lib/familySquaresSchedule';
 import { withAppContext } from '../../lib/websiteLinks';
 import { clearFamilySquaresJoin, markFamilySquaresJoin } from '../../lib/meetingAttendance';
 import { FamilySquaresSeatPanel } from '../familySquares/FamilySquaresSeatPanel';
 import { FamilySquaresFirstTimerNote } from '../familySquares/FamilySquaresFirstTimerNote';
-import { callCardView } from '../../lib/familySquaresCard';
+import { FamilySquaresSpotSavedLine } from '../familySquares/FamilySquaresSpotSavedLine';
+import { callCardView, sessionJoinWindow } from '../../lib/familySquaresCard';
 import { isCancelledMeetingDate } from '../../lib/familySquaresCancelled';
 
 /** This week's one thing: Matt's line from the call, else her own week's practice. */
@@ -69,12 +71,84 @@ export function SituationCard({ accountId = null, nextFreeCall, primaryDoor, wee
     cancelled: isCancelledMeetingDate(nextFreeCall?.cancelledDate),
     answer: nextFreeCall?.rsvped ? 'going' : nextFreeCall?.declined ? 'declined' : 'none',
     hasLink: !!nextFreeCall?.zoom_url,
+    joinWindow: sessionJoinWindow(nextFreeCall?.next_at, new Date(), isLaSobremesaSession(nextFreeCall) ? LA_SOBREMESA_CALL_LENGTH_MS : undefined),
   });
   // Anyone can join once the admin has set the link — RSVP is encouraged for
   // headcount but never a gate ("push of a button", no link required).
   const canJoin = view.join;
   const doorRoute = DOOR_ROUTE[primaryDoor];
   const joining = useRef(false);
+
+  const join = () => void (async () => {
+    // One Join at a time: a second tap while this one is on its way does nothing.
+    if (joining.current) return;
+    joining.current = true;
+    try {
+      try {
+        await onSupportCallJoin?.();
+      } catch {
+        // Review instrumentation must never block access to the meeting.
+      }
+      // Noted before Zoom opens, so coming back ten minutes later can count as attending.
+      if (isFamilySquares) await markFamilySquaresJoin(accountId, 'today');
+      // Sent before Zoom opens too: once the app is in the background the
+      // request may never leave. Waits a moment at most (funnel).
+      await logFunnelEventAndWait('attended', { source: 'today' });
+      try {
+        await Linking.openURL(withAppContext(nextFreeCall!.zoom_url!));
+      } catch {
+        if (isFamilySquares) await clearFamilySquaresJoin(accountId);
+        await onSupportCallOpenFailed?.();
+      }
+    } finally {
+      joining.current = false;
+    }
+  })();
+
+  // Join and "Save my spot" each do what they always did. Which one is the big
+  // button is decided in familySquaresCard: Save until the meeting is near,
+  // Join from three hours before it starts. The other is a small link below.
+  const joinLeads = canJoin && view.joinProminence === 'main';
+  const saveLeads = view.saveSpot && view.saveProminence === 'main';
+  const joinButton = canJoin && (
+    <TouchableOpacity
+      key="join"
+      accessibilityRole="button"
+      accessibilityLabel={t('situationCta.joinLabel', { name: title })}
+      style={joinLeads ? [styles.primaryBtn, { backgroundColor: colors.primary }] : styles.quietLink}
+      onPress={join}
+      activeOpacity={joinLeads ? 0.85 : 0.75}
+    >
+      <Text style={joinLeads ? styles.primaryBtnText : [styles.quietLinkText, { color: colors.primary }]}>{t('situationCta.join')}</Text>
+    </TouchableOpacity>
+  );
+  const saveButton = view.saveSpot && (
+    <TouchableOpacity
+      key="save"
+      accessibilityRole="button"
+      accessibilityLabel={t('situationCta.rsvpLabel', { name: title })}
+      style={saveLeads ? [styles.primaryBtn, { backgroundColor: colors.primary }] : styles.quietLink}
+      onPress={onRsvp}
+      activeOpacity={saveLeads ? 0.85 : 0.75}
+    >
+      <Text style={saveLeads ? styles.primaryBtnText : [styles.quietLinkText, { color: colors.primary }]}>{t('situationCta.rsvp')}</Text>
+    </TouchableOpacity>
+  );
+  const questionLink = view.question && nextFreeCall && (
+    <TouchableOpacity
+      key="question"
+      accessibilityRole="button"
+      onPress={() => router.push({ pathname: '/(tabs)/support', params: { sessionId: nextFreeCall.id, ask: 'question' } })}
+      activeOpacity={0.75}
+      style={styles.quietLink}
+    >
+      <Text style={[styles.quietLinkText, { color: colors.primary }]}>{t('situationCta.askQuestion')}</Text>
+    </TouchableOpacity>
+  );
+  // A call other than Family Squares keeps the tap its "You're going" button
+  // had while there is no link (La Sobremesa fetches her personal link; a
+  // plain RSVP is taken back). Family Squares has "Can't make it this week".
+  const confirmedTap = !isFamilySquares && !canJoin ? onRsvp : undefined;
 
   return (
     <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
@@ -86,91 +160,28 @@ export function SituationCard({ accountId = null, nextFreeCall, primaryDoor, wee
         <Text style={[styles.cancelledLine, { color: colors.ink }]} accessibilityLiveRegion="polite">
           {t('common:familySquares.cancelled.line')}
         </Text>
-      ) : canJoin ? (
-        <>
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel={t('situationCta.joinLabel', { name: title })}
-            style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
-            onPress={() => void (async () => {
-              // One Join at a time: a second tap while this one is on its way does nothing.
-              if (joining.current) return;
-              joining.current = true;
-              try {
-                try {
-                  await onSupportCallJoin?.();
-                } catch {
-                  // Review instrumentation must never block access to the meeting.
-                }
-                // Noted before Zoom opens, so coming back ten minutes later can count as attending.
-                if (isFamilySquares) await markFamilySquaresJoin(accountId, 'today');
-                // Sent before Zoom opens too: once the app is in the background the
-                // request may never leave. Waits a moment at most (funnel).
-                await logFunnelEventAndWait('attended', { source: 'today' });
-                try {
-                  await Linking.openURL(withAppContext(nextFreeCall!.zoom_url!));
-                } catch {
-                  if (isFamilySquares) await clearFamilySquaresJoin(accountId);
-                  await onSupportCallOpenFailed?.();
-                }
-              } finally {
-                joining.current = false;
-              }
-            })()}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.primaryBtnText}>{t('situationCta.join')}</Text>
-          </TouchableOpacity>
-          {view.saveSpot && (
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel={t('situationCta.rsvpLabel', { name: title })}
-              onPress={onRsvp}
-              activeOpacity={0.75}
-              style={styles.rsvpLink}
-            >
-              <Text style={[styles.rsvpLinkText, { color: colors.primary }]}>
-                {t('situationCta.rsvp')}
-              </Text>
-            </TouchableOpacity>
-          )}
-        </>
       ) : (
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel={t(nextFreeCall?.rsvped ? 'situationCta.goingLabel' : 'situationCta.rsvpLabel', { name: title })}
-          style={[
-            styles.primaryBtn,
-            {
-              backgroundColor: nextFreeCall?.rsvped ? colors.greenLight : colors.primary,
-              borderWidth: nextFreeCall?.rsvped ? 1.5 : 0,
-              borderColor: colors.green,
-            },
-          ]}
-          onPress={onRsvp}
-          activeOpacity={0.85}
-        >
-          <Text
-            style={[
-              styles.primaryBtnText,
-              { color: nextFreeCall?.rsvped ? colors.green : '#fff' },
-            ]}
-          >
-            {nextFreeCall?.rsvped ? t('situationCta.going') : t('situationCta.rsvp')}
-          </Text>
-        </TouchableOpacity>
+        <>
+          {/* The one confirmation, with or without a link: "Your spot is saved for Monday, November 16". */}
+          <FamilySquaresSpotSavedLine
+            confirmed={view.confirmed}
+            session={nextFreeCall}
+            savedHere={seatSavedHere}
+            onPress={confirmedTap}
+            pressLabel={t('situationCta.goingLabel', { name: title })}
+          />
+          {(joinLeads || saveLeads) && (
+            <View style={view.confirmed ? styles.afterConfirmed : undefined}>{joinLeads ? joinButton : saveButton}</View>
+          )}
+          {/* The smaller actions share a line when they fit. */}
+          <View style={styles.quietRow}>
+            {!joinLeads && joinButton}
+            {!saveLeads && saveButton}
+            {questionLink}
+          </View>
+        </>
       )}
 
-      {view.question && nextFreeCall && (
-        <TouchableOpacity
-          accessibilityRole="button"
-          onPress={() => router.push({ pathname: '/(tabs)/support', params: { sessionId: nextFreeCall.id, ask: 'question' } })}
-          activeOpacity={0.75}
-          style={styles.askLink}
-        >
-          <Text style={[styles.rsvpLinkText, { color: colors.primary }]}>{t('situationCta.askQuestion')}</Text>
-        </TouchableOpacity>
-      )}
       {view.rsvpNote && (
         <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:familySquares.rsvpNote')}</Text>
       )}
@@ -261,34 +272,33 @@ const styles = StyleSheet.create({
   title: { fontSize: 18, fontWeight: '700', marginTop: 6, letterSpacing: -0.3 },
   schedule: { fontSize: 13.5, marginTop: 3, marginBottom: 14 },
   cancelledLine: { fontSize: 14.5, lineHeight: 21 },
+  // The app's one button shape (buttonShape), the same as the Support tab's rows.
   primaryBtn: {
-    borderRadius: 99,
+    ...buttonShape,
     paddingVertical: 13,
-    alignItems: 'center',
   },
   primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   doorSection: { marginTop: 16, paddingTop: 16, borderTopWidth: 1 },
   doorSub: { fontSize: 13, lineHeight: 19, marginBottom: 12 },
   doorBtn: {
-    borderRadius: 99,
+    ...buttonShape,
     borderWidth: 1.5,
     paddingVertical: 12,
-    alignItems: 'center',
   },
   briefBtn: {
-    borderRadius: 99,
+    ...buttonShape,
     paddingVertical: 13,
-    alignItems: 'center',
   },
   briefBtnText: { color: '#fff', fontSize: 14.5, fontWeight: '700' },
   doorBtnText: { fontSize: 14.5, fontWeight: '700' },
   finderLink: { alignItems: 'center', marginTop: 12 },
   finderLinkText: { fontSize: 13, fontWeight: '600' },
-  rsvpLink: { alignItems: 'center', justifyContent: 'center', minHeight: 44, marginTop: 4 },
-  askLink: { alignItems: 'center', justifyContent: 'center', minHeight: 44, marginTop: 4 },
-  rsvpLinkText: { fontSize: 13, fontWeight: '600' },
-  rsvpNote: { fontSize: 12, lineHeight: 17, marginTop: 10 },
-  oneThing: { marginTop: 16, paddingTop: 14, borderTopWidth: 1 },
+  afterConfirmed: { marginTop: 10 },
+  quietRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', columnGap: 22 },
+  quietLink: { alignItems: 'center', justifyContent: 'center', minHeight: 44, paddingHorizontal: 4 },
+  quietLinkText: { fontSize: 13.5, fontWeight: '700', textAlign: 'center' },
+  rsvpNote: { fontSize: 12, lineHeight: 17, marginTop: 6 },
+  oneThing: { marginTop: 14, paddingTop: 14, borderTopWidth: 1 },
   oneThingLabel: { fontSize: 11.5, fontWeight: '800', letterSpacing: 0.6, marginBottom: 6 },
   oneThingText: { fontSize: 14.5, lineHeight: 21 },
 });

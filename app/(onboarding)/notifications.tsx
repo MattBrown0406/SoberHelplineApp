@@ -17,6 +17,7 @@ import { FamilySquaresSeatPanel } from '../../src/components/familySquares/Famil
 import { FamilySquaresFirstTimerNote } from '../../src/components/familySquares/FamilySquaresFirstTimerNote';
 import { markOnboarded } from '../../src/onboarding/state';
 import { rememberReminderAsk } from '../../src/lib/reminderAskStore';
+import { NavyScreenStatusBar } from '../../src/components/auth/NavyScreenStatusBar';
 
 export default function NotificationsScreen() {
   const { colors } = useTheme();
@@ -124,9 +125,14 @@ export default function NotificationsScreen() {
   if (done) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.primary }]}>
+        <NavyScreenStatusBar />
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
           <Text style={styles.icon}>🏰</Text>
           <Text style={[styles.title, { color: '#fff' }]}>{t('done.title')}</Text>
+          {/* What "castle" and "wall" mean, in plain words, before the app uses them. */}
+          <Text style={[styles.bodyText, styles.castleLine, { color: 'rgba(255,255,255,0.8)' }]}>
+            {t('done.castle')}
+          </Text>
           <Text style={[styles.bodyText, { color: 'rgba(255,255,255,0.8)' }]}>
             {t('done.body')}
           </Text>
@@ -224,13 +230,15 @@ const styles = StyleSheet.create({
   icon: { fontSize: 40, marginBottom: 12 },
   title: { fontSize: 23, fontWeight: '700', letterSpacing: -0.3 },
   bodyText: { fontSize: 14.5, lineHeight: 22, marginTop: 10, marginBottom: 30 },
+  castleLine: { marginBottom: 0 },
   primaryBtn: { borderRadius: 99, paddingVertical: 15, alignItems: 'center' },
   primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  rsvpBtn: { borderRadius: 99, borderWidth: 1.5, paddingVertical: 14, alignItems: 'center', marginBottom: 12 },
-  rsvpBtnText: { fontSize: 15, fontWeight: '700' },
+  // A long label: room at the rounded ends, and it wraps centred on two lines.
+  rsvpBtn: { borderRadius: 28, borderWidth: 1.5, minHeight: 48, paddingVertical: 14, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  rsvpBtnText: { fontSize: 15, lineHeight: 21, fontWeight: '700', textAlign: 'center' },
   cancelledLine: { fontSize: 14.5, lineHeight: 21, textAlign: 'center', marginBottom: 20 },
   rsvpNote: { fontSize: 12.5, lineHeight: 18, textAlign: 'center', marginBottom: 16 },
   seatOptions: { marginBottom: 20 },
-  skipBtn: { alignItems: 'center', marginTop: 16 },
+  skipBtn: { alignItems: 'center', justifyContent: 'center', minHeight: 44, marginTop: 6 },
   skipText: { fontSize: 14, fontWeight: '600' },
 });

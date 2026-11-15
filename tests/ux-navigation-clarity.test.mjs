@@ -27,8 +27,10 @@ test('crisis entry stays unconditional and safe-area tab height remains fixed', 
   assert.ok(screen.indexOf("t('crisis.freeNote')") < screen.indexOf('{isAttached &&'));
   assert.ok(screen.includes('onPress={() => setCrisisOpen(true)}'));
   const tabs = read('app/(tabs)/_layout.tsx');
-  assert.ok(tabs.includes('height: 64 + insets.bottom'));
+  assert.ok(tabs.includes('height: TAB_BAR_HEIGHT + insets.bottom'));
+  assert.match(read('src/components/ui/ScreenContainer.tsx'), /export const TAB_BAR_HEIGHT = 64;/);
   assert.ok(tabs.includes('paddingBottom: insets.bottom + 6'));
-  assert.ok(tabs.includes('flexShrink: 1'));
-  assert.ok(tabs.includes("maxWidth: '100%'"));
+  // A tab's name stays whole on one line: it shrinks to fit instead of being cut off.
+  assert.ok(tabs.includes('numberOfLines={1}'));
+  assert.ok(tabs.includes('adjustsFontSizeToFit'));
 });

@@ -132,6 +132,7 @@ export default function InviteCodeScreen() {
               )}
             </TouchableOpacity>
             <TouchableOpacity
+              accessibilityRole="button"
               onPress={() => router.push('/(onboarding)/loved-one')}
               style={styles.skipBtn}
             >
@@ -165,7 +166,7 @@ const styles = StyleSheet.create({
   },
   primaryBtn: { borderRadius: 99, paddingVertical: 15, alignItems: 'center' },
   primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  skipBtn: { alignItems: 'center', marginTop: 18 },
+  skipBtn: { alignItems: 'center', justifyContent: 'center', minHeight: 44, marginTop: 8 },
   skipText: { fontSize: 14, fontWeight: '600' },
   errorBox: { borderRadius: 10, padding: 12, marginBottom: 14 },
   errorText: { fontSize: 13, lineHeight: 18 },

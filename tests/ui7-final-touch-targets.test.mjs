@@ -16,10 +16,16 @@ function control(file, marker, globals) {
   }
   visit(ast);
   assert.ok(jsx); assert.ok(styles);
-  const context = vm.createContext({ React: { createElement: (type, props, ...children) => ({ type, props, children }) }, TouchableOpacity: 'button', Text: 'text', StyleSheet: { create: x => x }, colors: {}, ...globals });
+  const context = vm.createContext({ React: { createElement: (type, props, ...children) => ({ type, props, children }) }, TouchableOpacity: 'button', Text: 'text', StyleSheet: { create: x => x }, colors: {}, buttonShape: buttonShape(), ...globals });
   const code = ts.transpileModule(`const styles = ${styles}; result = (${jsx});`, { compilerOptions: { jsx: ts.JsxEmit.React, target: ts.ScriptTarget.ES2022 } }).outputText;
   vm.runInContext(code, context);
   return context.result;
+}
+// The app's one button shape, read from where it is written (Button.tsx).
+function buttonShape() {
+  const source = fs.readFileSync(new URL('../src/components/ui/Button.tsx', import.meta.url), 'utf8');
+  const number = name => Number(source.match(new RegExp(`export const ${name} = (\\d+);`))?.[1]);
+  return { borderRadius: number('BUTTON_RADIUS'), minHeight: number('BUTTON_MIN_HEIGHT') };
 }
 function target(button) {
   assert.equal(button.props.accessibilityRole, 'button');

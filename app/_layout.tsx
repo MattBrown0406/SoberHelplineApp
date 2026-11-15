@@ -14,6 +14,7 @@ import { isOnboarded, subscribeOnboarded } from '../src/onboarding/state';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { SafetyShortcut } from '../src/components/safety/SafetyShortcut';
 import { EmergencyActions } from '../src/components/safety/EmergencyActions';
+import { LaunchCover } from '../src/components/auth/LaunchCover';
 import { getInitialLayoutState, isPushNavigationReady } from '../src/lib/authBootstrap';
 import { FRONT_DOOR_READ_TIMEOUT_MS, frontDoorRoute, lateFrontDoorAction, type FrontDoorFlags } from '../src/lib/frontDoor';
 import { knownFrontDoorFlags, markSignedInBefore, readFrontDoorFlags, signUpFormStarted } from '../src/lib/frontDoorStore';
@@ -24,6 +25,12 @@ import { flushQueuedSupportCallReview, setReviewPromptRoute } from '../src/lib/r
 import { flushFamilySquaresAttendance } from '../src/lib/meetingAttendance';
 import { clearMeetingReturn, noteMeetingReturn, noteReviewCheck } from '../src/lib/afterMeetingInvite';
 import { clearPendingDeepLink, subscribePendingDeepLink, takePendingDeepLink } from '../src/lib/pendingDeepLink';
+
+// The launch cover lifts this long after a pre-sign-in screen is in front (the
+// screen change underneath is over by then), and after the longer wait
+// whatever happens: a slow session read never holds anyone on the launch screen.
+const LAUNCH_COVER_SETTLE_MS = 450;
+const LAUNCH_COVER_MAX_MS = 5000;
 
 function ReviewPromptCoordinator() {
   const { user } = useAccount();
@@ -279,6 +286,24 @@ function InitialLayout() {
     router.replace(frontDoorRoute({ ...deviceFlags, signedInThisSession: false }));
   }, [lateFlags, deviceFlags, isLoading, isAuthenticated, segments[0], onSignUp]);
 
+  // The launch cover: the router's first screen is the tabs, so until the
+  // session is read and a signed-out person has been sent to the front door,
+  // the launch screen stays drawn on top (LaunchCover). It lifts at once for
+  // someone signed in (the screens below are theirs), and never returns in
+  // this run: signing out later is not a launch.
+  const [launchCover, setLaunchCover] = useState(true);
+  const preSignInScreenInFront = segments[0] === '(auth)';
+  useEffect(() => {
+    if (!launchCover) return undefined;
+    if (isAuthenticated) {
+      setLaunchCover(false);
+      return undefined;
+    }
+    const timer = setTimeout(() => setLaunchCover(false), preSignInScreenInFront ? LAUNCH_COVER_SETTLE_MS : LAUNCH_COVER_MAX_MS);
+    return () => clearTimeout(timer);
+  }, [launchCover, isAuthenticated, preSignInScreenInFront]);
+  const showLaunchCover = launchCover && !isAuthenticated;
+
   // Keep one router stack mounted through auth/onboarding hydration. Unmounting
   // it discards the incoming deep link and can choose an unrelated default route.
   const activationAccountId = layoutState === 'stack' && !isLoading &&
@@ -295,6 +320,7 @@ function InitialLayout() {
         <Stack screenOptions={{ headerShown: false }} />
       </View>
       {overlay}
+      {showLaunchCover ? <LaunchCover /> : null}
     </View>
     </RouteActivationContext.Provider>
   );
@@ -356,17 +382,20 @@ export default function RootLayout() {
     initI18n().then(() => setI18nReady(true));
   }, []);
 
-  if (!i18nReady) return null;
+  // Still the launch screen while the words load (a blank frame otherwise).
+  if (!i18nReady) return <LaunchCover />;
 
   return (
     <ErrorBoundary>
       <AccountProvider>
         <ThemeProvider>
+          {/* First, so it is the default: a screen that sets its own status
+              bar (light on the navy screens) mounts later and wins. */}
+          <StatusBar style="auto" />
           <InitialLayout />
           <ReviewPromptCoordinator />
           <MeetingAttendanceCoordinator />
           <SafetyShortcut />
-          <StatusBar style="auto" />
         </ThemeProvider>
       </AccountProvider>
     </ErrorBoundary>

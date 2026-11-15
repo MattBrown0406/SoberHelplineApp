@@ -1,9 +1,15 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 
-/** The "Title · Show / Hide" row that opens and closes a tucked-away section of Today. */
+/**
+ * The row that opens and closes a tucked-away section of Today: the title on
+ * the left, a chevron on the right, a hairline under it so the rows read as a
+ * list. Open or closed is announced by the expanded state (and "Show" / "Hide"
+ * as the hint), not written into the title.
+ */
 export function TodayDisclosureToggle({ title, expanded, onPress }: { title: string; expanded: boolean; onPress: () => void }) {
   const { colors } = useTheme();
   const { t } = useTranslation('today');
@@ -11,12 +17,20 @@ export function TodayDisclosureToggle({ title, expanded, onPress }: { title: str
     <TouchableOpacity
       accessibilityRole="button"
       aria-expanded={expanded} accessibilityState={{ expanded }}
+      accessibilityLabel={title}
+      accessibilityHint={t(expanded ? 'disclosure.hide' : 'disclosure.show')}
       onPress={onPress}
-      style={{ paddingVertical: 16, minHeight: 48, marginBottom: 8 }}
+      activeOpacity={0.7}
+      style={[styles.row, { borderBottomColor: colors.line, marginBottom: expanded ? 12 : 0 }]}
     >
-      <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 15 }}>
-        {title} · {t(expanded ? 'disclosure.hide' : 'disclosure.show')}
-      </Text>
+      <Text style={[styles.title, { color: colors.primary }]}>{title}</Text>
+      <MaterialCommunityIcons
+        name={expanded ? 'chevron-up' : 'chevron-down'}
+        size={24}
+        color={colors.primary}
+        accessible={false}
+        importantForAccessibility="no"
+      />
     </TouchableOpacity>
   );
 }
@@ -36,3 +50,18 @@ export function TodayDisclosure({ title, children }: { title: string; children: 
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  // No fixed height: the title wraps at large text sizes and the row grows.
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    minHeight: 52,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  title: { flex: 1, fontSize: 16, lineHeight: 22, fontWeight: '600' },
+});

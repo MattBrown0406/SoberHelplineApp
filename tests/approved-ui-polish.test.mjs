@@ -81,8 +81,10 @@ for (const lang of ['en', 'es']) test(`${lang}: short labels retain full titles;
   const support = JSON.parse(read(`src/locales/${lang}/support.json`));
   for (const key of ['today', 'scripts', 'boundaries', 'tracker', 'learn', 'support']) {
     assert.ok(common.navShort[key]); assert.ok(common.nav[key]);
-    assert.ok(common.navShort[key].length <= 8);
-    assert.match(read('app/(tabs)/_layout.tsx'), new RegExp(`tabBarLabel: t\\('navShort\\.${key}'\\)`));
+    // The word on the tab is the word in that screen's title; the tab bar shrinks a long one to fit.
+    assert.equal(common.navShort[key], common.nav[key]);
+    assert.ok(common.navShort[key].length <= 10);
+    assert.match(read('app/(tabs)/_layout.tsx'), new RegExp(`tab\\('${key === 'today' ? 'index' : key}', t\\('navShort\\.${key}'\\)\\)`));
   }
   assert.doesNotMatch(support.textline.gatedTitle, /Urgent|Urgente/);
   assert.doesNotMatch(support.chat.presenceBody, /within a few hours|pocas horas|unas horas/);
@@ -135,5 +137,10 @@ test('primary practice/invitation/support/scheduling hit areas have explicit 44p
     ['app/invitation-setup.tsx', ['choice']],
     ['app/(tabs)/support.tsx', ['outlineBtn', 'solidBtn', 'membershipDisclosure']],
     ['src/components/video/PremierVideoSchedulingCard.tsx', ['action', 'secondary', 'field']],
-  ]) for (const key of keys) assert.match(read(file), new RegExp(`\\b${key}: \\{[^}]*minHeight: 44`), `${file} ${key}`);
+  // A full-width button takes its height from the app's one button shape
+  // (buttonShape in Button.tsx); a smaller control states its own 44 points.
+  ]) for (const key of keys) assert.match(read(file), new RegExp(`\\b${key}: \\{[^}]*(?:minHeight: 44|\\.\\.\\.buttonShape)`), `${file} ${key}`);
+  const minHeight = Number(read('src/components/ui/Button.tsx').match(/export const BUTTON_MIN_HEIGHT = (\d+);/)?.[1]);
+  assert.ok(minHeight >= 44);
+  assert.match(read('src/components/ui/Button.tsx'), /export const buttonShape = \{\s+borderRadius: BUTTON_RADIUS,\s+minHeight: BUTTON_MIN_HEIGHT,/);
 });

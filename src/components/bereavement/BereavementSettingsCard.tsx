@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ActivityIndicator, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
+import { buttonShape } from '../ui/Button';
 import { useLovedOne } from '../../hooks/useLovedOne';
 import { rearmDailyNudge } from '../../hooks/usePushNotifications';
 import { appAlert } from '../../lib/appAlert';
@@ -94,8 +95,8 @@ const styles = StyleSheet.create({
   card: { borderWidth: 1, borderRadius: 14, padding: 16, marginBottom: 16 },
   eyebrow: { fontSize: 11, fontWeight: '800', letterSpacing: 1.1, marginBottom: 8 },
   body: { fontSize: 14, lineHeight: 20, marginBottom: 12 },
-  button: { borderWidth: 1, borderRadius: 10, minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
-  buttonText: { fontSize: 14, fontWeight: '600' },
+  button: { ...buttonShape, borderWidth: 1 },
+  buttonText: { fontSize: 14, fontWeight: '600', textAlign: 'center' },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 14, minHeight: 44 },
   switchText: { flex: 1 },
   switchLabel: { fontSize: 14, fontWeight: '600' },

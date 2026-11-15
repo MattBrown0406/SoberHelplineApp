@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { callCardView, seatPanelView, seatSaveFailureKey, type SeatAnswer } from '../src/lib/familySquaresCard';
+import { callCardView, seatPanelView, seatSaveFailureKey, type JoinWindow, type SeatAnswer } from '../src/lib/familySquaresCard';
 
 // Audit round 2 (app side): the pure decisions, the words, and the wiring.
 const read = (path: string) => readFileSync(path, 'utf8');
@@ -11,10 +11,15 @@ const locale = (lang: string, ns: string) => JSON.parse(read(`src/locales/${lang
 
 test('a Monday the website cancelled offers nothing for that date: only the calm line', () => {
   const answers: SeatAnswer[] = ['going', 'declined', 'none'];
+  const windows: (JoinWindow | undefined)[] = ['inside', 'outside', 'unknown', undefined];
   for (const answer of answers) for (const hasLink of [true, false]) {
-    assert.deepEqual(callCardView({ familySquares: true, cancelled: true, answer, hasLink }), {
-      cancelledLine: true, join: false, saveSpot: false, going: false, question: false, rsvpNote: false, firstTimerNote: false,
-    }, `${answer} / link ${hasLink}`);
+    // ...whatever the clock says: no button is big, because there is no button.
+    for (const joinWindow of windows) {
+      assert.deepEqual(callCardView({ familySquares: true, cancelled: true, answer, hasLink, joinWindow }), {
+        cancelledLine: true, join: false, joinProminence: 'quiet', saveSpot: false, saveProminence: 'quiet', confirmed: false,
+        question: false, rsvpNote: false, firstTimerNote: false,
+      }, `${answer} / link ${hasLink} / ${joinWindow}`);
+    }
     for (const weeklySeatOn of [true, false]) {
       // The "every Monday" switch stays (it is about the weeks after); nothing else does.
       assert.equal(seatPanelView({ cancelled: true, answer, weeklySeatOn }), 'weekly_only');
@@ -22,31 +27,76 @@ test('a Monday the website cancelled offers nothing for that date: only the calm
   }
 });
 
-test('a meeting that is on shows what it always showed', () => {
-  // No link yet: the main button saves her spot, or says she is going.
-  assert.deepEqual(callCardView({ familySquares: true, cancelled: false, answer: 'none', hasLink: false }), {
-    cancelledLine: false, join: false, saveSpot: true, going: false, question: false, rsvpNote: true, firstTimerNote: true,
+test('a meeting that is on: Save my spot leads until the meeting is near, then Join does', () => {
+  const on = { familySquares: true, cancelled: false } as const;
+  const rest = { cancelledLine: false, rsvpNote: true, firstTimerNote: true } as const;
+  const windows: JoinWindow[] = ['inside', 'outside', 'unknown'];
+
+  // No link yet, not going: the big button saves her spot, whatever the clock says.
+  for (const joinWindow of windows) {
+    assert.deepEqual(callCardView({ ...on, answer: 'none', hasLink: false, joinWindow }), {
+      ...rest, join: false, joinProminence: 'quiet', saveSpot: true, saveProminence: 'main', confirmed: false, question: false,
+    }, joinWindow);
+    // No link yet, going: the one confirmation and nothing to tap.
+    assert.deepEqual(callCardView({ ...on, answer: 'going', hasLink: false, joinWindow }), {
+      ...rest, join: false, joinProminence: 'quiet', saveSpot: false, saveProminence: 'quiet', confirmed: true, question: true,
+    }, joinWindow);
+  }
+
+  // The link is set, days before: Join would open an empty room, so "Save my
+  // spot" is the big button. Join stays, smaller (an RSVP is never a gate).
+  assert.deepEqual(callCardView({ ...on, answer: 'none', hasLink: true, joinWindow: 'outside' }), {
+    ...rest, join: true, joinProminence: 'quiet', saveSpot: true, saveProminence: 'main', confirmed: false, question: false,
   });
-  assert.deepEqual(callCardView({ familySquares: true, cancelled: false, answer: 'going', hasLink: false }), {
-    cancelledLine: false, join: false, saveSpot: false, going: true, question: true, rsvpNote: true, firstTimerNote: true,
+  // Going, days before: the confirmation, with Join as a quiet action under it.
+  assert.deepEqual(callCardView({ ...on, answer: 'going', hasLink: true, joinWindow: 'outside' }), {
+    ...rest, join: true, joinProminence: 'quiet', saveSpot: false, saveProminence: 'quiet', confirmed: true, question: true,
   });
-  // With the link: anyone may join (an RSVP is never a gate), and "Save my spot" sits beside it until saved.
-  assert.deepEqual(callCardView({ familySquares: true, cancelled: false, answer: 'none', hasLink: true }), {
-    cancelledLine: false, join: true, saveSpot: true, going: false, question: false, rsvpNote: true, firstTimerNote: true,
-  });
-  assert.deepEqual(callCardView({ familySquares: true, cancelled: false, answer: 'going', hasLink: true }), {
-    cancelledLine: false, join: true, saveSpot: false, going: false, question: true, rsvpNote: true, firstTimerNote: true,
-  });
-  // "Can't make it": she can still save her spot again, and still join.
-  const declined = callCardView({ familySquares: true, cancelled: false, answer: 'declined', hasLink: true });
-  assert.equal(declined.saveSpot, true); assert.equal(declined.join, true); assert.equal(declined.question, false);
+
+  // Inside the join window (three hours before the start until the end), and
+  // when the start is not known (as before this rule existed): Join is the big button.
+  for (const joinWindow of ['inside', 'unknown', undefined] as const) {
+    assert.deepEqual(callCardView({ ...on, answer: 'none', hasLink: true, joinWindow }), {
+      ...rest, join: true, joinProminence: 'main', saveSpot: true, saveProminence: 'quiet', confirmed: false, question: false,
+    }, String(joinWindow));
+    assert.deepEqual(callCardView({ ...on, answer: 'going', hasLink: true, joinWindow }), {
+      ...rest, join: true, joinProminence: 'main', saveSpot: false, saveProminence: 'quiet', confirmed: true, question: true,
+    }, String(joinWindow));
+  }
+
+  // "Can't make it" is offered exactly what "no answer yet" is: she can save
+  // her spot again, and still join. It is never a confirmation.
+  for (const hasLink of [true, false]) for (const joinWindow of windows) {
+    const declined = callCardView({ ...on, answer: 'declined', hasLink, joinWindow });
+    assert.deepEqual(declined, callCardView({ ...on, answer: 'none', hasLink, joinWindow }), `${hasLink} / ${joinWindow}`);
+    assert.equal(declined.confirmed, false);
+    assert.equal(declined.question, false);
+  }
+
+  // Exactly one big button at most, and it is one the card is showing.
+  const answers: SeatAnswer[] = ['going', 'declined', 'none'];
+  for (const answer of answers) for (const hasLink of [true, false]) for (const joinWindow of windows) {
+    const view = callCardView({ ...on, answer, hasLink, joinWindow });
+    const big = [view.join && view.joinProminence === 'main', view.saveSpot && view.saveProminence === 'main'].filter(Boolean);
+    assert.ok(big.length <= 1, `${answer} / ${hasLink} / ${joinWindow}`);
+    if (!view.join) assert.equal(view.joinProminence, 'quiet');
+    if (!view.saveSpot) assert.equal(view.saveProminence, 'quiet');
+    // Someone who is not going always has "Save my spot" as a button of some size.
+    assert.equal(view.saveSpot, answer !== 'going');
+  }
 });
 
 test('only Family Squares can be cancelled this way: any other call is never touched (fail open)', () => {
   // La Sobremesa or a group call, even if a stray flag said "cancelled".
   for (const cancelled of [true, false]) {
     assert.deepEqual(callCardView({ familySquares: false, cancelled, answer: 'none', hasLink: true }), {
-      cancelledLine: false, join: true, saveSpot: true, going: false, question: false, rsvpNote: false, firstTimerNote: false,
+      cancelledLine: false, join: true, joinProminence: 'main', saveSpot: true, saveProminence: 'quiet', confirmed: false,
+      question: false, rsvpNote: false, firstTimerNote: false,
+    });
+    // Its confirmation and its buttons follow the same rule as Family Squares'.
+    assert.deepEqual(callCardView({ familySquares: false, cancelled, answer: 'going', hasLink: true, joinWindow: 'outside' }), {
+      cancelledLine: false, join: true, joinProminence: 'quiet', saveSpot: false, saveProminence: 'quiet', confirmed: true,
+      question: false, rsvpNote: false, firstTimerNote: false,
     });
   }
   // No call loaded at all.
@@ -108,17 +158,22 @@ test('the call card, the Support entry and the welcome-back card all follow the 
   // (The cancelled DATE is compared with the coming meeting's date on every draw: audit round 3, M1.)
   assert.match(card, /const view = callCardView\(\{\s+familySquares: isFamilySquares,\s+cancelled: isCancelledMeetingDate\(nextFreeCall\?\.cancelledDate\),/);
   // The calm line takes the place of every button.
-  assert.match(card, /\{view\.cancelledLine \? \(\s+<Text style=\{\[styles\.cancelledLine, \{ color: colors\.ink \}\]\} accessibilityLiveRegion="polite">\s+\{t\('common:familySquares\.cancelled\.line'\)\}\s+<\/Text>\s+\) : canJoin \? \(/);
+  assert.match(card, /\{view\.cancelledLine \? \(\s+<Text style=\{\[styles\.cancelledLine, \{ color: colors\.ink \}\]\} accessibilityLiveRegion="polite">\s+\{t\('common:familySquares\.cancelled\.line'\)\}\s+<\/Text>\s+\) : \(\s+<>/);
   assert.match(card, /const canJoin = view\.join;/);
-  assert.match(card, /\{view\.saveSpot && \(/);
+  // Every button, and the confirmation, comes from the one decision (familySquaresCard).
+  assert.match(card, /const joinButton = canJoin && \(/);
+  assert.match(card, /const saveButton = view\.saveSpot && \(/);
+  assert.match(card, /<FamilySquaresSpotSavedLine\s+confirmed=\{view\.confirmed\}/);
   assert.match(card, /\{view\.rsvpNote && \(/);
   assert.match(card, /cancelled=\{view\.cancelledLine\}/);
   assert.doesNotMatch(card, /colors\.coral[^\n]*cancelled|accessibilityRole="alert"/, 'calm, not an error');
 
   const support = read('app/(tabs)/support.tsx');
   assert.match(support, /const view = callCardView\(\{\s+familySquares,\s+cancelled: isCancelledMeetingDate\(sess\.cancelledDate\),/);
-  assert.match(support, /\{view\.join \? \(/);
-  assert.match(support, /\{view\.cancelledLine \? null : \(\s+<TouchableOpacity\s+accessibilityRole="button"\s+accessibilityLabel=\{t\(sess\.rsvped \? 'sessions\.confirmLabel' : 'sessions\.rsvpLabel', \{ name \}\)\}/);
+  assert.match(support, /const joinButton = view\.join && \(/);
+  assert.match(support, /const saveButton = view\.saveSpot && \(/);
+  // Join, Save and the confirmation are all inside the part a cancelled week does not draw.
+  assert.match(support, /\{!view\.cancelledLine && \(\s+<View style=\{styles\.sessionActions\}>[\s\S]*?<FamilySquaresSpotSavedLine\s+confirmed=\{view\.confirmed\}[\s\S]*?\{joinLeads \? joinButton : saveLeads \? saveButton : null\}\s+<View style=\{styles\.sessionQuietRow\}>\s+\{!joinLeads && joinButton\}\s+\{!saveLeads && saveButton\}\s+<\/View>\s+<\/View>\s+\)\}/);
   assert.match(support, /\{view\.cancelledLine && \(\s+<Text style=\{\[styles\.cancelledLine, \{ color: colors\.ink \}\]\} accessibilityLiveRegion="polite">\s+\{t\('common:familySquares\.cancelled\.line'\)\}/);
   // No question for that date: not from the row, not from a reminder or Today's link.
   assert.match(support, /\{sess\.rsvped && !view\.cancelledLine && !isLaSobremesaSession\(sess\) && \(/);

@@ -6,11 +6,20 @@
  * first-timer note, no reminder ask and no question for the call. Only a calm
  * line, and the "every Monday" switch (which is about the weeks after).
  *
- * Pure (no device imports), so tests pin every case.
+ * Pure (no imports at all), so tests pin every case.
  */
 
 /** Her answer for the coming meeting. */
 export type SeatAnswer = 'going' | 'declined' | 'none';
+
+/**
+ * Where the clock is against the meeting's join window: from three hours
+ * before its start until it ends. 'unknown' when the start cannot be read.
+ */
+export type JoinWindow = 'inside' | 'outside' | 'unknown';
+
+/** Which of the card's two actions is the big button; the other is a small link under it. */
+export type Prominence = 'main' | 'quiet';
 
 export interface CallCardInput {
   /** The call is Family Squares (not La Sobremesa or another group call). */
@@ -24,6 +33,8 @@ export interface CallCardInput {
   answer: SeatAnswer;
   /** The meeting's link is set. */
   hasLink: boolean;
+  /** sessionJoinWindow. Left out, it is 'unknown': a set link leads, as it always did. */
+  joinWindow?: JoinWindow;
 }
 
 export interface CallCardView {
@@ -31,10 +42,16 @@ export interface CallCardView {
   cancelledLine: boolean;
   /** The Join button. Anyone may join once the link is set: an RSVP is never a gate. */
   join: boolean;
-  /** "Save my spot" (the main button without a link, a smaller link beside Join). */
+  /**
+   * Days before the meeting, Join opens an empty room: it is the small link.
+   * Inside the join window (or when the start is not known) it is the big button.
+   */
+  joinProminence: Prominence;
+  /** "Save my spot": the big button until the join window opens, then the small link under Join. */
   saveSpot: boolean;
-  /** "You're going" in place of the main button, when there is no link to join yet. */
-  going: boolean;
+  saveProminence: Prominence;
+  /** "Your spot is saved for Monday, November 16": the one confirmation, with or without a link. */
+  confirmed: boolean;
   /** "Send a question for the call". */
   question: boolean;
   /** Where her RSVP and questions go. */
@@ -47,15 +64,76 @@ export function callCardView(input: CallCardInput): CallCardView {
   // Fail open: only a Family Squares meeting that is known cancelled changes anything.
   const cancelled = input.familySquares && input.cancelled;
   const going = input.answer === 'going';
+  const join = !cancelled && input.hasLink;
+  const saveSpot = !cancelled && !going;
+  // What each tap does never changes here, only which one is the big button.
+  const joinLeads = join && (input.joinWindow ?? 'unknown') !== 'outside';
   return {
     cancelledLine: cancelled,
-    join: !cancelled && input.hasLink,
-    saveSpot: !cancelled && !going,
-    going: !cancelled && going && !input.hasLink,
+    join,
+    joinProminence: joinLeads ? 'main' : 'quiet',
+    saveSpot,
+    saveProminence: saveSpot && !joinLeads ? 'main' : 'quiet',
+    confirmed: !cancelled && going,
     question: !cancelled && input.familySquares && going,
     rsvpNote: !cancelled && input.familySquares,
     firstTimerNote: !cancelled && input.familySquares,
   };
+}
+
+/** Join becomes the big button this long before the meeting starts. */
+export const JOIN_WINDOW_LEAD_MS = 3 * 60 * 60_000;
+/** A call runs for an hour. La Sobremesa's callers pass its own length (LA_SOBREMESA_CALL_LENGTH_MS). */
+const CALL_LENGTH_MS = 60 * 60_000;
+
+/** `sessions.next_at` as a time, or null. Reads what familySquaresSchedule reads (ISO or Postgres text). */
+function meetingStartMs(nextAt: string | null | undefined): number | null {
+  if (!nextAt) return null;
+  const start = Date.parse(nextAt
+    .trim()
+    .replace(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})/, '$1T$2')
+    .replace(/([+-]\d{2})$/, '$1:00'));
+  return Number.isFinite(start) ? start : null;
+}
+
+/**
+ * Whether the meeting is close enough for Join to be the big button: from
+ * three hours before its start (`next_at`) until it ends. A start that is
+ * missing or unreadable is 'unknown', never a guess.
+ */
+export function sessionJoinWindow(
+  nextAt: string | null | undefined,
+  now: Date = new Date(),
+  lengthMs: number = CALL_LENGTH_MS,
+): JoinWindow {
+  const start = meetingStartMs(nextAt);
+  if (start === null) return 'unknown';
+  const at = now.getTime();
+  return start - JOIN_WINDOW_LEAD_MS <= at && at < start + lengthMs ? 'inside' : 'outside';
+}
+
+/**
+ * The meeting's day for "Your spot is saved for …" ("Monday, November 16",
+ * "lunes, 16 de noviembre"), in the member's own time zone like the time on
+ * the card. Null when the start is unknown or the meeting is over: the line
+ * is then said without a date, never with a wrong one.
+ */
+export function meetingDayLabel(
+  nextAt: string | null | undefined,
+  options: { now?: Date; locale?: string; timeZone?: string; lengthMs?: number } = {},
+): string | null {
+  const start = meetingStartMs(nextAt);
+  if (start === null || start + (options.lengthMs ?? CALL_LENGTH_MS) <= (options.now ?? new Date()).getTime()) return null;
+  try {
+    return new Intl.DateTimeFormat(options.locale, {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      ...(options.timeZone ? { timeZone: options.timeZone } : {}),
+    }).format(new Date(start));
+  } catch {
+    return null;
+  }
 }
 
 /** "What to expect your first time" is for accounts no older than this. */

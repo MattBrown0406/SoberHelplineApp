@@ -202,6 +202,6 @@ const styles = StyleSheet.create({
   },
   primaryBtn: { borderRadius: 99, paddingVertical: 15, alignItems: 'center', marginTop: 32 },
   primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  skipBtn: { alignItems: 'center', marginTop: 16 },
+  skipBtn: { alignItems: 'center', justifyContent: 'center', minHeight: 44, marginTop: 6 },
   skipText: { fontSize: 14, fontWeight: '600' },
 });

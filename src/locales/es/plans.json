@@ -8,13 +8,14 @@
     "free": "Sigue siendo gratis",
     "essential": "Lo que recibes",
     "premier": "Todo lo de Essential, y además",
-    "premierShort": "Todo lo de Essential"
+    "premierShort": "Todo lo de Essential",
+    "more": "También incluye"
   },
   "benefits": {
     "free": {
       "familySquares": "La Sobremesa, nuestra reunión gratuita de cada lunes",
       "crisisGuide": "La guía de crisis, los pasos de seguridad y la Cartera de Seguridad",
-      "everydayTools": "Límites, el seguimiento y tu registro diario",
+      "everydayTools": "Límites, el Diario y tu registro diario",
       "scripts": "La biblioteca completa de guiones y la práctica guiada",
       "planning": "El buscador de tratamiento y las herramientas para planear",
       "patternMap": "Tu mapa de patrones del Motor de Invitación"

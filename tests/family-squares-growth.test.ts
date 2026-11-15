@@ -59,7 +59,7 @@ test('the screens print the display name, never the database row title', () => {
   assert.match(support, /const name = sessionDisplayTitle\(sess, t\);/);
   assert.doesNotMatch(support, /\{sess\.title\}/);
   // One row renderer for every list on Support.
-  assert.equal((support.match(/renderSession\(sess, (true|false)\)/g) ?? []).length, 3);
+  assert.equal((support.match(/renderSession\(sess, (true|false), index === list\.length - 1\)/g) ?? []).length, 3);
 });
 
 test('English copy names the meeting Family Squares everywhere it is named', () => {
@@ -324,7 +324,7 @@ test('"What to expect" covers the practical facts in both languages and promises
   assert.match(locale('es', 'common').familySquares.firstTime.listen, /bienvenida/);
 });
 
-test('the note shows on the call card and on the RSVP confirmation, and hides for good', () => {
+test('the note shows on the call card and on the RSVP confirmation, and is gone for good after her first Join', () => {
   // (view.firstTimerNote: Family Squares, and not a week the website cancelled.)
   assert.match(read('src/components/today/SituationCard.tsx'), /\{view\.firstTimerNote && <FamilySquaresFirstTimerNote accountId=\{accountId\} \/>\}/);
   assert.match(read('app/(tabs)/support.tsx'), /\{view\.firstTimerNote && sess\.rsvped && <FamilySquaresFirstTimerNote accountId=\{user\?\.id \?\? null\} \/>\}/);
@@ -334,7 +334,8 @@ test('the note shows on the call card and on the RSVP confirmation, and hides fo
   const note = read('src/components/familySquares/FamilySquaresFirstTimerNote.tsx');
   assert.match(note, /if \(!visible\) return null;/);
   assert.match(note, /accessibilityLabel=\{t\('familySquares\.firstTime\.dismissLabel'\)\}\s+onPress=\{dismiss\}/);
-  // Hidden once she dismisses it or taps Join; unknown (a failed read) never shows it.
+  // Gone once she taps Join; unknown (a failed read) never shows it. ("Got it"
+  // folds it to one line she can open again: family-squares-card-ui.test.ts.)
   const store = read('src/lib/familySquaresFirstTimer.ts');
   assert.match(store, /return \(await AsyncStorage\.getItem\(key\(accountId\)\)\) === null;\s+\} catch \{\s+return false;/);
   assert.match(read('src/lib/meetingAttendance.ts'), /await markFamilySquaresJoined\(accountId\);/);
@@ -472,12 +473,16 @@ test('every new or touched button says what it is and what it does', () => {
     }
   }
   const card = read('src/components/today/SituationCard.tsx');
-  for (const label of ['situationCta.joinLabel', 'situationCta.rsvpLabel', 'situationCta.goingLabel']) {
+  for (const label of ['situationCta.joinLabel', 'situationCta.rsvpLabel']) {
     assert.match(card, new RegExp(`accessibilityRole="button"\\s+accessibilityLabel=\\{t\\([^\\n]*'${label.replace('.', '\\.')}'`), label);
   }
+  // "You're going" is now the one confirmation line; where it can still be tapped (a call
+  // other than Family Squares, with no link yet) it is a button under the old label.
+  assert.match(card, /<FamilySquaresSpotSavedLine[\s\S]*?onPress=\{confirmedTap\}\s+pressLabel=\{t\('situationCta\.goingLabel', \{ name: title \}\)\}/);
+  assert.match(read('src/components/familySquares/FamilySquaresSpotSavedLine.tsx'), /accessibilityRole="button"\s+accessibilityLabel=\{pressLabel \?\? text\}\s+onPress=\{onPress\}/);
   const row = /const renderSession = [\s\S]*?\n  \};\n/.exec(read('app/(tabs)/support.tsx'))?.[0] ?? '';
   const rowButtons = buttons(row);
-  assert.equal(rowButtons.length, 3, 'Join, RSVP and Ask a question');
+  assert.equal(rowButtons.length, 3, 'Join, Save my spot (RSVP) and Ask a question');
   for (const button of rowButtons) {
     assert.match(button, /accessibilityRole="button"\s+accessibilityLabel=\{t\(/, button);
   }

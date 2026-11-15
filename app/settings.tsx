@@ -9,6 +9,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { ScreenContainer } from '../src/components/ui/ScreenContainer';
+import { buttonShape } from '../src/components/ui/Button';
 import { BereavementSettingsCard } from '../src/components/bereavement/BereavementSettingsCard';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -759,8 +760,8 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        <TouchableOpacity accessibilityRole="button" disabled={dailyBusy || !dailyEnabled} onPress={() => void chooseReminderHour(null)} style={styles.restoreBtn}>
-          <Text style={{ color: colors.primary }}>{t('notifications.pauseDaily')}</Text>
+        <TouchableOpacity accessibilityRole="button" disabled={dailyBusy || !dailyEnabled} onPress={() => void chooseReminderHour(null)} style={[styles.restoreBtn, { borderColor: colors.line, marginBottom: 12 }]}>
+          <Text style={[styles.restoreText, { color: colors.primary }]}>{t('notifications.pauseDaily')}</Text>
         </TouchableOpacity>
 
         <View style={[styles.card, { borderColor: colors.line }]}>
@@ -938,7 +939,7 @@ export default function SettingsScreen() {
           <TouchableOpacity
             accessibilityRole="button"
             accessibilityState={{ busy: openingReview, disabled: openingReview }}
-            style={[styles.restoreBtn, { borderColor: colors.primary }]}
+            style={[styles.restoreBtn, { borderColor: colors.line }]}
             onPress={() => void handleRateApp()}
             disabled={openingReview}
             activeOpacity={0.8}
@@ -1055,17 +1056,16 @@ const styles = StyleSheet.create({
   infoLabel: { fontSize: 14 },
   infoValue: { fontSize: 14, fontWeight: '500' },
   manageLink: { fontSize: 14, fontWeight: '600' },
+  // Every full-width button on this screen is the app's one pill (buttonShape).
   restoreBtn: {
-    borderRadius: 12,
+    ...buttonShape,
     borderWidth: 1,
     paddingVertical: 12,
-    alignItems: 'center',
   },
-  restoreText: { fontSize: 14, fontWeight: '600' },
+  restoreText: { fontSize: 14, fontWeight: '600', textAlign: 'center' },
   adminBtn: {
-    borderRadius: 12,
+    ...buttonShape,
     paddingVertical: 12,
-    alignItems: 'center',
     marginTop: 10,
   },
   adminBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
@@ -1095,18 +1095,16 @@ const styles = StyleSheet.create({
   optionLabel: { fontSize: 13, fontWeight: '700', marginBottom: 8, marginTop: 10 },
   privacyNote: { fontSize: 11, lineHeight: 16, marginTop: 14 },
   retryBtn: {
-    borderRadius: 12,
+    ...buttonShape,
     borderWidth: 1,
     paddingVertical: 10,
-    alignItems: 'center',
     marginTop: 12,
   },
 
   signOutBtn: {
-    borderRadius: 14,
+    ...buttonShape,
     borderWidth: 1,
     paddingVertical: 14,
-    alignItems: 'center',
     marginTop: 4,
     marginBottom: 8,
     backgroundColor: '#fff',

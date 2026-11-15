@@ -28,9 +28,23 @@ import { AttachmentUploadError, useThread, type ChatMessage, type PendingAttachm
 import { useSessions } from '../src/hooks/useSessions';
 import { useSessionSchedule } from '../src/hooks/useSessionSchedule';
 import { PRIMARY_ON_CALL } from '../src/content/onCall';
+import { isFamilySquaresSession } from '../src/lib/familySquaresSchedule';
+import { isCancelledMeetingDate } from '../src/lib/familySquaresCancelled';
 import { MAX_CONTENT_WIDTH } from '../src/components/ui/ScreenContainer';
 
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😢', '😮', '👎'] as const;
+
+/**
+ * The group session the empty Text Line names as "Next live session": the
+ * first one, but never a Family Squares Monday the website cancelled (the same
+ * check as Today's card). Then the next group session is named instead, and
+ * with none left the line is simply not shown.
+ */
+export function nextLiveGroupSession<T extends { kind: string; title?: string | null; cancelledDate?: string | null }>(
+  sessions: readonly T[],
+): T | undefined {
+  return sessions.find((s) => s.kind === 'group' && !(isFamilySquaresSession(s) && isCancelledMeetingDate(s.cancelledDate)));
+}
 
 export default function ChatScreen() {
   useToolOpened('chat');
@@ -60,7 +74,7 @@ function ChatContent() {
   // Coach presence between sessions: the on-call coach and the next live session.
   const coachName = PRIMARY_ON_CALL.firstName;
   const scheduleFor = useSessionSchedule();
-  const nextGroupSession = sessions.find((s) => s.kind === 'group');
+  const nextGroupSession = nextLiveGroupSession(sessions);
   const nextSchedule = nextGroupSession ? scheduleFor(nextGroupSession) || null : null;
 
   async function handleSend() {

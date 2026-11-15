@@ -200,7 +200,8 @@ test('every "see plans" or "upgrade" entry point opens the plans screen and says
     ['app/invitation-engine.tsx', /<FreeTierPaywall inline source="invitation_engine" \/>/],
     ['app/invitation-setup.tsx', /<FreeTierPaywall inline source="invitation_setup" \/>/],
     ['app/diy-intervention-planner.tsx', /<FreeTierPaywall inline source="diy_planner" \/>/],
-    ['app/(tabs)/index.tsx', /<FreeTierPaywall inline source="today_membership" \/>/],
+    // Today's "Explore membership" is the plans teaser (an invitation), not the lock card.
+    ['app/(tabs)/index.tsx', /<PlansTeaserCard offers=\{offers\} source="today_membership" \/>/],
     ['app/(tabs)/index.tsx', /source="today_locked_preview"/],
     ['app/(tabs)/support.tsx', /router\.push\(plansHref\('support_upgrade', 'premium'\)\)/],
     ['app/(tabs)/support.tsx', /router\.push\(plansHref\('support_groups', 'essential'\)\)/],
@@ -251,6 +252,45 @@ test('inside the app nothing sends her to the website to buy, and no price is wr
     // No hard-coded words on screen: every <Text> shows a translation, a store value or a symbol.
     for (const text of source.match(/<Text[^>]*>[^<{]*[A-Za-z]{3,}[^<{]*<\/Text>/g) ?? []) assert.fail(`${file}: hard-coded text ${text}`);
   }
+});
+
+test('the plans screen leads with a plan she can buy, and its button sits under the price and first benefits', () => {
+  const card = read('src/components/plans/PlansCard.tsx');
+  // A plan she can buy comes first (Essential for a free member, Premier for an Essential member).
+  assert.match(card, /const order: SubscriptionTier\[\] = \[\.\.\.canBuy, \.\.\.\(\['essential', 'premium'\] as const\)\.filter\(\(tier\) => !canBuy\.includes\(tier\)\)\];/);
+  assert.match(card, /const lead = tier === order\[0\];/);
+  // Paid plans, then Free ("Your plan" for a free member), then the notes and legal lines.
+  const at = ['{order.map(paidPlan)}', "t('tier.freeName')", "tPlans('notEmergency')", "t('paywall.autoRenewDisclosure'", 'TERMS_OF_USE_URL)', 'PRIVACY_POLICY_URL)', "tPlans('restore.button')"]
+    .map((piece) => card.lastIndexOf(piece));
+  assert.ok(at.every((index) => index >= 0));
+  assert.deepEqual(at, [...at].sort((a, b) => a - b), 'plans card order');
+  // Inside a paid plan: name and price, the trial line, the first few benefits,
+  // the button, then the rest of the same list. Nothing is left out.
+  const plan = card.slice(card.indexOf('const paidPlan ='), card.indexOf('return (\n    <View>\n      {current'));
+  const inside = ['t(`tier.${tier}Name`)', 'priceLine(tier)', "t('paywall.trialThen'", '<BenefitList plan={plan} limit={TOP_BENEFITS} />', 'onPress={() => onChoose(tier)}', "tPlans('headings.more')", '<BenefitList plan={plan} skip={TOP_BENEFITS} />']
+    .map((piece) => plan.indexOf(piece));
+  assert.ok(inside.every((index) => index >= 0), 'paid plan pieces');
+  assert.deepEqual(inside, [...inside].sort((a, b) => a - b), 'paid plan order');
+  assert.match(card, /const TOP_BENEFITS = 4;/);
+  assert.match(card, /const hasMore = benefitKeys\(plan, i18n\.language\)\.length > TOP_BENEFITS;/);
+  // The list component: `skip` drops the first few, `limit` keeps the first few of what is left.
+  assert.match(read('src/components/plans/BenefitList.tsx'), /const lines = benefitLines\(plan, t as never, i18n\.language\)\.slice\(skip\);/);
+  for (const lang of ['en', 'es']) assert.ok(JSON.parse(read(`src/locales/${lang}/plans.json`)).headings.more, `${lang}: headings.more`);
+});
+
+test('Today invites a free member to look at membership with the plans teaser, never the lock card', () => {
+  const today = read('app/(tabs)/index.tsx');
+  assert.doesNotMatch(today, /FreeTierPaywall/);
+  // Only in the free Today, and never for a bereaved member or before the device knows.
+  const free = today.slice(today.indexOf('if (!canAccessFullToday) {'), today.indexOf('{bereavementSheet}', today.indexOf('if (!canAccessFullToday) {')));
+  assert.match(free, /\{bereavedState === false && \(\s+<TodayDisclosure title=\{t\('disclosure\.membership'\)\}>\s+<ExploreMembership \/>\s+<\/TodayDisclosure>\s+\)\}/);
+  assert.equal(today.split('<ExploreMembership').length - 1, 1);
+  assert.equal(today.split("t('disclosure.membership')").length - 1, 1);
+  // The store is read inside the section (mounted when she opens it), and the price is the store's.
+  assert.match(today, /function ExploreMembership\(\) \{\s+const offers = usePlanOffers\(\);\s+return <PlansTeaserCard offers=\{offers\} source="today_membership" \/>;\s+\}/);
+  assert.equal(today.split('usePlanOffers()').length - 1, 1);
+  const teaser = read('src/components/plans/PlansTeaserCard.tsx');
+  assert.match(teaser, /\{price \? tPlans\('perMonth', \{ price \}\) : tPlans\('priceUnavailable'\)\}/);
 });
 
 // ── 14. One benefits list ───────────────────────────────────────────────────
@@ -502,14 +542,18 @@ test('the free Today says what members see in the progress section, with no fake
     // Today's script is not "unlocked": the whole library is free in Practice.
     const freeDaily = locale(lang, 'today').freeDaily;
     assert.doesNotMatch(`${freeDaily.eyebrow} ${freeDaily.note}`, /unlock|desbloque/i, lang);
-    // The tab is named by the label in the tab bar ("Words" / "Ensayo"), filled in from that same key.
+    // The tab is named by the label in the tab bar ("Practice" / "Práctica"), filled in from that same key.
     assert.match(freeDaily.note, /\{\{tab\}\}/, `${lang}: names the tab by its visible label`);
-    assert.doesNotMatch(freeDaily.note, new RegExp(locale(lang, 'common').nav.scripts), `${lang}: not the screen heading`);
+    assert.doesNotMatch(freeDaily.note, new RegExp(locale(lang, 'common').nav.scripts), `${lang}: the name is filled in, not typed into the sentence`);
+    // The word on the tab is the word in that screen's title.
+    assert.equal(locale(lang, 'common').navShort.scripts, locale(lang, 'common').nav.scripts, lang);
   }
-  assert.match(read('app/(tabs)/index.tsx'), /t\('freeDaily\.note', \{ tab: t\('common:navShort\.scripts'\) \}\)/);
-  assert.match(read('app/(tabs)/_layout.tsx'), /tabBarLabel: t\('navShort\.scripts'\)/);
-  assert.equal(locale('en', 'common').navShort.scripts, 'Words');
-  assert.equal(locale('es', 'common').navShort.scripts, 'Ensayo');
+  // Today names the tab by the Practice screen's own title key (the tab bar's word is the same, above).
+  assert.match(read('app/(tabs)/index.tsx'), /t\('freeDaily\.note', \{ tab: t\('common:nav\.scripts'\) \}\)/);
+  assert.match(read('app/(tabs)/scripts.tsx'), /<TabHeader title=\{tCommon\('nav\.scripts'\)\} \/>/);
+  assert.match(read('app/(tabs)/_layout.tsx'), /tab\('scripts', t\('navShort\.scripts'\)\)/);
+  assert.equal(locale('en', 'common').navShort.scripts, 'Practice');
+  assert.equal(locale('es', 'common').navShort.scripts, 'Práctica');
   assert.doesNotMatch(read('app/(tabs)/scripts.tsx'), /<Gate |useFeatureAccess\(/, 'the script library is free');
 });
 

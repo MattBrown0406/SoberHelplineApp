@@ -9,7 +9,7 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/splash.png",
+      "image": "./assets/images/lighthouse-mark.png",
       "resizeMode": "contain",
       "backgroundColor": "#142a47"
     },
@@ -68,7 +68,8 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash.png",
+          "image": "./assets/images/lighthouse-mark.png",
+          "imageWidth": 130,
           "backgroundColor": "#142a47",
           "resizeMode": "contain"
         }

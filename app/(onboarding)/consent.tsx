@@ -53,6 +53,8 @@ export default function ConsentScreen() {
         </Text>
 
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityState={{ disabled: saving, busy: saving }}
           style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
           onPress={() => record(true)}
           disabled={saving}
@@ -61,6 +63,8 @@ export default function ConsentScreen() {
           <Text style={styles.primaryBtnText}>{t('consent.acceptButton')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityState={{ disabled: saving }}
           style={styles.skipBtn}
           onPress={() => record(false)}
           disabled={saving}
@@ -83,6 +87,6 @@ const styles = StyleSheet.create({
   bodyText: { fontSize: 14.5, lineHeight: 22, marginTop: 10, marginBottom: 30 },
   primaryBtn: { borderRadius: 99, paddingVertical: 15, alignItems: 'center' },
   primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  skipBtn: { alignItems: 'center', marginTop: 16 },
+  skipBtn: { alignItems: 'center', justifyContent: 'center', minHeight: 44, marginTop: 6 },
   skipText: { fontSize: 14, fontWeight: '600' },
 });

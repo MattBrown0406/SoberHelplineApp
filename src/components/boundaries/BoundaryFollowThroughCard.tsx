@@ -59,7 +59,7 @@ export function BoundaryFollowThroughCard({ accountId, wallId }: { accountId: st
   }
   return <View style={styles.container}>
     <ContextualMembershipInvitation accountId={accountId} placement="boundary-saved" completed={neutralSave} />
-    <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: open }} aria-expanded={open} onPress={() => setOpen(!open)} style={styles.button}>
+    <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: open }} aria-expanded={open} onPress={() => setOpen(!open)} style={[styles.button, { borderColor: colors.primary }]}>
       <Text style={{ color: colors.primary, fontWeight: '700' }}>{copy.open}</Text>
     </TouchableOpacity>
     {loaded && isReviewDate(plan.reviewDate) && reviewDue(plan) ? <Text style={{ color: colors.primary }}>{copy.due}</Text> : null}

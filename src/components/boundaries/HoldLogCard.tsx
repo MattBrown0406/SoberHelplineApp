@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
+import { buttonShape } from '../ui/Button';
 import type { HoldLogEntry, HoldResult } from '../../hooks/useHoldLog';
 
 interface Props {
@@ -114,8 +115,8 @@ const styles = StyleSheet.create({
   choice: { borderWidth: 1, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12 },
   choiceText: { fontSize: 13, fontWeight: '700' },
   note: { fontSize: 12, lineHeight: 17, fontStyle: 'italic' },
-  shareBtn: { borderWidth: 1, borderRadius: 10, paddingVertical: 9, alignItems: 'center', marginTop: 10 },
-  shareText: { fontSize: 13, fontWeight: '700' },
+  shareBtn: { ...buttonShape, borderWidth: 1, paddingVertical: 9, marginTop: 10 },
+  shareText: { fontSize: 13, fontWeight: '700', textAlign: 'center' },
   sharedBox: { borderTopWidth: 1, marginTop: 14, paddingTop: 12, gap: 6 },
   sharedEyebrow: { fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 4 },
   sharedLine: { fontSize: 13, lineHeight: 19 },

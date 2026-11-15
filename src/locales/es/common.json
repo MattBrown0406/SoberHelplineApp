@@ -5,7 +5,7 @@
   },
   "navShort": {
     "today": "Hoy",
-    "scripts": "Ensayo",
+    "scripts": "Práctica",
     "boundaries": "Límites",
     "tracker": "Diario",
     "learn": "Guías",
@@ -15,8 +15,8 @@
     "today": "Hoy",
     "scripts": "Práctica",
     "boundaries": "Límites",
-    "tracker": "Seguimiento",
-    "learn": "Herramientas",
+    "tracker": "Diario",
+    "learn": "Guías",
     "support": "Apoyo"
   },
   "staff": {
@@ -45,9 +45,9 @@
   },
   "comingSoon": "Próximamente",
   "navPurpose": {
-    "scripts": "Practicar una conversación",
+    "scripts": "Práctica: ensaya una conversación",
     "boundaries": "Establecer límites acordados",
-    "learn": "Herramientas para planificar y aprender",
+    "learn": "Guías: herramientas para planificar y aprender",
     "support": "Apoyo: hablar con alguien o buscar tratamiento"
   },
   "errorBoundary": {
@@ -63,7 +63,9 @@
   "familySquares": {
     "name": "Family Squares",
     "scheduleFallback": "Lunes · 7:00 p. m. del Pacífico",
-    "rsvpNote": "Tu confirmación y tus preguntas le llegan a Matt junto con las inscripciones de soberhelpline.com. Si es tu primera llamada, puede que recibas un correo de seguimiento después.",
+    "rsvpNote": "Tu reserva y tus preguntas le llegan a Matt por soberhelpline.com, y puede que recibas un correo de seguimiento después de tu primera llamada.",
+    "spotSaved": "Tu lugar está reservado para el {{date}}",
+    "spotSavedNoDate": "Tu lugar está reservado",
     "alreadyRegistered": "Ya estás inscrita. ¡Te esperamos el lunes por la noche!",
     "cancelled": {
       "line": "Este lunes no hay Family Squares. Vuelve la próxima semana."
@@ -129,5 +131,9 @@
     "addPhoto": "Agregar una foto",
     "settings": "Configuración",
     "close": "Cerrar"
+  },
+  "admin": {
+    "familySquaresByMeeting": "Family Squares, reunión por reunión",
+    "membershipPath30d": "Camino a la membresía, últimos 30 días"
   }
 }

@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
+import { buttonShape } from '../ui/Button';
 import { useHolidayPlan } from '../../hooks/useHolidayPlan';
 import { holidayPlanIsThisSeason, holidayPlanProgress, holidayPlanStarted, holidaySeason } from '../../lib/holidayPlan';
 import { holidayCardStorageKey, holidayCardVisible } from '../../lib/todayPrompts';
@@ -61,7 +62,7 @@ export function HolidayPlanTodayCard({ accountId }: { accountId: string | null }
         accessibilityLabel={started ? t('todayCard.continue') : t('todayCard.open')}
         onPress={() => router.push('/holiday-plan' as never)}
         activeOpacity={0.85}
-        style={[styles.button, { backgroundColor: colors.coral }]}
+        style={[styles.button, { backgroundColor: colors.primary }]}
       >
         <Text style={styles.buttonText}>{started ? t('todayCard.continue') : t('todayCard.open')}</Text>
       </TouchableOpacity>
@@ -82,8 +83,8 @@ const styles = StyleSheet.create({
   eyebrow: { fontSize: 11, fontWeight: '900', letterSpacing: 1.2, marginBottom: 6 },
   title: { fontSize: 19, lineHeight: 25, fontWeight: '800', marginBottom: 6 },
   body: { fontSize: 14.5, lineHeight: 21, marginBottom: 14 },
-  button: { borderRadius: 10, minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
-  buttonText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  button: { ...buttonShape },
+  buttonText: { color: '#fff', fontSize: 15, fontWeight: '800', textAlign: 'center' },
   hide: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: 12, marginTop: 4 },
   hideText: { fontSize: 13.5, fontWeight: '700' },
 });

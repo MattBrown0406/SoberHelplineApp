@@ -5,11 +5,11 @@
   },
   "navShort": {
     "today": "Today",
-    "scripts": "Words",
-    "boundaries": "Limits",
-    "tracker": "Track",
+    "scripts": "Practice",
+    "boundaries": "Boundaries",
+    "tracker": "Tracker",
     "learn": "Tools",
-    "support": "Help"
+    "support": "Support"
   },
   "nav": {
     "today": "Today",
@@ -63,7 +63,9 @@
   "familySquares": {
     "name": "Family Squares",
     "scheduleFallback": "Mondays · 7:00 PM Pacific",
-    "rsvpNote": "Your RSVP and questions go to Matt along with soberhelpline.com registrations. If it's your first call, you may get a follow-up email afterward.",
+    "rsvpNote": "Matt gets your saved spot and your questions through soberhelpline.com, and a follow-up email may come after your first call.",
+    "spotSaved": "Your spot is saved for {{date}}",
+    "spotSavedNoDate": "Your spot is saved",
     "alreadyRegistered": "You’re already registered. We look forward to seeing you Monday evening!",
     "cancelled": {
       "line": "There's no Family Squares this Monday. It's back next week."
@@ -129,5 +131,9 @@
     "addPhoto": "Add a photo",
     "settings": "Settings",
     "close": "Close"
+  },
+  "admin": {
+    "familySquaresByMeeting": "Family Squares, by meeting",
+    "membershipPath30d": "Membership path, last 30 days"
   }
 }

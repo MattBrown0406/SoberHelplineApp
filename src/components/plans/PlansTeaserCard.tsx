@@ -6,6 +6,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import type { PlanOffers } from '../../hooks/usePlanPurchase';
 import { plansHref, type PlanSource } from '../../lib/membershipPath';
 import { BenefitList } from './BenefitList';
+import { buttonShape } from '../ui/Button';
 
 /**
  * The compact plans card (Support tab, free members): Essential's store
@@ -63,12 +64,8 @@ const styles = StyleSheet.create({
   trial: { fontSize: 13, lineHeight: 18, marginTop: 4 },
   more: { fontSize: 13, lineHeight: 19, marginTop: 10 },
   button: {
-    minHeight: 44,
-    borderRadius: 10,
+    ...buttonShape,
     paddingVertical: 12,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
     marginTop: 12,
   },
   buttonText: { color: '#fff', fontWeight: '700', fontSize: 14 },

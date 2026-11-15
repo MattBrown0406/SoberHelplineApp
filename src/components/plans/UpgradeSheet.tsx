@@ -5,6 +5,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '../../config';
 import type { SubscriptionTier } from '../../hooks/useIAP';
 import { BenefitList } from './BenefitList';
+import { buttonShape } from '../ui/Button';
 
 /**
  * The purchase sheet for one plan. The price, the trial and the renewal terms
@@ -185,12 +186,8 @@ const styles = StyleSheet.create({
   sheetSub: { fontSize: 14, lineHeight: 20, marginBottom: 20 },
   tierPrice: { fontSize: 14, fontWeight: '700' },
   solidBtn: {
-    minHeight: 44,
-    borderRadius: 10,
+    ...buttonShape,
     paddingVertical: 12,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
     marginTop: 4,
   },
   solidBtnText: { color: '#fff', fontWeight: '700', fontSize: 14, lineHeight: 20, textAlign: 'center', flexShrink: 1 },

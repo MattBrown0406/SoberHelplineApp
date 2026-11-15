@@ -1,6 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, type LayoutChangeEvent, type ScrollView } from 'react-native';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
+import { TabHeader } from '../../src/components/ui/TabHeader';
 import { useTranslation } from 'react-i18next';
 import { appAlert } from '../../src/lib/appAlert';
 import { useAccount } from '../../src/contexts/AccountContext';
@@ -16,8 +17,8 @@ import { GuidedStartPanel } from '../../src/components/today/GuidedStartPanel';
 import { CheckInCard } from '../../src/components/today/CheckInCard';
 import { RecoveryPathwayCard } from '../../src/components/today/RecoveryPathwayCard';
 import { MoodChart } from '../../src/components/today/MoodChart';
-import { FreeTierPaywall } from '../../src/components/ui/FreeTierPaywall';
 import { LockedPreviewRow } from '../../src/components/plans/LockedPreviewRow';
+import { PlansTeaserCard } from '../../src/components/plans/PlansTeaserCard';
 import { ContextualMembershipInvitation } from '../../src/membershipInvitations/ContextualMembershipInvitation';
 import { useAfterMeetingInvite } from '../../src/hooks/useAfterMeetingInvite';
 import { SituationCard, type WeeklyOneThing } from '../../src/components/today/SituationCard';
@@ -46,6 +47,7 @@ import { rearmDailyNudge } from '../../src/hooks/usePushNotifications';
 import { getDailyScripts } from '../../src/content/scripts';
 import { PHASE_LABEL_KEY, selectCurriculumPiece } from '../../src/content/curriculum';
 import { useFeatureAccess } from '../../src/hooks/useFeatureAccess';
+import { usePlanOffers } from '../../src/hooks/usePlanPurchase';
 import { pathwayPhaseUpdate } from '../../src/lib/recoveryPathway';
 import { NEXT_STEP_PRIORITY, type NextStepCard } from '../../src/lib/todayNextStep';
 import { welcomeBackActions } from '../../src/lib/welcomeBack';
@@ -248,23 +250,9 @@ function TodayContent() {
     />
   );
 
-  const header = (
-    <View style={styles.headerRow}>
-      <Text style={[styles.greeting, { color: colors.ink }]}>{greeting}</Text>
-      {/* Her initial opens Settings, on every version of Today (free, member and bereaved). */}
-      <TouchableOpacity
-        accessibilityRole="button"
-        accessibilityLabel={t('common:a11y.settings')}
-        onPress={() => router.push('/settings')}
-        activeOpacity={0.8}
-        style={styles.avatarButton}
-      >
-        <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-          <Text style={styles.avatarText}>{firstName ? firstName.charAt(0).toUpperCase() : '•'}</Text>
-        </View>
-      </TouchableOpacity>
-    </View>
-  );
+  // The same header as every tab (title left, Settings right); Today's title
+  // is her greeting. On every version of Today: free, member and bereaved.
+  const header = <TabHeader title={greeting} />;
 
   const checkInCard = (
     <CheckInCard
@@ -415,8 +403,8 @@ function TodayContent() {
             </Text>
             <ScriptCard script={freeScript} />
             <Text style={[styles.freeNote, { color: colors.inkSoft }]}>
-              {/* The tab is named by the label she sees in the tab bar. */}
-              {t('freeDaily.note', { tab: t('common:navShort.scripts') })}
+              {/* The tab is named as its own header names it (the tab bar says the same). */}
+              {t('freeDaily.note', { tab: t('common:nav.scripts') })}
             </Text>
           </>
         )}
@@ -444,9 +432,15 @@ function TodayContent() {
           />
         )}
         </TodayDisclosure>
-        <TodayDisclosure title={t('disclosure.membership')}>
-          <FreeTierPaywall inline source="today_membership" />
-        </TodayDisclosure>
+        {/* An invitation, not a lock: the same card as the Support tab (what
+            Essential adds, the store's price, "See plans"). Free members only
+            (this branch), and never for a bereaved member or before the device
+            knows: both of those Todays returned above. */}
+        {bereavedState === false && (
+          <TodayDisclosure title={t('disclosure.membership')}>
+            <ExploreMembership />
+          </TodayDisclosure>
+        )}
         {bereavementSheet}
       </ScreenContainer>
     );
@@ -512,6 +506,16 @@ function TodayContent() {
   );
 }
 
+/**
+ * Inside "Explore membership". Mounted only once she opens that section, so
+ * the store is asked for prices then and not on every visit to Today; until
+ * they arrive (or if they do not) the card shows no price, as on Support.
+ */
+function ExploreMembership() {
+  const offers = usePlanOffers();
+  return <PlansTeaserCard offers={offers} source="today_membership" />;
+}
+
 function timeGreeting(t: TFunction<'today'>, name: string): string {
   const h = new Date().getHours();
   const period = h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
@@ -520,39 +524,6 @@ function timeGreeting(t: TFunction<'today'>, name: string): string {
 }
 
 const styles = StyleSheet.create({
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    marginTop: 8,
-  },
-  greeting: {
-    fontSize: 24,
-    fontWeight: '700',
-    letterSpacing: -0.4,
-  },
-  // A full 44-point target around the 38-point circle; the negative margin
-  // keeps the header exactly where it was.
-  avatarButton: {
-    minWidth: 44,
-    minHeight: 44,
-    margin: -3,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 15,
-  },
   sectionLabel: {
     fontSize: 11,
     fontWeight: '700',

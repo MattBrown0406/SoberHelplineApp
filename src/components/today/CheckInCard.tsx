@@ -9,6 +9,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
+import { buttonShape } from '../ui/Button';
 import { appAlert } from '../../lib/appAlert';
 import {
   CAREGIVER_SUPPORT_NEEDS,
@@ -504,7 +505,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   moodHint: { fontSize: 11.5, textAlign: 'center', marginTop: 10 },
-  btn: { borderRadius: 14, padding: 14, alignItems: 'center', marginTop: 10 },
+  btn: { ...buttonShape, paddingVertical: 14, marginTop: 10 },
   btnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   doneBanner: { borderRadius: 14, borderWidth: 1, padding: 13, marginTop: 10 },
   doneText: { fontSize: 13.5, fontWeight: '600', lineHeight: 20 },

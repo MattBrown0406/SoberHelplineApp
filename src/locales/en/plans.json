@@ -8,7 +8,8 @@
     "free": "Stays free",
     "essential": "What you get",
     "premier": "Everything in Essential, plus",
-    "premierShort": "Everything in Essential"
+    "premierShort": "Everything in Essential",
+    "more": "Also included"
   },
   "benefits": {
     "free": {

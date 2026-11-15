@@ -18,6 +18,8 @@ import {
 import { supabase } from '../../src/lib/supabase';
 import { appAlert } from '../../src/lib/appAlert';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
+import { TabHeader } from '../../src/components/ui/TabHeader';
+import { buttonShape } from '../../src/components/ui/Button';
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAccount } from '../../src/contexts/AccountContext';
@@ -37,10 +39,11 @@ import { WEBSITE_PATHS, withAppContext } from '../../src/lib/websiteLinks';
 import { useCoachingRate } from '../../src/hooks/useCoachingRate';
 import { COACHING_MEMBER_PRICE, fillCoachingRates } from '../../src/lib/coachingPrice';
 import { useSessionSchedule } from '../../src/hooks/useSessionSchedule';
-import { isFamilySquaresSession, isLaSobremesaSession, sessionDisplayTitle } from '../../src/lib/familySquaresSchedule';
+import { LA_SOBREMESA_CALL_LENGTH_MS, isFamilySquaresSession, isLaSobremesaSession, sessionDisplayTitle } from '../../src/lib/familySquaresSchedule';
 import { clearFamilySquaresJoin, markFamilySquaresJoin } from '../../src/lib/meetingAttendance';
 import { FamilySquaresSeatPanel } from '../../src/components/familySquares/FamilySquaresSeatPanel';
 import { FamilySquaresFirstTimerNote } from '../../src/components/familySquares/FamilySquaresFirstTimerNote';
+import { FamilySquaresSpotSavedLine } from '../../src/components/familySquares/FamilySquaresSpotSavedLine';
 import { usePlanOffers } from '../../src/hooks/usePlanPurchase';
 import { PlansTeaserCard } from '../../src/components/plans/PlansTeaserCard';
 import { BenefitList } from '../../src/components/plans/BenefitList';
@@ -50,7 +53,7 @@ import { useSituation } from '../../src/hooks/useSituation';
 import { funnelDoor, type FunnelDoor } from '../../src/lib/situation';
 import { SituationOffRamp } from '../../src/components/situation/SituationOffRamp';
 import { logFunnelEventAndWait } from '../../src/lib/funnel';
-import { callCardView, seatSaveFailureKey } from '../../src/lib/familySquaresCard';
+import { callCardView, seatSaveFailureKey, sessionJoinWindow } from '../../src/lib/familySquaresCard';
 import { isCancelledMeetingDate, isFamilySquaresKnownCancelled } from '../../src/lib/familySquaresCancelled';
 import { useBereavedOnDevice } from '../../src/hooks/useBereavedOnDevice';
 import { isAdminEmail } from '../../src/lib/admin';
@@ -606,10 +609,13 @@ export default function SupportScreen() {
   };
   // One session row, used by every list on this screen. Family Squares shows
   // under its one name and, once her seat is saved, offers every Monday, the
-  // calendar file and "can't make it this week".
-  const renderSession = (sess: DbSession, showType: boolean) => {
+  // calendar file and "can't make it this week". `last`: no rule under the
+  // last row of a card.
+  const renderSession = (sess: DbSession, showType: boolean, last: boolean) => {
     const name = sessionDisplayTitle(sess, t);
     const familySquares = isFamilySquaresSession(sess);
+    // The Monday meetings (Family Squares, La Sobremesa) use Today's words: "Save my spot".
+    const mondayMeeting = familySquares || isLaSobremesaSession(sess);
     // What a Family Squares row offers is decided in one place
     // (familySquaresCard). A Monday the website cancelled offers nothing for
     // that date: only a calm line, and the "every Monday" switch. The
@@ -620,41 +626,64 @@ export default function SupportScreen() {
       cancelled: isCancelledMeetingDate(sess.cancelledDate),
       answer: sess.rsvped ? 'going' : sess.declined ? 'declined' : 'none',
       hasLink: !!sess.zoom_url,
+      joinWindow: sessionJoinWindow(sess.next_at, new Date(), isLaSobremesaSession(sess) ? LA_SOBREMESA_CALL_LENGTH_MS : undefined),
     });
+    // Join and Save each do what they always did. Which one is the big button
+    // is decided in familySquaresCard, as on Today: Save until the meeting is
+    // near, Join from three hours before it starts. The other is a small link.
+    const joinLeads = view.join && view.joinProminence === 'main';
+    const saveLeads = view.saveSpot && view.saveProminence === 'main';
+    const joinButton = view.join && (
+      <TouchableOpacity
+        key="join"
+        accessibilityRole="button"
+        accessibilityLabel={t('sessions.joinLabel', { name })}
+        style={joinLeads ? [styles.solidBtn, { backgroundColor: colors.primary }] : styles.sessionQuietLink}
+        activeOpacity={0.8}
+        onPress={() => void joinSession(sess)}
+      >
+        <Text style={joinLeads ? styles.solidBtnText : [styles.sessionQuietLinkText, { color: colors.primary }]}>{t('sessions.joinZoom')}</Text>
+      </TouchableOpacity>
+    );
+    const saveButton = view.saveSpot && (
+      <TouchableOpacity
+        key="save"
+        accessibilityRole="button"
+        accessibilityLabel={t(mondayMeeting ? 'today:situationCta.rsvpLabel' : 'sessions.rsvpLabel', { name })}
+        style={saveLeads ? [styles.solidBtn, { backgroundColor: colors.primary }] : styles.sessionQuietLink}
+        activeOpacity={0.8}
+        onPress={() => void handleSessionRsvp(sess)}
+      >
+        <Text style={saveLeads ? styles.solidBtnText : [styles.sessionQuietLinkText, { color: colors.primary }]}>
+          {t(mondayMeeting ? 'today:situationCta.rsvp' : 'sessions.rsvpButton')}
+        </Text>
+      </TouchableOpacity>
+    );
     return (
-      <View key={sess.id} style={[styles.sessionOuter, { borderBottomColor: colors.line }, sess.id === focusedSessionId && { backgroundColor: colors.primaryLight }]}>
-        <View style={styles.sessionRow}>
-          <View style={styles.sessionInfo}>
-            <Text style={[styles.sessionTitle, { color: colors.ink }]}>{name}</Text>
-            <Text style={[styles.sessionMeta, { color: colors.inkSoft }]}>
-              {showType ? `${sessionTypeKey(sess.kind, t)} · ${scheduleFor(sess)}` : scheduleFor(sess)}
-            </Text>
+      <View key={sess.id} style={[styles.sessionOuter, !last && { borderBottomWidth: 1, borderBottomColor: colors.line }, sess.id === focusedSessionId && { backgroundColor: colors.primaryLight }]}>
+        <Text style={[styles.sessionTitle, { color: colors.ink }]}>{name}</Text>
+        <Text style={[styles.sessionMeta, { color: colors.inkSoft }]}>
+          {showType ? `${sessionTypeKey(sess.kind, t)} · ${scheduleFor(sess)}` : scheduleFor(sess)}
+        </Text>
+        {!view.cancelledLine && (
+          <View style={styles.sessionActions}>
+            {/* The one confirmation: "Your spot is saved for Monday, November 16". A call
+                other than Family Squares keeps the tap its "Confirmed" button had
+                (Family Squares has "Can't make it this week" below). */}
+            <FamilySquaresSpotSavedLine
+              confirmed={view.confirmed}
+              session={sess}
+              savedHere={familySquares ? seatSavedHere : 0}
+              onPress={familySquares ? undefined : () => void handleSessionRsvp(sess)}
+              pressLabel={t('sessions.confirmLabel', { name })}
+            />
+            {joinLeads ? joinButton : saveLeads ? saveButton : null}
+            <View style={styles.sessionQuietRow}>
+              {!joinLeads && joinButton}
+              {!saveLeads && saveButton}
+            </View>
           </View>
-          {view.join ? (
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel={t('sessions.joinLabel', { name })}
-              style={[styles.sessionBtn, { backgroundColor: colors.green, borderColor: colors.green }]}
-              activeOpacity={0.8}
-              onPress={() => void joinSession(sess)}
-            >
-              <Text style={[styles.sessionBtnText, { color: '#fff' }]}>{t('sessions.joinZoom')}</Text>
-            </TouchableOpacity>
-          ) : null}
-          {view.cancelledLine ? null : (
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel={t(sess.rsvped ? 'sessions.confirmLabel' : 'sessions.rsvpLabel', { name })}
-              style={[styles.sessionBtn, { backgroundColor: sess.rsvped ? colors.greenLight : colors.primaryLight, borderColor: sess.rsvped ? colors.green : colors.primary }]}
-              activeOpacity={0.8}
-              onPress={() => void handleSessionRsvp(sess)}
-            >
-              <Text style={[styles.sessionBtnText, { color: sess.rsvped ? colors.green : colors.primary }]}>
-                {sess.rsvped ? t('sessions.confirmButton') : t('sessions.rsvpButton')}
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        )}
         {view.cancelledLine && (
           <Text style={[styles.cancelledLine, { color: colors.ink }]} accessibilityLiveRegion="polite">
             {t('common:familySquares.cancelled.line')}
@@ -748,15 +777,10 @@ export default function SupportScreen() {
         sheetOffset={sheetOffset}
       />
 
-        {/* Header */}
-        <View style={styles.headerRow}>
-          <Text style={[styles.heading, { color: colors.ink }]}>{t('header')}</Text>
-          <TouchableOpacity onPress={() => router.push('/settings')} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('common:a11y.settings')}>
-            <Text style={[styles.settingsIcon, { color: colors.inkSoft }]}>⚙</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Header: the same one as every tab, with the same Settings button. */}
+        <TabHeader title={t('header')} />
 
-        <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{t('intro')}</Text>
+        <Text style={[styles.referralBody, styles.sectionNote, { color: colors.inkSoft }]}>{t('intro')}</Text>
 
         {/* Crisis button — always visible */}
         <TouchableOpacity
@@ -769,7 +793,7 @@ export default function SupportScreen() {
           <Text style={styles.sosText}>🆘  {t('crisis.button')}</Text>
         </TouchableOpacity>
 
-        <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{t('crisis.freeNote')}</Text>
+        <Text style={[styles.referralBody, styles.sectionNote, { color: colors.inkSoft }]}>{t('crisis.freeNote')}</Text>
 
         {/* Entitled member actions stay ahead of membership explanations. */}
         {hasMembershipAccess && (<>
@@ -829,15 +853,17 @@ export default function SupportScreen() {
         </TouchableOpacity>
 
         <Text accessibilityRole="header" style={[styles.eyebrow, { color: colors.inkSoft }]}>{t('peopleHeading')}</Text>
-        <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{t('peopleAccess', { rate: coachingRate.hourly })}</Text>
+        <Text style={[styles.referralBody, styles.sectionNote, { color: colors.inkSoft }]}>{t('peopleAccess', { rate: coachingRate.hourly })}</Text>
 
+        {/* "How to use your membership" is for someone who has one. */}
+        {hasMembershipAccess && (
         <View style={[styles.card, { borderColor: colors.line, backgroundColor: colors.white }]}>
           <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: membershipExpanded }} aria-expanded={membershipExpanded} onPress={() => setMembershipExpanded((value) => !value)} style={styles.membershipDisclosure}>
             <Text style={[styles.referralTitle, { color: colors.ink }]}>{copy.benefits} {membershipExpanded ? '−' : '+'}</Text>
           </TouchableOpacity>
           <View style={{ display: membershipExpanded ? 'flex' : 'none' }}>
-          <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={() => router.push('/membership-guide')}><Text style={{ color: colors.primary }}>{t('coachingGuideLink')}</Text></TouchableOpacity>
-          <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={() => router.push('/free-practice')}><Text style={{ color: colors.primary }}>{t('freePracticeLink')}</Text></TouchableOpacity>
+          <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary }]} onPress={() => router.push('/membership-guide')}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{t('coachingGuideLink')}</Text></TouchableOpacity>
+          <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary }]} onPress={() => router.push('/free-practice')}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{t('freePracticeLink')}</Text></TouchableOpacity>
           <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{copy.free}</Text>
           {/* The one benefits list (plans.json): Essential, then what Premier adds. */}
           <Text style={[styles.tierName, { color: colors.ink, marginTop: 12 }]}>{t('tier.essentialName')}</Text>
@@ -847,14 +873,15 @@ export default function SupportScreen() {
           <Text style={[styles.referralBody, { color: colors.inkSoft, marginTop: 10 }]}>{tPlans('notEmergency')}</Text>
           <Text style={[styles.referralBody, { color: colors.inkSoft, marginTop: 10 }]}>{fillCoachingRates(copy.service, { rate: coachingRate.hourly, memberRate: COACHING_MEMBER_PRICE })}</Text>
           {hasMembershipAccess && <>
-            <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={() => router.push('/safety-wallet')}><Text style={{ color: colors.primary }}>{copy.wallet}</Text></TouchableOpacity>
-            <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={() => router.push('/crisis-mode')}><Text style={{ color: colors.primary }}>{copy.copilot}</Text></TouchableOpacity>
-            <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={() => router.push('/chat')}><Text style={{ color: colors.primary }}>{copy.chat}</Text></TouchableOpacity>
+            <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary }]} onPress={() => router.push('/safety-wallet')}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{copy.wallet}</Text></TouchableOpacity>
+            <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary }]} onPress={() => router.push('/crisis-mode')}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{copy.copilot}</Text></TouchableOpacity>
+            <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary }]} onPress={() => router.push('/chat')}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{copy.chat}</Text></TouchableOpacity>
           </>}
           <TouchableOpacity accessibilityRole="button" style={{ paddingVertical: 14 }} onPress={() => router.push('/settings')}><Text style={{ color: colors.primary }}>{copy.manage}</Text></TouchableOpacity>
-          {(!subscriptionPrices.essential || !subscriptionPrices.premium) && !isAttached && <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={retryPrices}><Text style={{ color: colors.primary }}>{copy.retryPrices}</Text></TouchableOpacity>}
+          {(!subscriptionPrices.essential || !subscriptionPrices.premium) && !isAttached && <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary }]} onPress={retryPrices}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{copy.retryPrices}</Text></TouchableOpacity>}
           </View>
         </View>
+        )}
 
         {/* Attached: team + sessions */}
         {isAttached && (
@@ -887,7 +914,7 @@ export default function SupportScreen() {
               <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
                 {t('sessions.eyebrow')}
               </Text>
-              {sessions.map((sess) => renderSession(sess, true))}
+              {sessions.map((sess, index, list) => renderSession(sess, true, index === list.length - 1))}
             </View>
 
             <View style={[styles.card, { borderColor: colors.line }]}>
@@ -927,13 +954,11 @@ export default function SupportScreen() {
               <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
                 {t('mondayGroup.eyebrow')}
               </Text>
-              <Text style={[styles.referralTitle, { color: colors.ink }]}>
-                {t('mondayGroup.heading')}
-              </Text>
+              {/* The meeting's name is the row's own title below: one heading, not two. */}
               <Text style={[styles.referralBody, { color: colors.inkSoft }]}>
                 {t('mondayGroup.sub')}
               </Text>
-              {sessions.filter((s) => s.kind === 'group').map((sess) => renderSession(sess, false))}
+              {sessions.filter((s) => s.kind === 'group').map((sess, index, list) => renderSession(sess, false, index === list.length - 1))}
             </View>
 
             {/* The plans in short; the plans screen has all of it and is where a plan is bought.
@@ -1022,7 +1047,7 @@ export default function SupportScreen() {
               <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
                 {t('sessions.eyebrow')}
               </Text>
-              {sessions.map((sess) => renderSession(sess, true))}
+              {sessions.map((sess, index, list) => renderSession(sess, true, index === list.length - 1))}
             </View>
 
             <View style={[styles.card, { borderColor: colors.line }]}>
@@ -1037,11 +1062,11 @@ export default function SupportScreen() {
               </Text>
               <TouchableOpacity
                 accessibilityRole="button"
-                style={[styles.outlineBtn, { borderColor: colors.secondary, marginTop: 12 }]}
+                style={[styles.outlineBtn, { borderColor: colors.primary, marginTop: 12 }]}
                 activeOpacity={0.8}
                 onPress={() => setProviderOpen(true)}
               >
-                <Text style={[styles.outlineBtnText, { color: colors.secondary }]}>
+                <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
                   {t('referral.button')}
                 </Text>
               </TouchableOpacity>
@@ -1065,8 +1090,11 @@ export default function SupportScreen() {
           <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
             {t('groups.eyebrow')}
           </Text>
-          {groups.map((group: SupportGroup) => {
+          {groups.map((group: SupportGroup, index: number) => {
             const room = group.liveRoomId;
+            // A rule between groups, and under the last one only when the forum
+            // link follows it (the community row draws its own).
+            const ruleBelow = index < groups.length - 1 || (hasMembershipAccess && !COMMUNITY_FEED_VISIBLE);
             const isMyRoom = !!(isAdmin && room && myRooms.includes(room));
             const isLive = !!(room && liveRooms.includes(room));
             const isRsvped = !!(room && rsvpedRooms.has(room));
@@ -1074,7 +1102,7 @@ export default function SupportScreen() {
             return (
               <View
                 key={group.id}
-                style={[styles.groupRow, { borderBottomColor: colors.line }]}
+                style={[styles.groupRow, ruleBelow && { borderBottomWidth: 1, borderBottomColor: colors.line }]}
               >
                 <View style={[styles.groupIcon, { backgroundColor: group.accentColor }]}>
                   <Text style={styles.groupIconText}>{group.icon}</Text>
@@ -1317,20 +1345,9 @@ export default function SupportScreen() {
 
 const styles = StyleSheet.create({
   questionCrisisScroll: { maxHeight: 460 },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    marginTop: 8,
-  },
-  heading: { fontSize: 24, fontWeight: '700', letterSpacing: -0.4 },
-  settingsIcon: { fontSize: 22 },
-
   sosButton: {
-    borderRadius: 16,
+    ...buttonShape,
     padding: 16,
-    alignItems: 'center',
     marginBottom: 14,
   },
   sosText: { color: '#fff', fontSize: 16, fontWeight: '700' },
@@ -1374,24 +1391,14 @@ const styles = StyleSheet.create({
   staffRole: { fontSize: 12, marginTop: 1 },
 
   sessionOuter: {
-    borderBottomWidth: 1,
     paddingVertical: 10,
   },
-  sessionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  sessionInfo: { flex: 1 },
-  sessionTitle: { fontSize: 14, fontWeight: '600' },
-  sessionMeta: { fontSize: 12, marginTop: 2 },
-  sessionBtn: { minHeight: 44, justifyContent: 'center',
-    borderRadius: 8,
-    borderWidth: 1,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-  },
-  sessionBtnText: { fontSize: 12, fontWeight: '600' },
+  sessionTitle: { fontSize: 15, fontWeight: '700' },
+  sessionMeta: { fontSize: 12.5, marginTop: 2 },
+  sessionActions: { marginTop: 10, gap: 6 },
+  sessionQuietRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', columnGap: 22 },
+  sessionQuietLink: { minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
+  sessionQuietLinkText: { fontSize: 13.5, fontWeight: '700', textAlign: 'center' },
   questionBtn: { minHeight: 44, justifyContent: 'center',
     borderWidth: 1,
     borderRadius: 8,
@@ -1456,7 +1463,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
-    borderBottomWidth: 1,
     gap: 10,
   },
   groupIcon: {
@@ -1500,28 +1506,27 @@ const styles = StyleSheet.create({
 
   referralTitle: { fontSize: 15, fontWeight: '700', marginBottom: 6 },
   referralBody: { fontSize: 13, lineHeight: 19 },
+  // A paragraph that stands between cards keeps the cards' own spacing below it.
+  sectionNote: { marginBottom: 12 },
   videoStatusBox: { borderWidth: 1, borderRadius: 12, padding: 12, marginTop: 12 },
   videoStatusTitle: { fontSize: 14, fontWeight: '800', textTransform: 'capitalize' },
   videoStatusBody: { fontSize: 12.5, marginTop: 3 },
   errorInline: { fontSize: 13, lineHeight: 18, marginTop: 10 },
 
-  solidBtn: { minHeight: 44,
-    borderRadius: 10,
+  // Every full-width button here is the app's one pill (buttonShape).
+  solidBtn: {
+    ...buttonShape,
     paddingVertical: 12,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
     marginTop: 4,
   },
   solidBtnText: { color: '#fff', fontWeight: '700', fontSize: 14, lineHeight: 20, textAlign: 'center', flexShrink: 1 },
-  outlineBtn: { minHeight: 44, justifyContent: 'center',
-    borderRadius: 10,
+  outlineBtn: {
+    ...buttonShape,
     borderWidth: 1.5,
     paddingVertical: 10,
-    alignItems: 'center',
     marginTop: 8,
   },
-  outlineBtnText: { fontWeight: '700', fontSize: 14 },
+  outlineBtnText: { fontWeight: '700', fontSize: 14, lineHeight: 20, textAlign: 'center', flexShrink: 1 },
 
   pillRow: { flexDirection: 'row', gap: 8 },
   pill: { minHeight: 44, justifyContent: 'center',
@@ -1567,7 +1572,7 @@ const styles = StyleSheet.create({
   copilotCopy: { marginBottom: 10 },
   copilotTitle: { fontSize: 16, fontWeight: '800', marginBottom: 4 },
   copilotBody: { fontSize: 13, lineHeight: 18 },
-  copilotButton: { minHeight: 44, justifyContent: 'center', borderRadius: 12, paddingVertical: 11, paddingHorizontal: 14, alignItems: 'center' },
+  copilotButton: { ...buttonShape, paddingVertical: 11 },
   copilotButtonText: { color: '#fff', fontSize: 14, fontWeight: '800' },
   sheetRow: {
     flexDirection: 'row',

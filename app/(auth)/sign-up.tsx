@@ -17,7 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { supabase } from '../../src/lib/supabase';
 import { EmergencyActions } from '../../src/components/safety/EmergencyActions';
-import { AppLogo } from '../../src/components/ui/AppLogo';
+import { AuthBrand } from '../../src/components/auth/AuthBrand';
 import { ConfirmEmailPanel } from '../../src/components/auth/ConfirmEmailPanel';
 import { SIGN_UP_CONFIRM_REDIRECT_URL, signUpEmailAlreadySentAt, signUpFailure } from '../../src/lib/frontDoor';
 import { confirmationEmailLastSentAt } from '../../src/lib/confirmationEmail';
@@ -158,12 +158,8 @@ export default function SignUpScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Logo / brand */}
-          <View style={styles.brand}>
-            <AppLogo size={72} />
-            <Text style={[styles.appName, { color: colors.primary }]}>Sober Helpline</Text>
-            <Text style={[styles.tagline, { color: colors.inkSoft }]}>{t('appTagline')}</Text>
-          </View>
+          {/* Logo / brand: the same block as sign-in */}
+          <AuthBrand />
 
           <View style={[styles.card, { borderColor: colors.line }]}>
             <Text style={[styles.title, { color: colors.ink }]}>{t('signUp.title')}</Text>
@@ -226,22 +222,7 @@ export default function SignUpScreen() {
               />
             </View>
 
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel={t('signUp.submitButton')}
-              accessibilityState={{ disabled: loading || !email || !password || !firstName || !acceptedTerms, busy: loading }}
-              style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
-              onPress={handleEmailSignUp}
-              disabled={loading || !email || !password || !firstName || !acceptedTerms}
-              activeOpacity={0.85}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.primaryBtnText}>{t('signUp.submitButton')}</Text>
-              )}
-            </TouchableOpacity>
-
+            {/* Above the button it unlocks: she agrees first, then creates the account. */}
             <View style={styles.termsRow}>
               <TouchableOpacity
                 accessibilityRole="checkbox"
@@ -266,13 +247,31 @@ export default function SignUpScreen() {
                 </Text>.
               </Text>
             </View>
+
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={t('signUp.submitButton')}
+              accessibilityState={{ disabled: loading || !email || !password || !firstName || !acceptedTerms, busy: loading }}
+              style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
+              onPress={handleEmailSignUp}
+              disabled={loading || !email || !password || !firstName || !acceptedTerms}
+              activeOpacity={0.85}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.primaryBtnText}>{t('signUp.submitButton')}</Text>
+              )}
+            </TouchableOpacity>
           </View>
 
           {/* The first screen for a new person: the way to sign-in must be plain to see. */}
           <Link href="/(auth)/sign-in" asChild>
             <TouchableOpacity
               accessibilityRole="link"
-              style={[styles.haveAccountBtn, { borderColor: colors.primary }]}
+              // One flat style object: <Link asChild> spreads the child's style, so an
+              // array would lose every rule (no border, no centring).
+              style={StyleSheet.flatten([styles.haveAccountBtn, { borderColor: colors.primary }])}
               activeOpacity={0.85}
             >
               <Text style={[styles.haveAccountText, { color: colors.primary }]}>{t('signUp.hasAccountButton')}</Text>
@@ -292,9 +291,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   kav: { flex: 1 },
   scroll: { flexGrow: 1, padding: 24, paddingBottom: 40 },
-  brand: { alignItems: 'center', marginTop: 32, marginBottom: 28 },
-  appName: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5 },
-  tagline: { fontSize: 13, marginTop: 4 },
   card: {
     backgroundColor: '#fff',
     borderRadius: 20,
@@ -340,23 +336,24 @@ const styles = StyleSheet.create({
   dividerLine: { flex: 1, height: 1 },
   dividerText: { fontSize: 12 },
   appleBtn: { width: '100%', height: 50 },
-  termsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  termsRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   termsCheckboxButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', margin: -10 },
   termsCheckbox: { width: 22, height: 22, borderWidth: 1.5, borderRadius: 5, alignItems: 'center', justifyContent: 'center' },
   termsCheckmark: { color: '#fff', fontWeight: '900' },
-  termsNote: { flex: 1, fontSize: 11.5, lineHeight: 17 },
+  termsNote: { flex: 1, fontSize: 13, lineHeight: 19 },
   emergency: { marginTop: 28 },
   haveAccountBtn: {
     borderWidth: 1.5,
     borderRadius: 99,
     minHeight: 48,
     paddingVertical: 12,
+    paddingHorizontal: 20,
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'center',
     width: '100%',
     maxWidth: 480,
-    marginTop: 16,
+    marginTop: 20,
   },
-  haveAccountText: { fontSize: 15, fontWeight: '700' },
+  haveAccountText: { fontSize: 15, fontWeight: '700', textAlign: 'center' },
 });

@@ -242,7 +242,7 @@ test('L7: only an account created in the last 30 days can be shown the first-tim
   for (const unknown of [null, undefined, '', 'yesterday']) assert.equal(accountIsNewForFirstTimerNote(unknown, now), false);
   const hook = read('src/hooks/useFirstTimerNote.ts');
   assert.match(hook, /if \(!accountId \|\| !accountIsNewForFirstTimerNote\(joinedAt\)\) return;\s+let active = true;\s+void firstTimerNoteWanted\(accountId\)/);
-  assert.match(read('src/components/familySquares/FamilySquaresFirstTimerNote.tsx'), /useFirstTimerNote\(accountId, user && user\.id === accountId \? user\.joinedAt : null\)/);
+  assert.match(read('src/components/familySquares/FamilySquaresFirstTimerNote.tsx'), /useFirstTimerNote\(accountId, user && user\.id === accountId \? user\.joinedAt : null, onPrimary\)/);
 });
 
 // ── L9 / L11 / L12: words ───────────────────────────────────────────────────

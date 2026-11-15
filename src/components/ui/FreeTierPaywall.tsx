@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from './ScreenContainer';
+import { buttonShape } from './Button';
 import { BenefitList } from '../plans/BenefitList';
 import { plansHref, type PlanSource } from '../../lib/membershipPath';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -87,11 +88,9 @@ const styles = StyleSheet.create({
   heading: { fontSize: 20, fontWeight: '700', textAlign: 'center' },
   body: { fontSize: 14, lineHeight: 21, textAlign: 'center' },
   btn: {
+    ...buttonShape,
     marginTop: 8,
     paddingVertical: 14,
-    paddingHorizontal: 32,
-    borderRadius: 12,
-    alignItems: 'center',
     width: '100%',
   },
   btnText: { color: '#fff', fontSize: 15, fontWeight: '700' },

@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
+import { buttonShape } from '../ui/Button';
 import { normalizeRecoveryPhase, RECOVERY_PHASES, type RecoveryPhase } from '../../lib/recoveryPathway';
 import {
   lovedOneCheckDue,
@@ -167,7 +168,7 @@ const styles = StyleSheet.create({
   eyebrow: { fontSize: 11, fontWeight: '900', letterSpacing: 1.2, marginBottom: 6 },
   title: { fontSize: 19, lineHeight: 25, fontWeight: '800', marginBottom: 6 },
   body: { fontSize: 14.5, lineHeight: 21, marginBottom: 12 },
-  same: { borderRadius: 10, minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14, marginBottom: 10 },
+  same: { ...buttonShape, marginBottom: 10 },
   sameText: { color: '#fff', fontSize: 15, fontWeight: '800', textAlign: 'center' },
   options: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   option: { borderWidth: 1, borderRadius: 999, minHeight: 44, paddingHorizontal: 14, justifyContent: 'center' },

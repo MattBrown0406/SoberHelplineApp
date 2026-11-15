@@ -2,6 +2,8 @@ import { useToolOpened } from '../../src/hooks/useToolOpened';
 import { useMemo, useState } from 'react';
 import { Text, TextInput, TouchableOpacity, View, StyleSheet } from 'react-native';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
+import { TabHeader } from '../../src/components/ui/TabHeader';
+import { buttonShape } from '../../src/components/ui/Button';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
@@ -74,7 +76,7 @@ export default function LearnScreen() {
 
   return (
     <ScreenContainer scroll contentContainerStyle={styles.inner}>
-      <Text accessibilityRole="header" style={[styles.header, { color: colors.ink }]}>{t('header')}</Text>
+      <TabHeader title={t('header')} />
 
       <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t('intro')}</Text>
       <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
@@ -102,7 +104,7 @@ export default function LearnScreen() {
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel={t('tools.invitationButton')}
-          style={[styles.cardButton, { backgroundColor: colors.coral }]}
+          style={[styles.cardButton, { backgroundColor: colors.primary }]}
           onPress={() => router.push('/invitation-engine' as never)}
           activeOpacity={0.85}
         >
@@ -120,11 +122,12 @@ export default function LearnScreen() {
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel={t('tools.actionButton')}
-          style={[styles.cardButton, { backgroundColor: colors.secondary }]}
+          // On the navy card a navy button would not show: the same button turned inside out, white with navy words.
+          style={[styles.cardButton, { backgroundColor: colors.white }]}
           onPress={() => router.push('/treatment-action-plan' as never)}
           activeOpacity={0.85}
         >
-          <Text style={[styles.cardButtonText, { color: colors.ink }]}>{t('tools.actionButton')}</Text>
+          <Text style={[styles.cardButtonText, { color: colors.primary }]}>{t('tools.actionButton')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -157,7 +160,7 @@ export default function LearnScreen() {
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel={t('tools.homecomingButton')}
-          style={[styles.cardButton, { backgroundColor: colors.coral }]}
+          style={[styles.cardButton, { backgroundColor: colors.primary }]}
           onPress={() => router.push('/homecoming-week' as never)}
           activeOpacity={0.85}
         >
@@ -193,7 +196,7 @@ export default function LearnScreen() {
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel={t('tools.holidayButton')}
-          style={[styles.cardButton, { backgroundColor: colors.coral }]}
+          style={[styles.cardButton, { backgroundColor: colors.primary }]}
           onPress={() => router.push('/holiday-plan' as never)}
           activeOpacity={0.85}
         >
@@ -229,7 +232,7 @@ export default function LearnScreen() {
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel={t('tools.chooseButton')}
-          style={[styles.cardButton, { backgroundColor: colors.green }]}
+          style={[styles.cardButton, { backgroundColor: colors.primary }]}
           onPress={() => router.push('/choose-treatment' as never)}
           activeOpacity={0.85}
         >
@@ -247,11 +250,11 @@ export default function LearnScreen() {
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel={t('tools.costButton')}
-          style={[styles.cardButton, { backgroundColor: colors.secondary }]}
+          style={[styles.cardButton, { backgroundColor: colors.primary }]}
           onPress={() => router.push('/enabling-costs' as never)}
           activeOpacity={0.85}
         >
-          <Text style={[styles.cardButtonText, { color: colors.ink }]}>{t('tools.costButton')}</Text>
+          <Text style={styles.cardButtonText}>{t('tools.costButton')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -265,7 +268,8 @@ export default function LearnScreen() {
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel={t('tools.safetyButton')}
-          style={[styles.cardButton, { backgroundColor: colors.green }]}
+          // Safety is the one place a coral button belongs (as on the Safety button above the tab bar).
+          style={[styles.cardButton, { backgroundColor: colors.coral }]}
           onPress={() => router.push('/safety-wallet' as never)}
           activeOpacity={0.85}
         >
@@ -340,8 +344,9 @@ export default function LearnScreen() {
 
 const styles = StyleSheet.create({
   destination: { minHeight: 44, justifyContent: 'center', paddingVertical: 10 },
-  inner: { padding: 20, paddingBottom: 40 },
-  header: { fontSize: 24, fontWeight: '700', marginBottom: 20 },
+  // Side and top padding are ScreenContainer's own, as on every other tab, so
+  // the shared header sits in the same place here.
+  inner: { paddingBottom: 40 },
   sectionEyebrow: {
     fontSize: 11,
     fontWeight: '800',
@@ -378,8 +383,9 @@ const styles = StyleSheet.create({
   },
   cardTitle: { fontSize: 17, fontWeight: '700', marginBottom: 6 },
   cardBody: { fontSize: 14, lineHeight: 20, marginBottom: 16 },
-  cardButton: { alignSelf: 'flex-start', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8, minHeight: 44, justifyContent: 'center' },
-  cardButtonText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  // The app's one button shape (buttonShape), sized to its words.
+  cardButton: { ...buttonShape, alignSelf: 'flex-start', paddingVertical: 10 },
+  cardButtonText: { color: '#fff', fontSize: 15, fontWeight: '600', textAlign: 'center' },
   faqSearch: {
     flexDirection: 'row',
     alignItems: 'center',

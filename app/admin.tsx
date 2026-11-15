@@ -9,6 +9,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import { LiveGroupBansCard } from '../src/components/admin/LiveGroupBansCard';
 import { InvitationStatsCard } from '../src/components/admin/InvitationStatsCard';
@@ -79,6 +80,7 @@ export default function AdminScreen() {
   const router = useRouter();
   const { user } = useAccount();
   const { colors } = useTheme();
+  const { t } = useTranslation('common');
   const isAdmin = isAdminEmail(user?.email);
   const videoSessions = useAdminVideoSessions();
 
@@ -217,7 +219,7 @@ export default function AdminScreen() {
             {/* Family Squares, meeting by meeting (newer backends); the all-time line is the fallback. */}
             {funnel.family_squares_weeks?.length ? (
               <>
-                <Text style={[styles.funnelSubhead, { color: colors.ink }]}>Family Squares, by meeting</Text>
+                <Text style={[styles.funnelSubhead, { color: colors.ink }]}>{t('admin.familySquaresByMeeting')}</Text>
                 {funnel.family_squares_weeks.map((week, index) => (
                   <Text key={week.meeting_date} style={[styles.funnelWeek, { color: colors.inkSoft }]}>
                     {meetingLabel(week.meeting_date)}{index === 0 ? ' (coming)' : ''}: {week.rsvps ?? '–'} RSVP&apos;d
@@ -240,7 +242,7 @@ export default function AdminScreen() {
             {/* The membership path (newer backends only). */}
             {funnel.membership_path_30d ? (
               <>
-                <Text style={[styles.funnelSubhead, { color: colors.ink }]}>Membership path, last 30 days</Text>
+                <Text style={[styles.funnelSubhead, { color: colors.ink }]}>{t('admin.membershipPath30d')}</Text>
                 <Text style={[styles.funnelWeek, { color: colors.inkSoft }]}>
                   {funnel.membership_path_30d.plans_viewed ?? 0} saw the plans → {funnel.membership_path_30d.plan_sheet_opened ?? 0} opened a plan → {funnel.membership_path_30d.purchase_started ?? 0} started a purchase → {funnel.membership_path_30d.purchase_succeeded ?? 0} subscribed
                 </Text>

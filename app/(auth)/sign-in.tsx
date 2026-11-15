@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
-  Image,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -20,8 +19,8 @@ import { useAccount } from '../../src/contexts/AccountContext';
 import { addAppBreadcrumb, captureAppError } from '../../src/lib/monitoring';
 import { EmergencyActions } from '../../src/components/safety/EmergencyActions';
 import { ResendConfirmationNote } from '../../src/components/auth/ResendConfirmationNote';
+import { AuthBrand } from '../../src/components/auth/AuthBrand';
 import { isEmailNotConfirmed } from '../../src/lib/frontDoor';
-const LOGO = require('../../assets/images/logo.png');
 
 export default function SignInScreen() {
   const { colors } = useTheme();
@@ -38,6 +37,7 @@ export default function SignInScreen() {
   // yet: "Send the confirmation email again" is offered for that address, and
   // goes away when she types a different one. (The address only, in memory.)
   const [unconfirmedFor, setUnconfirmedFor] = useState<string | null>(null);
+  const passwordInput = useRef<TextInput>(null);
 
   function changeEmail(value: string) {
     setEmail(value);
@@ -107,10 +107,8 @@ export default function SignInScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Logo / brand */}
-          <View style={styles.brand}>
-            <Image source={LOGO} style={styles.logoImg} resizeMode="contain" />
-          </View>
+          {/* Logo / brand: the same block as sign-up */}
+          <AuthBrand />
 
           {/* Card */}
           <View style={[styles.card, { borderColor: colors.line }]}>
@@ -135,6 +133,9 @@ export default function SignInScreen() {
                 autoCapitalize="none"
                 keyboardType="email-address"
                 autoComplete="email"
+                returnKeyType="next"
+                onSubmitEditing={() => passwordInput.current?.focus()}
+                submitBehavior="submit"
               />
             </View>
 
@@ -148,6 +149,11 @@ export default function SignInScreen() {
                 onChangeText={setPassword}
                 secureTextEntry
                 autoComplete="current-password"
+                ref={passwordInput}
+                // Return on the keyboard signs in, exactly as the button does
+                // (and only when the button itself could be pressed).
+                returnKeyType="go"
+                onSubmitEditing={() => { if (!loading && email && password) void handleEmailSignIn(); }}
               />
               <Link
                 // On web the query string lands in browser history; prefill natively only.
@@ -178,14 +184,20 @@ export default function SignInScreen() {
 
           </View>
 
-          <View style={styles.footer}>
-            <Text style={[styles.footerText, { color: colors.inkSoft }]}>{t('signIn.noAccount')} </Text>
-            <Link href="/(auth)/sign-up" asChild>
-              <TouchableOpacity accessibilityRole="link" hitSlop={8}>
-                <Text style={[styles.footerLink, { color: colors.primary }]}>{t('signIn.signUpLink')}</Text>
-              </TouchableOpacity>
-            </Link>
-          </View>
+          {/* The way to sign-up, as plain to see as the way back is on sign-up. */}
+          <Link href="/(auth)/sign-up" asChild>
+            <TouchableOpacity
+              accessibilityRole="link"
+              // One flat style object: <Link asChild> spreads the child's style.
+              style={StyleSheet.flatten([styles.otherScreenBtn, { borderColor: colors.primary }])}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.otherScreenText, { color: colors.primary }]}>
+                <Text style={styles.otherScreenLead}>{t('signIn.noAccount')} </Text>
+                {t('signIn.signUpLink')}
+              </Text>
+            </TouchableOpacity>
+          </Link>
 
           <View style={styles.emergency}>
             <EmergencyActions />
@@ -200,8 +212,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   kav: { flex: 1 },
   scroll: { flexGrow: 1, padding: 24, paddingBottom: 40 },
-  brand: { alignItems: 'center', marginTop: 24, marginBottom: 20 },
-  logoImg: { width: 260, height: 120, borderRadius: 14 },
   card: {
     backgroundColor: '#fff',
     borderRadius: 20,
@@ -252,11 +262,20 @@ const styles = StyleSheet.create({
   emergency: { marginTop: 28 },
   forgotLink: { alignSelf: 'flex-end', marginTop: 8, minHeight: 32, justifyContent: 'center' },
   forgotText: { fontSize: 14, fontWeight: '700' },
-  footer: {
-    flexDirection: 'row',
+  // The same outlined button as "I already have an account" on sign-up.
+  otherScreenBtn: {
+    borderWidth: 1.5,
+    borderRadius: 99,
+    minHeight: 48,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 22,
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 480,
+    marginTop: 20,
   },
-  footerText: { fontSize: 14 },
-  footerLink: { fontSize: 14, fontWeight: '600' },
+  otherScreenText: { fontSize: 15, fontWeight: '700', textAlign: 'center' },
+  otherScreenLead: { fontWeight: '500' },
 });

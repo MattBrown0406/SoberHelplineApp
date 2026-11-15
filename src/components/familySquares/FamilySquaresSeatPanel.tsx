@@ -167,7 +167,7 @@ export function FamilySquaresSeatPanel({ accountId, rsvp, onDecline, tone = 'car
 }
 
 const styles = StyleSheet.create({
-  panel: { marginTop: 14, paddingTop: 12, borderTopWidth: 1 },
+  panel: { marginTop: 12, paddingTop: 12, borderTopWidth: 1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowText: { flex: 1 },
   label: { fontSize: 14, fontWeight: '700' },
@@ -184,6 +184,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   calendarBtnText: { fontSize: 14, fontWeight: '700' },
-  declineLink: { minHeight: 44, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  declineLink: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   declineText: { fontSize: 13, fontWeight: '600', textDecorationLine: 'underline' },
 });

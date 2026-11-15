@@ -86,26 +86,31 @@ for (const file of FILES) {
   });
 }
 
-test('Today: her initial opens Settings on every version of the screen, with a real 44-point target', () => {
+test('Today: the shared header opens Settings on every version of the screen, with a real 44-point target', () => {
   const today = readFileSync(resolve(root, 'app/(tabs)/index.tsx'), 'utf8');
-  assert.match(
-    today,
-    /<TouchableOpacity\s+accessibilityRole="button"\s+accessibilityLabel=\{t\('common:a11y\.settings'\)\}\s+onPress=\{\(\) => router\.push\('\/settings'\)\}[\s\S]*?style=\{styles\.avatarButton\}\s+>\s+<View style=\{\[styles\.avatar,/,
-  );
-  // A real size, not hitSlop; the negative margin keeps the header where it was.
-  assert.match(today, /avatarButton: \{\s+minWidth: 44,\s+minHeight: 44,\s+margin: -3,/);
+  // Today's title is her greeting, in the same header as every other tab.
+  assert.match(today, /const header = <TabHeader title=\{greeting\} \/>;/);
+  assert.doesNotMatch(today, /avatarButton|styles\.avatar/);
   // One header for the free, member, bereaved and still-loading Today.
   assert.equal((today.match(/\{header\}/g) ?? []).length, 4);
-  assert.equal((today.match(/styles\.avatarButton/g) ?? []).length, 1);
+  // The Settings button itself: a real size (not hitSlop), a role and a label from the locale files.
+  const header = readFileSync(resolve(root, 'src/components/ui/TabHeader.tsx'), 'utf8');
+  assert.match(
+    header,
+    /<TouchableOpacity\s+accessibilityRole="button"\s+accessibilityLabel=\{t\('common:a11y\.settings'\)\}\s+onPress=\{\(\) => router\.push\('\/settings'\)\}[\s\S]*?style=\{styles\.settings\}\s+>\s+<MaterialCommunityIcons\s+name="cog-outline"\s+size=\{24\}\s+color=\{colors\.primary\}/,
+  );
+  assert.match(header, /settings: \{\s+width: 44,\s+minHeight: 44,/);
+  assert.doesNotMatch(header, /hitSlop/);
   for (const lang of ['en', 'es']) {
     const common = JSON.parse(readFileSync(resolve(root, `src/locales/${lang}/common.json`), 'utf8'));
     assert.ok(common.a11y.settings && common.a11y.close, `${lang}: a11y labels`);
   }
 });
 
-test('Support keeps its Settings gear', () => {
+test('Support keeps its way to Settings: the shared header, not a gear of its own', () => {
   const support = readFileSync(resolve(root, 'app/(tabs)/support.tsx'), 'utf8');
-  assert.match(support, /onPress=\{\(\) => router\.push\('\/settings'\)\} hitSlop=\{12\} accessibilityRole="button" accessibilityLabel=\{t\('common:a11y\.settings'\)\}/);
+  assert.match(support, /<TabHeader title=\{t\('header'\)\} \/>/);
+  assert.doesNotMatch(support, /⚙|settingsIcon/);
 });
 
 test('choices say whether they are chosen: onboarding chips, crisis-guide tabs and the language pills', () => {
