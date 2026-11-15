@@ -167,6 +167,7 @@ export function SituationCard({ accountId = null, nextFreeCall, primaryDoor, wee
             confirmed={view.confirmed}
             session={nextFreeCall}
             savedHere={seatSavedHere}
+            showDate={isFamilySquares}
             onPress={confirmedTap}
             pressLabel={t('situationCta.goingLabel', { name: title })}
           />

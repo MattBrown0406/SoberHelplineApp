@@ -27,10 +27,11 @@ test('the join window runs from three hours before the meeting starts until it e
   assert.equal(sessionJoinWindow(START, at(-180)), 'inside', 'three hours before, to the minute');
   assert.equal(sessionJoinWindow(START, at(0)), 'inside');
   assert.equal(sessionJoinWindow(START, at(59)), 'inside', 'still on');
-  assert.equal(sessionJoinWindow(START, at(60)), 'outside', 'its hour is over');
+  assert.equal(sessionJoinWindow(START, at(60)), 'unknown', 'its hour is over: a start in the past is never "days before"');
+  assert.equal(sessionJoinWindow(START, at(8 * 24 * 60)), 'unknown', 'a next_at nobody moved on');
   // La Sobremesa runs 75 minutes: both screens pass its length.
   assert.equal(sessionJoinWindow(START, at(74), LA_SOBREMESA_CALL_LENGTH_MS), 'inside');
-  assert.equal(sessionJoinWindow(START, at(75), LA_SOBREMESA_CALL_LENGTH_MS), 'outside');
+  assert.equal(sessionJoinWindow(START, at(75), LA_SOBREMESA_CALL_LENGTH_MS), 'unknown');
   // The decision itself imports nothing, so every screen and test harness can load it.
   assert.doesNotMatch(read('src/lib/familySquaresCard.ts'), /^import /m);
 });
@@ -108,7 +109,7 @@ test('"going" is confirmed once, with or without a link, and never on a cancelle
   assert.equal('going' in callCardView({ familySquares: true, cancelled: false, answer: 'going', hasLink: false }), false, 'the old no-link flag is folded in');
 
   const line = read('src/components/familySquares/FamilySquaresSpotSavedLine.tsx');
-  assert.match(line, /const day = meetingDayLabel\(session\?\.next_at, \{\s+locale: i18n\.resolvedLanguage \?\? i18n\.language,\s+lengthMs: isLaSobremesaSession\(session\) \? LA_SOBREMESA_CALL_LENGTH_MS : undefined,\s+\}\);/);
+  assert.match(line, /meetingDayLabel\(session\?\.next_at, \{\s+locale: i18n\.resolvedLanguage \?\? i18n\.language,\s+lengthMs: isLaSobremesaSession\(session\) \? LA_SOBREMESA_CALL_LENGTH_MS : undefined,\s+\}\)/);
   assert.match(line, /day \? t\('familySquares\.spotSaved', \{ date: day \}\) : t\('familySquares\.spotSavedNoDate'\)/);
   assert.match(line, /if \(!confirmed\) return null;/);
   // Green is the confirmation colour; the words stay ink for contrast.
@@ -126,7 +127,7 @@ test('"going" is confirmed once, with or without a link, and never on a cancelle
   // A call other than Family Squares keeps the tap its "You're going" button had while there is no link.
   assert.match(card, /const confirmedTap = !isFamilySquares && !canJoin \? onRsvp : undefined;/);
   const support = read('app/(tabs)/support.tsx');
-  assert.match(support, /<FamilySquaresSpotSavedLine\s+confirmed=\{view\.confirmed\}\s+session=\{sess\}\s+savedHere=\{familySquares \? seatSavedHere : 0\}\s+onPress=\{familySquares \? undefined : \(\) => void handleSessionRsvp\(sess\)\}\s+pressLabel=\{t\('sessions\.confirmLabel', \{ name \}\)\}/);
+  assert.match(support, /<FamilySquaresSpotSavedLine\s+confirmed=\{view\.confirmed\}\s+session=\{sess\}\s+savedHere=\{familySquares \? seatSavedHere : 0\}\s+showDate=\{familySquares\}\s+onPress=\{familySquares \? undefined : \(\) => void handleSessionRsvp\(sess\)\}\s+pressLabel=\{t\('sessions\.confirmLabel', \{ name \}\)\}/);
   assert.doesNotMatch(support, /sessions\.confirmButton/);
 });
 
@@ -220,4 +221,19 @@ test('Support: "How to use your membership" is only for someone who has one', ()
   const support = read('app/(tabs)/support.tsx');
   assert.match(support, /const hasMembershipAccess = entitlements\.canAccessGroups;/);
   assert.match(support, /\{hasMembershipAccess && \(\s+<View style=\{\[styles\.card, \{ borderColor: colors\.line, backgroundColor: colors\.white \}\]\}>\s+<TouchableOpacity accessibilityRole="button" accessibilityState=\{\{ expanded: membershipExpanded \}\}/);
+});
+
+// ── Re-check of the visual pass ─────────────────────────────────────────────
+
+test('only a Family Squares seat names its day; another call says the seat is saved, with no date', () => {
+  const line = read('src/components/familySquares/FamilySquaresSpotSavedLine.tsx');
+  assert.match(line, /showDate = true/);
+  assert.match(line, /const day = showDate\s+\? meetingDayLabel\(/);
+  assert.match(read('src/components/today/SituationCard.tsx'), /showDate=\{isFamilySquares\}/);
+  assert.match(read('app/(tabs)/support.tsx'), /showDate=\{familySquares\}/);
+});
+
+test('without a plan, Support still links to how coaching support works', () => {
+  const support = read('app/(tabs)/support.tsx');
+  assert.match(support, /\{!hasMembershipAccess && \(\s*<TouchableOpacity[\s\S]{0,200}?router\.push\('\/membership-guide'\)/);
 });

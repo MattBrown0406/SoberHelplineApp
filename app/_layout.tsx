@@ -30,6 +30,10 @@ import { clearPendingDeepLink, subscribePendingDeepLink, takePendingDeepLink } f
 // screen change underneath is over by then), and after the longer wait
 // whatever happens: a slow session read never holds anyone on the launch screen.
 const LAUNCH_COVER_SETTLE_MS = 450;
+// While the session is still being read (an expired token with no signal can
+// take many seconds), the cover gives way early: the screens underneath, with
+// their crisis buttons, are worth more than a tidy launch.
+const LAUNCH_COVER_SESSION_READ_MS = 1500;
 const LAUNCH_COVER_MAX_MS = 5000;
 
 function ReviewPromptCoordinator() {
@@ -299,9 +303,10 @@ function InitialLayout() {
       setLaunchCover(false);
       return undefined;
     }
-    const timer = setTimeout(() => setLaunchCover(false), preSignInScreenInFront ? LAUNCH_COVER_SETTLE_MS : LAUNCH_COVER_MAX_MS);
+    const wait = preSignInScreenInFront ? LAUNCH_COVER_SETTLE_MS : isLoading ? LAUNCH_COVER_SESSION_READ_MS : LAUNCH_COVER_MAX_MS;
+    const timer = setTimeout(() => setLaunchCover(false), wait);
     return () => clearTimeout(timer);
-  }, [launchCover, isAuthenticated, preSignInScreenInFront]);
+  }, [launchCover, isAuthenticated, preSignInScreenInFront, isLoading]);
   const showLaunchCover = launchCover && !isAuthenticated;
 
   // Keep one router stack mounted through auth/onboarding hydration. Unmounting

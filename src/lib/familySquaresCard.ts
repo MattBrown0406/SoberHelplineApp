@@ -109,7 +109,10 @@ export function sessionJoinWindow(
   const start = meetingStartMs(nextAt);
   if (start === null) return 'unknown';
   const at = now.getTime();
-  return start - JOIN_WINDOW_LEAD_MS <= at && at < start + lengthMs ? 'inside' : 'outside';
+  // Past its end: `next_at` has not been moved on (or the call is running
+  // over). That is not "days before the meeting", so Join leads as it always did.
+  if (at >= start + lengthMs) return 'unknown';
+  return start - JOIN_WINDOW_LEAD_MS <= at ? 'inside' : 'outside';
 }
 
 /**

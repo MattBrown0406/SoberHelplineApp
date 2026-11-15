@@ -24,6 +24,13 @@ interface Props {
   onPress?: () => void;
   /** What that tap's button is called (required with onPress). */
   pressLabel?: string;
+  /**
+   * Whether the line names the day. Only a Family Squares seat is saved for
+   * one dated meeting. Another call's RSVP (La Sobremesa) carries no date and
+   * outlives the meeting until the Tuesday reset, while `next_at` has already
+   * moved to next week: naming that day would promise a seat she does not have.
+   */
+  showDate?: boolean;
 }
 
 /**
@@ -31,13 +38,15 @@ interface Props {
  * check and "Your spot is saved for Monday, November 16". Shown whether or
  * not the meeting's link is set.
  */
-export function FamilySquaresSpotSavedLine({ confirmed, session, savedHere = 0, onPress, pressLabel }: Props) {
+export function FamilySquaresSpotSavedLine({ confirmed, session, savedHere = 0, onPress, pressLabel, showDate = true }: Props) {
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('common');
-  const day = meetingDayLabel(session?.next_at, {
-    locale: i18n.resolvedLanguage ?? i18n.language,
-    lengthMs: isLaSobremesaSession(session) ? LA_SOBREMESA_CALL_LENGTH_MS : undefined,
-  });
+  const day = showDate
+    ? meetingDayLabel(session?.next_at, {
+      locale: i18n.resolvedLanguage ?? i18n.language,
+      lengthMs: isLaSobremesaSession(session) ? LA_SOBREMESA_CALL_LENGTH_MS : undefined,
+    })
+    : null;
   const text = day ? t('familySquares.spotSaved', { date: day }) : t('familySquares.spotSavedNoDate');
 
   const announced = useRef(savedHere);

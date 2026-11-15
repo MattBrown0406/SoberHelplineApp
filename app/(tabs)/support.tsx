@@ -674,6 +674,7 @@ export default function SupportScreen() {
               confirmed={view.confirmed}
               session={sess}
               savedHere={familySquares ? seatSavedHere : 0}
+              showDate={familySquares}
               onPress={familySquares ? undefined : () => void handleSessionRsvp(sess)}
               pressLabel={t('sessions.confirmLabel', { name })}
             />
@@ -855,7 +856,11 @@ export default function SupportScreen() {
         <Text accessibilityRole="header" style={[styles.eyebrow, { color: colors.inkSoft }]}>{t('peopleHeading')}</Text>
         <Text style={[styles.referralBody, styles.sectionNote, { color: colors.inkSoft }]}>{t('peopleAccess', { rate: coachingRate.hourly })}</Text>
 
-        {/* "How to use your membership" is for someone who has one. */}
+        {/* "How to use your membership" is for someone who has one. Without a
+            plan, the one link that explains coaching stays (the only way to that screen). */}
+        {!hasMembershipAccess && (
+          <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary, marginBottom: 12 }]} onPress={() => router.push('/membership-guide')}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{t('coachingGuideLink')}</Text></TouchableOpacity>
+        )}
         {hasMembershipAccess && (
         <View style={[styles.card, { borderColor: colors.line, backgroundColor: colors.white }]}>
           <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: membershipExpanded }} aria-expanded={membershipExpanded} onPress={() => setMembershipExpanded((value) => !value)} style={styles.membershipDisclosure}>
