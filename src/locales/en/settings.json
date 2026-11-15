@@ -70,6 +70,7 @@
     "websiteMemberHint": "Already a member on soberhelpline.com? Your membership follows your email address. Sign in here with the same email you used on the website.",
     "websiteMemberHintWithEmail": "Already a member on soberhelpline.com? Your membership follows your email address. Sign in here with the same email you used on the website. You are signed in as {{email}}.",
     "manage": "Manage subscription",
+    "seePlans": "See plans",
     "restore": "Restore Purchases",
     "restoreSuccessTitle": "Purchases restored",
     "restoreSuccessBody": "Your subscription is active again.",

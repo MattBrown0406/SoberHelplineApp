@@ -137,3 +137,26 @@ export function purchaseAccountNow(input: {
   if (input.userIdNow && input.userIdNow !== input.buyerUserId) return 'different';
   return input.accountIdNow === input.buyerAccountId && input.userIdNow === input.buyerUserId ? 'same' : 'unknown';
 }
+
+/**
+ * RevenueCat's code for a purchase the store has taken but not finished
+ * (PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR in react-native-purchases; kept
+ * here as a plain value so this file stays free of device imports, and pinned
+ * to the installed SDK by a test).
+ */
+export const PAYMENT_PENDING_ERROR_CODE = '20';
+
+/**
+ * True when the store's answer is "waiting for approval": Ask to Buy sent to a
+ * parent, or a payment the bank has still to approve. Nothing went wrong and
+ * she did not cancel; the plan turns on by itself if it is approved. The SDK
+ * reports it as an error, so it is recognised here by its code (or, on a
+ * bridge that leaves the code out, by its readable name).
+ */
+export function isPaymentPending(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const { code, userInfo } = error as { code?: unknown; userInfo?: { readableErrorCode?: unknown } | null };
+  if (String(code ?? '') === PAYMENT_PENDING_ERROR_CODE) return true;
+  const readable = userInfo?.readableErrorCode;
+  return readable === 'PaymentPendingError' || readable === 'PAYMENT_PENDING_ERROR';
+}

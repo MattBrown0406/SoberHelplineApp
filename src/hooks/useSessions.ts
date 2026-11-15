@@ -55,12 +55,14 @@ export function useSessions(accountId: string | null) {
   const answers = useRef(0);
   // How many plain RSVP writes are on their way to the server right now.
   const writing = useRef(0);
+  // The account whose list was last read cleanly: only its own list is ever kept.
+  const loadedFor = useRef<string | null>(null);
 
   const load = useCallback(async () => {
     const request = ++generation.current;
     const answersAtStart = answers.current;
     if (!accountId) return;
-    const [{ data: rows }, { data: rsvps }, cancelledDate] = await Promise.all([
+    const [{ data: rows, error: rowsError }, { data: rsvps, error: rsvpsError }, cancelledDate] = await Promise.all([
       supabase
         .from('sessions')
         .select('id, kind, title, schedule_label, next_at, zoom_url')
@@ -71,6 +73,20 @@ export function useSessions(accountId: string | null) {
       // (null). Every read asks afresh; a cancelled state is never carried over.
       loadFamilySquaresCancelledDate(),
     ]);
+    // A failed read (offline resume, dead zone) keeps the list this account
+    // last loaded, as Today keeps its card: blanking it would drop the Family
+    // Squares row from Support and the next-session line from chat. The first
+    // load still ends empty, and still ends loading.
+    if (rowsError || rsvpsError) {
+      if (request !== generation.current || identity.current !== accountId) return;
+      // ...except "cancelled": that is never kept from an earlier read. The
+      // row takes what the cancelled check answered just now (fail open).
+      setSessions((prev) => (loadedFor.current === accountId
+        ? prev.map((s) => (isFamilySquaresSession(s) && (s.cancelledDate ?? null) !== cancelledDate ? { ...s, cancelledDate } : s))
+        : []));
+      setLoading(false);
+      return;
+    }
     const going = new Set((rsvps ?? []).filter((r) => r.status === 'going').map((r) => r.session_id as string));
     // (Remembered on the device, so a reminder tap knows which session is Family Squares.)
     rememberFamilySquaresSession(rows as { id: string; title: string }[] | null);
@@ -88,6 +104,7 @@ export function useSessions(accountId: string | null) {
     // saved): her answers stay as they are.
     const answeredSince = answersAtStart !== answers.current || writing.current > 0;
     setSessions((prev) => loaded.map((s) => withFreshAnswer(s, prev.find((p) => p.id === s.id), answeredSince)));
+    loadedFor.current = accountId;
     setLoading(false);
   }, [accountId]);
 

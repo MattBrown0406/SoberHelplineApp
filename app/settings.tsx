@@ -20,6 +20,7 @@ import { isAdminEmail } from '../src/lib/admin';
 import { useFeatureAccess } from '../src/hooks/useFeatureAccess';
 import { useRestorePurchases } from '../src/hooks/useRestorePurchases';
 import { benefitSummary } from '../src/lib/membershipBenefits';
+import { plansHref, purchasableTiers } from '../src/lib/membershipPath';
 import { purgeAccountLocalData } from '../src/lib/accountLocalData';
 import { captureAppError } from '../src/lib/monitoring';
 import { appAlert } from '../src/lib/appAlert';
@@ -85,6 +86,8 @@ export default function SettingsScreen() {
   const [consentLoading, setConsentLoading] = useState(true);
   // Shared with the plans screen (useRestorePurchases).
   const { restoring, handleRestore } = useRestorePurchases();
+  // Someone with a plan still to choose (free, or Essential with Premier above it).
+  const canSeePlans = purchasableTiers(accountState).length > 0;
   const [openingReview, setOpeningReview] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const isAdmin = isAdminEmail(user?.email);
@@ -618,12 +621,35 @@ export default function SettingsScreen() {
               </Text>
             ) : null}
 
+            {/* A quiet door to the plans for anyone who could still choose one,
+                bereaved members included (Support and Learn show them no
+                offer): one plain row. No benefits, no price, no badge. */}
+            {canSeePlans && (
+              <TouchableOpacity
+                style={[
+                  styles.restoreBtn,
+                  {
+                    borderColor: colors.line,
+                    marginTop: accountState !== 'direct-free' ? 14 : 0,
+                  },
+                ]}
+                onPress={() => router.push(plansHref('settings'))}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={t('membership.seePlans')}
+              >
+                <Text style={[styles.restoreText, { color: colors.primary }]}>
+                  {t('membership.seePlans')}
+                </Text>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity
               style={[
                 styles.restoreBtn,
                 {
                   borderColor: colors.line,
-                  marginTop: accountState !== 'direct-free' ? 14 : 0,
+                  marginTop: canSeePlans ? 10 : accountState !== 'direct-free' ? 14 : 0,
                 },
               ]}
               onPress={() => void handleRestore()}

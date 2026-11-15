@@ -221,7 +221,7 @@ test('"Save my seat every Monday" is offered after a saved seat on Today, Suppor
   assert.match(seat, /if \(error \|\| familySquaresRsvpIsCurrent\(answer\?\.family_squares_meeting_date\)\) return;\s+await reserveFamilySquares\(accountId\);/);
   // The panel shows nothing until a seat is saved (unless her weekly seat is on: seatPanelView), and a plain on/off switch after.
   const panel = read('src/components/familySquares/FamilySquaresSeatPanel.tsx');
-  assert.match(panel, /const panelView = seatPanelView\(\{ cancelled, answer: rsvp, weeklySeatOn: weekly\.enabled \}\);\s+if \(panelView === 'hidden'\) return null;/);
+  assert.match(panel, /const panelView = seatPanelView\(\{ cancelled, answer: rsvp, weeklySeatOn: weekly\.enabled, weeklyNoteHeld: weeklySeatNoteHeld\(\{ bereaved, refusedHere \}\) \}\);\s+if \(panelView === 'hidden'\) return null;/);
   assert.equal(seatPanelView({ cancelled: false, answer: 'none', weeklySeatOn: false }), 'hidden');
   assert.match(panel, /<Switch\s+value=\{weekly\.enabled\}[\s\S]*?accessibilityRole="switch"\s+accessibilityLabel=\{t\('familySquares\.weekly\.title'\)\}/);
 });
@@ -296,7 +296,8 @@ test('declining changes only her own going Family Squares RSVP, and the reminder
   assert.equal((fifteen.match(/\.eq\('status', 'going'\)/g) ?? []).length, 2);
   // After a decline the panel says so; the weekly seat comes back next Monday.
   const panel = read('src/components/familySquares/FamilySquaresSeatPanel.tsx');
-  assert.match(panel, /t\(weekly\.enabled \? 'familySquares\.decline\.doneWeekly' : 'familySquares\.decline\.done'\)/);
+  // ("Saved again from next Monday" only where the device knows the weekly seat is saved for her: audit round 4.)
+  assert.match(panel, /t\(weekly\.enabled && bereaved === false \? 'familySquares\.decline\.doneWeekly' : 'familySquares\.decline\.done'\)/);
 });
 
 // ── 5. First-timer note ─────────────────────────────────────────────────────

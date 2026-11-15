@@ -19,7 +19,8 @@ import { supabase } from '../../src/lib/supabase';
 import { EmergencyActions } from '../../src/components/safety/EmergencyActions';
 import { AppLogo } from '../../src/components/ui/AppLogo';
 import { ConfirmEmailPanel } from '../../src/components/auth/ConfirmEmailPanel';
-import { SIGN_UP_CONFIRM_REDIRECT_URL, signUpFailure } from '../../src/lib/frontDoor';
+import { SIGN_UP_CONFIRM_REDIRECT_URL, signUpEmailAlreadySentAt, signUpFailure } from '../../src/lib/frontDoor';
+import { confirmationEmailLastSentAt } from '../../src/lib/confirmationEmail';
 import { markSignUpSubmitted, noteSignUpFormStarted } from '../../src/lib/frontDoorStore';
 import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '../../src/config';
 
@@ -47,6 +48,9 @@ export default function SignUpScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checkEmail, setCheckEmail] = useState(false);
+  // When the confirmation email went out, if that was not just now (a second
+  // sign-up for the same address inside a minute). Null: just now.
+  const [emailSentAt, setEmailSentAt] = useState<number | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   // Only a yes/no leaves this screen (never anything she typed): the root
@@ -83,6 +87,19 @@ export default function SignUpScreen() {
         },
       });
       if (err) {
+        // Asked again for the same address inside a minute: the server says
+        // "too soon", because its confirmation email has already gone out.
+        // That is not a failure: she is back on "Confirm your email", and
+        // "Send the email again" rests for what is left of its minute.
+        const alreadySentAt = signUpEmailAlreadySentAt(err, {
+          lastSentHereAtMs: confirmationEmailLastSentAt(email),
+          nowMs: Date.now(),
+        });
+        if (alreadySentAt !== null) {
+          setEmailSentAt(alreadySentAt);
+          setCheckEmail(true);
+          return;
+        }
         // "Already exists" only for the error that means it: a 422 is usually
         // a password the server will not accept (frontDoor.signUpFailure).
         const failure = signUpFailure(err);
@@ -101,6 +118,7 @@ export default function SignUpScreen() {
       // Email confirmation is required: show "Confirm your email", which signs
       // her in with what she just typed once she has tapped the link.
       if (!data.session) {
+        setEmailSentAt(null);
         setCheckEmail(true);
       }
       // If email confirmation is disabled, onAuthStateChange fires → InitialLayout redirects
@@ -118,6 +136,7 @@ export default function SignUpScreen() {
       <ConfirmEmailPanel
         email={email.trim()}
         password={password}
+        sentAtMs={emailSentAt}
         onForgetPassword={() => setPassword('')}
         onUseDifferentEmail={() => {
           setPassword('');

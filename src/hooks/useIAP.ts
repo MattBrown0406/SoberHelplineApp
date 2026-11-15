@@ -3,12 +3,16 @@ import { AppState } from 'react-native';
 import { useAccount } from '../contexts/AccountContext';
 import Purchases, { type PurchasesOfferings, type PurchasesPackage } from 'react-native-purchases';
 import { PURCHASE_NOT_STARTED, purchaseRevenueCatPackage } from '../lib/revenueCat';
-import { PRE_STORE_STEP_MS, beforeStoreStep, type PurchaseControl } from '../lib/purchaseSteps';
+import { PRE_STORE_STEP_MS, beforeStoreStep, isPaymentPending, type PurchaseControl } from '../lib/purchaseSteps';
 import { setReviewPromptPurchaseFlow } from '../lib/reviewPrompt';
 import { freeTrialOffer, type TrialOffer } from '../lib/subscriptionTrial';
 
 export type SubscriptionTier = 'essential' | 'premium';
-export type PurchaseResult = 'success' | 'cancelled' | 'failed';
+/**
+ * 'pending' is the store saying the purchase waits for someone's approval
+ * (Ask to Buy, a bank): not bought yet, not cancelled, and nothing went wrong.
+ */
+export type PurchaseResult = 'success' | 'cancelled' | 'failed' | 'pending';
 
 let activePurchaseFlows = 0;
 const PRICE_RETRY_DELAYS_MS = [5_000, 15_000, 45_000];
@@ -183,6 +187,9 @@ export function useIAP() {
       // asked: not a failure. (RevenueCat not being on this account IS one:
       // PURCHASE_NOT_IDENTIFIED falls through to 'failed', so she is told.)
       if (rcErr.message === PURCHASE_NOT_STARTED) return 'cancelled';
+      // Waiting for approval (Ask to Buy, a bank): the store has the request,
+      // and the plan turns on by itself if it is approved. Not an error.
+      if (isPaymentPending(err)) return 'pending';
       console.error(`[useIAP] ${tier} purchase failed:`, err);
       if (current()) setIapError(rcErr.message ?? 'purchase_failed');
       return 'failed';

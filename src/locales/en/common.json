@@ -72,7 +72,7 @@
     "weekly": {
       "title": "Save my seat every Monday",
       "desc": "We'll save your seat at Family Squares each week, so you don't have to do it again. It pauses while your reminders are paused, or after about six months away from the app.",
-      "onNote": "Your weekly seat is on for the coming Monday. We'll save your seat for you, and you can also save it now.",
+      "onNote": "Your weekly seat is on. We usually save your seat for the coming Monday within a few hours, and you can also save it now.",
       "errorTitle": "Couldn't save that",
       "errorBody": "Check your connection and try again."
     },

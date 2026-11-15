@@ -85,15 +85,38 @@ export function accountIsNewForFirstTimerNote(joinedAt: string | null | undefine
  * - 'full'        — her seat is saved: the reminder ask, the switch, the
  *                   calendar file and "can't make it this week".
  * - 'declined'    — she is sitting this week out.
- * - 'weekly_only' — the week is cancelled: the switch and nothing else.
+ * - 'weekly_only' — the switch and nothing else: the week is cancelled, or
+ *                   her switch is on but "your seat is saved for you" cannot
+ *                   be said to her (`weeklyNoteHeld`).
  */
 export type SeatPanelView = 'hidden' | 'weekly_note' | 'full' | 'declined' | 'weekly_only';
 
-export function seatPanelView(input: { cancelled: boolean; answer: SeatAnswer; weeklySeatOn: boolean }): SeatPanelView {
+export function seatPanelView(input: {
+  cancelled: boolean;
+  answer: SeatAnswer;
+  weeklySeatOn: boolean;
+  /** The weekly note would not be true for her (weeklySeatNoteHeld). */
+  weeklyNoteHeld?: boolean;
+}): SeatPanelView {
   if (input.cancelled) return 'weekly_only';
   if (input.answer === 'going') return 'full';
   if (input.answer === 'declined') return 'declined';
-  return input.weeklySeatOn ? 'weekly_note' : 'hidden';
+  if (!input.weeklySeatOn) return 'hidden';
+  return input.weeklyNoteHeld ? 'weekly_only' : 'weekly_note';
+}
+
+/**
+ * Whether "your seat is saved for you" must NOT be said. The server saves no
+ * weekly seat for a bereaved member who paused her reminders, nor for one the
+ * website would not register this week, so the sentence is held back when:
+ * - the device does not know she is NOT bereaved. It keeps no copy that says
+ *   "bereaved, and reminders are on", so every bereaved member, and anyone
+ *   the device has no answer for yet, sees the switch without the sentence;
+ * - a Save tap on this device was refused by the website for the coming
+ *   meeting (familySquaresSeatRefusedHere).
+ */
+export function weeklySeatNoteHeld(input: { bereaved: boolean | undefined; refusedHere: boolean }): boolean {
+  return input.bereaved !== false || input.refusedHere;
 }
 
 /** Why saving a Family Squares seat did not work, as far as the app can tell. */

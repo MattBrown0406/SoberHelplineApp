@@ -222,7 +222,7 @@ test('the confirm step shows her address, continues into the normal first sign-i
   assert.doesNotMatch(panel, /supabase\.auth\.resend/);
   assert.match(read('src/lib/confirmationEmail.ts'), /supabase\.auth\.resend\(\{\s+type: 'signup',\s+email,\s+options: \{ emailRedirectTo: SIGN_UP_CONFIRM_REDIRECT_URL \},\s+\}\);/);
   assert.match(panel, /if \(busyRef\.current \|\| resendSecondsLeft\(lastSentAt, Date\.now\(\)\) > 0\) return;/);
-  assert.match(panel, /const \[lastSentAt, setLastSentAt\] = useState<number \| null>\(\(\) => Date\.now\(\)\);/);
+  assert.match(panel, /const \[lastSentAt, setLastSentAt\] = useState<number \| null>\(\(\) => sentAtMs \?\? Date\.now\(\)\);/);
   // Every pre-sign-in screen keeps the emergency block.
   for (const file of ['app/(auth)/sign-in.tsx', 'app/(auth)/sign-up.tsx', 'app/(auth)/reset-password.tsx', 'src/components/auth/ConfirmEmailPanel.tsx']) {
     assert.match(read(file), /<EmergencyActions \/>/, `${file} shows the emergency actions`);
@@ -332,7 +332,7 @@ test('the 60-second rest carries between the confirm step and sign-in, in memory
   assert.match(lib, /return email\.trim\(\)\.toLowerCase\(\);/);
   assert.match(lib, /if \(outcome !== 'failed'\) noteConfirmationEmailSent\(email\);/);
   assert.match(lib, /\} catch \(resendError\) \{\s+captureAppError\(resendError\);\s+\}/);
-  assert.match(read('src/components/auth/ConfirmEmailPanel.tsx'), /useEffect\(\(\) => \{ noteConfirmationEmailSent\(email\); \}, \[email\]\);/);
+  assert.match(read('src/components/auth/ConfirmEmailPanel.tsx'), /useEffect\(\(\) => \{ noteConfirmationEmailSent\(email, sentAtMs \?\? Date\.now\(\)\); \}, \[email, sentAtMs\]\);/);
 });
 
 test('the confirm step is true for an address that already has an account, and offers the way to sign in', () => {

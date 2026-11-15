@@ -176,6 +176,36 @@ export function signUpFailure(error: (AuthFailure & { name?: string | null }) | 
   return 'failed';
 }
 
+/**
+ * Sign-up asked again for the same address inside a minute: the server
+ * answers 429, "you can only request this after N seconds". Nothing is wrong:
+ * that address was sent its confirmation email a moment ago, so she belongs
+ * on "Confirm your email" again, not in front of "Sign-up failed". Answers
+ * when that email went out (so "Send the email again" rests for what is left
+ * of its minute), or null for every other refusal.
+ *
+ * Not every 429 means an email went out: the project's own hourly email limit
+ * and the request limit send nothing. So it is believed only when this device
+ * itself sent this address an email within the last minute, or when the
+ * server names the wait.
+ */
+export function signUpEmailAlreadySentAt(
+  error: AuthFailure | null | undefined,
+  input: {
+    /** When this run of the app last sent this address a confirmation email, if it did. */
+    lastSentHereAtMs: number | null;
+    nowMs: number;
+  },
+): number | null {
+  if (!error || error.status !== 429) return null;
+  const { lastSentHereAtMs, nowMs } = input;
+  if (lastSentHereAtMs !== null && resendSecondsLeft(lastSentHereAtMs, nowMs) > 0) return lastSentHereAtMs;
+  const wait = /after (\d+) seconds?/i.exec(error.message ?? '');
+  if (!wait) return null;
+  const secondsLeft = Math.min(RESEND_COOLDOWN_SECONDS, Number(wait[1]));
+  return nowMs - (RESEND_COOLDOWN_SECONDS - secondsLeft) * 1000;
+}
+
 /** True when a sign-in was refused only because the address has not been confirmed yet. */
 export function isEmailNotConfirmed(error: AuthFailure | null | undefined): boolean {
   if (!error) return false;

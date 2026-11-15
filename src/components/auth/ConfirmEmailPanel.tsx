@@ -31,6 +31,13 @@ interface Props {
    * screen to forget it as soon as it is no longer needed.
    */
   password: string;
+  /**
+   * When the confirmation email went out, if that was not just now: sign-up
+   * asked again for the same address inside a minute sends no second email,
+   * and "Send the email again" rests only for what is left of the first
+   * one's minute. Left out (or null): sign-up sent it a moment ago.
+   */
+  sentAtMs?: number | null;
   /** Clears the password from the sign-up screen's memory. */
   onForgetPassword: () => void;
   /** Back to the form (the screen forgets the password on the way). */
@@ -42,7 +49,7 @@ interface Props {
  * opens a soberhelpline.com page) and comes back; the app then signs her in
  * with what she already typed, so she never fills in the form twice.
  */
-export function ConfirmEmailPanel({ email, password, onForgetPassword, onUseDifferentEmail }: Props) {
+export function ConfirmEmailPanel({ email, password, sentAtMs = null, onForgetPassword, onUseDifferentEmail }: Props) {
   const { colors } = useTheme();
   const { t } = useTranslation('auth');
   const router = useRouter();
@@ -51,8 +58,8 @@ export function ConfirmEmailPanel({ email, password, onForgetPassword, onUseDiff
   const [busy, setBusy] = useState<'checking' | 'resending' | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [signedIn, setSignedIn] = useState(false);
-  // Sign-up sent the first email a moment ago.
-  const [lastSentAt, setLastSentAt] = useState<number | null>(() => Date.now());
+  // Sign-up sent the first email a moment ago (or at `sentAtMs`, when it says so).
+  const [lastSentAt, setLastSentAt] = useState<number | null>(() => sentAtMs ?? Date.now());
   const [now, setNow] = useState(() => Date.now());
 
   const passwordRef = useRef(password);
@@ -67,7 +74,7 @@ export function ConfirmEmailPanel({ email, password, onForgetPassword, onUseDiff
   }, []);
   // Sign-up sent the first email a moment ago: "send again" on the sign-in
   // screen rests for the same minute (in memory only).
-  useEffect(() => { noteConfirmationEmailSent(email); }, [email]);
+  useEffect(() => { noteConfirmationEmailSent(email, sentAtMs ?? Date.now()); }, [email, sentAtMs]);
 
   const secondsLeft = resendSecondsLeft(lastSentAt, now);
   useEffect(() => {

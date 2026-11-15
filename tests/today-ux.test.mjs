@@ -140,7 +140,8 @@ test('both Today tiers lead with the call and check-in, then one next step, need
     for (const key of ['progress', 'next', 'back', 'addNote', 'hideNote']) assert.ok(locale.checkIn[key]);
     assert.ok(locale.disclosure.practice); assert.ok(locale.needs.more);
     // The share card's section says what it is; the old "Free Monday call & connection" title is gone.
-    assert.match(locale.disclosure.invite, /Family Squares/); assert.equal(locale.disclosure.connection, undefined);
+    // (In Spanish the card shares La Sobremesa, so that is the meeting its title names.)
+    assert.match(locale.disclosure.invite, lang === 'es' ? /La Sobremesa/ : /Family Squares/); assert.equal(locale.disclosure.connection, undefined);
     assert.ok(locale.disclosure.more);
   }
 });

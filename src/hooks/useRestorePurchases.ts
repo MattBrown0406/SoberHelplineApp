@@ -55,7 +55,10 @@ export function useRestorePurchases(): { restoring: boolean; handleRestore: () =
           );
         }
       }
-      await refreshAccount();
+      // The store has answered. Re-reading the account is a separate step: if
+      // it fails (a bad connection), what the store found is still reported,
+      // never "Couldn't restore" for a restore that worked.
+      await refreshAccount().catch(() => undefined);
       setRestoreOutcome({ storeRestored: hasEntitlement });
     } catch {
       appAlert(t('membership.restoreErrorTitle'), t('membership.restoreErrorBody'));

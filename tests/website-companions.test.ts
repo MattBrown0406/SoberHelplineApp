@@ -228,7 +228,7 @@ test('the helpline is not listed as an emergency line, and website members are t
   // Restore reports the plan the refresh found (any source), not only the store's answer.
   // Restore is one hook, shared by Settings and the plans screen.
   const restore = read('src/hooks/useRestorePurchases.ts');
-  assert.match(restore, /await refreshAccount\(\);\n\s+setRestoreOutcome\(\{ storeRestored: hasEntitlement \}\);/);
+  assert.match(restore, /await refreshAccount\(\)\.catch\(\(\) => undefined\);\n\s+setRestoreOutcome\(\{ storeRestored: hasEntitlement \}\);/);
   assert.match(restore, /else if \(planActive\) \{\n\s+appAlert\(t\('membership\.restoreActiveTitle'\), t\('membership\.restoreActiveBody'\)\);/);
   assert.match(restore, /useTranslation\('settings'\)/);
   assert.match(settings, /const \{ restoring, handleRestore \} = useRestorePurchases\(\);/);

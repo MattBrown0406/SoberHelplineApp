@@ -40,6 +40,7 @@ export const PLAN_SOURCES = [
   'membership_guide',
   'practice_completed',
   'rehearsal_gate',
+  'settings',
   'support_groups',
   'support_tab',
   'support_upgrade',

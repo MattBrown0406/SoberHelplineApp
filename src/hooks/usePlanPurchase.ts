@@ -212,7 +212,10 @@ export function usePlanPurchase(source: PlanSource | 'unknown') {
       // A different account must not be credited with how this purchase
       // ended, so nothing is logged or recorded for it.
       if (checked && !session && !stillHers) return;
-      if (session || stillHers) {
+      // A purchase waiting for approval is none of the endings the server
+      // keeps (it has not succeeded, failed or been cancelled): nothing is
+      // logged for it, rather than a "failed" that never happened.
+      if ((session || stillHers) && result !== 'pending') {
         logMembershipPath(
           result === 'success' ? 'purchase_succeeded' : result === 'failed' ? 'purchase_failed' : 'purchase_cancelled',
           { tier: upgradeTier, source },
@@ -243,6 +246,14 @@ export function usePlanPurchase(source: PlanSource | 'unknown') {
         // (RevenueCat not on this account). Only her own leaving, or her
         // cancelling in the store's sheet, is silent.
         if (onScreen()) appAlert(t('upgradeSheet.iapErrorTitle'), t('upgradeSheet.iapError'));
+      } else if (result === 'pending') {
+        // Waiting for approval (Ask to Buy, a bank). The exits are already
+        // open again; the sheet closes so nothing invites a second purchase,
+        // and a calm note says the plan turns on by itself once approved.
+        if (onScreen()) {
+          closeUpgrade();
+          appAlert(t('upgradeSheet.pendingTitle'), t('upgradeSheet.pendingBody'));
+        }
       }
     } finally {
       setPhase('idle');

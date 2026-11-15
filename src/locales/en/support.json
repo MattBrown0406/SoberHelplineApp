@@ -94,6 +94,8 @@
     "renewalNote": "{{price}} per month, billed to your Apple Account. Renews automatically unless turned off at least 24 hours before the period ends. Manage or cancel anytime in your Apple Account settings.",
     "iapError": "Something went wrong with the purchase. Please try again.",
     "iapErrorTitle": "Purchase not completed",
+    "pendingTitle": "Waiting for approval",
+    "pendingBody": "Your purchase is waiting for approval. Once it's approved, your plan turns on by itself.",
     "iapNoOfferings": "Subscriptions are not available right now. Please try again later.",
     "close": "Not Now",
     "privacyPolicy": "Privacy Policy",

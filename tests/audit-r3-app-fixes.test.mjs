@@ -332,3 +332,113 @@ test('L5: a change saved on another screen cannot be undone by a read that began
   heard.listener('account-B', true);
   assert.equal(render().enabled, false);
 });
+
+// ── Audit round 4 ───────────────────────────────────────────────────────────
+
+test('R4 A3: Support keeps the sessions it had when a read fails, and never an earlier "cancelled"', async () => {
+  const h = hooks('support', { cancelledDate: THIS_WEEK });
+  await settle();
+  assert.equal(h.card().id, 'english-session');
+  assert.equal(h.card().cancelledDate, THIS_WEEK);
+  assert.equal(h.states[1], false, 'the first load is over');
+  // She comes back to the app with no connection: the sessions read fails, and so does the cancelled check.
+  for (const table of ['sessions', 'session_rsvps']) {
+    h.world.failing = table; h.world.cancelledDate = null;
+    h.appState.listener('active'); await settle();
+    assert.equal(h.states[0].length, 1, `${table}: the Family Squares row is still there`);
+    assert.equal(h.card().id, 'english-session');
+    assert.equal(h.card().cancelledDate, null, 'but it no longer says the meeting is off (fail open)');
+    // A failed read whose cancelled check DID answer keeps that fresh answer.
+    h.world.cancelledDate = THIS_WEEK;
+    h.appState.listener('active'); await settle();
+    assert.equal(h.card().cancelledDate, THIS_WEEK);
+  }
+  // A good read replaces everything as before.
+  h.world.failing = null; h.world.cancelledDate = null;
+  h.appState.listener('active'); await settle();
+  assert.equal(h.card().cancelledDate, null);
+});
+
+test('R4 A3: a first load that fails ends loading with an empty list, and no other account\'s list is kept', async () => {
+  // Nothing was ever read for this account: there is nothing to keep.
+  const first = hooks('support');
+  first.world.failing = 'sessions';
+  first.states[0] = [{ ...FS_ROW, id: 'someone-elses', rsvped: true }];
+  first.states[1] = true;
+  first.appState.listener('active'); await settle();
+  assert.deepEqual(plain(first.states[0]), [], 'a list that was not read for this account is never shown as hers');
+  assert.equal(first.states[1], false, 'loading still ends');
+  const hook = source('src/hooks/useSessions.ts');
+  assert.match(hook, /if \(rowsError \|\| rsvpsError\) \{\s+if \(request !== generation\.current \|\| identity\.current !== accountId\) return;/);
+  assert.match(hook, /setSessions\(\(prev\) => \(loadedFor\.current === accountId\s+\? prev\.map\(/);
+  assert.match(hook, /withFreshAnswer\(s, prev\.find\(\(p\) => p\.id === s\.id\), answeredSince\)\)\);\s+loadedFor\.current = accountId;\s+setLoading\(false\);/);
+});
+
+test('R4 A4: a seat the website refused is remembered for that meeting only, and forgotten once a seat is saved', async () => {
+  let answer = { data: null, error: httpError({ ok: false, error: 'website_declined', reason: 'registration_unavailable' }) };
+  const h = registration(async () => answer);
+  const heard = [];
+  const unsubscribe = h.lib.subscribeFamilySquaresSeatRefused(() => heard.push(h.lib.familySquaresSeatRefusedHere('account-A')));
+  assert.equal(h.lib.familySquaresSeatRefusedHere('account-A'), false);
+  await h.lib.reserveFamilySquares('account-A');
+  assert.equal(h.lib.familySquaresSeatRefusedHere('account-A'), true, 'her own Save tap was refused for the coming meeting');
+  assert.deepEqual(heard, [true], 'every screen showing the panel hears it, once');
+  assert.equal(h.lib.familySquaresSeatRefusedHere('account-B'), false, 'her account only');
+  assert.equal(h.lib.familySquaresSeatRefusedHere(null), false);
+  assert.equal(h.lib.familySquaresSeatRefusedHere('account-A', new Date(A_WEEK_LATER)), false, 'it says nothing about next Monday');
+  // The same answer again changes nothing and tells nobody.
+  await h.lib.reserveFamilySquares('account-A');
+  assert.deepEqual(heard, [true]);
+  // The website then accepts her: the note may be shown again.
+  answer = { data: { ok: true, already_registered: false, meeting_date: THIS_WEEK }, error: null };
+  assert.equal((await h.lib.reserveFamilySquares('account-A')).ok, true);
+  assert.equal(h.lib.familySquaresSeatRefusedHere('account-A'), false);
+  assert.deepEqual(heard, [true, false]);
+  unsubscribe();
+  // An older server gives no reason: still a refusal for that meeting.
+  const older = registration(async () => ({ data: null, error: httpError({ ok: false, error: 'website_declined' }) }));
+  await older.lib.reserveFamilySquares('account-A');
+  assert.equal(older.lib.familySquaresSeatRefusedHere('account-A'), true);
+  // A cancelled week is its own state (the cancelled line), and an ordinary failure is no refusal.
+  const off = registration(async () => ({ data: null, error: httpError({ ok: false, error: 'website_declined', reason: 'meeting_cancelled' }) }));
+  await off.lib.reserveFamilySquares('account-A');
+  assert.equal(off.lib.familySquaresSeatRefusedHere('account-A'), false);
+  const offline = registration(async () => ({ data: null, error: httpError({ ok: false, error: 'retry' }) }));
+  await offline.lib.reserveFamilySquares('account-A');
+  assert.equal(offline.lib.familySquaresSeatRefusedHere('account-A'), false);
+});
+
+function restore(world) {
+  const r = reactDouble(), alerts = [], recorded = [];
+  const account = { state: world.accountState ?? 'direct-free' };
+  const hook = load('src/hooks/useRestorePurchases.ts', {
+    react: r.react,
+    'react-i18next': { useTranslation: () => ({ t: (key) => key }) },
+    '../contexts/AccountContext': { useAccount: () => ({ user: { id: 'account-A' }, accountState: account.state, refreshAccount: world.refreshAccount }) },
+    '../lib/supabase': { supabase: { auth: { getSession: async () => ({ data: { session: { access_token: 'token-A' } } }) }, functions: { invoke: async () => ({}) } } },
+    '../lib/revenueCat': { restorePurchases: world.restorePurchases, getActiveRevenueCatTier: async () => 'essential' },
+    '../lib/authBootstrap': { recordVerifiedPurchase: (...args) => recorded.push(args), withTimeoutFallback: (work) => work },
+    '../lib/appAlert': { appAlert: (...args) => alerts.push(args) },
+  }).useRestorePurchases;
+  const render = () => r.render(() => hook());
+  return { render, alerts, recorded, account };
+}
+
+test('R4 A8: a restore the store confirmed is reported as restored even when the account re-read fails', async () => {
+  const failingRefresh = async () => { throw Error('offline'); };
+  const found = restore({ restorePurchases: async () => true, refreshAccount: failingRefresh });
+  await found.render().handleRestore(); await settle();
+  found.render();
+  assert.deepEqual(plain(found.recorded), [['account-A', 'essential']], 'unlocked from the store\'s answer');
+  assert.deepEqual(plain(found.alerts), [['membership.restoreSuccessTitle', 'membership.restoreSuccessBody']]);
+  // The store found nothing and the re-read failed: its answer is still what she is told.
+  const none = restore({ restorePurchases: async () => false, refreshAccount: failingRefresh });
+  await none.render().handleRestore(); await settle();
+  none.render();
+  assert.deepEqual(plain(none.alerts), [['membership.restoreNoneTitle', 'membership.restoreNoneBody']]);
+  // "Couldn't restore" is for the store itself failing.
+  const broken = restore({ restorePurchases: async () => { throw Error('store down'); }, refreshAccount: async () => {} });
+  await broken.render().handleRestore(); await settle();
+  broken.render();
+  assert.deepEqual(plain(broken.alerts), [['membership.restoreErrorTitle', 'membership.restoreErrorBody']]);
+});

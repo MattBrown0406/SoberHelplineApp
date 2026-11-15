@@ -189,23 +189,25 @@ test('confirmation-required signup displays email instructions without account-t
  const state={};await action('(auth)/sign-up.tsx','handleEmailSignUp',{
   loading:false,acceptedTerms:true,password:'longpassword',email:'test@example.test',firstName:'Test',lastName:'Audit',TERMS_VERSION:'1.0',t:k=>k,
   SIGN_UP_CONFIRM_REDIRECT_URL:'https://soberhelpline.com/app-confirmed.html',
-  setError:v=>state.error=v,setLoading:v=>state.loading=v,setCheckEmail:v=>state.check=v,
+  setError:v=>state.error=v,setLoading:v=>state.loading=v,setCheckEmail:v=>state.check=v,setEmailSentAt:v=>state.sentAt=v,
   markSignUpSubmitted:()=>{state.marked=(state.marked??0)+1},
   supabase:{auth:{signUp:async request=>{state.request=request;return {data:{user:{id:'A'},session:null},error:null}}},from:()=>assert.fail('anonymous account lookup')}
  })();assert.equal(state.loading,false);assert.equal(state.check,true);assert.equal(state.error,null);
  // The sign-up went through: the phone remembers it (once), so reopening lands on sign-in.
  assert.equal(state.marked,1);
+ // The email went out just now: "Send the email again" rests from this moment.
+ assert.equal(state.sentAt,null);
  // The confirm step opens with the same redirect address and the terms consent as before.
  assert.equal(state.request.options.emailRedirectTo,'https://soberhelpline.com/app-confirmed.html');
  assert.equal(state.request.options.data.terms_version,'1.0');
 });
 // The real reading of a refused sign-up (src/lib/frontDoor), run from its source.
-const signUpFailure=(()=>{const module={exports:{}};new Function('module','exports',ts.transpileModule(readFileSync(new URL('../src/lib/frontDoor.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(module,module.exports);return module.exports.signUpFailure;})();
+const {signUpFailure,signUpEmailAlreadySentAt}=(()=>{const module={exports:{}};new Function('module','exports',ts.transpileModule(readFileSync(new URL('../src/lib/frontDoor.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(module,module.exports);return module.exports;})();
 test('signup keeps its checks: terms, password length and an already-registered email',async()=>{
  const run=async(overrides,signUp=async()=>assert.fail('must not reach the server'))=>{const state={};await action('(auth)/sign-up.tsx','handleEmailSignUp',{
-  signUpFailure,loading:false,acceptedTerms:true,password:'longpassword',email:'test@example.test',firstName:'Test',lastName:'Audit',TERMS_VERSION:'1.0',t:k=>k,
+  signUpFailure,signUpEmailAlreadySentAt,confirmationEmailLastSentAt:()=>null,loading:false,acceptedTerms:true,password:'longpassword',email:'test@example.test',firstName:'Test',lastName:'Audit',TERMS_VERSION:'1.0',t:k=>k,
   SIGN_UP_CONFIRM_REDIRECT_URL:'https://soberhelpline.com/app-confirmed.html',
-  setError:v=>state.error=v,setLoading:v=>state.loading=v,setCheckEmail:v=>state.check=v,
+  setError:v=>state.error=v,setLoading:v=>state.loading=v,setCheckEmail:v=>state.check=v,setEmailSentAt:v=>state.sentAt=v,
   markSignUpSubmitted:()=>{state.marked=true},
   supabase:{auth:{signUp},from:()=>assert.fail('anonymous account lookup')},...overrides
  })();return state;};
@@ -215,4 +217,18 @@ test('signup keeps its checks: terms, password length and an already-registered 
  assert.equal(taken.error,'signUp.errorEmailTaken');assert.equal(taken.check,undefined);assert.equal(taken.loading,false);
  // A refused sign-up does not mark the phone either.
  assert.equal(taken.marked,undefined);assert.equal((await run({password:'short'})).marked,undefined);
+ // Asked again for the same address inside a minute (audit round 4): the server's "too soon" means the
+ // email already went out. No error: the confirm step again, resting from when that email was sent.
+ const tooSoon=await run({},async()=>({data:{user:null,session:null},error:{status:429,code:'over_email_send_rate_limit',message:'For security purposes, you can only request this after 37 seconds.'}}));
+ assert.equal(tooSoon.error,null);assert.equal(tooSoon.check,true);assert.equal(tooSoon.loading,false);
+ // (The phone was marked when the first sign-up went through; this refusal marks nothing new.)
+ assert.equal(tooSoon.marked,undefined);
+ assert.ok(Math.abs(Date.now()-23_000-tooSoon.sentAt)<5_000);
+ // This device sent that address an email 10 seconds ago: its own time is used.
+ const sentHere=Date.now()-10_000;
+ const again=await run({confirmationEmailLastSentAt:()=>sentHere},async()=>({data:{user:null,session:null},error:{status:429,message:'Too many requests'}}));
+ assert.equal(again.error,null);assert.equal(again.check,true);assert.equal(again.sentAt,sentHere);
+ // The project's own email limit sent nothing: that is still a failure, and the phone is not marked.
+ const limit=await run({},async()=>({data:{user:null,session:null},error:{status:429,message:'Email rate limit exceeded'}}));
+ assert.equal(limit.error,'signUp.errorGeneric');assert.equal(limit.check,undefined);assert.equal(limit.marked,undefined);
 });

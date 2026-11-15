@@ -39,6 +39,39 @@ export function familySquaresRsvpIsCurrent(meetingDate: unknown, now = new Date(
   return meetingDate === familySquaresSyncWindow(now).meetingDate;
 }
 
+// The meeting date the website would not save a seat for, as it last answered
+// a Save tap from this account on this device (this run of the app only). The
+// weekly seat is not saved for her that week either, so the panel does not
+// say it will be (familySquaresCard.weeklySeatNoteHeld).
+const refusedMeetingDate = new Map<string, string>();
+const refusedListeners = new Set<() => void>();
+
+function noteSeatAnswer(accountId: string, refusedDate: string | null): void {
+  if ((refusedMeetingDate.get(accountId) ?? null) === refusedDate) return;
+  if (refusedDate) refusedMeetingDate.set(accountId, refusedDate);
+  else refusedMeetingDate.delete(accountId);
+  for (const listener of [...refusedListeners]) {
+    try {
+      listener();
+    } catch {
+      // One screen failing must not stop the others.
+    }
+  }
+}
+
+/** True when this device's own Save tap for the COMING meeting was refused by the website. */
+export function familySquaresSeatRefusedHere(accountId: string | null | undefined, now = new Date()): boolean {
+  return !!accountId && refusedMeetingDate.get(accountId) === familySquaresSyncWindow(now).meetingDate;
+}
+
+/** Today and Support both show the panel: each hears a refusal (or a seat saved after one). */
+export function subscribeFamilySquaresSeatRefused(listener: () => void): () => void {
+  refusedListeners.add(listener);
+  return () => {
+    refusedListeners.delete(listener);
+  };
+}
+
 // Coalesce simultaneous Today/Support/onboarding taps for the same identity.
 const pending = new Map<string, Promise<FamilySquaresResult>>();
 export function reserveFamilySquares(accountId: string): Promise<FamilySquaresResult> {
@@ -66,11 +99,15 @@ async function ensureRegistration(accountId: string): Promise<FamilySquaresResul
       // The website said the coming meeting is cancelled: every screen on this
       // device knows from now on, without asking again.
       if (declined.websiteReason === 'meeting_cancelled') markFamilySquaresCancelled();
+      // It will not register her for this meeting (or an older server did not
+      // say why): her weekly seat is not saved for it either.
+      else noteSeatAnswer(accountId, familySquaresSyncWindow(new Date()).meetingDate);
       return { ok: false, reason: 'website_declined', ...declined };
     }
     if (current?.user.id !== session.user.id || error || data?.ok !== true
       || typeof data.already_registered !== 'boolean'
       || !familySquaresRsvpIsCurrent(data.meeting_date)) return { ok: false };
+    noteSeatAnswer(accountId, null);
     return { ok: true, alreadyRegistered: data.already_registered, meetingDate: data.meeting_date };
   } catch {
     return { ok: false };

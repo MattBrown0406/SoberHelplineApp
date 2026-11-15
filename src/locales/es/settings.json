@@ -70,6 +70,7 @@
     "websiteMemberHint": "¿Ya tienes membresía en ayudasobria.com o soberhelpline.com? Tu membresía va ligada a tu correo electrónico. Inicia sesión aquí con el mismo correo que usaste en el sitio web.",
     "websiteMemberHintWithEmail": "¿Ya tienes membresía en ayudasobria.com o soberhelpline.com? Tu membresía va ligada a tu correo electrónico. Inicia sesión aquí con el mismo correo que usaste en el sitio web. Ahora tienes la sesión iniciada con {{email}}.",
     "manage": "Gestionar suscripción",
+    "seePlans": "Ver planes",
     "restore": "Restaurar compras",
     "restoreSuccessTitle": "Compras restauradas",
     "restoreSuccessBody": "Tu suscripción está activa de nuevo.",

@@ -108,7 +108,7 @@ test('each step is logged at the real moment, once', () => {
   const purchase = read('src/hooks/usePlanPurchase.ts');
   assert.match(purchase, /setUpgradeOpen\(true\);\s+logMembershipPath\('plan_sheet_opened', \{ tier, source \}\);/);
   // Started just before the purchase call; the ending only for the session that started it.
-  assert.match(purchase, /logMembershipPath\('purchase_started', \{ tier: upgradeTier, source \}\);\s+const result = upgradeTier === 'essential'\s+\? await purchaseEssential\(control\)\s+: await purchasePremium\(control\);[\s\S]*?const now = await afterPurchase\(\);\s+session = now\.session;\s+stillHers = now\.who !== 'different';[\s\S]*?if \(checked && !session && !stillHers\) return;\s+if \(session \|\| stillHers\) \{\s+logMembershipPath\(\s+result === 'success' \? 'purchase_succeeded' : result === 'failed' \? 'purchase_failed' : 'purchase_cancelled',/);
+  assert.match(purchase, /logMembershipPath\('purchase_started', \{ tier: upgradeTier, source \}\);\s+const result = upgradeTier === 'essential'\s+\? await purchaseEssential\(control\)\s+: await purchasePremium\(control\);[\s\S]*?const now = await afterPurchase\(\);\s+session = now\.session;\s+stillHers = now\.who !== 'different';[\s\S]*?if \(checked && !session && !stillHers\) return;\s+(\/\/[^\n]*\n\s+)+if \(\(session \|\| stillHers\) && result !== 'pending'\) \{\s+logMembershipPath\(\s+result === 'success' \? 'purchase_succeeded' : result === 'failed' \? 'purchase_failed' : 'purchase_cancelled',/);
   // One start, one ending: neither is logged anywhere else in the flow.
   assert.equal(purchase.split("logMembershipPath('purchase_started'").length - 1, 1);
   assert.equal(purchase.split("'purchase_cancelled',").length - 1, 1);

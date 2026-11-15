@@ -97,10 +97,17 @@ export const DEFAULT_REMINDER_HOUR = 9;
 // notify-daily-morning sends its note at the chosen hour only before noon.
 const MORNING_NOTE_BEFORE_HOUR = 12;
 /**
- * Push features this build understands (accounts.push_app_contract): 1 = the
- * hour-before reminder's ask=question and Today's "this week's one thing".
+ * Push features this build understands (accounts.push_app_contract):
+ * 1 = the hour-before reminder's ask=question and Today's "this week's one
+ *     thing";
+ * 2 = this build logs Family Squares attendance before it leaves for Zoom
+ *     (the 'attended' funnel event is sent, and waited for, ahead of the
+ *     meeting link opening), so the server can tell "saved a seat and never
+ *     joined" from "joined" and may use the kinder "we missed you" wording in
+ *     Tuesday's note. A build that reports 1 may have joined without the
+ *     server hearing of it, so it is never told it was missed.
  */
-export const PUSH_APP_CONTRACT = 1;
+export const PUSH_APP_CONTRACT = 2;
 const NUDGE_DAYS = 7; // schedule a week of nudges ahead so non-openers still get pinged
 const pushWriteBarrier = new AsyncWriteBarrier();
 let activePushAccountId: string | null = null;
