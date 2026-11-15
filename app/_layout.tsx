@@ -30,10 +30,10 @@ import { clearPendingDeepLink, subscribePendingDeepLink, takePendingDeepLink } f
 // screen change underneath is over by then), and after the longer wait
 // whatever happens: a slow session read never holds anyone on the launch screen.
 const LAUNCH_COVER_SETTLE_MS = 450;
-// While the session is still being read (an expired token with no signal can
-// take many seconds), the cover gives way early: the screens underneath, with
-// their crisis buttons, are worth more than a tidy launch.
-const LAUNCH_COVER_SESSION_READ_MS = 1500;
+// A slow start (an expired token with no signal can take many seconds to
+// read): the cover stays, so nobody is shown someone else's-looking Today, but
+// from this moment it carries the emergency actions. Help is never out of reach.
+const LAUNCH_COVER_EMERGENCY_MS = 1500;
 const LAUNCH_COVER_MAX_MS = 5000;
 
 function ReviewPromptCoordinator() {
@@ -303,11 +303,17 @@ function InitialLayout() {
       setLaunchCover(false);
       return undefined;
     }
-    const wait = preSignInScreenInFront ? LAUNCH_COVER_SETTLE_MS : isLoading ? LAUNCH_COVER_SESSION_READ_MS : LAUNCH_COVER_MAX_MS;
-    const timer = setTimeout(() => setLaunchCover(false), wait);
+    const timer = setTimeout(() => setLaunchCover(false), preSignInScreenInFront ? LAUNCH_COVER_SETTLE_MS : LAUNCH_COVER_MAX_MS);
     return () => clearTimeout(timer);
-  }, [launchCover, isAuthenticated, preSignInScreenInFront, isLoading]);
+  }, [launchCover, isAuthenticated, preSignInScreenInFront]);
   const showLaunchCover = launchCover && !isAuthenticated;
+  // Still covered after a moment: the cover shows the emergency actions.
+  const [launchCoverSlow, setLaunchCoverSlow] = useState(false);
+  useEffect(() => {
+    if (!showLaunchCover) return undefined;
+    const timer = setTimeout(() => setLaunchCoverSlow(true), LAUNCH_COVER_EMERGENCY_MS);
+    return () => clearTimeout(timer);
+  }, [showLaunchCover]);
 
   // Keep one router stack mounted through auth/onboarding hydration. Unmounting
   // it discards the incoming deep link and can choose an unrelated default route.
@@ -325,7 +331,7 @@ function InitialLayout() {
         <Stack screenOptions={{ headerShown: false }} />
       </View>
       {overlay}
-      {showLaunchCover ? <LaunchCover /> : null}
+      {showLaunchCover ? <LaunchCover emergency={launchCoverSlow} /> : null}
     </View>
     </RouteActivationContext.Provider>
   );

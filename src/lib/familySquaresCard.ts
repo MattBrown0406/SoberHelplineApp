@@ -14,7 +14,8 @@ export type SeatAnswer = 'going' | 'declined' | 'none';
 
 /**
  * Where the clock is against the meeting's join window: from three hours
- * before its start until it ends. 'unknown' when the start cannot be read.
+ * before its start until it ends. 'unknown' when the start cannot be read,
+ * or is stale (well past its end and not yet moved on to the next meeting).
  */
 export type JoinWindow = 'inside' | 'outside' | 'unknown';
 
@@ -81,6 +82,8 @@ export function callCardView(input: CallCardInput): CallCardView {
   };
 }
 
+/** How long after a call's end its `next_at` may still be the old one before it counts as stale. */
+export const STALE_START_GRACE_MS = 15 * 60_000;
 /** Join becomes the big button this long before the meeting starts. */
 export const JOIN_WINDOW_LEAD_MS = 3 * 60 * 60_000;
 /** A call runs for an hour. La Sobremesa's callers pass its own length (LA_SOBREMESA_CALL_LENGTH_MS). */
@@ -99,7 +102,7 @@ function meetingStartMs(nextAt: string | null | undefined): number | null {
 /**
  * Whether the meeting is close enough for Join to be the big button: from
  * three hours before its start (`next_at`) until it ends. A start that is
- * missing or unreadable is 'unknown', never a guess.
+ * missing, unreadable or stale is 'unknown', never a guess.
  */
 export function sessionJoinWindow(
   nextAt: string | null | undefined,
@@ -109,10 +112,13 @@ export function sessionJoinWindow(
   const start = meetingStartMs(nextAt);
   if (start === null) return 'unknown';
   const at = now.getTime();
-  // Past its end: `next_at` has not been moved on (or the call is running
-  // over). That is not "days before the meeting", so Join leads as it always did.
-  if (at >= start + lengthMs) return 'unknown';
-  return start - JOIN_WINDOW_LEAD_MS <= at ? 'inside' : 'outside';
+  const end = start + lengthMs;
+  // Well past its end, `next_at` has not been moved on (the sync that advances
+  // it runs every ten minutes): the start is stale, so it is treated as not
+  // known and Join leads as it always did. In the minutes right after the
+  // call, the meeting is simply over: Join is the small link.
+  if (at >= end + STALE_START_GRACE_MS) return 'unknown';
+  return start - JOIN_WINDOW_LEAD_MS <= at && at < end ? 'inside' : 'outside';
 }
 
 /**

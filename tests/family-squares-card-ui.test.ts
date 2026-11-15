@@ -27,11 +27,14 @@ test('the join window runs from three hours before the meeting starts until it e
   assert.equal(sessionJoinWindow(START, at(-180)), 'inside', 'three hours before, to the minute');
   assert.equal(sessionJoinWindow(START, at(0)), 'inside');
   assert.equal(sessionJoinWindow(START, at(59)), 'inside', 'still on');
-  assert.equal(sessionJoinWindow(START, at(60)), 'unknown', 'its hour is over: a start in the past is never "days before"');
+  assert.equal(sessionJoinWindow(START, at(60)), 'outside', 'its hour is over');
+  assert.equal(sessionJoinWindow(START, at(74)), 'outside', 'the sync has ten minutes to move next_at on');
+  assert.equal(sessionJoinWindow(START, at(75)), 'unknown', 'a stale start is never "days before"');
   assert.equal(sessionJoinWindow(START, at(8 * 24 * 60)), 'unknown', 'a next_at nobody moved on');
   // La Sobremesa runs 75 minutes: both screens pass its length.
   assert.equal(sessionJoinWindow(START, at(74), LA_SOBREMESA_CALL_LENGTH_MS), 'inside');
-  assert.equal(sessionJoinWindow(START, at(75), LA_SOBREMESA_CALL_LENGTH_MS), 'unknown');
+  assert.equal(sessionJoinWindow(START, at(75), LA_SOBREMESA_CALL_LENGTH_MS), 'outside');
+  assert.equal(sessionJoinWindow(START, at(90), LA_SOBREMESA_CALL_LENGTH_MS), 'unknown');
   // The decision itself imports nothing, so every screen and test harness can load it.
   assert.doesNotMatch(read('src/lib/familySquaresCard.ts'), /^import /m);
 });
@@ -233,7 +236,7 @@ test('only a Family Squares seat names its day; another call says the seat is sa
   assert.match(read('app/(tabs)/support.tsx'), /showDate=\{familySquares\}/);
 });
 
-test('without a plan, Support still links to how coaching support works', () => {
+test('without a plan, Support still links to how coaching support works (never for a bereaved member: that screen shows plans)', () => {
   const support = read('app/(tabs)/support.tsx');
-  assert.match(support, /\{!hasMembershipAccess && \(\s*<TouchableOpacity[\s\S]{0,200}?router\.push\('\/membership-guide'\)/);
+  assert.match(support, /\{!hasMembershipAccess && bereaved === false && \(\s*<TouchableOpacity[\s\S]{0,200}?router\.push\('\/membership-guide'\)/);
 });

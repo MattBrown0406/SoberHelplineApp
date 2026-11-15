@@ -857,8 +857,10 @@ export default function SupportScreen() {
         <Text style={[styles.referralBody, styles.sectionNote, { color: colors.inkSoft }]}>{t('peopleAccess', { rate: coachingRate.hourly })}</Text>
 
         {/* "How to use your membership" is for someone who has one. Without a
-            plan, the one link that explains coaching stays (the only way to that screen). */}
-        {!hasMembershipAccess && (
+            plan, the one link that explains coaching stays (the only way to that
+            screen). That screen shows the plans and their prices, so, like every
+            other offer here, it is only for someone known not to be bereaved. */}
+        {!hasMembershipAccess && bereaved === false && (
           <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary, marginBottom: 12 }]} onPress={() => router.push('/membership-guide')}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{t('coachingGuideLink')}</Text></TouchableOpacity>
         )}
         {hasMembershipAccess && (

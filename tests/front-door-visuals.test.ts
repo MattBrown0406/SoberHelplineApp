@@ -53,11 +53,14 @@ test('a signed-out launch stays on the launch screen until the front door is in 
   assert.equal(layout.split('setLaunchCover(true)').length - 1, 0);
   // A beat after a pre-sign-in screen is in front, and after five seconds whatever happens.
   assert.match(layout, /const LAUNCH_COVER_SETTLE_MS = 450;/);
-  // A slow session read (an expired token, no signal) never holds a member on the logo.
-  assert.match(layout, /const LAUNCH_COVER_SESSION_READ_MS = 1500;\s+const LAUNCH_COVER_MAX_MS = 5000;/);
-  assert.match(layout, /const wait = preSignInScreenInFront \? LAUNCH_COVER_SETTLE_MS : isLoading \? LAUNCH_COVER_SESSION_READ_MS : LAUNCH_COVER_MAX_MS;\s+const timer = setTimeout\(\(\) => setLaunchCover\(false\), wait\);\s+return \(\) => clearTimeout\(timer\);\s+\}, \[launchCover, isAuthenticated, preSignInScreenInFront, isLoading\]\);/);
+  assert.match(layout, /const LAUNCH_COVER_EMERGENCY_MS = 1500;\s+const LAUNCH_COVER_MAX_MS = 5000;/);
+  assert.match(layout, /const timer = setTimeout\(\(\) => setLaunchCover\(false\), preSignInScreenInFront \? LAUNCH_COVER_SETTLE_MS : LAUNCH_COVER_MAX_MS\);\s+return \(\) => clearTimeout\(timer\);\s+\}, \[launchCover, isAuthenticated, preSignInScreenInFront\]\);/);
+  // A slow start never lifts the cover early onto the tabs; it puts the
+  // emergency actions on the cover instead, so help is never out of reach.
+  assert.match(layout, /setTimeout\(\(\) => setLaunchCoverSlow\(true\), LAUNCH_COVER_EMERGENCY_MS\)/);
+  assert.match(read('src/components/auth/LaunchCover.tsx'), /\{emergency \? \(\s*<View style=\{styles\.emergency\}>\s*<View style=\{styles\.emergencyInner\}>\s*<EmergencyActions \/>/);
   // It lies on top of the one router stack: the stack is never hidden or unmounted for it.
-  assert.match(layout, /<View style=\{\{ flex: 1, display: overlay \? 'none' : 'flex' \}\}>\s+<Stack screenOptions=\{\{ headerShown: false \}\} \/>\s+<\/View>\s+\{overlay\}\s+\{showLaunchCover \? <LaunchCover \/> : null\}/);
+  assert.match(layout, /<View style=\{\{ flex: 1, display: overlay \? 'none' : 'flex' \}\}>\s+<Stack screenOptions=\{\{ headerShown: false \}\} \/>\s+<\/View>\s+\{overlay\}\s+\{showLaunchCover \? <LaunchCover emergency=\{launchCoverSlow\} \/> : null\}/);
   assert.equal((layout.match(/<Stack /g) ?? []).length, 1);
   // No blank frame while the words load.
   assert.match(layout, /if \(!i18nReady\) return <LaunchCover \/>;/);
