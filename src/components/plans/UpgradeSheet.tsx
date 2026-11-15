@@ -20,6 +20,7 @@ export function UpgradeSheet({
   onPurchase,
   purchasing,
   closeDisabled = false,
+  stillChecking = false,
 }: {
   visible: boolean;
   tier: SubscriptionTier;
@@ -37,6 +38,12 @@ export function UpgradeSheet({
    * Before that call it can be closed, which ends the attempt.
    */
   closeDisabled?: boolean;
+  /**
+   * The App Store has been asked and has said nothing for two minutes: the
+   * sheet can be closed again, and one calm line says the purchase is still
+   * being checked (its result is recorded whenever it comes).
+   */
+  stillChecking?: boolean;
 }) {
   const { colors } = useTheme();
   const { t } = useTranslation('support');
@@ -110,6 +117,12 @@ export function UpgradeSheet({
         >
           <Text style={styles.solidBtnText}>{buyLabel}</Text>
         </TouchableOpacity>
+
+        {stillChecking && (
+          <Text style={[styles.sheetSub, { color: colors.ink, marginTop: 12, marginBottom: 0 }]} accessibilityLiveRegion="polite">
+            {tPlans('stillChecking')}
+          </Text>
+        )}
 
         <View style={styles.legalRow}>
           <TouchableOpacity

@@ -105,7 +105,8 @@ test('a refused seat never says "check your connection"; a real connection probl
 
 test('the call card, the Support entry and the welcome-back card all follow the cancelled week', () => {
   const card = read('src/components/today/SituationCard.tsx');
-  assert.match(card, /const view = callCardView\(\{\s+familySquares: isFamilySquares,\s+cancelled: nextFreeCall\?\.cancelled === true,/);
+  // (The cancelled DATE is compared with the coming meeting's date on every draw: audit round 3, M1.)
+  assert.match(card, /const view = callCardView\(\{\s+familySquares: isFamilySquares,\s+cancelled: isCancelledMeetingDate\(nextFreeCall\?\.cancelledDate\),/);
   // The calm line takes the place of every button.
   assert.match(card, /\{view\.cancelledLine \? \(\s+<Text style=\{\[styles\.cancelledLine, \{ color: colors\.ink \}\]\} accessibilityLiveRegion="polite">\s+\{t\('common:familySquares\.cancelled\.line'\)\}\s+<\/Text>\s+\) : canJoin \? \(/);
   assert.match(card, /const canJoin = view\.join;/);
@@ -115,22 +116,22 @@ test('the call card, the Support entry and the welcome-back card all follow the 
   assert.doesNotMatch(card, /colors\.coral[^\n]*cancelled|accessibilityRole="alert"/, 'calm, not an error');
 
   const support = read('app/(tabs)/support.tsx');
-  assert.match(support, /const view = callCardView\(\{\s+familySquares,\s+cancelled: sess\.cancelled === true,/);
+  assert.match(support, /const view = callCardView\(\{\s+familySquares,\s+cancelled: isCancelledMeetingDate\(sess\.cancelledDate\),/);
   assert.match(support, /\{view\.join \? \(/);
   assert.match(support, /\{view\.cancelledLine \? null : \(\s+<TouchableOpacity\s+accessibilityRole="button"\s+accessibilityLabel=\{t\(sess\.rsvped \? 'sessions\.confirmLabel' : 'sessions\.rsvpLabel', \{ name \}\)\}/);
   assert.match(support, /\{view\.cancelledLine && \(\s+<Text style=\{\[styles\.cancelledLine, \{ color: colors\.ink \}\]\} accessibilityLiveRegion="polite">\s+\{t\('common:familySquares\.cancelled\.line'\)\}/);
   // No question for that date: not from the row, not from a reminder or Today's link.
   assert.match(support, /\{sess\.rsvped && !view\.cancelledLine && !isLaSobremesaSession\(sess\) && \(/);
-  assert.match(support, /if \(!isLaSobremesaSession\(session\) && !session\.cancelled\) setQuestionSession\(session\);/);
+  assert.match(support, /if \(!isLaSobremesaSession\(session\) && !isCancelledMeetingDate\(session\.cancelledDate\)\) setQuestionSession\(session\);/);
 
   // Fetched alongside the session, on both screens; only Family Squares rows carry it.
   const feed = read('src/hooks/useTodayFeed.ts');
-  assert.match(feed, /supabase\.rpc\('my_situation'\),\s+(\/\/[^\n]*\n\s+)?loadFamilySquaresCancelled\(\),\s+\]\);/);
-  assert.match(feed, /cancelled: isFamilySquaresSession\(chosen\) && meetingCancelled \} : null;/);
+  assert.match(feed, /supabase\.rpc\('my_situation'\),\s+(\/\/[^\n]*\n\s+)?loadFamilySquaresCancelledDate\(\),\s+\]\);/);
+  assert.match(feed, /cancelledDate: isFamilySquaresSession\(chosen\) \? cancelledDate : null \} : null;/);
   const sessions = read('src/hooks/useSessions.ts');
-  assert.match(sessions, /loadFamilySquaresCancelled\(\),\s+\]\);/);
+  assert.match(sessions, /loadFamilySquaresCancelledDate\(\),\s+\]\);/);
   assert.match(sessions, /if \(!isFamilySquaresSession\(s\)\) return \{ \.\.\.s, rsvped: going\.has\(s\.id\) \};/);
-  assert.match(sessions, /declined: current && answer\?\.status === 'declined', cancelled: meetingCancelled \};/);
+  assert.match(sessions, /declined: current && answer\?\.status === 'declined', cancelledDate \};/);
   const lib = read('src/lib/familySquaresCancelled.ts');
   assert.match(lib, /supabase\.rpc\('family_squares_meeting_cancelled', \{ p_meeting_date: meetingDate \}\)/);
   assert.match(lib, /return !!result && !result\.error && result\.data === true;/);
@@ -143,9 +144,12 @@ test('the weekly seat says plainly when it pauses, where the switch is described
   const es = locale('es', 'common').familySquares.weekly.desc as string;
   assert.match(en, /each week/);
   assert.match(en, /pauses while your reminders are paused/);
-  assert.match(en, /about five weeks/);
+  // (The server now pauses it after about six months away, not five weeks: audit round 3, L12.)
+  assert.match(en, /about six months/);
+  assert.doesNotMatch(en, /five weeks/);
   assert.match(es, /Se pausa mientras tus recordatorios estén en pausa/);
-  assert.match(es, /unas cinco semanas/);
+  assert.match(es, /unos seis meses/);
+  assert.doesNotMatch(es, /cinco semanas/);
   // One description for the seat panel and for Settings.
   assert.match(read('src/components/familySquares/FamilySquaresSeatPanel.tsx'), /\{t\('familySquares\.weekly\.desc'\)\}/);
   assert.match(read('app/settings.tsx'), /\{t\('common:familySquares\.weekly\.desc'\)\}/);

@@ -14,6 +14,7 @@ import { clearFamilySquaresJoin, markFamilySquaresJoin } from '../../lib/meeting
 import { FamilySquaresSeatPanel } from '../familySquares/FamilySquaresSeatPanel';
 import { FamilySquaresFirstTimerNote } from '../familySquares/FamilySquaresFirstTimerNote';
 import { callCardView } from '../../lib/familySquaresCard';
+import { isCancelledMeetingDate } from '../../lib/familySquaresCancelled';
 
 /** This week's one thing: Matt's line from the call, else her own week's practice. */
 export interface WeeklyOneThing {
@@ -61,9 +62,11 @@ export function SituationCard({ accountId = null, nextFreeCall, primaryDoor, wee
   const isFamilySquares = isFamilySquaresSession(nextFreeCall);
   // What the card offers is decided in one place (familySquaresCard). A Monday
   // the website cancelled offers nothing for that date: only a calm line.
+  // The cancelled date is compared with the coming meeting's date on every
+  // draw: an answer read for last Monday never hides this Monday's meeting.
   const view = callCardView({
     familySquares: isFamilySquares,
-    cancelled: nextFreeCall?.cancelled === true,
+    cancelled: isCancelledMeetingDate(nextFreeCall?.cancelledDate),
     answer: nextFreeCall?.rsvped ? 'going' : nextFreeCall?.declined ? 'declined' : 'none',
     hasLink: !!nextFreeCall?.zoom_url,
   });

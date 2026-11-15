@@ -98,3 +98,42 @@ export interface PurchaseControl {
   /** True when the signed-in account is still the one that tapped. */
   confirmOwner?: () => Promise<boolean>;
 }
+
+/**
+ * How long the exits stay locked once the store's own purchase call has been
+ * made. The store normally answers within seconds of her confirming; if it has
+ * said nothing for this long (a stalled connection, a sheet that never came
+ * up), she is no longer held: Close, back and swipe work again and a calm
+ * line says the purchase is still being checked. The answer is still waited
+ * for and recorded exactly as before, whenever it comes.
+ */
+export const STORE_ANSWER_WAIT_MS = 2 * 60_000;
+
+/** True while she must stay on the plans screen: the store is being asked and has not been silent too long. */
+export function purchaseExitsLocked(phase: 'idle' | 'preparing' | 'store' | 'finishing', storeSlow: boolean | undefined): boolean {
+  return phase === 'store' && storeSlow !== true;
+}
+
+/**
+ * Who is signed in once the store has answered, compared with who tapped
+ * Subscribe (both captured before the store was asked).
+ * - 'same'      — still her.
+ * - 'different' — another account is signed in now: it must never be credited
+ *                 with her purchase.
+ * - 'unknown'   — nobody could be read (the session read came back empty or
+ *                 failed, for example a token refresh failing at that moment).
+ *                 That is not "someone else": a purchase the store completed
+ *                 is still recorded for the account that made it.
+ */
+export function purchaseAccountNow(input: {
+  buyerAccountId: string;
+  buyerUserId: string;
+  /** The account the app has signed in now (none: null or undefined). */
+  accountIdNow: string | null | undefined;
+  /** The signed-in user the session read answered (none, or unreadable: null or undefined). */
+  userIdNow: string | null | undefined;
+}): 'same' | 'different' | 'unknown' {
+  if (input.accountIdNow && input.accountIdNow !== input.buyerAccountId) return 'different';
+  if (input.userIdNow && input.userIdNow !== input.buyerUserId) return 'different';
+  return input.accountIdNow === input.buyerAccountId && input.userIdNow === input.buyerUserId ? 'same' : 'unknown';
+}

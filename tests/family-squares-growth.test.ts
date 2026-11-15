@@ -210,7 +210,7 @@ test('"Save my seat every Monday" is offered after a saved seat on Today, Suppor
   const support = read('app/(tabs)/support.tsx');
   assert.match(support, /\{familySquares && \(\s+<FamilySquaresSeatPanel[\s\S]*?onDecline=\{\(\) => declineRsvp\(sess\)\}/);
   const onboarding = read('app/(onboarding)/notifications.tsx');
-  assert.match(onboarding, /\{nextGroupId && !spanish && \(rsvped \|\| declined\) && \(/);
+  assert.match(onboarding, /\{nextGroupId && !spanish && !weekCancelled && \(rsvped \|\| declined\) && \(/);
   assert.match(onboarding, /<FamilySquaresSeatPanel[\s\S]*?tone="onPrimary"/);
   const settings = read('app/settings.tsx');
   assert.match(settings, /value=\{weeklySeat\.enabled\}\s+onValueChange=\{\(value\) => void toggleWeeklySeat\(value\)\}/);

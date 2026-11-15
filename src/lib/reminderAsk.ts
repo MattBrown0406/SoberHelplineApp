@@ -160,9 +160,14 @@ export function todayReminderAsk(input: {
   now: Date;
   seatAskShowing: boolean;
   welcomeBackShowing: boolean;
+  /**
+   * The coming Monday's meeting is known cancelled: "a reminder before
+   * Monday's meeting" is not offered for a meeting that is off.
+   */
+  meetingCancelled?: boolean;
 }): ReminderAskKind | null {
   const { memory, now } = input;
-  if (!input.supported || input.seatAskShowing || input.welcomeBackShowing) return null;
+  if (!input.supported || input.seatAskShowing || input.welcomeBackShowing || input.meetingCancelled === true) return null;
   if (sameLocalDay(memory.onboardedAt, now) || sameLocalDay(input.joinedAt, now)) return null;
   if (withinQuietDays(memory.todayDismissedAt, now) || withinQuietDays(memory.seatDismissedAt, now)) return null;
   // Already shown in this 14-day stretch: only the day it first appeared still counts.
@@ -173,4 +178,53 @@ export function todayReminderAsk(input: {
 /** True when a new showing starts now, so the caller records it once per showing. */
 export function startsTodayShowing(memory: ReminderAskMemory, now: Date): boolean {
   return !sameLocalDay(memory.todayShownAt, now);
+}
+
+/**
+ * Whether a showing of Today's ask is recorded (and so uses up its 14 days).
+ * Only when she can actually see it: an ask was decided, Today is the screen
+ * in front, and that ask is what is on screen. Today stays mounted behind
+ * every other tab, and its look runs on each return to the app; a showing
+ * nobody saw must not count.
+ */
+export function recordsTodayShowing(input: {
+  kind: ReminderAskKind | null;
+  /** Today is the focused screen. */
+  focused: boolean;
+  /** What the ask is showing at this moment. */
+  showing: ReminderAskKind | 'on' | 'failed' | null;
+  memory: ReminderAskMemory | null;
+  now: Date;
+}): boolean {
+  if (!input.kind || !input.memory || !input.focused || input.showing !== input.kind) return false;
+  return startsTodayShowing(input.memory, input.now);
+}
+
+/**
+ * What an ask shows once the device has been asked for notifications.
+ * "Reminders are on. We'll let you know before the meeting" is a promise, so
+ * it is made only after her own "Remind me" tap AND once her Monday reminder
+ * was really switched on (`preferenceSaved`):
+ * - her tap, device registered, preference saved  → 'on';
+ * - her tap, device registered, preference failed → 'failed' ("couldn't turn
+ *   reminders on", with Try again);
+ * - permission merely found already given (back from device Settings, or
+ *   answered on the other tab): the device is registered and nothing is
+ *   said, because her Monday switch may be off and is left as she set it;
+ * - not registered: the Settings line when blocked, 'failed' when permission
+ *   is given but the device could not be registered, else the question again.
+ */
+export function reminderAskResult(input: {
+  registered: boolean;
+  /** Her own "Remind me" tap (the only thing that turns the preference on). */
+  herTap: boolean;
+  /** The server kept "Monday reminders on". Only asked for after her tap. */
+  preferenceSaved: boolean;
+  permission: ReminderPermission | null;
+}): ReminderAskKind | 'on' | 'failed' | null {
+  if (input.registered) {
+    if (!input.herTap) return null;
+    return input.preferenceSaved ? 'on' : 'failed';
+  }
+  return input.permission === 'blocked' ? 'settings' : input.permission === 'granted' ? 'failed' : 'ask';
 }

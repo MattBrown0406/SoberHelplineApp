@@ -10,6 +10,7 @@ import { useWebSSO } from '../../src/hooks/useWebSSO';
 import { useFeatureAccess } from '../../src/hooks/useFeatureAccess';
 import { WEBSITE_PATHS } from '../../src/lib/websiteLinks';
 import { plansHref } from '../../src/lib/membershipPath';
+import { useBereavedOnDevice } from '../../src/hooks/useBereavedOnDevice';
 
 
 type ContentSection = { key: 'education' | 'recordings'; path: string };
@@ -52,6 +53,8 @@ export default function LearnScreen() {
   const spanish = i18n.language.startsWith('es');
   const sections = spanish ? SECTIONS.filter(({ key }) => key === 'education') : SECTIONS;
   const { user, entitlements } = useAccount();
+  // The device's copy of "her loved one died" (kept by Today): true, false, or not known yet.
+  const bereaved = useBereavedOnDevice(user?.id ?? null);
   const canUseDiyIntervention = useFeatureAccess('diyIntervention');
   const router = useRouter();
   const { openWithSSO } = useWebSSO();
@@ -276,7 +279,9 @@ export default function LearnScreen() {
         <>
           {/* The website library and recordings are members-only pages; for
               everyone else they would be a website paywall, so free members
-              see where the library lives and the in-app plans instead. */}
+              see where the library lives and the in-app plans instead.
+              Never for a bereaved member (or before the device knows): no
+              sales prompts of any kind. Plans stay reachable from Settings. */}
           {entitlements.canAccessGroups || spanish ? sections.map(({ key, path }) => (
             <View key={key} style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
               <Text style={[styles.cardTitle, { color: colors.ink }]}>{t(`${key}.title`)}</Text>
@@ -291,7 +296,7 @@ export default function LearnScreen() {
                 <Text style={styles.cardButtonText}>{t(`${key}.button`)}</Text>
               </TouchableOpacity>
             </View>
-          )) : (
+          )) : bereaved === false ? (
             <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
               <Text style={[styles.cardTitle, { color: colors.ink }]}>{t('membersLibrary.title')}</Text>
               <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t('membersLibrary.body')}</Text>
@@ -305,7 +310,7 @@ export default function LearnScreen() {
                 <Text style={styles.cardButtonText}>{t('membersLibrary.button')}</Text>
               </TouchableOpacity>
             </View>
-          )}
+          ) : null}
 
           {/* In-app answers to the questions every family asks — no web round-trip. */}
           <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>

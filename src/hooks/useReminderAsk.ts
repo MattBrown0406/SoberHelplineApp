@@ -3,10 +3,12 @@ import { AppState, Linking } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { registerForPushNotifications } from './usePushNotifications';
+import { withTimeoutFallback } from '../lib/authBootstrap';
 import {
+  recordsTodayShowing,
+  reminderAskResult,
   reminderNotNowChange,
   seatReminderAsk,
-  startsTodayShowing,
   todayReminderAsk,
   type ReminderAskKind,
   type ReminderAskMemory,
@@ -38,6 +40,19 @@ export interface ReminderAsk {
   remindMe: () => void;
   notNow: () => void;
   openSettings: () => void;
+}
+
+/**
+ * Switches her Monday reminder on after her own "Remind me" tap. True only
+ * when the server kept it: an error, no connection or no answer in ten
+ * seconds is false, and the ask then says it could not turn reminders on.
+ */
+async function turnMondayRemindersOn(): Promise<boolean> {
+  return withTimeoutFallback(
+    Promise.resolve(supabase.rpc('set_family_call_reminders', { p_enabled: true })).then((result) => !result?.error),
+    10_000,
+    false,
+  );
 }
 
 /** `memory` is null when the device's storage could not be read: then nothing is asked. */
@@ -72,15 +87,16 @@ function useReminderAskCore(accountId: string | null, dismissedField: 'seatDismi
     const registered = await registerForPushNotifications(accountId, askSystem).catch(() => false);
     const permission = registered ? 'granted' : await readReminderPermission();
     // She tapped "Remind me": make sure the Monday reminder is not switched
-    // off in Settings (best effort). ONLY for that tap: finding permission
-    // already granted (back from device Settings, or answered on the other
-    // tab) registers the device but never turns back on a reminder she
-    // switched off herself.
-    if (registered && askSystem) void Promise.resolve(supabase.rpc('set_family_call_reminders', { p_enabled: true })).catch(() => undefined);
+    // off in Settings. ONLY for that tap: finding permission already granted
+    // (back from device Settings, or answered on the other tab) registers the
+    // device but never turns back on a reminder she switched off herself.
+    // "Reminders are on" is said only once that change was saved; if it was
+    // not, she is told reminders could not be turned on (reminderAskResult).
+    const preferenceSaved = registered && askSystem ? await turnMondayRemindersOn() : false;
     busyRef.current = false;
     if (identity.current !== accountId) return;
     setBusy(false);
-    setView(registered ? 'on' : permission === 'blocked' ? 'settings' : permission === 'granted' ? 'failed' : 'ask');
+    setView(reminderAskResult({ registered, herTap: askSystem, preferenceSaved, permission }));
     reminderPermissionChanged();
   }, [accountId, setView]);
 
@@ -201,9 +217,11 @@ export function useTodayReminderAsk(
   joinedAt: string | null | undefined,
   holdBack: boolean,
   welcomeBackDecided?: () => Promise<boolean>,
+  /** The coming Monday's meeting is known cancelled: no reminder is offered for it. */
+  meetingCancelled = false,
 ): ReminderAsk {
   const core = useReminderAskCore(accountId, 'todayDismissedAt');
-  const { view, viewRef, busyRef, identity, setView, recheck } = core;
+  const { view, viewRef, busyRef, identity, focusedRef, setView, recheck } = core;
 
   const decide = useCallback<Decide>((permission, memory, now) => (memory ? todayReminderAsk({
     supported: REMINDERS_SUPPORTED,
@@ -213,7 +231,8 @@ export function useTodayReminderAsk(
     now,
     seatAskShowing: isSeatReminderAskShowing(),
     welcomeBackShowing: holdBack,
-  }) : null), [joinedAt, holdBack]);
+    meetingCancelled,
+  }) : null), [joinedAt, holdBack, meetingCancelled]);
 
   const evaluate = useCallback(async (): Promise<void> => {
     if (!accountId || !REMINDERS_SUPPORTED || busyRef.current) return;
@@ -233,10 +252,14 @@ export function useTodayReminderAsk(
     const now = new Date();
     const kind = welcomed ? null : decide(permission, memory, now);
     setView(kind);
-    if (kind && memory && startsTodayShowing(memory, now)) {
+    // This look runs on every return to the app and every store notice,
+    // whichever tab is in front. The showing is recorded (and its 14 days
+    // used) only when Today is the screen in front and the ask is on it;
+    // otherwise the next look, when she opens Today, records it.
+    if (recordsTodayShowing({ kind, focused: focusedRef.current, showing: viewRef.current, memory, now })) {
       await rememberReminderAsk(accountId, { todayShownAt: now.toISOString() });
     }
-  }, [accountId, busyRef, decide, identity, recheck, setView, viewRef, welcomeBackDecided]);
+  }, [accountId, busyRef, decide, focusedRef, identity, recheck, setView, viewRef, welcomeBackDecided]);
 
   useEffect(() => {
     setView(null);

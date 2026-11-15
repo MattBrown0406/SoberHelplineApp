@@ -50,6 +50,7 @@ import { pathwayPhaseUpdate } from '../../src/lib/recoveryPathway';
 import { NEXT_STEP_PRIORITY, type NextStepCard } from '../../src/lib/todayNextStep';
 import { welcomeBackActions } from '../../src/lib/welcomeBack';
 import { isFamilySquaresSession, isLaSobremesaSession } from '../../src/lib/familySquaresSchedule';
+import { isCancelledMeetingDate } from '../../src/lib/familySquaresCancelled';
 import {
   cancelQueuedSupportCallReview,
   maybeRequestReview,
@@ -102,7 +103,9 @@ function TodayContent() {
   // A gentle second chance to turn on reminders. Not on the bereaved Today,
   // and not on a visit that opened with the welcome-back card (or before we
   // know whether it did: it waits for welcome.decided each time).
-  const reminderAsk = useTodayReminderAsk(bereaved || bereavedUnknown ? null : user?.id ?? null, user?.joinedAt, !welcome.ready || welcome.returned, welcome.decided);
+  // (Nor "a reminder before Monday's meeting" in a week the website cancelled it.)
+  const mondayCancelled = isFamilySquaresSession(nextFreeCall) && isCancelledMeetingDate(nextFreeCall?.cancelledDate);
+  const reminderAsk = useTodayReminderAsk(bereaved || bereavedUnknown ? null : user?.id ?? null, user?.joinedAt, !welcome.ready || welcome.returned, welcome.decided, mondayCancelled);
   // Just back from Family Squares, and no rating prompt on this visit. Never
   // on the bereaved Today; free members only (the invitation checks that).
   const afterMeeting = useAfterMeetingInvite(
@@ -288,7 +291,7 @@ function TodayContent() {
   // The Monday meeting she can still save a seat at (not one she already answered for).
   const seatOpen = !!nextFreeCall && (isFamilySquaresSession(nextFreeCall) || isLaSobremesaSession(nextFreeCall))
     // (Never on a Monday the website cancelled.)
-    && !nextFreeCall.rsvped && !nextFreeCall.declined && !nextFreeCall.cancelled;
+    && !nextFreeCall.rsvped && !nextFreeCall.declined && !isCancelledMeetingDate(nextFreeCall.cancelledDate);
   // Either action (or Close) puts the card away until the next week-long gap.
   const welcomeBackCard = welcome.visible ? (
     <WelcomeBackCard

@@ -129,7 +129,7 @@ function planPurchase(overrides={}) {
   const owner={owner:'A',active:true,generation:0},calls=[],logged=[],auth={id:'auth-A'};
   const steps=purchaseSteps(overrides.limitMs);
   // (The doubles for the store ask it at once: `asked` is what useIAP does when the store's purchase call is made.)
-  const scope={source:'support_tab',logMembershipPath:(step,meta)=>{logged.push([step,meta.tier,meta.source]);},purchaseOwner:owner,purchaseOwnerRef:{current:owner},purchaseFlow:{current:{phase:'idle',attempt:null}},setFlowPhase(){},subscriptionPrices:{premium:'$1',essential:'$1'},upgradeTier:'premium',purchasePremium:async control=>{asked(control);return 'success';},purchaseEssential:async control=>{asked(control);return 'success';},beforeStoreStep:steps.beforeStoreStep,newPurchaseAttempt:steps.newPurchaseAttempt,PRE_STORE_STEP_MS:steps.PRE_STORE_STEP_MS,user:{id:'A'},recordVerifiedPurchase(){calls.push('record');},retryPrices(){},withTimeoutFallback:p=>p,supabase:{auth:{getSession:async()=>({data:{session:{user:{id:auth.id},access_token:'token-A'}}})},functions:{invoke:async()=>{calls.push('sync');return {};}}},refreshAccount:async()=>{calls.push('refresh');},closeUpgrade(){calls.push('close');},appAlert(){calls.push('alert');},t:x=>x,...overrides};
+  const scope={source:'support_tab',logMembershipPath:(step,meta)=>{logged.push([step,meta.tier,meta.source]);},purchaseOwner:owner,purchaseOwnerRef:{current:owner},purchaseFlow:{current:{phase:'idle',attempt:null}},setFlowPhase(){},subscriptionPrices:{premium:'$1',essential:'$1'},upgradeTier:'premium',purchasePremium:async control=>{asked(control);return 'success';},purchaseEssential:async control=>{asked(control);return 'success';},beforeStoreStep:steps.beforeStoreStep,newPurchaseAttempt:steps.newPurchaseAttempt,PRE_STORE_STEP_MS:steps.PRE_STORE_STEP_MS,purchaseAccountNow:steps.purchaseAccountNow,watchStore(){},user:{id:'A'},recordVerifiedPurchase(){calls.push('record');},retryPrices(){},withTimeoutFallback:p=>p,supabase:{auth:{getSession:async()=>({data:{session:{user:{id:auth.id},access_token:'token-A'}}})},functions:{invoke:async()=>{calls.push('sync');return {};}}},refreshAccount:async()=>{calls.push('refresh');},closeUpgrade(){calls.push('close');},appAlert(){calls.push('alert');},t:x=>x,...overrides};
   return {owner,calls,logged,auth,scope,fn:extract('src/hooks/usePlanPurchase.ts','handlePurchase',scope)};
 }
 // M-A: a purchase the store completes after the screen closed is still hers.
@@ -266,7 +266,8 @@ test('plans: the flow is "preparing" until the store is asked, and only then loc
   assert.deepEqual(x.logged.map(entry=>entry[0]),['purchase_started','purchase_cancelled']);
   assert.ok(!x.calls.includes('alert'),'cancelling in the store sheet is silent');
   const hook=source('src/hooks/usePlanPurchase.ts');
-  assert.match(hook,/purchaseInFlight: flowPhase === 'store',/);
+  // (Locked while the store is being asked, until it has been silent for two minutes: audit round 3, L3.)
+  assert.match(hook,/purchaseInFlight: purchaseExitsLocked\(flowPhase, storeSlow\),/);
   assert.doesNotMatch(hook,/purchaseInFlight: purchasing/);
   assert.match(hook,/onStoreCall: \(\) => setPhase\('store'\),/);
   assert.equal(hook.split("setPhase('store')").length-1,1,'the lock is set in one place: when the store is asked');
@@ -398,3 +399,85 @@ test('plans: a purchase that could not start shows the purchase-error alert and 
   const y=planPurchase({purchasePremium:async c=>{y.auth.id='auth-B';confirmed=await c.confirmOwner();return 'failed';}});
   await y.fn();assert.equal(confirmed,false);
 });
+
+// ── Audit round 3 ───────────────────────────────────────────────────────────
+// L2: a purchase the store completed is finished with the account captured before the store was asked.
+for(const how of ['empty','failed'])test(`plans: a session read that comes back ${how} after the store said yes still records, syncs and refreshes the purchase`,async()=>{
+  const x=planPurchase(),tokens=[];let reads=0;const real=x.scope.supabase.auth.getSession;
+  // (The first read is the one before the store is asked; every later one is the token refresh failing.)
+  x.scope.supabase.auth.getSession=()=>++reads===1?real():how==='empty'?Promise.resolve({data:{session:null}}):Promise.reject(Error('refresh failed'));
+  x.scope.supabase.functions.invoke=async(name,options)=>{tokens.push([name,options.headers.Authorization]);x.calls.push('sync');return {};};
+  await x.fn();
+  assert.deepEqual(x.calls,['record','sync','refresh','close'],'recorded for her, and the sheet does not stay open');
+  assert.deepEqual(tokens,[['sync-iap-entitlements','Bearer token-A']],'with the sign-in captured before the store call');
+  assert.deepEqual(x.logged.map(entry=>entry[0]),['purchase_started','purchase_succeeded']);
+  assert.equal(x.scope.purchaseFlow.current.phase,'idle');
+});
+test('plans: the purchase is recorded for the account that tapped Subscribe, whatever the screen holds by then',async()=>{
+  const recorded=[];
+  const x=planPurchase({user:null,recordVerifiedPurchase:(id,tier)=>{recorded.push([id,tier]);}});
+  await x.fn();
+  assert.deepEqual(recorded,[['A','premium']]);
+});
+test('plans: an empty session read after the store said yes still credits nobody else',async()=>{
+  // Another account is in the app by then: dropped, as before.
+  const x=planPurchase();let reads=0;const real=x.scope.supabase.auth.getSession;
+  x.scope.supabase.auth.getSession=()=>++reads===1?real():Promise.resolve({data:{session:null}});
+  const gate=deferred();x.scope.purchasePremium=async control=>{asked(control);await gate.promise;return 'success';};
+  const pending=extract('src/hooks/usePlanPurchase.ts','handlePurchase',x.scope)();await settle();
+  x.scope.purchaseOwnerRef.current={owner:'B',active:true,generation:0};gate.resolve();await pending;
+  assert.deepEqual(x.calls,[]);assert.deepEqual(x.logged.map(entry=>entry[0]),['purchase_started']);
+});
+for(const how of ['nobody signed in','a session read that fails'])test(`plans: Subscribe with ${how} shows the purchase-error alert, never nothing`,async()=>{
+  const alerts=[];
+  const x=planPurchase({appAlert:(title,body)=>{alerts.push([title,body]);},purchasePremium:()=>{throw Error('must not purchase');}});
+  x.scope.supabase.auth.getSession=how==='nobody signed in'?async()=>({data:{session:null}}):()=>Promise.reject(Error('offline'));
+  await x.fn();
+  // (Neutral title: true for an Essential purchase as well as a Premier one.)
+  assert.deepEqual(alerts,[['upgradeSheet.iapErrorTitle','upgradeSheet.iapError']]);
+  assert.deepEqual(x.logged,[],'nothing started, so nothing is logged');
+  assert.equal(x.scope.purchaseFlow.current.phase,'idle');
+});
+test('plans: a failed purchase of Essential is titled for the purchase, not "Upgrade to Premier"',async()=>{
+  const alerts=[];
+  const x=planPurchase({upgradeTier:'essential',subscriptionPrices:{essential:'$1'},appAlert:(title,body)=>{alerts.push([title,body]);},purchaseEssential:async control=>{asked(control);return 'failed';}});
+  await x.fn();
+  assert.deepEqual(alerts,[['upgradeSheet.iapErrorTitle','upgradeSheet.iapError']]);
+});
+// L3: no way out used to exist if the store never answered.
+test('plans: after two minutes without an answer from the store the exits open, and a late answer is still recorded',async()=>{
+  const flow={current:{phase:'idle',attempt:null}},slow=[],store=deferred();
+  // (The real watch, with the two minutes shortened.)
+  const watchStore=extract('src/hooks/usePlanPurchase.ts','watchStore',{storeTimer:{current:null},purchaseFlow:flow,setStoreSlow:v=>slow.push(v),STORE_ANSWER_WAIT_MS:15,setTimeout,clearTimeout});
+  const x=planPurchase({purchaseFlow:flow,watchStore,purchasePremium:async control=>{asked(control);return store.promise;}});
+  const close=extract('src/hooks/usePlanPurchase.ts','closeUpgrade',{...x.scope,setReviewPromptPaywallVisible(){},upgradeOpenRef:{current:true},setUpgradeOpen(){x.calls.push('sheet-closed');}});
+  const pending=x.fn();await settle();
+  assert.equal(flow.current.phase,'store');
+  close();assert.deepEqual(x.calls,[],'locked while the store may still answer in good time');
+  assert.equal(steps().purchaseExitsLocked(flow.current.phase,flow.current.storeSlow),true);
+  await tick(40);
+  assert.equal(flow.current.storeSlow,true);assert.deepEqual(slow,[false,false,true]);
+  assert.equal(steps().purchaseExitsLocked(flow.current.phase,flow.current.storeSlow),false,'back, swipe and Close work again');
+  close();assert.deepEqual(x.calls,['sheet-closed']);
+  assert.equal(flow.current.phase,'store','the purchase itself is still being waited for');
+  // The store answers at last: recorded, synced and refreshed exactly as before.
+  store.resolve('success');await pending;
+  assert.deepEqual(x.calls,['sheet-closed','record','sync','refresh','close']);
+  assert.deepEqual(x.logged.map(entry=>entry[0]),['purchase_started','purchase_succeeded']);
+  assert.equal(flow.current.phase,'idle');assert.equal(flow.current.storeSlow,false);
+});
+test('plans: the two-minute watch ends with the store\'s answer and never fires afterwards',async()=>{
+  const flow={current:{phase:'store',attempt:null}},slow=[],timer={current:null};
+  const watchStore=extract('src/hooks/usePlanPurchase.ts','watchStore',{storeTimer:timer,purchaseFlow:flow,setStoreSlow:v=>slow.push(v),STORE_ANSWER_WAIT_MS:10,setTimeout,clearTimeout});
+  watchStore(true);assert.ok(timer.current);
+  flow.current.phase='finishing';watchStore(false);assert.equal(timer.current,null);
+  await tick(30);assert.equal(flow.current.storeSlow,false);assert.deepEqual(slow,[false,false]);
+  // A watch left running after the flow moved on changes nothing either.
+  flow.current.phase='store';watchStore(true);flow.current.phase='idle';
+  await tick(30);assert.equal(flow.current.storeSlow,false);
+  assert.equal(steps().STORE_ANSWER_WAIT_MS,120000);
+  const hook=source('src/hooks/usePlanPurchase.ts');
+  assert.match(hook,/setFlowPhase\(phase\);\s+watchStore\(phase === 'store'\);/);
+  assert.match(hook,/useEffect\(\(\) => \(\) => \{ if \(storeTimer\.current\) clearTimeout\(storeTimer\.current\); \}, \[\]\);/);
+});
+function steps(){return purchaseSteps();}

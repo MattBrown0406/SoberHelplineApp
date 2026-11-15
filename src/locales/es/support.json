@@ -68,7 +68,7 @@
   "mondayGroup": {
     "eyebrow": "ACCESO GRATUITO",
     "heading": "Grupo de Apoyo Familiar — Lunes",
-    "sub": "Nuestra llamada grupal semanal gratuita — sin suscripción. Confirma tu asistencia para obtener el enlace de Zoom."
+    "sub": "Nuestra reunión grupal semanal gratuita — sin suscripción. Reserva tu lugar para recibir tu enlace personal de Zoom."
   },
   "messages": {
     "eyebrow": "Escríbele a tu coach",
@@ -93,6 +93,7 @@
     "title": "Mejorar a Premier",
     "renewalNote": "{{price}} al mes, cobrado a tu Cuenta de Apple. Se renueva automáticamente a menos que lo desactives al menos 24 horas antes de que termine el período. Administra o cancela cuando quieras en los ajustes de tu Cuenta de Apple.",
     "iapError": "Algo salió mal con la compra. Por favor inténtalo de nuevo.",
+    "iapErrorTitle": "Compra no completada",
     "iapNoOfferings": "Las suscripciones no están disponibles ahora. Inténtalo más tarde.",
     "close": "Ahora no",
     "privacyPolicy": "Política de privacidad",

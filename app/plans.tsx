@@ -74,7 +74,9 @@ export default function PlansScreen() {
   // Android's back button is swallowed, the swipe-back is off, and the back
   // arrow is disabled. Before that call (the session, the store's products and
   // RevenueCat are still being read, each with a time limit) nothing has been
-  // bought, so every exit works and leaving simply ends the attempt.
+  // bought, so every exit works and leaving simply ends the attempt. And if
+  // the store has said nothing for two minutes the exits open again, with a
+  // line saying the purchase is still being checked (usePlanPurchase).
   const { purchaseInFlight } = plan;
   useEffect(() => {
     if (!purchaseInFlight) return;
@@ -95,6 +97,7 @@ export default function PlansScreen() {
         onPurchase={() => void plan.handlePurchase()}
         purchasing={plan.purchasing}
         closeDisabled={purchaseInFlight}
+        stillChecking={plan.stillChecking}
       />
       <View style={styles.headerRow}>
         <TouchableOpacity
@@ -112,6 +115,9 @@ export default function PlansScreen() {
       </View>
       <Text style={[styles.intro, { color: colors.inkSoft }]}>{t('intro')}</Text>
       <Text style={[styles.intro, { color: colors.inkSoft }]}>{t('monthly')}</Text>
+      {plan.stillChecking && (
+        <Text style={[styles.intro, { color: colors.ink }]} accessibilityLiveRegion="polite">{t('stillChecking')}</Text>
+      )}
       <PlansCard
         accountState={accountState}
         offers={plan}

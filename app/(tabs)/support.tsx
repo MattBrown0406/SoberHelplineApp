@@ -51,7 +51,7 @@ import { funnelDoor, type FunnelDoor } from '../../src/lib/situation';
 import { SituationOffRamp } from '../../src/components/situation/SituationOffRamp';
 import { logFunnelEventAndWait } from '../../src/lib/funnel';
 import { callCardView, seatSaveFailureKey } from '../../src/lib/familySquaresCard';
-import { isFamilySquaresKnownCancelled } from '../../src/lib/familySquaresCancelled';
+import { isCancelledMeetingDate, isFamilySquaresKnownCancelled } from '../../src/lib/familySquaresCancelled';
 import { useBereavedOnDevice } from '../../src/hooks/useBereavedOnDevice';
 import { isAdminEmail } from '../../src/lib/admin';
 import { openEmergencyLink } from '../../src/lib/emergencyLinks';
@@ -567,15 +567,17 @@ export default function SupportScreen() {
     if (!session) return;
     setPendingAsk(null);
     // (No question for a Monday the website cancelled.)
-    if (!isLaSobremesaSession(session) && !session.cancelled) setQuestionSession(session);
+    if (!isLaSobremesaSession(session) && !isCancelledMeetingDate(session.cancelledDate)) setQuestionSession(session);
   }, [pendingAsk, supportFocused, sessions]);
   const handleSessionRsvp = async (session: DbSession) => {
     const saved = await toggleRsvp(session);
     if (saved === 'not_available') appAlert(t('sessions.rsvpErrorTitle'), t('common:laSobremesa.notAvailable'));
     // The website refused (a cancelled week, or it will not register her):
-    // not a connection problem, so the message says what is true.
-    else if (saved === 'website_declined') {
-      appAlert(t('sessions.rsvpErrorTitle'), t(seatSaveFailureKey('website_declined', session.cancelled === true || isFamilySquaresKnownCancelled())));
+    // not a connection problem, so the message says what is true. When the
+    // website said why, its word decides (familySquaresCard).
+    else if (saved === 'website_declined' || saved === 'meeting_cancelled' || saved === 'registration_unavailable') {
+      const knownCancelled = isCancelledMeetingDate(session.cancelledDate) || isFamilySquaresKnownCancelled();
+      appAlert(t('sessions.rsvpErrorTitle'), t(seatSaveFailureKey('website_declined', knownCancelled, saved === 'website_declined' ? undefined : saved)));
     } else if (!saved) appAlert(t('sessions.rsvpErrorTitle'), t('sessions.rsvpErrorBody'));
   };
   const joining = useRef(false);
@@ -610,10 +612,12 @@ export default function SupportScreen() {
     const familySquares = isFamilySquaresSession(sess);
     // What a Family Squares row offers is decided in one place
     // (familySquaresCard). A Monday the website cancelled offers nothing for
-    // that date: only a calm line, and the "every Monday" switch.
+    // that date: only a calm line, and the "every Monday" switch. The
+    // cancelled date is compared with the coming meeting's date on every draw:
+    // an answer read for last Monday never hides this Monday's meeting.
     const view = callCardView({
       familySquares,
-      cancelled: sess.cancelled === true,
+      cancelled: isCancelledMeetingDate(sess.cancelledDate),
       answer: sess.rsvped ? 'going' : sess.declined ? 'declined' : 'none',
       hasLink: !!sess.zoom_url,
     });
@@ -975,7 +979,9 @@ export default function SupportScreen() {
                   <Text style={styles.solidBtnText}>{t('tier.openPlanReview')}</Text>
                 </TouchableOpacity>
 
-                {accountState === 'direct-essential' && (
+                {/* Never for a bereaved member (or before the device knows): no
+                    sales prompts of any kind. Plans stay reachable from Settings. */}
+                {accountState === 'direct-essential' && bereaved === false && (
                   <TouchableOpacity
                     style={[styles.outlineBtn, { borderColor: colors.primary }]}
                     activeOpacity={0.85}

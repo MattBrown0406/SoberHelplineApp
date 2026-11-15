@@ -54,7 +54,7 @@ test('the hook welcomes a return once: it reads the last visit, then writes this
   assert.match(hook, /pending \?\?= look\(\);/);
   assert.match(hook, /const dismiss = useCallback\(\(\) => \{\s*live\.current\.visible = false;\s*setVisible\(false\);\s*\}, \[\]\);/);
   // Today's reminder ask waits for the welcome-back answer on every return (welcome-back-hook.test.mjs runs it).
-  assert.match(read('app/(tabs)/index.tsx'), /!welcome\.ready \|\| welcome\.returned, welcome\.decided\)/);
+  assert.match(read('app/(tabs)/index.tsx'), /!welcome\.ready \|\| welcome\.returned, welcome\.decided, mondayCancelled\)/);
   assert.match(read('src/hooks/useReminderAsk.ts'), /const welcomed = welcomeBackDecided \? await welcomeBackDecided\(\)\.catch\(\(\) => false\) : false;[\s\S]*?const kind = welcomed \? null : decide\(permission, memory, now\);/);
 });
 
@@ -74,7 +74,7 @@ test('Today shows the card at the top; either action or Close puts it away', () 
   assert.match(today, /onDismiss=\{welcome\.dismiss\}/);
   assert.match(today, /scrollRef\.current\?\.scrollTo\(\{ y: Math\.max\(0, checkInY\.current - 8\), animated: true \}\)/);
   // Only a meeting she has not answered for is offered.
-  assert.match(today, /const seatOpen = !!nextFreeCall && \(isFamilySquaresSession\(nextFreeCall\) \|\| isLaSobremesaSession\(nextFreeCall\)\)\s*(\/\/[^\n]*\n\s*)?&& !nextFreeCall\.rsvped && !nextFreeCall\.declined && !nextFreeCall\.cancelled;/);
+  assert.match(today, /const seatOpen = !!nextFreeCall && \(isFamilySquaresSession\(nextFreeCall\) \|\| isLaSobremesaSession\(nextFreeCall\)\)\s*(\/\/[^\n]*\n\s*)?&& !nextFreeCall\.rsvped && !nextFreeCall\.declined && !isCancelledMeetingDate\(nextFreeCall\.cancelledDate\);/);
 });
 
 test('the card is warm and plain: no streaks, no "missed", no numbers, and every button is labelled', () => {

@@ -4,6 +4,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
  * "What to expect" is for someone who has never been to Family Squares. The
  * signal is kept on the device: set when she hides the note or first taps
  * Join. (A new phone shows the note once more; it is one tap to hide.)
+ * A missing key alone would make every long-standing member look new after
+ * an update or on a new phone, so the note is also only for an account
+ * created in the last 30 days (accountIsNewForFirstTimerNote, useFirstTimerNote).
  * The key carries the account id, so sign-out clears it with her other data.
  */
 const KEY_PREFIX = '@sh:family-squares-first-note:';

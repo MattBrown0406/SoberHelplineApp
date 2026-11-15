@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAccount } from '../../contexts/AccountContext';
 import { useFirstTimerNote } from '../../hooks/useFirstTimerNote';
 
 const POINTS = ['zoom', 'camera', 'listen', 'length'] as const;
@@ -14,13 +15,16 @@ interface Props {
 
 /**
  * "What to expect" for someone who has never been to Family Squares: the
- * practical things that make a first meeting less daunting. It goes away for
- * good when she hides it or first taps Join.
+ * practical things that make a first meeting less daunting. Shown only to an
+ * account created in the last 30 days; it goes away for good when she hides
+ * it or first taps Join.
  */
 export function FamilySquaresFirstTimerNote({ accountId, tone = 'card' }: Props) {
   const { colors } = useTheme();
   const { t } = useTranslation('common');
-  const { visible, dismiss } = useFirstTimerNote(accountId);
+  // Only for a new account (created in the last 30 days): when it was made.
+  const { user } = useAccount();
+  const { visible, dismiss } = useFirstTimerNote(accountId, user && user.id === accountId ? user.joinedAt : null);
   if (!visible) return null;
 
   const onPrimary = tone === 'onPrimary';

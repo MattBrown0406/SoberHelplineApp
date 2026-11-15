@@ -181,11 +181,14 @@ test('only "Remind me" can open the system dialog, and a grant registers the dev
   assert.equal((hook.match(/registerForPushNotifications\(/g) ?? []).length, 1);
   assert.doesNotMatch(hook, /requestPermissionsAsync/);
   // A refusal ends on the Settings line; a grant that could not register can be retried.
-  assert.match(hook, /setView\(registered \? 'on' : permission === 'blocked' \? 'settings' : permission === 'granted' \? 'failed' : 'ask'\)/);
+  // (What is shown is decided in reminderAskResult: "Reminders are on" only after her own tap whose
+  // preference change was saved: audit round 3, L8.)
+  assert.match(hook, /setView\(reminderAskResult\(\{ registered, herTap: askSystem, preferenceSaved, permission \}\)\);/);
   assert.match(hook, /void Linking\.openSettings\(\)\.catch\(\(\) => undefined\);/);
-  // "Remind me" also makes sure the Monday reminder is not switched off in Settings (best effort, only
-  // after a grant) — and ONLY that tap does: nothing else may turn the preference back on.
-  assert.match(hook, /if \(registered && askSystem\) void Promise\.resolve\(supabase\.rpc\('set_family_call_reminders', \{ p_enabled: true \}\)\)\.catch\(\(\) => undefined\);/);
+  // "Remind me" also makes sure the Monday reminder is not switched off in Settings (only after a
+  // grant, and its answer is waited for) — and ONLY that tap does: nothing else may turn the preference back on.
+  assert.match(hook, /const preferenceSaved = registered && askSystem \? await turnMondayRemindersOn\(\) : false;/);
+  assert.match(hook, /Promise\.resolve\(supabase\.rpc\('set_family_call_reminders', \{ p_enabled: true \}\)\)\.then\(\(result\) => !result\?\.error\),\s+10_000,\s+false,/);
   assert.equal((hook.match(/set_family_call_reminders/g) ?? []).length, 1);
   // Back from device Settings with notifications allowed: the device is registered without another
   // prompt, as a passive recheck (askSystem false), so her Settings switch is left as she set it.
@@ -242,13 +245,14 @@ test('the seat ask appears only after her own Save tap on that screen has saved 
 
 test('Today shows its second chance under the call card, not on the bereaved Today or a welcome-back visit', () => {
   const screen = read('app/(tabs)/index.tsx');
-  assert.match(screen, /useTodayReminderAsk\(bereaved \|\| bereavedUnknown \? null : user\?\.id \?\? null, user\?\.joinedAt, !welcome\.ready \|\| welcome\.returned, welcome\.decided\)/);
+  assert.match(screen, /useTodayReminderAsk\(bereaved \|\| bereavedUnknown \? null : user\?\.id \?\? null, user\?\.joinedAt, !welcome\.ready \|\| welcome\.returned, welcome\.decided, mondayCancelled\)/);
   assert.match(screen, /const reminderAskCard = <ReminderAskNote ask=\{reminderAsk\} place="today" \/>;/);
   const screens = screen.split('<ScreenContainer').slice(1);
   assert.equal(screens.filter((part) => /\{mondayCallCard\}\s*\{reminderAskCard\}/.test(part)).length, 2);
   assert.ok(screens.filter((part) => part.includes('<GriefCard')).every((part) => !part.includes('{reminderAskCard}')));
   const hook = read('src/hooks/useReminderAsk.ts');
-  assert.match(hook, /if \(kind && memory && startsTodayShowing\(memory, now\)\) \{\s*await rememberReminderAsk\(accountId, \{ todayShownAt: now\.toISOString\(\) \}\);/);
+  // (Recorded only when Today is in front and the ask is on it: audit round 3, L4.)
+  assert.match(hook, /if \(recordsTodayShowing\(\{ kind, focused: focusedRef\.current, showing: viewRef\.current, memory, now \}\)\) \{\s*await rememberReminderAsk\(accountId, \{ todayShownAt: now\.toISOString\(\) \}\);/);
   assert.match(hook, /welcomeBackShowing: holdBack,/);
 });
 

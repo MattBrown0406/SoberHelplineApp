@@ -168,7 +168,8 @@ test('the community feed is hidden everywhere it could be reached', () => {
 
 test('a failed Today reload keeps what this account last loaded', () => {
   const feed = readFileSync('src/hooks/useTodayFeed.ts', 'utf8');
-  assert.match(feed, /const failed = \[wallsRes, rsvpCountRes, sessRes, rsvpRowsRes, sitRes\]\.some\(\(res\) => res\.error\);\n\s+if \(failed && loadedFor\.current === accountId\) \{\n\s+setLoading\(false\);\n\s+return;/);
+  // (All but "cancelled", which is never kept from an earlier read: audit round 3, M1.)
+  assert.match(feed, /const failed = \[wallsRes, rsvpCountRes, sessRes, rsvpRowsRes, sitRes\]\.some\(\(res\) => res\.error\);\n\s+if \(failed && loadedFor\.current === accountId\) \{\n[\s\S]*?const fresh = isFamilySquaresSession\(prev\) \? cancelledDate : null;[\s\S]*?\n\s+setLoading\(false\);\n\s+return;/);
   assert.match(feed, /if \(!failed\) loadedFor\.current = accountId;/);
   assert.match(feed, /AppState\.addEventListener\('change', \(state\) => \{\n\s+if \(state === 'active'\) void load\(\);/);
 });

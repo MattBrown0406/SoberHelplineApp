@@ -126,7 +126,8 @@ function sessionsHook() {
     '../lib/laSobremesa': { reserveLaSobremesa: async () => ({ ok: false }), withPersonalLinks: async (rows) => rows },
     '../lib/freshAnswer': load('src/lib/freshAnswer.ts'),
     '../lib/familySquaresSessionCache': { rememberFamilySquaresSession() {} },
-    '../lib/familySquaresCancelled': { loadFamilySquaresCancelled: async () => false },
+    '../lib/familySquaresCancelled': { loadFamilySquaresCancelledDate: async () => null, comingFamilySquaresMeetingDate: () => 'this-week' },
+    'react-native': { AppState: { addEventListener: () => ({ remove() {} }) } },
   }).useSessions;
   const render = () => r.render(() => hook('account-A'));
   return {

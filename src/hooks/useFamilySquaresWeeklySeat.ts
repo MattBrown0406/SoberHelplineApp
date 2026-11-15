@@ -38,7 +38,12 @@ export function useFamilySquaresWeeklySeat(accountId: string | null) {
   // Settings can change it while Today and Support stay mounted underneath.
   useFocusEffect(useCallback(() => { void load(); }, [load]));
   useEffect(() => subscribeWeeklySeat((changedAccount, value) => {
-    if (changedAccount === identity.current) setEnabledState(value);
+    if (changedAccount !== identity.current) return;
+    // A change saved on another screen is newer than any read this one has in
+    // flight (a focus read that began before the save would otherwise land
+    // afterwards and put the old value back): that read is now out of date.
+    ++generation.current;
+    setEnabledState(value);
   }), []);
 
   const setEnabled = useCallback(async (next: boolean): Promise<boolean> => {

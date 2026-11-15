@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import i18next from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { appAlert } from '../lib/appAlert';
+import { AppState } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { reserveFamilySquares, familySquaresRsvpIsCurrent, FAMILY_SQUARES_ALREADY_REGISTERED } from '../lib/familySquaresRegistration';
@@ -10,7 +11,8 @@ import { isLaSobremesaSession, isFamilySquaresSession } from '../lib/familySquar
 import { reserveLaSobremesa, withPersonalLinks } from '../lib/laSobremesa';
 import { withFreshAnswer } from '../lib/freshAnswer';
 import { rememberFamilySquaresSession } from '../lib/familySquaresSessionCache';
-import { loadFamilySquaresCancelled } from '../lib/familySquaresCancelled';
+import { comingFamilySquaresMeetingDate, loadFamilySquaresCancelledDate } from '../lib/familySquaresCancelled';
+import type { WebsiteDeclineReason } from '../lib/familySquaresCard';
 
 export interface DbSession {
   id: string;
@@ -22,9 +24,17 @@ export interface DbSession {
   rsvped: boolean;
   /** Family Squares only: she answered "can't make it" for this meeting. */
   declined?: boolean;
-  /** Family Squares only: the website cancelled the coming Monday's meeting. */
-  cancelled?: boolean;
+  /**
+   * Family Squares only: the meeting date (Pacific, YYYY-MM-DD) the website
+   * cancelled, as last read. It says nothing about any other Monday: whoever
+   * draws the row compares it with the coming meeting's date each time
+   * (isCancelledMeetingDate), so last week's answer is never shown this week.
+   */
+  cancelledDate?: string | null;
 }
+
+/** How a Save tap on a session row ended (see toggleRsvp). */
+export type SessionRsvpOutcome = boolean | 'not_available' | 'website_declined' | WebsiteDeclineReason;
 
 export function useSessions(accountId: string | null) {
   const [sessions, setSessions] = useState<DbSession[]>([]);
@@ -33,6 +43,9 @@ export function useSessions(accountId: string | null) {
   // Squares seat. Only that is followed by the reminder ask: never a seat that
   // arrived by itself (her weekly seat, a seat saved on Today, a re-read).
   const [seatSavedHere, setSeatSavedHere] = useState(0);
+  // Goes up when the app comes back to the front: the screen is drawn again at
+  // once, so a cancelled date is compared with the meeting that is coming NOW.
+  const [, setReturns] = useState(0);
   const identity = useRef(accountId);
   identity.current = accountId;
   const generation = useRef(0);
@@ -47,28 +60,29 @@ export function useSessions(accountId: string | null) {
     const request = ++generation.current;
     const answersAtStart = answers.current;
     if (!accountId) return;
-    const [{ data: rows }, { data: rsvps }, meetingCancelled] = await Promise.all([
+    const [{ data: rows }, { data: rsvps }, cancelledDate] = await Promise.all([
       supabase
         .from('sessions')
         .select('id, kind, title, schedule_label, next_at, zoom_url')
         .order('next_at', { ascending: true }),
       // "Can't make it" answers too: the row says so instead of offering the seat as new.
       supabase.from('session_rsvps').select('session_id, status, family_squares_meeting_date').in('status', ['going', 'declined']).eq('account_id', accountId!),
-      // Did the website cancel the coming Monday? Fails open: any doubt is "no".
-      loadFamilySquaresCancelled(),
+      // Did the website cancel the coming Monday? Fails open: any doubt is "no"
+      // (null). Every read asks afresh; a cancelled state is never carried over.
+      loadFamilySquaresCancelledDate(),
     ]);
     const going = new Set((rsvps ?? []).filter((r) => r.status === 'going').map((r) => r.session_id as string));
     // (Remembered on the device, so a reminder tap knows which session is Family Squares.)
     rememberFamilySquaresSession(rows as { id: string; title: string }[] | null);
     // La Sobremesa's Join opens the member's personal link.
-    const withLinks = await withPersonalLinks((rows as Omit<DbSession, 'rsvped' | 'declined' | 'cancelled'>[]) ?? []);
+    const withLinks = await withPersonalLinks((rows as Omit<DbSession, 'rsvped' | 'declined' | 'cancelledDate'>[]) ?? []);
     if (request !== generation.current || identity.current !== accountId) return;
     const loaded: DbSession[] = withLinks.map((s) => {
       if (!isFamilySquaresSession(s)) return { ...s, rsvped: going.has(s.id) };
       // A Family Squares answer counts only for the meeting it was given for.
       const answer = rsvps?.find((r) => r.session_id === s.id);
       const current = familySquaresRsvpIsCurrent(answer?.family_squares_meeting_date);
-      return { ...s, rsvped: current && answer?.status === 'going', declined: current && answer?.status === 'declined', cancelled: meetingCancelled };
+      return { ...s, rsvped: current && answer?.status === 'going', declined: current && answer?.status === 'declined', cancelledDate };
     });
     // She answered while this read was in flight (or an answer is still being
     // saved): her answers stay as they are.
@@ -90,16 +104,29 @@ export function useSessions(accountId: string | null) {
       if (accountId) void load();
     }, [accountId, load]),
   );
+  // Focus does not fire when the app returns to a Support that was already in
+  // view (left open in a cancelled week, opened again the Monday after): read
+  // again on foreground too, as Today does.
+  useEffect(() => {
+    const appState = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') return;
+      setReturns((count) => count + 1);
+      if (accountId) void load();
+    });
+    return () => appState.remove();
+  }, [accountId, load]);
 
   const reserving = useRef(false);
 
   const toggleRsvp = useCallback(
     /**
      * true when saved; 'not_available' when La Sobremesa isn't open for
-     * reservations yet; 'website_declined' when the website refused a Family
-     * Squares seat (a cancelled week, or it will not register her).
+     * reservations yet. When the website refused a Family Squares seat:
+     * 'meeting_cancelled' or 'registration_unavailable' if it said why, else
+     * 'website_declined' (an older server: a cancelled week, or it will not
+     * register her).
      */
-    async (session: DbSession): Promise<boolean | 'not_available' | 'website_declined'> => {
+    async (session: DbSession): Promise<SessionRsvpOutcome> => {
       if (!accountId || identity.current !== accountId) return false;
       if (isFamilySquaresSession(session)) {
         if (reserving.current) return true;
@@ -108,9 +135,15 @@ export function useSessions(accountId: string | null) {
         if (identity.current !== accountId) return true;
         if (!reserved.ok) {
           if (reserved.reason !== 'website_declined') return false;
+          if (reserved.websiteReason === 'meeting_cancelled') {
+            // The website said so itself: the row shows the cancelled line now.
+            const cancelledDate = comingFamilySquaresMeetingDate();
+            setSessions((prev) => prev.map((s) => s.id === session.id ? { ...s, cancelledDate } : s));
+            return 'meeting_cancelled';
+          }
           // The week may have been cancelled since this list was read: look again.
           void load();
-          return 'website_declined';
+          return reserved.websiteReason ?? 'website_declined';
         }
         ++answers.current;
         setSessions((prev) => prev.map((s) => s.id === session.id ? { ...s, rsvped: true, declined: false } : s));

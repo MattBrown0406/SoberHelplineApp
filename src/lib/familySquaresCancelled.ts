@@ -24,17 +24,40 @@ export function meetingCancelledFrom(result: { data?: unknown; error?: unknown }
   return !!result && !result.error && result.data === true;
 }
 
+/**
+ * A cancelled week is always kept as WHICH meeting date was cancelled, never
+ * as a bare yes: the answer for one Monday must not be shown for the next. Ask
+ * this every time a card is drawn or the answer is used; a date that is not
+ * the coming meeting's (last week's, or none) is "not cancelled".
+ */
+export function isCancelledMeetingDate(cancelledDate: unknown, now: Date = new Date()): boolean {
+  return typeof cancelledDate === 'string' && cancelledDate !== '' && cancelledDate === comingFamilySquaresMeetingDate(now);
+}
+
 // The last answer, for this run of the app: lets a failed seat save and a
 // reminder tap say the right thing without asking again.
 let knownCancelledDate: string | null = null;
 
 /** True when the coming meeting was cancelled the last time the server was asked. */
 export function isFamilySquaresKnownCancelled(now: Date = new Date()): boolean {
-  return knownCancelledDate !== null && knownCancelledDate === comingFamilySquaresMeetingDate(now);
+  return isCancelledMeetingDate(knownCancelledDate, now);
 }
 
-/** Whether the coming meeting is cancelled. Never throws; any doubt is "no". */
-export async function loadFamilySquaresCancelled(now: Date = new Date()): Promise<boolean> {
+/**
+ * The website itself just refused a seat because the coming meeting is
+ * cancelled (family-squares-register's `reason: 'meeting_cancelled'`): that is
+ * a clean answer, so the date is remembered on the device. Returns the date.
+ */
+export function markFamilySquaresCancelled(now: Date = new Date()): string {
+  knownCancelledDate = comingFamilySquaresMeetingDate(now);
+  return knownCancelledDate;
+}
+
+/**
+ * The coming meeting's date when the website cancelled it, else null. Never
+ * throws; any doubt is null ("not cancelled").
+ */
+export async function loadFamilySquaresCancelledDate(now: Date = new Date()): Promise<string | null> {
   const meetingDate = comingFamilySquaresMeetingDate(now);
   let cancelled = false;
   try {
@@ -44,5 +67,10 @@ export async function loadFamilySquaresCancelled(now: Date = new Date()): Promis
   }
   if (cancelled) knownCancelledDate = meetingDate;
   else if (knownCancelledDate === meetingDate) knownCancelledDate = null;
-  return cancelled;
+  return cancelled ? meetingDate : null;
+}
+
+/** Whether the coming meeting is cancelled. Never throws; any doubt is "no". */
+export async function loadFamilySquaresCancelled(now: Date = new Date()): Promise<boolean> {
+  return (await loadFamilySquaresCancelledDate(now)) !== null;
 }

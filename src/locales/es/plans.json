@@ -1,7 +1,8 @@
 {
   "title": "Planes de membresía",
-  "intro": "Family Squares, la guía de crisis y tus herramientas de cada día siguen siendo gratis. Un plan te suma un coach entre una reunión y otra.",
+  "intro": "La Sobremesa, la guía de crisis y tus herramientas de cada día siguen siendo gratis. Un plan te suma un coach entre una reunión y otra.",
   "monthly": "Los dos planes se cobran cada mes.",
+  "stillChecking": "Esto está tardando más de lo normal. Seguimos verificando tu compra con el App Store; no tienes que esperar aquí.",
   "summarySeparator": " · ",
   "headings": {
     "free": "Sigue siendo gratis",
@@ -11,7 +12,7 @@
   },
   "benefits": {
     "free": {
-      "familySquares": "Family Squares y La Sobremesa, las reuniones gratuitas de cada semana",
+      "familySquares": "La Sobremesa, nuestra reunión gratuita de cada lunes",
       "crisisGuide": "La guía de crisis, los pasos de seguridad y la Cartera de Seguridad",
       "everydayTools": "Límites, el seguimiento y tu registro diario",
       "scripts": "La biblioteca completa de guiones y la práctica guiada",
@@ -64,7 +65,7 @@
   "paywall": {
     "heading": "Esto es parte de la membresía",
     "lead": "Essential incluye:",
-    "free": "La guía de crisis, los contactos de emergencia y Family Squares siguen siendo gratis."
+    "free": "La guía de crisis, los contactos de emergencia y La Sobremesa siguen siendo gratis."
   },
   "locked": {
     "todayLine": "Con una membresía, aquí ves tu semana en resumen y tu progreso.",
@@ -79,6 +80,6 @@
     "practiceCompleted": "Ya practicaste una conversación. ¿Te ayudaría contar con práctica continua y orientación para la próxima? Tu resumen sigue siendo gratis.",
     "boundarySaved": "Guardaste un punto de partida. La membresía puede ayudarte a practicar y ajustar tu enfoque. Tu límite sigue siendo tuyo.",
     "afterMeetingTitle": "Sigue la conversación entre lunes y lunes",
-    "afterMeeting": "Family Squares es una vez por semana. Con una membresía puedes escribirle a un coach los días de en medio."
+    "afterMeeting": "La Sobremesa es una vez por semana. Con una membresía puedes escribirle a un coach los días de en medio."
   }
 }

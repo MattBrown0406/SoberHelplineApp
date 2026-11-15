@@ -20,7 +20,7 @@ import { chooseFreeCall, isLaSobremesaSession, isFamilySquaresSession } from '..
 import { reserveLaSobremesa, withPersonalLinks } from '../lib/laSobremesa';
 import { withFreshAnswer } from '../lib/freshAnswer';
 import { rememberFamilySquaresSession } from '../lib/familySquaresSessionCache';
-import { isFamilySquaresKnownCancelled, loadFamilySquaresCancelled } from '../lib/familySquaresCancelled';
+import { comingFamilySquaresMeetingDate, isCancelledMeetingDate, isFamilySquaresKnownCancelled, loadFamilySquaresCancelledDate } from '../lib/familySquaresCancelled';
 import { seatSaveFailureKey } from '../lib/familySquaresCard';
 import { appAlert } from '../lib/appAlert';
 import i18n from 'i18next';
@@ -38,8 +38,13 @@ export interface FreeCall {
   rsvped: boolean;
   /** Family Squares only: she answered "can't make it" for this meeting. */
   declined?: boolean;
-  /** Family Squares only: the website cancelled the coming Monday's meeting. */
-  cancelled?: boolean;
+  /**
+   * Family Squares only: the meeting date (Pacific, YYYY-MM-DD) the website
+   * cancelled, as last read. It says nothing about any other Monday: whoever
+   * draws the card compares it with the coming meeting's date each time
+   * (isCancelledMeetingDate), so last week's answer is never shown this week.
+   */
+  cancelledDate?: string | null;
 }
 
 export interface TodayFeedData {
@@ -111,7 +116,7 @@ export function useTodayFeed(
     }
     setLoading(true);
 
-    const [wallsRes, rsvpCountRes, sessRes, rsvpRowsRes, sitRes, meetingCancelled] = await Promise.all([
+    const [wallsRes, rsvpCountRes, sessRes, rsvpRowsRes, sitRes, cancelledDate] = await Promise.all([
       supabase.from('walls').select('*', { count: 'exact', head: true }),
       supabase
         .from('session_rsvps')
@@ -125,8 +130,8 @@ export function useTodayFeed(
       // "Can't make it" answers too: the card says so instead of offering the seat as new.
       supabase.from('session_rsvps').select('session_id, status, family_squares_meeting_date').in('status', ['going', 'declined']).eq('account_id', accountId!),
       supabase.rpc('my_situation'),
-      // Did the website cancel the coming Monday? Fails open: any doubt is "no".
-      loadFamilySquaresCancelled(),
+      // Did the website cancel the coming Monday? Fails open: any doubt is "no" (null).
+      loadFamilySquaresCancelledDate(),
     ]);
 
     if (request !== generation.current) return;
@@ -135,6 +140,14 @@ export function useTodayFeed(
     // crisis week, the support doors. The first load still falls back.
     const failed = [wallsRes, rsvpCountRes, sessRes, rsvpRowsRes, sitRes].some((res) => res.error);
     if (failed && loadedFor.current === accountId) {
+      // ...except "cancelled": that is never kept from an earlier read. The
+      // card takes what the cancelled check answered just now, and any doubt
+      // there is "not cancelled" (fail open).
+      setNextFreeCall((prev) => {
+        if (!prev) return prev;
+        const fresh = isFamilySquaresSession(prev) ? cancelledDate : null;
+        return (prev.cancelledDate ?? null) === fresh ? prev : { ...prev, cancelledDate: fresh };
+      });
       setLoading(false);
       return;
     }
@@ -181,7 +194,7 @@ export function useTodayFeed(
     const loadedCall: FreeCall | null = chosen ? { ...chosen,
       rsvped: isFamilySquaresSession(chosen) ? answerIsCurrent && answer?.status === 'going' : going.has(chosen.id),
       declined: answerIsCurrent && answer?.status === 'declined',
-      cancelled: isFamilySquaresSession(chosen) && meetingCancelled } : null;
+      cancelledDate: isFamilySquaresSession(chosen) ? cancelledDate : null } : null;
     // She answered while this read was in flight (or the answer is still
     // being saved): her answer stays as it is.
     const answeredSince = answersAtStart !== answers.current || reserving.current;
@@ -228,10 +241,17 @@ export function useTodayFeed(
       if (!reserved.ok) {
         // The website refusing (a cancelled week, or it will not register her)
         // is not a connection problem: say what is true (familySquaresCard).
-        const cancelled = nextFreeCall.cancelled === true || isFamilySquaresKnownCancelled();
-        appAlert(i18n.t('support:sessions.rsvpErrorTitle'), i18n.t(seatSaveFailureKey(reserved.reason, cancelled)));
+        const cancelled = isCancelledMeetingDate(nextFreeCall.cancelledDate) || isFamilySquaresKnownCancelled();
+        appAlert(i18n.t('support:sessions.rsvpErrorTitle'), i18n.t(seatSaveFailureKey(reserved.reason, cancelled, reserved.websiteReason)));
+        if (reserved.reason !== 'website_declined') return;
+        if (reserved.websiteReason === 'meeting_cancelled') {
+          // The website said so itself: the card shows the cancelled line now.
+          const cancelledDate = comingFamilySquaresMeetingDate();
+          setNextFreeCall((prev) => prev?.id === nextFreeCall.id ? { ...prev, cancelledDate } : prev);
+          return;
+        }
         // The week may have been cancelled since the card was read: look again.
-        if (reserved.reason === 'website_declined') void load();
+        void load();
         return;
       }
       ++answers.current;

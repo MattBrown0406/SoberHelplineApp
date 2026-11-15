@@ -36,6 +36,8 @@ import { isWallAligned } from '../../src/content/familyScripts';
 import { recentLocalDays, weekdayOf } from '../../src/lib/localDays';
 import { appAlert } from '../../src/lib/appAlert';
 import { familyJoinErrorKey } from '../../src/lib/inviteCodeErrors';
+import { isFamilySquaresMeetingDay, mondayChallengeShown } from '../../src/lib/mondayChallenge';
+import { useMondayMeetingWeek } from '../../src/hooks/useMondayMeetingWeek';
 import type { BoundaryWall } from '../../src/api/types';
 
 type BoundariesContent = typeof enContent;
@@ -80,7 +82,20 @@ export default function BoundariesScreen() {
   // ── Daily challenge + streak bar ──────────────────────────────────────────
   const now = new Date();
   const doy = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000);
-  const isMonday = now.getDay() === 1;
+  // The Monday line says "join Family Squares tonight": shown on the meeting's
+  // own Pacific day (not the phone's Monday), and never in a week the website
+  // cancelled or after she said "can't make it" (mondayChallenge; fails open).
+  // Spanish keeps La Sobremesa's line on the phone's Monday, as before.
+  const spanish = i18n.language.startsWith('es');
+  const meetingDay = !spanish && isFamilySquaresMeetingDay(now);
+  const mondayWeek = useMondayMeetingWeek(user?.id ?? null, meetingDay);
+  const isMonday = mondayChallengeShown({
+    spanish,
+    localMonday: now.getDay() === 1,
+    meetingDay,
+    cancelled: mondayWeek.cancelled,
+    declined: mondayWeek.declined,
+  });
   const challengeText = isMonday
     ? content.challenge.monday
     : content.challenge.daily[doy % content.challenge.daily.length];

@@ -108,7 +108,7 @@ test('each step is logged at the real moment, once', () => {
   const purchase = read('src/hooks/usePlanPurchase.ts');
   assert.match(purchase, /setUpgradeOpen\(true\);\s+logMembershipPath\('plan_sheet_opened', \{ tier, source \}\);/);
   // Started just before the purchase call; the ending only for the session that started it.
-  assert.match(purchase, /logMembershipPath\('purchase_started', \{ tier: upgradeTier, source \}\);\s+const result = upgradeTier === 'essential'\s+\? await purchaseEssential\(control\)\s+: await purchasePremium\(control\);[\s\S]*?session = await sameSession\(\);[\s\S]*?if \(checked && !session\) return;\s+if \(session\) \{\s+logMembershipPath\(\s+result === 'success' \? 'purchase_succeeded' : result === 'failed' \? 'purchase_failed' : 'purchase_cancelled',/);
+  assert.match(purchase, /logMembershipPath\('purchase_started', \{ tier: upgradeTier, source \}\);\s+const result = upgradeTier === 'essential'\s+\? await purchaseEssential\(control\)\s+: await purchasePremium\(control\);[\s\S]*?const now = await afterPurchase\(\);\s+session = now\.session;\s+stillHers = now\.who !== 'different';[\s\S]*?if \(checked && !session && !stillHers\) return;\s+if \(session \|\| stillHers\) \{\s+logMembershipPath\(\s+result === 'success' \? 'purchase_succeeded' : result === 'failed' \? 'purchase_failed' : 'purchase_cancelled',/);
   // One start, one ending: neither is logged anywhere else in the flow.
   assert.equal(purchase.split("logMembershipPath('purchase_started'").length - 1, 1);
   assert.equal(purchase.split("'purchase_cancelled',").length - 1, 1);
@@ -300,7 +300,9 @@ test('the locale files hold the one ordered list, in both languages', () => {
     }
     // The member rate is named without a number.
     assert.doesNotMatch(benefits.essential.memberRate, /\d/);
-    assert.match(benefits.free.familySquares, /Family Squares/);
+    // Spanish-language members attend La Sobremesa and never see Family Squares (audit round 3, L11).
+    assert.match(benefits.free.familySquares, lang === 'es' ? /La Sobremesa/ : /Family Squares/);
+    if (lang === 'es') assert.doesNotMatch(benefits.free.familySquares, /Family Squares/);
     assert.match(benefits.essential.library, /Family Squares/);
   }
   const t = (key: string) => key.split('.').reduce<unknown>((node, part) => (node as Record<string, unknown>)?.[part], locale('en', 'plans')) as string;
@@ -435,7 +437,7 @@ test('the invitation is wired to the real return from the meeting, on the free T
   assert.match(card, /'after-meeting': 'after_meeting',/);
   for (const lang of ['en', 'es']) {
     const invite = locale(lang, 'plans').invite;
-    assert.match(invite.afterMeeting, /Family Squares/);
+    assert.match(invite.afterMeeting, lang === 'es' ? /La Sobremesa/ : /Family Squares/);
     assert.match(invite.afterMeeting, /coach/);
     for (const key of ['title', 'body', 'cta', 'later', 'never', 'practiceCompleted', 'boundarySaved', 'afterMeetingTitle']) assert.ok(invite[key], `${lang}: invite.${key}`);
   }

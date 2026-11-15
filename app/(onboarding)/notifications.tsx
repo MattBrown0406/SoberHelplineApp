@@ -11,7 +11,7 @@ import { appAlert } from '../../src/lib/appAlert';
 import { reserveLaSobremesa } from '../../src/lib/laSobremesa';
 import { reserveFamilySquares, FAMILY_SQUARES_ALREADY_REGISTERED } from '../../src/lib/familySquaresRegistration';
 import { seatSaveFailureKey } from '../../src/lib/familySquaresCard';
-import { isFamilySquaresKnownCancelled } from '../../src/lib/familySquaresCancelled';
+import { comingFamilySquaresMeetingDate, isCancelledMeetingDate, isFamilySquaresKnownCancelled, loadFamilySquaresCancelledDate } from '../../src/lib/familySquaresCancelled';
 import { declineFamilySquares } from '../../src/lib/familySquaresSeat';
 import { FamilySquaresSeatPanel } from '../../src/components/familySquares/FamilySquaresSeatPanel';
 import { FamilySquaresFirstTimerNote } from '../../src/components/familySquares/FamilySquaresFirstTimerNote';
@@ -35,6 +35,10 @@ export default function NotificationsScreen() {
   // Family Squares only: she saved her spot, then said she can't make it this week.
   const [declined, setDeclined] = useState(false);
   const [reserving, setReserving] = useState(false);
+  // Family Squares only: the meeting date the website cancelled, if it did.
+  // Asked before the seat is offered (nothing else has asked yet for a new
+  // person). Fails open: no answer, or any doubt, offers the seat as usual.
+  const [cancelledDate, setCancelledDate] = useState<string | null>(null);
   const reservationLock = useRef(false);
   const identity = useRef(user?.id);
   identity.current = user?.id;
@@ -49,6 +53,19 @@ export default function NotificationsScreen() {
       .catch(() => undefined);
     return () => { active = false; };
   }, [spanish]);
+
+  useEffect(() => {
+    // La Sobremesa is another meeting: nothing here is ever cancelled for it.
+    if (spanish) {
+      setCancelledDate(null);
+      return undefined;
+    }
+    let active = true;
+    void loadFamilySquaresCancelledDate().then((date) => { if (active) setCancelledDate(date); }).catch(() => undefined);
+    return () => { active = false; };
+  }, [spanish]);
+  // Compared with the coming meeting's date each time the screen is drawn.
+  const weekCancelled = !spanish && isCancelledMeetingDate(cancelledDate);
 
   async function reserveSpot() {
     if (!user?.id || !nextGroupId || reservationLock.current || (spanish && rsvped)) return;
@@ -73,7 +90,9 @@ export default function NotificationsScreen() {
       if (reserved.alreadyRegistered) appAlert(t(FAMILY_SQUARES_ALREADY_REGISTERED));
     } else {
       // The website refusing (a cancelled week) is not a connection problem.
-      appAlert(t('support:sessions.rsvpErrorTitle'), t(seatSaveFailureKey(reserved.reason, isFamilySquaresKnownCancelled())));
+      // When it says the meeting is cancelled, the line takes the button's place.
+      if (reserved.reason === 'website_declined' && reserved.websiteReason === 'meeting_cancelled') setCancelledDate(comingFamilySquaresMeetingDate());
+      appAlert(t('support:sessions.rsvpErrorTitle'), t(seatSaveFailureKey(reserved.reason, weekCancelled || isFamilySquaresKnownCancelled(), reserved.websiteReason)));
     }
   }
 
@@ -112,7 +131,13 @@ export default function NotificationsScreen() {
             {t('done.body')}
           </Text>
 
-          {nextGroupId && (
+          {/* A Monday the website cancelled: no seat to offer, only the calm line. */}
+          {nextGroupId && weekCancelled && (
+            <Text style={[styles.cancelledLine, { color: '#fff' }]} accessibilityLiveRegion="polite">
+              {t('common:familySquares.cancelled.line')}
+            </Text>
+          )}
+          {nextGroupId && !weekCancelled && (
             <TouchableOpacity
               accessibilityRole="button"
               accessibilityLabel={rsvped ? t('done.rsvpDone') : t('done.rsvpButton')}
@@ -130,14 +155,14 @@ export default function NotificationsScreen() {
               </Text>
             </TouchableOpacity>
           )}
-          {nextGroupId && (
+          {nextGroupId && !weekCancelled && (
             <Text style={[styles.rsvpNote, { color: 'rgba(255,255,255,0.8)' }]}>
               {t(spanish ? 'common:laSobremesa.note' : 'common:familySquares.rsvpNote')}
             </Text>
           )}
           {/* Family Squares (English) only, once her spot is saved: what a first
               meeting is like, every Monday, the calendar file, and a way to take it back. */}
-          {nextGroupId && !spanish && (rsvped || declined) && (
+          {nextGroupId && !spanish && !weekCancelled && (rsvped || declined) && (
             <View style={styles.seatOptions}>
               {rsvped && <FamilySquaresFirstTimerNote accountId={user?.id ?? null} tone="onPrimary" />}
               <FamilySquaresSeatPanel
@@ -203,6 +228,7 @@ const styles = StyleSheet.create({
   primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   rsvpBtn: { borderRadius: 99, borderWidth: 1.5, paddingVertical: 14, alignItems: 'center', marginBottom: 12 },
   rsvpBtnText: { fontSize: 15, fontWeight: '700' },
+  cancelledLine: { fontSize: 14.5, lineHeight: 21, textAlign: 'center', marginBottom: 20 },
   rsvpNote: { fontSize: 12.5, lineHeight: 18, textAlign: 'center', marginBottom: 16 },
   seatOptions: { marginBottom: 20 },
   skipBtn: { alignItems: 'center', marginTop: 16 },
