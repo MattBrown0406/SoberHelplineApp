@@ -19,8 +19,9 @@ SELECT ok((SELECT bool_and(NOT has_function_privilege('anon', f, 'EXECUTE')
       'public.service_family_squares_save_weekly_seat(uuid,date)',
       'public.service_family_squares_hold_weekly_seat(uuid,date,text)',
       'public.service_family_squares_note_meeting_status(date,boolean)',
+      'public.service_family_squares_announce_cancelled(date)',
       'public.service_family_squares_coming_meeting_cancelled()']) AS f),
-  'only the service role (the 15-minute sync and the push senders) asks who needs a weekly seat, saves one, or keeps what the website said');
+  'only the service role (the 15-minute sync and the push senders) asks who needs a weekly seat, saves one, keeps what the website said, or tells seat holders a Monday is off');
 SELECT ok(NOT has_function_privilege('anon', 'public._family_squares_coming_meeting_date(timestamptz)', 'EXECUTE')
   AND NOT has_function_privilege('authenticated', 'public._family_squares_coming_meeting_date(timestamptz)', 'EXECUTE'),
   'the date helper is internal');
@@ -182,8 +183,8 @@ DELETE FROM public.session_rsvps;
 UPDATE public.accounts SET family_squares_weekly_seat = true, family_squares_weekly_seat_set_at = now()
 WHERE id::text LIKE '2b000000-%' AND id <> '2b000000-0000-0000-0000-000000000005';
 UPDATE public.accounts SET last_name = 'Lopez' WHERE id = '2b000000-0000-0000-0000-000000000001';
--- B asked 40 days ago and has shown no sign of using the app since.
-UPDATE public.accounts SET family_squares_weekly_seat_set_at = now() - interval '40 days', first_name = '  ', last_name = NULL
+-- B asked 200 days ago and has shown no sign of using the app since.
+UPDATE public.accounts SET family_squares_weekly_seat_set_at = now() - interval '200 days', first_name = '  ', last_name = NULL
 WHERE id = '2b000000-0000-0000-0000-000000000002';
 -- H paused reminders and notes while she grieves.
 INSERT INTO public.loved_ones(account_id, died_at, bereavement_quiet) VALUES ('2b000000-0000-0000-0000-000000000008', now(), true);
@@ -202,13 +203,22 @@ SELECT is((SELECT count(*)::integer FROM public.service_family_squares_weekly_se
   'or an earlier one');
 SELECT is((SELECT count(*)::integer FROM public.service_family_squares_weekly_seat_candidates(NULL)), 0, 'or no meeting at all');
 
--- Signs of app use in the last 35 days.
+-- Signs of app use in the last 180 days.
 UPDATE public.accounts SET push_token_seen_at = now() - interval '10 days' WHERE id = '2b000000-0000-0000-0000-000000000002';
 SELECT is(pg_temp.candidates(), ARRAY['1', '2'], 'her device checked in ten days ago: B is asked about');
 SELECT is((SELECT name FROM public.service_family_squares_weekly_seat_candidates((SELECT d FROM coming))
   WHERE account_id = '2b000000-0000-0000-0000-000000000002'), 'Family', 'no name on file: the name register falls back to');
-UPDATE public.accounts SET push_token_seen_at = now() - interval '36 days' WHERE id = '2b000000-0000-0000-0000-000000000002';
-SELECT is(pg_temp.candidates(), ARRAY['1'], '36 days ago is too long');
+-- A regular who keeps notifications off and joins every Monday from the
+-- website's reminder email: the app has not seen her for weeks.
+UPDATE public.accounts SET push_token_seen_at = NULL, family_squares_weekly_seat_set_at = now() - interval '36 days'
+WHERE id = '2b000000-0000-0000-0000-000000000002';
+SELECT is(pg_temp.candidates(), ARRAY['1', '2'], 'five weeks without opening the app does not cost her the weekly seat');
+UPDATE public.accounts SET family_squares_weekly_seat_set_at = now() - interval '179 days' WHERE id = '2b000000-0000-0000-0000-000000000002';
+SELECT is(pg_temp.candidates(), ARRAY['1', '2'], 'nor does just under 180 days');
+UPDATE public.accounts SET family_squares_weekly_seat_set_at = now() - interval '200 days' WHERE id = '2b000000-0000-0000-0000-000000000002';
+SELECT is(pg_temp.candidates(), ARRAY['1'], 'asked 200 days ago and not seen since: no longer asked about');
+UPDATE public.accounts SET push_token_seen_at = now() - interval '181 days' WHERE id = '2b000000-0000-0000-0000-000000000002';
+SELECT is(pg_temp.candidates(), ARRAY['1'], '181 days ago is too long');
 UPDATE auth.users SET last_sign_in_at = now() - interval '2 days' WHERE id = '1b000000-0000-0000-0000-000000000002';
 SELECT is(pg_temp.candidates(), ARRAY['1', '2'], 'a recent sign-in counts');
 UPDATE auth.users SET last_sign_in_at = NULL WHERE id = '1b000000-0000-0000-0000-000000000002';
@@ -217,8 +227,8 @@ VALUES ('2b000000-0000-0000-0000-000000000002', 'attended', '{"source":"today"}'
 SELECT is(pg_temp.candidates(), ARRAY['1', '2'], 'so does something she did in the app (a Join tap)');
 DELETE FROM public.funnel_events WHERE account_id = '2b000000-0000-0000-0000-000000000002';
 INSERT INTO public.checkins(account_id, mood, created_at)
-VALUES ('2b000000-0000-0000-0000-000000000002', 3, now() - interval '36 days');
-SELECT is(pg_temp.candidates(), ARRAY['1'], 'a daily check-in 36 days ago is too long ago');
+VALUES ('2b000000-0000-0000-0000-000000000002', 3, now() - interval '181 days');
+SELECT is(pg_temp.candidates(), ARRAY['1'], 'a daily check-in 181 days ago is too long ago');
 UPDATE public.checkins SET created_at = now() - interval '4 days' WHERE account_id = '2b000000-0000-0000-0000-000000000002';
 SELECT is(pg_temp.candidates(), ARRAY['1', '2'], 'her latest daily check-in counts as using the app');
 DELETE FROM public.checkins WHERE account_id = '2b000000-0000-0000-0000-000000000002';
@@ -251,7 +261,8 @@ SELECT is((SELECT count(*)::integer FROM public.family_squares_weekly_seat_holds
 UPDATE public.family_squares_weekly_seat_holds SET noted_at = now() - interval '7 hours';
 SELECT is(pg_temp.candidates(), ARRAY['1'], 'six hours later the website is asked again, in case the meeting is back on');
 
--- The website could not answer for A (an error, a malformed reply).
+-- The website turned down the question about A alone (a 4xx reply the app
+-- does not know).
 SELECT lives_ok($$SELECT public.service_family_squares_hold_weekly_seat('2b000000-0000-0000-0000-000000000001', (SELECT d FROM coming), 'no_answer')$$,
   'no usable answer for one member is remembered');
 SELECT is(pg_temp.candidates(), ARRAY[]::text[], 'she is not asked about again every 15 minutes');
@@ -260,7 +271,7 @@ SELECT is((SELECT count(*)::integer FROM public.session_rsvps WHERE session_id =
 -- B shows a sign of app use again: someone else's hold never stops her.
 UPDATE public.accounts SET push_token_seen_at = now() WHERE id = '2b000000-0000-0000-0000-000000000002';
 SELECT is(pg_temp.candidates(), ARRAY['2'], 'the others are still asked about');
-UPDATE public.accounts SET push_token_seen_at = now() - interval '36 days' WHERE id = '2b000000-0000-0000-0000-000000000002';
+UPDATE public.accounts SET push_token_seen_at = now() - interval '181 days' WHERE id = '2b000000-0000-0000-0000-000000000002';
 UPDATE public.family_squares_weekly_seat_holds SET noted_at = now() - interval '5 hours 50 minutes'
 WHERE account_id = '2b000000-0000-0000-0000-000000000001';
 SELECT is(pg_temp.candidates(), ARRAY[]::text[], 'still left alone just under six hours later');
@@ -298,10 +309,50 @@ SELECT is(public.family_squares_meeting_cancelled((SELECT d FROM coming) + 7), f
 SELECT is((SELECT count(*)::integer FROM public.family_squares_meeting_status WHERE meeting_date < (SELECT d FROM coming) - 56), 0,
   'answers about meetings long past are removed');
 SELECT is(pg_temp.candidates(), ARRAY[]::text[], 'cancelled: no weekly seat is asked about, without calling the website');
-UPDATE public.family_squares_meeting_status SET noted_at = now() - interval '3 days';
-SELECT is(pg_temp.candidates(), ARRAY[]::text[], 'for as long as the website says so');
+
+-- "Cancelled" is believed only while it is fresh. The sync repeats the
+-- website's answer every 15 minutes; an answer about the coming Monday that
+-- is more than six hours old means the sync has stopped.
+UPDATE public.family_squares_meeting_status SET noted_at = now() - interval '5 hours 50 minutes' WHERE meeting_date = (SELECT d FROM coming);
+SELECT is(public.family_squares_meeting_cancelled((SELECT d FROM coming)), true, 'just under six hours old: still cancelled');
+SELECT is(public.service_family_squares_coming_meeting_cancelled(), true, 'for the Edge Functions too');
+SELECT is(pg_temp.candidates(), ARRAY[]::text[], 'and still no weekly seat is asked about');
+UPDATE public.family_squares_meeting_status SET noted_at = now() - interval '6 hours 10 minutes' WHERE meeting_date = (SELECT d FROM coming);
+SELECT is(public.family_squares_meeting_cancelled((SELECT d FROM coming)), false,
+  'more than six hours old: nobody knows any more, and that is "not cancelled"');
+SELECT is(public.service_family_squares_coming_meeting_cancelled(), false, 'so the morning note and the 15-minute reminder go out again');
+SELECT is(pg_temp.candidates(), ARRAY['1'], 'and weekly seats are asked about again (the website still decides for each member)');
+SELECT is((SELECT cancelled FROM public.family_squares_meeting_status WHERE meeting_date = (SELECT d FROM coming)), true,
+  'the stored row is untouched; it is only no longer believed');
+UPDATE public.family_squares_meeting_status SET noted_at = now() - interval '3 days' WHERE meeting_date = (SELECT d FROM coming);
+SELECT is(public.family_squares_meeting_cancelled((SELECT d FROM coming)), false, 'a "cancelled" from days ago never silences the coming meeting');
+-- The sync works again and the website still says cancelled.
+SELECT lives_ok($$SELECT public.service_family_squares_note_meeting_status((SELECT d FROM coming), true)$$, 'the next sync says cancelled again');
+SELECT is(public.family_squares_meeting_cancelled((SELECT d FROM coming)), true, 'a fresh answer is believed at once');
+SELECT is(pg_temp.candidates(), ARRAY[]::text[], 'and weekly seats stop again');
+
+-- A meeting that has ended (last Monday's): the sync has moved on to the
+-- coming one, so the last answer for that date is never fresh again. It
+-- stands if it was written on the day of the meeting or later; Tuesday's
+-- 1 AM follow-up asks about last night this way.
 SELECT lives_ok($$SELECT public.service_family_squares_note_meeting_status((SELECT d FROM coming) - 7, true)$$,
   'an answer that arrives just after a meeting ended is still kept for that meeting');
+SELECT is(public.family_squares_meeting_cancelled((SELECT d FROM coming) - 7), true, 'and is believed for it');
+UPDATE public.family_squares_meeting_status
+SET noted_at = (((SELECT d FROM coming) - 7) + time '19:45') AT TIME ZONE 'America/Los_Angeles'
+WHERE meeting_date = (SELECT d FROM coming) - 7;
+SELECT is(public.family_squares_meeting_cancelled((SELECT d FROM coming) - 7), true,
+  'the last sync before it ended still stands hours and days later, however old it is now');
+UPDATE public.family_squares_meeting_status
+SET noted_at = (((SELECT d FROM coming) - 7) + time '00:00') AT TIME ZONE 'America/Los_Angeles'
+WHERE meeting_date = (SELECT d FROM coming) - 7;
+SELECT is(public.family_squares_meeting_cancelled((SELECT d FROM coming) - 7), true, 'written on the morning of the meeting day: stands');
+UPDATE public.family_squares_meeting_status
+SET noted_at = ((((SELECT d FROM coming) - 7) + time '00:00') AT TIME ZONE 'America/Los_Angeles') - interval '1 minute'
+WHERE meeting_date = (SELECT d FROM coming) - 7;
+SELECT is(public.family_squares_meeting_cancelled((SELECT d FROM coming) - 7), false,
+  'written before the meeting day and never repeated: the sync had stopped, so it is not believed');
+SELECT is(public.family_squares_meeting_cancelled((SELECT d FROM coming)), true, 'none of which changes the coming Monday');
 SELECT is((SELECT count(*)::integer FROM public.family_squares_meeting_status WHERE meeting_date = (SELECT d FROM coming)), 1, 'one row per Monday');
 
 -- A member (the app) reads the answer through the function, never from the

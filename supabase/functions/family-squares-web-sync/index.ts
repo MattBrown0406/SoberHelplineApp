@@ -14,7 +14,11 @@
 // the meeting date that was sent is cancelled; that answer is kept
 // (family_squares_meeting_status) on every run, so the reminders, the Monday
 // morning note and the Tuesday follow-up all stay quiet for a cancelled
-// meeting, and start again if it is put back on.
+// meeting, and start again if it is put back on. The sync reply is the
+// authority: when it says the meeting is on, one member's "cancelled" answer
+// later in the same run does not change the status. And when it says the
+// meeting is cancelled, members who saved a seat are told once
+// (service_family_squares_announce_cancelled).
 //
 // "Save my seat every Monday" is also done here, after a sync the website
 // accepted: for each member who asked for a weekly seat and has no RSVP for
@@ -66,6 +70,24 @@ async function noteMeetingStatus(supabase: SupabaseClient, meetingDate: string, 
 }
 
 /**
+ * Queues the one "there's no Family Squares this Monday" note for members who
+ * saved a seat. Called on every run while the sync reply says cancelled; the
+ * database allows one note per member per meeting. A failure is logged and
+ * changes nothing else. The count only is logged, never who.
+ */
+async function announceCancelled(supabase: SupabaseClient, meetingDate: string): Promise<void> {
+  try {
+    const { data, error } = await supabase.rpc('service_family_squares_announce_cancelled', {
+      p_meeting_date: meetingDate,
+    });
+    if (error) console.error('family-squares-web-sync: cancelled notes not queued', error.code ?? 'error');
+    else if (typeof data === 'number' && data > 0) console.log('family-squares-web-sync cancelled notes queued', data);
+  } catch {
+    console.error('family-squares-web-sync: cancelled notes not queued');
+  }
+}
+
+/**
  * The real database and website behind saveWeeklySeats (the rules are in
  * _shared/family-squares-weekly-seats.ts). `saidCancelled` is what this run's
  * sync reply said about that Monday, or null when it did not say. Counts only
@@ -80,10 +102,13 @@ function weeklySeats(
 ): Promise<WeeklySeatSummary> {
   const url = websiteFunctionUrl('app-family-squares-sync', Deno.env.get('WEBSITE_FUNCTIONS_URL'));
   return saveWeeklySeats({
+    // The sync reply is the authority on whether that Monday is on.
+    syncSaidOn: saidCancelled === false,
     meetingCancelled: async () => {
-      // What the website said a moment ago; otherwise what it last said.
-      // If neither is known the meeting is taken to be on, and the website
-      // still decides when it is asked about each member.
+      // What the website said a moment ago; otherwise what it said in the
+      // last six hours (the database applies that limit). If neither is
+      // known the meeting is taken to be on, and the website still decides
+      // when it is asked about each member.
       if (saidCancelled !== null) return saidCancelled;
       try {
         const { data, error } = await supabase.rpc('family_squares_meeting_cancelled', { p_meeting_date: meetingDate });
@@ -180,7 +205,9 @@ Deno.serve(async (req) => {
   // it accepted; a reply that does not say changes nothing.
   const saidCancelled = websiteMeetingCancelled(body, window.meetingDate);
   if (saidCancelled === true || (saidCancelled === false && accepted)) {
-    await noteMeetingStatus(supabase, window.meetingDate, saidCancelled);
+    const kept = await noteMeetingStatus(supabase, window.meetingDate, saidCancelled);
+    // Cancelled, on the sync reply's word: members with a seat are told once.
+    if (kept && saidCancelled) await announceCancelled(supabase, window.meetingDate);
   }
   if (!accepted) {
     console.error('family-squares-web-sync: website rejected the sync', res.status);

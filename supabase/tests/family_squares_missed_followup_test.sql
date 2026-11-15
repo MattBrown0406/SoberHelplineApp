@@ -19,7 +19,10 @@ INSERT INTO auth.users(id, email, raw_app_meta_data, raw_user_meta_data, aud, ro
   ('1c000000-0000-0000-0000-000000000006', 'mf-f@example.com', '{}', '{}', 'authenticated', 'authenticated', now()),
   ('1c000000-0000-0000-0000-000000000007', 'mf-g@example.com', '{}', '{}', 'authenticated', 'authenticated', now()),
   ('1c000000-0000-0000-0000-000000000008', 'mf-h@example.com', '{}', '{}', 'authenticated', 'authenticated', now()),
-  ('1c000000-0000-0000-0000-000000000009', 'mf-i@example.com', '{}', '{}', 'authenticated', 'authenticated', now())
+  ('1c000000-0000-0000-0000-000000000009', 'mf-i@example.com', '{}', '{}', 'authenticated', 'authenticated', now()),
+  ('1c000000-0000-0000-0000-00000000000a', 'mf-j@example.com', '{}', '{}', 'authenticated', 'authenticated', now()),
+  ('1c000000-0000-0000-0000-00000000000b', 'mf-k@example.com', '{}', '{}', 'authenticated', 'authenticated', now()),
+  ('1c000000-0000-0000-0000-00000000000c', 'mf-l@example.com', '{}', '{}', 'authenticated', 'authenticated', now())
 ON CONFLICT (id) DO NOTHING;
 UPDATE public.accounts SET id = ('2c000000-0000-0000-0000-00000000000' || right(user_id::text, 1))::uuid
 WHERE user_id::text LIKE '1c000000-0000-0000-0000-00000000000_';
@@ -32,6 +35,14 @@ UPDATE public.accounts SET family_squares_weekly_seat = true
 WHERE id IN ('2c000000-0000-0000-0000-000000000002', '2c000000-0000-0000-0000-000000000006',
   '2c000000-0000-0000-0000-000000000007', '2c000000-0000-0000-0000-000000000009');
 UPDATE public.accounts SET push_app_contract = NULL WHERE id = '2c000000-0000-0000-0000-000000000007';
+-- J, K and L each lost their loved one. K also paused reminders while she
+-- grieves. L is a paying member.
+INSERT INTO public.loved_ones(account_id, died_at, bereavement_quiet) VALUES
+  ('2c000000-0000-0000-0000-00000000000a', now(), false),
+  ('2c000000-0000-0000-0000-00000000000b', now(), true),
+  ('2c000000-0000-0000-0000-00000000000c', now(), false);
+INSERT INTO public.entitlements(account_id, source, tier, expires_at)
+VALUES ('2c000000-0000-0000-0000-00000000000c', 'web', 'essential', now() + interval '30 days');
 
 INSERT INTO public.session_rsvps(account_id, session_id, status, family_squares_meeting_date, created_at) VALUES
   -- A saved her own seat and never tapped Join.
@@ -46,7 +57,11 @@ INSERT INTO public.session_rsvps(account_id, session_id, status, family_squares_
   ('2c000000-0000-0000-0000-000000000005', public.family_squares_session_id(), 'declined', '2025-12-08', '2025-12-04 10:00 America/Los_Angeles'),
   ('2c000000-0000-0000-0000-000000000006', public.family_squares_session_id(), 'declined', '2025-12-08', '2025-12-02 02:05 America/Los_Angeles'),
   -- G: a weekly seat, on an older build.
-  ('2c000000-0000-0000-0000-000000000007', public.family_squares_session_id(), 'going', '2025-12-08', '2025-12-02 02:05 America/Los_Angeles');
+  ('2c000000-0000-0000-0000-000000000007', public.family_squares_session_id(), 'going', '2025-12-08', '2025-12-02 02:05 America/Los_Angeles'),
+  -- J, K and L (bereaved) each saved a seat and never tapped Join.
+  ('2c000000-0000-0000-0000-00000000000a', public.family_squares_session_id(), 'going', '2025-12-08', '2025-12-04 10:00 America/Los_Angeles'),
+  ('2c000000-0000-0000-0000-00000000000b', public.family_squares_session_id(), 'going', '2025-12-08', '2025-12-04 10:00 America/Los_Angeles'),
+  ('2c000000-0000-0000-0000-00000000000c', public.family_squares_session_id(), 'going', '2025-12-08', '2025-12-04 10:00 America/Los_Angeles');
   -- H has no seat. I has a weekly seat but no seat was saved for this meeting.
 INSERT INTO public.funnel_events(account_id, stage, metadata, created_at) VALUES
   ('2c000000-0000-0000-0000-000000000003', 'attended', '{"source":"push"}', '2025-12-08 17:30 America/Los_Angeles'),
@@ -54,10 +69,10 @@ INSERT INTO public.funnel_events(account_id, stage, metadata, created_at) VALUES
   ('2c000000-0000-0000-0000-000000000008', 'attended', '{"source":"today"}', '2025-12-08 17:00 America/Los_Angeles');
 
 -- ── Tuesday 1 AM Pacific ────────────────────────────────────────────────────
-SELECT is(public.enqueue_family_call_followups('2025-12-09 01:10 America/Los_Angeles'), 6, 'six notes');
+SELECT is(public.enqueue_family_call_followups('2025-12-09 01:10 America/Los_Angeles'), 9, 'nine notes');
 SELECT set_eq(
   $$SELECT right(account_id::text, 1) FROM push_outbox WHERE idempotency_key LIKE 'family-call-followup:2025-12-08:%'$$,
-  $$VALUES ('1'), ('2'), ('3'), ('4'), ('7'), ('8')$$,
+  $$VALUES ('1'), ('2'), ('3'), ('4'), ('7'), ('8'), ('a'), ('b'), ('c')$$,
   'a saved seat or a Join tap; not E or F, who said they can''t make it, nor I, who had no seat');
 SELECT is(public.enqueue_family_call_followups('2025-12-09 01:40 America/Los_Angeles'), 0, 'one note per member per meeting');
 
@@ -65,6 +80,23 @@ CREATE FUNCTION pg_temp.note(p_account text) RETURNS text LANGUAGE sql AS $$
   SELECT title || ' | ' || body FROM push_outbox
   WHERE idempotency_key = 'family-call-followup:2025-12-08:2c000000-0000-0000-0000-00000000000' || p_account
 $$;
+-- A member whose loved one died is never told what members get.
+SELECT is(pg_temp.note('a'),
+  'Family Squares | If Monday got away from you, we missed you. Next Monday''s seat is one tap away, and you are welcome any week.',
+  'J is bereaved and not a paying member: the note ends without any mention of membership');
+SELECT is(pg_temp.note('b'),
+  'Family Squares | If Monday got away from you, we missed you. Next Monday''s seat is one tap away, and you are welcome any week.',
+  'K paused reminders while she grieves: the same wording is queued (delivery holds it while she is paused)');
+SELECT is(pg_temp.note('c'),
+  'Family Squares | If Monday got away from you, we missed you. Next Monday''s seat is one tap away, and recordings of past meetings are in your library, under Tools.',
+  'L is bereaved and a paying member: told where her recordings are, which sells nothing');
+SELECT ok(NOT EXISTS (
+    SELECT 1 FROM push_outbox o
+    WHERE o.kind = 'family_call_followup' AND public._account_bereaved(o.account_id) AND o.body ~* 'member'),
+  'no note to a bereaved member mentions membership');
+-- The three are done: clear their seats so the weeks below are as before.
+DELETE FROM public.session_rsvps WHERE account_id IN ('2c000000-0000-0000-0000-00000000000a',
+  '2c000000-0000-0000-0000-00000000000b', '2c000000-0000-0000-0000-00000000000c');
 SELECT is(pg_temp.note('1'),
   'Family Squares | If Monday got away from you, we missed you. Next Monday''s seat is one tap away, and members can watch recordings of past meetings.',
   'A saved her own seat and never tapped Join: the "we missed you" note');
@@ -116,12 +148,58 @@ WHERE session_id = public.family_squares_session_id()
   AND account_id IN ('2c000000-0000-0000-0000-000000000002', '2c000000-0000-0000-0000-000000000006');
 INSERT INTO public.funnel_events(account_id, stage, metadata, created_at)
 VALUES ('2c000000-0000-0000-0000-000000000008', 'attended', '{"source":"today"}', '2025-12-22 18:55 America/Los_Angeles');
-INSERT INTO public.family_squares_meeting_status(meeting_date, cancelled) VALUES ('2025-12-22', true), ('2025-12-15', false);
+-- A cancellation recorded for a DIFFERENT Monday says nothing about last
+-- night: next Monday (2025-12-29, the date the sync has been writing since
+-- 8 PM) and the Monday before (2025-12-15) are both cancelled, and last
+-- night's meeting is on.
+INSERT INTO public.family_squares_meeting_status(meeting_date, cancelled, noted_at) VALUES
+  ('2025-12-29', true, now()),
+  ('2025-12-15', true, '2025-12-15 19:45 America/Los_Angeles'),
+  ('2025-12-22', false, '2025-12-22 19:45 America/Los_Angeles');
+SELECT is(public.family_squares_meeting_cancelled('2025-12-22'), false, 'last night''s meeting was on');
+SELECT ok(public.family_squares_meeting_cancelled('2025-12-29') AND public.family_squares_meeting_cancelled('2025-12-15'),
+  '(the Mondays either side of it really are recorded as cancelled)');
+-- Nothing is written here: the function is only asked what it would do, in
+-- a block that is rolled back, so the cancelled case below starts clean.
+CREATE FUNCTION pg_temp.would_enqueue(p_at timestamptz) RETURNS integer LANGUAGE plpgsql AS $$
+DECLARE v_count integer;
+BEGIN
+  BEGIN
+    v_count := public.enqueue_family_call_followups(p_at);
+    RAISE EXCEPTION 'undo' USING ERRCODE = 'P0001';
+  EXCEPTION WHEN raise_exception THEN
+    NULL;
+  END;
+  RETURN v_count;
+END;
+$$;
+SELECT is(pg_temp.would_enqueue('2025-12-23 01:10 America/Los_Angeles'), 3,
+  'a cancellation for next Monday, or for the Monday before, does not stop the note for the meeting that happened');
+SELECT is((SELECT count(*)::integer FROM push_outbox WHERE idempotency_key LIKE 'family-call-followup:2025-12-22:%'), 0,
+  '(that was only asked, not written)');
+
+-- Last night's meeting itself was cancelled. The last sync before it ended
+-- wrote that at 7:45 PM, more than five hours before the 1 AM job: it stands.
+UPDATE public.family_squares_meeting_status SET cancelled = true WHERE meeting_date = '2025-12-22';
+SELECT is(public.family_squares_meeting_cancelled('2025-12-22'), true, 'a cancellation written before the meeting ended still stands on Tuesday');
 SELECT is(public.enqueue_family_call_followups('2025-12-23 01:10 America/Los_Angeles'), 0, 'a cancelled meeting is not followed up');
 SELECT is((SELECT count(*)::integer FROM push_outbox WHERE idempotency_key LIKE 'family-call-followup:2025-12-22:%'), 0,
   'nobody is told "we missed you" or handed a takeaway for a meeting that did not happen');
--- The website's answer changes before the job runs again: the notes go out.
-UPDATE public.family_squares_meeting_status SET cancelled = false WHERE meeting_date = '2025-12-22';
+-- Only last night's row decides: with the other two Mondays put back on, it
+-- is still cancelled.
+UPDATE public.family_squares_meeting_status SET cancelled = false WHERE meeting_date IN ('2025-12-29', '2025-12-15');
+SELECT is(public.enqueue_family_call_followups('2025-12-23 01:15 America/Los_Angeles'), 0, 'whatever the other Mondays say');
+-- A "cancelled" written before the meeting day and never repeated (the sync
+-- had stopped) is not believed: the notes go out.
+UPDATE public.family_squares_meeting_status SET noted_at = '2025-12-21 23:00 America/Los_Angeles' WHERE meeting_date = '2025-12-22';
+SELECT is(pg_temp.would_enqueue('2025-12-23 01:10 America/Los_Angeles'), 3,
+  'a cancellation last heard the day before the meeting does not silence the note');
+UPDATE public.family_squares_meeting_status SET noted_at = '2025-12-22 19:45 America/Los_Angeles' WHERE meeting_date = '2025-12-22';
+SELECT is(pg_temp.would_enqueue('2025-12-23 01:10 America/Los_Angeles'), 0, 'heard again on the day: silent again');
+
+-- The website's answer changes before the job runs again: the notes go out,
+-- although next Monday and the Monday before are cancelled once more.
+UPDATE public.family_squares_meeting_status SET cancelled = (meeting_date <> '2025-12-22');
 SELECT is(public.enqueue_family_call_followups('2025-12-23 01:20 America/Los_Angeles'), 3, 'a meeting that was on is followed up as before');
 SELECT is(ARRAY(SELECT right(account_id::text, 1) || ': ' || body FROM push_outbox
     WHERE idempotency_key LIKE 'family-call-followup:2025-12-22:%' ORDER BY 1),
@@ -129,8 +207,6 @@ SELECT is(ARRAY(SELECT right(account_id::text, 1) || ': ' || body FROM push_outb
     '6: Your one thing to try this week is on Today, and your weekly seat is on for next Monday.',
     '8: Your one thing to try this week is on Today, and next Monday''s seat is one tap away.'],
   'weekly-seat members are told their weekly seat is on; everyone else that a seat is one tap away');
--- Only that Monday: a cancelled status for another week changes nothing.
-UPDATE public.family_squares_meeting_status SET cancelled = true WHERE meeting_date = '2025-12-15';
 SELECT is(public.enqueue_family_call_followups('2025-12-23 01:30 America/Los_Angeles'), 0, 'one note per member per meeting, as before');
 
 SELECT * FROM finish();

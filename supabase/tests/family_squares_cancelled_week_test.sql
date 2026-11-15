@@ -96,5 +96,40 @@ INSERT INTO public.loved_ones(account_id, died_at, bereavement_quiet) VALUES ('2
 SELECT is(pg_temp.call('family_call_30min', '2', '2026-10-06T01:32:00Z'), NULL, 'the bereavement pause is still obeyed');
 SELECT is(pg_temp.call('session_reminder', '1', '2026-10-06T01:16:00Z'), NULL, 'and the send window: never after 6:15 PM');
 
+-- ── "Cancelled" is believed only while it is fresh ──────────────────────────
+-- The sync repeats the website's answer every 15 minutes. If it stops after a
+-- cancellation and the website later puts the meeting back on, an old
+-- "cancelled" must not keep that Monday silent: after six hours nobody knows,
+-- and that is "not cancelled". This rule reads the real clock, so it is
+-- checked against the real coming Monday.
+CREATE TEMP TABLE coming AS SELECT public._family_squares_coming_meeting_date(now()) AS d;
+CREATE FUNCTION pg_temp.coming_call(k text, a text, minutes_before integer) RETURNS jsonb LANGUAGE sql AS $$
+  SELECT dispatcher_job_delivery(k, ('2d000000-0000-0000-0000-00000000000' || a)::uuid, family_squares_session_id(),
+    ((SELECT d FROM coming) + time '19:00') AT TIME ZONE 'America/Los_Angeles',
+    (((SELECT d FROM coming) + time '19:00') AT TIME ZONE 'America/Los_Angeles') - make_interval(mins => minutes_before))
+$$;
+SELECT ok(pg_temp.coming_call('session_reminder', '1', 55) IS NOT NULL, 'the coming Monday, nothing said: A''s reminder is due');
+SELECT ok(pg_temp.coming_call('family_call_30min', '3', 28) IS NOT NULL, 'and C''s invite');
+INSERT INTO public.family_squares_meeting_status(meeting_date, cancelled, noted_at) VALUES ((SELECT d FROM coming), true, now());
+SELECT is(pg_temp.coming_call('session_reminder', '1', 55), NULL, 'cancelled a moment ago: no reminder');
+SELECT is(pg_temp.coming_call('family_call_30min', '3', 28), NULL, 'and no invite');
+UPDATE public.family_squares_meeting_status SET noted_at = now() - interval '5 hours 50 minutes' WHERE meeting_date = (SELECT d FROM coming);
+SELECT is(pg_temp.coming_call('session_reminder', '1', 55), NULL, 'last heard just under six hours ago: still quiet');
+UPDATE public.family_squares_meeting_status SET noted_at = now() - interval '6 hours 10 minutes' WHERE meeting_date = (SELECT d FROM coming);
+SELECT is(public.family_squares_meeting_cancelled((SELECT d FROM coming)), false, 'last heard more than six hours ago: not believed any more');
+SELECT ok(pg_temp.coming_call('session_reminder', '1', 55) IS NOT NULL, 'so the reminder goes out, as it always did');
+SELECT ok(pg_temp.coming_call('family_call_30min', '3', 28) IS NOT NULL, 'and the invite');
+SELECT is(pg_temp.targets('session_reminder',
+    (((SELECT d FROM coming) + time '19:00') AT TIME ZONE 'America/Los_Angeles') - interval '55 minutes'), ARRAY['1'],
+  'and A is picked for it again');
+UPDATE public.family_squares_meeting_status SET noted_at = now() WHERE meeting_date = (SELECT d FROM coming);
+SELECT is(pg_temp.coming_call('session_reminder', '1', 55), NULL, 'the sync works again and still says cancelled: quiet at once');
+-- A meeting that has ended is judged by what was last heard on its own day
+-- (2026-10-05 above was written just now, long after it ended).
+UPDATE public.family_squares_meeting_status SET cancelled = true, noted_at = '2026-10-05 19:45 America/Los_Angeles' WHERE meeting_date = '2026-10-05';
+SELECT is(public.family_squares_meeting_cancelled('2026-10-05'), true, 'a past Monday: the last answer before it ended stands, however old');
+UPDATE public.family_squares_meeting_status SET noted_at = '2026-10-04 23:59 America/Los_Angeles' WHERE meeting_date = '2026-10-05';
+SELECT is(public.family_squares_meeting_cancelled('2026-10-05'), false, 'but not one last heard before the day of the meeting');
+
 SELECT * FROM finish();
 ROLLBACK;

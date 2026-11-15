@@ -3,14 +3,17 @@
 -- soberhelpline.com can cancel a Family Squares meeting. The app now knows
 -- (public.family_squares_meeting_status, written by family-squares-web-sync
 -- every 15 minutes; see 20261114120000), and the two Monday pushes sent by
--- send-engagement-push stay quiet for a cancelled meeting:
+-- send-engagement-push stay quiet for a cancelled meeting (cancelled as the
+-- website said in the last six hours; an older answer means the sync has
+-- stopped, and the pushes go out as they always did):
 --   * session_reminder   "starts in about an hour and your seat is saved"
 --   * family_call_30min  "starts in 30 minutes" (members without a seat)
 -- Both are decided here: dispatcher_job_targets picks who to send to with
 -- this function, and claim_dispatcher_job asks it again just before each
 -- send, so a meeting cancelled a minute before 6 PM is still caught. Seats
 -- saved before the cancellation are left as they are; this is what keeps
--- their reminder from going out.
+-- their reminder from going out. Those members are told once that the Monday
+-- is off (service_family_squares_announce_cancelled, 20261114120000).
 --
 -- The other Family Squares pushes ask the same question where they are sent:
 -- the 15-minute reminder (notify-session-reminder), Monday's morning note
@@ -73,7 +76,8 @@ BEGIN
    -- The website cancelled that Monday (family_squares_meeting_cancelled):
    -- neither the reminder nor the invite is sent, on a real run or a forced
    -- one. Asked last, and only for a member who would otherwise get the push.
-   -- If it cannot be read the answer is "not cancelled": sent as before.
+   -- If it cannot be read, or the website's answer is more than six hours
+   -- old, the answer is "not cancelled": sent as before.
    IF coalesce(allowed,false) AND family_squares_meeting_cancelled((deadline AT TIME ZONE 'America/Los_Angeles')::date) THEN
      allowed:=false;
    END IF;

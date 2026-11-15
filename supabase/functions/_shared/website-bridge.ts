@@ -113,12 +113,15 @@ export function summarizeAttendees(attendees: Attendee[]) {
 /**
  * What the website's sync reply says about the Monday that was sent: true
  * (cancelled), false (on), or null when it does not say. A reply that names
- * another meeting says nothing about this one. A refusal whose error is
+ * another meeting says nothing about this one; a reply that names no meeting,
+ * or names this one with a time after the date (2026-11-23T00:00:00Z), is
+ * about the meeting that was sent. A refusal whose error is
  * meeting_cancelled is the same answer as `cancelled: true`.
  */
 export function websiteMeetingCancelled(body: unknown, meetingDate: string): boolean | null {
   const reply = body && typeof body === 'object' && !Array.isArray(body) ? body as Record<string, unknown> : {};
-  if (typeof reply.meeting_date === 'string' && reply.meeting_date !== meetingDate) return null;
+  // Only the date part is compared: the first ten characters, YYYY-MM-DD.
+  if (typeof reply.meeting_date === 'string' && reply.meeting_date.slice(0, 10) !== meetingDate) return null;
   if (reply.error === 'meeting_cancelled') return true;
   return typeof reply.cancelled === 'boolean' ? reply.cancelled : null;
 }
@@ -160,8 +163,16 @@ export type EnsureRegistrationOutcome =
   | { outcome: 'meeting_cancelled' }
   /** The website will not register this person. */
   | { outcome: 'registration_unavailable' }
-  /** No usable answer (not deployed, unreachable, an error, a malformed reply). */
-  | { outcome: 'unavailable'; reason: 'not_deployed' | 'unreachable' | 'unexpected_reply' };
+  /**
+   * No usable answer.
+   * - not_deployed, unreachable, website_error: the website is missing, cannot
+   *   be reached or is having trouble (a 5xx, a 429, a reply that is not
+   *   JSON). The same for every member, so nobody is singled out for it.
+   * - unexpected_reply: a 4xx JSON reply the app does not know (for example
+   *   invalid_attendee). The website refused the question about this one
+   *   person.
+   */
+  | { outcome: 'unavailable'; reason: 'not_deployed' | 'unreachable' | 'website_error' | 'unexpected_reply' };
 
 /** The request body the website's app-family-squares-sync expects for one person. */
 export function ensureRegistrationRequest(meetingDate: string, email: string, name: string) {
@@ -178,7 +189,8 @@ export function ensureRegistrationRequest(meetingDate: string, email: string, na
  * count as decisions. The website checks, in order: is that Monday cancelled,
  * is she blocked, and only then writes its own row. So a 500
  * registration_failed means both checks passed: "no objection". Everything
- * else is "no answer".
+ * else is "no answer": about her alone only when it is a 4xx JSON reply,
+ * otherwise a sign that the website itself is having trouble.
  */
 export function interpretEnsureRegistration(
   status: number,
@@ -196,7 +208,14 @@ export function interpretEnsureRegistration(
   if (reply.error === 'meeting_cancelled') return { outcome: 'meeting_cancelled' };
   if (reply.error === 'registration_unavailable') return { outcome: 'registration_unavailable' };
   if (status === 500 && reply.ok !== true && reply.error === 'registration_failed') return { outcome: 'no_objection' };
-  return { outcome: 'unavailable', reason: status === 404 ? 'not_deployed' : 'unexpected_reply' };
+  if (status === 404) return { outcome: 'unavailable', reason: 'not_deployed' };
+  // A 4xx with a JSON body is the website turning down this one question.
+  // Not 401, 408 or 429: a rejected secret, a timeout and "slow down" are
+  // never about one member. Any 5xx, a page that is not JSON, or a 2xx the
+  // app cannot read means the website is having trouble, for everyone.
+  const aboutHer = status >= 400 && status < 500 && status !== 401 && status !== 408 && status !== 429 &&
+    !!body && typeof body === 'object' && !Array.isArray(body);
+  return { outcome: 'unavailable', reason: aboutHer ? 'unexpected_reply' : 'website_error' };
 }
 
 /**

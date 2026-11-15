@@ -8,13 +8,19 @@
 // - The website says yes, or has no objection (see website-bridge.ts): her
 //   seat is saved.
 // - The website says that Monday is cancelled: it is noted for every Family
-//   Squares push, and the run stops.
-// - The website will not register her: remembered for that meeting.
-// - An answer that makes no sense for her (an error status, a malformed
-//   reply): nothing is written, she is left alone for about six hours, and the
+//   Squares push, and the run stops. Unless this run's sync reply just said
+//   the meeting is on: the sync reply is the authority, so one member's
+//   "cancelled" answer does not mark the Monday cancelled (the status would
+//   flap every 15 minutes). She is left alone for about six hours and the
 //   next member is asked.
-// - The website cannot be reached at all (network failure, timeout, 404):
-//   the run stops, nothing is remembered, and everyone is tried again next run.
+// - The website will not register her: remembered for that meeting.
+// - A 4xx reply about her alone that the app does not know (for example
+//   invalid_attendee): nothing is written, she is left alone for about six
+//   hours, and the next member is asked.
+// - The website is missing, unreachable or having trouble (network failure,
+//   timeout, 404, any 5xx, a 429, a reply that is not JSON): the run stops,
+//   nothing is remembered, nobody is held, and everyone is tried again next
+//   run. An outage is never one member's problem.
 //
 // Never log an email here: summaries are counts only.
 
@@ -37,13 +43,19 @@ export type WeeklySeatSummary = {
   no_objection: number;
   /** The website will not register her; not asked again for this meeting. */
   refused: number;
-  /** No usable answer for her; not asked again for about six hours. */
+  /** Turned down for her alone; not asked again for about six hours. */
   held: number;
   /** Why the run ended before everyone was asked, if it did. */
   stopped: 'meeting_cancelled' | 'website_unavailable' | 'lookup_failed' | 'out_of_time' | null;
 };
 
 export interface WeeklySeatDeps {
+  /**
+   * True when this run's sync reply said that Monday is on (`cancelled:
+   * false`). False when it did not say; only then may one member's answer
+   * mark the Monday cancelled.
+   */
+  syncSaidOn: boolean;
   /** True when that Monday is already known to be cancelled. A failed lookup answers false. */
   meetingCancelled(): Promise<boolean>;
   /** service_family_squares_weekly_seat_candidates rows, or null when the lookup failed. */
@@ -91,7 +103,14 @@ export async function saveWeeklySeats(deps: WeeklySeatDeps): Promise<WeeklySeatS
         if (await deps.save(accountId)) summary.saved += 1;
         break;
       case 'meeting_cancelled':
-        // Cancelled for everyone: nobody else is asked, and no push announces it.
+        if (deps.syncSaidOn) {
+          // The sync reply, a moment ago, said this Monday is on. That is the
+          // authority: the status is left alone and only she waits.
+          await deps.hold(accountId, 'no_answer');
+          summary.held += 1;
+          break;
+        }
+        // Cancelled for everyone: nobody else is asked, and the reminders stop.
         await deps.noteCancelled();
         await deps.hold(accountId, 'meeting_cancelled');
         return { ...summary, stopped: 'meeting_cancelled' };
@@ -100,15 +119,17 @@ export async function saveWeeklySeats(deps: WeeklySeatDeps): Promise<WeeklySeatS
         summary.refused += 1;
         break;
       default:
-        // The website answered, but not sensibly, for her: a problem with this
-        // one member must not hold up the rest, or be asked about every run.
+        // The website turned down the question about her alone (a 4xx reply):
+        // a problem with this one member must not hold up the rest, or be
+        // asked about every run.
         if (answer.reason === 'unexpected_reply') {
           await deps.hold(accountId, 'no_answer');
           summary.held += 1;
           break;
         }
-        // Not deployed or unreachable: the same for everyone. Nothing is
-        // written; every member is asked about again next run.
+        // Not deployed, unreachable or answering with errors: the same for
+        // everyone. Nothing is written and nobody is held; every member is
+        // asked about again next run.
         return { ...summary, stopped: 'website_unavailable' };
     }
   }

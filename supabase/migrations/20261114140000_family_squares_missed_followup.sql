@@ -10,7 +10,9 @@
 --     that she joined: "If Monday got away from you, we missed you. Next
 --     Monday's seat is one tap away, and ..." followed by where recordings of
 --     past meetings are (her library for a member; "members can watch" for
---     anyone else).
+--     anyone else). A member's loved one has died and she is not a paying
+--     member: the note ends "you are welcome any week." instead. Grief is
+--     no time to be told what members get.
 --   * joined (with or without a seat): the note she always got.
 --   * has "Save my seat every Monday" on: always the note she always got,
 --     never "we missed you". Her seat is saved for her, and she may join from
@@ -19,11 +21,15 @@
 --     with her weekly seat being on instead of "one tap away". It does not
 --     say that next Monday's seat is saved: the 15-minute job saves it only
 --     once the website agrees, and skips a few members (an unverified email,
---     no sign of app use in 35 days), so that would not be true for everyone.
+--     no sign of app use in 180 days), so that would not be true for everyone.
 -- Older builds keep the wording they already had, whoever they are.
 --
 -- A cancelled Monday (family_squares_meeting_cancelled, 20261114120000) gets
 -- no Tuesday note at all: there was no meeting to follow up on or to miss.
+-- By 1 AM on Tuesday the sync has been writing next Monday's status for five
+-- hours, so for a meeting that has ended the website's last answer stands as
+-- long as it was written on the day of the meeting or later. A cancellation
+-- recorded for any other Monday changes nothing here.
 --
 -- "Joined" means a Join tap in the app from 5 PM Pacific on the meeting day
 -- (people open the meeting early) until half an hour after it ends, or the
@@ -66,7 +72,8 @@ BEGIN
   v_meeting := v_local::date - 1;
   -- The website cancelled last night's meeting: nobody was there and nobody
   -- missed it. (If that cannot be read the answer is "not cancelled", and the
-  -- notes go out as before.)
+  -- notes go out as before.) Only an answer about that Monday, written on
+  -- the day of the meeting or later, counts.
   IF public.family_squares_meeting_cancelled(v_meeting) THEN
     RETURN 0;
   END IF;
@@ -135,11 +142,17 @@ BEGIN
       -- Recordings are a member page: a member is told where hers are, anyone
       -- else that members can watch them. Nothing here says that this week's
       -- recording is posted yet.
+      -- Her loved one has died (whether or not she paused reminders) and she
+      -- is not a paying member: no mention of membership at all.
       WHEN s.missed AND coalesce(s.push_app_contract, 0) >= 1 THEN
         'If Monday got away from you, we missed you. Next Monday''s seat is one tap away, and '
-        || CASE WHEN public._dispatcher_member_access(s.id)
-          THEN 'recordings of past meetings are in your library, under Tools.'
-          ELSE 'members can watch recordings of past meetings.' END
+        || CASE
+          WHEN public._account_bereaved(s.id) AND NOT public._dispatcher_member_access(s.id)
+            THEN 'you are welcome any week.'
+          ELSE CASE WHEN public._dispatcher_member_access(s.id)
+            THEN 'recordings of past meetings are in your library, under Tools.'
+            ELSE 'members can watch recordings of past meetings.' END
+        END
       -- Her weekly seat is on, so there is nothing to tap. Only what is true
       -- for everyone with the switch on is said: not that the seat is saved.
       -- (With Matt's line written she gets that line, like everyone who came.)

@@ -18,6 +18,7 @@ const NO_OBJECTION: EnsureRegistrationOutcome = { outcome: 'no_objection' };
 const CANCELLED: EnsureRegistrationOutcome = { outcome: 'meeting_cancelled' };
 const REFUSED: EnsureRegistrationOutcome = { outcome: 'registration_unavailable' };
 const NONSENSE: EnsureRegistrationOutcome = { outcome: 'unavailable', reason: 'unexpected_reply' };
+const TROUBLE: EnsureRegistrationOutcome = { outcome: 'unavailable', reason: 'website_error' };
 const UNREACHABLE: EnsureRegistrationOutcome = { outcome: 'unavailable', reason: 'unreachable' };
 const NOT_DEPLOYED: EnsureRegistrationOutcome = { outcome: 'unavailable', reason: 'not_deployed' };
 
@@ -28,6 +29,8 @@ function run(options: {
   rows?: unknown[] | null;
   answers?: Record<string, EnsureRegistrationOutcome>;
   cancelled?: boolean;
+  /** This run's sync reply said the meeting is on (`cancelled: false`). */
+  syncSaidOn?: boolean;
   /** Milliseconds left before each website call, in order; the last value repeats. */
   timeLeft?: number[];
   sameMeeting?: () => boolean;
@@ -43,6 +46,7 @@ function run(options: {
   };
   const times = [...(options.timeLeft ?? [15_000])];
   const deps: WeeklySeatDeps = {
+    syncSaidOn: options.syncSaidOn === true,
     meetingCancelled: () => Promise.resolve(options.cancelled === true),
     candidates: () => {
       log.lookedUp += 1;
@@ -113,6 +117,46 @@ Deno.test('weekly seats: a cancelled answer records the status, stops the run an
   assertEquals(log.saved, ['account-a']);
 });
 
+Deno.test('weekly seats: the sync reply is the authority: after it said "on", one member\'s "cancelled" only holds her', async () => {
+  const { summary, log } = await run({ syncSaidOn: true, answers: { 'a@example.com': CANCELLED, 'b@example.com': CANCELLED } });
+  // The Monday is not marked cancelled, so the status cannot flap between runs.
+  assertEquals(log.notedCancelled, 0);
+  // Each is left alone for six hours ("no_answer"), never held as "meeting_cancelled":
+  // that reason stops everyone, and the next sync reply would clear it at once.
+  assertEquals(log.held, [
+    { accountId: 'account-a', reason: 'no_answer' },
+    { accountId: 'account-b', reason: 'no_answer' },
+  ]);
+  // The run goes on: C is asked and her seat is saved.
+  assertEquals(log.asked.map((a) => a.email), ['a@example.com', 'b@example.com', 'c@example.com']);
+  assertEquals(log.saved, ['account-c']);
+  assertEquals(summary, { asked: 3, saved: 1, no_objection: 0, refused: 0, held: 2, stopped: null });
+});
+
+Deno.test('weekly seats: when the sync reply did not say, one member\'s "cancelled" answer still marks the Monday', async () => {
+  const { summary, log } = await run({ syncSaidOn: false, answers: { 'a@example.com': CANCELLED } });
+  assertEquals(log.notedCancelled, 1);
+  assertEquals(log.held, [{ accountId: 'account-a', reason: 'meeting_cancelled' }]);
+  assertEquals(log.asked.length, 1);
+  assertEquals(summary, { asked: 1, saved: 0, no_objection: 0, refused: 0, held: 0, stopped: 'meeting_cancelled' });
+});
+
+Deno.test('weekly seats: a website in trouble (5xx, 429, not JSON) stops the run and holds nobody', async () => {
+  const { summary, log } = await run({ answers: { 'b@example.com': TROUBLE, 'c@example.com': TROUBLE } });
+  assertEquals(summary, { asked: 2, saved: 1, no_objection: 0, refused: 0, held: 0, stopped: 'website_unavailable' });
+  // Nothing is remembered about B, and C is not asked during the outage.
+  assertEquals(log.held, []);
+  assertEquals(log.asked.map((a) => a.email), ['a@example.com', 'b@example.com']);
+  assertEquals(log.saved, ['account-a']);
+  assertEquals(log.notedCancelled, 0);
+
+  // The first answer is an error: one call, nothing written at all.
+  const down = await run({ syncSaidOn: true, answers: { 'a@example.com': TROUBLE } });
+  assertEquals(down.summary, { asked: 1, saved: 0, no_objection: 0, refused: 0, held: 0, stopped: 'website_unavailable' });
+  assertEquals(down.log.held, []);
+  assertEquals(down.log.saved, []);
+});
+
 Deno.test('weekly seats: a Monday already known to be cancelled means nobody is asked', async () => {
   const { summary, log } = await run({ cancelled: true });
   assertEquals(summary, { asked: 0, saved: 0, no_objection: 0, refused: 0, held: 0, stopped: 'meeting_cancelled' });
@@ -130,7 +174,7 @@ Deno.test('weekly seats: a member the website refuses is remembered, and the oth
   assertEquals(log.saved, ['account-b', 'account-c']);
 });
 
-Deno.test('weekly seats: an answer that makes no sense for one member holds her and continues', async () => {
+Deno.test('weekly seats: a 4xx reply about one member holds her and continues', async () => {
   const { summary, log } = await run({ answers: { 'a@example.com': NONSENSE, 'c@example.com': NONSENSE } });
   assertEquals(summary, { asked: 3, saved: 1, no_objection: 0, refused: 0, held: 2, stopped: null });
   // Nothing is written for her; she is left alone for a while instead of asked every run.
