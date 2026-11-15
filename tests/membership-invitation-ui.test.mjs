@@ -11,7 +11,7 @@ const settle = () => new Promise(resolve => setImmediate(resolve));
 const plans = JSON.parse(readFileSync(new URL('../src/locales/en/plans.json', import.meta.url), 'utf8'));
 const translate = key => key.split('.').reduce((node, part) => node?.[part], plans) ?? key;
 function mount({ completed = false, account = {}, delayed = false, placement = 'practice-completed', claimAnswers = [] } = {}) {
-  let state = { user: { id: 'a' }, isAuthenticated: true, isLoading: false, accountError: null, isOfflineAccountFallback: false, isAdmin: false, isAttached: false, accountState: 'direct-free', ...account };
+  let state = { user: { id: 'a' }, isAuthenticated: true, isLoading: false, accountError: null, isOfflineAccountFallback: false, isAdmin: false, isAttached: false, accountState: 'direct-free', bereaved: false, ...account };
   let props = { accountId: 'a', completed, placement };
   const slots = [], pending = [], claims = [], releases = [], dismissals = [], routes = [], logged = [];
   let cursor = 0, tree, resolveClaim;
@@ -35,6 +35,8 @@ function mount({ completed = false, account = {}, delayed = false, placement = '
     if (id.endsWith('lib/funnel')) return { logMembershipPath: (stage, meta) => { logged.push([stage, { ...meta }]); } };
     if (id.endsWith('lib/membershipPath')) return { plansHref: source => ({ pathname: '/plans', params: { source } }) };
     if (id.endsWith('AccountContext')) return { useAccount: () => state };
+    // The device's copy of "her loved one died": false (known, not bereaved) unless a test says otherwise.
+    if (id.endsWith('hooks/useBereavedOnDevice')) return { useBereavedOnDevice: () => state.bereaved };
     if (id === './policy') return { createInvitationPolicy: () => policy };
     throw Error(`Unexpected import ${id}`);
   };
@@ -71,14 +73,57 @@ test('initial completed hydration does not claim; persistent false-to-true claim
   assert.equal(hydrated.logged.length, 0);
 });
 
-test('eligibility gates suppress claims and do not replay completion after becoming eligible', async () => {
-  for (const account of [{ user: null }, { user: { id: 'b' } }, { isAuthenticated: false }, { isLoading: true }, { accountError: 'error' }, { isOfflineAccountFallback: true }, { isAdmin: true }, { isAttached: true }, { accountState: 'direct-essential' }]) {
+const ELIGIBLE = { user: { id: 'a' }, isAuthenticated: true, isLoading: false, accountError: null, isOfflineAccountFallback: false, isAdmin: false, isAttached: false, accountState: 'direct-free', bereaved: false };
+test('eligibility gates suppress claims, and someone who simply may not see it is never shown it later', async () => {
+  for (const account of [{ user: null }, { user: { id: 'b' } }, { isAuthenticated: false }, { isAdmin: true }, { isAttached: true }, { accountState: 'direct-essential' }, { bereaved: true }]) {
     const ui = mount({ account }); ui.render({ completed: true }); await settle(); ui.render();
     assert.equal(ui.claims.length, 0, JSON.stringify(account)); assert.equal(ui.visible(), false);
     assert.equal(ui.logged.length, 0, 'nothing is logged for someone who is never shown it');
-    ui.render({}, { user: { id: 'a' }, isAuthenticated: true, isLoading: false, accountError: null, isOfflineAccountFallback: false, isAdmin: false, isAttached: false, accountState: 'direct-free' });
-    assert.equal(ui.claims.length, 0);
+    ui.render({}, ELIGIBLE); await settle(); ui.render();
+    assert.equal(ui.claims.length, 0, `${JSON.stringify(account)}: not replayed`);
   }
+});
+
+// L3: the moment used to be lost for good when it arrived before the account was known.
+test('a moment that arrives while the account is still loading (or offline) is kept, and claimed once the account is known', async () => {
+  for (const account of [{ isLoading: true }, { isOfflineAccountFallback: true }, { accountError: 'error' }, { bereaved: undefined }]) {
+    const ui = mount({ placement: 'after-meeting', account }); ui.render({ completed: true }); await settle(); ui.render();
+    assert.equal(ui.claims.length, 0, JSON.stringify(account)); assert.equal(ui.visible(), false);
+    ui.render({}, ELIGIBLE); await settle(); ui.render();
+    assert.equal(ui.claims.length, 1, `${JSON.stringify(account)}: claimed when the account settles`);
+    assert.equal(ui.visible(), true);
+    assert.deepEqual(ui.logged, [['membership_invite_shown', { source: 'after_meeting' }]]);
+    ui.render(); assert.equal(ui.claims.length, 1, 'once');
+  }
+  // The moment ended before the account settled: nothing is kept.
+  const gone = mount({ account: { isLoading: true } }); gone.render({ completed: true }); gone.render({ completed: false });
+  gone.render({}, ELIGIBLE); gone.render({ completed: true }); await settle(); gone.render();
+  assert.equal(gone.claims.length, 1, 'only the new moment claims');
+  // The account settles as one that may not see it: nothing is kept for later either.
+  for (const settledAs of [{ accountState: 'direct-essential' }, { isAdmin: true }, { bereaved: true }]) {
+    const ui = mount({ account: { isLoading: true } }); ui.render({ completed: true });
+    ui.render({}, { ...ELIGIBLE, ...settledAs }); await settle(); ui.render();
+    assert.equal(ui.claims.length, 0, JSON.stringify(settledAs));
+    ui.render({}, ELIGIBLE); await settle(); ui.render();
+    assert.equal(ui.claims.length, 0, `${JSON.stringify(settledAs)}: not replayed`);
+  }
+  // Completion already true when the screen opened is still never a moment, loading or not.
+  const hydrated = mount({ completed: true, account: { isLoading: true } }); hydrated.render({}, ELIGIBLE); await settle(); hydrated.render();
+  assert.equal(hydrated.claims.length, 0);
+});
+
+// L6: no membership invitation of any kind for a bereaved member, in any place.
+test('a bereaved member is never invited, wherever the moment is, and a card on screen goes away', async () => {
+  for (const placement of ['practice-completed', 'boundary-saved', 'after-meeting']) {
+    const ui = mount({ placement, account: { bereaved: true } }); ui.render({ completed: true }); await settle(); ui.render();
+    assert.equal(ui.claims.length, 0, placement); assert.equal(ui.visible(), false); assert.equal(ui.logged.length, 0);
+  }
+  const ui = mount(); ui.render({ completed: true }); await settle(); ui.render();
+  assert.equal(ui.visible(), true);
+  ui.render({}, { bereaved: true }); ui.render();
+  assert.equal(ui.visible(), false); assert.deepEqual(ui.releases, ['a']);
+  assert.match(source, /const bereaved = useBereavedOnDevice\(scope\);/);
+  assert.match(source, /account\.accountState === 'direct-free' && bereaved === false;/);
 });
 
 test('delayed claims cannot show after account switch, lost eligibility, completion withdrawal, or unmount', async () => {

@@ -5,6 +5,7 @@ import { getPushDestination } from '../src/lib/pushRouting';
 import { entitlementsForAccountState } from '../src/lib/featureAccess';
 import { FAMILY_SQUARES_NAME_KEY, sessionDisplayTitle } from '../src/lib/familySquaresSchedule';
 import { FAMILY_SQUARES_CALENDAR_URL, WEBSITE_ORIGIN } from '../src/lib/websiteLinks';
+import { callCardView, seatPanelView } from '../src/lib/familySquaresCard';
 import {
   MEETING_LENGTH_MS,
   RETURN_GRACE_MS,
@@ -125,6 +126,12 @@ test('a Family Squares reminder opens the meeting at meeting time and the call c
   assert.deepEqual(familySquaresReminderTapPlan({ title: 'La Sobremesa', zoom_url: ZOOM }, at(5)), { action: 'default' });
   assert.deepEqual(familySquaresReminderTapPlan({ title: 'Boundaries Night', zoom_url: ZOOM }, at(5)), { action: 'default' });
   assert.deepEqual(familySquaresReminderTapPlan(null, at(5)), { action: 'default' });
+  // A Monday the website cancelled (a reminder sent before it was called off): the call card, never Zoom.
+  assert.deepEqual(familySquaresReminderTapPlan(FAMILY_SQUARES, at(-29), true), { action: 'call_card' });
+  assert.deepEqual(familySquaresReminderTapPlan(FAMILY_SQUARES, at(20), true), { action: 'call_card' });
+  assert.deepEqual(familySquaresReminderTapPlan(FAMILY_SQUARES, at(20), false).action, 'open_meeting');
+  // Another session's reminder is never touched by it.
+  assert.deepEqual(familySquaresReminderTapPlan({ title: 'La Sobremesa', zoom_url: ZOOM }, at(5), true), { action: 'default' });
 });
 
 test('only a "tap to join" session reminder is taken further; the question reminder is not', () => {
@@ -144,7 +151,13 @@ test('only a "tap to join" session reminder is taken further; the question remin
 test('the tap handler looks the session up, opens Zoom once, and logs the Join like the Join buttons', () => {
   const hook = read('src/hooks/usePushNotifications.ts');
   // Lookup before the duplicate check; navigation and the open after it.
-  assert.match(hook, /const joinSessionId = reminderJoinSessionId\(destination\);[\s\S]*?const plan = await planReminderJoin\(joinSessionId\);[\s\S]*?if \(!shouldHandlePushResponse\(data, response\.notification\.request\.identifier\)\) return true;[\s\S]*?router\.push\(route as never\);[\s\S]*?if \(meetingUrl\) void joinFamilySquaresFromPush\(accountId, meetingUrl\);/);
+  assert.match(hook, /const joinSessionId = reminderJoinSessionId\(destination\);[\s\S]*?lookup = planReminderJoin\(joinSessionId\)\.finally\(\(\) => \{ plans\.delete\(tapKey\); \}\);[\s\S]*?const plan = await lookup;[\s\S]*?if \(!shouldHandlePushResponse\(data, response\.notification\.request\.identifier\)\) return true;[\s\S]*?routerRef\.current\.push\(route as never\);[\s\S]*?if \(meetingUrl\) void joinFamilySquaresFromPush\(accountId, meetingUrl\);/);
+  // The effect re-running while the lookup is out neither drops the tap (it is still hers while the
+  // same account is signed in and navigation is ready) nor repeats it (one shared lookup per tap,
+  // and the duplicate check lets exactly one run act).
+  assert.match(hook, /let lookup = joinPlans\.current\.get\(tapKey\);\s+if \(!lookup\) \{/);
+  assert.match(hook, /const stillHers = effectActive\s+\|\| \(live\.current\.mounted && live\.current\.accountId === accountId && live\.current\.navigationReady\);\s+if \(!stillHers\) return false;\s+if \(!shouldHandlePushResponse\(/);
+  assert.equal(hook.split('planReminderJoin(joinSessionId)').length - 1, 1);
   assert.match(hook, /if \(plan\.action !== 'default'\) route = \{ pathname: '\/\(tabs\)' \};/);
   const join = read('src/lib/familySquaresPushJoin.ts');
   // The mark, then the funnel event (sent before Zoom takes the app to the background), then Zoom.
@@ -152,7 +165,7 @@ test('the tap handler looks the session up, opens Zoom once, and logs the Join l
   assert.match(join, /\} catch \{\s+await clearFamilySquaresJoin\(accountId\);\s+return false;/);
   // A failed lookup: the call card when it is Family Squares, else the push's usual destination.
   assert.match(join, /if \(error \|\| !data\) return fallback;/);
-  assert.match(join, /if \(knowledge === 'other'\) return \{ action: 'default' \};\s+const fallback = reminderLookupFallback\(knowledge\);\s+return withTimeoutFallback\(lookUpPlan\(sessionId, fallback\), LOOKUP_TIMEOUT_MS, fallback\);/);
+  assert.match(join, /const knowledge = reminderSessionKnowledge\(sessionId, knownId, otherIds\);\s+if \(knowledge === 'other'\) return \{ action: 'default' \};\s+const fallback = reminderLookupFallback\(knowledge\);\s+return withTimeoutFallback\(lookUpPlan\(sessionId, fallback\), LOOKUP_TIMEOUT_MS, fallback\);/);
   assert.match(join, /export const LOOKUP_TIMEOUT_MS = 1_500;/);
 });
 
@@ -160,9 +173,18 @@ test('what the device knows about a reminder\'s session decides whether anything
   const OTHER = '223e4567-e89b-42d3-a456-426614174333';
   assert.equal(reminderSessionKnowledge(SESSION, SESSION), 'family_squares');
   assert.equal(reminderSessionKnowledge(SESSION, SESSION.toUpperCase()), 'family_squares');
-  assert.equal(reminderSessionKnowledge(OTHER, SESSION), 'other', 'La Sobremesa or a group: opens at once');
+  assert.equal(reminderSessionKnowledge(OTHER, SESSION, [OTHER]), 'other', 'La Sobremesa or a group the device has seen: opens at once');
+  assert.equal(reminderSessionKnowledge(OTHER, SESSION, [OTHER.toUpperCase()]), 'other');
+  // Not the remembered Family Squares id, and not a session the device knows to be something else:
+  // the Family Squares row may have changed since the list was last loaded. Looked up, never assumed.
+  const NEW_ROW = '323e4567-e89b-42d3-a456-426614174444';
+  assert.equal(reminderSessionKnowledge(NEW_ROW, SESSION, [OTHER]), 'unknown');
+  assert.equal(reminderSessionKnowledge(OTHER, SESSION), 'unknown');
   assert.equal(reminderSessionKnowledge(SESSION, null), 'unknown');
   assert.equal(reminderSessionKnowledge(SESSION, ''), 'unknown');
+  assert.equal(reminderSessionKnowledge(SESSION, null, [SESSION]), 'other');
+  // The remembered Family Squares id wins over a stale "other" entry: it is looked up.
+  assert.equal(reminderSessionKnowledge(SESSION, SESSION, [SESSION]), 'family_squares');
   assert.deepEqual(reminderLookupFallback('family_squares'), { action: 'call_card' });
   assert.deepEqual(reminderLookupFallback('unknown'), { action: 'default' });
   assert.deepEqual(reminderLookupFallback('other'), { action: 'default' });
@@ -197,9 +219,10 @@ test('"Save my seat every Monday" is offered after a saved seat on Today, Suppor
   const seat = read('src/lib/familySquaresSeat.ts');
   assert.match(seat, /rpc\('set_family_squares_weekly_seat', \{ p_enabled: enabled \}\)/);
   assert.match(seat, /if \(error \|\| familySquaresRsvpIsCurrent\(answer\?\.family_squares_meeting_date\)\) return;\s+await reserveFamilySquares\(accountId\);/);
-  // The panel shows nothing until a seat is saved, and a plain on/off switch after.
+  // The panel shows nothing until a seat is saved (unless her weekly seat is on: seatPanelView), and a plain on/off switch after.
   const panel = read('src/components/familySquares/FamilySquaresSeatPanel.tsx');
-  assert.match(panel, /if \(rsvp === 'none'\) return null;/);
+  assert.match(panel, /const panelView = seatPanelView\(\{ cancelled, answer: rsvp, weeklySeatOn: weekly\.enabled \}\);\s+if \(panelView === 'hidden'\) return null;/);
+  assert.equal(seatPanelView({ cancelled: false, answer: 'none', weeklySeatOn: false }), 'hidden');
   assert.match(panel, /<Switch\s+value=\{weekly\.enabled\}[\s\S]*?accessibilityRole="switch"\s+accessibilityLabel=\{t\('familySquares\.weekly\.title'\)\}/);
 });
 
@@ -297,8 +320,11 @@ test('"What to expect" covers the practical facts in both languages and promises
 });
 
 test('the note shows on the call card and on the RSVP confirmation, and hides for good', () => {
-  assert.match(read('src/components/today/SituationCard.tsx'), /\{isFamilySquares && <FamilySquaresFirstTimerNote accountId=\{accountId\} \/>\}/);
-  assert.match(read('app/(tabs)/support.tsx'), /\{familySquares && sess\.rsvped && <FamilySquaresFirstTimerNote accountId=\{user\?\.id \?\? null\} \/>\}/);
+  // (view.firstTimerNote: Family Squares, and not a week the website cancelled.)
+  assert.match(read('src/components/today/SituationCard.tsx'), /\{view\.firstTimerNote && <FamilySquaresFirstTimerNote accountId=\{accountId\} \/>\}/);
+  assert.match(read('app/(tabs)/support.tsx'), /\{view\.firstTimerNote && sess\.rsvped && <FamilySquaresFirstTimerNote accountId=\{user\?\.id \?\? null\} \/>\}/);
+  assert.equal(callCardView({ familySquares: true, cancelled: false, answer: 'none', hasLink: false }).firstTimerNote, true);
+  assert.equal(callCardView({ familySquares: false, cancelled: false, answer: 'none', hasLink: false }).firstTimerNote, false);
   assert.match(read('app/(onboarding)/notifications.tsx'), /\{rsvped && <FamilySquaresFirstTimerNote accountId=\{user\?\.id \?\? null\} tone="onPrimary" \/>\}/);
   const note = read('src/components/familySquares/FamilySquaresFirstTimerNote.tsx');
   assert.match(note, /if \(!visible\) return null;/);
@@ -366,7 +392,7 @@ test('a Join tap before the meeting starts never counts before start + 10 minute
 
 test('an early return keeps the join mark on the device; only a decision removes it', () => {
   const flush = read('src/lib/meetingAttendance.ts');
-  assert.match(flush, /if \(decision === 'keep'\) return false;\s+await AsyncStorage\.removeItem\(joinKey\);\s+if \(decision !== 'log'\) return false;/);
+  assert.match(flush, /if \(decision === 'keep'\) return false;\s+if \(decision !== 'log'\) \{\s+await AsyncStorage\.removeItem\(joinKey\);\s+return false;\s+\}/);
 });
 
 test('every Join button leaves the mark, and returning to any screen logs it', () => {
@@ -377,8 +403,11 @@ test('every Join button leaves the mark, and returning to any screen logs it', (
   assert.match(card, /if \(joining\.current\) return;\s+joining\.current = true;/);
   assert.match(card, /if \(isFamilySquares\) await clearFamilySquaresJoin\(accountId\);/);
   const support = read('app/(tabs)/support.tsx');
-  assert.match(support, /if \(session\.kind === 'group'\) logFunnelEvent\('attended', \{ source: 'support' \}\);/);
-  assert.match(support, /void markFamilySquaresJoin\(user\?\.id, 'support'\)\s+\.then\(\(\) => Linking\.openURL\(url\)\)\s+\.catch\(\(\) => clearFamilySquaresJoin\(user\?\.id\)\);/);
+  // Support's Join is the same: one at a time, the mark, the event sent first (800 ms at most), then Zoom.
+  assert.match(support, /if \(joining\.current\) return;\s+joining\.current = true;/);
+  assert.match(support, /if \(familySquares\) await markFamilySquaresJoin\(user\?\.id, 'support'\);\s+(\/\/[^\n]*\n\s+)+if \(session\.kind === 'group'\) await logFunnelEventAndWait\('attended', \{ source: 'support' \}\);\s+try \{\s+await Linking\.openURL\(url\);\s+\} catch \{\s+if \(familySquares\) await clearFamilySquaresJoin\(user\?\.id\);/);
+  assert.doesNotMatch(support, /logFunnelEvent\('attended'/);
+  assert.match(support, /\} finally \{\s+joining\.current = false;\s+\}\s+\};/);
   assert.match(read('src/lib/familySquaresPushJoin.ts'), /markFamilySquaresJoin\(accountId, 'push'\)/);
   const layout = read('app/_layout.tsx');
   assert.match(layout, /const flushAttendance = \(\) => void flushFamilySquaresAttendance\(accountId\)\.then\(/);
@@ -386,8 +415,9 @@ test('every Join button leaves the mark, and returning to any screen logs it', (
   assert.match(layout, /if \(returnedToForeground\) flushAttendance\(\);/);
   assert.match(layout, /<MeetingAttendanceCoordinator \/>/);
   const attendance = read('src/lib/meetingAttendance.ts');
-  // Remembered on the device before it is sent, so a second return cannot log twice.
-  assert.match(attendance, /await AsyncStorage\.setItem\(loggedKey, mark\.meetingDate\);\s+logFunnelEvent\('attended_10min', \{ meeting_date: mark\.meetingDate, source: mark\.source \}\);/);
+  // Marked as logged only after the server has taken it: a failed send keeps the Join mark for the next return.
+  assert.match(attendance, /logFunnelEventConfirmed\('attended_10min', \{ meeting_date: mark\.meetingDate, source: mark\.source \}\),\s+ATTENDANCE_SEND_WAIT_MS,\s+false,\s+\);\s+if \(!logged\) return false;\s+(\/\/[^\n]*\n\s+)?await AsyncStorage\.setItem\(loggedKey, mark\.meetingDate\);\s+await AsyncStorage\.removeItem\(joinKey\);\s+return true;/);
+  assert.doesNotMatch(attendance, /logFunnelEvent\(/);
   // Both keys carry the account id, so sign-out clears them (accountLocalKeys).
   assert.match(attendance, /return `\$\{prefix\}\$\{encodeURIComponent\(accountId\)\}`;/);
 });

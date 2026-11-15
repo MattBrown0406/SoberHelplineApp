@@ -49,7 +49,10 @@ import { plansHref } from '../../src/lib/membershipPath';
 import { useSituation } from '../../src/hooks/useSituation';
 import { funnelDoor, type FunnelDoor } from '../../src/lib/situation';
 import { SituationOffRamp } from '../../src/components/situation/SituationOffRamp';
-import { logFunnelEvent } from '../../src/lib/funnel';
+import { logFunnelEventAndWait } from '../../src/lib/funnel';
+import { callCardView, seatSaveFailureKey } from '../../src/lib/familySquaresCard';
+import { isFamilySquaresKnownCancelled } from '../../src/lib/familySquaresCancelled';
+import { useBereavedOnDevice } from '../../src/hooks/useBereavedOnDevice';
 import { isAdminEmail } from '../../src/lib/admin';
 import { openEmergencyLink } from '../../src/lib/emergencyLinks';
 import { COMMUNITY_FEED_VISIBLE } from '../../src/lib/communityFeed';
@@ -446,6 +449,8 @@ export default function SupportScreen() {
   useToolOpened('support');
   const { colors } = useTheme();
   const { user, isAttached, accountState, entitlements } = useAccount();
+  // Her loved one died (the device's copy, kept by Today): nothing is sold to her here.
+  const bereaved = useBereavedOnDevice(user?.id ?? null);
   // A session-reminder push carries the RSVP'd session id so the card it is about stands out.
   // soberhelpline.com/app/family-squares opens Support with focus=family-squares.
   // ask=question (the hour-before reminder) opens that session's question sheet.
@@ -530,7 +535,7 @@ export default function SupportScreen() {
   const crisisDoor = funnelDoor(situation);
 
   const roster = { primaryOnCall: PRIMARY_ON_CALL, available: [] as StaffMember[] };
-  const { sessions, toggleRsvp, declineRsvp } = useSessions(user?.id ?? null);
+  const { sessions, toggleRsvp, declineRsvp, seatSavedHere } = useSessions(user?.id ?? null);
   const focusedSessionId = sessionIdParam
     ?? (focus === 'family-squares'
       ? sessions.find((s) => isFamilySquaresSession(s) || isLaSobremesaSession(s))?.id
@@ -561,25 +566,41 @@ export default function SupportScreen() {
     const session = sessions.find((s) => s.id === pendingAsk);
     if (!session) return;
     setPendingAsk(null);
-    if (!isLaSobremesaSession(session)) setQuestionSession(session);
+    // (No question for a Monday the website cancelled.)
+    if (!isLaSobremesaSession(session) && !session.cancelled) setQuestionSession(session);
   }, [pendingAsk, supportFocused, sessions]);
   const handleSessionRsvp = async (session: DbSession) => {
     const saved = await toggleRsvp(session);
     if (saved === 'not_available') appAlert(t('sessions.rsvpErrorTitle'), t('common:laSobremesa.notAvailable'));
-    else if (!saved) appAlert(t('sessions.rsvpErrorTitle'), t('sessions.rsvpErrorBody'));
+    // The website refused (a cancelled week, or it will not register her):
+    // not a connection problem, so the message says what is true.
+    else if (saved === 'website_declined') {
+      appAlert(t('sessions.rsvpErrorTitle'), t(seatSaveFailureKey('website_declined', session.cancelled === true || isFamilySquaresKnownCancelled())));
+    } else if (!saved) appAlert(t('sessions.rsvpErrorTitle'), t('sessions.rsvpErrorBody'));
   };
-  const joinSession = (session: DbSession) => {
+  const joining = useRef(false);
+  const joinSession = async (session: DbSession) => {
     if (!session.zoom_url) return;
-    const url = withAppContext(session.zoom_url);
-    if (session.kind === 'group') logFunnelEvent('attended', { source: 'support' });
-    if (!isFamilySquaresSession(session)) {
-      void Linking.openURL(url).catch(() => undefined);
-      return;
+    // One Join at a time: a second tap while this one is on its way does nothing.
+    if (joining.current) return;
+    joining.current = true;
+    try {
+      const url = withAppContext(session.zoom_url);
+      const familySquares = isFamilySquaresSession(session);
+      // Noted before Zoom opens, so coming back ten minutes later can count as attending.
+      if (familySquares) await markFamilySquaresJoin(user?.id, 'support');
+      // Sent before Zoom opens too: once the app is in the background the
+      // request may never leave. Waits a moment at most (funnel), as Today's
+      // Join and the reminder tap do.
+      if (session.kind === 'group') await logFunnelEventAndWait('attended', { source: 'support' });
+      try {
+        await Linking.openURL(url);
+      } catch {
+        if (familySquares) await clearFamilySquaresJoin(user?.id);
+      }
+    } finally {
+      joining.current = false;
     }
-    // Noted before Zoom opens, so coming back ten minutes later can count as attending.
-    void markFamilySquaresJoin(user?.id, 'support')
-      .then(() => Linking.openURL(url))
-      .catch(() => clearFamilySquaresJoin(user?.id));
   };
   // One session row, used by every list on this screen. Family Squares shows
   // under its one name and, once her seat is saved, offers every Monday, the
@@ -587,6 +608,15 @@ export default function SupportScreen() {
   const renderSession = (sess: DbSession, showType: boolean) => {
     const name = sessionDisplayTitle(sess, t);
     const familySquares = isFamilySquaresSession(sess);
+    // What a Family Squares row offers is decided in one place
+    // (familySquaresCard). A Monday the website cancelled offers nothing for
+    // that date: only a calm line, and the "every Monday" switch.
+    const view = callCardView({
+      familySquares,
+      cancelled: sess.cancelled === true,
+      answer: sess.rsvped ? 'going' : sess.declined ? 'declined' : 'none',
+      hasLink: !!sess.zoom_url,
+    });
     return (
       <View key={sess.id} style={[styles.sessionOuter, { borderBottomColor: colors.line }, sess.id === focusedSessionId && { backgroundColor: colors.primaryLight }]}>
         <View style={styles.sessionRow}>
@@ -596,30 +626,37 @@ export default function SupportScreen() {
               {showType ? `${sessionTypeKey(sess.kind, t)} · ${scheduleFor(sess)}` : scheduleFor(sess)}
             </Text>
           </View>
-          {sess.zoom_url ? (
+          {view.join ? (
             <TouchableOpacity
               accessibilityRole="button"
               accessibilityLabel={t('sessions.joinLabel', { name })}
               style={[styles.sessionBtn, { backgroundColor: colors.green, borderColor: colors.green }]}
               activeOpacity={0.8}
-              onPress={() => joinSession(sess)}
+              onPress={() => void joinSession(sess)}
             >
               <Text style={[styles.sessionBtnText, { color: '#fff' }]}>{t('sessions.joinZoom')}</Text>
             </TouchableOpacity>
           ) : null}
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel={t(sess.rsvped ? 'sessions.confirmLabel' : 'sessions.rsvpLabel', { name })}
-            style={[styles.sessionBtn, { backgroundColor: sess.rsvped ? colors.greenLight : colors.primaryLight, borderColor: sess.rsvped ? colors.green : colors.primary }]}
-            activeOpacity={0.8}
-            onPress={() => void handleSessionRsvp(sess)}
-          >
-            <Text style={[styles.sessionBtnText, { color: sess.rsvped ? colors.green : colors.primary }]}>
-              {sess.rsvped ? t('sessions.confirmButton') : t('sessions.rsvpButton')}
-            </Text>
-          </TouchableOpacity>
+          {view.cancelledLine ? null : (
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={t(sess.rsvped ? 'sessions.confirmLabel' : 'sessions.rsvpLabel', { name })}
+              style={[styles.sessionBtn, { backgroundColor: sess.rsvped ? colors.greenLight : colors.primaryLight, borderColor: sess.rsvped ? colors.green : colors.primary }]}
+              activeOpacity={0.8}
+              onPress={() => void handleSessionRsvp(sess)}
+            >
+              <Text style={[styles.sessionBtnText, { color: sess.rsvped ? colors.green : colors.primary }]}>
+                {sess.rsvped ? t('sessions.confirmButton') : t('sessions.rsvpButton')}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
-        {sess.rsvped && !isLaSobremesaSession(sess) && (
+        {view.cancelledLine && (
+          <Text style={[styles.cancelledLine, { color: colors.ink }]} accessibilityLiveRegion="polite">
+            {t('common:familySquares.cancelled.line')}
+          </Text>
+        )}
+        {sess.rsvped && !view.cancelledLine && !isLaSobremesaSession(sess) && (
           <TouchableOpacity
             accessibilityRole="button"
             accessibilityLabel={t('questionModal.buttonLabel', { name })}
@@ -632,19 +669,21 @@ export default function SupportScreen() {
             </Text>
           </TouchableOpacity>
         )}
-        {familySquares ? (
+        {view.rsvpNote ? (
           <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:familySquares.rsvpNote')}</Text>
         ) : isLaSobremesaSession(sess) ? (
           <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:laSobremesa.note')}</Text>
         ) : null}
         {/* The first-timer note here is the RSVP confirmation; Today's card shows it before too. */}
-        {familySquares && sess.rsvped && <FamilySquaresFirstTimerNote accountId={user?.id ?? null} />}
+        {view.firstTimerNote && sess.rsvped && <FamilySquaresFirstTimerNote accountId={user?.id ?? null} />}
         {familySquares && (
           <FamilySquaresSeatPanel
             accountId={user?.id ?? null}
             rsvp={sess.rsvped ? 'going' : sess.declined ? 'declined' : 'none'}
             onDecline={() => declineRsvp(sess)}
             reminderAsk
+            seatSavedHere={seatSavedHere}
+            cancelled={view.cancelledLine}
           />
         )}
       </View>
@@ -893,8 +932,9 @@ export default function SupportScreen() {
               {sessions.filter((s) => s.kind === 'group').map((sess) => renderSession(sess, false))}
             </View>
 
-            {/* The plans in short; the plans screen has all of it and is where a plan is bought. */}
-            <PlansTeaserCard offers={planOffers} source="support_tab" />
+            {/* The plans in short; the plans screen has all of it and is where a plan is bought.
+                Never for a bereaved member (or before the device knows): no sales prompts of any kind. */}
+            {bereaved === false && <PlansTeaserCard offers={planOffers} source="support_tab" />}
           </>
         )}
 
@@ -1356,6 +1396,7 @@ const styles = StyleSheet.create({
   },
   questionBtnText: { fontSize: 12, fontWeight: '600' },
   rsvpNote: { fontSize: 11.5, lineHeight: 16, marginTop: 8 },
+  cancelledLine: { fontSize: 13.5, lineHeight: 19, marginTop: 8 },
   questionInput: {
     borderWidth: 1,
     borderRadius: 10,

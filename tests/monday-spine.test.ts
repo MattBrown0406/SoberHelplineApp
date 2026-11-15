@@ -147,7 +147,8 @@ test('this week\'s one thing: only a well-formed reply counts', () => {
 
 test('Today leads with the Monday card, with the question link and this week\'s one thing', () => {
   const card = readFileSync('src/components/today/SituationCard.tsx', 'utf8');
-  assert.match(card, /isFamilySquares && nextFreeCall\?\.rsvped && \(/);
+  // The question link: Family Squares, her seat saved, and not a cancelled week (familySquaresCard).
+  assert.match(card, /\{view\.question && nextFreeCall && \(/);
   assert.match(card, /params: \{ sessionId: nextFreeCall\.id, ask: 'question' \}/);
   const today = readFileSync('app/(tabs)/index.tsx', 'utf8');
   // Matt's line is from the English call; Spanish members see their own practice.

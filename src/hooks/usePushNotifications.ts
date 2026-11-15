@@ -14,6 +14,7 @@ import { isDeviceSignedIn } from '../lib/pushDevice';
 import { shouldDeferPushRouting } from '../lib/pushColdStart';
 import { requestFamilySpaceRefresh } from '../lib/familySpaceRefresh';
 import { joinFamilySquaresFromPush, planReminderJoin, reminderJoinSessionId } from '../lib/familySquaresPushJoin';
+import type { ReminderTapPlan } from '../lib/familySquaresJoin';
 import { useAccount } from '../contexts/AccountContext';
 import { canAccessFeature } from '../lib/featureAccess';
 import type { Entitlements } from '../api/types';
@@ -396,6 +397,21 @@ export function usePushNotifications(
   const { entitlementsSettled } = useAccount();
   // A tap held back until entitlements settle (see shouldDeferPushRouting).
   const deferredResponse = useRef<Notifications.NotificationResponse | null>(null);
+  // Who this hook is live for right now, whichever run of the effect below is
+  // current. A reminder tap that is waiting on its lookup stays hers while
+  // this still matches, even if the effect has re-run meanwhile.
+  const live = useRef({ accountId, navigationReady, mounted: true });
+  live.current.accountId = accountId;
+  live.current.navigationReady = navigationReady;
+  useEffect(() => {
+    const state = live.current;
+    state.mounted = true;
+    return () => { state.mounted = false; };
+  }, []);
+  const routerRef = useRef(router);
+  routerRef.current = router;
+  // One lookup per reminder tap, shared by every run of the effect that sees it.
+  const joinPlans = useRef(new Map<string, Promise<ReminderTapPlan>>());
 
   useEffect(() => {
     if (!accountId) return;
@@ -465,18 +481,32 @@ export function usePushNotifications(
       let meetingUrl: string | null = null;
       const joinSessionId = reminderJoinSessionId(destination);
       if (joinSessionId) {
-        const plan = await planReminderJoin(joinSessionId);
+        const tapKey = `${response.notification.request.identifier}:${joinSessionId}`;
+        let lookup = joinPlans.current.get(tapKey);
+        if (!lookup) {
+          const plans = joinPlans.current;
+          lookup = planReminderJoin(joinSessionId).finally(() => { plans.delete(tapKey); });
+          plans.set(tapKey, lookup);
+        }
+        const plan = await lookup;
         if (plan.action !== 'default') route = { pathname: '/(tabs)' };
         if (plan.action === 'open_meeting') meetingUrl = plan.url;
       }
 
-      if (!effectActive) return false;
+      // The effect can re-run while the lookup is out (the entitlements settle
+      // on a cold start). That alone must not drop the tap: nothing would pick
+      // it up again. It is still hers while the same account is signed in and
+      // navigation is ready. If the newer run is handling the same tap too,
+      // the duplicate check below lets exactly one of them act.
+      const stillHers = effectActive
+        || (live.current.mounted && live.current.accountId === accountId && live.current.navigationReady);
+      if (!stillHers) return false;
       if (!shouldHandlePushResponse(data, response.notification.request.identifier)) return true;
       // A relative's backup notice lands on the already-mounted Boundaries tab
       // (and Today keeps its own copy): re-read the family space now.
       if (data.kind === 'family_backup') requestFamilySpaceRefresh();
       try {
-        router.push(route as never);
+        routerRef.current.push(route as never);
       } catch (error) {
         console.warn('[push] notification navigation failed', error);
         return false;

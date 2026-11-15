@@ -4,12 +4,14 @@ import { logFunnelEventAndWait } from './funnel';
 import { withAppContext } from './websiteLinks';
 import { withTimeoutFallback } from './authBootstrap';
 import {
+  familySquaresJoinWindow,
   familySquaresReminderTapPlan,
   reminderLookupFallback,
   reminderSessionKnowledge,
   type ReminderTapPlan,
 } from './familySquaresJoin';
-import { knownFamilySquaresSessionId, rememberFamilySquaresSession } from './familySquaresSessionCache';
+import { knownFamilySquaresSessionId, knownOtherSessionIds, rememberFamilySquaresSession } from './familySquaresSessionCache';
+import { loadFamilySquaresCancelled } from './familySquaresCancelled';
 import { clearFamilySquaresJoin, markFamilySquaresJoin } from './meetingAttendance';
 
 // Family Squares reminders say "tap to join", so the tap should join. The
@@ -26,14 +28,20 @@ export const LOOKUP_TIMEOUT_MS = 1_500;
 const KNOWN_ID_TIMEOUT_MS = 300;
 
 /**
- * What the tap does. A reminder for any other session (La Sobremesa, a group)
- * answers at once, with no network: it opens what it always opened. A Family
- * Squares reminder looks its link up for up to a second and a half, then falls
- * back to Today's call card.
+ * What the tap does. A reminder for a session this device knows to be another
+ * one (La Sobremesa, a group) answers at once, with no network: it opens what
+ * it always opened. A Family Squares reminder looks its link up for up to a
+ * second and a half, then falls back to Today's call card. So does a session
+ * the device cannot place (the Family Squares row may have changed since it
+ * last loaded the list): it is looked up, never assumed to be another session.
  */
 export async function planReminderJoin(sessionId: string): Promise<ReminderTapPlan> {
-  const knownId = await withTimeoutFallback(knownFamilySquaresSessionId(), KNOWN_ID_TIMEOUT_MS, null);
-  const knowledge = reminderSessionKnowledge(sessionId, knownId);
+  const [knownId, otherIds] = await withTimeoutFallback(
+    Promise.all([knownFamilySquaresSessionId(), knownOtherSessionIds()]),
+    KNOWN_ID_TIMEOUT_MS,
+    [null, []] as [string | null, string[]],
+  );
+  const knowledge = reminderSessionKnowledge(sessionId, knownId, otherIds);
   if (knowledge === 'other') return { action: 'default' };
   const fallback = reminderLookupFallback(knowledge);
   return withTimeoutFallback(lookUpPlan(sessionId, fallback), LOOKUP_TIMEOUT_MS, fallback);
@@ -41,17 +49,23 @@ export async function planReminderJoin(sessionId: string): Promise<ReminderTapPl
 
 async function lookUpPlan(sessionId: string, fallback: ReminderTapPlan): Promise<ReminderTapPlan> {
   try {
-    const { data, error } = await supabase
-      .from('sessions')
-      .select('title, zoom_url')
-      .eq('id', sessionId)
-      .maybeSingle();
+    const [{ data, error }, cancelled] = await Promise.all([
+      supabase
+        .from('sessions')
+        .select('title, zoom_url')
+        .eq('id', sessionId)
+        .maybeSingle(),
+      // Only at meeting time can the tap open Zoom, so only then is it worth
+      // asking whether the website cancelled tonight (a reminder sent before
+      // it was called off). Fails open: any doubt is "not cancelled".
+      familySquaresJoinWindow() ? loadFamilySquaresCancelled() : Promise.resolve(false),
+    ]);
     // A failed lookup: the call card for Family Squares, else the push's usual destination.
     if (error || !data) return fallback;
     const session = data as { title?: string | null; zoom_url?: string | null };
     // Next time this device knows without asking.
     rememberFamilySquaresSession([{ id: sessionId, title: session.title }]);
-    return familySquaresReminderTapPlan(session);
+    return familySquaresReminderTapPlan(session, undefined, cancelled);
   } catch {
     return fallback;
   }

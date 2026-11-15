@@ -17,6 +17,11 @@
  * its policy; this file only knows that the moment has come. Nothing is
  * stored: the moment lasts until the app next leaves the foreground.
  *
+ * The return and the rating-prompt check are two separate things that happen
+ * about a second apart, in either order (logging attendance waits for the
+ * server; the check waits on a timer). Whichever comes first is remembered for
+ * the visit, so neither order leaves the moment waiting for good.
+ *
  * Pure (no device imports), so it runs in unit tests.
  */
 export type ReviewCheckOutcome = 'requested' | 'not_eligible' | 'unavailable' | 'failed' | 'none';
@@ -24,32 +29,47 @@ export type ReviewCheckOutcome = 'requested' | 'not_eligible' | 'unavailable' | 
 type Moment = { accountId: string; review: 'waiting' | 'clear' | 'prompted' };
 
 let moment: Moment | null = null;
+// What the rating-prompt checks of THIS visit have said so far, when they
+// answered before the return was noted. `prompted` sticks: once a prompt may
+// have shown on this visit, a later clear check does not undo it.
+let visitCheck: { accountId: string; prompted: boolean } | null = null;
 const listeners = new Set<() => void>();
 
 function emit(): void {
   for (const listener of [...listeners]) listener();
 }
 
-/** She is back from the meeting: attendance was just logged for this account. */
+/**
+ * She is back from the meeting: attendance was just logged for this account.
+ * If this visit's rating-prompt check has already answered, its answer
+ * applies at once; otherwise the moment waits for it.
+ */
 export function noteMeetingReturn(accountId: string): void {
-  moment = { accountId, review: 'waiting' };
+  const checked = visitCheck?.accountId === accountId ? visitCheck : null;
+  moment = { accountId, review: checked ? (checked.prompted ? 'prompted' : 'clear') : 'waiting' };
   emit();
 }
 
 /**
- * The rating-prompt check that follows her return has finished. A check that
- * finished before the return was noted says nothing about this visit and is
- * ignored (noteMeetingReturn starts the wait).
+ * A rating-prompt check has finished on this visit. After the return it
+ * settles the waiting moment; before the return it is remembered for the
+ * visit (clearMeetingReturn forgets it, so a check from an earlier visit never
+ * counts).
  */
 export function noteReviewCheck(accountId: string, outcome: ReviewCheckOutcome): void {
-  if (!moment || moment.accountId !== accountId || moment.review !== 'waiting') return;
   const promptMayHaveShown = outcome === 'requested' || outcome === 'failed';
+  visitCheck = {
+    accountId,
+    prompted: promptMayHaveShown || (visitCheck?.accountId === accountId && visitCheck.prompted),
+  };
+  if (!moment || moment.accountId !== accountId || moment.review !== 'waiting') return;
   moment = { accountId, review: promptMayHaveShown ? 'prompted' : 'clear' };
   emit();
 }
 
-/** The app left the foreground (or the account changed): the moment has passed. */
+/** The app left the foreground (or the account changed): the moment, and the visit, have passed. */
 export function clearMeetingReturn(): void {
+  visitCheck = null;
   if (!moment) return;
   moment = null;
   emit();

@@ -10,6 +10,8 @@ import { supabase } from '../../src/lib/supabase';
 import { appAlert } from '../../src/lib/appAlert';
 import { reserveLaSobremesa } from '../../src/lib/laSobremesa';
 import { reserveFamilySquares, FAMILY_SQUARES_ALREADY_REGISTERED } from '../../src/lib/familySquaresRegistration';
+import { seatSaveFailureKey } from '../../src/lib/familySquaresCard';
+import { isFamilySquaresKnownCancelled } from '../../src/lib/familySquaresCancelled';
 import { declineFamilySquares } from '../../src/lib/familySquaresSeat';
 import { FamilySquaresSeatPanel } from '../../src/components/familySquares/FamilySquaresSeatPanel';
 import { FamilySquaresFirstTimerNote } from '../../src/components/familySquares/FamilySquaresFirstTimerNote';
@@ -70,7 +72,8 @@ export default function NotificationsScreen() {
       setRsvped(true);
       if (reserved.alreadyRegistered) appAlert(t(FAMILY_SQUARES_ALREADY_REGISTERED));
     } else {
-      appAlert(t('support:sessions.rsvpErrorTitle'), t('support:sessions.rsvpErrorBody'));
+      // The website refusing (a cancelled week) is not a connection problem.
+      appAlert(t('support:sessions.rsvpErrorTitle'), t(seatSaveFailureKey(reserved.reason, isFamilySquaresKnownCancelled())));
     }
   }
 

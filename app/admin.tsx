@@ -261,7 +261,7 @@ export default function AdminScreen() {
               <BandPill label="Crisis" value={funnel.bands.crisis} color={colors.coral} colors={colors} />
             </View>
             <Text style={[styles.funnelNote, { color: colors.inkSoft }]}>
-              Paid accounts = active Essential or Premier subscriptions. RSVPs reset Tuesdays at 2:00 AM Pacific; each meeting&apos;s count is kept from then on (– = before counts were kept). Tapped Join = members who tapped Join from an hour before to half an hour after the meeting. Stayed 10+ min = came back to the app ten minutes or more after tapping Join (app builds from 4.2 on). Admins and Spanish-language members are left out of both. Intervention = opened/started planning. Membership path = members (each counted once per step) in the last 30 days, from app builds that log it; admins are left out.
+              Paid accounts = active Essential or Premier subscriptions. RSVPs reset Tuesdays at 2:00 AM Pacific; each meeting&apos;s count is kept from then on (– = before counts were kept). Tapped Join = members who tapped Join between 5:00 PM and 8:30 PM Pacific on the meeting Monday (two hours before it starts to half an hour after it ends). Stayed 10+ min = came back to the app ten minutes or more after tapping Join (app builds from 4.2 on). Admins and Spanish-language members are left out of both. Intervention = opened/started planning. Membership path = members (each counted once per step) in the last 30 days, from app builds that log it; admins are left out.
             </Text>
           </>
         )}

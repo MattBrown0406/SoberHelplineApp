@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { logFunnelEvent } from './funnel';
+import { logFunnelEventConfirmed } from './funnel';
 import { captureAppError } from './monitoring';
+import { withTimeoutFallback } from './authBootstrap';
 import { attendanceDecision, newJoinMark, parseJoinMark, type JoinSource } from './familySquaresJoin';
 import { markFamilySquaresJoined } from './familySquaresFirstTimer';
 
@@ -41,15 +42,34 @@ export async function clearFamilySquaresJoin(accountId: string | null | undefine
   }
 }
 
+// One flush per account at a time: a second return while the first is still
+// being sent must not send the meeting twice.
+const flushing = new Map<string, Promise<boolean>>();
+/** A send with no answer after this long counts as not sent: the next return tries again. */
+export const ATTENDANCE_SEND_WAIT_MS = 15_000;
+
 /**
  * Called whenever the app is in front again. Logs `attended_10min` once per
  * meeting when she is back after the meeting has been going ten minutes and
  * ten minutes or more after tapping Join. An earlier return keeps the mark for
  * her next one; a mark from an evening that is over logs nothing. Returns true
  * when it logged.
+ *
+ * The meeting is marked as logged only AFTER the server has taken the event.
+ * If the send fails (she walks back in with no signal), the Join mark stays
+ * and the next return tries again, until the mark's own expiry
+ * (attendanceDecision). Marking first lost her attendance for good.
  */
-export async function flushFamilySquaresAttendance(accountId: string | null | undefined, nowMs = Date.now()): Promise<boolean> {
-  if (!accountId) return false;
+export function flushFamilySquaresAttendance(accountId: string | null | undefined, nowMs = Date.now()): Promise<boolean> {
+  if (!accountId) return Promise.resolve(false);
+  const running = flushing.get(accountId);
+  if (running) return running;
+  const flush = flushAttendance(accountId, nowMs).finally(() => flushing.delete(accountId));
+  flushing.set(accountId, flush);
+  return flush;
+}
+
+async function flushAttendance(accountId: string, nowMs: number): Promise<boolean> {
   const joinKey = key(JOIN_KEY_PREFIX, accountId);
   const loggedKey = key(LOGGED_KEY_PREFIX, accountId);
   try {
@@ -62,12 +82,21 @@ export async function flushFamilySquaresAttendance(accountId: string | null | un
     }
     const decision = attendanceDecision(mark, nowMs, await AsyncStorage.getItem(loggedKey));
     if (decision === 'keep') return false;
-    await AsyncStorage.removeItem(joinKey);
-    if (decision !== 'log') return false;
-    // Remember before logging: a second return must never log the meeting twice
-    // (the server also keeps one per member and meeting).
+    if (decision !== 'log') {
+      await AsyncStorage.removeItem(joinKey);
+      return false;
+    }
+    // Sent first, and waited for. Not taken: the mark stays for the next return.
+    // (Two sends of one meeting are harmless: the server keeps one per member and meeting.)
+    const logged = await withTimeoutFallback(
+      logFunnelEventConfirmed('attended_10min', { meeting_date: mark.meetingDate, source: mark.source }),
+      ATTENDANCE_SEND_WAIT_MS,
+      false,
+    );
+    if (!logged) return false;
+    // Taken: remember it, so a later return never logs the meeting again.
     await AsyncStorage.setItem(loggedKey, mark.meetingDate);
-    logFunnelEvent('attended_10min', { meeting_date: mark.meetingDate, source: mark.source });
+    await AsyncStorage.removeItem(joinKey);
     return true;
   } catch (error) {
     captureAppError(error);

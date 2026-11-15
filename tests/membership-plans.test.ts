@@ -357,9 +357,10 @@ test('the after-meeting moment waits for the rating-prompt check and never share
   let changes = 0;
   const unsubscribe = subscribeAfterMeetingInvite(() => { changes += 1; });
   assert.equal(afterMeetingInviteReady('a'), false);
-  // A check that finished before she was back says nothing about this visit.
+  // A check from an earlier visit says nothing about this one: leaving the foreground forgets it.
   noteReviewCheck('a', 'none');
   assert.equal(afterMeetingInviteReady('a'), false);
+  clearMeetingReturn();
   noteMeetingReturn('a');
   assert.equal(afterMeetingInviteReady('a'), false, 'not until the rating-prompt check has answered');
   noteReviewCheck('b', 'none');
@@ -378,6 +379,27 @@ test('the after-meeting moment waits for the rating-prompt check and never share
     assert.equal(afterMeetingInviteReady('a'), true, outcome);
     clearMeetingReturn();
   }
+  // The two happen about a second apart, in either order. The check answering FIRST on this visit
+  // used to leave the moment waiting for the whole visit.
+  for (const outcome of ['none', 'not_eligible', 'unavailable'] as const) {
+    noteReviewCheck('a', outcome); noteMeetingReturn('a');
+    assert.equal(afterMeetingInviteReady('a'), true, `${outcome} before the return`);
+    clearMeetingReturn();
+  }
+  for (const outcome of ['requested', 'failed'] as const) {
+    noteReviewCheck('a', outcome);
+    // A later clear check on the same visit does not undo a prompt that may have shown.
+    noteReviewCheck('a', 'none');
+    noteMeetingReturn('a');
+    assert.equal(afterMeetingInviteReady('a'), false, `${outcome} before the return: never beside the prompt`);
+    clearMeetingReturn();
+  }
+  // Another account's earlier check does not count for her.
+  noteReviewCheck('b', 'none'); noteMeetingReturn('a');
+  assert.equal(afterMeetingInviteReady('a'), false);
+  noteReviewCheck('a', 'none');
+  assert.equal(afterMeetingInviteReady('a'), true);
+  clearMeetingReturn();
   // The rating prompt was requested (or a failed check may have shown it): no invitation, even if a later check is clear.
   for (const outcome of ['requested', 'failed'] as const) {
     noteMeetingReturn('a'); noteReviewCheck('a', outcome);
@@ -396,7 +418,7 @@ test('the invitation is wired to the real return from the meeting, on the free T
   // The rating-prompt check reports its answer; the invitation waits for it.
   assert.match(layout, /void flushQueuedSupportCallReview\(user\.id\)\.then\(\(outcome\) => noteReviewCheck\(user\.id, outcome\)\);/);
   assert.match(layout, /const leftForeground = nextState === 'background';[\s\S]*?if \(leftForeground\) clearMeetingReturn\(\);/);
-  assert.match(read('src/lib/meetingAttendance.ts'), /logFunnelEvent\('attended_10min', \{ meeting_date: mark\.meetingDate, source: mark\.source \}\);\s+return true;/);
+  assert.match(read('src/lib/meetingAttendance.ts'), /logFunnelEventConfirmed\('attended_10min', \{ meeting_date: mark\.meetingDate, source: mark\.source \}\),[\s\S]*?if \(!logged\) return false;[\s\S]*?return true;/);
 
   const today = read('app/(tabs)/index.tsx');
   // Never for a bereaved member (or before we know), and never beside another ask.
@@ -409,7 +431,7 @@ test('the invitation is wired to the real return from the meeting, on the free T
   assert.ok(!paidToday.includes('<ContextualMembershipInvitation'), 'not on the paid Today');
   // The card itself refuses anyone who is not a free member.
   const card = read('src/membershipInvitations/ContextualMembershipInvitation.tsx');
-  assert.match(card, /!account\.isAdmin && !account\.isAttached &&\s+account\.accountState === 'direct-free';/);
+  assert.match(card, /!account\.isAdmin && !account\.isAttached && account\.accountState === 'direct-free' && bereaved === false;/);
   assert.match(card, /'after-meeting': 'after_meeting',/);
   for (const lang of ['en', 'es']) {
     const invite = locale(lang, 'plans').invite;

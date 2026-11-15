@@ -74,7 +74,7 @@ test('Today shows the card at the top; either action or Close puts it away', () 
   assert.match(today, /onDismiss=\{welcome\.dismiss\}/);
   assert.match(today, /scrollRef\.current\?\.scrollTo\(\{ y: Math\.max\(0, checkInY\.current - 8\), animated: true \}\)/);
   // Only a meeting she has not answered for is offered.
-  assert.match(today, /const seatOpen = !!nextFreeCall && \(isFamilySquaresSession\(nextFreeCall\) \|\| isLaSobremesaSession\(nextFreeCall\)\)\s*&& !nextFreeCall\.rsvped && !nextFreeCall\.declined;/);
+  assert.match(today, /const seatOpen = !!nextFreeCall && \(isFamilySquaresSession\(nextFreeCall\) \|\| isLaSobremesaSession\(nextFreeCall\)\)\s*(\/\/[^\n]*\n\s*)?&& !nextFreeCall\.rsvped && !nextFreeCall\.declined && !nextFreeCall\.cancelled;/);
 });
 
 test('the card is warm and plain: no streaks, no "missed", no numbers, and every button is labelled', () => {

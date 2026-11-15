@@ -20,6 +20,8 @@ import { chooseFreeCall, isLaSobremesaSession, isFamilySquaresSession } from '..
 import { reserveLaSobremesa, withPersonalLinks } from '../lib/laSobremesa';
 import { withFreshAnswer } from '../lib/freshAnswer';
 import { rememberFamilySquaresSession } from '../lib/familySquaresSessionCache';
+import { isFamilySquaresKnownCancelled, loadFamilySquaresCancelled } from '../lib/familySquaresCancelled';
+import { seatSaveFailureKey } from '../lib/familySquaresCard';
 import { appAlert } from '../lib/appAlert';
 import i18n from 'i18next';
 import { useTranslation } from 'react-i18next';
@@ -36,6 +38,8 @@ export interface FreeCall {
   rsvped: boolean;
   /** Family Squares only: she answered "can't make it" for this meeting. */
   declined?: boolean;
+  /** Family Squares only: the website cancelled the coming Monday's meeting. */
+  cancelled?: boolean;
 }
 
 export interface TodayFeedData {
@@ -53,6 +57,12 @@ export interface TodayFeedData {
   primaryDoor: FunnelDoor;
   nextFreeCall: FreeCall | null;
   rsvpFreeCall: () => Promise<void>;
+  /**
+   * Goes up each time a Save tap on Today has just saved her Family Squares
+   * seat. Only that is followed by the reminder ask: never a seat that arrived
+   * by itself (her weekly seat, a seat saved on another screen, a re-read).
+   */
+  seatSavedHere: number;
   /** "Can't make it this week" for Family Squares; false when it was not saved. */
   declineFreeCall: () => Promise<boolean>;
   /** Re-read the feed (e.g. after the loved one's phase or status changed). */
@@ -74,6 +84,7 @@ export function useTodayFeed(
   const [week, setWeek] = useState(1);
   const [nextFreeCall, setNextFreeCall] = useState<FreeCall | null>(null);
   const [loading, setLoading] = useState(true);
+  const [seatSavedHere, setSeatSavedHere] = useState(0);
   const generation = useRef(0);
   // The account whose feed last loaded without an error.
   const loadedFor = useRef<string | null>(null);
@@ -100,7 +111,7 @@ export function useTodayFeed(
     }
     setLoading(true);
 
-    const [wallsRes, rsvpCountRes, sessRes, rsvpRowsRes, sitRes] = await Promise.all([
+    const [wallsRes, rsvpCountRes, sessRes, rsvpRowsRes, sitRes, meetingCancelled] = await Promise.all([
       supabase.from('walls').select('*', { count: 'exact', head: true }),
       supabase
         .from('session_rsvps')
@@ -114,6 +125,8 @@ export function useTodayFeed(
       // "Can't make it" answers too: the card says so instead of offering the seat as new.
       supabase.from('session_rsvps').select('session_id, status, family_squares_meeting_date').in('status', ['going', 'declined']).eq('account_id', accountId!),
       supabase.rpc('my_situation'),
+      // Did the website cancel the coming Monday? Fails open: any doubt is "no".
+      loadFamilySquaresCancelled(),
     ]);
 
     if (request !== generation.current) return;
@@ -167,7 +180,8 @@ export function useTodayFeed(
     const answerIsCurrent = familySquaresRsvpIsCurrent(answer?.family_squares_meeting_date, now);
     const loadedCall: FreeCall | null = chosen ? { ...chosen,
       rsvped: isFamilySquaresSession(chosen) ? answerIsCurrent && answer?.status === 'going' : going.has(chosen.id),
-      declined: answerIsCurrent && answer?.status === 'declined' } : null;
+      declined: answerIsCurrent && answer?.status === 'declined',
+      cancelled: isFamilySquaresSession(chosen) && meetingCancelled } : null;
     // She answered while this read was in flight (or the answer is still
     // being saved): her answer stays as it is.
     const answeredSince = answersAtStart !== answers.current || reserving.current;
@@ -212,11 +226,18 @@ export function useTodayFeed(
       const reserved = await reserveFamilySquares(accountId).finally(() => { reserving.current = false; });
       if (identity.current !== accountId) return;
       if (!reserved.ok) {
-        appAlert(i18n.t('support:sessions.rsvpErrorTitle'), i18n.t('support:sessions.rsvpErrorBody'));
+        // The website refusing (a cancelled week, or it will not register her)
+        // is not a connection problem: say what is true (familySquaresCard).
+        const cancelled = nextFreeCall.cancelled === true || isFamilySquaresKnownCancelled();
+        appAlert(i18n.t('support:sessions.rsvpErrorTitle'), i18n.t(seatSaveFailureKey(reserved.reason, cancelled)));
+        // The week may have been cancelled since the card was read: look again.
+        if (reserved.reason === 'website_declined') void load();
         return;
       }
       ++answers.current;
       setNextFreeCall((prev) => prev?.id === nextFreeCall.id ? { ...prev, rsvped: true, declined: false } : prev);
+      // Her own tap saved a seat she did not have: the reminder ask may follow.
+      if (!wasRsvped) setSeatSavedHere((count) => count + 1);
       // A legacy/stale going row already contributes to the total even when
       // this occurrence was not registered. Ensure may update, not insert it.
       try {
@@ -286,7 +307,7 @@ export function useTodayFeed(
       setGroupSessions((c) => Math.max(0, c + (wasRsvped ? 1 : -1)));
       appAlert(i18n.t('support:sessions.rsvpErrorTitle'), i18n.t('support:sessions.rsvpErrorBody'));
     }
-  }, [accountId, nextFreeCall]);
+  }, [accountId, nextFreeCall, load]);
 
   const declineFreeCall = useCallback(async (): Promise<boolean> => {
     if (!accountId || !nextFreeCall || !isFamilySquaresSession(nextFreeCall)) return false;
@@ -317,6 +338,7 @@ export function useTodayFeed(
     primaryDoor: funnelDoor(visibleSituation),
     nextFreeCall,
     rsvpFreeCall,
+    seatSavedHere,
     declineFreeCall,
     reload: load,
     loading,

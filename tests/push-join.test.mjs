@@ -27,7 +27,8 @@ const ZOOM = 'https://us02web.zoom.us/j/123456789';
 // Monday 2026-11-16, 7:05 PM Pacific: the meeting is under way.
 class MeetingTime extends Date { constructor(...args) { super(...(args.length ? args : ['2026-11-17T03:05:00Z'])); } static now() { return new Date().getTime(); } }
 
-function pushJoin({ knownId = null, row = { title: 'The Family Squares', zoom_url: ZOOM }, lookupError = false } = {}) {
+function pushJoin({ knownId = null, knownOthers = [], row = { title: 'The Family Squares', zoom_url: ZOOM }, lookupError = false, cancelled = false } = {}) {
+  const cancelledChecks = [];
   const lookups = [], timeouts = [], remembered = [], events = [], opened = [], marks = [];
   const timeoutGates = [];
   const lookupGate = { current: null };
@@ -43,14 +44,16 @@ function pushJoin({ knownId = null, row = { title: 'The Family Squares', zoom_ur
     // The real cap, without the waiting: the test decides when "too slow" happens.
     './authBootstrap': { withTimeoutFallback: (operation, ms, fallback) => { timeouts.push(ms); const gate = deferred(); timeoutGates.push(gate); return Promise.race([operation, gate.promise.then(() => fallback)]); } },
     './familySquaresJoin': join,
-    './familySquaresSessionCache': { knownFamilySquaresSessionId: async () => knownId, rememberFamilySquaresSession: (sessions) => { remembered.push(plain(sessions)); } },
+    './familySquaresSessionCache': { knownFamilySquaresSessionId: async () => knownId, knownOtherSessionIds: async () => knownOthers, rememberFamilySquaresSession: (sessions) => { remembered.push(plain(sessions)); } },
+    // "Did the website cancel tonight?" (the real one fails open; here the test decides).
+    './familySquaresCancelled': { loadFamilySquaresCancelled: async () => { cancelledChecks.push(1); if (cancelled instanceof Error) throw cancelled; return cancelled; } },
     './meetingAttendance': { markFamilySquaresJoin: async (id, from) => { events.push('mark'); marks.push([id, from]); }, clearFamilySquaresJoin: async () => { events.push('clear'); } },
   });
-  return { lib, lookups, timeouts, timeoutGates, remembered, events, opened, marks, lookupGate, failOpen() { openFails = true; } };
+  return { lib, lookups, timeouts, timeoutGates, remembered, events, opened, marks, lookupGate, cancelledChecks, failOpen() { openFails = true; } };
 }
 
 test('a reminder for any other session opens at once: no lookup, no waiting', async () => {
-  const h = pushJoin({ knownId: FAMILY_SQUARES });
+  const h = pushJoin({ knownId: FAMILY_SQUARES, knownOthers: [LA_SOBREMESA] });
   assert.deepEqual(plain(await h.lib.planReminderJoin(LA_SOBREMESA)), { action: 'default' });
   assert.deepEqual(h.lookups, [], 'the network is never asked');
   assert.deepEqual(h.timeouts, [300], 'only the local read of the remembered id is capped');
@@ -150,8 +153,52 @@ test('the device remembers which session is Family Squares, and nothing about th
   first.rememberFamilySquaresSession(null);
   first.rememberFamilySquaresSession([{ id: 'not-an-id', title: 'The Family Squares' }]);
   assert.equal(await first.knownFamilySquaresSessionId(), FAMILY_SQUARES);
-  assert.deepEqual(writes, [['@sh:family-squares:session-id', FAMILY_SQUARES]], 'written once, and only the session id');
+  await settle();
+  assert.deepEqual(writes.filter(([key]) => key === '@sh:family-squares:session-id'), [['@sh:family-squares:session-id', FAMILY_SQUARES]], 'written once, and only the session id');
+  // The other sessions it has seen are kept beside it: ids only.
+  const others = writes.filter(([key]) => key !== '@sh:family-squares:session-id');
+  assert.ok(others.length > 0 && others.every(([key, value]) => key === '@sh:family-squares:other-session-ids' && JSON.parse(value).every((id) => /^[0-9a-f-]{36}$/.test(id))));
+  assert.deepEqual(JSON.parse(store.get('@sh:family-squares:other-session-ids')), [LA_SOBREMESA]);
   // After a restart it is read back from the device.
   assert.equal(await cache().knownFamilySquaresSessionId(), FAMILY_SQUARES);
   assert.doesNotMatch(source('src/lib/familySquaresSessionCache.ts'), /accountId|email|user/i);
+});
+
+// ── Audit round 2 ───────────────────────────────────────────────────────────
+
+test('L5: a session the device cannot place is looked up, not assumed to be another session', async () => {
+  // The Family Squares row changed since this device last loaded the list: it still remembers the
+  // old id as Family Squares, and knows La Sobremesa. The push names the new row.
+  const OLD_ROW = '423e4567-e89b-42d3-a456-426614174555';
+  const h = pushJoin({ knownId: OLD_ROW, knownOthers: [LA_SOBREMESA] });
+  assert.deepEqual(plain(await h.lib.planReminderJoin(FAMILY_SQUARES)), { action: 'open_meeting', url: ZOOM, meetingDate: '2026-11-16' });
+  assert.deepEqual(h.lookups, [FAMILY_SQUARES]);
+  assert.deepEqual(h.timeouts, [300, 1500], 'the same cap as any Family Squares lookup');
+  assert.deepEqual(h.remembered, [[{ id: FAMILY_SQUARES, title: 'The Family Squares' }]], 'and the device learns the new row');
+  // Too slow: what the push always opened (it may be another session after all).
+  const slow = pushJoin({ knownId: OLD_ROW, knownOthers: [LA_SOBREMESA] });
+  slow.lookupGate.current = deferred();
+  const pending = slow.lib.planReminderJoin(FAMILY_SQUARES);
+  await settle(); slow.timeoutGates[1].resolve();
+  assert.deepEqual(plain(await pending), { action: 'default' });
+  // A session it knows to be something else still opens at once, with no network.
+  const known = pushJoin({ knownId: OLD_ROW, knownOthers: [LA_SOBREMESA] });
+  assert.deepEqual(plain(await known.lib.planReminderJoin(LA_SOBREMESA.toUpperCase())), { action: 'default' });
+  assert.deepEqual(known.lookups, []);
+});
+
+test('M4: a reminder tapped on a Monday the website cancelled lands on the call card, never in Zoom', async () => {
+  const h = pushJoin({ knownId: FAMILY_SQUARES, cancelled: true });
+  assert.deepEqual(plain(await h.lib.planReminderJoin(FAMILY_SQUARES)), { action: 'call_card' });
+  assert.equal(h.cancelledChecks.length, 1, 'asked at meeting time, inside the same capped lookup');
+  assert.deepEqual(h.timeouts, [300, 1500]);
+  // Not cancelled (or the check could not tell: it fails open to false): the meeting opens as before.
+  const on = pushJoin({ knownId: FAMILY_SQUARES, cancelled: false });
+  assert.equal(plain(await on.lib.planReminderJoin(FAMILY_SQUARES)).action, 'open_meeting');
+  // Another session's reminder never asks.
+  const other = pushJoin({ knownId: FAMILY_SQUARES, knownOthers: [LA_SOBREMESA], cancelled: true });
+  assert.deepEqual(plain(await other.lib.planReminderJoin(LA_SOBREMESA)), { action: 'default' });
+  assert.equal(other.cancelledChecks.length, 0);
+  // Only at meeting time is it worth asking: outside the join window the tap lands on the card anyway.
+  assert.match(source('src/lib/familySquaresPushJoin.ts'), /familySquaresJoinWindow\(\) \? loadFamilySquaresCancelled\(\) : Promise\.resolve\(false\),/);
 });

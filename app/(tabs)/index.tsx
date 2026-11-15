@@ -79,7 +79,7 @@ function TodayContent() {
   const bereaved = bereavedState === true;
   const bereavedUnknown = bereavedState === undefined;
   const [diedSheetOpen, setDiedSheetOpen] = useState(false);
-  const { dayCount, boundariesHeld, groupSessions, quoteIndex, scriptSlot, curriculumWeek, curriculumPhase, situation, primaryDoor, nextFreeCall, rsvpFreeCall, declineFreeCall, reload: reloadFeed } =
+  const { dayCount, boundariesHeld, groupSessions, quoteIndex, scriptSlot, curriculumWeek, curriculumPhase, situation, primaryDoor, nextFreeCall, rsvpFreeCall, seatSavedHere, declineFreeCall, reload: reloadFeed } =
     useTodayFeed(user?.id ?? null, user?.joinedAt ?? null);
   const youLabel = user?.firstName || t('boundaries:journal.you');
   const { space: familySpace, refresh: refreshFamilySpace } = useFamilySpace(user?.id ?? null, { you: youLabel, member: t('boundaries:journal.member') });
@@ -241,6 +241,7 @@ function TodayContent() {
       onSupportCallOpenFailed={() => cancelQueuedSupportCallReview(user?.id ?? null)}
       // No prompts of any kind for a bereaved member: no reminder ask under her seat.
       seatReminderAsk={!bereaved && !bereavedUnknown}
+      seatSavedHere={seatSavedHere}
     />
   );
 
@@ -286,7 +287,8 @@ function TodayContent() {
   };
   // The Monday meeting she can still save a seat at (not one she already answered for).
   const seatOpen = !!nextFreeCall && (isFamilySquaresSession(nextFreeCall) || isLaSobremesaSession(nextFreeCall))
-    && !nextFreeCall.rsvped && !nextFreeCall.declined;
+    // (Never on a Monday the website cancelled.)
+    && !nextFreeCall.rsvped && !nextFreeCall.declined && !nextFreeCall.cancelled;
   // Either action (or Close) puts the card away until the next week-long gap.
   const welcomeBackCard = welcome.visible ? (
     <WelcomeBackCard

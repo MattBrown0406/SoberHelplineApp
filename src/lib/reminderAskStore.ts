@@ -89,8 +89,11 @@ export function reminderPermissionChanged(): void {
   notify();
 }
 
-// Which seat panels are showing their ask right now. Today's second chance
-// stays away while one is, so she is never asked twice on one screen.
+// Which seat panels are showing their ask right now ON THE SCREEN IN FRONT
+// (useSeatReminderAsk reports an ask only while its screen is focused: Today
+// and Support both stay mounted). Today's second chance stays away while one
+// is, so she is never asked twice on one screen; an ask left unanswered on the
+// other tab does not count.
 const seatAsksShowing = new Set<object>();
 
 export function setSeatReminderAskShowing(panel: object, showing: boolean): void {

@@ -7,6 +7,7 @@ import { FAMILY_SQUARES_CALENDAR_URL } from '../../lib/websiteLinks';
 import { useFamilySquaresWeeklySeat } from '../../hooks/useFamilySquaresWeeklySeat';
 import { useSeatReminderAsk } from '../../hooks/useReminderAsk';
 import { ReminderAskNote } from '../reminders/ReminderAskNote';
+import { seatPanelView } from '../../lib/familySquaresCard';
 
 /** Her answer for the coming Family Squares meeting. */
 export type FamilySquaresRsvp = 'going' | 'declined' | 'none';
@@ -24,6 +25,13 @@ interface Props {
    * done screen, which asked a moment earlier.
    */
   reminderAsk?: boolean;
+  /**
+   * Goes up each time her own Save tap on this screen has just saved her seat
+   * (useTodayFeed / useSessions). The reminder ask follows only that.
+   */
+  seatSavedHere?: number;
+  /** The website cancelled the coming Monday: only the "every Monday" switch is shown. */
+  cancelled?: boolean;
 }
 
 /**
@@ -36,16 +44,22 @@ interface Props {
  * After she declines, it says so and how to come back.
  * With `reminderAsk`, a seat she has just saved is followed by a short ask to
  * turn on reminders (see ReminderAskNote).
+ * With no seat yet but her weekly seat on, it says her seat will be saved for
+ * her (so the card's "Save my spot" does not look as if the switch were off).
+ * On a cancelled week it shows the switch and nothing else.
+ * Which of these it is: seatPanelView (familySquaresCard).
  */
-export function FamilySquaresSeatPanel({ accountId, rsvp, onDecline, tone = 'card', reminderAsk = false }: Props) {
+export function FamilySquaresSeatPanel({ accountId, rsvp, onDecline, tone = 'card', reminderAsk = false, seatSavedHere = 0, cancelled = false }: Props) {
   const { colors } = useTheme();
   const { t } = useTranslation('common');
   const weekly = useFamilySquaresWeeklySeat(accountId);
   const [declining, setDeclining] = useState(false);
   // Watches for the moment her seat is saved, so it runs for every answer.
-  const reminders = useSeatReminderAsk(accountId, rsvp, reminderAsk);
+  // (A cancelled week has no seat to be reminded of: nothing is asked.)
+  const reminders = useSeatReminderAsk(accountId, cancelled ? 'none' : rsvp, reminderAsk && !cancelled, seatSavedHere);
+  const panelView = seatPanelView({ cancelled, answer: rsvp, weeklySeatOn: weekly.enabled });
 
-  if (rsvp === 'none') return null;
+  if (panelView === 'hidden') return null;
 
   const onPrimary = tone === 'onPrimary';
   const ink = onPrimary ? '#fff' : colors.ink;
@@ -53,7 +67,7 @@ export function FamilySquaresSeatPanel({ accountId, rsvp, onDecline, tone = 'car
   const accent = onPrimary ? '#fff' : colors.primary;
   const rule = onPrimary ? 'rgba(255,255,255,0.3)' : colors.line;
 
-  if (rsvp === 'declined') {
+  if (panelView === 'declined') {
     return (
       <View style={[styles.panel, { borderTopColor: rule }]}>
         <Text style={[styles.desc, { color: soft }]} accessibilityLiveRegion="polite">
@@ -87,7 +101,13 @@ export function FamilySquaresSeatPanel({ accountId, rsvp, onDecline, tone = 'car
 
   return (
     <View style={[styles.panel, { borderTopColor: rule }]}>
-      <ReminderAskNote ask={reminders} place="seat" />
+      {panelView === 'full' && <ReminderAskNote ask={reminders} place="seat" />}
+      {panelView === 'weekly_note' && (
+        // Her switch is on, but the coming Monday's seat is not saved yet.
+        <Text style={[styles.desc, styles.weeklyNote, { color: ink }]} accessibilityLiveRegion="polite">
+          {t('familySquares.weekly.onNote')}
+        </Text>
+      )}
       <View style={styles.row}>
         <View style={styles.rowText}>
           <Text style={[styles.label, { color: ink }]}>{t('familySquares.weekly.title')}</Text>
@@ -104,26 +124,31 @@ export function FamilySquaresSeatPanel({ accountId, rsvp, onDecline, tone = 'car
           accessibilityHint={t('familySquares.weekly.desc')}
         />
       </View>
-      <TouchableOpacity
-        accessibilityRole="button"
-        accessibilityLabel={t('familySquares.calendar.label')}
-        onPress={() => void addToCalendar()}
-        activeOpacity={0.8}
-        style={[styles.calendarBtn, { borderColor: accent }]}
-      >
-        <Text style={[styles.calendarBtnText, { color: accent }]}>{t('familySquares.calendar.button')}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        accessibilityRole="button"
-        accessibilityLabel={t('familySquares.decline.label')}
-        accessibilityState={{ disabled: declining, busy: declining }}
-        disabled={declining}
-        onPress={() => void decline()}
-        activeOpacity={0.75}
-        style={styles.declineLink}
-      >
-        <Text style={[styles.declineText, { color: soft }]}>{t('familySquares.decline.button')}</Text>
-      </TouchableOpacity>
+      {/* The calendar file and "can't make it" belong to a saved seat only. */}
+      {panelView === 'full' && (
+        <>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={t('familySquares.calendar.label')}
+            onPress={() => void addToCalendar()}
+            activeOpacity={0.8}
+            style={[styles.calendarBtn, { borderColor: accent }]}
+          >
+            <Text style={[styles.calendarBtnText, { color: accent }]}>{t('familySquares.calendar.button')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={t('familySquares.decline.label')}
+            accessibilityState={{ disabled: declining, busy: declining }}
+            disabled={declining}
+            onPress={() => void decline()}
+            activeOpacity={0.75}
+            style={styles.declineLink}
+          >
+            <Text style={[styles.declineText, { color: soft }]}>{t('familySquares.decline.button')}</Text>
+          </TouchableOpacity>
+        </>
+      )}
     </View>
   );
 }
@@ -134,6 +159,7 @@ const styles = StyleSheet.create({
   rowText: { flex: 1 },
   label: { fontSize: 14, fontWeight: '700' },
   desc: { fontSize: 12.5, lineHeight: 18, marginTop: 2 },
+  weeklyNote: { marginTop: 0, marginBottom: 10 },
   calendarBtn: {
     minHeight: 44,
     justifyContent: 'center',

@@ -65,9 +65,14 @@
     "scheduleFallback": "Mondays · 7:00 PM Pacific",
     "rsvpNote": "Your RSVP and questions go to Matt along with soberhelpline.com registrations. If it's your first call, you may get a follow-up email afterward.",
     "alreadyRegistered": "You’re already registered. We look forward to seeing you Monday evening!",
+    "cancelled": {
+      "line": "There's no Family Squares this Monday. It's back next week."
+    },
+    "registrationUnavailable": "Registration for this week's Family Squares isn't available right now.",
     "weekly": {
       "title": "Save my seat every Monday",
-      "desc": "We'll save your seat at Family Squares each week, so you don't have to do it again.",
+      "desc": "We'll save your seat at Family Squares each week, so you don't have to do it again. It pauses while your reminders are paused, or after about five weeks away from the app.",
+      "onNote": "Your weekly seat is on for the coming Monday. We'll save your seat for you, and you can also save it now.",
       "errorTitle": "Couldn't save that",
       "errorBody": "Check your connection and try again."
     },

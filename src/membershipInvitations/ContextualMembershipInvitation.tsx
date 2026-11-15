@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAccount } from '../contexts/AccountContext';
+import { useBereavedOnDevice } from '../hooks/useBereavedOnDevice';
 import { logMembershipPath } from '../lib/funnel';
 import { plansHref, type PlanSource } from '../lib/membershipPath';
 import { createInvitationPolicy, type Placement } from './policy';
@@ -34,17 +35,30 @@ export function ContextualMembershipInvitation({ accountId, completed, placement
   const { t } = useTranslation('plans');
   const source = SOURCE[placement];
   const scope = account.user?.id ?? null;
-  const allowed = !!scope && scope === accountId && account.isAuthenticated && !account.isLoading &&
-    !account.accountError && !account.isOfflineAccountFallback && !account.isAdmin && !account.isAttached &&
-    account.accountState === 'direct-free';
+  // Her loved one died: no membership invitation of any kind, in any place.
+  const bereaved = useBereavedOnDevice(scope);
+  // "Settled": who she is and what she has are known for certain. Until then
+  // nothing is shown, but a moment that arrives meanwhile is kept (below).
+  const settled = !account.isLoading && !account.accountError && !account.isOfflineAccountFallback && bereaved !== undefined;
+  const allowed = !!scope && scope === accountId && account.isAuthenticated && settled &&
+    !account.isAdmin && !account.isAttached && account.accountState === 'direct-free' && bereaved === false;
   const live = useRef({ scope, allowed });
   live.current = { scope, allowed };
   const owned = useRef<string | null>(null);
   const previous = useRef({ scope, completed });
+  // The account a moment began for while it was still loading (or offline).
+  const held = useRef<string | null>(null);
   const [shownFor, setShownFor] = useState<string | null>(null);
   useEffect(() => {
     const rising = previous.current.scope === scope && !previous.current.completed && completed;
     previous.current = { scope, completed };
+    // The moment came while her account was not settled yet (still loading
+    // after a cold start, or the offline fallback): keep it, so the claim is
+    // made when the account is known instead of being lost for good. Once the
+    // account is settled and she simply may not see it (a paid, covered or
+    // bereaved member), or the moment is over, there is nothing to keep.
+    if (!scope || !completed || held.current !== scope || (!allowed && settled)) held.current = null;
+    if (scope && completed && !allowed && !settled && rising) held.current = scope;
     // The moment is over (or she may no longer see it): the card is gone, so
     // its claim goes back too. Without this a card she ignored came back at the
     // next moment with no claim at all (past the limits), and every other
@@ -54,7 +68,9 @@ export function ContextualMembershipInvitation({ accountId, completed, placement
       if (owned.current) { policy.release(owned.current); owned.current = null; }
       return;
     }
-    if (!rising) return;
+    const wasHeld = held.current === scope;
+    held.current = null;
+    if (!rising && !wasHeld) return;
     // A new moment starts with nothing showing: only a fresh claim shows it.
     setShownFor(null);
     let active = true;
@@ -68,7 +84,7 @@ export function ContextualMembershipInvitation({ accountId, completed, placement
       else if (show) policy.release(scope);
     });
     return () => { active = false; };
-  }, [scope, allowed, completed, placement, source]);
+  }, [scope, allowed, settled, completed, placement, source]);
   useEffect(() => () => { if (scope && owned.current === scope) { policy.release(scope); owned.current = null; } }, [scope]);
   if (!allowed || !completed || shownFor !== scope || !scope) return null;
   const dismiss = (permanent: boolean) => {

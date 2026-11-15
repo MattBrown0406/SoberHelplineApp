@@ -3,7 +3,30 @@ import { familySquaresSyncWindow } from '../../supabase/functions/_shared/family
 
 /** i18n key of the repeat-registration message. */
 export const FAMILY_SQUARES_ALREADY_REGISTERED = 'common:familySquares.alreadyRegistered';
-export type FamilySquaresResult = { ok: true; alreadyRegistered: boolean; meetingDate: string } | { ok: false };
+/**
+ * `reason: 'website_declined'` is the website itself refusing (a cancelled
+ * Monday, or an attendee it will not register): not a connection problem, and
+ * trying again will not help. Any other failure carries no reason.
+ */
+export type FamilySquaresResult =
+  | { ok: true; alreadyRegistered: boolean; meetingDate: string }
+  | { ok: false; reason?: 'website_declined' };
+
+/**
+ * functions.invoke gives `data: null` for a non-2xx answer; the function's own
+ * `{ error }` is only on the error's Response. True only for a readable
+ * `website_declined`: anything else stays an ordinary failure.
+ */
+async function websiteDeclined(error: unknown): Promise<boolean> {
+  const context = (error as { context?: { clone?: () => { json: () => Promise<unknown> }; json?: () => Promise<unknown> } } | null)?.context;
+  try {
+    const body = (await (context?.clone ? context.clone().json() : context?.json?.())) as { error?: unknown } | undefined;
+    return body?.error === 'website_declined';
+  } catch {
+    // Not a JSON answer (a network failure).
+    return false;
+  }
+}
 
 /** A legacy/stale going row is not a confirmed registration for this occurrence. */
 export function familySquaresRsvpIsCurrent(meetingDate: unknown, now = new Date()): boolean {
@@ -32,6 +55,7 @@ async function ensureRegistration(accountId: string): Promise<FamilySquaresResul
       body: {}, headers: { Authorization: `Bearer ${session.access_token}` },
     });
     const { data: { session: current } } = await supabase.auth.getSession();
+    if (current?.user.id === session.user.id && error && await websiteDeclined(error)) return { ok: false, reason: 'website_declined' };
     if (current?.user.id !== session.user.id || error || data?.ok !== true
       || typeof data.already_registered !== 'boolean'
       || !familySquaresRsvpIsCurrent(data.meeting_date)) return { ok: false };

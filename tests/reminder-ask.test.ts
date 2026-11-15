@@ -153,8 +153,8 @@ test('a bereaved member is never asked under a saved seat, on Today or Support',
   const screen = read('app/(tabs)/index.tsx');
   assert.match(screen, /seatReminderAsk=\{!bereaved && !bereavedUnknown\}/);
   const card = read('src/components/today/SituationCard.tsx');
-  assert.match(card, /seatReminderAsk = true \}: Props\)/);
-  assert.match(card, /<FamilySquaresSeatPanel[\s\S]*?onDecline=\{onDecline\}\s+reminderAsk=\{seatReminderAsk\}\s+\/>/);
+  assert.match(card, /seatReminderAsk = true, seatSavedHere = 0 \}: Props\)/);
+  assert.match(card, /<FamilySquaresSeatPanel[\s\S]*?onDecline=\{onDecline\}\s+reminderAsk=\{seatReminderAsk\}\s+seatSavedHere=\{seatSavedHere\}\s+cancelled=\{view\.cancelledLine\}\s+\/>/);
   // Every other seat panel (Support) asks the device's own copy before showing anything.
   const hook = read('src/hooks/useReminderAsk.ts');
   assert.match(hook, /readBereavedOnDevice\(accountId\)\]\)\.then\(\(\[permission, memory, bereaved\]\) => \{\s+if \(active && viewRef\.current === null\) setView\(bereaved \? null : decide\(permission, memory, new Date\(\)\)\);/);
@@ -202,21 +202,38 @@ test('only "Remind me" can open the system dialog, and a grant registers the dev
   assert.doesNotMatch(read('src/lib/reminderAsk.ts'), /^import /m);
 });
 
-test('the seat ask appears only when a seat goes from not saved to saved', () => {
+test('the seat ask appears only after her own Save tap on that screen has saved the seat', () => {
   const hook = read('src/hooks/useReminderAsk.ts');
-  assert.match(hook, /const was = previous\.current;\s*previous\.current = rsvp;\s*if \(rsvp !== 'going'\) \{\s*setView\(null\);/);
-  assert.match(hook, /if \(!enabled \|\| !accountId \|\| was === 'going'\) return undefined;/);
+  // Not "the seat went from none to going": her weekly seat arriving on a re-read, a seat saved on
+  // the other tab or in Settings, and a failed read followed by a good one all look like that.
+  assert.doesNotMatch(hook, /previous\.current = rsvp|was === 'going'/);
+  assert.match(hook, /const justSavedHere = savedHere !== seenSave\.current;\s*seenSave\.current = savedHere;\s*if \(rsvp !== 'going'\) \{\s*setView\(null\);/);
+  assert.match(hook, /if \(!enabled \|\| !accountId \|\| !justSavedHere \|\| !focusedRef\.current\) return undefined;/);
   assert.match(hook, /memory \? seatReminderAsk\(\{ supported: REMINDERS_SUPPORTED, justSaved: true, permission, memory, now \}\) : null/);
-  // Today's second chance hears when a seat ask is on screen.
+  // The count goes up only where a Save tap on that screen saved a seat she did not have.
+  const feed = read('src/hooks/useTodayFeed.ts');
+  assert.equal(feed.split('setSeatSavedHere(').length - 1, 1);
+  assert.match(feed, /setNextFreeCall\(\(prev\) => prev\?\.id === nextFreeCall\.id \? \{ \.\.\.prev, rsvped: true, declined: false \} : prev\);\s+(\/\/[^\n]*\n\s+)?if \(!wasRsvped\) setSeatSavedHere\(\(count\) => count \+ 1\);/);
+  const sessions = read('src/hooks/useSessions.ts');
+  assert.equal(sessions.split('setSeatSavedHere(').length - 1, 1);
+  assert.match(sessions, /if \(!session\.rsvped\) setSeatSavedHere\(\(count\) => count \+ 1\);/);
+  // The load paths never touch it.
+  for (const source of [feed, sessions]) assert.doesNotMatch(/const load = useCallback\(async \(\) => \{[\s\S]*?\n  \}, \[accountId[^\]]*\]\);/.exec(source)?.[0] ?? 'setSeatSavedHere', /setSeatSavedHere/);
+  // Today's second chance hears when a seat ask is on screen: the screen in front only
+  // (tabs stay mounted, so an unanswered ask on Support must not hold Today's back).
+  assert.match(hook, /const showing = \(view === 'ask' \|\| view === 'settings'\) && focused;/);
   assert.match(hook, /setSeatReminderAskShowing\(panel, showing\)/);
   assert.match(hook, /seatAskShowing: isSeatReminderAskShowing\(\)/);
+  assert.match(hook, /useFocusEffect\(useCallback\(\(\) => \{\s+focusedRef\.current = true;\s+setFocused\(true\);\s+return \(\) => \{\s+focusedRef\.current = false;\s+setFocused\(false\);/);
 
   const panel = read('src/components/familySquares/FamilySquaresSeatPanel.tsx');
-  assert.match(panel, /const reminders = useSeatReminderAsk\(accountId, rsvp, reminderAsk\);\s*\n\s*if \(rsvp === 'none'\) return null;/);
-  assert.match(panel, /<ReminderAskNote ask=\{reminders\} place="seat" \/>/);
+  assert.match(panel, /const reminders = useSeatReminderAsk\(accountId, cancelled \? 'none' : rsvp, reminderAsk && !cancelled, seatSavedHere\);/);
+  assert.match(panel, /if \(panelView === 'hidden'\) return null;/);
+  assert.match(panel, /\{panelView === 'full' && <ReminderAskNote ask=\{reminders\} place="seat" \/>\}/);
   // On for Today's call card and Support; off on the onboarding done screen, which just asked.
-  assert.match(read('src/components/today/SituationCard.tsx'), /<FamilySquaresSeatPanel[\s\S]*?onDecline=\{onDecline\}\s+reminderAsk=\{seatReminderAsk\}\s+\/>/);
-  assert.match(read('app/(tabs)/support.tsx'), /<FamilySquaresSeatPanel[\s\S]*?onDecline=\{\(\) => declineRsvp\(sess\)\}\s+reminderAsk\s+\/>/);
+  assert.match(read('src/components/today/SituationCard.tsx'), /<FamilySquaresSeatPanel[\s\S]*?onDecline=\{onDecline\}\s+reminderAsk=\{seatReminderAsk\}\s+seatSavedHere=\{seatSavedHere\}/);
+  assert.match(read('app/(tabs)/index.tsx'), /seatSavedHere=\{seatSavedHere\}/);
+  assert.match(read('app/(tabs)/support.tsx'), /<FamilySquaresSeatPanel[\s\S]*?onDecline=\{\(\) => declineRsvp\(sess\)\}\s+reminderAsk\s+seatSavedHere=\{seatSavedHere\}\s+cancelled=\{view\.cancelledLine\}\s+\/>/);
   const onboarding = read('app/(onboarding)/notifications.tsx');
   assert.doesNotMatch(/<FamilySquaresSeatPanel[\s\S]*?\/>/.exec(onboarding)?.[0] ?? 'reminderAsk', /reminderAsk/);
   // Onboarding notes its day, so Today's second chance stays away on it.

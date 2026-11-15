@@ -126,6 +126,7 @@ function sessionsHook() {
     '../lib/laSobremesa': { reserveLaSobremesa: async () => ({ ok: false }), withPersonalLinks: async (rows) => rows },
     '../lib/freshAnswer': load('src/lib/freshAnswer.ts'),
     '../lib/familySquaresSessionCache': { rememberFamilySquaresSession() {} },
+    '../lib/familySquaresCancelled': { loadFamilySquaresCancelled: async () => false },
   }).useSessions;
   const render = () => r.render(() => hook('account-A'));
   return {

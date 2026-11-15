@@ -456,14 +456,18 @@ function lovedOneFixture(stored = {}) {
   const h = harness(); let owner = 'A'; const reads = []; const saves = []; const statuses = [];
   const request = (list) => { const d = deferred(); list.push(d); return d.promise; };
   const storage = new Map(Object.entries(stored));
+  const asyncStorage = { __esModule: true, default: {
+    getItem: async (key) => storage.get(key) ?? null,
+    setItem: async (key, value) => { storage.set(key, value); },
+    removeItem: async (key) => { storage.delete(key); },
+  } };
+  const bereavement = load('src/lib/bereavement.ts');
   const { useLovedOne } = load('src/hooks/useLovedOne.ts', {
     react: h.react, '../lib/monitoring': monitoring,
-    '@react-native-async-storage/async-storage': { __esModule: true, default: {
-      getItem: async (key) => storage.get(key) ?? null,
-      setItem: async (key, value) => { storage.set(key, value); },
-      removeItem: async (key) => { storage.delete(key); },
-    } },
-    '../lib/bereavement': load('src/lib/bereavement.ts'),
+    '@react-native-async-storage/async-storage': asyncStorage,
+    '../lib/bereavement': bereavement,
+    // The real device copy (Support and the invitations follow it too).
+    '../lib/bereavedDevice': load('src/lib/bereavedDevice.ts', { '@react-native-async-storage/async-storage': asyncStorage, './bereavement': bereavement }),
     '../lib/appFlowGuards': load('src/lib/appFlowGuards.ts'),
     // The fixtures' accounts carry no locale; an un-initialized i18n skips the sync.
     i18next: { __esModule: true, default: { language: 'en', isInitialized: false } },

@@ -26,7 +26,8 @@ test('the device remembers it per account, and the deletion purge removes it', a
   assert.match(hook, /if \(!silent && scopeRef\.current === scope && scope\.request === request\) setLoadError\(error\);/);
   assert.match(hook, /bereaved: settled \? isBereaved\(record\.value\) : cachedBereaved \?\? \(unreadable \? false : undefined\),/);
   // '0' is written for a known non-bereaved read; a missing key stays unknown.
-  assert.match(hook, /bereaved \? '1' : '0'/);
+  assert.match(read('src/lib/bereavedDevice.ts'), /AsyncStorage\.setItem\(bereavedCacheKey\(accountId\), bereaved \? '1' : '0'\)/);
+  assert.match(hook, /function rememberBereaved\(accountId: string, bereaved: boolean\): void \{\s+rememberBereavedOnDevice\(accountId, bereaved\);/);
   assert.match(hook, /value === '1' \? true : value === '0' \? false : undefined/);
   assert.match(hook, /rememberBereaved\(accountId, true\);/);
   assert.match(hook, /rememberBereaved\(accountId, false\);/);

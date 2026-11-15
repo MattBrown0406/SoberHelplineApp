@@ -51,6 +51,10 @@ function useReminderAskCore(accountId: string | null, dismissedField: 'seatDismi
   const busyRef = useRef(false);
   const identity = useRef(accountId);
   identity.current = accountId;
+  // Whether the screen this ask is on is the one in front. Today and Support
+  // both stay mounted, so "on screen" has to mean the focused one.
+  const [focused, setFocused] = useState(false);
+  const focusedRef = useRef(false);
 
   const setView = useCallback((next: ReminderAskView | null) => {
     viewRef.current = next;
@@ -110,27 +114,37 @@ function useReminderAskCore(accountId: string | null, dismissedField: 'seatDismi
     setView(decide(permission, memory, new Date()));
   }, [accountId, register, setView]);
 
-  // "Reminders are on" is for this visit: gone the next time the screen is opened.
-  useFocusEffect(useCallback(() => () => {
-    if (viewRef.current === 'on' || viewRef.current === 'failed') setView(null);
+  useFocusEffect(useCallback(() => {
+    focusedRef.current = true;
+    setFocused(true);
+    return () => {
+      focusedRef.current = false;
+      setFocused(false);
+      // "Reminders are on" is for this visit: gone the next time the screen is opened.
+      if (viewRef.current === 'on' || viewRef.current === 'failed') setView(null);
+    };
   }, [setView]));
 
-  return { view, viewRef, busy, busyRef, identity, setView, remindMe, notNow, openSettings, recheck };
+  return { view, viewRef, busy, busyRef, identity, focused, focusedRef, setView, remindMe, notNow, openSettings, recheck };
 }
 
 /**
  * The ask under a Family Squares seat she has just saved (Today's call card
- * and Support). It appears when her seat goes from not saved to saved while
- * the panel is on screen, never for a seat that was already saved.
+ * and Support). It appears only after her own Save tap on that screen has
+ * saved the seat (`savedHere` goes up, see useTodayFeed / useSessions), while
+ * that screen is in front. Never for a seat that was already saved, and never
+ * for one that simply arrived: her weekly seat on a re-read, a seat saved on
+ * the other tab or in Settings, a failed read followed by a good one.
  */
 export function useSeatReminderAsk(
   accountId: string | null,
   rsvp: 'going' | 'declined' | 'none',
   enabled: boolean,
+  savedHere = 0,
 ): ReminderAsk {
   const core = useReminderAskCore(accountId, 'seatDismissedAt');
-  const { view, viewRef, setView, recheck } = core;
-  const previous = useRef(rsvp);
+  const { view, viewRef, focused, focusedRef, setView, recheck } = core;
+  const seenSave = useRef(savedHere);
   const panel = useRef({}).current;
 
   const decide = useCallback<Decide>((permission, memory, now) => (
@@ -138,13 +152,14 @@ export function useSeatReminderAsk(
   ), []);
 
   useEffect(() => {
-    const was = previous.current;
-    previous.current = rsvp;
+    // A Save tap counts once, whatever comes of it.
+    const justSavedHere = savedHere !== seenSave.current;
+    seenSave.current = savedHere;
     if (rsvp !== 'going') {
       setView(null);
       return undefined;
     }
-    if (!enabled || !accountId || was === 'going') return undefined;
+    if (!enabled || !accountId || !justSavedHere || !focusedRef.current) return undefined;
     let active = true;
     // No prompts of any kind for a bereaved member, on Today or Support
     // (Today also switches `enabled` off; this covers every other panel).
@@ -152,9 +167,11 @@ export function useSeatReminderAsk(
       if (active && viewRef.current === null) setView(bereaved ? null : decide(permission, memory, new Date()));
     });
     return () => { active = false; };
-  }, [rsvp, enabled, accountId, decide, setView, viewRef]);
+  }, [rsvp, enabled, accountId, savedHere, decide, focusedRef, setView, viewRef]);
 
-  const showing = view === 'ask' || view === 'settings';
+  // Only an ask on the screen in front counts as showing: an unanswered ask on
+  // the Support tab must not hold back Today's for the whole session.
+  const showing = (view === 'ask' || view === 'settings') && focused;
   useEffect(() => { setSeatReminderAskShowing(panel, showing); }, [panel, showing]);
   useEffect(() => () => setSeatReminderAskShowing(panel, false), [panel]);
 

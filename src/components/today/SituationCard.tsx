@@ -13,6 +13,7 @@ import { withAppContext } from '../../lib/websiteLinks';
 import { clearFamilySquaresJoin, markFamilySquaresJoin } from '../../lib/meetingAttendance';
 import { FamilySquaresSeatPanel } from '../familySquares/FamilySquaresSeatPanel';
 import { FamilySquaresFirstTimerNote } from '../familySquares/FamilySquaresFirstTimerNote';
+import { callCardView } from '../../lib/familySquaresCard';
 
 /** This week's one thing: Matt's line from the call, else her own week's practice. */
 export interface WeeklyOneThing {
@@ -33,6 +34,8 @@ interface Props {
   onSupportCallOpenFailed?: () => Promise<void>;
   /** False on the bereaved Today: a saved seat is never followed by a reminder ask there. */
   seatReminderAsk?: boolean;
+  /** Goes up when a Save tap on Today has just saved her seat (useTodayFeed): the reminder ask follows only that. */
+  seatSavedHere?: number;
 }
 
 /**
@@ -42,7 +45,7 @@ interface Props {
  * the family's situation warrants it, a higher-intent door (coaching or
  * intervention) is offered. The free call is never gated — it's the entry rung.
  */
-export function SituationCard({ accountId = null, nextFreeCall, primaryDoor, weeklyOneThing, onRsvp, onDecline, onSupportCallJoin, onSupportCallOpenFailed, seatReminderAsk = true }: Props) {
+export function SituationCard({ accountId = null, nextFreeCall, primaryDoor, weeklyOneThing, onRsvp, onDecline, onSupportCallJoin, onSupportCallOpenFailed, seatReminderAsk = true, seatSavedHere = 0 }: Props) {
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('today');
   const router = useRouter();
@@ -56,9 +59,17 @@ export function SituationCard({ accountId = null, nextFreeCall, primaryDoor, wee
     ? scheduleFor(nextFreeCall)
     : t(i18n.language.startsWith('es') ? 'common:laSobremesa.scheduleFallback' : 'common:familySquares.scheduleFallback');
   const isFamilySquares = isFamilySquaresSession(nextFreeCall);
+  // What the card offers is decided in one place (familySquaresCard). A Monday
+  // the website cancelled offers nothing for that date: only a calm line.
+  const view = callCardView({
+    familySquares: isFamilySquares,
+    cancelled: nextFreeCall?.cancelled === true,
+    answer: nextFreeCall?.rsvped ? 'going' : nextFreeCall?.declined ? 'declined' : 'none',
+    hasLink: !!nextFreeCall?.zoom_url,
+  });
   // Anyone can join once the admin has set the link — RSVP is encouraged for
   // headcount but never a gate ("push of a button", no link required).
-  const canJoin = !!nextFreeCall?.zoom_url;
+  const canJoin = view.join;
   const doorRoute = DOOR_ROUTE[primaryDoor];
   const joining = useRef(false);
 
@@ -68,7 +79,11 @@ export function SituationCard({ accountId = null, nextFreeCall, primaryDoor, wee
       <Text style={[styles.title, { color: colors.ink }]}>{title}</Text>
       <Text style={[styles.schedule, { color: colors.inkSoft }]}>{schedule}</Text>
 
-      {canJoin ? (
+      {view.cancelledLine ? (
+        <Text style={[styles.cancelledLine, { color: colors.ink }]} accessibilityLiveRegion="polite">
+          {t('common:familySquares.cancelled.line')}
+        </Text>
+      ) : canJoin ? (
         <>
           <TouchableOpacity
             accessibilityRole="button"
@@ -103,7 +118,7 @@ export function SituationCard({ accountId = null, nextFreeCall, primaryDoor, wee
           >
             <Text style={styles.primaryBtnText}>{t('situationCta.join')}</Text>
           </TouchableOpacity>
-          {!nextFreeCall?.rsvped && (
+          {view.saveSpot && (
             <TouchableOpacity
               accessibilityRole="button"
               accessibilityLabel={t('situationCta.rsvpLabel', { name: title })}
@@ -143,7 +158,7 @@ export function SituationCard({ accountId = null, nextFreeCall, primaryDoor, wee
         </TouchableOpacity>
       )}
 
-      {isFamilySquares && nextFreeCall?.rsvped && (
+      {view.question && nextFreeCall && (
         <TouchableOpacity
           accessibilityRole="button"
           onPress={() => router.push({ pathname: '/(tabs)/support', params: { sessionId: nextFreeCall.id, ask: 'question' } })}
@@ -153,18 +168,20 @@ export function SituationCard({ accountId = null, nextFreeCall, primaryDoor, wee
           <Text style={[styles.rsvpLinkText, { color: colors.primary }]}>{t('situationCta.askQuestion')}</Text>
         </TouchableOpacity>
       )}
-      {isFamilySquares && (
+      {view.rsvpNote && (
         <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:familySquares.rsvpNote')}</Text>
       )}
       {/* Family Squares only: what a first visit is like, and (once her seat is
           saved) a reminder ask, every Monday, the calendar file and "can't make it this week". */}
-      {isFamilySquares && <FamilySquaresFirstTimerNote accountId={accountId} />}
+      {view.firstTimerNote && <FamilySquaresFirstTimerNote accountId={accountId} />}
       {isFamilySquares && onDecline && (
         <FamilySquaresSeatPanel
           accountId={accountId}
           rsvp={nextFreeCall?.rsvped ? 'going' : nextFreeCall?.declined ? 'declined' : 'none'}
           onDecline={onDecline}
           reminderAsk={seatReminderAsk}
+          seatSavedHere={seatSavedHere}
+          cancelled={view.cancelledLine}
         />
       )}
       {isLaSobremesaSession(nextFreeCall) && (
@@ -240,6 +257,7 @@ const styles = StyleSheet.create({
   eyebrow: { fontSize: 11.5, fontWeight: '800', letterSpacing: 0.6 },
   title: { fontSize: 18, fontWeight: '700', marginTop: 6, letterSpacing: -0.3 },
   schedule: { fontSize: 13.5, marginTop: 3, marginBottom: 14 },
+  cancelledLine: { fontSize: 14.5, lineHeight: 21 },
   primaryBtn: {
     borderRadius: 99,
     paddingVertical: 13,

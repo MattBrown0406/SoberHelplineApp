@@ -35,17 +35,26 @@ export type FunnelStage =
   | 'membership_invite_shown'
   | 'membership_invite_tapped';
 
-/** Sends one event; resolves when the server has answered. Never rejects. */
-function sendFunnelEvent(stage: FunnelStage, metadata?: Record<string, unknown>): Promise<void> {
+/** Sends one event; resolves when the server has answered, with whether it took it. Never rejects. */
+function sendFunnelEvent(stage: FunnelStage, metadata?: Record<string, unknown>): Promise<boolean> {
   try {
     return Promise.resolve(supabase.rpc('log_funnel_event', { p_stage: stage, p_metadata: metadata ?? {} }))
       .then(({ error }) => {
         if (error) console.warn('[funnel] log failed:', stage, error.message);
+        return !error;
       })
-      .catch(() => undefined);
+      .catch(() => false);
   } catch {
-    return Promise.resolve();
+    return Promise.resolve(false);
   }
+}
+
+/**
+ * For an event that must not be lost: answers true only when the server has
+ * taken it, so the caller can keep what it needs to try again. Never throws.
+ */
+export function logFunnelEventConfirmed(stage: FunnelStage, metadata?: Record<string, unknown>): Promise<boolean> {
+  return sendFunnelEvent(stage, metadata);
 }
 
 /**

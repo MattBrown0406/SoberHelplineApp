@@ -43,16 +43,19 @@ export type ReminderTapPlan =
 /**
  * What tapping a "tap to join" reminder does, given the session the push
  * names. Only the Family Squares session ever opens Zoom from a push; a
- * missing or odd link lands on the call card instead of failing.
+ * missing or odd link lands on the call card instead of failing, and so does
+ * a Monday the website cancelled (a reminder sent before it was called off):
+ * the card says there is no meeting; Zoom is never opened for it.
  */
 export function familySquaresReminderTapPlan(
   session: { title?: string | null; zoom_url?: string | null } | null | undefined,
   now: Date = new Date(),
+  cancelled = false,
 ): ReminderTapPlan {
   if (!isFamilySquaresSession(session)) return { action: 'default' };
   const window = familySquaresJoinWindow(now);
   const url = typeof session?.zoom_url === 'string' ? session.zoom_url.trim() : '';
-  if (!window || !/^https:\/\/\S+$/i.test(url)) return { action: 'call_card' };
+  if (cancelled || !window || !/^https:\/\/\S+$/i.test(url)) return { action: 'call_card' };
   return { action: 'open_meeting', url, meetingDate: window.meetingDate };
 }
 
@@ -60,18 +63,26 @@ export function familySquaresReminderTapPlan(
  * What the device already knows about the session a reminder names, before
  * any network: it remembers which session row is Family Squares
  * (familySquaresSessionCache).
- * - 'other'          — a different session (La Sobremesa, a group): the tap
- *                      opens what it always opened, at once, with no lookup.
+ * - 'other'          — a session this device has seen in a loaded list under
+ *                      another title (La Sobremesa, a group): the tap opens
+ *                      what it always opened, at once, with no lookup.
  * - 'family_squares' — look the link up, briefly; if that is slow or fails,
  *                      Today's call card (which has the Join button).
- * - 'unknown'        — this device has not seen the session list yet: look
+ * - 'unknown'        — neither: this device has not seen the session list
+ *                      yet, or the Family Squares row has changed since it
+ *                      last did. Never assumed to be "another session": look
  *                      up, briefly; if that is slow or fails, the usual destination.
  */
 export type ReminderSessionKnowledge = 'family_squares' | 'other' | 'unknown';
 
-export function reminderSessionKnowledge(sessionId: string, knownFamilySquaresId: string | null | undefined): ReminderSessionKnowledge {
-  if (!knownFamilySquaresId) return 'unknown';
-  return knownFamilySquaresId.toLowerCase() === sessionId.toLowerCase() ? 'family_squares' : 'other';
+export function reminderSessionKnowledge(
+  sessionId: string,
+  knownFamilySquaresId: string | null | undefined,
+  knownOtherIds: readonly string[] = [],
+): ReminderSessionKnowledge {
+  const id = sessionId.toLowerCase();
+  if (knownFamilySquaresId && knownFamilySquaresId.toLowerCase() === id) return 'family_squares';
+  return knownOtherIds.some((other) => other.toLowerCase() === id) ? 'other' : 'unknown';
 }
 
 /** Where the tap goes when the lookup is slow or fails. */
