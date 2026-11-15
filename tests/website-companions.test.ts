@@ -264,11 +264,11 @@ test('email confirmation lands on soberhelpline.com', () => {
 test('store builds ship on the production update channel', () => {
   const eas = JSON.parse(read('eas.json'));
   assert.equal(eas.build.production.channel, 'production');
-  assert.equal(eas.build['release-4-2-0'].extends, 'production');
-  assert.equal(eas.build['release-4-2-0'].autoIncrement, false);
+  assert.equal(eas.build['release-4-3-0'].extends, 'production');
+  assert.equal(eas.build['release-4-3-0'].autoIncrement, false);
   const app = JSON.parse(read('app.json'));
-  assert.equal(app.expo.version, '4.2');
-  assert.equal(app.expo.ios.buildNumber, '3');
+  assert.equal(app.expo.version, '4.3');
+  assert.equal(app.expo.ios.buildNumber, '1');
   assert.deepEqual(app.expo.runtimeVersion, { policy: 'appVersion' });
   assert.match(app.expo.updates.url, /^https:\/\/u\.expo\.dev\//);
 });
