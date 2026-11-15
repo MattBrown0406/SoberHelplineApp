@@ -457,8 +457,8 @@ test('a member who saved a seat and never tapped Join gets her own Tuesday note,
   assert.match(FOLLOWUP_SQL, /\(c\.had_seat AND NOT c\.joined AND NOT c\.weekly_seat\) AS missed/);
   // The same people as before are eligible.
   assert.match(FOLLOWUP_SQL, /WHERE nullif\(a\.push_token, ''\) IS NOT NULL\s+AND coalesce\(a\.family_call_reminders, false\)[\s\S]*?AND coalesce\(a\.locale, 'en'\) NOT LIKE 'es%'/);
-  // Contract branching: only 4.2 (3)+ builds get the new note; the others keep every older wording.
-  assert.match(FOLLOWUP_SQL, /WHEN s\.missed AND coalesce\(s\.push_app_contract, 0\) >= 1 THEN\s+'If Monday got away from you, we missed you\. Next Monday''s seat is one tap away, and '/);
+  // Contract branching: only 4.3+ builds (contract 2) get the new note; the others keep every older wording.
+  assert.match(FOLLOWUP_SQL, /WHEN s\.missed AND coalesce\(s\.push_app_contract, 0\) >= 2 THEN\s+'If Monday got away from you, we missed you\. Next Monday''s seat is one tap away, and '/);
   assert.match(FOLLOWUP_SQL, /CASE WHEN public\._dispatcher_member_access\(s\.id\)\s+THEN 'recordings of past meetings are in your library, under Tools\.'\s+ELSE 'members can watch recordings of past meetings\.' END/);
   assert.match(FOLLOWUP_SQL, /WHEN v_takeaway IS NOT NULL THEN 'This week''s one thing: ' \|\| v_takeaway\s+WHEN coalesce\(s\.push_app_contract, 0\) >= 1 THEN\s+'Your one thing to try this week is on Today, and next Monday''s seat is one tap away\.'\s+-- Older builds have no such card on Today\.\s+ELSE 'Next Monday''s call is free too\. You can save your seat in the app\.'/);
   // Same kind, payload, one-per-meeting key, time of day and cut-off.

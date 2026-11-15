@@ -239,7 +239,11 @@ test('a weekly seat is saved only after the website says yes, and only for membe
   assert.equal((reset.match(/EXCEPTION WHEN OTHERS THEN\s+RAISE WARNING/g) ?? []).length, 1);
 
   // Who the 15-minute job may ask the website about.
-  const candidates = /FUNCTION public\.service_family_squares_weekly_seat_candidates\(p_meeting_date date\)[\s\S]*?\$\$;/.exec(sql)?.[0] ?? '';
+  // The eligibility rules live in a shared helper; the candidates function adds the cancelled guards and the cap.
+  const candidates = [
+    /FUNCTION public\._family_squares_weekly_seat_members\(p_meeting_date date\)[\s\S]*?\$\$;/,
+    /FUNCTION public\.service_family_squares_weekly_seat_candidates\(p_meeting_date date\)[\s\S]*?\$\$;/,
+  ].map((re) => re.exec(sql)?.[0] ?? '').join('\n');
   for (const rule of [
     /WHERE a\.family_squares_weekly_seat/,
     /u\.email_confirmed_at IS NOT NULL/,

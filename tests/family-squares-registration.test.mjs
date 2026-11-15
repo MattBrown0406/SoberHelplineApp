@@ -105,7 +105,7 @@ test('a cancelled week is refused with its reason and kept for the reminders', a
     const r = await e.run(); assert.equal(r.status, 409);
     assert.deepEqual(await r.json(), { ok: false, error: 'website_declined', reason: 'meeting_cancelled' });
     assert.deepEqual(e.rpcs.filter(([name]) => name === 'service_family_squares_note_meeting_status'),
-      [['service_family_squares_note_meeting_status', { p_meeting_date: '2026-10-12', p_cancelled: true }]]);
+      [['service_family_squares_note_meeting_status', { p_meeting_date: '2026-10-12', p_cancelled: true, p_one_member: true }]]);
     assert.equal(e.writes.length, 0);
   }
 });
