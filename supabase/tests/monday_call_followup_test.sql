@@ -1,7 +1,7 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SET search_path = public, extensions;
-SELECT plan(60);
+SELECT plan(62);
 
 -- ── Which call is "this week's" ───────────────────────────────────────────
 SELECT is(public._family_squares_latest_meeting_date('2026-11-09 18:59 America/Los_Angeles'), date '2026-11-02',
@@ -109,14 +109,17 @@ SELECT is((SELECT body FROM push_outbox WHERE idempotency_key = 'family-call-fol
 SELECT is((SELECT body FROM push_outbox WHERE idempotency_key = 'family-call-followup:2025-11-17:26000000-0000-0000-0000-000000000007'),
   'Next Monday''s call is free too. You can save your seat in the app.', 'older builds: nothing they cannot find');
 
--- ── Saved a seat and never tapped Join: a kinder note (4.2 (3)+ only) ─────
+-- ── Saved a seat and never tapped Join: a kinder note (4.3+ only) ─────────
+-- 4.3 registers contract 2. 4.2 (3) registers 1 and can lose a Join tap, so
+-- it keeps the note it always got (family_squares_missed_followup_test).
 SELECT is((SELECT title FROM push_outbox WHERE idempotency_key = 'family-call-followup:2025-11-17:26000000-0000-0000-0000-000000000001'),
   'After Monday''s call', 'the note for people who came keeps its title');
--- Monday 2025-11-24. A (4.2 (3), free) and B (4.2 (3), a member) saved a seat
--- and never tapped Join. F saved a seat and stayed ten minutes. G is on an
--- older build with a seat and no Join tap. H said she can't make it.
-UPDATE public.accounts SET push_app_contract = 1
-WHERE id IN ('26000000-0000-0000-0000-000000000002', '26000000-0000-0000-0000-000000000006');
+-- Monday 2025-11-24. A (4.3, free) and B (4.3, a member) saved a seat and
+-- never tapped Join. F (4.2 (3)) saved a seat and stayed ten minutes. G is on
+-- an older build with a seat and no Join tap. H said she can't make it.
+UPDATE public.accounts SET push_app_contract = 2
+WHERE id IN ('26000000-0000-0000-0000-000000000001', '26000000-0000-0000-0000-000000000002');
+UPDATE public.accounts SET push_app_contract = 1 WHERE id = '26000000-0000-0000-0000-000000000006';
 INSERT INTO public.entitlements(account_id, source, tier, expires_at)
 VALUES ('26000000-0000-0000-0000-000000000002', 'revenuecat', 'essential', now() + interval '30 days');
 UPDATE public.session_rsvps SET family_squares_meeting_date = '2025-11-24'
@@ -171,6 +174,10 @@ SELECT set_config('request.jwt.claims', '{"sub":"16000000-0000-0000-0000-0000000
 SELECT ok(public.register_push_device('ExponentPushToken[fu-g-new]', 'en', 1), 'a 4.2 (3) build registers with its contract');
 RESET ROLE;
 SELECT is((SELECT push_app_contract FROM accounts WHERE id = '26000000-0000-0000-0000-000000000007'), 1::smallint, 'stored');
+SET LOCAL ROLE authenticated;
+SELECT ok(public.register_push_device('ExponentPushToken[fu-g-43]', 'en', 2), 'a 4.3 build registers with contract 2');
+RESET ROLE;
+SELECT is((SELECT push_app_contract FROM accounts WHERE id = '26000000-0000-0000-0000-000000000007'), 2::smallint, 'stored too');
 SET LOCAL ROLE authenticated;
 SELECT ok(public.register_push_device('ExponentPushToken[fu-g-old]', 'en'), 'an older build registers the old way');
 RESET ROLE;

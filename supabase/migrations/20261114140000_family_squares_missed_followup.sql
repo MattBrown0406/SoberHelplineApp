@@ -5,24 +5,40 @@
 -- during it. Someone who saved a seat and never tapped Join was getting the
 -- note written for people who were there.
 --
--- Now, on builds that register push_app_contract >= 1 (4.2 (3)+):
+-- Which build registers which push_app_contract:
+--   none  builds before 4.2 (3).
+--   1     4.2 (3)+. It logs a Join tap after Zoom has opened, where the tap
+--         can be lost, so a missing tap does not show she was not there.
+--   2     4.3+. It logs the Join tap before Zoom opens.
+--
+-- Now:
 --   * saved a seat herself ('going' for that meeting) and no sign in the app
---     that she joined: "If Monday got away from you, we missed you. Next
---     Monday's seat is one tap away, and ..." followed by where recordings of
---     past meetings are (her library for a member; "members can watch" for
---     anyone else). A member's loved one has died and she is not a paying
---     member: the note ends "you are welcome any week." instead. Grief is
---     no time to be told what members get.
+--     that she joined, on a build that registers 2 or more: "If Monday got
+--     away from you, we missed you. Next Monday's seat is one tap away, and
+--     ..." followed by where recordings of past meetings are (her library for
+--     a member; "members can watch" for anyone else). On a build that
+--     registers 1 she gets the note she always got: it must never tell a
+--     member who was there that she was missed.
 --   * joined (with or without a seat): the note she always got.
---   * has "Save my seat every Monday" on: always the note she always got,
---     never "we missed you". Her seat is saved for her, and she may join from
---     her calendar, an email link or another device, none of which the app
---     can see, so a missing Join tap says nothing about her. Her note ends
---     with her weekly seat being on instead of "one tap away". It does not
---     say that next Monday's seat is saved: the 15-minute job saves it only
---     once the website agrees, and skips a few members (an unverified email,
---     no sign of app use in 180 days), so that would not be true for everyone.
--- Older builds keep the wording they already had, whoever they are.
+--   * has "Save my seat every Monday" on (builds that register 1 or more):
+--     always the note she always got, never "we missed you". Her seat is
+--     saved for her, and she may join from her calendar, an email link or
+--     another device, none of which the app can see, so a missing Join tap
+--     says nothing about her. Her note ends with her weekly seat being on
+--     instead of "one tap away". It does not say that next Monday's seat is
+--     saved: the 15-minute job saves it only once the website agrees, and
+--     skips a few members (an unverified email, no sign of app use in 180
+--     days), so that would not be true for everyone.
+--   * her loved one has died (_account_bereaved, whether or not she paused
+--     reminders), on a build that registers 1 or more: a note only if the app
+--     saw her join, and then one plain line: "It was good to have you at
+--     Family Squares on Monday. You are welcome any week." Her Today has no
+--     "one thing" card, so the note does not point at one, and it says
+--     nothing about a seat, members or recordings. If the app did not see her
+--     join, no note is queued at all, saved seat or weekly seat: grief is no
+--     time to be told she was missed.
+-- Older builds (no contract) keep the wording they already had, whoever they
+-- are.
 --
 -- A cancelled Monday (family_squares_meeting_cancelled, 20261114120000) gets
 -- no Tuesday note at all: there was no meeting to follow up on or to miss.
@@ -116,14 +132,16 @@ BEGIN
       -- Spanish members are invited to La Sobremesa, not The Family Squares.
       AND coalesce(a.locale, 'en') NOT LIKE 'es%'
   ), targets AS (
-    SELECT c.id, c.push_app_contract, c.tz, c.weekly_seat,
+    SELECT c.id, c.push_app_contract, c.tz, c.weekly_seat, c.joined,
       -- Saved a seat herself and never tapped Join in the app. Never a member
       -- whose seat is saved for her every Monday: see the top of this file.
-      (c.had_seat AND NOT c.joined AND NOT c.weekly_seat) AS missed
+      (c.had_seat AND NOT c.joined AND NOT c.weekly_seat) AS missed,
+      -- Her loved one has died, and her build shows the bereaved Today.
+      (coalesce(c.push_app_contract, 0) >= 1 AND public._account_bereaved(c.id)) AS bereaved
     FROM candidates c
     WHERE c.had_seat OR c.joined
   ), scheduled AS (
-    SELECT t.id, t.tz, t.push_app_contract, t.missed, t.weekly_seat,
+    SELECT t.id, t.tz, t.push_app_contract, t.missed, t.weekly_seat, t.bereaved,
       CASE
         WHEN (p_now AT TIME ZONE t.tz)::time < time '10:30'
           THEN ((p_now AT TIME ZONE t.tz)::date + time '10:30') AT TIME ZONE t.tz
@@ -131,28 +149,34 @@ BEGIN
         ELSE (((p_now AT TIME ZONE t.tz)::date + 1) + time '10:30') AT TIME ZONE t.tz
       END AS due
     FROM targets t
+    -- A bereaved member gets a note only if the app saw her join. A saved
+    -- seat or a weekly seat alone queues nothing for her.
+    WHERE t.joined OR NOT t.bereaved
   )
   INSERT INTO public.push_outbox (account_id, kind, title, body, metadata, idempotency_key, scheduled_for, expires_at)
   SELECT s.id, 'family_call_followup',
-    CASE WHEN s.missed AND coalesce(s.push_app_contract, 0) >= 1 THEN 'Family Squares'
+    CASE WHEN s.missed AND coalesce(s.push_app_contract, 0) >= 2 THEN 'Family Squares'
       ELSE 'After Monday''s call' END,
     CASE
+      -- Her loved one has died and she was there (only joined members reach
+      -- this line). Her Today has no "one thing" card, so Matt's line and the
+      -- card are left out, and nothing is said about a seat, members or
+      -- recordings.
+      WHEN s.bereaved THEN
+        'It was good to have you at Family Squares on Monday. You are welcome any week.'
       -- She saved a seat and did not tap Join. The app cannot see a join made
       -- from her calendar or an email, so the note does not say she was absent.
       -- Recordings are a member page: a member is told where hers are, anyone
       -- else that members can watch them. Nothing here says that this week's
       -- recording is posted yet.
-      -- Her loved one has died (whether or not she paused reminders) and she
-      -- is not a paying member: no mention of membership at all.
-      WHEN s.missed AND coalesce(s.push_app_contract, 0) >= 1 THEN
+      -- Only builds that register 2 or more (4.3+): they log the Join tap
+      -- before Zoom opens. 4.2 logs it after, where it can be lost, so its
+      -- members fall through to the note they always got.
+      WHEN s.missed AND coalesce(s.push_app_contract, 0) >= 2 THEN
         'If Monday got away from you, we missed you. Next Monday''s seat is one tap away, and '
-        || CASE
-          WHEN public._account_bereaved(s.id) AND NOT public._dispatcher_member_access(s.id)
-            THEN 'you are welcome any week.'
-          ELSE CASE WHEN public._dispatcher_member_access(s.id)
-            THEN 'recordings of past meetings are in your library, under Tools.'
-            ELSE 'members can watch recordings of past meetings.' END
-        END
+        || CASE WHEN public._dispatcher_member_access(s.id)
+          THEN 'recordings of past meetings are in your library, under Tools.'
+          ELSE 'members can watch recordings of past meetings.' END
       -- Her weekly seat is on, so there is nothing to tap. Only what is true
       -- for everyone with the switch on is said: not that the seat is saved.
       -- (With Matt's line written she gets that line, like everyone who came.)

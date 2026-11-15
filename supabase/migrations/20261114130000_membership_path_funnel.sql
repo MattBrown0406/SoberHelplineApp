@@ -44,8 +44,8 @@ AS $$
   SELECT ARRAY[
     'after_meeting', 'boundary_saved', 'chat_gate', 'crisis_command_plan', 'crisis_plan_review',
     'diy_planner', 'feature_gate', 'invitation_engine', 'invitation_setup', 'learn_library',
-    'membership_guide', 'practice_completed', 'rehearsal_gate', 'support_groups', 'support_tab',
-    'support_upgrade', 'today_locked_preview', 'today_membership', 'tracker_share'
+    'membership_guide', 'practice_completed', 'rehearsal_gate', 'settings', 'support_groups',
+    'support_tab', 'support_upgrade', 'today_locked_preview', 'today_membership', 'tracker_share'
   ]::text[];
 $$;
 REVOKE EXECUTE ON FUNCTION public._membership_path_sources() FROM PUBLIC, anon, authenticated;

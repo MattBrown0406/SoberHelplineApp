@@ -14,6 +14,8 @@ SELECT ok(NOT has_function_privilege('anon', 'public._membership_path_stages()',
   'clients cannot call the list helpers');
 SELECT ok(NOT has_function_privilege('anon', 'public.admin_funnel_stats()', 'EXECUTE'), 'anon cannot read the admin figures');
 SELECT is(array_length(public._membership_path_stages(), 1), 8, 'eight steps on the membership path');
+SELECT ok('settings' = ANY (public._membership_path_sources()), 'the "See plans" row in Settings is a known place');
+SELECT is(array_length(public._membership_path_sources(), 1), 20, 'twenty places in all (src/lib/membershipPath.ts has the same list)');
 
 -- ── Fixtures ────────────────────────────────────────────────────────────────
 DELETE FROM public.funnel_events;

@@ -59,9 +59,13 @@ Deno.serve(async (req) => {
     if (!confirmed && WEBSITE_DECISIONS.has(registration?.error)) {
       if (registration?.error === 'meeting_cancelled') {
         // Kept the way family-squares-web-sync keeps it, so the reminders stop
-        // without waiting for the next sync. A failure never changes the answer.
+        // without waiting for the next sync. This is the website's answer
+        // about one member (p_one_member): the database leaves the status
+        // alone while the sync's own reply, in the last 30 minutes, said this
+        // Monday is on. Her answer below is the same either way, and a
+        // failure never changes it.
         try {
-          const { error: noteError } = await admin.rpc('service_family_squares_note_meeting_status', { p_meeting_date: meetingDate, p_cancelled: true });
+          const { error: noteError } = await admin.rpc('service_family_squares_note_meeting_status', { p_meeting_date: meetingDate, p_cancelled: true, p_one_member: true });
           if (noteError) console.error('family-squares-register: meeting status not kept', noteError.code ?? 'error');
         } catch {
           console.error('family-squares-register: meeting status not kept');

@@ -3,10 +3,12 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SET search_path = public, extensions;
 SELECT no_plan();
 
--- Members who saved a seat are told once when the website cancels the coming
--- Monday (service_family_squares_announce_cancelled, 20261114120000), through
--- the same outbox and delivery rules as Tuesday's note. If the meeting is put
--- back on, a note that has not gone out is withdrawn and nothing more is sent.
+-- Members who saved a seat, and members whose weekly seat had not been saved
+-- yet, are told once when the website cancels the coming Monday
+-- (service_family_squares_announce_cancelled, 20261114120000), through the
+-- same outbox and delivery rules as Tuesday's note. If the meeting is put
+-- back on, a note that has not gone out is withdrawn and nothing more is
+-- sent. If it is then cancelled again, the withdrawn note is queued again.
 
 SELECT ok(NOT has_function_privilege('anon', 'public.service_family_squares_announce_cancelled(date)', 'EXECUTE')
   AND NOT has_function_privilege('authenticated', 'public.service_family_squares_announce_cancelled(date)', 'EXECUTE')
@@ -28,7 +30,12 @@ INSERT INTO auth.users(id, email, email_confirmed_at, raw_app_meta_data, raw_use
   ('1e000000-0000-0000-0000-000000000009', 'cn-i@example.com', now(), '{}', '{}', 'authenticated', 'authenticated'),
   ('1e000000-0000-0000-0000-00000000000a', 'cn-j@example.com', now(), '{}', '{}', 'authenticated', 'authenticated'),
   ('1e000000-0000-0000-0000-00000000000b', 'cn-k@example.com', now(), '{}', '{}', 'authenticated', 'authenticated'),
-  ('1e000000-0000-0000-0000-00000000000c', 'cn-l@example.com', now(), '{}', '{}', 'authenticated', 'authenticated')
+  ('1e000000-0000-0000-0000-00000000000c', 'cn-l@example.com', now(), '{}', '{}', 'authenticated', 'authenticated'),
+  -- M, N, O and P: no seat and no answer until the weekly-seat section below.
+  ('1e000000-0000-0000-0000-00000000000d', 'cn-m@example.com', now(), '{}', '{}', 'authenticated', 'authenticated'),
+  ('1e000000-0000-0000-0000-00000000000e', 'cn-n@example.com', now(), '{}', '{}', 'authenticated', 'authenticated'),
+  ('1e000000-0000-0000-0000-00000000000f', 'cn-o@example.com', now(), '{}', '{}', 'authenticated', 'authenticated'),
+  ('1e000000-0000-0000-0000-000000000000', 'cn-p@example.com', now(), '{}', '{}', 'authenticated', 'authenticated')
 ON CONFLICT (id) DO NOTHING;
 UPDATE public.accounts SET id = ('2e000000-0000-0000-0000-00000000000' || right(user_id::text, 1))::uuid
 WHERE user_id::text LIKE '1e000000-0000-0000-0000-00000000000_';
@@ -70,7 +77,7 @@ INSERT INTO public.session_rsvps(session_id, account_id, status, family_squares_
 -- which 2026-10-05 is a meeting that has ended: a status written today counts.)
 CREATE TEMP TABLE defs AS SELECT
   pg_get_functiondef('public.service_family_squares_announce_cancelled(date)'::regprocedure) AS announce,
-  pg_get_functiondef('public.service_family_squares_note_meeting_status(date,boolean)'::regprocedure) AS note;
+  pg_get_functiondef('public.service_family_squares_note_meeting_status(date,boolean,boolean)'::regprocedure) AS note;
 CREATE FUNCTION pg_temp.announce_at(p_at text, p_meeting date DEFAULT '2026-10-05') RETURNS integer LANGUAGE plpgsql AS $$
 BEGIN
   EXECUTE replace((SELECT announce FROM defs), 'now()', quote_literal(p_at) || '::timestamptz');
@@ -180,24 +187,106 @@ SELECT lives_ok($$SELECT pg_temp.note_at('2026-10-01 12:15 America/New_York', fa
 SELECT is((SELECT count(*)::integer FROM push_outbox WHERE account_id::text LIKE '2e000000-%'), (SELECT n FROM before_restore), 'still nothing new');
 SELECT is(pg_temp.announce_at('2026-10-01 12:20 America/New_York'), 0, 'a meeting that is on is never announced as cancelled');
 
--- Cancelled a second time: nobody is told twice, sent or withdrawn.
+-- Cancelled a second time: a note withdrawn before it went out is queued
+-- again. The one that was sent is never sent twice.
+CREATE TEMP TABLE withdrawn AS SELECT o.id, o.expires_at FROM push_outbox o
+WHERE o.idempotency_key LIKE 'family-squares-cancelled:2026-10-05:%' AND o.last_error = 'meeting_restored';
 SELECT lives_ok($$SELECT pg_temp.note_at('2026-10-01 13:00 America/New_York', true)$$, 'the website cancels it again');
 SELECT is(public.family_squares_meeting_cancelled('2026-10-05'), true, '(it is cancelled)');
-SELECT is(pg_temp.announce_at('2026-10-01 13:00 America/New_York'), 2,
-  'only D and J, who were never told (it was too late on Monday), get a note');
+SELECT is(pg_temp.announce_at('2026-10-01 13:00 America/New_York'), 8,
+  'the six withdrawn notes are queued again, and D and J, who were never told (it was too late on Monday), get theirs');
 SELECT is(pg_temp.notes(), ARRAY['1', '2', '4', '5', '6', '8', '9', 'a', 'c'], 'one row each, never two');
+SELECT is((SELECT count(*)::integer FROM push_outbox o JOIN withdrawn w ON w.id = o.id
+  WHERE o.sent_at IS NULL AND o.failed_at IS NULL AND o.last_error IS NULL AND o.attempt_count = 0
+    AND o.processing_token IS NULL AND o.expires_at = w.expires_at), 6,
+  'the same six rows, with the withdrawal cleared and the 7 PM expiry they always had');
 SELECT is((SELECT count(*)::integer FROM push_outbox
-  WHERE idempotency_key LIKE 'family-squares-cancelled:2026-10-05:%' AND last_error = 'meeting_restored' AND failed_at IS NOT NULL), 6,
-  'the six withdrawn notes stay withdrawn: nobody already queued or told is queued again');
-SELECT is((SELECT count(*)::integer FROM push_outbox
-  WHERE idempotency_key LIKE 'family-squares-cancelled:2026-10-05:%' AND sent_at IS NULL AND failed_at IS NULL), 2,
-  'so two notes are waiting, not eight');
+  WHERE idempotency_key LIKE 'family-squares-cancelled:2026-10-05:%' AND sent_at IS NULL AND failed_at IS NULL), 8,
+  'so eight notes are waiting');
+SELECT is((SELECT o.scheduled_for FROM pg_temp.note_row('6') o), '2026-10-01 13:00 America/New_York'::timestamptz,
+  'due when a new note would be: F''s had been set for 8 AM the next morning, and it is daytime now');
+SELECT is((SELECT row(o.sent_at, o.failed_at IS NULL, o.scheduled_for)::text FROM pg_temp.note_row('1') o),
+  row('2026-10-01T15:01:00Z'::timestamptz, true, '2026-10-01 11:00 America/New_York'::timestamptz)::text,
+  'A was already told: her row is untouched and she is not told twice');
 SELECT is(pg_temp.announce_at('2026-10-01 13:15 America/New_York'), 0, 'and the next sync adds none');
+-- On again, then off again late on the Monday itself (5:30 PM Pacific, 8:30 PM
+-- in New York): a withdrawn note comes back only where a new one would be
+-- queued.
+SELECT lives_ok($$SELECT pg_temp.note_at('2026-10-05 17:00 America/Los_Angeles', false)$$, 'on again');
+SELECT is((SELECT count(*)::integer FROM push_outbox
+  WHERE idempotency_key LIKE 'family-squares-cancelled:2026-10-05:%' AND sent_at IS NULL AND last_error = 'meeting_restored'), 8,
+  'the eight waiting notes are withdrawn');
+SELECT lives_ok($$SELECT pg_temp.note_at('2026-10-05 17:30 America/Los_Angeles', true)$$, 'and off again');
+SELECT is(pg_temp.announce_at('2026-10-05 17:30 America/Los_Angeles'), 4, 'four notes are queued again');
+SELECT is(ARRAY(SELECT right(account_id::text, 1) FROM push_outbox
+    WHERE idempotency_key LIKE 'family-squares-cancelled:2026-10-05:%' AND sent_at IS NULL AND failed_at IS NULL ORDER BY 1),
+  ARRAY['2', '5', 'a', 'c'], 'for the members on Pacific time, where it is still daytime');
+SELECT is(ARRAY(SELECT right(account_id::text, 1) FROM push_outbox
+    WHERE idempotency_key LIKE 'family-squares-cancelled:2026-10-05:%' AND last_error = 'meeting_restored' AND failed_at IS NOT NULL ORDER BY 1),
+  ARRAY['4', '6', '8', '9'], 'in New York her next morning comes after 7 PM Pacific: those four stay withdrawn');
+SELECT is(pg_temp.notes(), ARRAY['1', '2', '4', '5', '6', '8', '9', 'a', 'c'], 'still one row each');
 -- Recording a cancellation alone (family-squares-register does this when the
 -- website tells one member) queues nothing: only the sync's reply announces.
 DELETE FROM push_outbox WHERE idempotency_key LIKE 'family-squares-cancelled:2026-10-05:%';
 SELECT lives_ok($$SELECT pg_temp.note_at('2026-10-01 13:30 America/New_York', true)$$, 'the status is recorded again');
 SELECT is(pg_temp.notes(), ARRAY[]::text[], 'keeping the status never queues a note by itself');
+
+-- ── A weekly seat that had not been saved yet ───────────────────────────────
+-- The Monday was cancelled before this week's seats were saved, and no seat
+-- is saved while it is cancelled: these members have no RSVP row for it and
+-- would never hear. K, M, N, O and P have "Save my seat every Monday" on.
+UPDATE public.accounts SET family_squares_weekly_seat = true, family_squares_weekly_seat_set_at = now()
+WHERE id IN ('2e000000-0000-0000-0000-00000000000b', '2e000000-0000-0000-0000-00000000000d',
+  '2e000000-0000-0000-0000-00000000000e', '2e000000-0000-0000-0000-00000000000f', '2e000000-0000-0000-0000-000000000000');
+-- N said she can't make it this week. The website refused O for this meeting.
+-- P has shown no sign of using the app for more than 180 days. K's row is
+-- still last week's (the Tuesday reset has not cleared it yet).
+INSERT INTO public.session_rsvps(session_id, account_id, status, family_squares_meeting_date, created_at)
+VALUES (public.family_squares_session_id(), '2e000000-0000-0000-0000-00000000000e', 'declined', '2026-10-05', '2026-09-30T18:00:00Z');
+INSERT INTO public.family_squares_weekly_seat_holds(account_id, meeting_date, reason)
+VALUES ('2e000000-0000-0000-0000-00000000000f', '2026-10-05', 'registration_unavailable');
+UPDATE public.accounts SET family_squares_weekly_seat_set_at = now() - interval '200 days', push_token_seen_at = now() - interval '200 days'
+WHERE id = '2e000000-0000-0000-0000-000000000000';
+CREATE FUNCTION pg_temp.weekly_notes() RETURNS text[] LANGUAGE sql AS $$
+  SELECT ARRAY(SELECT right(account_id::text, 1) FROM push_outbox
+    WHERE idempotency_key LIKE 'family-squares-cancelled:2026-10-05:%'
+      AND account_id IN ('2e000000-0000-0000-0000-00000000000b', '2e000000-0000-0000-0000-00000000000d',
+        '2e000000-0000-0000-0000-00000000000e', '2e000000-0000-0000-0000-00000000000f', '2e000000-0000-0000-0000-000000000000')
+    ORDER BY 1)
+$$;
+SELECT is(pg_temp.announce_at('2026-10-01 13:30 America/New_York'), 10, 'the nine with a seat, and M');
+SELECT is(pg_temp.weekly_notes(), ARRAY['d'],
+  'M has a weekly seat and no row yet: she is told. Not N (she said she can''t make it), O (the website refused her), P (no sign of app use in 180 days) or K (last week''s row is still there)');
+SELECT is((SELECT count(*)::integer FROM push_outbox
+  WHERE idempotency_key = 'family-squares-cancelled:2026-10-05:2e000000-0000-0000-0000-000000000004'), 1,
+  '(D has a seat by now. Without one, and without a weekly seat, she was not told: see the first announcement above)');
+SELECT is((SELECT row(o.kind, o.title, o.body, o.metadata ->> 'notice', o.scheduled_for, o.expires_at)::text FROM pg_temp.note_row('d') o),
+  row('family_call_followup', 'Family Squares', 'There''s no Family Squares this Monday. It''s back next week.', 'cancelled',
+    '2026-10-01 13:30 America/New_York'::timestamptz, '2026-10-05 19:00 America/Los_Angeles'::timestamptz)::text,
+  'the same note, under the same key, at the same hours');
+SELECT is(pg_temp.announce_at('2026-10-01 13:45 America/New_York'), 0, 'once: the next sync queues nothing more');
+-- The same rules as for saving a weekly seat, as each one changes.
+DELETE FROM public.session_rsvps WHERE account_id = '2e000000-0000-0000-0000-00000000000b';
+SELECT is(pg_temp.announce_at('2026-10-01 14:00 America/New_York'), 1, 'the Tuesday reset clears K''s old row: she is told');
+UPDATE public.accounts SET push_token_seen_at = now() WHERE id = '2e000000-0000-0000-0000-000000000000';
+SELECT is(pg_temp.announce_at('2026-10-01 14:15 America/New_York'), 1, 'P opens the app again: she is told');
+UPDATE public.family_squares_weekly_seat_holds SET reason = 'no_answer', noted_at = now() - interval '5 hours'
+WHERE account_id = '2e000000-0000-0000-0000-00000000000f';
+SELECT is(pg_temp.announce_at('2026-10-01 14:30 America/New_York'), 0, 'the website could not answer for O in the last six hours: not yet');
+UPDATE public.family_squares_weekly_seat_holds SET noted_at = now() - interval '7 hours'
+WHERE account_id = '2e000000-0000-0000-0000-00000000000f';
+SELECT is(pg_temp.announce_at('2026-10-01 14:45 America/New_York'), 1, 'longer ago than that: she is told');
+SELECT is(pg_temp.weekly_notes(), ARRAY['0', 'b', 'd', 'f'], 'one note each; N, who declined, is never told');
+-- Turning the weekly seat off, or the exclusions every seat holder has.
+DELETE FROM push_outbox WHERE idempotency_key LIKE 'family-squares-cancelled:2026-10-05:%';
+UPDATE public.accounts SET family_squares_weekly_seat = false WHERE id = '2e000000-0000-0000-0000-00000000000b';
+UPDATE public.accounts SET family_call_reminders = false WHERE id = '2e000000-0000-0000-0000-00000000000d';
+UPDATE public.accounts SET locale = 'es' WHERE id = '2e000000-0000-0000-0000-00000000000f';
+INSERT INTO public.loved_ones(account_id, died_at, bereavement_quiet) VALUES ('2e000000-0000-0000-0000-000000000000', now(), true);
+SELECT is(pg_temp.announce_at('2026-10-01 15:00 America/New_York'), 9, 'only the nine with a seat');
+SELECT is(pg_temp.weekly_notes(), ARRAY[]::text[],
+  'not K (weekly seat off), M (Monday reminders off), O (a Spanish member) or P (paused while she grieves)');
+DELETE FROM push_outbox WHERE idempotency_key LIKE 'family-squares-cancelled:2026-10-05:%';
 
 -- ── Delivery: the rules Tuesday's note has (real clock) ─────────────────────
 CREATE TEMP TABLE zones AS SELECT

@@ -18,13 +18,18 @@ SELECT ok((SELECT bool_and(NOT has_function_privilege('anon', f, 'EXECUTE')
     FROM unnest(ARRAY['public.service_family_squares_weekly_seat_candidates(date)',
       'public.service_family_squares_save_weekly_seat(uuid,date)',
       'public.service_family_squares_hold_weekly_seat(uuid,date,text)',
-      'public.service_family_squares_note_meeting_status(date,boolean)',
+      'public.service_family_squares_note_meeting_status(date,boolean,boolean)',
       'public.service_family_squares_announce_cancelled(date)',
       'public.service_family_squares_coming_meeting_cancelled()']) AS f),
   'only the service role (the 15-minute sync and the push senders) asks who needs a weekly seat, saves one, keeps what the website said, or tells seat holders a Monday is off');
 SELECT ok(NOT has_function_privilege('anon', 'public._family_squares_coming_meeting_date(timestamptz)', 'EXECUTE')
   AND NOT has_function_privilege('authenticated', 'public._family_squares_coming_meeting_date(timestamptz)', 'EXECUTE'),
   'the date helper is internal');
+SELECT ok(NOT has_function_privilege('anon', 'public._family_squares_weekly_seat_members(date)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public._family_squares_weekly_seat_members(date)', 'EXECUTE'),
+  'so is the list of members waiting for a weekly seat');
+SELECT hasnt_function('public', 'service_family_squares_note_meeting_status', ARRAY['date', 'boolean'],
+  'the status is kept by one function, with the one-member flag');
 SELECT ok(NOT has_table_privilege('anon', 'public.family_squares_weekly_seat_holds', 'SELECT')
   AND NOT has_table_privilege('authenticated', 'public.family_squares_weekly_seat_holds', 'SELECT')
   AND NOT has_table_privilege('authenticated', 'public.family_squares_weekly_seat_holds', 'INSERT')
@@ -377,6 +382,36 @@ SELECT is(public.family_squares_meeting_cancelled((SELECT d FROM coming)), false
 SELECT is(ARRAY(SELECT reason FROM public.family_squares_weekly_seat_holds WHERE meeting_date = (SELECT d FROM coming) ORDER BY 1),
   ARRAY['registration_unavailable'], 'an earlier "cancelled" answer about one member no longer stands; a refusal does');
 SELECT is(pg_temp.candidates(), ARRAY['1'], 'and weekly seats are asked about again at once');
+
+-- One member's "cancelled" (family-squares-register passes p_one_member) does
+-- not replace what the sync's own reply said in the last 30 minutes.
+SELECT lives_ok($$SELECT public.service_family_squares_note_meeting_status((SELECT d FROM coming), true, true)$$,
+  'the website tells one member the Monday is cancelled, just after its sync reply said it is on');
+SELECT is((SELECT cancelled FROM public.family_squares_meeting_status WHERE meeting_date = (SELECT d FROM coming)), false,
+  'the sync reply is the authority: the status is left as it is');
+SELECT is(public.family_squares_meeting_cancelled((SELECT d FROM coming)), false, 'the reminders go on');
+SELECT is(pg_temp.candidates(), ARRAY['1'], 'and so do weekly seats');
+UPDATE public.family_squares_meeting_status SET noted_at = now() - interval '29 minutes' WHERE meeting_date = (SELECT d FROM coming);
+SELECT lives_ok($$SELECT public.service_family_squares_note_meeting_status((SELECT d FROM coming), true, true)$$, 'again, 29 minutes after the sync said "on"');
+SELECT is((SELECT row(cancelled, noted_at < now() - interval '28 minutes')::text FROM public.family_squares_meeting_status
+  WHERE meeting_date = (SELECT d FROM coming)), row(false, true)::text, 'still on, and the row was not touched');
+UPDATE public.family_squares_meeting_status SET noted_at = now() - interval '31 minutes' WHERE meeting_date = (SELECT d FROM coming);
+SELECT lives_ok($$SELECT public.service_family_squares_note_meeting_status((SELECT d FROM coming), true, true)$$,
+  'the sync has not said "on" for more than two runs');
+SELECT is(public.family_squares_meeting_cancelled((SELECT d FROM coming)), true, 'her answer is kept, as it always was');
+-- The sync's own reply always replaces the status, fresh or not.
+SELECT lives_ok($$SELECT public.service_family_squares_note_meeting_status((SELECT d FROM coming), false)$$, 'the sync says "on"');
+SELECT lives_ok($$SELECT public.service_family_squares_note_meeting_status((SELECT d FROM coming), true)$$, 'and, a run later, "cancelled"');
+SELECT is(public.family_squares_meeting_cancelled((SELECT d FROM coming)), true, 'the sync reply is believed at once');
+SELECT lives_ok($$SELECT public.service_family_squares_note_meeting_status((SELECT d FROM coming), true, true)$$, 'one member hears the same');
+SELECT is(public.family_squares_meeting_cancelled((SELECT d FROM coming)), true, 'still cancelled');
+-- Nothing stored at all: one member's answer is kept.
+DELETE FROM public.family_squares_meeting_status WHERE meeting_date = (SELECT d FROM coming);
+SELECT lives_ok($$SELECT public.service_family_squares_note_meeting_status((SELECT d FROM coming), true, true)$$, 'the website has said nothing yet');
+SELECT is(public.family_squares_meeting_cancelled((SELECT d FROM coming)), true, 'her answer is kept');
+SELECT throws_ok($$SELECT public.service_family_squares_note_meeting_status((SELECT d FROM coming) + 7, true, true)$$, '22023', 'invalid_meeting_status',
+  'and the date is checked as before');
+SELECT lives_ok($$SELECT public.service_family_squares_note_meeting_status((SELECT d FROM coming), false)$$, 'the meeting is on again for what follows');
 DELETE FROM public.family_squares_weekly_seat_holds;
 SELECT public.service_family_squares_hold_weekly_seat('2b000000-0000-0000-0000-000000000001', (SELECT d FROM coming), 'registration_unavailable');
 

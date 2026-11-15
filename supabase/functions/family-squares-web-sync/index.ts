@@ -17,7 +17,8 @@
 // meeting, and start again if it is put back on. The sync reply is the
 // authority: when it says the meeting is on, one member's "cancelled" answer
 // later in the same run does not change the status. And when it says the
-// meeting is cancelled, members who saved a seat are told once
+// meeting is cancelled, members who saved a seat, and members whose weekly
+// seat had not been saved yet, are told once
 // (service_family_squares_announce_cancelled).
 //
 // "Save my seat every Monday" is also done here, after a sync the website
@@ -71,9 +72,10 @@ async function noteMeetingStatus(supabase: SupabaseClient, meetingDate: string, 
 
 /**
  * Queues the one "there's no Family Squares this Monday" note for members who
- * saved a seat. Called on every run while the sync reply says cancelled; the
- * database allows one note per member per meeting. A failure is logged and
- * changes nothing else. The count only is logged, never who.
+ * saved a seat or were waiting for their weekly seat. Called on every run
+ * while the sync reply says cancelled; the database allows one note per
+ * member per meeting. A failure is logged and changes nothing else. The count
+ * only is logged, never who.
  */
 async function announceCancelled(supabase: SupabaseClient, meetingDate: string): Promise<void> {
   try {
@@ -206,7 +208,7 @@ Deno.serve(async (req) => {
   const saidCancelled = websiteMeetingCancelled(body, window.meetingDate);
   if (saidCancelled === true || (saidCancelled === false && accepted)) {
     const kept = await noteMeetingStatus(supabase, window.meetingDate, saidCancelled);
-    // Cancelled, on the sync reply's word: members with a seat are told once.
+    // Cancelled, on the sync reply's word: members expecting a seat are told once.
     if (kept && saidCancelled) await announceCancelled(supabase, window.meetingDate);
   }
   if (!accepted) {
