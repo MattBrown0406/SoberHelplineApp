@@ -29,7 +29,7 @@ class Clock extends Date { constructor(...args) { super(...(args.length ? args :
 const success = { ok: true, already_registered: true, meeting_date: '2026-10-12' };
 
 function edge(options = {}) {
-  const writes = [], calls = [], filters = [];
+  const writes = [], calls = [], filters = [], rpcs = [];
   let handler;
   const admin = {
     auth: { getUser: async (jwt) => { assert.equal(jwt, 'verified-token'); return { data: { user: options.user === undefined ? { id: 'auth-A', email: ' A@example.test ', email_confirmed_at: fixed } : options.user }, error: options.authError }; } },
@@ -38,7 +38,17 @@ function edge(options = {}) {
       assert.equal(table, 'session_rsvps');
       return { upsert: async (row, opts) => { writes.push(row); assert.equal(opts.onConflict, 'session_id,account_id'); return { error: options.saveError }; } };
     },
-    rpc: async (name) => { assert.equal(name, 'family_squares_session_id'); return { data: 'english-session', error: options.sessionError }; },
+    rpc: async (name, args) => {
+      rpcs.push([name, args === undefined ? undefined : JSON.parse(JSON.stringify(args))]);
+      if (name === 'family_squares_session_id') return { data: 'english-session', error: options.sessionError };
+      if (name === 'service_family_squares_note_meeting_status') {
+        if (options.noteThrows) throw Error('down');
+        return { data: null, error: options.noteError ? { code: 'XX000' } : null };
+      }
+      assert.equal(name, 'family_squares_meeting_cancelled');
+      if (options.cancelledThrows) throw Error('down');
+      return { data: options.knownCancelled ?? false, error: options.cancelledError ? { code: 'XX000' } : null };
+    },
   };
   load('supabase/functions/family-squares-register/index.ts', {
     'npm:@supabase/supabase-js@2': { createClient: () => admin },
@@ -50,7 +60,7 @@ function edge(options = {}) {
     if (options.networkError) throw Error('offline');
     return new Response(options.malformed ? 'not json' : JSON.stringify(options.response ?? success), { status: options.status ?? 200 });
   } });
-  return { writes, calls, filters, run: (body = {}, authorization = 'Bearer verified-token') => handler(new Request('https://app.invalid', { method: 'POST', headers: { Authorization: authorization }, body: JSON.stringify(body) })) };
+  return { writes, calls, filters, rpcs, run: (body = {}, authorization = 'Bearer verified-token') => handler(new Request('https://app.invalid', { method: 'POST', headers: { Authorization: authorization }, body: JSON.stringify(body) })) };
 }
 
 test('Edge reconciles verified identity only, persists accepted exact week and returns no PII', async () => {
@@ -86,6 +96,48 @@ for (const [name, opts] of [
   assert.deepEqual(await r.json(), { ok: true, already_registered: false, meeting_date: '2026-10-12' });
   assert.equal(e.writes.length, 1); assert.equal(e.writes[0].status, 'going');
   assert.equal(e.writes[0].family_squares_meeting_date, '2026-10-12');
+});
+// The website's own decision reaches the app as `reason`, and a cancelled
+// Monday is kept so the reminders stop without waiting for the next sync.
+test('a cancelled week is refused with its reason and kept for the reminders', async () => {
+  for (const opts of [{}, { noteError: true }, { noteThrows: true }]) {
+    const e = edge({ status: 409, response: { ok: false, error: 'meeting_cancelled' }, ...opts });
+    const r = await e.run(); assert.equal(r.status, 409);
+    assert.deepEqual(await r.json(), { ok: false, error: 'website_declined', reason: 'meeting_cancelled' });
+    assert.deepEqual(e.rpcs.filter(([name]) => name === 'service_family_squares_note_meeting_status'),
+      [['service_family_squares_note_meeting_status', { p_meeting_date: '2026-10-12', p_cancelled: true }]]);
+    assert.equal(e.writes.length, 0);
+  }
+});
+test('a blocked attendee is refused with its reason and nothing is kept about the meeting', async () => {
+  const e = edge({ status: 403, response: { ok: false, error: 'registration_unavailable' } });
+  const r = await e.run(); assert.equal(r.status, 409);
+  assert.deepEqual(await r.json(), { ok: false, error: 'website_declined', reason: 'registration_unavailable' });
+  assert.equal(e.rpcs.some(([name]) => name !== 'family_squares_session_id'), false);
+  assert.equal(e.writes.length, 0);
+});
+// No website answer, but it said recently that this Monday is off: no seat.
+for (const [name, opts] of [
+  ['outage', { networkError: true }], ['unreadable reply', { malformed: true }],
+  ['website failure', { status: 500, response: { ok: false, error: 'registration_failed' } }],
+]) test(`a Monday already known to be cancelled saves no seat: ${name}`, async () => {
+  const e = edge({ ...opts, knownCancelled: true }); const r = await e.run(); assert.equal(r.status, 409);
+  assert.deepEqual(await r.json(), { ok: false, error: 'website_declined', reason: 'meeting_cancelled' });
+  assert.deepEqual(e.rpcs.at(-1), ['family_squares_meeting_cancelled', { p_meeting_date: '2026-10-12' }]);
+  assert.equal(e.writes.length, 0);
+});
+// A cancelled check that cannot be read never costs her the seat, and a
+// website yes is never second-guessed.
+for (const [name, opts] of [
+  ['check errors', { networkError: true, cancelledError: true, knownCancelled: true }],
+  ['check throws', { networkError: true, cancelledThrows: true }],
+]) test(`the seat is still saved when the cancelled check fails: ${name}`, async () => {
+  const e = edge(opts); const r = await e.run(); assert.equal(r.status, 200); assert.equal(e.writes.length, 1);
+});
+test('a website yes is not second-guessed by the cancelled check', async () => {
+  const e = edge({ knownCancelled: true }); const r = await e.run(); assert.equal(r.status, 200);
+  assert.equal(e.rpcs.some(([name]) => name === 'family_squares_meeting_cancelled'), false);
+  assert.equal(e.writes.length, 1);
 });
 test('native save failure remains retryable after website acceptance', async () => { const e = edge({ saveError: true }); assert.equal((await e.run()).status, 503); });
 

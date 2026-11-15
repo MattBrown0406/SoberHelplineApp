@@ -248,7 +248,7 @@ test('a weekly seat is saved only after the website says yes, and only for membe
     /coalesce\(a\.locale, 'en'\) NOT LIKE 'es%'/,
     // Not while her reminders are paused (bereavement), and not once she has stopped using the app.
     /NOT public\._account_reminders_paused\(a\.id\)/,
-    /> now\(\) - interval '35 days'/,
+    /> now\(\) - interval '180 days'/,
     // An answer already given for that meeting (going or declined) is kept.
     /NOT EXISTS \(\s+SELECT 1 FROM public\.session_rsvps r\s+WHERE r\.session_id = v_session AND r\.account_id = a\.id\s+\)/,
     // A cancelled meeting stops the whole run; a refused attendee is not asked again that week.
