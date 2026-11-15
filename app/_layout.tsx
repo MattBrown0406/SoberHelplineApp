@@ -16,9 +16,10 @@ import { SafetyShortcut } from '../src/components/safety/SafetyShortcut';
 import { EmergencyActions } from '../src/components/safety/EmergencyActions';
 import { getInitialLayoutState, isPushNavigationReady } from '../src/lib/authBootstrap';
 import { FRONT_DOOR_READ_TIMEOUT_MS, frontDoorRoute, lateFrontDoorAction, type FrontDoorFlags } from '../src/lib/frontDoor';
-import { markSignedInBefore, readFrontDoorFlags, signUpFormStarted } from '../src/lib/frontDoorStore';
+import { knownFrontDoorFlags, markSignedInBefore, readFrontDoorFlags, signUpFormStarted } from '../src/lib/frontDoorStore';
+import { setPreSignInHold } from '../src/lib/preSignInHold';
 import { addAppBreadcrumb } from '../src/lib/monitoring';
-import { collapseAppStack } from '../src/lib/appStack';
+import { collapseAppStack, returnToPreSignInScreen } from '../src/lib/appStack';
 import { flushQueuedSupportCallReview, setReviewPromptRoute } from '../src/lib/reviewPrompt';
 import { flushFamilySquaresAttendance } from '../src/lib/meetingAttendance';
 import { clearMeetingReturn, noteMeetingReturn, noteReviewCheck } from '../src/lib/afterMeetingInvite';
@@ -204,6 +205,15 @@ function InitialLayout() {
   const navigationRef = useNavigationContainerRef();
   const collapseRootStack = () => collapseAppStack(navigationRef);
 
+  // Signed out and on a pre-sign-in screen (creating an account, perhaps with
+  // "Confirm your email" showing; signing in; resetting a password): a link
+  // that opens the app must not move her off it (preSignInHold).
+  const onPreSignInScreen = !isLoading && !isAuthenticated && segments[0] === '(auth)';
+  useEffect(() => {
+    setPreSignInHold(onPreSignInScreen);
+    return () => setPreSignInHold(false);
+  }, [onPreSignInScreen]);
+
   useEffect(() => {
     if (isLoading) return;
     const inAuth = segments[0] === '(auth)';
@@ -212,9 +222,19 @@ function InitialLayout() {
       if (!inAuth) {
         // The device flag is a moment away; sign-out never waits for it.
         if (deviceFlags === null && !signedInThisSession.current) return;
+        // Something (a link that opened the app) put a screen on top of the
+        // pre-sign-in screen she was on: back to that screen as she left it,
+        // never a fresh one. Her confirm step and what she typed stay.
+        if (returnToPreSignInScreen(navigationRef)) {
+          addAppBreadcrumb('auth.navigation_pre_sign_in_kept');
+          return;
+        }
+        // The flags as they are NOW, not as they were read when the app
+        // opened: a sign-up sent a moment ago is in the store's memory only.
+        const flagsNow = knownFrontDoorFlags();
         const door = frontDoorRoute({
-          signedInBefore: deviceFlags?.signedInBefore === true,
-          signUpSubmitted: deviceFlags?.signUpSubmitted === true,
+          signedInBefore: deviceFlags?.signedInBefore === true || flagsNow.signedInBefore,
+          signUpSubmitted: deviceFlags?.signUpSubmitted === true || flagsNow.signUpSubmitted,
           signedInThisSession: signedInThisSession.current,
         });
         addAppBreadcrumb(door === '/(auth)/sign-up' ? 'auth.navigation_sign_up' : 'auth.navigation_sign_in');

@@ -99,7 +99,9 @@ test('the root layout chooses the first screen from the flag and still sends sig
   const layout = read('app/_layout.tsx');
   assert.match(layout, /if \(isAuthenticated\) signedInThisSession\.current = true;/);
   assert.match(layout, /if \(deviceFlags === null && !signedInThisSession\.current\) return;/);
-  assert.match(layout, /const door = frontDoorRoute\(\{\s+signedInBefore: deviceFlags\?\.signedInBefore === true,\s+signUpSubmitted: deviceFlags\?\.signUpSubmitted === true,\s+signedInThisSession: signedInThisSession\.current,\s+\}\);/);
+  // The flags as they are when she is routed (a sign-up sent this run is only in the store's memory),
+  // not only the snapshot read when the app opened: audit round 3, M4.
+  assert.match(layout, /const flagsNow = knownFrontDoorFlags\(\);\s+const door = frontDoorRoute\(\{\s+signedInBefore: deviceFlags\?\.signedInBefore === true \|\| flagsNow\.signedInBefore,\s+signUpSubmitted: deviceFlags\?\.signUpSubmitted === true \|\| flagsNow\.signUpSubmitted,\s+signedInThisSession: signedInThisSession\.current,\s+\}\);/);
   assert.match(layout, /router\.replace\(door\);/);
   assert.doesNotMatch(layout, /router\.replace\('\/\(auth\)\/sign-in'\)/);
   // A session (new or restored) is what marks "signed in before"; sign-up alone never does
@@ -232,7 +234,9 @@ test('sign-up keeps its checks and offers a plain way to sign in; the redirect a
   assert.equal(SIGN_UP_CONFIRM_REDIRECT_URL, 'https://soberhelpline.com/app-confirmed.html');
   assert.match(signUp, /if \(!acceptedTerms\) \{\s+setError\(t\('signUp\.errorTermsRequired'\)\);/);
   assert.match(signUp, /if \(password\.length < 8\) \{\s+setError\(t\('signUp\.errorWeakPassword'\)\);/);
-  assert.match(signUp, /err\.message\.toLowerCase\(\)\.includes\('already'\) \|\| err\.status === 422\s+\? t\('signUp\.errorEmailTaken'\)/);
+  // "Already exists" only for the error that means it; a bare 422 no longer says so (audit round 3, L10).
+  assert.match(signUp, /const failure = signUpFailure\(err\);\s+setError\(t\(failure === 'email-taken' \? 'signUp\.errorEmailTaken' : failure === 'password' \? 'signUp\.errorPasswordRejected' : 'signUp\.errorGeneric'\)\);/);
+  assert.doesNotMatch(signUp, /status === 422/);
   assert.match(signUp, /disabled=\{loading \|\| !email \|\| !password \|\| !firstName \|\| !acceptedTerms\}/);
   assert.match(signUp, /accessibilityRole="checkbox"/);
   assert.match(signUp, /<Link href="\/\(auth\)\/sign-in" asChild>\s+<TouchableOpacity\s+accessibilityRole="link"[\s\S]*?t\('signUp\.hasAccountButton'\)/);

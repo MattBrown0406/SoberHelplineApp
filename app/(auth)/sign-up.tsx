@@ -19,7 +19,7 @@ import { supabase } from '../../src/lib/supabase';
 import { EmergencyActions } from '../../src/components/safety/EmergencyActions';
 import { AppLogo } from '../../src/components/ui/AppLogo';
 import { ConfirmEmailPanel } from '../../src/components/auth/ConfirmEmailPanel';
-import { SIGN_UP_CONFIRM_REDIRECT_URL } from '../../src/lib/frontDoor';
+import { SIGN_UP_CONFIRM_REDIRECT_URL, signUpFailure } from '../../src/lib/frontDoor';
 import { markSignUpSubmitted, noteSignUpFormStarted } from '../../src/lib/frontDoorStore';
 import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '../../src/config';
 
@@ -83,11 +83,10 @@ export default function SignUpScreen() {
         },
       });
       if (err) {
-        setError(
-          err.message.toLowerCase().includes('already') || err.status === 422
-            ? t('signUp.errorEmailTaken')
-            : t('signUp.errorGeneric'),
-        );
+        // "Already exists" only for the error that means it: a 422 is usually
+        // a password the server will not accept (frontDoor.signUpFailure).
+        const failure = signUpFailure(err);
+        setError(t(failure === 'email-taken' ? 'signUp.errorEmailTaken' : failure === 'password' ? 'signUp.errorPasswordRejected' : 'signUp.errorGeneric'));
         return;
       }
 

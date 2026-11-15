@@ -199,9 +199,11 @@ test('confirmation-required signup displays email instructions without account-t
  assert.equal(state.request.options.emailRedirectTo,'https://soberhelpline.com/app-confirmed.html');
  assert.equal(state.request.options.data.terms_version,'1.0');
 });
+// The real reading of a refused sign-up (src/lib/frontDoor), run from its source.
+const signUpFailure=(()=>{const module={exports:{}};new Function('module','exports',ts.transpileModule(readFileSync(new URL('../src/lib/frontDoor.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(module,module.exports);return module.exports.signUpFailure;})();
 test('signup keeps its checks: terms, password length and an already-registered email',async()=>{
  const run=async(overrides,signUp=async()=>assert.fail('must not reach the server'))=>{const state={};await action('(auth)/sign-up.tsx','handleEmailSignUp',{
-  loading:false,acceptedTerms:true,password:'longpassword',email:'test@example.test',firstName:'Test',lastName:'Audit',TERMS_VERSION:'1.0',t:k=>k,
+  signUpFailure,loading:false,acceptedTerms:true,password:'longpassword',email:'test@example.test',firstName:'Test',lastName:'Audit',TERMS_VERSION:'1.0',t:k=>k,
   SIGN_UP_CONFIRM_REDIRECT_URL:'https://soberhelpline.com/app-confirmed.html',
   setError:v=>state.error=v,setLoading:v=>state.loading=v,setCheckEmail:v=>state.check=v,
   markSignUpSubmitted:()=>{state.marked=true},

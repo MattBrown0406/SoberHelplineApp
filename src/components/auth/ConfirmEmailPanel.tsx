@@ -17,6 +17,7 @@ import {
   shouldForgetPassword,
   type ConfirmSignInOutcome,
 } from '../../lib/frontDoor';
+import { subscribeLinkWhileHeld } from '../../lib/preSignInHold';
 import { EmergencyActions } from '../safety/EmergencyActions';
 
 type Notice = 'notYet' | 'checkFailed' | 'resent' | 'resendFailed' | 'passwordForgotten' | 'alreadyHasAccount';
@@ -115,7 +116,8 @@ export function ConfirmEmailPanel({ email, password, onForgetPassword, onUseDiff
     setNotice(outcome === 'not-confirmed' ? 'notYet' : outcome === 'wrong-password' ? 'alreadyHasAccount' : 'checkFailed');
   };
 
-  // Back from the email app: try once. Away too long: forget the password.
+  // Back from the email app (or brought back by the confirmation page's "open
+  // the app" link): try once. Away too long: forget the password.
   useEffect(() => {
     let wasBackgrounded = false;
     let backgroundedAt: number | null = null;
@@ -126,16 +128,13 @@ export function ConfirmEmailPanel({ email, password, onForgetPassword, onUseDiff
       forgetRef.current();
       if (mounted.current) setNotice('passwordForgotten');
     };
-    const subscription = AppState.addEventListener('change', (nextState) => {
-      const nowMs = Date.now();
-      if (nextState === 'background') {
-        wasBackgrounded = true;
-        if (backgroundedAt === null) backgroundedAt = nowMs;
-        // Where timers keep running in the background, do not wait for her return.
-        if (!forgetTimer) forgetTimer = setTimeout(forget, PASSWORD_MEMORY_BACKGROUND_LIMIT_MS + 1000);
-        return;
-      }
-      if (nextState !== 'active') return;
+    // One return to the app: away too long forgets the password, otherwise
+    // the sign-in is tried once. `byLink` is the confirmation page's "open the
+    // app" link bringing the app forward: a return in itself, even where the
+    // app never went to the background (a split-screen iPad). Each return
+    // clears "was in the background", and tries are never close together, so
+    // a link and the app coming forward at the same moment are one try.
+    const comeBack = (nowMs: number, byLink: boolean) => {
       if (forgetTimer) clearTimeout(forgetTimer);
       forgetTimer = null;
       const returned = wasBackgrounded;
@@ -147,8 +146,8 @@ export function ConfirmEmailPanel({ email, password, onForgetPassword, onUseDiff
         return;
       }
       if (shouldAutoTryOnReturn({
-        nextState,
-        wasBackgrounded: returned,
+        nextState: 'active',
+        wasBackgrounded: returned || byLink,
         busy: busyRef.current,
         hasPassword: passwordRef.current.length > 0,
         lastAutoTryAtMs: lastAutoTryAt,
@@ -157,9 +156,23 @@ export function ConfirmEmailPanel({ email, password, onForgetPassword, onUseDiff
         lastAutoTryAt = nowMs;
         void trySignIn.current();
       }
+    };
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      const nowMs = Date.now();
+      if (nextState === 'background') {
+        wasBackgrounded = true;
+        if (backgroundedAt === null) backgroundedAt = nowMs;
+        // Where timers keep running in the background, do not wait for her return.
+        if (!forgetTimer) forgetTimer = setTimeout(forget, PASSWORD_MEMORY_BACKGROUND_LIMIT_MS + 1000);
+        return;
+      }
+      if (nextState !== 'active') return;
+      comeBack(nowMs, false);
     });
+    const unsubscribeLink = subscribeLinkWhileHeld(() => comeBack(Date.now(), true));
     return () => {
       subscription.remove();
+      unsubscribeLink();
       if (forgetTimer) clearTimeout(forgetTimer);
     };
   }, []);

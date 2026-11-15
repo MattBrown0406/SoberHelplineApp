@@ -159,6 +159,23 @@ export function confirmationResendOutcome(
 
 type AuthFailure = { code?: string | null; message?: string | null; status?: number | null };
 
+export type SignUpFailure = 'email-taken' | 'password' | 'failed';
+
+/**
+ * Why creating an account was refused. With email confirmation on, the server
+ * does not say an address is taken (it answers as if the sign-up worked), so
+ * a bare 422 is something else, most often a password it will not accept.
+ * "Already exists" is said only for the errors that mean exactly that; a
+ * refused password gets a password message; the rest is the plain "try again".
+ */
+export function signUpFailure(error: (AuthFailure & { name?: string | null }) | null | undefined): SignUpFailure {
+  if (!error) return 'failed';
+  const message = (error.message ?? '').toLowerCase();
+  if (error.code === 'user_already_exists' || error.code === 'email_exists' || message.includes('already registered')) return 'email-taken';
+  if (error.code === 'weak_password' || error.name === 'AuthWeakPasswordError' || message.includes('password')) return 'password';
+  return 'failed';
+}
+
 /** True when a sign-in was refused only because the address has not been confirmed yet. */
 export function isEmailNotConfirmed(error: AuthFailure | null | undefined): boolean {
   if (!error) return false;

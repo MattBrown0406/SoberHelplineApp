@@ -41,6 +41,16 @@ export async function readFrontDoorFlags(): Promise<FrontDoorFlags> {
   return { signedInBefore: known, signUpSubmitted: submitted };
 }
 
+/**
+ * The flags as this run of the app knows them right now, without waiting for
+ * storage: a sign-up sent a moment ago is already here. Anything not read yet
+ * is "never". The root layout asks this each time it chooses the first
+ * screen, so it never routes on what was true when the app opened.
+ */
+export function knownFrontDoorFlags(): FrontDoorFlags {
+  return { signedInBefore: known === true, signUpSubmitted: submitted === true };
+}
+
 /** Called once a session exists. Remembered for this run even if storage fails. */
 export function markSignedInBefore(): void {
   if (known === true) return;
