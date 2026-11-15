@@ -863,13 +863,20 @@ export default function SupportScreen() {
         {!hasMembershipAccess && bereaved === false && (
           <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary, marginBottom: 12 }]} onPress={() => router.push('/membership-guide')}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{t('coachingGuideLink')}</Text></TouchableOpacity>
         )}
+        {/* The free conversation practice stays one tap away without a plan. */}
+        {!hasMembershipAccess && (
+          <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary, marginBottom: 12 }]} onPress={() => router.push('/free-practice')}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{t('freePracticeLink')}</Text></TouchableOpacity>
+        )}
         {hasMembershipAccess && (
         <View style={[styles.card, { borderColor: colors.line, backgroundColor: colors.white }]}>
           <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: membershipExpanded }} aria-expanded={membershipExpanded} onPress={() => setMembershipExpanded((value) => !value)} style={styles.membershipDisclosure}>
             <Text style={[styles.referralTitle, { color: colors.ink }]}>{copy.benefits} {membershipExpanded ? '−' : '+'}</Text>
           </TouchableOpacity>
           <View style={{ display: membershipExpanded ? 'flex' : 'none' }}>
-          <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary }]} onPress={() => router.push('/membership-guide')}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{t('coachingGuideLink')}</Text></TouchableOpacity>
+          {/* The coaching guide ends with plans and prices: never for a bereaved member. */}
+          {bereaved === false && (
+            <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary }]} onPress={() => router.push('/membership-guide')}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{t('coachingGuideLink')}</Text></TouchableOpacity>
+          )}
           <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary }]} onPress={() => router.push('/free-practice')}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{t('freePracticeLink')}</Text></TouchableOpacity>
           <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{copy.free}</Text>
           {/* The one benefits list (plans.json): Essential, then what Premier adds. */}

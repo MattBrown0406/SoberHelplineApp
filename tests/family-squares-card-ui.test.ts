@@ -240,3 +240,11 @@ test('without a plan, Support still links to how coaching support works (never f
   const support = read('app/(tabs)/support.tsx');
   assert.match(support, /\{!hasMembershipAccess && bereaved === false && \(\s*<TouchableOpacity[\s\S]{0,200}?router\.push\('\/membership-guide'\)/);
 });
+
+test('Support: the coaching guide is never linked for a bereaved member, with or without a plan; free practice stays for the free tier', () => {
+  const support = read('app/(tabs)/support.tsx');
+  const guideLinks = support.split("router.push('/membership-guide')").length - 1;
+  assert.equal(guideLinks, 2);
+  assert.equal(support.split(/bereaved === false && \(\s*<TouchableOpacity[^\n]*router\.push\('\/membership-guide'\)/).length - 1, 2, 'both links sit behind the not-bereaved rule');
+  assert.match(support, /\{!hasMembershipAccess && \(\s*<TouchableOpacity[^\n]*router\.push\('\/free-practice'\)/);
+});

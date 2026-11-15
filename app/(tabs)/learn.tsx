@@ -88,7 +88,7 @@ export default function LearnScreen() {
           ['someone', '/(tabs)/support'],
         ] as const).map(([key, route]) => (
           <TouchableOpacity key={key} accessibilityRole="button" onPress={() => router.push(route as never)} style={styles.destination}>
-            <Text style={[styles.cardButtonText, { color: colors.primary }]}>{t(`destinations.${key}`)} →</Text>
+            <Text style={[styles.cardButtonText, { color: colors.primary, textAlign: 'left' }]}>{t(`destinations.${key}`)} →</Text>
           </TouchableOpacity>
         ))}
       </View>
