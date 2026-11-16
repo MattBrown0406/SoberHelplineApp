@@ -19,7 +19,9 @@ function mount(name, props = {}) {
     if (id === 'react-native') return native;
     if (id === 'expo-router') return { useRouter: () => ({ push: route => { routes.push(route); } }) };
     if (id === 'react-i18next') return { useTranslation: () => ({ t: (key, params) => params ? `${key}:${JSON.stringify(params)}` : key }) };
+    if (id === '@expo/vector-icons/MaterialCommunityIcons') return { __esModule: true, default: 'MaterialCommunityIcons' };
     if (id.includes('ThemeContext')) return { useTheme: () => ({ colors: {} }) };
+    if (id.endsWith('ui/Button')) return { buttonShape: {}, BUTTON_RADIUS: 99, BUTTON_MIN_HEIGHT: 48 };
     if (id.endsWith('lib/appAlert')) return { appAlert: (...args) => alerts.push(args) };
     if (id.endsWith('safety/EmergencyActions')) return { EmergencyActions: 'EmergencyActions' };
     if (id.includes('caregiverCheckIn')) return { CAREGIVER_SUPPORT_NEEDS: ['rest', 'safety'], CAREGIVER_RESPONSE_ROUTE: {}, caregiverResponseKey: () => null };
@@ -100,11 +102,39 @@ test('needs front door keeps crisis immediate and reveals every secondary route'
 
 test('disclosure starts collapsed and keeps opened child content mounted when closed', () => {
   const ui = mount('TodayDisclosure', { title: 'Practice', children: 'draft' });
-  assert.equal(ui.nodes().length, 3); ui.press('Practice'); ui.press('Practice');
+  // The wrapper, the row, its title and its chevron: no content until she opens it.
+  assert.equal(ui.nodes().length, 4); ui.press('Practice'); ui.press('Practice');
   assert.ok(ui.nodes().some(n => n.props.style?.display === 'none'));
 });
 
-test('both Today tiers place needs and check-in ahead of event/share promotions', () => {
+test('a section row is the title and a chevron, and says open or closed without writing it in the title', () => {
+  const ui = mount('TodayDisclosure', { title: 'Practice', children: 'draft' });
+  const row = () => ui.button('Practice');
+  const chevron = () => ui.nodes().find(n => n.type === 'MaterialCommunityIcons');
+  const title = () => ui.nodes().find(n => n.type === 'Text');
+  assert.deepEqual(title().props.children, ['Practice']);
+  assert.equal(row().props.accessibilityRole, 'button');
+  assert.equal(row().props.accessibilityLabel, 'Practice');
+  assert.deepEqual(row().props.accessibilityState, { expanded: false });
+  assert.equal(row().props['aria-expanded'], false);
+  assert.equal(row().props.accessibilityHint, 'disclosure.show');
+  assert.equal(chevron().props.name, 'chevron-down');
+  assert.equal(chevron().props.accessible, false);
+  // A full-width row with a comfortable target and a hairline under it.
+  const style = Object.assign({}, ...row().props.style);
+  assert.equal(style.flexDirection, 'row');
+  assert.ok(style.minHeight >= 48);
+  assert.equal(style.height, undefined, 'the row grows with large text');
+  assert.ok('borderBottomWidth' in style && 'borderBottomColor' in style);
+  ui.press('Practice');
+  assert.deepEqual(row().props.accessibilityState, { expanded: true });
+  assert.equal(row().props['aria-expanded'], true);
+  assert.equal(row().props.accessibilityHint, 'disclosure.hide');
+  assert.equal(chevron().props.name, 'chevron-up');
+  assert.deepEqual(title().props.children, ['Practice']);
+});
+
+test('both Today tiers lead with the call and check-in, then one next step, needs and the tucked-away sections', () => {
   const source = readFileSync(new URL('../app/(tabs)/index.tsx', import.meta.url), 'utf8');
   const all = source.split('<ScreenContainer').slice(1);
   // The bereaved Today: immediate help, then the grief card, then the call and her check-in.
@@ -115,16 +145,36 @@ test('both Today tiers place needs and check-in ahead of event/share promotions'
   assert.ok(bereaved[0].indexOf('{mondayCallCard}') < bereaved[0].indexOf('{checkInCard}'));
   const screens = all.filter((screen) => !screen.includes('<GriefCard') && screen.includes('{checkInCard}')); assert.equal(screens.length, 2);
   for (const screen of screens) {
-    // Immediate help first; then the free Monday call leads (saving a seat is
-    // a new member's first step), then the check-in.
-    assert.ok(screen.indexOf('<NeedsRouter') < screen.indexOf('{mondayCallCard}'));
-    assert.ok(screen.indexOf('{mondayCallCard}') < screen.indexOf('{checkInCard}'));
-    assert.ok(screen.indexOf('disclosure.connection') < screen.indexOf('<PassItOnCard'));
-    assert.ok(screen.includes('<MoodChart'));
+    // Greeting, the free Monday call (saving a seat is a new member's first
+    // step), the check-in and its feedback, ONE next step, "What do you need
+    // right now?", then the collapsed sections.
+    const order = ['{header}', '{mondayCallCard}', '{checkInCard}', '<CheckInFeedbackCard', '...nextStepSlot', '<NeedsRouter', '...moreForThisWeek', 'disclosure.pathway', 'disclosure.invite', '<PassItOnCard', 'disclosure.practice', '<MoodChart'];
+    const at = order.map((piece) => screen.indexOf(piece));
+    assert.ok(at.every((index) => index >= 0), `missing: ${order.filter((_, i) => at[i] < 0).join(', ')}`);
+    assert.deepEqual(at, [...at].sort((a, b) => a - b), 'Today order');
+    // The cards that compete for the slot are never also stacked on the screen.
+    for (const card of ['{willingnessWindowAlert}', '{lovedOneCheckCard}', '{holidayCard}', '{invitationCard}', '<GuidedStartPanel']) {
+      assert.ok(!screen.includes(card), `${card} only through the next-step slot`);
+    }
   }
+  // Paid-only cards stay where they were, inside the practice section, on the paid Today only.
+  const paid = screens.filter((screen) => screen.includes('<HeroCard'));
+  assert.equal(paid.length, 1);
+  const paidOrder = ['disclosure.practice', '<HeroCard', '<HoldLogCard', '<ContinueLetterCard', '<WeekReviewCard', '<MoodChart'].map((piece) => paid[0].indexOf(piece));
+  assert.deepEqual(paidOrder, [...paidOrder].sort((a, b) => a - b));
+  const free = screens.find((screen) => !screen.includes('<HeroCard'));
+  for (const card of ['<ContinueLetterCard', '<WeekReviewCard']) assert.ok(!free.includes(card));
+  // The free Today ends with the membership invitation (the plans teaser), not a lock card.
+  assert.ok(free.includes('<ExploreMembership />'));
+  assert.ok(!paid[0].includes('<ExploreMembership'), 'a member with a plan sees no sales card');
+  assert.ok(!source.includes('FreeTierPaywall'));
   for (const lang of ['en', 'es']) {
     const locale = JSON.parse(readFileSync(new URL(`../src/locales/${lang}/today.json`, import.meta.url), 'utf8'));
     for (const key of ['progress', 'next', 'back', 'addNote', 'hideNote']) assert.ok(locale.checkIn[key]);
     assert.ok(locale.disclosure.practice); assert.ok(locale.needs.more);
+    // The share card's section says what it is; the old "Free Monday call & connection" title is gone.
+    // (In Spanish the card shares La Sobremesa, so that is the meeting its title names.)
+    assert.match(locale.disclosure.invite, lang === 'es' ? /La Sobremesa/ : /Family Squares/); assert.equal(locale.disclosure.connection, undefined);
+    assert.ok(locale.disclosure.more);
   }
 });

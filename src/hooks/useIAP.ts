@@ -2,12 +2,17 @@ import { useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { useAccount } from '../contexts/AccountContext';
 import Purchases, { type PurchasesOfferings, type PurchasesPackage } from 'react-native-purchases';
-import { purchaseRevenueCatPackage } from '../lib/revenueCat';
+import { PURCHASE_NOT_STARTED, purchaseRevenueCatPackage } from '../lib/revenueCat';
+import { PRE_STORE_STEP_MS, beforeStoreStep, isPaymentPending, type PurchaseControl } from '../lib/purchaseSteps';
 import { setReviewPromptPurchaseFlow } from '../lib/reviewPrompt';
 import { freeTrialOffer, type TrialOffer } from '../lib/subscriptionTrial';
 
 export type SubscriptionTier = 'essential' | 'premium';
-export type PurchaseResult = 'success' | 'cancelled' | 'failed';
+/**
+ * 'pending' is the store saying the purchase waits for someone's approval
+ * (Ask to Buy, a bank): not bought yet, not cancelled, and nothing went wrong.
+ */
+export type PurchaseResult = 'success' | 'cancelled' | 'failed' | 'pending';
 
 let activePurchaseFlows = 0;
 const PRICE_RETRY_DELAYS_MS = [5_000, 15_000, 45_000];
@@ -110,8 +115,13 @@ export function useIAP() {
     return () => sub.remove();
   }, [pricesLoaded]);
 
-  async function purchaseTier(tier: SubscriptionTier): Promise<PurchaseResult> {
+  async function purchaseTier(tier: SubscriptionTier, control: PurchaseControl = {}): Promise<PurchaseResult> {
     const generation = lifetime.generation;
+    // "On screen": this screen is still mounted for the account that tapped.
+    // It decides whether a purchase may START and whether this hook's own
+    // state is updated. It never decides how a purchase the store has already
+    // answered is reported: she may have been charged, and the caller
+    // (usePlanPurchase) must hear about it even after the screen has gone.
     const current = () => isActive() && generation === lifetime.generation;
     if (!owner || !current() || lifetime.purchasing) return 'cancelled';
     lifetime.purchasing = true;
@@ -119,28 +129,69 @@ export function useIAP() {
     setReviewPromptPurchaseFlow(true);
     setPurchasing(true);
     setIapError(null);
+    // Set the moment a wait before the store is given up (too slow, or she
+    // left): whatever was still on its way must start nothing afterwards.
+    let abandoned = false;
+    const mayStart = () => !abandoned && current() && (control.mayStart?.() ?? true);
+    const giveUp = () => { abandoned = true; };
     try {
-      const offerings = await Purchases.getOfferings();
-      if (!current()) return 'cancelled';
-      const pkg = findPackage(offerings, tier);
+      // Before the store is asked, every step has a time limit and she may
+      // leave (purchaseSteps). Nothing has been bought yet.
+      const loaded = await beforeStoreStep(Purchases.getOfferings(), { limitMs: PRE_STORE_STEP_MS, left: control.left, onStop: giveUp });
+      if (loaded.outcome === 'left') return 'cancelled';
+      if (loaded.outcome === 'timeout') {
+        if (current()) setIapError('store_timeout');
+        return 'failed';
+      }
+      // A screen that has gone, or a sheet she closed, starts nothing.
+      if (!mayStart()) return 'cancelled';
+      const pkg = findPackage(loaded.value, tier);
       if (!pkg) {
         setIapError('tier_not_configured');
         return 'failed';
       }
 
-      const result = await purchaseRevenueCatPackage(pkg, owner, current);
-      if (!current()) return 'cancelled';
+      // Bought as `owner` (checked inside the identity queue, which also holds
+      // every sign-in and sign-out until the store has answered). The time
+      // limit covers only the wait UNTIL the store's purchase call is made;
+      // from that call on, its answer is always waited for.
+      let storeAsked: () => void = () => undefined;
+      const untilStore = new Promise<void>((resolve) => { storeAsked = resolve; });
+      const purchase = purchaseRevenueCatPackage(pkg, owner, mayStart, {
+        confirmOwner: control.confirmOwner,
+        onStoreCall: () => {
+          storeAsked();
+          control.onStoreCall?.();
+        },
+      });
+      // (Ended before the store was asked: the wait is over too.)
+      purchase.then(storeAsked, storeAsked);
+      const reached = await beforeStoreStep(untilStore, { limitMs: PRE_STORE_STEP_MS, left: control.left, onStop: giveUp });
+      if (reached.outcome !== 'done') {
+        // Still queued behind a login that has stalled: it starts nothing now.
+        purchase.catch(() => undefined);
+        if (reached.outcome === 'left') return 'cancelled';
+        if (current()) setIapError('store_timeout');
+        return 'failed';
+      }
+      const result = await purchase;
       if (!result.customerInfo.entitlements.active[tier]) {
-        setIapError('entitlement_not_granted');
+        if (current()) setIapError('entitlement_not_granted');
         return 'failed';
       }
       return 'success';
     } catch (err: unknown) {
-      if (!current()) return 'cancelled';
       const rcErr = err as { userCancelled?: boolean; message?: string };
       if (rcErr.userCancelled) return 'cancelled';
+      // She left, or the screen or the account changed, before the store was
+      // asked: not a failure. (RevenueCat not being on this account IS one:
+      // PURCHASE_NOT_IDENTIFIED falls through to 'failed', so she is told.)
+      if (rcErr.message === PURCHASE_NOT_STARTED) return 'cancelled';
+      // Waiting for approval (Ask to Buy, a bank): the store has the request,
+      // and the plan turns on by itself if it is approved. Not an error.
+      if (isPaymentPending(err)) return 'pending';
       console.error(`[useIAP] ${tier} purchase failed:`, err);
-      setIapError(rcErr.message ?? 'purchase_failed');
+      if (current()) setIapError(rcErr.message ?? 'purchase_failed');
       return 'failed';
     } finally {
       lifetime.purchasing = false;
@@ -151,8 +202,8 @@ export function useIAP() {
   }
 
   return {
-    purchasePremium: () => purchaseTier('premium'),
-    purchaseEssential: () => purchaseTier('essential'),
+    purchasePremium: (control?: PurchaseControl) => purchaseTier('premium', control),
+    purchaseEssential: (control?: PurchaseControl) => purchaseTier('essential', control),
     purchasing: purchasing && lifetime.purchasing,
     iapError,
     prices,

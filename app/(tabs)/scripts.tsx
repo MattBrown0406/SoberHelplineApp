@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
+import { TabHeader } from '../../src/components/ui/TabHeader';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { ScriptCard } from '../../src/components/scripts/ScriptCard';
@@ -91,11 +92,7 @@ export default function ScriptsScreen() {
 
   return (
     <ScreenContainer backgroundColor={colors.cream}>
-      <View style={styles.headerRow}>
-        <Text accessibilityRole="header" style={[styles.heading, { color: colors.ink }]}>
-          {tCommon('nav.scripts')}
-        </Text>
-      </View>
+      <TabHeader title={tCommon('nav.scripts')} />
 
       {/* Search */}
       <View style={[styles.searchBar, { borderColor: colors.line }]}>
@@ -192,19 +189,6 @@ export default function ScriptsScreen() {
 }
 
 const styles = StyleSheet.create({
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    marginTop: 8,
-  },
-  heading: {
-    fontSize: 24,
-    fontWeight: '700',
-    letterSpacing: -0.4,
-  },
-
   searchBar: {
     backgroundColor: '#fff',
     borderWidth: 1,

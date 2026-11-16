@@ -2,6 +2,27 @@ import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 
+/**
+ * The one shape for full-width primary and secondary action buttons: the fully
+ * rounded pill the sign-up, sign-in and onboarding screens use. Screens that
+ * draw their own button spread `buttonShape` into its style, so the radius and
+ * the height are written once, here.
+ *
+ * Colour: a primary action is `colors.primary` with white text; a secondary
+ * one is an outline or `colors.primaryLight` with primary text. Coral is only
+ * for danger and safety, green only for something confirmed.
+ */
+export const BUTTON_RADIUS = 99;
+export const BUTTON_MIN_HEIGHT = 48;
+export const buttonShape = {
+  borderRadius: BUTTON_RADIUS,
+  minHeight: BUTTON_MIN_HEIGHT,
+  // Room at the round ends, so a label that wraps stays inside the pill.
+  paddingHorizontal: 20,
+  alignItems: 'center',
+  justifyContent: 'center',
+} as const;
+
 interface Props {
   label: string;
   onPress: () => void;
@@ -44,15 +65,13 @@ export function Button({ label, onPress, variant = 'primary', disabled = false, 
 
 const styles = StyleSheet.create({
   btn: {
-    borderRadius: 14,
-    padding: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 44,
+    ...buttonShape,
+    paddingVertical: 14,
   },
   label: {
     fontSize: 15,
     fontWeight: '700',
+    textAlign: 'center',
   },
   disabled: {
     opacity: 0.5,

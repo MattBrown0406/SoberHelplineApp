@@ -221,21 +221,25 @@ test('a logged yes opens They Said Yes mode; the plan screen honours focus=yes',
 test('Today shows the engine card on both tiers, after check-in; the Monday call card leads', () => {
   const today = readFileSync('app/(tabs)/index.tsx', 'utf8');
   const all = today.split('<ScreenContainer').slice(1);
+  // The engine card is one of the "next step" cards: in the slot under the
+  // check-in when it wins, under "More for this week" when it does not.
+  assert.match(today, /const nextStepCards: Record<NextStepCard, React\.ReactNode> = \{[^}]*invitation: invitationCard,/);
   // The bereaved Today (her loved one died) has nothing about them.
   const bereaved = all.filter((screen) => screen.includes('<GriefCard'));
   assert.equal(bereaved.length, 1);
-  for (const card of ['{invitationCard}', '{lovedOneCheckCard}', '{holidayCard}', '{pathwayCard}', '{willingnessWindowAlert}', '<CurriculumCard']) {
+  for (const card of ['nextStepSlot', 'moreForThisWeek', '{invitationCard}', '{lovedOneCheckCard}', '{holidayCard}', '{pathwayCard}', '{willingnessWindowAlert}', '<CurriculumCard']) {
     assert.ok(!bereaved[0].includes(card), `bereaved Today has no ${card}`);
   }
   // The cold-start moment before the bereaved flag is known renders only the header.
   const screens = all.filter((screen) => !screen.includes('<GriefCard') && screen.includes('{checkInCard}'));
   assert.equal(screens.length, 2);
   for (const screen of screens) {
-    assert.ok(screen.includes('{invitationCard}'));
-    assert.ok(screen.indexOf('{checkInCard}') < screen.indexOf('{invitationCard}'));
-    // The free Monday call leads, right after immediate help (NeedsRouter).
-    assert.ok(screen.indexOf('<NeedsRouter') < screen.indexOf('{mondayCallCard}'));
+    assert.ok(screen.includes('...nextStepSlot') && screen.includes('...moreForThisWeek'));
+    assert.ok(screen.indexOf('{checkInCard}') < screen.indexOf('...nextStepSlot'));
+    // The free Monday call leads, then the check-in; "What do you need right
+    // now?" (NeedsRouter) follows the one next step.
     assert.ok(screen.indexOf('{mondayCallCard}') < screen.indexOf('{checkInCard}'));
+    assert.ok(screen.indexOf('...nextStepSlot') < screen.indexOf('<NeedsRouter'));
     assert.ok(!screen.includes('<SituationCard'), 'rendered once, through mondayCallCard');
   }
 });

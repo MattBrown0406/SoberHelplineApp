@@ -84,8 +84,12 @@ test('free trials show only when the store says she is eligible', () => {
 });
 
 test('members who already have a plan are never promised a trial', () => {
+  // The rule lives with the plan offers every plans surface reads (plans screen, Support tab).
+  const offers = readFileSync('src/hooks/usePlanPurchase.ts', 'utf8');
+  assert.match(offers, /if \(!trial \|\| !subscriptionPrices\[tier\] \|\| entitlements\.canAccessGroups\) return null;/);
   const support = readFileSync('app/(tabs)/support.tsx', 'utf8');
-  assert.match(support, /if \(!trial \|\| !subscriptionPrices\[tier\] \|\| entitlements\.canAccessGroups\) return null;/);
+  assert.match(support, /const planOffers = usePlanOffers\(\);/);
+  assert.doesNotMatch(support, /useIAP\(|trialLabelKey/, 'the Support tab has no trial rule of its own');
 });
 
 test('trial copy keeps the price and the cancel terms next to the trial', () => {
@@ -143,7 +147,9 @@ test('this week\'s one thing: only a well-formed reply counts', () => {
 
 test('Today leads with the Monday card, with the question link and this week\'s one thing', () => {
   const card = readFileSync('src/components/today/SituationCard.tsx', 'utf8');
-  assert.match(card, /isFamilySquares && nextFreeCall\?\.rsvped && \(/);
+  // The question link: Family Squares, her seat saved, and not a cancelled week (familySquaresCard).
+  assert.match(card, /const questionLink = view\.question && nextFreeCall && \(/);
+  assert.match(card, /\{questionLink\}/);
   assert.match(card, /params: \{ sessionId: nextFreeCall\.id, ask: 'question' \}/);
   const today = readFileSync('app/(tabs)/index.tsx', 'utf8');
   // Matt's line is from the English call; Spanish members see their own practice.
@@ -163,7 +169,8 @@ test('the community feed is hidden everywhere it could be reached', () => {
 
 test('a failed Today reload keeps what this account last loaded', () => {
   const feed = readFileSync('src/hooks/useTodayFeed.ts', 'utf8');
-  assert.match(feed, /const failed = \[wallsRes, rsvpCountRes, sessRes, rsvpRowsRes, sitRes\]\.some\(\(res\) => res\.error\);\n\s+if \(failed && loadedFor\.current === accountId\) \{\n\s+setLoading\(false\);\n\s+return;/);
+  // (All but "cancelled", which is never kept from an earlier read: audit round 3, M1.)
+  assert.match(feed, /const failed = \[wallsRes, rsvpCountRes, sessRes, rsvpRowsRes, sitRes\]\.some\(\(res\) => res\.error\);\n\s+if \(failed && loadedFor\.current === accountId\) \{\n[\s\S]*?const fresh = isFamilySquaresSession\(prev\) \? cancelledDate : null;[\s\S]*?\n\s+setLoading\(false\);\n\s+return;/);
   assert.match(feed, /if \(!failed\) loadedFor\.current = accountId;/);
   assert.match(feed, /AppState\.addEventListener\('change', \(state\) => \{\n\s+if \(state === 'active'\) void load\(\);/);
 });

@@ -34,7 +34,7 @@ export function mondayCallShareMessage(language: ResourceLanguage): string {
   return [
     'I wanted to share a free resource for families affected by addiction.',
     '',
-    'The Family Squares — free family support call',
+    'Family Squares — free family support call',
     'Mondays at 7:00 PM Pacific · on Zoom',
     '',
     `Register: ${MONDAY_FAMILY_CALL_URL}`,
@@ -103,7 +103,7 @@ const ENGLISH_CARD = {
   keepBody: 'Say it once. Do not debate it while anyone is intoxicated. Choose only a response you can carry out safely.',
   safety: 'If anyone may be in immediate danger or you suspect an overdose, call 911. A boundary card does not replace emergency or clinical help.',
   call: 'Free Monday family support call',
-  schedule: 'The Family Squares · Mondays · 7:00 PM Pacific · Zoom',
+  schedule: 'Family Squares · Mondays · 7:00 PM Pacific · Zoom',
   disclaimer: 'Family education and peer support from Sober Helpline. Not medical or emergency care.',
 } as const;
 

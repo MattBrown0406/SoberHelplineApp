@@ -11,12 +11,17 @@ const exports = {};
 new Function('exports', compiled)(exports);
 const copy = exports.membershipGuideContent;
 
+test('the guide states the owner\'s experience as he does: 20+ years', () => {
+  assert.match(copy.en.intro, /an interventionist with 20\+ years of experience\./);
+  assert.match(copy.es.intro, /un intervencionista con más de 20 años de experiencia\./);
+});
+
 test('English and Spanish provide the same complete written guide', () => {
   assert.deepEqual(Object.keys(copy.en).sort(), Object.keys(copy.es).sort());
   for (const c of Object.values(copy)) {
     for (const text of Object.values(c)) assert.ok(text.length > 0);
     assert.match(c.intro, /Matt Brown/);
-    assert.match(c.intro, /22/);
+    assert.doesNotMatch(c.intro, /22/);
     assert.match(c.safety, /911/);
     assert.match(c.exampleNote, /Matt/);
     assert.match(c.timing, /Essential/);
@@ -30,16 +35,23 @@ test('English and Spanish provide the same complete written guide', () => {
 });
 
 test('safety and free practice precede commercial options; real routes exist', () => {
-  for (const route of ['/crisis-mode', '/safety-wallet', '/free-practice', '/(tabs)/support']) {
+  for (const route of ['/crisis-mode', '/safety-wallet', '/free-practice']) {
     assert.ok(screen.includes(`router.push('${route}')`));
     assert.ok(fs.existsSync(new URL(`app${route}.tsx`, root)));
   }
+  // "See plans" opens the plans screen (not the top of the Support tab) and says where she came from.
+  assert.ok(screen.includes("router.push(plansHref('membership_guide'))"));
+  assert.ok(fs.existsSync(new URL('app/plans.tsx', root)));
+  assert.ok(!screen.includes("'/(tabs)/support'"));
+  assert.ok(screen.indexOf('heading(c.options)') < screen.indexOf("plansHref('membership_guide')"));
   assert.ok(screen.indexOf('router.push(\'/safety-wallet\')') < screen.indexOf('heading(c.options)'));
   assert.ok(screen.indexOf('router.push(\'/free-practice\')') < screen.indexOf('heading(c.options)'));
 });
 
 test('uses canonical benefits, rate, account and store prices without purchasing', () => {
-  for (const contract of ['walletMembershipCopy(i18n.language)', 'membership.essential', 'membership.premier', 'fillCoachingRates(membership.service, { rate: coachingRate.hourly, memberRate: COACHING_MEMBER_PRICE })', 'useCoachingRate()', 'useAccount()', 'useIAP()', 'prices.essential', 'prices.premium', 'membership.priceUnavailable', 'retryPrices']) assert.ok(screen.includes(contract), contract);
+  // What each plan includes is the one list (plans.json), not a paragraph of its own.
+  assert.ok(!screen.includes('membership.essential') && !screen.includes('membership.premier'));
+  for (const contract of ['walletMembershipCopy(i18n.language)', '<BenefitList plan="essential" />', '<BenefitList plan="premier" />', 'fillCoachingRates(membership.service, { rate: coachingRate.hourly, memberRate: COACHING_MEMBER_PRICE })', 'useCoachingRate()', 'useAccount()', 'useIAP()', 'prices.essential', 'prices.premium', 'membership.priceUnavailable', 'retryPrices']) assert.ok(screen.includes(contract), contract);
   assert.doesNotMatch(screen, /purchaseEssential|purchasePremium|TextInput|sendMessage|VideoView|Audio|\$\d/);
   assert.doesNotMatch(screen, /if\s*\(!user\)|Redirect|numberOfLines/);
 });

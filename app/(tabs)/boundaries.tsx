@@ -16,6 +16,8 @@ import { useFocusEffect } from 'expo-router';
 import { supabase } from '../../src/lib/supabase';
 import { classifyOutboxError, offlineOutbox, subscribeOutboxReplay } from '../../src/lib/offlineOutbox';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
+import { TabHeader } from '../../src/components/ui/TabHeader';
+import { buttonShape } from '../../src/components/ui/Button';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
@@ -36,6 +38,8 @@ import { isWallAligned } from '../../src/content/familyScripts';
 import { recentLocalDays, weekdayOf } from '../../src/lib/localDays';
 import { appAlert } from '../../src/lib/appAlert';
 import { familyJoinErrorKey } from '../../src/lib/inviteCodeErrors';
+import { isFamilySquaresMeetingDay, mondayChallengeShown } from '../../src/lib/mondayChallenge';
+import { useMondayMeetingWeek } from '../../src/hooks/useMondayMeetingWeek';
 import type { BoundaryWall } from '../../src/api/types';
 
 type BoundariesContent = typeof enContent;
@@ -80,7 +84,20 @@ export default function BoundariesScreen() {
   // ── Daily challenge + streak bar ──────────────────────────────────────────
   const now = new Date();
   const doy = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000);
-  const isMonday = now.getDay() === 1;
+  // The Monday line says "join Family Squares tonight": shown on the meeting's
+  // own Pacific day (not the phone's Monday), and never in a week the website
+  // cancelled or after she said "can't make it" (mondayChallenge; fails open).
+  // Spanish keeps La Sobremesa's line on the phone's Monday, as before.
+  const spanish = i18n.language.startsWith('es');
+  const meetingDay = !spanish && isFamilySquaresMeetingDay(now);
+  const mondayWeek = useMondayMeetingWeek(user?.id ?? null, meetingDay);
+  const isMonday = mondayChallengeShown({
+    spanish,
+    localMonday: now.getDay() === 1,
+    meetingDay,
+    cancelled: mondayWeek.cancelled,
+    declined: mondayWeek.declined,
+  });
   const challengeText = isMonday
     ? content.challenge.monday
     : content.challenge.daily[doy % content.challenge.daily.length];
@@ -359,18 +376,7 @@ export default function BoundariesScreen() {
 
   return (
     <ScreenContainer scrollRef={scrollRef} backgroundColor={colors.cream} keyboardShouldPersistTaps="handled">
-        <View style={styles.headerRow}>
-          <Text style={[styles.heading, { color: colors.ink }]}>
-            {tCommon('nav.boundaries')}
-          </Text>
-          {firstName ? (
-            <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-              <Text style={styles.avatarText}>
-                {firstName.charAt(0).toUpperCase()}
-              </Text>
-            </View>
-          ) : null}
-        </View>
+        <TabHeader title={tCommon('nav.boundaries')} />
 
         <Text style={[styles.enablingSub, { color: colors.inkSoft }]}>{content.intro}</Text>
 
@@ -819,30 +825,6 @@ export default function BoundariesScreen() {
 }
 
 const styles = StyleSheet.create({
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    marginTop: 8,
-  },
-  heading: {
-    fontSize: 24,
-    fontWeight: '700',
-    letterSpacing: -0.4,
-  },
-  avatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 15,
-  },
   card: {
     backgroundColor: '#fff',
     borderRadius: 18,
@@ -929,7 +911,7 @@ const styles = StyleSheet.create({
   inviteLabel: { fontSize: 11, marginTop: 2 },
   noFamilyTitle: { fontSize: 15, fontWeight: '700', marginBottom: 6 },
   noFamilyBody: { fontSize: 13, lineHeight: 19, marginBottom: 16 },
-  solidBtn: { borderRadius: 12, paddingVertical: 13, alignItems: 'center', marginBottom: 10 },
+  solidBtn: { ...buttonShape, paddingVertical: 13, marginBottom: 10 },
   solidBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   joinRow: { flexDirection: 'row', gap: 8 },
   joinInput: {

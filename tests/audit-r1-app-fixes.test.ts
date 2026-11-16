@@ -218,7 +218,8 @@ test('onboarding saves a spot only at the Monday call in the member\'s language'
   assert.doesNotMatch(screen, /\.eq\('kind', 'group'\)/);
   assert.match(
     screen,
-    /\{nextGroupId && \(\s*<Text[^>]*>\s*\{t\(spanish \? 'common:laSobremesa\.note' : 'common:familySquares\.rsvpNote'\)\}/,
+    // (Not in a week the website cancelled: audit round 3, M3.)
+    /\{nextGroupId && !weekCancelled && \(\s*<Text[^>]*>\s*\{t\(spanish \? 'common:laSobremesa\.note' : 'common:familySquares\.rsvpNote'\)\}/,
   );
 });
 

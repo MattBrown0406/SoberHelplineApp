@@ -15,7 +15,7 @@ import { COMMUNITY_FEED_VISIBLE } from './communityFeed';
  * | practice_incoming          | event_id, expires_at   | /rehearsal-incoming (discarded when expired)  |
  * | coach_message              | thread_id?             | /chat (coach messaging) else Support           |
  * | member_message             | thread_id?             | /admin-thread (coach device)                   |
- * | session_reminder           | session_id?, room_name?, ask? | /live-room (community) or Support + session_id (ask=question opens its question sheet) |
+ * | session_reminder           | session_id?, room_name?, ask? | /live-room (community) or Support + session_id (ask=question opens its question sheet). A Family Squares reminder without ask ("tap to join") is then taken further by familySquaresPushJoin: Zoom at meeting time, else Today's call card |
  * | family_call_followup       | meeting_date?          | Today (this week's one thing, next Monday's seat) |
  * | morning_note, daily_nudge  | screen? (tab name)     | that tab, default Today                        |
  * | winback                    | —                      | /guided-journey                                |
@@ -154,13 +154,15 @@ export function getPushDestination(data: PushData, options: PushRoutingOptions |
     }
     const sessionId = uuidField(data, 'session_id');
     if (!sessionId) return SUPPORT;
-    // The hour-before reminder invites a question for the call.
+    // The hour-before reminder invites a question for the call. Without it the
+    // reminder says "tap to join": usePushNotifications looks the session up and,
+    // for Family Squares, opens the meeting or Today's call card instead.
     return data.ask === 'question'
       ? { pathname: '/(tabs)/support', params: { sessionId, ask: 'question' } }
       : { pathname: '/(tabs)/support', params: { sessionId } };
   }
 
-  // Tuesday after The Family Squares: this week's one thing is on Today.
+  // Tuesday after Family Squares: this week's one thing is on Today.
   if (kind === 'family_call_followup') {
     return HOME;
   }

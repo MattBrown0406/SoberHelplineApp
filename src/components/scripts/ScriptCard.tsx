@@ -11,6 +11,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
+import { buttonShape } from '../ui/Button';
 import { useRehearsalCount } from '../../hooks/useRehearsalCount';
 import type { Script } from '../../api/types';
 
@@ -274,13 +275,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   practiceBtn: {
+    ...buttonShape,
     borderWidth: 1,
-    borderRadius: 10,
     paddingVertical: 9,
-    alignItems: 'center',
     marginTop: 4,
-    minHeight: 44,
-    justifyContent: 'center',
   },
   practiceBtnText: {
     fontSize: 13,

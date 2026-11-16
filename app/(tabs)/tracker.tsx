@@ -7,6 +7,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
+import { TabHeader } from '../../src/components/ui/TabHeader';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAccount } from '../../src/contexts/AccountContext';
@@ -179,6 +180,7 @@ function TrackerContent() {
 
   return (
     <ScreenContainer backgroundColor={colors.cream}>
+        <TabHeader title={t('common:nav.tracker')} />
         <WillingnessWindowCard
           accountId={user?.id ?? null}
           onSituationRefresh={refreshSituation}

@@ -3,6 +3,7 @@ import { Platform, Share, StyleSheet, Text, TouchableOpacity, View } from 'react
 import * as Print from 'expo-print';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
+import { buttonShape } from '../ui/Button';
 import { logFunnelEvent } from '../../lib/funnel';
 import {
   boundaryCardHtml,
@@ -160,11 +161,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   primaryButton: {
-    minHeight: 48,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
+    ...buttonShape,
     marginBottom: 10,
   },
   primaryButtonText: {
@@ -174,12 +171,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   secondaryButton: {
-    minHeight: 48,
-    borderRadius: 14,
+    ...buttonShape,
     borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
   },
   secondaryButtonText: {
     fontSize: 15,

@@ -13,7 +13,10 @@ import { settlePendingPushTokenRevoke } from '../lib/pendingPushTokenRevoke';
 import { isDeviceSignedIn } from '../lib/pushDevice';
 import { shouldDeferPushRouting } from '../lib/pushColdStart';
 import { requestFamilySpaceRefresh } from '../lib/familySpaceRefresh';
+import { joinFamilySquaresFromPush, planReminderJoin, reminderJoinSessionId } from '../lib/familySquaresPushJoin';
+import type { ReminderTapPlan } from '../lib/familySquaresJoin';
 import { useAccount } from '../contexts/AccountContext';
+import { canAccessFeature } from '../lib/featureAccess';
 import type { Entitlements } from '../api/types';
 import { pausePersonalRemindersForQuiet, resumePersonalRemindersAfterQuiet } from '../reminders/bereavementQuiet';
 export const LEGACY_NUDGE_PREFIX = 'legacy-daily-nudge:v1:';
@@ -94,10 +97,17 @@ export const DEFAULT_REMINDER_HOUR = 9;
 // notify-daily-morning sends its note at the chosen hour only before noon.
 const MORNING_NOTE_BEFORE_HOUR = 12;
 /**
- * Push features this build understands (accounts.push_app_contract): 1 = the
- * hour-before reminder's ask=question and Today's "this week's one thing".
+ * Push features this build understands (accounts.push_app_contract):
+ * 1 = the hour-before reminder's ask=question and Today's "this week's one
+ *     thing";
+ * 2 = this build logs Family Squares attendance before it leaves for Zoom
+ *     (the 'attended' funnel event is sent, and waited for, ahead of the
+ *     meeting link opening), so the server can tell "saved a seat and never
+ *     joined" from "joined" and may use the kinder "we missed you" wording in
+ *     Tuesday's note. A build that reports 1 may have joined without the
+ *     server hearing of it, so it is never told it was missed.
  */
-export const PUSH_APP_CONTRACT = 1;
+export const PUSH_APP_CONTRACT = 2;
 const NUDGE_DAYS = 7; // schedule a week of nudges ahead so non-openers still get pinged
 const pushWriteBarrier = new AsyncWriteBarrier();
 let activePushAccountId: string | null = null;
@@ -106,6 +116,34 @@ let activePushAccountId: string | null = null;
 // covers this device's daily nudge when that token is this device's.
 let devicePushToken: { accountId: string; token: string } | null = null;
 let nudgeRearmQueue: Promise<void> = Promise.resolve();
+const WEEK_REVIEW_ID = LEGACY_NUDGE_PREFIX + 'weekly';
+// Whether this account's Today shows the week review (the paid Today). Unknown
+// (null) until the account's access has settled after a cold start.
+let weekReviewAccess: { accountId: string; canSee: boolean } | null = null;
+
+/**
+ * The Sunday 6pm "Your week, at a glance" note points at the week review on
+ * Today, which only the paid Today shows (and never the bereaved Today). It is
+ * scheduled only for someone who will find that card when she taps it.
+ */
+export function shouldScheduleWeekReview(input: { canSeeWeekReview: boolean | null; bereaved: boolean }): boolean {
+  return input.canSeeWeekReview === true && !input.bereaved;
+}
+
+/**
+ * Tells the scheduler whether this account can see the week review, then
+ * re-arms: a plan that ended has its Sunday note cancelled, a new one gets it.
+ */
+export function setWeekReviewAccess(accountId: string | null, canSee: boolean | null): Promise<void> {
+  const next = accountId && canSee !== null ? { accountId, canSee } : null;
+  if (next?.accountId === weekReviewAccess?.accountId && next?.canSee === weekReviewAccess?.canSee) return Promise.resolve();
+  weekReviewAccess = next;
+  // Only for the account this device is registered for. Before registration
+  // (app start) a re-arm would cancel her reminders with nothing to put back;
+  // registering re-arms by itself and reads the access noted here.
+  if (!next || activePushAccountId !== next.accountId) return Promise.resolve();
+  return rearmDailyNudge();
+}
 
 /** Null this account's server-side push token (used to settle an offline sign-out). */
 export async function revokePushToken(accountId: string): Promise<void> {
@@ -163,6 +201,13 @@ async function performDailyNudgeRearm(): Promise<void> {
   const generation = accountId ? pushWriteBarrier.begin(accountId) : -1;
   const current = () => !!accountId && activePushAccountId === accountId
     && pushWriteBarrier.isCurrent(accountId, generation);
+  const canSeeWeekReview = accountId && weekReviewAccess?.accountId === accountId ? weekReviewAccess.canSee : null;
+  // Known not to see the week review (free, or a plan that ended): cancel a
+  // Sunday note that is already scheduled, even if the account read below
+  // fails offline and nothing else is touched.
+  if (canSeeWeekReview === false) {
+    await Notifications.cancelScheduledNotificationAsync(WEEK_REVIEW_ID).catch(() => undefined);
+  }
   // Resolve the account before touching the schedule: offline the lookup
   // fails, and cancelling first would leave the week with no reminders.
   const { data: { session } } = await supabase.auth.getSession();
@@ -174,6 +219,8 @@ async function performDailyNudgeRearm(): Promise<void> {
   let account: DailyAccount | null = null;
   // Bereaved and asked for quiet: nothing scheduled on this device either.
   let remindersPaused = false;
+  // Her loved one died: the bereaved Today has no week review.
+  let bereaved = false;
   // The server morning note reaches her (via the token on file) at this hour.
   let serverMorningNote = false;
   if (accountId && session?.user.id) {
@@ -186,8 +233,8 @@ async function performDailyNudgeRearm(): Promise<void> {
     }
     if (error) return;
     account = data as DailyAccount | null;
-    remindersPaused = account?.id === accountId && !!account.loved_ones?.died_at
-      && account.loved_ones.bereavement_quiet === true;
+    bereaved = account?.id === accountId && !!account.loved_ones?.died_at;
+    remindersPaused = bereaved && account?.loved_ones?.bereavement_quiet === true;
     // The pause turns the daily reminder off once (and back on after); before
     // the opt-in below is mirrored to the server.
     if (account?.id === accountId && current()) {
@@ -260,14 +307,17 @@ async function performDailyNudgeRearm(): Promise<void> {
   }
 
   // Sunday 6pm week-in-review — the weekly payoff that pairs with the
-  // WeekReviewCard on Today. One-shot; re-armed on every foreground.
+  // WeekReviewCard on Today. One-shot; re-armed on every foreground. Only for
+  // members whose Today shows that card: for anyone else the one scheduled
+  // earlier was cancelled above and is not put back.
+  if (!shouldScheduleWeekReview({ canSeeWeekReview, bereaved })) return;
   const sunday = new Date();
   sunday.setHours(18, 0, 0, 0);
   sunday.setDate(sunday.getDate() + ((7 - sunday.getDay()) % 7));
   if (sunday <= now) sunday.setDate(sunday.getDate() + 7);
   if (!current()) return;
   await Notifications.scheduleNotificationAsync({
-    identifier: LEGACY_NUDGE_PREFIX + 'weekly',
+    identifier: WEEK_REVIEW_ID,
     content: {
       title: i18n.t('settings:notifications.weekReviewTitle'),
       body: i18n.t('settings:notifications.weekReviewBody'),
@@ -354,6 +404,21 @@ export function usePushNotifications(
   const { entitlementsSettled } = useAccount();
   // A tap held back until entitlements settle (see shouldDeferPushRouting).
   const deferredResponse = useRef<Notifications.NotificationResponse | null>(null);
+  // Who this hook is live for right now, whichever run of the effect below is
+  // current. A reminder tap that is waiting on its lookup stays hers while
+  // this still matches, even if the effect has re-run meanwhile.
+  const live = useRef({ accountId, navigationReady, mounted: true });
+  live.current.accountId = accountId;
+  live.current.navigationReady = navigationReady;
+  useEffect(() => {
+    const state = live.current;
+    state.mounted = true;
+    return () => { state.mounted = false; };
+  }, []);
+  const routerRef = useRef(router);
+  routerRef.current = router;
+  // One lookup per reminder tap, shared by every run of the effect that sees it.
+  const joinPlans = useRef(new Map<string, Promise<ReminderTapPlan>>());
 
   useEffect(() => {
     if (!accountId) return;
@@ -374,6 +439,15 @@ export function usePushNotifications(
       void cancelPushRegistration(accountId).catch(error => console.warn('[push] cleanup failed', error));
     };
   }, [accountId]);
+
+  // The Sunday week-review note follows what her plan lets her see on Today.
+  // Not decided while the entitlements are still a cold-start fallback.
+  const canSeeWeekReview = entitlements && entitlementsSettled
+    ? canAccessFeature({ feature: 'todayFull', entitlements })
+    : null;
+  useEffect(() => {
+    void setWeekReviewAccess(accountId, canSeeWeekReview).catch(error => console.warn('[push] rearm failed', error));
+  }, [accountId, canSeeWeekReview]);
 
   useEffect(() => {
     if (!accountId || !navigationReady) return;
@@ -407,18 +481,46 @@ export function usePushNotifications(
         if (valid !== true) return true;
       }
 
-      if (!effectActive) return false;
+      // "Tap to join": a Family Squares reminder opens the meeting itself when
+      // it is about to start or under way, and Today's call card otherwise.
+      // Looked up before the duplicate check below, so Zoom opens only once.
+      let route = destination;
+      let meetingUrl: string | null = null;
+      const joinSessionId = reminderJoinSessionId(destination);
+      if (joinSessionId) {
+        const tapKey = `${response.notification.request.identifier}:${joinSessionId}`;
+        let lookup = joinPlans.current.get(tapKey);
+        if (!lookup) {
+          const plans = joinPlans.current;
+          lookup = planReminderJoin(joinSessionId).finally(() => { plans.delete(tapKey); });
+          plans.set(tapKey, lookup);
+        }
+        const plan = await lookup;
+        if (plan.action !== 'default') route = { pathname: '/(tabs)' };
+        if (plan.action === 'open_meeting') meetingUrl = plan.url;
+      }
+
+      // The effect can re-run while the lookup is out (the entitlements settle
+      // on a cold start). That alone must not drop the tap: nothing would pick
+      // it up again. It is still hers while the same account is signed in and
+      // navigation is ready. If the newer run is handling the same tap too,
+      // the duplicate check below lets exactly one of them act.
+      const stillHers = effectActive
+        || (live.current.mounted && live.current.accountId === accountId && live.current.navigationReady);
+      if (!stillHers) return false;
       if (!shouldHandlePushResponse(data, response.notification.request.identifier)) return true;
       // A relative's backup notice lands on the already-mounted Boundaries tab
       // (and Today keeps its own copy): re-read the family space now.
       if (data.kind === 'family_backup') requestFamilySpaceRefresh();
       try {
-        router.push(destination as never);
-        return true;
+        routerRef.current.push(route as never);
       } catch (error) {
         console.warn('[push] notification navigation failed', error);
         return false;
       }
+      // Today is underneath, so that is where she is when she comes back from Zoom.
+      if (meetingUrl) void joinFamilySquaresFromPush(accountId, meetingUrl);
+      return true;
     };
 
     const responseSub = Notifications.addNotificationResponseReceivedListener((response) => {

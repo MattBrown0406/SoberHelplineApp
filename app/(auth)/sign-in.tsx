@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
-  Image,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -12,41 +11,59 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Link } from 'expo-router';
+import { Link, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { supabase } from '../../src/lib/supabase';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { addAppBreadcrumb, captureAppError } from '../../src/lib/monitoring';
 import { EmergencyActions } from '../../src/components/safety/EmergencyActions';
-const LOGO = require('../../assets/images/logo.png');
+import { ResendConfirmationNote } from '../../src/components/auth/ResendConfirmationNote';
+import { AuthBrand } from '../../src/components/auth/AuthBrand';
+import { isEmailNotConfirmed } from '../../src/lib/frontDoor';
 
 export default function SignInScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation('auth');
   const { completeSignIn } = useAccount();
+  // "Confirm your email" hands over the address she already typed (never the password).
+  const params = useLocalSearchParams<{ email?: string }>();
 
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(typeof params.email === 'string' ? params.email : '');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The address a sign-in was just refused for because it is not confirmed
+  // yet: "Send the confirmation email again" is offered for that address, and
+  // goes away when she types a different one. (The address only, in memory.)
+  const [unconfirmedFor, setUnconfirmedFor] = useState<string | null>(null);
+  const passwordInput = useRef<TextInput>(null);
+
+  function changeEmail(value: string) {
+    setEmail(value);
+    if (unconfirmedFor !== null && value.trim() !== unconfirmedFor) setUnconfirmedFor(null);
+  }
 
   async function handleEmailSignIn() {
     setError(null);
+    setUnconfirmedFor(null);
     setLoading(true);
     let authenticated = false;
     addAppBreadcrumb('auth.sign_in_started');
 
     try {
+      const typedEmail = email.trim();
       const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
+        email: typedEmail,
         password,
       });
 
       if (authError) {
         addAppBreadcrumb('auth.sign_in_rejected', 'warning');
-        const unconfirmed = authError.code === 'email_not_confirmed'
-          || authError.message.toLowerCase().includes('not confirmed');
+        const unconfirmed = isEmailNotConfirmed(authError);
+        // After the app was closed this is the only place a new link can be
+        // asked for (the confirm step is gone, and links expire).
+        if (unconfirmed) setUnconfirmedFor(typedEmail);
         setError(
           unconfirmed
             ? t('signIn.errorUnconfirmed')
@@ -90,10 +107,8 @@ export default function SignInScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Logo / brand */}
-          <View style={styles.brand}>
-            <Image source={LOGO} style={styles.logoImg} resizeMode="contain" />
-          </View>
+          {/* Logo / brand: the same block as sign-up */}
+          <AuthBrand />
 
           {/* Card */}
           <View style={[styles.card, { borderColor: colors.line }]}>
@@ -104,6 +119,8 @@ export default function SignInScreen() {
                 <Text style={[styles.errorText, { color: colors.coral }]}>{error}</Text>
               </View>
             )}
+            {/* Keyed by the address: another address starts with a fresh button. */}
+            {unconfirmedFor ? <ResendConfirmationNote key={unconfirmedFor} email={unconfirmedFor} /> : null}
 
             <View style={styles.field}>
               <Text style={[styles.label, { color: colors.ink }]}>{t('signIn.emailLabel')}</Text>
@@ -112,10 +129,13 @@ export default function SignInScreen() {
                 placeholder={t('signIn.emailPlaceholder')}
                 placeholderTextColor={colors.inkSoft}
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={changeEmail}
                 autoCapitalize="none"
                 keyboardType="email-address"
                 autoComplete="email"
+                returnKeyType="next"
+                onSubmitEditing={() => passwordInput.current?.focus()}
+                submitBehavior="submit"
               />
             </View>
 
@@ -129,6 +149,11 @@ export default function SignInScreen() {
                 onChangeText={setPassword}
                 secureTextEntry
                 autoComplete="current-password"
+                ref={passwordInput}
+                // Return on the keyboard signs in, exactly as the button does
+                // (and only when the button itself could be pressed).
+                returnKeyType="go"
+                onSubmitEditing={() => { if (!loading && email && password) void handleEmailSignIn(); }}
               />
               <Link
                 // On web the query string lands in browser history; prefill natively only.
@@ -142,6 +167,9 @@ export default function SignInScreen() {
             </View>
 
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={t('signIn.submitButton')}
+              accessibilityState={{ disabled: loading || !email || !password, busy: loading }}
               style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
               onPress={handleEmailSignIn}
               disabled={loading || !email || !password}
@@ -156,14 +184,20 @@ export default function SignInScreen() {
 
           </View>
 
-          <View style={styles.footer}>
-            <Text style={[styles.footerText, { color: colors.inkSoft }]}>{t('signIn.noAccount')} </Text>
-            <Link href="/(auth)/sign-up" asChild>
-              <TouchableOpacity>
-                <Text style={[styles.footerLink, { color: colors.primary }]}>{t('signIn.signUpLink')}</Text>
-              </TouchableOpacity>
-            </Link>
-          </View>
+          {/* The way to sign-up, as plain to see as the way back is on sign-up. */}
+          <Link href="/(auth)/sign-up" asChild>
+            <TouchableOpacity
+              accessibilityRole="link"
+              // One flat style object: <Link asChild> spreads the child's style.
+              style={StyleSheet.flatten([styles.otherScreenBtn, { borderColor: colors.primary }])}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.otherScreenText, { color: colors.primary }]}>
+                <Text style={styles.otherScreenLead}>{t('signIn.noAccount')} </Text>
+                {t('signIn.signUpLink')}
+              </Text>
+            </TouchableOpacity>
+          </Link>
 
           <View style={styles.emergency}>
             <EmergencyActions />
@@ -178,8 +212,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   kav: { flex: 1 },
   scroll: { flexGrow: 1, padding: 24, paddingBottom: 40 },
-  brand: { alignItems: 'center', marginTop: 24, marginBottom: 20 },
-  logoImg: { width: 260, height: 120, borderRadius: 14 },
   card: {
     backgroundColor: '#fff',
     borderRadius: 20,
@@ -230,11 +262,20 @@ const styles = StyleSheet.create({
   emergency: { marginTop: 28 },
   forgotLink: { alignSelf: 'flex-end', marginTop: 8, minHeight: 32, justifyContent: 'center' },
   forgotText: { fontSize: 14, fontWeight: '700' },
-  footer: {
-    flexDirection: 'row',
+  // The same outlined button as "I already have an account" on sign-up.
+  otherScreenBtn: {
+    borderWidth: 1.5,
+    borderRadius: 99,
+    minHeight: 48,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 22,
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 480,
+    marginTop: 20,
   },
-  footerText: { fontSize: 14 },
-  footerLink: { fontSize: 14, fontWeight: '600' },
+  otherScreenText: { fontSize: 15, fontWeight: '700', textAlign: 'center' },
+  otherScreenLead: { fontWeight: '500' },
 });

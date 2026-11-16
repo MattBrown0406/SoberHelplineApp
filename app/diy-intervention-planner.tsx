@@ -58,7 +58,7 @@ export default function DiyInterventionPlannerScreen() {
   return (
     <Gate
       feature="diyIntervention"
-      fallback={<Shell><SafetyPanel /><FreeTierPaywall inline /></Shell>}
+      fallback={<Shell><SafetyPanel /><FreeTierPaywall inline source="diy_planner" /></Shell>}
     >
       <DiyInterventionPlannerContent />
     </Gate>

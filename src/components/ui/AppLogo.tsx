@@ -5,7 +5,9 @@ interface Props {
   size?: number;
 }
 
-const LOGO = require('../../../assets/images/lighthouse-icon.png');
+// The lighthouse as the App Store icon and the launch screen draw it (white
+// light beams). Also the launch-screen image in app.json.
+const LOGO = require('../../../assets/images/lighthouse-mark.png');
 
 export function AppLogo({ size = 72 }: Props) {
   return (

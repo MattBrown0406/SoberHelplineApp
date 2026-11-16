@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
+import { buttonShape } from '../ui/Button';
 
 interface Props {
   visible: boolean;
@@ -107,7 +108,7 @@ const styles = StyleSheet.create({
   checkmark: { color: '#fff', fontSize: 15, fontWeight: '900' },
   checkLabel: { flex: 1, fontSize: 14.5, lineHeight: 21, fontWeight: '600' },
   error: { fontSize: 13.5, fontWeight: '700', marginBottom: 10 },
-  confirm: { borderRadius: 12, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
+  confirm: { ...buttonShape },
   confirmText: { color: '#fff', fontSize: 16, fontWeight: '800' },
   cancel: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: 16, marginTop: 6 },
   cancelText: { fontSize: 15, fontWeight: '700' },

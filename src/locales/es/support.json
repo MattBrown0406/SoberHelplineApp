@@ -33,18 +33,17 @@
     "typeGroup": "Grupo",
     "typeOneOnOne": "Individual",
     "typeFamily": "Familiar",
-    "joinZoom": "Unirse al Zoom"
+    "joinZoom": "Unirse al Zoom",
+    "joinLabel": "Unirse a {{name}} por Zoom",
+    "rsvpLabel": "Confirmar asistencia a {{name}}",
+    "confirmLabel": "Tu asistencia a {{name}} está confirmada"
   },
   "tier": {
     "eyebrow": "Guía de crisis y revisión del plan",
     "reviewIntro": "Primero crea el plan de crisis. Después elige cómo quieres que Matt lo revise.",
     "freeName": "Gratuito",
-    "freeFeatures": "Guía de crisis inmediata y pasos de seguridad",
-    "freeCurrent": "Tu plan",
     "essentialName": "Essential",
-    "essentialFeatures": "Crea y guarda tu plan de crisis · mejora a Premier o elige una llamada única de revisión al precio de miembro de {{memberRate}}",
     "premiumName": "Premier",
-    "premiumFeatures": "Revisión del plan incluida · solicitudes de video privado sujetas a programación y disponibilidad del personal",
     "upgradeButton": "Mejorar a Premier",
     "openPlanReview": "Abrir guía de crisis y revisión del plan",
     "current": "Plan actual"
@@ -55,10 +54,6 @@
     "freeAction": "Prueba la práctica guiada gratuita"
   },
   "paywall": {
-    "eyebrow": "COACHING Y GRUPOS",
-    "heading": "Los mensajes al coach y el video en vivo van con un plan",
-    "body": "Los muros del castillo, la revisión de facilitación, el registro, las preguntas de Aprender y los recursos familiares siguen gratis. Essential y Premier añaden mensajería con el coach, grupos y video en vivo. Las líneas de crisis (911 / 988 / Copiloto) no se bloquean.",
-    "viewPlans": "Ver planes",
     "subscribeEssential": "Suscribirse a Essential · {{price}}/mes",
     "subscribePremium": "Mejorar a Premier · {{price}}/mes",
     "autoRenewDisclosure": "Essential cuesta {{essentialPrice}} al mes y Premier cuesta {{premiumPrice}} al mes, facturados a tu cuenta de Apple. Las suscripciones se renuevan automáticamente a menos que se desactiven al menos 24 horas antes del final del período actual. Administra o cancela en cualquier momento en la configuración de tu cuenta de Apple.",
@@ -73,7 +68,7 @@
   "mondayGroup": {
     "eyebrow": "ACCESO GRATUITO",
     "heading": "Grupo de Apoyo Familiar — Lunes",
-    "sub": "Nuestra llamada grupal semanal gratuita — sin suscripción. Confirma tu asistencia para obtener el enlace de Zoom."
+    "sub": "Nuestra reunión grupal semanal gratuita — sin suscripción. Reserva tu lugar para recibir tu enlace personal de Zoom."
   },
   "messages": {
     "eyebrow": "Escríbele a tu coach",
@@ -96,13 +91,11 @@
   },
   "upgradeSheet": {
     "title": "Mejorar a Premier",
-    "featuresHeader": "Premier incluye:",
-    "featuresHeaderGeneric": "Incluye:",
     "renewalNote": "{{price}} al mes, cobrado a tu Cuenta de Apple. Se renueva automáticamente a menos que lo desactives al menos 24 horas antes de que termine el período. Administra o cancela cuando quieras en los ajustes de tu Cuenta de Apple.",
-    "feature1": "Llamadas telefónicas con el coach de guardia",
-    "feature2": "Sesiones de video con un coach",
-    "feature3": "Respuesta prioritaria en horario laboral",
     "iapError": "Algo salió mal con la compra. Por favor inténtalo de nuevo.",
+    "iapErrorTitle": "Compra no completada",
+    "pendingTitle": "En espera de aprobación",
+    "pendingBody": "Tu compra está en espera de aprobación. Cuando la aprueben, tu plan se activará solo.",
     "iapNoOfferings": "Las suscripciones no están disponibles ahora. Inténtalo más tarde.",
     "close": "Ahora no",
     "privacyPolicy": "Política de privacidad",
@@ -111,6 +104,7 @@
   },
   "questionModal": {
     "button": "Hacer una pregunta",
+    "buttonLabel": "Hacer una pregunta para {{name}}",
     "title": "Enviar una pregunta",
     "sub": "Tu pregunta será revisada antes de la reunión.",
     "placeholder": "¿Qué te gustaría que se respondiera en la llamada?",
@@ -418,7 +412,7 @@
       "calendarDetails": "Abre la app Sober Helpline a la hora confirmada para unirte a tu sesión privada de video."
     }
   },
-  "intro": "Conecta con personas aquí. Para saber qué decir, abre Práctica; para planes y hojas de trabajo, abre Herramientas.",
+  "intro": "Conecta con personas aquí. Para saber qué decir, abre Práctica; para planes y hojas de trabajo, abre Guías.",
   "peopleHeading": "HABLA CON ALGUIEN",
   "peopleAccess": "Los mensajes al coach requieren Essential o Premier; el video privado está incluido en Premier, sujeto a programación. El coaching individual por separado cuesta {{rate}}.",
   "coachingGuideLink": "Cómo funciona el apoyo de coaching",

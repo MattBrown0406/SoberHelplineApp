@@ -1,5 +1,6 @@
 import { appPathForIncomingUrl } from '../src/lib/universalLinks';
 import { setPendingDeepLink } from '../src/lib/pendingDeepLink';
+import { STAY_ON_SCREEN, incomingLinkAction, noteLinkWhileHeld, preSignInHoldActive } from '../src/lib/preSignInHold';
 
 /**
  * expo-router calls this for every URL the system hands the app (cold start
@@ -8,6 +9,11 @@ import { setPendingDeepLink } from '../src/lib/pendingDeepLink';
  * other paths — is returned unchanged so expo-router handles it as before.
  * Push notification taps don't come through here (they route in
  * src/lib/pushRouting.ts via usePushNotifications).
+ *
+ * One exception: while a signed-out person is on a pre-sign-in screen (most
+ * of all "Confirm your email", which holds her password in memory), a link
+ * that arrives does not navigate at all. It only brings the app forward, so
+ * the screen she is on, and what she typed, stay (preSignInHold).
  */
 // expo-router parses an incoming URL's query with query-string →
 // decode-uri-component 0.2, which is exponential on malformed %-escapes
@@ -24,15 +30,20 @@ function safeForRouter(path: string): boolean {
   }
 }
 
-export function redirectSystemPath({ path }: { path: string; initial: boolean }): string {
-  if (!safeForRouter(path)) return '/';
+export function redirectSystemPath({ path, initial }: { path: string; initial: boolean }): string {
+  const stay = incomingLinkAction({ initial, held: preSignInHoldActive() }) === 'stay';
+  if (!safeForRouter(path)) return stay ? STAY_ON_SCREEN : '/';
   try {
     const appPath = appPathForIncomingUrl(path);
-    if (appPath === null) return path;
     // Remembered so a signed-out member lands here after signing in.
-    setPendingDeepLink(appPath);
-    return appPath;
+    if (appPath !== null) setPendingDeepLink(appPath);
+    if (stay) {
+      // The confirm step hears that she is back, and tries its sign-in once.
+      noteLinkWhileHeld();
+      return STAY_ON_SCREEN;
+    }
+    return appPath === null ? path : appPath;
   } catch {
-    return path;
+    return stay ? STAY_ON_SCREEN : path;
   }
 }

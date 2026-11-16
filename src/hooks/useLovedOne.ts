@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { bereavedCacheKey, isBereaved } from '../lib/bereavement';
+import { rememberBereavedOnDevice } from '../lib/bereavedDevice';
 import { requireSavedData } from '../lib/appFlowGuards';
 import { captureAppError } from '../lib/monitoring';
 
@@ -37,10 +38,13 @@ export interface LovedOneInput {
   status?: LovedOneStatus;
 }
 
-/** Device copy of "her loved one died", so Today is right before (or without) the network read. */
+/**
+ * Device copy of "her loved one died", so Today is right before (or without)
+ * the network read. Support and the membership invitations follow the same
+ * copy (bereavedDevice), so they hear every change at once.
+ */
 function rememberBereaved(accountId: string, bereaved: boolean): void {
-  // '0' is an answer too: a missing key means "not known on this device yet".
-  void AsyncStorage.setItem(bereavedCacheKey(accountId), bereaved ? '1' : '0').catch(() => undefined);
+  rememberBereavedOnDevice(accountId, bereaved);
 }
 
 /** CRUD for the account's single loved-one record. */

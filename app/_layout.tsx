@@ -14,11 +14,27 @@ import { isOnboarded, subscribeOnboarded } from '../src/onboarding/state';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { SafetyShortcut } from '../src/components/safety/SafetyShortcut';
 import { EmergencyActions } from '../src/components/safety/EmergencyActions';
+import { LaunchCover } from '../src/components/auth/LaunchCover';
 import { getInitialLayoutState, isPushNavigationReady } from '../src/lib/authBootstrap';
+import { FRONT_DOOR_READ_TIMEOUT_MS, frontDoorRoute, lateFrontDoorAction, type FrontDoorFlags } from '../src/lib/frontDoor';
+import { knownFrontDoorFlags, markSignedInBefore, readFrontDoorFlags, signUpFormStarted } from '../src/lib/frontDoorStore';
+import { setPreSignInHold } from '../src/lib/preSignInHold';
 import { addAppBreadcrumb } from '../src/lib/monitoring';
-import { collapseAppStack } from '../src/lib/appStack';
+import { collapseAppStack, returnToPreSignInScreen } from '../src/lib/appStack';
 import { flushQueuedSupportCallReview, setReviewPromptRoute } from '../src/lib/reviewPrompt';
+import { flushFamilySquaresAttendance } from '../src/lib/meetingAttendance';
+import { clearMeetingReturn, noteMeetingReturn, noteReviewCheck } from '../src/lib/afterMeetingInvite';
 import { clearPendingDeepLink, subscribePendingDeepLink, takePendingDeepLink } from '../src/lib/pendingDeepLink';
+
+// The launch cover lifts this long after a pre-sign-in screen is in front (the
+// screen change underneath is over by then), and after the longer wait
+// whatever happens: a slow session read never holds anyone on the launch screen.
+const LAUNCH_COVER_SETTLE_MS = 450;
+// A slow start (an expired token with no signal can take many seconds to
+// read): the cover stays, so nobody is shown someone else's-looking Today, but
+// from this moment it carries the emergency actions. Help is never out of reach.
+const LAUNCH_COVER_EMERGENCY_MS = 1500;
+const LAUNCH_COVER_MAX_MS = 5000;
 
 function ReviewPromptCoordinator() {
   const { user } = useAccount();
@@ -37,7 +53,9 @@ function ReviewPromptCoordinator() {
       if (!active || !isTodayRoute(routeRef.current)) return;
       timer = setTimeout(() => {
         if (active && isTodayRoute(routeRef.current)) {
-          void flushQueuedSupportCallReview(user.id);
+          // The after-meeting invitation waits for this answer: it never
+          // shares a visit with the rating prompt (afterMeetingInvite).
+          void flushQueuedSupportCallReview(user.id).then((outcome) => noteReviewCheck(user.id, outcome));
         }
       }, 800);
     };
@@ -58,6 +76,48 @@ function ReviewPromptCoordinator() {
       subscription.remove();
     };
   }, [user?.id, routePath]);
+
+  return null;
+}
+
+/**
+ * Real attendance at Family Squares: when the app is in front again at least
+ * ten minutes into the meeting and ten minutes after a Join tap (from Today,
+ * Support or a reminder push), log it once for that meeting. Unlike the rating prompt above, this runs on
+ * whatever screen she comes back to.
+ */
+function MeetingAttendanceCoordinator() {
+  const { user } = useAccount();
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const accountId = user.id;
+    let active = true;
+    // Back once the meeting has been going ten minutes, and ten minutes or
+    // more after her Join tap (never before it starts): she attended. For a free
+    // member that is also the moment Today may offer the after-meeting
+    // invitation (afterMeetingInvite decides whether it does).
+    const flushAttendance = () => void flushFamilySquaresAttendance(accountId).then((attended) => {
+      if (attended && active) noteMeetingReturn(accountId);
+    });
+    // Also covers reopening the app after it was closed during the meeting.
+    flushAttendance();
+    let previousState = AppState.currentState;
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      const returnedToForeground = previousState !== 'active' && nextState === 'active';
+      // 'inactive' is only a system sheet or the app switcher passing over.
+      const leftForeground = nextState === 'background';
+      previousState = nextState;
+      if (returnedToForeground) flushAttendance();
+      // The moment belongs to the visit she came back on.
+      if (leftForeground) clearMeetingReturn();
+    });
+    return () => {
+      active = false;
+      subscription.remove();
+      clearMeetingReturn();
+    };
+  }, [user?.id]);
 
   return null;
 }
@@ -110,6 +170,44 @@ function InitialLayout() {
     };
   }, [user?.id]);
 
+  // The front door: a device nobody has signed in on (or signed up from) opens
+  // on creating an account; after either, signed-out people land on sign-in.
+  const [deviceFlags, setDeviceFlags] = useState<FrontDoorFlags | null>(null);
+  // True when the device store answered only after the wait below gave up.
+  const [lateFlags, setLateFlags] = useState(false);
+  const signedInThisSession = useRef(false);
+  if (isAuthenticated) signedInThisSession.current = true;
+  useEffect(() => {
+    let active = true;
+    let gaveUp = false;
+    // A slow device store must not hold a signed-out person on a blank app:
+    // after the wait she is treated as new...
+    const timer = setTimeout(() => {
+      gaveUp = true;
+      if (active) setDeviceFlags((current) => current ?? { signedInBefore: false, signUpSubmitted: false });
+    }, FRONT_DOOR_READ_TIMEOUT_MS);
+    void readFrontDoorFlags().then((flags) => {
+      clearTimeout(timer);
+      if (!active) return;
+      if (!gaveUp) {
+        setDeviceFlags((current) => current ?? flags);
+        return;
+      }
+      // ...but the real answer still counts when it arrives (see below).
+      setDeviceFlags((current) => ({
+        signedInBefore: flags.signedInBefore || current?.signedInBefore === true,
+        signUpSubmitted: flags.signUpSubmitted || current?.signUpSubmitted === true,
+      }));
+      setLateFlags(true);
+    });
+    return () => { active = false; clearTimeout(timer); };
+  }, []);
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    markSignedInBefore();
+    setDeviceFlags((current) => ({ signUpSubmitted: current?.signUpSubmitted === true, signedInBefore: true }));
+  }, [isAuthenticated]);
+
   // A soberhelpline.com/app link that arrives while signed out is kept until
   // sign-in completes (app/+native-intent.tsx); re-run the effect when one lands.
   const [deepLinkSignal, setDeepLinkSignal] = useState(0);
@@ -118,15 +216,41 @@ function InitialLayout() {
   const navigationRef = useNavigationContainerRef();
   const collapseRootStack = () => collapseAppStack(navigationRef);
 
+  // Signed out and on a pre-sign-in screen (creating an account, perhaps with
+  // "Confirm your email" showing; signing in; resetting a password): a link
+  // that opens the app must not move her off it (preSignInHold).
+  const onPreSignInScreen = !isLoading && !isAuthenticated && segments[0] === '(auth)';
+  useEffect(() => {
+    setPreSignInHold(onPreSignInScreen);
+    return () => setPreSignInHold(false);
+  }, [onPreSignInScreen]);
+
   useEffect(() => {
     if (isLoading) return;
     const inAuth = segments[0] === '(auth)';
     const inOnboarding = segments[0] === '(onboarding)';
     if (!isAuthenticated) {
       if (!inAuth) {
-        addAppBreadcrumb('auth.navigation_sign_in');
+        // The device flag is a moment away; sign-out never waits for it.
+        if (deviceFlags === null && !signedInThisSession.current) return;
+        // Something (a link that opened the app) put a screen on top of the
+        // pre-sign-in screen she was on: back to that screen as she left it,
+        // never a fresh one. Her confirm step and what she typed stay.
+        if (returnToPreSignInScreen(navigationRef)) {
+          addAppBreadcrumb('auth.navigation_pre_sign_in_kept');
+          return;
+        }
+        // The flags as they are NOW, not as they were read when the app
+        // opened: a sign-up sent a moment ago is in the store's memory only.
+        const flagsNow = knownFrontDoorFlags();
+        const door = frontDoorRoute({
+          signedInBefore: deviceFlags?.signedInBefore === true || flagsNow.signedInBefore,
+          signUpSubmitted: deviceFlags?.signUpSubmitted === true || flagsNow.signUpSubmitted,
+          signedInThisSession: signedInThisSession.current,
+        });
+        addAppBreadcrumb(door === '/(auth)/sign-up' ? 'auth.navigation_sign_up' : 'auth.navigation_sign_in');
         collapseRootStack();
-        router.replace('/(auth)/sign-in');
+        router.replace(door);
       }
       return;
     }
@@ -143,7 +267,53 @@ function InitialLayout() {
       // Signed in and in the app: the link already opened its screen.
       clearPendingDeepLink();
     }
-  }, [user, isAuthenticated, isLoading, onboarded, segments[0], deepLinkSignal]);
+  }, [user, isAuthenticated, isLoading, onboarded, segments[0], deepLinkSignal, deviceFlags]);
+
+  // The device flags came late and she was already shown "Create your
+  // account" as if the phone were new: move her to sign-in once, and only if
+  // she has not started the form (a form in progress is never taken away).
+  const onSignUp = segments[0] === '(auth)' && (segments as string[])[1] === 'sign-up';
+  useEffect(() => {
+    if (!lateFlags || deviceFlags === null) return;
+    const action = lateFrontDoorAction({
+      flags: deviceFlags,
+      isLoading,
+      isAuthenticated,
+      inAuth: segments[0] === '(auth)',
+      onSignUp,
+      formStarted: signUpFormStarted(),
+    });
+    if (action === 'wait') return;
+    setLateFlags(false);
+    if (action !== 'sign-in') return;
+    addAppBreadcrumb('auth.navigation_sign_in');
+    router.replace(frontDoorRoute({ ...deviceFlags, signedInThisSession: false }));
+  }, [lateFlags, deviceFlags, isLoading, isAuthenticated, segments[0], onSignUp]);
+
+  // The launch cover: the router's first screen is the tabs, so until the
+  // session is read and a signed-out person has been sent to the front door,
+  // the launch screen stays drawn on top (LaunchCover). It lifts at once for
+  // someone signed in (the screens below are theirs), and never returns in
+  // this run: signing out later is not a launch.
+  const [launchCover, setLaunchCover] = useState(true);
+  const preSignInScreenInFront = segments[0] === '(auth)';
+  useEffect(() => {
+    if (!launchCover) return undefined;
+    if (isAuthenticated) {
+      setLaunchCover(false);
+      return undefined;
+    }
+    const timer = setTimeout(() => setLaunchCover(false), preSignInScreenInFront ? LAUNCH_COVER_SETTLE_MS : LAUNCH_COVER_MAX_MS);
+    return () => clearTimeout(timer);
+  }, [launchCover, isAuthenticated, preSignInScreenInFront]);
+  const showLaunchCover = launchCover && !isAuthenticated;
+  // Still covered after a moment: the cover shows the emergency actions.
+  const [launchCoverSlow, setLaunchCoverSlow] = useState(false);
+  useEffect(() => {
+    if (!showLaunchCover) return undefined;
+    const timer = setTimeout(() => setLaunchCoverSlow(true), LAUNCH_COVER_EMERGENCY_MS);
+    return () => clearTimeout(timer);
+  }, [showLaunchCover]);
 
   // Keep one router stack mounted through auth/onboarding hydration. Unmounting
   // it discards the incoming deep link and can choose an unrelated default route.
@@ -161,6 +331,7 @@ function InitialLayout() {
         <Stack screenOptions={{ headerShown: false }} />
       </View>
       {overlay}
+      {showLaunchCover ? <LaunchCover emergency={launchCoverSlow} /> : null}
     </View>
     </RouteActivationContext.Provider>
   );
@@ -222,16 +393,20 @@ export default function RootLayout() {
     initI18n().then(() => setI18nReady(true));
   }, []);
 
-  if (!i18nReady) return null;
+  // Still the launch screen while the words load (a blank frame otherwise).
+  if (!i18nReady) return <LaunchCover />;
 
   return (
     <ErrorBoundary>
       <AccountProvider>
         <ThemeProvider>
+          {/* First, so it is the default: a screen that sets its own status
+              bar (light on the navy screens) mounts later and wins. */}
+          <StatusBar style="auto" />
           <InitialLayout />
           <ReviewPromptCoordinator />
+          <MeetingAttendanceCoordinator />
           <SafetyShortcut />
-          <StatusBar style="auto" />
         </ThemeProvider>
       </AccountProvider>
     </ErrorBoundary>

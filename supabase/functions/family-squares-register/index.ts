@@ -55,7 +55,38 @@ Deno.serve(async (req) => {
     const confirmed = websiteOk && registration?.ok === true && typeof registration.already_registered === 'boolean'
       && registration.meeting_date === meetingDate;
     // The website's own decisions stand (cancelled week, blocked attendee).
-    if (!confirmed && WEBSITE_DECISIONS.has(registration?.error)) return json({ ok: false, error: 'website_declined' }, 409);
+    // `reason` tells the app which sentence to show; older builds read only `error`.
+    if (!confirmed && WEBSITE_DECISIONS.has(registration?.error)) {
+      if (registration?.error === 'meeting_cancelled') {
+        // Kept the way family-squares-web-sync keeps it, so the reminders stop
+        // without waiting for the next sync. This is the website's answer
+        // about one member (p_one_member): the database leaves the status
+        // alone while the sync's own reply, in the last 30 minutes, said this
+        // Monday is on. Her answer below is the same either way, and a
+        // failure never changes it.
+        try {
+          const { error: noteError } = await admin.rpc('service_family_squares_note_meeting_status', { p_meeting_date: meetingDate, p_cancelled: true, p_one_member: true });
+          if (noteError) console.error('family-squares-register: meeting status not kept', noteError.code ?? 'error');
+        } catch {
+          console.error('family-squares-register: meeting status not kept');
+        }
+      }
+      return json({ ok: false, error: 'website_declined', reason: registration?.error }, 409);
+    }
+    // The website gave no decision (an outage, a reply that cannot be read),
+    // but it said in the last six hours that this Monday is cancelled: no seat
+    // is saved for a meeting that is off. If that cannot be read, the seat is
+    // saved as before.
+    if (!confirmed) {
+      let knownCancelled = false;
+      try {
+        const { data: cancelled, error: cancelledError } = await admin.rpc('family_squares_meeting_cancelled', { p_meeting_date: meetingDate });
+        knownCancelled = !cancelledError && cancelled === true;
+      } catch {
+        // Not known: carry on.
+      }
+      if (knownCancelled) return json({ ok: false, error: 'website_declined', reason: 'meeting_cancelled' }, 409);
+    }
     // Anything else (a website without the ensure action yet, an outage, a
     // malformed reply) falls back to the RSVP snapshot alone: the 15-minute
     // family-squares-web-sync mirrors it to the website exactly as 4.1 RSVPs

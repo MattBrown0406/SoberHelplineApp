@@ -16,9 +16,10 @@ import {
   AccessibilityInfo,
 } from 'react-native';
 import { supabase } from '../../src/lib/supabase';
-import { recordVerifiedPurchase, withTimeoutFallback } from '../../src/lib/authBootstrap';
 import { appAlert } from '../../src/lib/appAlert';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
+import { TabHeader } from '../../src/components/ui/TabHeader';
+import { buttonShape } from '../../src/components/ui/Button';
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAccount } from '../../src/contexts/AccountContext';
@@ -32,24 +33,33 @@ import { useGroupPresence } from '../../src/hooks/useGroupPresence';
 import { useGroupRsvps } from '../../src/hooks/useGroupRsvps';
 import { usePrivateVideoSessions } from '../../src/hooks/usePrivateVideoSessions';
 import { PremierVideoSchedulingCard } from '../../src/components/video/PremierVideoSchedulingCard';
-import { FEATURED_PROVIDER, PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '../../src/config';
+import { FEATURED_PROVIDER } from '../../src/config';
 import { useWebSSO } from '../../src/hooks/useWebSSO';
 import { WEBSITE_PATHS, withAppContext } from '../../src/lib/websiteLinks';
 import { useCoachingRate } from '../../src/hooks/useCoachingRate';
 import { COACHING_MEMBER_PRICE, fillCoachingRates } from '../../src/lib/coachingPrice';
 import { useSessionSchedule } from '../../src/hooks/useSessionSchedule';
-import { isFamilySquaresSession, isLaSobremesaSession } from '../../src/lib/familySquaresSchedule';
-import { useIAP, type SubscriptionTier } from '../../src/hooks/useIAP';
+import { LA_SOBREMESA_CALL_LENGTH_MS, isFamilySquaresSession, isLaSobremesaSession, sessionDisplayTitle } from '../../src/lib/familySquaresSchedule';
+import { clearFamilySquaresJoin, markFamilySquaresJoin } from '../../src/lib/meetingAttendance';
+import { FamilySquaresSeatPanel } from '../../src/components/familySquares/FamilySquaresSeatPanel';
+import { FamilySquaresFirstTimerNote } from '../../src/components/familySquares/FamilySquaresFirstTimerNote';
+import { FamilySquaresSpotSavedLine } from '../../src/components/familySquares/FamilySquaresSpotSavedLine';
+import { usePlanOffers } from '../../src/hooks/usePlanPurchase';
+import { PlansTeaserCard } from '../../src/components/plans/PlansTeaserCard';
+import { BenefitList } from '../../src/components/plans/BenefitList';
+import { benefitSummary } from '../../src/lib/membershipBenefits';
+import { plansHref } from '../../src/lib/membershipPath';
 import { useSituation } from '../../src/hooks/useSituation';
 import { funnelDoor, type FunnelDoor } from '../../src/lib/situation';
 import { SituationOffRamp } from '../../src/components/situation/SituationOffRamp';
-import { logFunnelEvent } from '../../src/lib/funnel';
+import { logFunnelEventAndWait } from '../../src/lib/funnel';
+import { callCardView, seatSaveFailureKey, sessionJoinWindow } from '../../src/lib/familySquaresCard';
+import { isCancelledMeetingDate, isFamilySquaresKnownCancelled } from '../../src/lib/familySquaresCancelled';
+import { useBereavedOnDevice } from '../../src/hooks/useBereavedOnDevice';
 import { isAdminEmail } from '../../src/lib/admin';
 import { openEmergencyLink } from '../../src/lib/emergencyLinks';
-import { setReviewPromptPaywallVisible } from '../../src/lib/reviewPrompt';
 import { COMMUNITY_FEED_VISIBLE } from '../../src/lib/communityFeed';
 import { EmergencyActions } from '../../src/components/safety/EmergencyActions';
-import { trialLabelKey } from '../../src/lib/subscriptionTrial';
 import type { StaffMember, SupportGroup } from '../../src/api/types';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -104,6 +114,8 @@ function CrisisSheet({
       onRequestClose={onClose}
     >
       <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel={t('common:a11y.close')}
         style={styles.modalOverlay}
         activeOpacity={1}
         onPress={onClose}
@@ -129,6 +141,7 @@ function CrisisSheet({
             <Text style={[styles.copilotBody, { color: colors.inkSoft }]}>{t('crisis.copilotBody')}</Text>
           </View>
           <TouchableOpacity
+            accessibilityRole="button"
             style={[styles.copilotButton, { backgroundColor: colors.primary }]}
             onPress={() => { onClose(); onCopilot(); }}
           >
@@ -262,7 +275,7 @@ function CrisisProtocolSheet({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose} />
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('common:a11y.close')} style={styles.modalOverlay} activeOpacity={1} onPress={onClose} />
       <ScrollView
         style={[styles.sheet, { backgroundColor: colors.white, left: sheetOffset, right: sheetOffset }]}
         contentContainerStyle={styles.sheetContent}
@@ -282,6 +295,8 @@ function CrisisProtocolSheet({
           {tabs.map((tb) => (
             <TouchableOpacity
               key={tb.key}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: tab === tb.key }}
               style={[
                 styles.protocolTab,
                 tab === tb.key && { borderBottomColor: colors.primary, borderBottomWidth: 2 },
@@ -313,7 +328,7 @@ function CrisisProtocolSheet({
           ))}
         </View>
 
-        <TouchableOpacity style={[styles.sheetRow, styles.sheetRowLast, { marginTop: 4 }]} onPress={onClose}>
+        <TouchableOpacity accessibilityRole="button" style={[styles.sheetRow, styles.sheetRowLast, { marginTop: 4 }]} onPress={onClose}>
           <Text style={[styles.sheetRowName, { color: colors.inkSoft }]}>
             {t('crisisProtocol.close')}
           </Text>
@@ -340,7 +355,7 @@ function ProviderSheet({
 }) {
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose} />
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('common:a11y.close')} style={styles.modalOverlay} activeOpacity={1} onPress={onClose} />
       <ScrollView
         style={[styles.sheet, { backgroundColor: colors.white, left: sheetOffset, right: sheetOffset }]}
         contentContainerStyle={styles.sheetContent}
@@ -367,6 +382,8 @@ function ProviderSheet({
         </View>
 
         <TouchableOpacity
+          accessibilityRole="link"
+          accessibilityLabel={t('providerSheet.emailButton', { name: FEATURED_PROVIDER.name })}
           style={[styles.sheetRow, { borderBottomColor: colors.line }]}
           onPress={() => void Linking.openURL(`mailto:${FEATURED_PROVIDER.email}`)}
         >
@@ -377,6 +394,8 @@ function ProviderSheet({
         </TouchableOpacity>
 
         <TouchableOpacity
+          accessibilityRole="link"
+          accessibilityLabel={t('providerSheet.webButton')}
           style={[styles.sheetRow, styles.sheetRowLast, { borderBottomColor: colors.line }]}
           onPress={() => void Linking.openURL(FEATURED_PROVIDER.web)}
         >
@@ -386,116 +405,9 @@ function ProviderSheet({
           <Text style={[styles.sheetRowAction, { color: colors.primary }]}>→</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.sheetRow, styles.sheetRowLast]} onPress={onClose}>
+        <TouchableOpacity accessibilityRole="button" style={[styles.sheetRow, styles.sheetRowLast]} onPress={onClose}>
           <Text style={[styles.sheetRowName, { color: colors.inkSoft }]}>
             {t('providerSheet.close')}
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </Modal>
-  );
-}
-
-// ── Upgrade sheet ─────────────────────────────────────────────────────────────
-
-function UpgradeSheet({
-  visible,
-  tier,
-  priceLabel,
-  priceAvailable,
-  trial,
-  onClose,
-  onPurchase,
-  purchasing,
-  t,
-  colors,
-  sheetOffset,
-}: {
-  visible: boolean;
-  tier: SubscriptionTier;
-  priceLabel: string;
-  priceAvailable: boolean;
-  /** "7-day free trial" when the store will give her one; price stays the headline. */
-  trial: string | null;
-  onClose: () => void;
-  onPurchase: () => void;
-  purchasing: boolean;
-  t: ReturnType<typeof useTranslation<'support'>>['t'];
-  colors: ReturnType<typeof useTheme>['colors'];
-  sheetOffset: number;
-}) {
-  return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose} />
-      <ScrollView
-        style={[styles.sheet, { backgroundColor: colors.white, left: sheetOffset, right: sheetOffset }]}
-        contentContainerStyle={styles.sheetContent}
-        keyboardShouldPersistTaps="handled"
-        bounces={false}
-      >
-        <View style={[styles.sheetHandle, { backgroundColor: colors.line }]} />
-        <Text style={[styles.sheetTitle, { color: colors.ink }]}>
-          {t(`tier.${tier}Name`)}
-        </Text>
-        <Text style={[styles.tierPrice, { color: colors.ink, marginBottom: trial && priceAvailable ? 4 : 12 }]}>
-          {priceLabel}
-        </Text>
-        {trial && priceAvailable && (
-          <Text style={[styles.sheetSub, { color: colors.primary, marginBottom: 12 }]}>
-            {t('paywall.trialThen', { trial, price: priceLabel })}
-          </Text>
-        )}
-
-        <Text style={[styles.sheetSub, { color: colors.inkSoft, marginBottom: 6 }]}>
-          {t('upgradeSheet.featuresHeaderGeneric')}
-        </Text>
-        <Text style={[styles.sheetSub, { color: colors.ink, marginBottom: 4 }]}>
-          {t(`tier.${tier}Features`, { memberRate: COACHING_MEMBER_PRICE })}
-        </Text>
-
-        {/* Price and renewal terms come from StoreKit (never hard-coded copy);
-            without a store price the sheet shows the "price unavailable" label
-            above and on the disabled button instead. */}
-        {priceAvailable ? (
-          <Text style={[styles.sheetSub, { color: colors.inkSoft, marginTop: 12, marginBottom: 16 }]}>
-            {trial
-              ? t('upgradeSheet.trialRenewalNote', { trial, price: priceLabel })
-              : t('upgradeSheet.renewalNote', { price: priceLabel })}
-          </Text>
-        ) : <View style={{ height: 16 }} />}
-
-        <TouchableOpacity
-          style={[
-            styles.solidBtn,
-            { backgroundColor: purchasing ? colors.inkSoft : colors.primary },
-          ]}
-          activeOpacity={0.85}
-          disabled={purchasing || !priceAvailable}
-          accessibilityState={{ disabled: purchasing || !priceAvailable }}
-          onPress={onPurchase}
-        >
-          <Text style={styles.solidBtnText}>
-            {purchasing ? '...' : priceAvailable
-              ? trial
-                ? t('paywall.startTrial', { trial, price: priceLabel })
-                : t(tier === 'essential' ? 'paywall.subscribeEssential' : 'paywall.subscribePremium', { price: priceLabel })
-              : priceLabel}
-          </Text>
-        </TouchableOpacity>
-
-        <View style={styles.legalRow}>
-          <TouchableOpacity onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}>
-            <Text style={[styles.legalLink, { color: colors.primary }]}>{t('upgradeSheet.privacyPolicy')}</Text>
-          </TouchableOpacity>
-          <Text style={[styles.legalSep, { color: colors.inkSoft }]}> · </Text>
-          <TouchableOpacity onPress={() => void Linking.openURL(TERMS_OF_USE_URL)}>
-            <Text style={[styles.legalLink, { color: colors.primary }]}>{t('upgradeSheet.termsOfUse')}</Text>
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity style={[styles.sheetRow, styles.sheetRowLast, { marginTop: 4 }]} onPress={onClose}>
-          <Text style={[styles.sheetRowName, { color: colors.inkSoft }]}>
-            {t('upgradeSheet.close')}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -539,7 +451,9 @@ function StaffChip({
 export default function SupportScreen() {
   useToolOpened('support');
   const { colors } = useTheme();
-  const { user, isAttached, accountState, entitlements, refreshAccount } = useAccount();
+  const { user, isAttached, accountState, entitlements } = useAccount();
+  // Her loved one died (the device's copy, kept by Today): nothing is sold to her here.
+  const bereaved = useBereavedOnDevice(user?.id ?? null);
   // A session-reminder push carries the RSVP'd session id so the card it is about stands out.
   // soberhelpline.com/app/family-squares opens Support with focus=family-squares.
   // ask=question (the hour-before reminder) opens that session's question sheet.
@@ -550,15 +464,11 @@ export default function SupportScreen() {
   const router = useRouter();
   const { width: screenWidth } = useWindowDimensions();
   const sheetOffset = Math.max(0, (screenWidth - 520) / 2);
-  const { purchasePremium, purchaseEssential, purchasing, prices: subscriptionPrices, trials, retryPrices } = useIAP();
-  const trialLabel = (tier: SubscriptionTier): string | null => {
-    const trial = trials[tier];
-    // A member who already has a plan is upgrading: Apple judges trial
-    // eligibility per subscription group, so never promise her one.
-    if (!trial || !subscriptionPrices[tier] || entitlements.canAccessGroups) return null;
-    const { key, count } = trialLabelKey(trial);
-    return t(key, { count });
-  };
+  // Prices and trial eligibility for the plans card. Buying happens on the
+  // plans screen (app/plans.tsx); this tab only opens it.
+  const planOffers = usePlanOffers();
+  const { subscriptionPrices, retryPrices } = planOffers;
+  const { t: tPlans } = useTranslation('plans');
   const { openWithSSO } = useWebSSO();
   const coachingRate = useCoachingRate();
   const scheduleFor = useSessionSchedule();
@@ -567,8 +477,6 @@ export default function SupportScreen() {
   const [membershipExpanded, setMembershipExpanded] = useState(false);
   const [crisisProtocolOpen, setCrisisProtocolOpen] = useState(false);
   const [providerOpen, setProviderOpen] = useState(false);
-  const [upgradeOpen, setUpgradeOpen] = useState(false);
-  const [upgradeTier, setUpgradeTier] = useState<SubscriptionTier>('premium');
   const [questionSession, setQuestionSession] = useState<DbSession | null>(null);
   const [questionText, setQuestionText] = useState('');
   const [questionSubmitting, setQuestionSubmitting] = useState(false);
@@ -588,8 +496,6 @@ export default function SupportScreen() {
     setQuestionSubmitted(false);
     setQuestionCrisis(null);
   }
-
-  useEffect(() => () => setReviewPromptPaywallVisible(false), []);
 
   async function submitQuestion() {
     if (!questionText.trim() || !questionSession || !user?.id) return;
@@ -628,62 +534,11 @@ export default function SupportScreen() {
     }
   }
 
-  const purchaseOwnerRef = useRef({ owner: user?.id, active: true, generation: 0 });
-  if (purchaseOwnerRef.current.owner !== user?.id) {
-    purchaseOwnerRef.current.active = false;
-    purchaseOwnerRef.current = { owner: user?.id, active: true, generation: 0 };
-  }
-  const purchaseOwner = purchaseOwnerRef.current;
-  useEffect(() => {
-    purchaseOwner.active = true;
-    purchaseOwner.generation += 1;
-    return () => { purchaseOwner.active = false; purchaseOwner.generation += 1; };
-  }, [purchaseOwner]);
-
-  async function handlePurchase() {
-    const generation = purchaseOwner.generation;
-    const current = () => purchaseOwner.active && purchaseOwnerRef.current === purchaseOwner && generation === purchaseOwner.generation;
-    if (!current() || !purchaseOwner.owner) return;
-    if (!subscriptionPrices[upgradeTier]) return;
-    const { data: { session: purchaseSession } } = await supabase.auth.getSession();
-    if (!current() || !purchaseSession) return;
-    const sameSession = async () => {
-      if (!current()) return null;
-      const { data: { session } } = await supabase.auth.getSession();
-      return current() && session?.user.id === purchaseSession.user.id ? session : null;
-    };
-    const result = upgradeTier === 'essential'
-      ? await purchaseEssential()
-      : await purchasePremium();
-    const session = await sameSession();
-    if (!session) return;
-    if (result === 'success') {
-      // The store verified it: unlock now, then let the server mirror catch up.
-      // A failed refresh must not leave the sheet open inviting a second purchase.
-      if (user) recordVerifiedPurchase(user.id, upgradeTier);
-      // Eligibility changed with the purchase.
-      retryPrices();
-      await withTimeoutFallback(
-        Promise.resolve(supabase.functions.invoke('sync-iap-entitlements', {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        })).then(() => undefined),
-        10_000,
-        undefined,
-      );
-      if (!current()) return;
-      await refreshAccount().catch(() => undefined);
-      if (!current()) return;
-      closeUpgrade();
-    } else if (result === 'failed') {
-      appAlert(t('upgradeSheet.title'), t('upgradeSheet.iapError'));
-    }
-  }
-
   const { situation } = useSituation(user?.id ?? null);
   const crisisDoor = funnelDoor(situation);
 
   const roster = { primaryOnCall: PRIMARY_ON_CALL, available: [] as StaffMember[] };
-  const { sessions, toggleRsvp } = useSessions(user?.id ?? null);
+  const { sessions, toggleRsvp, declineRsvp, seatSavedHere } = useSessions(user?.id ?? null);
   const focusedSessionId = sessionIdParam
     ?? (focus === 'family-squares'
       ? sessions.find((s) => isFamilySquaresSession(s) || isLaSobremesaSession(s))?.id
@@ -714,12 +569,159 @@ export default function SupportScreen() {
     const session = sessions.find((s) => s.id === pendingAsk);
     if (!session) return;
     setPendingAsk(null);
-    if (!isLaSobremesaSession(session)) setQuestionSession(session);
+    // (No question for a Monday the website cancelled.)
+    if (!isLaSobremesaSession(session) && !isCancelledMeetingDate(session.cancelledDate)) setQuestionSession(session);
   }, [pendingAsk, supportFocused, sessions]);
   const handleSessionRsvp = async (session: DbSession) => {
     const saved = await toggleRsvp(session);
     if (saved === 'not_available') appAlert(t('sessions.rsvpErrorTitle'), t('common:laSobremesa.notAvailable'));
-    else if (!saved) appAlert(t('sessions.rsvpErrorTitle'), t('sessions.rsvpErrorBody'));
+    // The website refused (a cancelled week, or it will not register her):
+    // not a connection problem, so the message says what is true. When the
+    // website said why, its word decides (familySquaresCard).
+    else if (saved === 'website_declined' || saved === 'meeting_cancelled' || saved === 'registration_unavailable') {
+      const knownCancelled = isCancelledMeetingDate(session.cancelledDate) || isFamilySquaresKnownCancelled();
+      appAlert(t('sessions.rsvpErrorTitle'), t(seatSaveFailureKey('website_declined', knownCancelled, saved === 'website_declined' ? undefined : saved)));
+    } else if (!saved) appAlert(t('sessions.rsvpErrorTitle'), t('sessions.rsvpErrorBody'));
+  };
+  const joining = useRef(false);
+  const joinSession = async (session: DbSession) => {
+    if (!session.zoom_url) return;
+    // One Join at a time: a second tap while this one is on its way does nothing.
+    if (joining.current) return;
+    joining.current = true;
+    try {
+      const url = withAppContext(session.zoom_url);
+      const familySquares = isFamilySquaresSession(session);
+      // Noted before Zoom opens, so coming back ten minutes later can count as attending.
+      if (familySquares) await markFamilySquaresJoin(user?.id, 'support');
+      // Sent before Zoom opens too: once the app is in the background the
+      // request may never leave. Waits a moment at most (funnel), as Today's
+      // Join and the reminder tap do.
+      if (session.kind === 'group') await logFunnelEventAndWait('attended', { source: 'support' });
+      try {
+        await Linking.openURL(url);
+      } catch {
+        if (familySquares) await clearFamilySquaresJoin(user?.id);
+      }
+    } finally {
+      joining.current = false;
+    }
+  };
+  // One session row, used by every list on this screen. Family Squares shows
+  // under its one name and, once her seat is saved, offers every Monday, the
+  // calendar file and "can't make it this week". `last`: no rule under the
+  // last row of a card.
+  const renderSession = (sess: DbSession, showType: boolean, last: boolean) => {
+    const name = sessionDisplayTitle(sess, t);
+    const familySquares = isFamilySquaresSession(sess);
+    // The Monday meetings (Family Squares, La Sobremesa) use Today's words: "Save my spot".
+    const mondayMeeting = familySquares || isLaSobremesaSession(sess);
+    // What a Family Squares row offers is decided in one place
+    // (familySquaresCard). A Monday the website cancelled offers nothing for
+    // that date: only a calm line, and the "every Monday" switch. The
+    // cancelled date is compared with the coming meeting's date on every draw:
+    // an answer read for last Monday never hides this Monday's meeting.
+    const view = callCardView({
+      familySquares,
+      cancelled: isCancelledMeetingDate(sess.cancelledDate),
+      answer: sess.rsvped ? 'going' : sess.declined ? 'declined' : 'none',
+      hasLink: !!sess.zoom_url,
+      joinWindow: sessionJoinWindow(sess.next_at, new Date(), isLaSobremesaSession(sess) ? LA_SOBREMESA_CALL_LENGTH_MS : undefined),
+    });
+    // Join and Save each do what they always did. Which one is the big button
+    // is decided in familySquaresCard, as on Today: Save until the meeting is
+    // near, Join from three hours before it starts. The other is a small link.
+    const joinLeads = view.join && view.joinProminence === 'main';
+    const saveLeads = view.saveSpot && view.saveProminence === 'main';
+    const joinButton = view.join && (
+      <TouchableOpacity
+        key="join"
+        accessibilityRole="button"
+        accessibilityLabel={t('sessions.joinLabel', { name })}
+        style={joinLeads ? [styles.solidBtn, { backgroundColor: colors.primary }] : styles.sessionQuietLink}
+        activeOpacity={0.8}
+        onPress={() => void joinSession(sess)}
+      >
+        <Text style={joinLeads ? styles.solidBtnText : [styles.sessionQuietLinkText, { color: colors.primary }]}>{t('sessions.joinZoom')}</Text>
+      </TouchableOpacity>
+    );
+    const saveButton = view.saveSpot && (
+      <TouchableOpacity
+        key="save"
+        accessibilityRole="button"
+        accessibilityLabel={t(mondayMeeting ? 'today:situationCta.rsvpLabel' : 'sessions.rsvpLabel', { name })}
+        style={saveLeads ? [styles.solidBtn, { backgroundColor: colors.primary }] : styles.sessionQuietLink}
+        activeOpacity={0.8}
+        onPress={() => void handleSessionRsvp(sess)}
+      >
+        <Text style={saveLeads ? styles.solidBtnText : [styles.sessionQuietLinkText, { color: colors.primary }]}>
+          {t(mondayMeeting ? 'today:situationCta.rsvp' : 'sessions.rsvpButton')}
+        </Text>
+      </TouchableOpacity>
+    );
+    return (
+      <View key={sess.id} style={[styles.sessionOuter, !last && { borderBottomWidth: 1, borderBottomColor: colors.line }, sess.id === focusedSessionId && { backgroundColor: colors.primaryLight }]}>
+        <Text style={[styles.sessionTitle, { color: colors.ink }]}>{name}</Text>
+        <Text style={[styles.sessionMeta, { color: colors.inkSoft }]}>
+          {showType ? `${sessionTypeKey(sess.kind, t)} · ${scheduleFor(sess)}` : scheduleFor(sess)}
+        </Text>
+        {!view.cancelledLine && (
+          <View style={styles.sessionActions}>
+            {/* The one confirmation: "Your spot is saved for Monday, November 16". A call
+                other than Family Squares keeps the tap its "Confirmed" button had
+                (Family Squares has "Can't make it this week" below). */}
+            <FamilySquaresSpotSavedLine
+              confirmed={view.confirmed}
+              session={sess}
+              savedHere={familySquares ? seatSavedHere : 0}
+              showDate={familySquares}
+              onPress={familySquares ? undefined : () => void handleSessionRsvp(sess)}
+              pressLabel={t('sessions.confirmLabel', { name })}
+            />
+            {joinLeads ? joinButton : saveLeads ? saveButton : null}
+            <View style={styles.sessionQuietRow}>
+              {!joinLeads && joinButton}
+              {!saveLeads && saveButton}
+            </View>
+          </View>
+        )}
+        {view.cancelledLine && (
+          <Text style={[styles.cancelledLine, { color: colors.ink }]} accessibilityLiveRegion="polite">
+            {t('common:familySquares.cancelled.line')}
+          </Text>
+        )}
+        {sess.rsvped && !view.cancelledLine && !isLaSobremesaSession(sess) && (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={t('questionModal.buttonLabel', { name })}
+            style={[styles.questionBtn, { borderColor: colors.primary }]}
+            activeOpacity={0.8}
+            onPress={() => setQuestionSession(sess)}
+          >
+            <Text style={[styles.questionBtnText, { color: colors.primary }]}>
+              {t('questionModal.button')}
+            </Text>
+          </TouchableOpacity>
+        )}
+        {view.rsvpNote ? (
+          <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:familySquares.rsvpNote')}</Text>
+        ) : isLaSobremesaSession(sess) ? (
+          <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:laSobremesa.note')}</Text>
+        ) : null}
+        {/* The first-timer note here is the RSVP confirmation; Today's card shows it before too. */}
+        {view.firstTimerNote && sess.rsvped && <FamilySquaresFirstTimerNote accountId={user?.id ?? null} />}
+        {familySquares && (
+          <FamilySquaresSeatPanel
+            accountId={user?.id ?? null}
+            rsvp={sess.rsvped ? 'going' : sess.declined ? 'declined' : 'none'}
+            onDecline={() => declineRsvp(sess)}
+            reminderAsk
+            seatSavedHere={seatSavedHere}
+            cancelled={view.cancelledLine}
+          />
+        )}
+      </View>
+    );
   };
   const groups = getSupportGroups((key) => t(key as never));
   const { myRooms, liveRooms } = useGroupPresence(user?.id ?? null);
@@ -748,18 +750,6 @@ export default function SupportScreen() {
   const privateVideo = usePrivateVideoSessions(user?.id ?? null, canAccessPrivateVideo);
   const isAdmin = isAdminEmail(user?.email);
 
-  function openUpgrade(tier: SubscriptionTier) {
-    setReviewPromptPaywallVisible(true);
-    setUpgradeTier(tier);
-    setUpgradeOpen(true);
-  }
-
-  function closeUpgrade() {
-    setReviewPromptPaywallVisible(false);
-    setUpgradeOpen(false);
-  }
-
-
   return (
     <ScreenContainer backgroundColor={colors.cream}>
       <CrisisSheet
@@ -787,32 +777,16 @@ export default function SupportScreen() {
         colors={colors}
         sheetOffset={sheetOffset}
       />
-      <UpgradeSheet
-        visible={upgradeOpen}
-        tier={upgradeTier}
-        priceLabel={subscriptionPrices[upgradeTier] ?? copy.priceUnavailable}
-        priceAvailable={!!subscriptionPrices[upgradeTier]}
-        trial={trialLabel(upgradeTier)}
-        onClose={closeUpgrade}
-        onPurchase={() => void handlePurchase()}
-        purchasing={purchasing}
-        t={t}
-        colors={colors}
-        sheetOffset={sheetOffset}
-      />
 
-        {/* Header */}
-        <View style={styles.headerRow}>
-          <Text style={[styles.heading, { color: colors.ink }]}>{t('header')}</Text>
-          <TouchableOpacity onPress={() => router.push('/settings')} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('common:a11y.settings')}>
-            <Text style={[styles.settingsIcon, { color: colors.inkSoft }]}>⚙</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Header: the same one as every tab, with the same Settings button. */}
+        <TabHeader title={t('header')} />
 
-        <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{t('intro')}</Text>
+        <Text style={[styles.referralBody, styles.sectionNote, { color: colors.inkSoft }]}>{t('intro')}</Text>
 
         {/* Crisis button — always visible */}
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={t('crisis.button')}
           style={[styles.sosButton, { backgroundColor: colors.coral }]}
           onPress={() => setCrisisOpen(true)}
           activeOpacity={0.85}
@@ -820,7 +794,7 @@ export default function SupportScreen() {
           <Text style={styles.sosText}>🆘  {t('crisis.button')}</Text>
         </TouchableOpacity>
 
-        <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{t('crisis.freeNote')}</Text>
+        <Text style={[styles.referralBody, styles.sectionNote, { color: colors.inkSoft }]}>{t('crisis.freeNote')}</Text>
 
         {/* Entitled member actions stay ahead of membership explanations. */}
         {hasMembershipAccess && (<>
@@ -829,6 +803,7 @@ export default function SupportScreen() {
                 {t('messages.eyebrow')}
               </Text>
               <TouchableOpacity
+                accessibilityRole="button"
                 style={[styles.outlineBtn, { borderColor: colors.primary, marginTop: 0 }]}
                 activeOpacity={0.8}
                 onPress={() => router.push('/chat')}
@@ -857,6 +832,8 @@ export default function SupportScreen() {
 
         {/* Crisis protocol guide */}
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={`${t('crisisProtocol.heading')}. ${t('crisisProtocol.sub')}`}
           style={[styles.protocolCard, { borderColor: colors.line, backgroundColor: colors.white }]}
           onPress={() => setCrisisProtocolOpen(true)}
           activeOpacity={0.85}
@@ -877,28 +854,48 @@ export default function SupportScreen() {
         </TouchableOpacity>
 
         <Text accessibilityRole="header" style={[styles.eyebrow, { color: colors.inkSoft }]}>{t('peopleHeading')}</Text>
-        <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{t('peopleAccess', { rate: coachingRate.hourly })}</Text>
+        <Text style={[styles.referralBody, styles.sectionNote, { color: colors.inkSoft }]}>{t('peopleAccess', { rate: coachingRate.hourly })}</Text>
 
+        {/* "How to use your membership" is for someone who has one. Without a
+            plan, the one link that explains coaching stays (the only way to that
+            screen). That screen shows the plans and their prices, so, like every
+            other offer here, it is only for someone known not to be bereaved. */}
+        {!hasMembershipAccess && bereaved === false && (
+          <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary, marginBottom: 12 }]} onPress={() => router.push('/membership-guide')}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{t('coachingGuideLink')}</Text></TouchableOpacity>
+        )}
+        {/* The free conversation practice stays one tap away without a plan. */}
+        {!hasMembershipAccess && (
+          <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary, marginBottom: 12 }]} onPress={() => router.push('/free-practice')}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{t('freePracticeLink')}</Text></TouchableOpacity>
+        )}
+        {hasMembershipAccess && (
         <View style={[styles.card, { borderColor: colors.line, backgroundColor: colors.white }]}>
           <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: membershipExpanded }} aria-expanded={membershipExpanded} onPress={() => setMembershipExpanded((value) => !value)} style={styles.membershipDisclosure}>
             <Text style={[styles.referralTitle, { color: colors.ink }]}>{copy.benefits} {membershipExpanded ? '−' : '+'}</Text>
           </TouchableOpacity>
           <View style={{ display: membershipExpanded ? 'flex' : 'none' }}>
-          <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={() => router.push('/membership-guide')}><Text style={{ color: colors.primary }}>{t('coachingGuideLink')}</Text></TouchableOpacity>
-          <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={() => router.push('/free-practice')}><Text style={{ color: colors.primary }}>{t('freePracticeLink')}</Text></TouchableOpacity>
+          {/* The coaching guide ends with plans and prices: never for a bereaved member. */}
+          {bereaved === false && (
+            <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary }]} onPress={() => router.push('/membership-guide')}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{t('coachingGuideLink')}</Text></TouchableOpacity>
+          )}
+          <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary }]} onPress={() => router.push('/free-practice')}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{t('freePracticeLink')}</Text></TouchableOpacity>
           <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{copy.free}</Text>
-          <Text style={[styles.referralBody, { color: colors.inkSoft, marginTop: 10 }]}>{copy.essential}</Text>
-          <Text style={[styles.referralBody, { color: colors.inkSoft, marginTop: 10 }]}>{copy.premier}</Text>
+          {/* The one benefits list (plans.json): Essential, then what Premier adds. */}
+          <Text style={[styles.tierName, { color: colors.ink, marginTop: 12 }]}>{t('tier.essentialName')}</Text>
+          <BenefitList plan="essential" />
+          <Text style={[styles.tierName, { color: colors.ink, marginTop: 12 }]}>{t('tier.premiumName')} · {tPlans('headings.premier')}</Text>
+          <BenefitList plan="premier" />
+          <Text style={[styles.referralBody, { color: colors.inkSoft, marginTop: 10 }]}>{tPlans('notEmergency')}</Text>
           <Text style={[styles.referralBody, { color: colors.inkSoft, marginTop: 10 }]}>{fillCoachingRates(copy.service, { rate: coachingRate.hourly, memberRate: COACHING_MEMBER_PRICE })}</Text>
           {hasMembershipAccess && <>
-            <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={() => router.push('/safety-wallet')}><Text style={{ color: colors.primary }}>{copy.wallet}</Text></TouchableOpacity>
-            <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={() => router.push('/crisis-mode')}><Text style={{ color: colors.primary }}>{copy.copilot}</Text></TouchableOpacity>
-            <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={() => router.push('/chat')}><Text style={{ color: colors.primary }}>{copy.chat}</Text></TouchableOpacity>
+            <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary }]} onPress={() => router.push('/safety-wallet')}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{copy.wallet}</Text></TouchableOpacity>
+            <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary }]} onPress={() => router.push('/crisis-mode')}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{copy.copilot}</Text></TouchableOpacity>
+            <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary }]} onPress={() => router.push('/chat')}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{copy.chat}</Text></TouchableOpacity>
           </>}
           <TouchableOpacity accessibilityRole="button" style={{ paddingVertical: 14 }} onPress={() => router.push('/settings')}><Text style={{ color: colors.primary }}>{copy.manage}</Text></TouchableOpacity>
-          {(!subscriptionPrices.essential || !subscriptionPrices.premium) && !isAttached && <TouchableOpacity accessibilityRole="button" style={styles.outlineBtn} onPress={retryPrices}><Text style={{ color: colors.primary }}>{copy.retryPrices}</Text></TouchableOpacity>}
+          {(!subscriptionPrices.essential || !subscriptionPrices.premium) && !isAttached && <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary }]} onPress={retryPrices}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{copy.retryPrices}</Text></TouchableOpacity>}
           </View>
         </View>
+        )}
 
         {/* Attached: team + sessions */}
         {isAttached && (
@@ -916,6 +913,7 @@ export default function SupportScreen() {
                 <StaffChip key={s.id} staff={s} label="" colors={colors} />
               ))}
               <TouchableOpacity
+                accessibilityRole="button"
                 style={[styles.outlineBtn, { borderColor: colors.primary }]}
                 activeOpacity={0.8}
                 onPress={() => router.push('/chat')}
@@ -930,55 +928,7 @@ export default function SupportScreen() {
               <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
                 {t('sessions.eyebrow')}
               </Text>
-              {sessions.map((sess) => (
-                <View key={sess.id} style={[styles.sessionOuter, { borderBottomColor: colors.line }, sess.id === focusedSessionId && { backgroundColor: colors.primaryLight }]}>
-                  <View style={styles.sessionRow}>
-                    <View style={styles.sessionInfo}>
-                      <Text style={[styles.sessionTitle, { color: colors.ink }]}>{sess.title}</Text>
-                      <Text style={[styles.sessionMeta, { color: colors.inkSoft }]}>
-                        {sessionTypeKey(sess.kind, t)} · {scheduleFor(sess)}
-                      </Text>
-                    </View>
-                    {sess.zoom_url ? (
-                      <TouchableOpacity
-                        style={[styles.sessionBtn, { backgroundColor: colors.green, borderColor: colors.green }]}
-                        activeOpacity={0.8}
-                        onPress={() => {
-                          if (sess.kind === 'group') logFunnelEvent('attended', { source: 'support' });
-                          Linking.openURL(withAppContext(sess.zoom_url!));
-                        }}
-                      >
-                        <Text style={[styles.sessionBtnText, { color: '#fff' }]}>{t('sessions.joinZoom')}</Text>
-                      </TouchableOpacity>
-                    ) : null}
-                    <TouchableOpacity
-                      style={[styles.sessionBtn, { backgroundColor: sess.rsvped ? colors.greenLight : colors.primaryLight, borderColor: sess.rsvped ? colors.green : colors.primary }]}
-                      activeOpacity={0.8}
-                      onPress={() => void handleSessionRsvp(sess)}
-                    >
-                      <Text style={[styles.sessionBtnText, { color: sess.rsvped ? colors.green : colors.primary }]}>
-                        {sess.rsvped ? t('sessions.confirmButton') : t('sessions.rsvpButton')}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                  {sess.rsvped && !isLaSobremesaSession(sess) && (
-                    <TouchableOpacity
-                      style={[styles.questionBtn, { borderColor: colors.primary }]}
-                      activeOpacity={0.8}
-                      onPress={() => setQuestionSession(sess)}
-                    >
-                      <Text style={[styles.questionBtnText, { color: colors.primary }]}>
-                        {t('questionModal.button')}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                  {isFamilySquaresSession(sess) ? (
-                    <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:familySquares.rsvpNote')}</Text>
-                  ) : isLaSobremesaSession(sess) ? (
-                    <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:laSobremesa.note')}</Text>
-                  ) : null}
-                </View>
-              ))}
+              {sessions.map((sess, index, list) => renderSession(sess, true, index === list.length - 1))}
             </View>
 
             <View style={[styles.card, { borderColor: colors.line }]}>
@@ -1018,147 +968,16 @@ export default function SupportScreen() {
               <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
                 {t('mondayGroup.eyebrow')}
               </Text>
-              <Text style={[styles.referralTitle, { color: colors.ink }]}>
-                {t('mondayGroup.heading')}
-              </Text>
+              {/* The meeting's name is the row's own title below: one heading, not two. */}
               <Text style={[styles.referralBody, { color: colors.inkSoft }]}>
                 {t('mondayGroup.sub')}
               </Text>
-              {sessions.filter((s) => s.kind === 'group').map((sess) => (
-                <View key={sess.id} style={[styles.sessionOuter, { borderBottomColor: colors.line }, sess.id === focusedSessionId && { backgroundColor: colors.primaryLight }]}>
-                  <View style={styles.sessionRow}>
-                    <View style={styles.sessionInfo}>
-                      <Text style={[styles.sessionTitle, { color: colors.ink }]}>{sess.title}</Text>
-                      <Text style={[styles.sessionMeta, { color: colors.inkSoft }]}>
-                        {scheduleFor(sess)}
-                      </Text>
-                    </View>
-                    {sess.zoom_url ? (
-                      <TouchableOpacity
-                        style={[styles.sessionBtn, { backgroundColor: colors.green, borderColor: colors.green }]}
-                        activeOpacity={0.8}
-                        onPress={() => {
-                          if (sess.kind === 'group') logFunnelEvent('attended', { source: 'support' });
-                          Linking.openURL(withAppContext(sess.zoom_url!));
-                        }}
-                      >
-                        <Text style={[styles.sessionBtnText, { color: '#fff' }]}>{t('sessions.joinZoom')}</Text>
-                      </TouchableOpacity>
-                    ) : null}
-                    <TouchableOpacity
-                      style={[styles.sessionBtn, { backgroundColor: sess.rsvped ? colors.greenLight : colors.primaryLight, borderColor: sess.rsvped ? colors.green : colors.primary }]}
-                      activeOpacity={0.8}
-                      onPress={() => void handleSessionRsvp(sess)}
-                    >
-                      <Text style={[styles.sessionBtnText, { color: sess.rsvped ? colors.green : colors.primary }]}>
-                        {sess.rsvped ? t('sessions.confirmButton') : t('sessions.rsvpButton')}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                  {sess.rsvped && !isLaSobremesaSession(sess) && (
-                    <TouchableOpacity
-                      style={[styles.questionBtn, { borderColor: colors.primary }]}
-                      activeOpacity={0.8}
-                      onPress={() => setQuestionSession(sess)}
-                    >
-                      <Text style={[styles.questionBtnText, { color: colors.primary }]}>
-                        {t('questionModal.button')}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                  {isFamilySquaresSession(sess) ? (
-                    <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:familySquares.rsvpNote')}</Text>
-                  ) : isLaSobremesaSession(sess) ? (
-                    <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:laSobremesa.note')}</Text>
-                  ) : null}
-                </View>
-              ))}
+              {sessions.filter((s) => s.kind === 'group').map((sess, index, list) => renderSession(sess, false, index === list.length - 1))}
             </View>
 
-            <View style={[styles.card, { borderColor: colors.line }]}>
-              <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
-                {t('paywall.eyebrow')}
-              </Text>
-
-              {/* Free row */}
-              <View style={[styles.tierRow, { borderColor: colors.line, backgroundColor: colors.cream }]}>
-                <View style={styles.tierInfo}>
-                  <Text style={[styles.tierName, { color: colors.inkSoft }]}>{t('tier.freeName')}</Text>
-                  <Text style={[styles.tierFeatures, { color: colors.inkSoft }]}>{t('tier.freeFeatures')}</Text>
-                </View>
-                <Text style={[styles.tierCurrent, { color: colors.inkSoft }]}>{t('tier.freeCurrent')}</Text>
-              </View>
-
-              {/* Essential row */}
-              <View style={[styles.tierRow, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]}>
-                <View style={styles.tierInfo}>
-                  <Text style={[styles.tierName, { color: colors.primary }]}>{t('tier.essentialName')}</Text>
-                  <Text style={[styles.tierFeatures, { color: colors.inkSoft }]}>{t('tier.essentialFeatures', { memberRate: COACHING_MEMBER_PRICE })}</Text>
-                </View>
-                <Text style={[styles.tierPrice, { color: colors.primary }]}>{subscriptionPrices.essential ? `${subscriptionPrices.essential}${copy.month}` : copy.priceUnavailable}</Text>
-              </View>
-              {trialLabel('essential') && (
-                <Text style={[styles.tierFeatures, { color: colors.primary, marginBottom: 8 }]}>
-                  {t('paywall.trialThen', { trial: trialLabel('essential'), price: subscriptionPrices.essential })}
-                </Text>
-              )}
-              <TouchableOpacity
-                style={[styles.solidBtn, { backgroundColor: colors.primary }]}
-                activeOpacity={0.85}
-                disabled={purchasing}
-                onPress={() => openUpgrade('essential')}
-              >
-                <Text style={styles.solidBtnText}>
-                  {purchasing ? '...' : trialLabel('essential')
-                    ? t('paywall.startTrial', { trial: trialLabel('essential'), price: subscriptionPrices.essential })
-                    : t('paywall.subscribeEssential', { price: subscriptionPrices.essential ?? copy.priceUnavailable })}
-                </Text>
-              </TouchableOpacity>
-
-              {/* Premium row */}
-              <View style={[styles.tierRow, { borderColor: colors.line, backgroundColor: colors.white, marginTop: 12 }]}>
-                <View style={styles.tierInfo}>
-                  <Text style={[styles.tierName, { color: colors.ink }]}>{t('tier.premiumName')}</Text>
-                  <Text style={[styles.tierFeatures, { color: colors.inkSoft }]}>{t('tier.premiumFeatures')}</Text>
-                </View>
-                <Text style={[styles.tierPrice, { color: colors.ink }]}>{subscriptionPrices.premium ? `${subscriptionPrices.premium}${copy.month}` : copy.priceUnavailable}</Text>
-              </View>
-              {trialLabel('premium') && (
-                <Text style={[styles.tierFeatures, { color: colors.primary, marginTop: 4 }]}>
-                  {t('paywall.trialThen', { trial: trialLabel('premium'), price: subscriptionPrices.premium })}
-                </Text>
-              )}
-              <TouchableOpacity
-                style={[styles.outlineBtn, { borderColor: colors.primary, marginTop: 8 }]}
-                activeOpacity={0.85}
-                disabled={purchasing}
-                onPress={() => openUpgrade('premium')}
-              >
-                <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
-                  {trialLabel('premium')
-                    ? t('paywall.startTrial', { trial: trialLabel('premium'), price: subscriptionPrices.premium })
-                    : t('paywall.subscribePremium', { price: subscriptionPrices.premium ?? copy.priceUnavailable })}
-                </Text>
-              </TouchableOpacity>
-
-              {/* Auto-renewable subscription disclosure + legal links (App Store 3.1.2c) */}
-              <Text style={[styles.disclosure, { color: colors.inkSoft }]}>
-                {t('paywall.autoRenewDisclosure', {
-                  essentialPrice: subscriptionPrices.essential ?? copy.priceUnavailable,
-                  premiumPrice: subscriptionPrices.premium ?? copy.priceUnavailable,
-                })}
-                {(trialLabel('essential') || trialLabel('premium')) ? ` ${t('paywall.trialDisclosure')}` : ''}
-              </Text>
-              <View style={styles.legalRow}>
-                <TouchableOpacity onPress={() => void Linking.openURL(TERMS_OF_USE_URL)}>
-                  <Text style={[styles.legalLink, { color: colors.primary }]}>{t('upgradeSheet.termsOfUse')}</Text>
-                </TouchableOpacity>
-                <Text style={[styles.legalSep, { color: colors.inkSoft }]}> · </Text>
-                <TouchableOpacity onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}>
-                  <Text style={[styles.legalLink, { color: colors.primary }]}>{t('upgradeSheet.privacyPolicy')}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+            {/* The plans in short; the plans screen has all of it and is where a plan is bought.
+                Never for a bereaved member (or before the device knows): no sales prompts of any kind. */}
+            {bereaved === false && <PlansTeaserCard offers={planOffers} source="support_tab" />}
           </>
         )}
 
@@ -1180,7 +999,7 @@ export default function SupportScreen() {
                       {t(accountState === 'direct-premium' ? 'tier.premiumName' : 'tier.essentialName')}
                     </Text>
                     <Text style={[styles.tierFeatures, { color: colors.inkSoft }]}>
-                      {t(accountState === 'direct-premium' ? 'tier.premiumFeatures' : 'tier.essentialFeatures', { memberRate: COACHING_MEMBER_PRICE })}
+                      {benefitSummary(accountState === 'direct-premium' ? 'premier' : 'essential', tPlans as never, current)}
                     </Text>
                   </View>
                   <View style={styles.tierRight}>
@@ -1191,6 +1010,7 @@ export default function SupportScreen() {
                 </View>
 
                 <TouchableOpacity
+                  accessibilityRole="button"
                   style={[styles.solidBtn, { backgroundColor: colors.primary }]}
                   activeOpacity={0.85}
                   onPress={() => router.push('/crisis-mode')}
@@ -1198,11 +1018,15 @@ export default function SupportScreen() {
                   <Text style={styles.solidBtnText}>{t('tier.openPlanReview')}</Text>
                 </TouchableOpacity>
 
-                {accountState === 'direct-essential' && (
+                {/* Never for a bereaved member (or before the device knows): no
+                    sales prompts of any kind. Plans stay reachable from Settings. */}
+                {accountState === 'direct-essential' && bereaved === false && (
                   <TouchableOpacity
                     style={[styles.outlineBtn, { borderColor: colors.primary }]}
                     activeOpacity={0.85}
-                    onPress={() => openUpgrade('premium')}
+                    accessibilityRole="button"
+                    accessibilityLabel={tPlans('support.upgradeLabel')}
+                    onPress={() => router.push(plansHref('support_upgrade', 'premium'))}
                   >
                     <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
                       {t('tier.upgradeButton')}
@@ -1222,6 +1046,7 @@ export default function SupportScreen() {
                 {t('coaching.cardBody', { rate: coachingRate.hourly })}
               </Text>
               <TouchableOpacity
+                accessibilityRole="button"
                 style={[styles.outlineBtn, { borderColor: colors.primary, marginTop: 12 }]}
                 activeOpacity={0.8}
                 onPress={() => router.push('/book-coaching')}
@@ -1236,55 +1061,7 @@ export default function SupportScreen() {
               <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
                 {t('sessions.eyebrow')}
               </Text>
-              {sessions.map((sess) => (
-                <View key={sess.id} style={[styles.sessionOuter, { borderBottomColor: colors.line }, sess.id === focusedSessionId && { backgroundColor: colors.primaryLight }]}>
-                  <View style={styles.sessionRow}>
-                    <View style={styles.sessionInfo}>
-                      <Text style={[styles.sessionTitle, { color: colors.ink }]}>{sess.title}</Text>
-                      <Text style={[styles.sessionMeta, { color: colors.inkSoft }]}>
-                        {sessionTypeKey(sess.kind, t)} · {scheduleFor(sess)}
-                      </Text>
-                    </View>
-                    {sess.zoom_url ? (
-                      <TouchableOpacity
-                        style={[styles.sessionBtn, { backgroundColor: colors.green, borderColor: colors.green }]}
-                        activeOpacity={0.8}
-                        onPress={() => {
-                          if (sess.kind === 'group') logFunnelEvent('attended', { source: 'support' });
-                          Linking.openURL(withAppContext(sess.zoom_url!));
-                        }}
-                      >
-                        <Text style={[styles.sessionBtnText, { color: '#fff' }]}>{t('sessions.joinZoom')}</Text>
-                      </TouchableOpacity>
-                    ) : null}
-                    <TouchableOpacity
-                      style={[styles.sessionBtn, { backgroundColor: sess.rsvped ? colors.greenLight : colors.primaryLight, borderColor: sess.rsvped ? colors.green : colors.primary }]}
-                      activeOpacity={0.8}
-                      onPress={() => void handleSessionRsvp(sess)}
-                    >
-                      <Text style={[styles.sessionBtnText, { color: sess.rsvped ? colors.green : colors.primary }]}>
-                        {sess.rsvped ? t('sessions.confirmButton') : t('sessions.rsvpButton')}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                  {sess.rsvped && !isLaSobremesaSession(sess) && (
-                    <TouchableOpacity
-                      style={[styles.questionBtn, { borderColor: colors.primary }]}
-                      activeOpacity={0.8}
-                      onPress={() => setQuestionSession(sess)}
-                    >
-                      <Text style={[styles.questionBtnText, { color: colors.primary }]}>
-                        {t('questionModal.button')}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                  {isFamilySquaresSession(sess) ? (
-                    <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:familySquares.rsvpNote')}</Text>
-                  ) : isLaSobremesaSession(sess) ? (
-                    <Text style={[styles.rsvpNote, { color: colors.inkSoft }]}>{t('common:laSobremesa.note')}</Text>
-                  ) : null}
-                </View>
-              ))}
+              {sessions.map((sess, index, list) => renderSession(sess, true, index === list.length - 1))}
             </View>
 
             <View style={[styles.card, { borderColor: colors.line }]}>
@@ -1298,11 +1075,12 @@ export default function SupportScreen() {
                 {t('referral.body')}
               </Text>
               <TouchableOpacity
-                style={[styles.outlineBtn, { borderColor: colors.secondary, marginTop: 12 }]}
+                accessibilityRole="button"
+                style={[styles.outlineBtn, { borderColor: colors.primary, marginTop: 12 }]}
                 activeOpacity={0.8}
                 onPress={() => setProviderOpen(true)}
               >
-                <Text style={[styles.outlineBtnText, { color: colors.secondary }]}>
+                <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
                   {t('referral.button')}
                 </Text>
               </TouchableOpacity>
@@ -1312,6 +1090,7 @@ export default function SupportScreen() {
 
         {/* Treatment Finder — all account types */}
         <TouchableOpacity
+          accessibilityRole="button"
           activeOpacity={0.85}
           onPress={() => router.push('/finder')}
           style={[styles.finderCard, { backgroundColor: colors.primary }]}
@@ -1325,8 +1104,11 @@ export default function SupportScreen() {
           <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
             {t('groups.eyebrow')}
           </Text>
-          {groups.map((group: SupportGroup) => {
+          {groups.map((group: SupportGroup, index: number) => {
             const room = group.liveRoomId;
+            // A rule between groups, and under the last one only when the forum
+            // link follows it (the community row draws its own).
+            const ruleBelow = index < groups.length - 1 || (hasMembershipAccess && !COMMUNITY_FEED_VISIBLE);
             const isMyRoom = !!(isAdmin && room && myRooms.includes(room));
             const isLive = !!(room && liveRooms.includes(room));
             const isRsvped = !!(room && rsvpedRooms.has(room));
@@ -1334,7 +1116,7 @@ export default function SupportScreen() {
             return (
               <View
                 key={group.id}
-                style={[styles.groupRow, { borderBottomColor: colors.line }]}
+                style={[styles.groupRow, ruleBelow && { borderBottomWidth: 1, borderBottomColor: colors.line }]}
               >
                 <View style={[styles.groupIcon, { backgroundColor: group.accentColor }]}>
                   <Text style={styles.groupIconText}>{group.icon}</Text>
@@ -1350,6 +1132,8 @@ export default function SupportScreen() {
                 {/* Status button */}
                 {isMyRoom ? (
                   <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel={`${group.name}: ${t('groups.goLive')}`}
                     style={[styles.joinBtn, { borderColor: colors.coral, backgroundColor: colors.coral }]}
                     activeOpacity={0.8}
                     onPress={() => router.push({ pathname: '/live-room' as never, params: { room: room ?? '' } })}
@@ -1360,9 +1144,11 @@ export default function SupportScreen() {
                   <TouchableOpacity
                     style={[styles.joinBtn, { borderColor: colors.coral, backgroundColor: '#111111' }]}
                     activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${group.name}: ${t('groups.joinLive')}`}
                     onPress={() => (hasMembershipAccess
                       ? router.push({ pathname: '/live-room' as never, params: { room: room ?? '' } })
-                      : openUpgrade('essential'))}
+                      : router.push(plansHref('support_groups', 'essential')))}
                   >
                     <Text style={[styles.joinBtnText, { color: '#fff' }]}>{t('groups.joinLive')}</Text>
                   </TouchableOpacity>
@@ -1378,10 +1164,11 @@ export default function SupportScreen() {
                     activeOpacity={0.8}
                     disabled={isRsvpPending}
                     accessibilityRole="button"
+                    accessibilityLabel={`${group.name}: ${isRsvped ? t('groups.rsvpDone') : t('groups.rsvpButton')}`}
                     accessibilityState={{ disabled: isRsvpPending, selected: isRsvped, busy: isRsvpPending }}
                     onPress={async () => {
                       if (!hasMembershipAccess) {
-                        openUpgrade('essential');
+                        router.push(plansHref('support_groups', 'essential'));
                         return;
                       }
                       const saved = await toggleGroupRsvp(room);
@@ -1410,6 +1197,8 @@ export default function SupportScreen() {
           })}
           {COMMUNITY_FEED_VISIBLE && (
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={t('community.openLink')}
               style={[styles.communityRow, { borderColor: colors.line }]}
               activeOpacity={0.8}
               onPress={() => router.push('/community')}
@@ -1451,6 +1240,9 @@ export default function SupportScreen() {
               return (
                 <TouchableOpacity
                   key={lang.code}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: active }}
+                  aria-checked={active}
                   style={[
                     styles.pill,
                     {
@@ -1481,6 +1273,8 @@ export default function SupportScreen() {
           style={styles.questionModalKAV}
         >
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={t('common:a11y.close')}
             style={[StyleSheet.absoluteFill, styles.modalOverlay]}
             activeOpacity={1}
             onPress={closeQuestionSheet}
@@ -1498,6 +1292,9 @@ export default function SupportScreen() {
                 <EmergencyActions prominent offline={questionCrisis === 'unsent'} />
                 {questionCrisis === 'unsent' && (
                   <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel={t('questionModal.retry')}
+                    accessibilityState={{ disabled: questionSubmitting, busy: questionSubmitting }}
                     style={[styles.solidBtn, { backgroundColor: colors.primary, marginTop: 12 }]}
                     disabled={questionSubmitting}
                     onPress={() => void submitQuestion()}
@@ -1509,6 +1306,7 @@ export default function SupportScreen() {
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity
+                  accessibilityRole="button"
                   style={[questionCrisis === 'sent' ? styles.solidBtn : styles.sheetRow, questionCrisis === 'sent' ? { backgroundColor: colors.primary, marginTop: 12 } : styles.sheetRowLast]}
                   onPress={closeQuestionSheet}
                   activeOpacity={0.85}
@@ -1535,6 +1333,9 @@ export default function SupportScreen() {
                   autoFocus
                 />
                 <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel={t('questionModal.submit')}
+                  accessibilityState={{ disabled: !questionText.trim() || questionSubmitting, busy: questionSubmitting }}
                   style={[styles.solidBtn, { backgroundColor: questionText.trim() ? colors.primary : colors.line, marginTop: 12 }]}
                   disabled={!questionText.trim() || questionSubmitting}
                   onPress={submitQuestion}
@@ -1544,7 +1345,7 @@ export default function SupportScreen() {
                     ? <ActivityIndicator color="#fff" />
                     : <Text style={styles.solidBtnText}>{t('questionModal.submit')}</Text>}
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.sheetRow, styles.sheetRowLast, { marginTop: 4 }]} onPress={closeQuestionSheet}>
+                <TouchableOpacity accessibilityRole="button" style={[styles.sheetRow, styles.sheetRowLast, { marginTop: 4 }]} onPress={closeQuestionSheet}>
                   <Text style={[styles.sheetRowName, { color: colors.inkSoft }]}>{t('questionModal.cancel')}</Text>
                 </TouchableOpacity>
               </>
@@ -1558,20 +1359,9 @@ export default function SupportScreen() {
 
 const styles = StyleSheet.create({
   questionCrisisScroll: { maxHeight: 460 },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    marginTop: 8,
-  },
-  heading: { fontSize: 24, fontWeight: '700', letterSpacing: -0.4 },
-  settingsIcon: { fontSize: 22 },
-
   sosButton: {
-    borderRadius: 16,
+    ...buttonShape,
     padding: 16,
-    alignItems: 'center',
     marginBottom: 14,
   },
   sosText: { color: '#fff', fontSize: 16, fontWeight: '700' },
@@ -1615,24 +1405,14 @@ const styles = StyleSheet.create({
   staffRole: { fontSize: 12, marginTop: 1 },
 
   sessionOuter: {
-    borderBottomWidth: 1,
     paddingVertical: 10,
   },
-  sessionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  sessionInfo: { flex: 1 },
-  sessionTitle: { fontSize: 14, fontWeight: '600' },
-  sessionMeta: { fontSize: 12, marginTop: 2 },
-  sessionBtn: { minHeight: 44, justifyContent: 'center',
-    borderRadius: 8,
-    borderWidth: 1,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-  },
-  sessionBtnText: { fontSize: 12, fontWeight: '600' },
+  sessionTitle: { fontSize: 15, fontWeight: '700' },
+  sessionMeta: { fontSize: 12.5, marginTop: 2 },
+  sessionActions: { marginTop: 10, gap: 6 },
+  sessionQuietRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', columnGap: 22 },
+  sessionQuietLink: { minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
+  sessionQuietLinkText: { fontSize: 13.5, fontWeight: '700', textAlign: 'center' },
   questionBtn: { minHeight: 44, justifyContent: 'center',
     borderWidth: 1,
     borderRadius: 8,
@@ -1643,6 +1423,7 @@ const styles = StyleSheet.create({
   },
   questionBtnText: { fontSize: 12, fontWeight: '600' },
   rsvpNote: { fontSize: 11.5, lineHeight: 16, marginTop: 8 },
+  cancelledLine: { fontSize: 13.5, lineHeight: 19, marginTop: 8 },
   questionInput: {
     borderWidth: 1,
     borderRadius: 10,
@@ -1679,7 +1460,6 @@ const styles = StyleSheet.create({
   tierName: { fontSize: 14, fontWeight: '700' },
   tierFeatures: { fontSize: 12, marginTop: 2 },
   tierRight: { alignItems: 'flex-end' },
-  tierPrice: { fontSize: 14, fontWeight: '700' },
   tierCurrent: { fontSize: 11, marginTop: 2 },
 
 
@@ -1697,7 +1477,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
-    borderBottomWidth: 1,
     gap: 10,
   },
   groupIcon: {
@@ -1741,28 +1520,27 @@ const styles = StyleSheet.create({
 
   referralTitle: { fontSize: 15, fontWeight: '700', marginBottom: 6 },
   referralBody: { fontSize: 13, lineHeight: 19 },
+  // A paragraph that stands between cards keeps the cards' own spacing below it.
+  sectionNote: { marginBottom: 12 },
   videoStatusBox: { borderWidth: 1, borderRadius: 12, padding: 12, marginTop: 12 },
   videoStatusTitle: { fontSize: 14, fontWeight: '800', textTransform: 'capitalize' },
   videoStatusBody: { fontSize: 12.5, marginTop: 3 },
   errorInline: { fontSize: 13, lineHeight: 18, marginTop: 10 },
 
-  solidBtn: { minHeight: 44,
-    borderRadius: 10,
+  // Every full-width button here is the app's one pill (buttonShape).
+  solidBtn: {
+    ...buttonShape,
     paddingVertical: 12,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
     marginTop: 4,
   },
   solidBtnText: { color: '#fff', fontWeight: '700', fontSize: 14, lineHeight: 20, textAlign: 'center', flexShrink: 1 },
-  outlineBtn: { minHeight: 44, justifyContent: 'center',
-    borderRadius: 10,
+  outlineBtn: {
+    ...buttonShape,
     borderWidth: 1.5,
     paddingVertical: 10,
-    alignItems: 'center',
     marginTop: 8,
   },
-  outlineBtnText: { fontWeight: '700', fontSize: 14 },
+  outlineBtnText: { fontWeight: '700', fontSize: 14, lineHeight: 20, textAlign: 'center', flexShrink: 1 },
 
   pillRow: { flexDirection: 'row', gap: 8 },
   pill: { minHeight: 44, justifyContent: 'center',
@@ -1808,7 +1586,7 @@ const styles = StyleSheet.create({
   copilotCopy: { marginBottom: 10 },
   copilotTitle: { fontSize: 16, fontWeight: '800', marginBottom: 4 },
   copilotBody: { fontSize: 13, lineHeight: 18 },
-  copilotButton: { minHeight: 44, justifyContent: 'center', borderRadius: 12, paddingVertical: 11, paddingHorizontal: 14, alignItems: 'center' },
+  copilotButton: { ...buttonShape, paddingVertical: 11 },
   copilotButtonText: { color: '#fff', fontSize: 14, fontWeight: '800' },
   sheetRow: {
     flexDirection: 'row',
@@ -1819,10 +1597,6 @@ const styles = StyleSheet.create({
   },
   sheetRowLast: { borderBottomWidth: 0 },
   offRampWrap: { marginTop: 14 },
-  legalRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 12, marginBottom: 4 },
-  legalLink: { fontSize: 12, fontWeight: '500', textDecorationLine: 'underline' },
-  legalSep: { fontSize: 12 },
-  disclosure: { fontSize: 11.5, lineHeight: 16, textAlign: 'center', marginTop: 14 },
   sheetRowName: { fontSize: 14, fontWeight: '600', flex: 1 },
   sheetRowSub: { fontSize: 12, marginTop: 2 },
   sheetRowAction: { fontSize: 14, fontWeight: '700' },

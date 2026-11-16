@@ -73,7 +73,7 @@
   },
   "notifications": {
     "title": "Un pequeño recordatorio al día",
-    "body": "Un recordatorio diario para tu registro de 90 segundos — y avisos de sesiones. Sin presión, sin spam.",
+    "body": "Un recordatorio diario para tu registro de 90 segundos, y avisos de sesiones. Eso incluye La Sobremesa, nuestra reunión gratuita de los lunes, cuando reservas tu lugar. Sin presión, sin spam.",
     "acceptButton": "Activar recordatorios",
     "declineButton": "Quizás después",
     "unavailable": "No se activaron los recordatorios. Puedes reintentar en Configuración."
@@ -84,6 +84,7 @@
   },
   "done": {
     "title": "Tu castillo comienza hoy",
+    "castle": "Un límite es una regla que tú pones. Cada uno es una muralla de tu castillo.",
     "body": "Regístrate una vez al día. Ancla tu primera muralla cuando estés lista. La ayuda está a un toque — siempre.",
     "button": "Entrar a Sober Helpline",
     "rsvpButton": "Reservar mi lugar en la llamada del lunes",

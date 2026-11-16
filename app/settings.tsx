@@ -9,6 +9,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { ScreenContainer } from '../src/components/ui/ScreenContainer';
+import { buttonShape } from '../src/components/ui/Button';
 import { BereavementSettingsCard } from '../src/components/bereavement/BereavementSettingsCard';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -18,11 +19,14 @@ import { useLanguage } from '../src/hooks/useLanguage';
 import { supabase } from '../src/lib/supabase';
 import { isAdminEmail } from '../src/lib/admin';
 import { useFeatureAccess } from '../src/hooks/useFeatureAccess';
-import { getActiveRevenueCatTier, restorePurchases } from '../src/lib/revenueCat';
-import { recordVerifiedPurchase, withTimeoutFallback } from '../src/lib/authBootstrap';
+import { useRestorePurchases } from '../src/hooks/useRestorePurchases';
+import { benefitSummary } from '../src/lib/membershipBenefits';
+import { plansHref, purchasableTiers } from '../src/lib/membershipPath';
 import { purgeAccountLocalData } from '../src/lib/accountLocalData';
 import { captureAppError } from '../src/lib/monitoring';
 import { appAlert } from '../src/lib/appAlert';
+import { useFamilySquaresWeeklySeat } from '../src/hooks/useFamilySquaresWeeklySeat';
+import { saveComingSeatIfUnanswered } from '../src/lib/familySquaresSeat';
 import { cancelPersonalRemindersForLogout, personalReminders } from '../src/reminders/native';
 import type { PersonalReminder } from '../src/reminders/personalReminders';
 import {
@@ -73,17 +77,18 @@ const DEFAULT_PRACTICE_PUSH: PracticePushSettings = {
 
 export default function SettingsScreen() {
   const { colors } = useTheme();
-  const { user, isAttached, accountState, refreshAccount, signOutLocally } = useAccount();
+  const { user, isAttached, accountState, signOutLocally } = useAccount();
   const { t } = useTranslation('settings');
+  const { t: tPlans, i18n } = useTranslation('plans');
   const { current, change, languages } = useLanguage();
   const router = useRouter();
 
   const [shareCheckIns, setShareCheckIns] = useState(false);
   const [consentLoading, setConsentLoading] = useState(true);
-  const [restoring, setRestoring] = useState(false);
-  // Set when a restore finishes. The message is chosen on the next render, once
-  // the refreshed plan (App Store or website membership) is the one on screen.
-  const [restoreOutcome, setRestoreOutcome] = useState<{ storeRestored: boolean } | null>(null);
+  // Shared with the plans screen (useRestorePurchases).
+  const { restoring, handleRestore } = useRestorePurchases();
+  // Someone with a plan still to choose (free, or Essential with Premier above it).
+  const canSeePlans = purchasableTiers(accountState).length > 0;
   const [openingReview, setOpeningReview] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const isAdmin = isAdminEmail(user?.email);
@@ -92,6 +97,8 @@ export default function SettingsScreen() {
   const [dailyBusy, setDailyBusy] = useState(false);
   const [familyCallReminders, setFamilyCallReminders] = useState(true);
   const [familyCallBusy, setFamilyCallBusy] = useState(false);
+  // "Save my seat every Monday" (Family Squares; the same switch as on Today and Support).
+  const weeklySeat = useFamilySquaresWeeklySeat(user?.id ?? null);
   const dailyBusyRef = useRef(false);
   // Personal reminders that were on when a sign-out/deletion began.
   const remindersBeforeExit = useRef<readonly PersonalReminder[]>([]);
@@ -132,21 +139,6 @@ export default function SettingsScreen() {
     return () => { active = false; };
   }, [user?.id, isAttached, accountState]);
 
-  // After Restore: the store found a purchase, or the refresh found a plan from
-  // anywhere else (a website membership), or the account is still free.
-  useEffect(() => {
-    if (!restoreOutcome) return;
-    setRestoreOutcome(null);
-    const planActive = accountState === 'direct-essential' || accountState === 'direct-premium';
-    if (restoreOutcome.storeRestored) {
-      appAlert(t('membership.restoreSuccessTitle'), t('membership.restoreSuccessBody'));
-    } else if (planActive) {
-      appAlert(t('membership.restoreActiveTitle'), t('membership.restoreActiveBody'));
-    } else {
-      appAlert(t('membership.restoreNoneTitle'), t('membership.restoreNoneBody'));
-    }
-  }, [restoreOutcome, accountState, t]);
-
   useEffect(() => {
     if (!user) return;
     let active = true;
@@ -174,6 +166,17 @@ export default function SettingsScreen() {
       setFamilyCallReminders(previous);
       appAlert(t('notifications.familyCallErrorTitle'), t('notifications.familyCallErrorBody'));
     }
+  }
+
+  async function toggleWeeklySeat(enabled: boolean) {
+    if (!user) return;
+    if (!(await weeklySeat.setEnabled(enabled))) {
+      appAlert(t('common:familySquares.weekly.errorTitle'), t('common:familySquares.weekly.errorBody'));
+      return;
+    }
+    // "Every Monday" starts with the coming one: save it now, unless she has
+    // already answered for it (a "can't make it" stays as she left it).
+    if (enabled) void saveComingSeatIfUnanswered(user.id);
   }
 
   async function chooseReminderHour(hour: number | null) {
@@ -420,35 +423,6 @@ export default function SettingsScreen() {
     }
   }
 
-  async function handleRestore() {
-    setRestoring(true);
-    try {
-      const hasEntitlement = await restorePurchases();
-      if (hasEntitlement && user) {
-        // Same as a purchase: unlock from the store's answer now, and give the server
-        // mirror (RevenueCat → entitlements) time to catch up before re-reading.
-        const tier = await getActiveRevenueCatTier().catch(() => null);
-        if (tier) recordVerifiedPurchase(user.id, tier);
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          await withTimeoutFallback(
-            Promise.resolve(supabase.functions.invoke('sync-iap-entitlements', {
-              headers: { Authorization: `Bearer ${session.access_token}` },
-            })).then(() => undefined),
-            10_000,
-            undefined,
-          );
-        }
-      }
-      await refreshAccount();
-      setRestoreOutcome({ storeRestored: hasEntitlement });
-    } catch {
-      appAlert(t('membership.restoreErrorTitle'), t('membership.restoreErrorBody'));
-    } finally {
-      setRestoring(false);
-    }
-  }
-
   async function handleRateApp() {
     if (openingReview) return;
     setOpeningReview(true);
@@ -618,9 +592,8 @@ export default function SettingsScreen() {
                     : t('membership.essentialPlan')}
                 </Text>
                 <Text style={[styles.infoLabel, { color: colors.inkSoft, marginBottom: 12 }]}>
-                  {accountState === 'direct-premium'
-                    ? t('membership.premiumFeatures')
-                    : t('membership.essentialFeatures')}
+                  {/* The one benefits list (plans.json), not a second description. */}
+                  {benefitSummary(accountState === 'direct-premium' ? 'premier' : 'essential', tPlans, i18n.language)}
                 </Text>
                 {websiteMembership ? (
                   <Text style={[styles.infoLabel, { color: colors.ink, marginBottom: 12 }]}>
@@ -649,17 +622,43 @@ export default function SettingsScreen() {
               </Text>
             ) : null}
 
+            {/* A quiet door to the plans for anyone who could still choose one,
+                bereaved members included (Support and Learn show them no
+                offer): one plain row. No benefits, no price, no badge. */}
+            {canSeePlans && (
+              <TouchableOpacity
+                style={[
+                  styles.restoreBtn,
+                  {
+                    borderColor: colors.line,
+                    marginTop: accountState !== 'direct-free' ? 14 : 0,
+                  },
+                ]}
+                onPress={() => router.push(plansHref('settings'))}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={t('membership.seePlans')}
+              >
+                <Text style={[styles.restoreText, { color: colors.primary }]}>
+                  {t('membership.seePlans')}
+                </Text>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity
               style={[
                 styles.restoreBtn,
                 {
                   borderColor: colors.line,
-                  marginTop: accountState !== 'direct-free' ? 14 : 0,
+                  marginTop: canSeePlans ? 10 : accountState !== 'direct-free' ? 14 : 0,
                 },
               ]}
-              onPress={handleRestore}
+              onPress={() => void handleRestore()}
               disabled={restoring}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={t('membership.restore')}
+              accessibilityState={{ disabled: restoring, busy: restoring }}
             >
               {restoring ? (
                 <ActivityIndicator color={colors.primary} />
@@ -761,8 +760,8 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        <TouchableOpacity accessibilityRole="button" disabled={dailyBusy || !dailyEnabled} onPress={() => void chooseReminderHour(null)} style={styles.restoreBtn}>
-          <Text style={{ color: colors.primary }}>{t('notifications.pauseDaily')}</Text>
+        <TouchableOpacity accessibilityRole="button" disabled={dailyBusy || !dailyEnabled} onPress={() => void chooseReminderHour(null)} style={[styles.restoreBtn, { borderColor: colors.line, marginBottom: 12 }]}>
+          <Text style={[styles.restoreText, { color: colors.primary }]}>{t('notifications.pauseDaily')}</Text>
         </TouchableOpacity>
 
         <View style={[styles.card, { borderColor: colors.line }]}>
@@ -784,6 +783,28 @@ export default function SettingsScreen() {
               accessibilityLabel={t('notifications.familyCallTitle')}
             />
           </View>
+          {/* Family Squares is the English meeting; Spanish members reserve La Sobremesa week by week. */}
+          {current !== 'es' && (
+            <View style={[styles.toggleRow, styles.toggleRowNext, { borderTopColor: colors.line }]}>
+              <View style={styles.toggleTextWrap}>
+                <Text style={[styles.toggleLabel, { color: colors.ink }]}>
+                  {t('common:familySquares.weekly.title')}
+                </Text>
+                <Text style={[styles.toggleDesc, { color: colors.inkSoft }]}>
+                  {t('common:familySquares.weekly.desc')}
+                </Text>
+              </View>
+              <Switch
+                value={weeklySeat.enabled}
+                onValueChange={(value) => void toggleWeeklySeat(value)}
+                disabled={weeklySeat.busy}
+                trackColor={{ false: colors.line, true: colors.primary }}
+                thumbColor="#fff"
+                accessibilityRole="switch"
+                accessibilityLabel={t('common:familySquares.weekly.title')}
+              />
+            </View>
+          )}
         </View>
 
         {/* Opt-in AI-initiated practice calls. Remote pushes contain no family
@@ -918,7 +939,7 @@ export default function SettingsScreen() {
           <TouchableOpacity
             accessibilityRole="button"
             accessibilityState={{ busy: openingReview, disabled: openingReview }}
-            style={[styles.restoreBtn, { borderColor: colors.primary }]}
+            style={[styles.restoreBtn, { borderColor: colors.line }]}
             onPress={() => void handleRateApp()}
             disabled={openingReview}
             activeOpacity={0.8}
@@ -1035,17 +1056,16 @@ const styles = StyleSheet.create({
   infoLabel: { fontSize: 14 },
   infoValue: { fontSize: 14, fontWeight: '500' },
   manageLink: { fontSize: 14, fontWeight: '600' },
+  // Every full-width button on this screen is the app's one pill (buttonShape).
   restoreBtn: {
-    borderRadius: 12,
+    ...buttonShape,
     borderWidth: 1,
     paddingVertical: 12,
-    alignItems: 'center',
   },
-  restoreText: { fontSize: 14, fontWeight: '600' },
+  restoreText: { fontSize: 14, fontWeight: '600', textAlign: 'center' },
   adminBtn: {
-    borderRadius: 12,
+    ...buttonShape,
     paddingVertical: 12,
-    alignItems: 'center',
     marginTop: 10,
   },
   adminBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
@@ -1056,6 +1076,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   toggleTextWrap: { flex: 1 },
+  toggleRowNext: { marginTop: 14, paddingTop: 14, borderTopWidth: 1 },
   toggleLabel: { fontSize: 14, fontWeight: '600' },
   toggleDesc: { fontSize: 12, marginTop: 3, lineHeight: 17 },
 
@@ -1074,18 +1095,16 @@ const styles = StyleSheet.create({
   optionLabel: { fontSize: 13, fontWeight: '700', marginBottom: 8, marginTop: 10 },
   privacyNote: { fontSize: 11, lineHeight: 16, marginTop: 14 },
   retryBtn: {
-    borderRadius: 12,
+    ...buttonShape,
     borderWidth: 1,
     paddingVertical: 10,
-    alignItems: 'center',
     marginTop: 12,
   },
 
   signOutBtn: {
-    borderRadius: 14,
+    ...buttonShape,
     borderWidth: 1,
     paddingVertical: 14,
-    alignItems: 'center',
     marginTop: 4,
     marginBottom: 8,
     backgroundColor: '#fff',

@@ -751,7 +751,7 @@ test('morning: the 16:00 UTC run never says "Good morning" outside her morning',
 test('morning: "It\'s Monday" means Monday where she is', async () => {
   const monday = await run('notify-daily-morning', { clock: Date.parse('2026-10-05T16:00:00Z') });
   assert.equal(monday.sends.length, 2);
-  assert.ok(monday.sends.every((m) => m.title === 'Family call tonight'));
+  assert.ok(monday.sends.every((m) => m.title === 'Family Squares tonight'));
   // Sunday 8 PM UTC is Monday 9 AM in Auckland.
   const auckland = await run('notify-daily-morning', {
     clock: Date.parse('2026-10-04T20:00:00Z'),
@@ -761,7 +761,7 @@ test('morning: "It\'s Monday" means Monday where she is', async () => {
     },
   });
   assert.equal(auckland.sends.length, 2);
-  assert.ok(auckland.sends.every((m) => m.title === 'Family call tonight'));
+  assert.ok(auckland.sends.every((m) => m.title === 'Family Squares tonight'));
   // Monday 8 PM UTC is already Tuesday 9 AM in Auckland.
   const tuesday = await run('notify-daily-morning', {
     clock: Date.parse('2026-10-05T20:00:00Z'),
@@ -771,7 +771,7 @@ test('morning: "It\'s Monday" means Monday where she is', async () => {
     },
   });
   assert.equal(tuesday.sends.length, 2);
-  assert.ok(tuesday.sends.every((m) => m.title !== 'Family call tonight'));
+  assert.ok(tuesday.sends.every((m) => m.title !== 'Family Squares tonight'));
 });
 test('morning: hourly local mode reaches each member at 9 AM her time only', async () => {
   const nine = await run('notify-daily-morning', { body: { mode: 'local' } });

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ActivityIndicator, Linking, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
+import { BUTTON_RADIUS } from '../ui/Button';
 import { appAlert } from '../../lib/appAlert';
 import { GRIEF_RESOURCES } from '../../lib/bereavement';
 import { openEmergencyLink } from '../../lib/emergencyLinks';
@@ -117,11 +118,11 @@ const styles = StyleSheet.create({
   resource: { borderTopWidth: 1, paddingTop: 12, marginTop: 4, marginBottom: 10 },
   resourceTitle: { fontSize: 15, fontWeight: '800', marginBottom: 4 },
   resourceBody: { fontSize: 14, lineHeight: 20, marginBottom: 10 },
-  linkButton: { alignSelf: 'flex-start', borderWidth: 1, borderRadius: 10, minHeight: 44, paddingHorizontal: 14, justifyContent: 'center' },
+  linkButton: { alignSelf: 'flex-start', borderWidth: 1, borderRadius: BUTTON_RADIUS, minHeight: 44, paddingHorizontal: 14, justifyContent: 'center' },
   linkText: { fontSize: 14, fontWeight: '800' },
   crisis: { borderWidth: 1, borderRadius: 12, padding: 14, marginTop: 6, marginBottom: 12 },
   crisisButtons: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  crisisButton: { borderRadius: 10, minHeight: 44, paddingHorizontal: 16, justifyContent: 'center' },
+  crisisButton: { borderRadius: BUTTON_RADIUS, minHeight: 44, paddingHorizontal: 16, justifyContent: 'center' },
   crisisButtonText: { color: '#fff', fontSize: 14, fontWeight: '800' },
   stillHere: { fontSize: 14, lineHeight: 20, fontStyle: 'italic' },
   quietRow: { marginTop: 10, alignItems: 'center' },

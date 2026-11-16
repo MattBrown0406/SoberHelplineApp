@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -17,7 +17,11 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { supabase } from '../../src/lib/supabase';
 import { EmergencyActions } from '../../src/components/safety/EmergencyActions';
-import { AppLogo } from '../../src/components/ui/AppLogo';
+import { AuthBrand } from '../../src/components/auth/AuthBrand';
+import { ConfirmEmailPanel } from '../../src/components/auth/ConfirmEmailPanel';
+import { SIGN_UP_CONFIRM_REDIRECT_URL, signUpEmailAlreadySentAt, signUpFailure } from '../../src/lib/frontDoor';
+import { confirmationEmailLastSentAt } from '../../src/lib/confirmationEmail';
+import { markSignUpSubmitted, noteSignUpFormStarted } from '../../src/lib/frontDoorStore';
 import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '../../src/config';
 
 const TERMS_VERSION = '1.0';
@@ -44,7 +48,16 @@ export default function SignUpScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checkEmail, setCheckEmail] = useState(false);
+  // When the confirmation email went out, if that was not just now (a second
+  // sign-up for the same address inside a minute). Null: just now.
+  const [emailSentAt, setEmailSentAt] = useState<number | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+
+  // Only a yes/no leaves this screen (never anything she typed): the root
+  // layout must not move her off a form she has started.
+  const formStarted = !!(firstName || lastName || email || password || acceptedTerms || checkEmail);
+  useEffect(() => { noteSignUpFormStarted(formStarted); }, [formStarted]);
+  useEffect(() => () => noteSignUpFormStarted(false), []);
 
   async function handleEmailSignUp() {
     if (loading) return;
@@ -63,10 +76,8 @@ export default function SignUpScreen() {
         email: email.trim(),
         password,
         options: {
-          // Supabase Edge Functions intentionally serve HTML as plain text on the
-          // default supabase.co domain. Land on the normal soberhelpline.com page
-          // (must be in the project's auth redirect allow-list).
-          emailRedirectTo: 'https://soberhelpline.com/app-confirmed.html',
+          // The confirmation link lands on a normal soberhelpline.com page.
+          emailRedirectTo: SIGN_UP_CONFIRM_REDIRECT_URL,
           data: {
             first_name: firstName.trim(),
             last_name: lastName.trim(),
@@ -76,19 +87,38 @@ export default function SignUpScreen() {
         },
       });
       if (err) {
-        setError(
-          err.message.toLowerCase().includes('already') || err.status === 422
-            ? t('signUp.errorEmailTaken')
-            : t('signUp.errorGeneric'),
-        );
+        // Asked again for the same address inside a minute: the server says
+        // "too soon", because its confirmation email has already gone out.
+        // That is not a failure: she is back on "Confirm your email", and
+        // "Send the email again" rests for what is left of its minute.
+        const alreadySentAt = signUpEmailAlreadySentAt(err, {
+          lastSentHereAtMs: confirmationEmailLastSentAt(email),
+          nowMs: Date.now(),
+        });
+        if (alreadySentAt !== null) {
+          setEmailSentAt(alreadySentAt);
+          setCheckEmail(true);
+          return;
+        }
+        // "Already exists" only for the error that means it: a 422 is usually
+        // a password the server will not accept (frontDoor.signUpFailure).
+        const failure = signUpFailure(err);
+        setError(t(failure === 'email-taken' ? 'signUp.errorEmailTaken' : failure === 'password' ? 'signUp.errorPasswordRejected' : 'signUp.errorGeneric'));
         return;
       }
+
+      // Remembered on the device (a bare flag, nothing about who): if she
+      // confirms by email later and reopens the app, it opens on sign-in
+      // instead of an empty "Create your account".
+      markSignUpSubmitted();
 
       // AccountContext records explicit metadata consent after authenticated
       // bootstrap. Confirmation-required signups cannot query account tables yet.
 
-      // Supabase requires email confirmation by default
+      // Email confirmation is required: show "Confirm your email", which signs
+      // her in with what she just typed once she has tapped the link.
       if (!data.session) {
+        setEmailSentAt(null);
         setCheckEmail(true);
       }
       // If email confirmation is disabled, onAuthStateChange fires → InitialLayout redirects
@@ -100,18 +130,20 @@ export default function SignUpScreen() {
   }
 
   if (checkEmail) {
+    // The password stays in this screen's memory only while this step is
+    // open; the panel asks for it to be forgotten the moment it is not needed.
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
-        <View style={styles.checkEmailWrap}>
-          <Text style={styles.checkEmailIcon}>📬</Text>
-          <Text style={[styles.checkEmailText, { color: colors.ink }]}>{t('signUp.checkEmail')}</Text>
-          <Link href="/(auth)/sign-in" asChild>
-            <TouchableOpacity style={StyleSheet.flatten([styles.primaryBtn, { backgroundColor: colors.primary, marginTop: 24 }])}>
-              <Text style={styles.primaryBtnText}>{t('signIn.submitButton')}</Text>
-            </TouchableOpacity>
-          </Link>
-        </View>
-      </SafeAreaView>
+      <ConfirmEmailPanel
+        email={email.trim()}
+        password={password}
+        sentAtMs={emailSentAt}
+        onForgetPassword={() => setPassword('')}
+        onUseDifferentEmail={() => {
+          setPassword('');
+          setError(null);
+          setCheckEmail(false);
+        }}
+      />
     );
   }
 
@@ -126,12 +158,8 @@ export default function SignUpScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Logo / brand */}
-          <View style={styles.brand}>
-            <AppLogo size={72} />
-            <Text style={[styles.appName, { color: colors.primary }]}>Sober Helpline</Text>
-            <Text style={[styles.tagline, { color: colors.inkSoft }]}>{t('appTagline')}</Text>
-          </View>
+          {/* Logo / brand: the same block as sign-in */}
+          <AuthBrand />
 
           <View style={[styles.card, { borderColor: colors.line }]}>
             <Text style={[styles.title, { color: colors.ink }]}>{t('signUp.title')}</Text>
@@ -194,19 +222,7 @@ export default function SignUpScreen() {
               />
             </View>
 
-            <TouchableOpacity
-              style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
-              onPress={handleEmailSignUp}
-              disabled={loading || !email || !password || !firstName || !acceptedTerms}
-              activeOpacity={0.85}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.primaryBtnText}>{t('signUp.submitButton')}</Text>
-              )}
-            </TouchableOpacity>
-
+            {/* Above the button it unlocks: she agrees first, then creates the account. */}
             <View style={styles.termsRow}>
               <TouchableOpacity
                 accessibilityRole="checkbox"
@@ -222,25 +238,45 @@ export default function SignUpScreen() {
               </TouchableOpacity>
               <Text style={[styles.termsNote, { color: colors.inkSoft }]}>
                 {t('signUp.termsNote')}{' '}
-                <Text style={{ color: colors.primary, textDecorationLine: 'underline' }} onPress={(event) => { event.stopPropagation(); openLegalDocument(TERMS_OF_USE_URL); }}>
+                <Text accessibilityRole="link" style={{ color: colors.primary, textDecorationLine: 'underline' }} onPress={(event) => { event.stopPropagation(); openLegalDocument(TERMS_OF_USE_URL); }}>
                   {t('signUp.termsLink')}
                 </Text>
                 {' '}{t('signUp.andText')}{' '}
-                <Text style={{ color: colors.primary, textDecorationLine: 'underline' }} onPress={(event) => { event.stopPropagation(); openLegalDocument(PRIVACY_POLICY_URL); }}>
+                <Text accessibilityRole="link" style={{ color: colors.primary, textDecorationLine: 'underline' }} onPress={(event) => { event.stopPropagation(); openLegalDocument(PRIVACY_POLICY_URL); }}>
                   {t('signUp.privacyLink')}
                 </Text>.
               </Text>
             </View>
+
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={t('signUp.submitButton')}
+              accessibilityState={{ disabled: loading || !email || !password || !firstName || !acceptedTerms, busy: loading }}
+              style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
+              onPress={handleEmailSignUp}
+              disabled={loading || !email || !password || !firstName || !acceptedTerms}
+              activeOpacity={0.85}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.primaryBtnText}>{t('signUp.submitButton')}</Text>
+              )}
+            </TouchableOpacity>
           </View>
 
-          <View style={styles.footer}>
-            <Text style={[styles.footerText, { color: colors.inkSoft }]}>{t('signUp.hasAccount')} </Text>
-            <Link href="/(auth)/sign-in" asChild>
-              <TouchableOpacity>
-                <Text style={[styles.footerLink, { color: colors.primary }]}>{t('signUp.signInLink')}</Text>
-              </TouchableOpacity>
-            </Link>
-          </View>
+          {/* The first screen for a new person: the way to sign-in must be plain to see. */}
+          <Link href="/(auth)/sign-in" asChild>
+            <TouchableOpacity
+              accessibilityRole="link"
+              // One flat style object: <Link asChild> spreads the child's style, so an
+              // array would lose every rule (no border, no centring).
+              style={StyleSheet.flatten([styles.haveAccountBtn, { borderColor: colors.primary }])}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.haveAccountText, { color: colors.primary }]}>{t('signUp.hasAccountButton')}</Text>
+            </TouchableOpacity>
+          </Link>
 
           <View style={styles.emergency}>
             <EmergencyActions />
@@ -255,9 +291,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   kav: { flex: 1 },
   scroll: { flexGrow: 1, padding: 24, paddingBottom: 40 },
-  brand: { alignItems: 'center', marginTop: 32, marginBottom: 28 },
-  appName: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5 },
-  tagline: { fontSize: 13, marginTop: 4 },
   card: {
     backgroundColor: '#fff',
     borderRadius: 20,
@@ -303,26 +336,24 @@ const styles = StyleSheet.create({
   dividerLine: { flex: 1, height: 1 },
   dividerText: { fontSize: 12 },
   appleBtn: { width: '100%', height: 50 },
-  termsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  termsRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   termsCheckboxButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', margin: -10 },
   termsCheckbox: { width: 22, height: 22, borderWidth: 1.5, borderRadius: 5, alignItems: 'center', justifyContent: 'center' },
   termsCheckmark: { color: '#fff', fontWeight: '900' },
-  termsNote: { flex: 1, fontSize: 11.5, lineHeight: 17 },
+  termsNote: { flex: 1, fontSize: 13, lineHeight: 19 },
   emergency: { marginTop: 28 },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 22,
-  },
-  footerText: { fontSize: 14 },
-  footerLink: { fontSize: 14, fontWeight: '600' },
-  checkEmailWrap: {
-    flex: 1,
+  haveAccountBtn: {
+    borderWidth: 1.5,
+    borderRadius: 99,
+    minHeight: 48,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 32,
-    gap: 12,
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 480,
+    marginTop: 20,
   },
-  checkEmailIcon: { fontSize: 52 },
-  checkEmailText: { fontSize: 16, lineHeight: 24, textAlign: 'center' },
+  haveAccountText: { fontSize: 15, fontWeight: '700', textAlign: 'center' },
 });

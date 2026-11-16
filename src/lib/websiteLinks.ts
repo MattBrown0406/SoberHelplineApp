@@ -26,6 +26,13 @@ export const WEBSITE_PATHS = Object.freeze({
   bookConsultation: '/book-consultation',
 });
 
+/**
+ * The Family Squares calendar file (Mondays, 7:00 PM Pacific, repeating). The
+ * phone's calendar opens it and offers to add the meeting. It is a file, not a
+ * page: no sign-in token and no app-context parameters.
+ */
+export const FAMILY_SQUARES_CALENDAR_URL = `${WEBSITE_ORIGIN}/family-squares.ics`;
+
 /** Query parameters added to every soberhelpline.com page the app opens. */
 export const APP_CONTEXT_PARAMS: readonly (readonly [string, string])[] = Object.freeze([
   Object.freeze(['from_app', '1'] as const),

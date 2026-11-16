@@ -41,7 +41,9 @@ let purchaseFlowDepth = 0;
 export function setReviewPromptRoute(routePath: string): void {
   currentRouteIsCrisis = routePath.includes('crisis-mode')
     || routePath.includes('safety-wallet');
-  currentRouteIsPaywall = routePath.includes('paywall') || routePath.includes('upgrade');
+  // The plans screen (app/plans.tsx) is where plans are shown and bought.
+  currentRouteIsPaywall = routePath.includes('paywall') || routePath.includes('upgrade')
+    || routePath === 'plans';
 }
 
 export function setReviewPromptPurchaseFlow(active: boolean): void {

@@ -7,6 +7,16 @@
     "afternoonNoName": "Good afternoon",
     "eveningNoName": "Good evening"
   },
+  "welcomeBack": {
+    "title": "Good to see you",
+    "body": "Start wherever feels right today.",
+    "saveSeat": "Save my seat for Monday",
+    "saveSeatLabel": "Save my seat at Monday's meeting",
+    "checkIn": "Check in",
+    "checkInLabel": "Go to today's check-in",
+    "dismiss": "Close",
+    "dismissLabel": "Close this welcome note"
+  },
   "hero": {
     "dayLabel": "DAY {{count}} — {{context}}",
     "contextAttached": "FAMILY SUPPORT PROGRAM",
@@ -124,14 +134,15 @@
   "disclosure": {
     "show": "Show",
     "hide": "Hide",
+    "more": "More for this week",
     "pathway": "Your family pathway",
-    "connection": "Free Monday call & connection",
+    "invite": "Invite someone to Family Squares",
     "practice": "Scripts, practice & your progress",
     "membership": "Explore membership"
   },
   "freeDaily": {
-    "eyebrow": "Today's free script",
-    "note": "A new conversation script unlocks here every day."
+    "eyebrow": "Today's script",
+    "note": "This is today's script. The full library is in the {{tab}} tab."
   },
   "passItOn": {
     "eyebrow": "Pass it on",
@@ -448,10 +459,13 @@
   },
   "situationCta": {
     "eyebrow": "THIS WEEK",
-    "freeCallTitle": "Monday Family Support Call",
+    "freeCallTitle": "Family Squares",
     "join": "Join Zoom",
     "rsvp": "Save my spot",
     "going": "You're going ✓",
+    "joinLabel": "Join {{name}} on Zoom",
+    "rsvpLabel": "Save my spot at {{name}}",
+    "goingLabel": "You're going to {{name}}",
     "freeCall": "Save my spot on the free call",
     "coaching": "Talk 1:1 with a coach",
     "intervention": "Plan an intervention with Matt",

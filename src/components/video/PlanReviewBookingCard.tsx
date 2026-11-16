@@ -162,7 +162,7 @@ function PlanReviewBookingCardContent({ controller, hasIncludedPlanReview, sourc
   return <View style={[styles.box, { borderColor: colors.line }]}>
     <Text style={[styles.title, { color: colors.ink }]}>{k('title')}</Text>
     <Text style={[styles.body, { color: colors.inkSoft }]}>{isPremier ? k('premierBody') : k('essentialBody', { rate: coachingRate.rate })}</Text>
-    {!isPremier ? <TouchableOpacity onPress={onUpgrade} style={[styles.outline, { borderColor: colors.primary }]}><Text style={{ color: colors.primary, fontWeight: '800' }}>{k('upgrade')}</Text></TouchableOpacity> : null}
+    {!isPremier ? <TouchableOpacity accessibilityRole="button" accessibilityLabel={k('upgrade')} onPress={onUpgrade} style={[styles.outline, { borderColor: colors.primary }]}><Text style={{ color: colors.primary, fontWeight: '800' }}>{k('upgrade')}</Text></TouchableOpacity> : null}
     <Text style={[styles.label, { color: colors.ink }]}>{k('purpose')}</Text>
     <View style={styles.row}>{['completeReview','boundaries','safety','family'].map((item) => <TouchableOpacity key={item} onPress={() => setPurpose(item)} style={[styles.choice, { borderColor: purpose === item ? colors.primary : colors.line }]}><Text style={{ color: colors.ink }}>{k(`purposes.${item}`)}</Text></TouchableOpacity>)}</View>
     <Text style={[styles.label, { color: colors.ink }]}>{k('share')}</Text>

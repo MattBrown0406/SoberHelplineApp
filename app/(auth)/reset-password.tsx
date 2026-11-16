@@ -19,6 +19,7 @@ import { supabase } from '../../src/lib/supabase';
 import { appAlert } from '../../src/lib/appAlert';
 import { addAppBreadcrumb } from '../../src/lib/monitoring';
 import { EmergencyActions } from '../../src/components/safety/EmergencyActions';
+import { AuthBrand } from '../../src/components/auth/AuthBrand';
 
 const MIN_PASSWORD = 8;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -122,6 +123,8 @@ export default function ResetPasswordScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.cream }]}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+          {/* The same brand block, card and button shapes as sign-in and sign-up. */}
+          <AuthBrand />
           <View style={[styles.card, { borderColor: colors.line, backgroundColor: colors.white }]}>
             <Text accessibilityRole="header" style={[styles.title, { color: colors.ink }]}>{t('reset.title')}</Text>
 
@@ -234,18 +237,18 @@ function PrimaryButton({ label, busy, disabled, onPress, color }: {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   flex: { flex: 1 },
-  scroll: { flexGrow: 1, padding: 20, justifyContent: 'center', maxWidth: 520, width: '100%', alignSelf: 'center' },
-  card: { borderWidth: 1, borderRadius: 18, padding: 22 },
-  title: { fontSize: 24, fontWeight: '900', marginBottom: 12 },
+  scroll: { flexGrow: 1, padding: 24, paddingBottom: 40, maxWidth: 528, width: '100%', alignSelf: 'center' },
+  card: { borderWidth: 1, borderRadius: 20, padding: 22 },
+  title: { fontSize: 20, fontWeight: '700', marginBottom: 12 },
   body: { fontSize: 15, lineHeight: 22, marginBottom: 16 },
   label: { fontSize: 14, fontWeight: '700', marginBottom: 6, marginTop: 6 },
   input: { borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, marginBottom: 8 },
   codeInput: { fontSize: 22, letterSpacing: 6, fontWeight: '800' },
   errorBox: { borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 12 },
   errorText: { fontSize: 14, lineHeight: 20, fontWeight: '600' },
-  primaryBtn: { borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 12, minHeight: 50, justifyContent: 'center' },
-  primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  primaryBtn: { borderRadius: 99, paddingVertical: 14, alignItems: 'center', marginTop: 12, minHeight: 48, justifyContent: 'center' },
+  primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   linkBtn: { alignItems: 'center', paddingVertical: 10, minHeight: 44, justifyContent: 'center' },
   linkText: { fontSize: 14, fontWeight: '700' },
-  emergency: { marginTop: 24 },
+  emergency: { marginTop: 28 },
 });

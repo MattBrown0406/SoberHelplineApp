@@ -29,7 +29,7 @@ class Clock extends Date { constructor(...args) { super(...(args.length ? args :
 const success = { ok: true, already_registered: true, meeting_date: '2026-10-12' };
 
 function edge(options = {}) {
-  const writes = [], calls = [], filters = [];
+  const writes = [], calls = [], filters = [], rpcs = [];
   let handler;
   const admin = {
     auth: { getUser: async (jwt) => { assert.equal(jwt, 'verified-token'); return { data: { user: options.user === undefined ? { id: 'auth-A', email: ' A@example.test ', email_confirmed_at: fixed } : options.user }, error: options.authError }; } },
@@ -38,7 +38,17 @@ function edge(options = {}) {
       assert.equal(table, 'session_rsvps');
       return { upsert: async (row, opts) => { writes.push(row); assert.equal(opts.onConflict, 'session_id,account_id'); return { error: options.saveError }; } };
     },
-    rpc: async (name) => { assert.equal(name, 'family_squares_session_id'); return { data: 'english-session', error: options.sessionError }; },
+    rpc: async (name, args) => {
+      rpcs.push([name, args === undefined ? undefined : JSON.parse(JSON.stringify(args))]);
+      if (name === 'family_squares_session_id') return { data: 'english-session', error: options.sessionError };
+      if (name === 'service_family_squares_note_meeting_status') {
+        if (options.noteThrows) throw Error('down');
+        return { data: null, error: options.noteError ? { code: 'XX000' } : null };
+      }
+      assert.equal(name, 'family_squares_meeting_cancelled');
+      if (options.cancelledThrows) throw Error('down');
+      return { data: options.knownCancelled ?? false, error: options.cancelledError ? { code: 'XX000' } : null };
+    },
   };
   load('supabase/functions/family-squares-register/index.ts', {
     'npm:@supabase/supabase-js@2': { createClient: () => admin },
@@ -50,7 +60,7 @@ function edge(options = {}) {
     if (options.networkError) throw Error('offline');
     return new Response(options.malformed ? 'not json' : JSON.stringify(options.response ?? success), { status: options.status ?? 200 });
   } });
-  return { writes, calls, filters, run: (body = {}, authorization = 'Bearer verified-token') => handler(new Request('https://app.invalid', { method: 'POST', headers: { Authorization: authorization }, body: JSON.stringify(body) })) };
+  return { writes, calls, filters, rpcs, run: (body = {}, authorization = 'Bearer verified-token') => handler(new Request('https://app.invalid', { method: 'POST', headers: { Authorization: authorization }, body: JSON.stringify(body) })) };
 }
 
 test('Edge reconciles verified identity only, persists accepted exact week and returns no PII', async () => {
@@ -87,12 +97,54 @@ for (const [name, opts] of [
   assert.equal(e.writes.length, 1); assert.equal(e.writes[0].status, 'going');
   assert.equal(e.writes[0].family_squares_meeting_date, '2026-10-12');
 });
+// The website's own decision reaches the app as `reason`, and a cancelled
+// Monday is kept so the reminders stop without waiting for the next sync.
+test('a cancelled week is refused with its reason and kept for the reminders', async () => {
+  for (const opts of [{}, { noteError: true }, { noteThrows: true }]) {
+    const e = edge({ status: 409, response: { ok: false, error: 'meeting_cancelled' }, ...opts });
+    const r = await e.run(); assert.equal(r.status, 409);
+    assert.deepEqual(await r.json(), { ok: false, error: 'website_declined', reason: 'meeting_cancelled' });
+    assert.deepEqual(e.rpcs.filter(([name]) => name === 'service_family_squares_note_meeting_status'),
+      [['service_family_squares_note_meeting_status', { p_meeting_date: '2026-10-12', p_cancelled: true, p_one_member: true }]]);
+    assert.equal(e.writes.length, 0);
+  }
+});
+test('a blocked attendee is refused with its reason and nothing is kept about the meeting', async () => {
+  const e = edge({ status: 403, response: { ok: false, error: 'registration_unavailable' } });
+  const r = await e.run(); assert.equal(r.status, 409);
+  assert.deepEqual(await r.json(), { ok: false, error: 'website_declined', reason: 'registration_unavailable' });
+  assert.equal(e.rpcs.some(([name]) => name !== 'family_squares_session_id'), false);
+  assert.equal(e.writes.length, 0);
+});
+// No website answer, but it said recently that this Monday is off: no seat.
+for (const [name, opts] of [
+  ['outage', { networkError: true }], ['unreadable reply', { malformed: true }],
+  ['website failure', { status: 500, response: { ok: false, error: 'registration_failed' } }],
+]) test(`a Monday already known to be cancelled saves no seat: ${name}`, async () => {
+  const e = edge({ ...opts, knownCancelled: true }); const r = await e.run(); assert.equal(r.status, 409);
+  assert.deepEqual(await r.json(), { ok: false, error: 'website_declined', reason: 'meeting_cancelled' });
+  assert.deepEqual(e.rpcs.at(-1), ['family_squares_meeting_cancelled', { p_meeting_date: '2026-10-12' }]);
+  assert.equal(e.writes.length, 0);
+});
+// A cancelled check that cannot be read never costs her the seat, and a
+// website yes is never second-guessed.
+for (const [name, opts] of [
+  ['check errors', { networkError: true, cancelledError: true, knownCancelled: true }],
+  ['check throws', { networkError: true, cancelledThrows: true }],
+]) test(`the seat is still saved when the cancelled check fails: ${name}`, async () => {
+  const e = edge(opts); const r = await e.run(); assert.equal(r.status, 200); assert.equal(e.writes.length, 1);
+});
+test('a website yes is not second-guessed by the cancelled check', async () => {
+  const e = edge({ knownCancelled: true }); const r = await e.run(); assert.equal(r.status, 200);
+  assert.equal(e.rpcs.some(([name]) => name === 'family_squares_meeting_cancelled'), false);
+  assert.equal(e.writes.length, 1);
+});
 test('native save failure remains retryable after website acceptance', async () => { const e = edge({ saveError: true }); assert.equal((await e.run()).status, 503); });
 
 function client(options = {}) {
   const invokes = []; let sessions = 0;
   const api = { auth: { getSession: async () => ({ data: { session: { user: { id: ++sessions > 1 && options.switched ? 'auth-B' : 'auth-A' }, access_token: 'token-A' } } }) }, from() { return { select() { return this; }, eq() { return this; }, maybeSingle: async () => ({ data: { id: options.wrongAccount ? 'account-B' : 'account-A' } }) }; }, functions: { invoke: async (name, args) => { invokes.push({ name, args }); return options.failure ? { error: true } : { data: options.response ?? success }; } } };
-  return { invokes, lib: load('src/lib/familySquaresRegistration.ts', { './supabase': { supabase: api }, '../../supabase/functions/_shared/family-squares-time': time }, { Date: Clock }) };
+  return { invokes, lib: load('src/lib/familySquaresRegistration.ts', { './supabase': { supabase: api }, '../../supabase/functions/_shared/family-squares-time': time, './familySquaresCancelled': { markFamilySquaresCancelled() {} }, './familySquaresCard': load('src/lib/familySquaresCard.ts', {}) }, { Date: Clock }) };
 }
 test('client coalesces taps, pins bearer, sends no identity and accepts authoritative repeat', async () => {
   const c = client(); const [a, b] = await Promise.all([c.lib.reserveFamilySquares('account-A'), c.lib.reserveFamilySquares('account-A')]);
@@ -111,15 +163,15 @@ test('snapshot expires at Monday end, not Tuesday reset; DST uses Pacific Monday
 });
 
 function hooks(which, result = { ok: true, alreadyRegistered: true }, options = {}) {
-  const alerts = [], writes = [], reservations = [], states = [], counts = [], reads = [], warnings = [];
+  const alerts = [], writes = [], reservations = [], states = [], counts = [], reads = [], warnings = [], declines = [];
   const session = { id: 'english-session', title: 'The Family Squares', rsvped: options.rsvped ?? true, zoom_url: 'https://zoom.invalid', next_at: null };
   let slot = 0;
   const react = { useState: (initial) => { const index = slot++; states[index] = which === 'today' && index === 8 ? session : which === 'today' && index === 2 ? options.initialCount ?? 0 : initial; return [states[index], (next) => { states[index] = typeof next === 'function' ? next(states[index]) : next; if (index === 2) counts.push(states[index]); }]; }, useCallback: (fn) => fn, useEffect() {}, useRef: (value) => ({ current: value }) };
   const query = { select(columns, config) { reads.push([columns, config]); return this; }, delete() { writes.push('delete'); return this; }, upsert() { writes.push('upsert'); return this; }, eq(key, value) { if (reads.length) reads.push([key, value]); return this; }, then(resolve, reject) { if (options.countReject) return Promise.reject(Error('offline')).then(resolve, reject); return Promise.resolve(options.countResponse ?? { count: 1, error: null }).then(resolve, reject); } };
-  const imports = { react, 'react-native': { AppState: { addEventListener: () => ({ remove() {} }) } }, 'expo-router': { useFocusEffect() {} }, 'react-i18next': { useTranslation: () => ({ i18n: { language: 'en' } }) }, i18next: { default: { t: (v) => v } }, '../lib/supabase': { supabase: { from: () => query } }, '../lib/familySquaresSchedule': schedule, '../lib/laSobremesa': { reserveLaSobremesa: async () => { throw Error('unexpected Spanish registration'); } }, '../lib/appAlert': { appAlert: (...args) => alerts.push(args) }, '../lib/familySquaresRegistration': { reserveFamilySquares: async (id) => { reservations.push(id); return result; }, familySquaresRsvpIsCurrent: () => false, FAMILY_SQUARES_ALREADY_REGISTERED: 'common:familySquares.alreadyRegistered' }, '../lib/situation': { DEFAULT_SITUATION: {}, funnelDoor: () => '' }, '../content/curriculum': { phaseForWeek: () => '', isBeyondAuthoredCurriculum: () => false } };
+  const imports = { react, 'react-native': { AppState: { addEventListener: () => ({ remove() {} }) } }, 'expo-router': { useFocusEffect() {} }, 'react-i18next': { useTranslation: () => ({ i18n: { language: 'en' } }) }, i18next: { default: { t: (v) => v } }, '../lib/supabase': { supabase: { from: () => query, rpc: async () => ({ data: null, error: null }) } }, '../lib/familySquaresSchedule': schedule, '../lib/laSobremesa': { reserveLaSobremesa: async () => { throw Error('unexpected Spanish registration'); } }, '../lib/appAlert': { appAlert: (...args) => alerts.push(args) }, '../lib/familySquaresRegistration': { reserveFamilySquares: async (id) => { reservations.push(id); return result; }, familySquaresRsvpIsCurrent: () => false, FAMILY_SQUARES_ALREADY_REGISTERED: 'common:familySquares.alreadyRegistered' }, '../lib/familySquaresSeat': { declineFamilySquares: async () => { declines.push('decline'); return options.declineResult ?? true; } }, '../lib/freshAnswer': load('src/lib/freshAnswer.ts', {}), '../lib/familySquaresSessionCache': { rememberFamilySquaresSession() {} }, '../lib/familySquaresCancelled': { loadFamilySquaresCancelledDate: async () => (options.cancelled ? 'cancelled-week' : null), isCancelledMeetingDate: (date) => date === 'cancelled-week', comingFamilySquaresMeetingDate: () => 'cancelled-week', isFamilySquaresKnownCancelled: () => options.knownCancelled ?? false }, '../lib/familySquaresCard': load('src/lib/familySquaresCard.ts', {}), '../lib/situation': { DEFAULT_SITUATION: {}, funnelDoor: () => '' }, '../content/curriculum': { phaseForWeek: () => '', isBeyondAuthoredCurriculum: () => false } };
   const module = load(which === 'today' ? 'src/hooks/useTodayFeed.ts' : 'src/hooks/useSessions.ts', imports, { console: { ...console, warn: (...args) => warnings.push(args) } });
   const hook = which === 'today' ? module.useTodayFeed('account-A', null) : module.useSessions('account-A');
-  return { alerts, writes, reservations, session, states, counts, reads, warnings, run: which === 'today' ? hook.rsvpFreeCall : hook.toggleRsvp };
+  return { alerts, writes, reservations, session, states, counts, reads, warnings, declines, run: which === 'today' ? hook.rsvpFreeCall : hook.toggleRsvp, decline: which === 'today' ? hook.declineFreeCall : hook.declineRsvp };
 }
 for (const [name, initialCount, alreadyRegistered] of [
   ['legacy going row', 1, true],
@@ -163,6 +215,35 @@ for (const which of ['today', 'support']) {
   test(`${which}: stale going new-week creation never claims already registered`, async () => { const h = hooks(which, { ok: true, alreadyRegistered: false }); await h.run(h.session); assert.equal(h.reservations.length, 1); assert.equal(h.alerts.length, 0); assert.equal(h.writes.length, 0); });
   test(`${which}: unavailable never writes or claims registration`, async () => { const h = hooks(which, { ok: false }); const saved = await h.run(h.session); assert.equal(h.writes.length, 0); if (which === 'support') assert.equal(saved, false); else assert.notEqual(h.alerts[0][0], 'common:familySquares.alreadyRegistered'); });
 }
+// "Can't make it this week": the saved seat becomes declined; it is never deleted.
+test('Today decline marks the seat declined, lowers the going count and writes nothing itself', async () => {
+  const h = hooks('today', undefined, { rsvped: true, initialCount: 1 });
+  assert.equal(await h.decline(), true);
+  assert.equal(h.states[8].rsvped, false); assert.equal(h.states[8].declined, true);
+  assert.deepEqual(h.counts, [0]); assert.deepEqual(h.declines, ['decline']);
+  assert.deepEqual(h.writes, []); assert.equal(h.reservations.length, 0); assert.equal(h.alerts.length, 0);
+});
+test('Today failed decline leaves the saved seat and the count as they were', async () => {
+  const h = hooks('today', undefined, { rsvped: true, initialCount: 1, declineResult: false });
+  assert.equal(await h.decline(), false);
+  assert.equal(h.states[8].rsvped, true); assert.notEqual(h.states[8].declined, true); assert.deepEqual(h.counts, []);
+});
+test('Support decline is for Family Squares only and never deletes the RSVP', async () => {
+  const h = hooks('support');
+  assert.equal(await h.decline(h.session), true); assert.deepEqual(h.declines, ['decline']); assert.deepEqual(h.writes, []);
+  for (const title of ['Other Group', 'La Sobremesa']) assert.equal(await h.decline({ ...h.session, title }), false);
+  assert.deepEqual(h.declines, ['decline']);
+  const failed = hooks('support', undefined, { declineResult: false });
+  assert.equal(await failed.decline(failed.session), false);
+});
+test('the hooks read a "can\'t make it" answer for the current meeting only, and only "going" counts as a seat', () => {
+  for (const file of ['src/hooks/useTodayFeed.ts', 'src/hooks/useSessions.ts']) {
+    const hook = source(file);
+    assert.match(hook, /\.select\('session_id, status, family_squares_meeting_date'\)\.in\('status', \['going', 'declined'\]\)/, file);
+    assert.match(hook, /status === 'going'/, file);
+    assert.match(hook, /status === 'declined'/, file);
+  }
+});
 for (const title of ['Other Group', 'La Sobremesa']) test(`${title} cancellation remains unchanged`, async () => { const h = hooks('support'); await h.run({ ...h.session, title }); assert.deepEqual(h.writes, ['delete']); assert.equal(h.reservations.length, 0); });
 
 test('onboarding actual repeat handler reconciles even when already marked going', async () => {

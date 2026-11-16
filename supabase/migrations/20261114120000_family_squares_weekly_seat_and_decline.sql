@@ -1,0 +1,675 @@
+-- Family Squares: "Save my seat every Monday" and "Can't make it this week".
+--
+-- RSVPs are cleared every Tuesday at 2 AM Pacific, so a member who comes every
+-- week had to save her seat again every week, and nobody could take an RSVP
+-- back.
+--
+-- 1. accounts.family_squares_weekly_seat (off by default). She turns it on or
+--    off herself with set_family_squares_weekly_seat().
+-- 2. decline_family_squares_rsvp(): her "going" becomes "declined" for this
+--    week's meeting. What a declined RSVP stops:
+--      * the hour-before and 15-minute reminders (they need "going");
+--      * the 6:30 PM invite (it skips "going" and "declined");
+--      * Monday morning's "Family Squares tonight" note: the
+--        notify-daily-morning Edge Function reads her RSVP and sends her
+--        ordinary morning note instead;
+--      * Tuesday's follow-up note, unless she joined after all
+--        (20261114140000).
+--    The website already hears "declined". Saving her spot again
+--    (family-squares-register) turns it back to "going". Only a seat for the
+--    coming meeting can be declined: after Monday's meeting ends, last
+--    night's seat is left as it is until the Tuesday reset clears it.
+-- 3. The weekly seat is saved by the Edge layer, never here in SQL: the
+--    website decides whether a seat can be saved (a cancelled Monday, a
+--    blocked attendee), and SQL cannot ask it. Every 15 minutes
+--    family-squares-web-sync asks the website for each member returned by
+--    service_family_squares_weekly_seat_candidates() and, only when the
+--    website accepts (or has no objection: that Monday is on and she is not
+--    blocked, but it could not write its own row), writes the row with
+--    service_family_squares_save_weekly_seat(). The row looks exactly like
+--    one family-squares-register writes (going, dated, created now), so the
+--    reminders and the website sync treat it like any RSVP. A decline is
+--    cleared with the rest on Tuesday, so it lasts one week only.
+-- 4. The weekly reset is unchanged except that it first records the finished
+--    meeting's RSVP counts (20261114110000).
+-- 5. A cancelled Monday. The website can cancel a meeting, and nothing in the
+--    app knew. family_squares_meeting_status keeps what the website last said
+--    about a Monday (family-squares-web-sync writes it every 15 minutes), and
+--    family_squares_meeting_cancelled(date) reads it. No weekly seat is saved
+--    for a cancelled Monday, and every Family Squares push asks first: the
+--    hour-before reminder and the 6:30 PM invite (20261114150000), the
+--    15-minute reminder and Monday's morning note (their Edge Functions), and
+--    Tuesday's follow-up (20261114140000).
+--    "Cancelled" is believed only while it is fresh: the sync repeats the
+--    website's answer every 15 minutes, so an answer about the coming Monday
+--    that is more than six hours old means the sync has stopped, and the
+--    meeting is treated as on (the pushes go out as they always did).
+--    Members who saved a seat, and members whose weekly seat had not been
+--    saved yet, are told once that the Monday is off
+--    (service_family_squares_announce_cancelled).
+
+ALTER TABLE public.accounts
+  ADD COLUMN IF NOT EXISTS family_squares_weekly_seat boolean NOT NULL DEFAULT false;
+-- When she last turned it on. Asking for a weekly seat is itself a sign that
+-- she uses the app (see the candidates function below).
+ALTER TABLE public.accounts
+  ADD COLUMN IF NOT EXISTS family_squares_weekly_seat_set_at timestamptz;
+
+-- She reads her own preference (the accounts RLS policy limits rows to her
+-- own). Members can already read every accounts column today; this keeps the
+-- preference readable if that is ever narrowed to named columns.
+GRANT SELECT (family_squares_weekly_seat) ON public.accounts TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.set_family_squares_weekly_seat(p_enabled boolean)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF p_enabled IS NULL THEN
+    RAISE EXCEPTION 'invalid_preference' USING ERRCODE = '22023';
+  END IF;
+  UPDATE public.accounts
+  SET family_squares_weekly_seat = p_enabled,
+      family_squares_weekly_seat_set_at = CASE WHEN p_enabled THEN now() ELSE family_squares_weekly_seat_set_at END
+  WHERE id = public.my_account_id();
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'no_account' USING ERRCODE = '28000';
+  END IF;
+  RETURN p_enabled;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.set_family_squares_weekly_seat(boolean) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.set_family_squares_weekly_seat(boolean) TO authenticated;
+
+-- True when a saved seat was changed to "can't make it". Only her own RSVP,
+-- only for Family Squares, and only a seat for the coming meeting; the
+-- meeting date on the row is left as it is.
+CREATE OR REPLACE FUNCTION public.decline_family_squares_rsvp()
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_account uuid := public.my_account_id();
+  v_session uuid := public.family_squares_session_id();
+  v_coming date := public._family_squares_coming_meeting_date(now());
+BEGIN
+  IF v_account IS NULL THEN
+    RAISE EXCEPTION 'no_account' USING ERRCODE = '28000';
+  END IF;
+  IF v_session IS NULL THEN RETURN false; END IF;
+  -- Between Monday 8 PM and the Tuesday 2 AM reset her row is still last
+  -- night's. A tap from a screen left open must not mark the meeting she may
+  -- have just attended as declined: the Tuesday note and the recorded counts
+  -- read that row. "For the coming meeting" is the weekly reset's own rule
+  -- (_family_squares_rsvp_expired), asked as of the Tuesday before the coming
+  -- Monday: a dated row must name the coming meeting, and an undated (4.1)
+  -- row must have been saved after the last meeting ended. The row is locked
+  -- so the answer still holds when it is changed just below.
+  PERFORM 1 FROM public.session_rsvps r
+  WHERE r.session_id = v_session AND r.account_id = v_account AND r.status = 'going'
+    AND NOT public._family_squares_rsvp_expired(r.family_squares_meeting_date, r.created_at, (v_coming - 6)::timestamp)
+  FOR UPDATE;
+  IF NOT FOUND THEN RETURN false; END IF;
+  UPDATE public.session_rsvps SET status = 'declined'
+  WHERE session_id = v_session AND account_id = v_account AND status = 'going';
+  RETURN FOUND;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.decline_family_squares_rsvp() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.decline_family_squares_rsvp() TO authenticated;
+
+-- ── The weekly seat: saved by family-squares-web-sync, after the website agrees ──
+
+-- The Monday (Pacific date) of the next Family Squares meeting that has not
+-- ended: tonight's until 8 PM Pacific, then next Monday's. The same meeting
+-- familySquaresSyncWindow() names in the Edge Functions.
+CREATE OR REPLACE FUNCTION public._family_squares_coming_meeting_date(p_now timestamptz DEFAULT now())
+RETURNS date
+LANGUAGE sql
+STABLE
+SET search_path = ''
+AS $$
+  SELECT CASE
+    WHEN p_now < (l.latest + time '20:00') AT TIME ZONE 'America/Los_Angeles' THEN l.latest
+    ELSE l.latest + 7
+  END
+  FROM (SELECT public._family_squares_latest_meeting_date(p_now) AS latest) l;
+$$;
+REVOKE ALL ON FUNCTION public._family_squares_coming_meeting_date(timestamptz) FROM PUBLIC, anon, authenticated;
+
+-- Why a weekly seat was not saved when the website was asked, so it is not
+-- asked the same question every 15 minutes:
+--   registration_unavailable  the website will not register her; she is not
+--                             asked about again for that meeting.
+--   meeting_cancelled         that Monday is cancelled; nobody is asked about
+--                             for the next six hours (it may be put back on),
+--                             or until the website says the meeting is on.
+--   no_answer                 the website refused the question about her
+--                             alone (a 4xx reply the app does not know, or
+--                             "that Monday is cancelled" when its sync reply
+--                             just said the meeting is on); she is not asked
+--                             about again for six hours, and the others are
+--                             not held up by her. A website that is down or
+--                             answering with errors holds nobody.
+-- Account ids and dates only. Rows for meetings more than four weeks old are
+-- removed whenever a new one is written.
+CREATE TABLE IF NOT EXISTS public.family_squares_weekly_seat_holds (
+  account_id uuid NOT NULL REFERENCES public.accounts(id) ON DELETE CASCADE,
+  meeting_date date NOT NULL,
+  reason text NOT NULL,
+  noted_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (account_id, meeting_date)
+);
+-- Named and replaced here, so a database that already has the table gets the
+-- reasons listed above.
+ALTER TABLE public.family_squares_weekly_seat_holds
+  DROP CONSTRAINT IF EXISTS family_squares_weekly_seat_holds_reason_check;
+ALTER TABLE public.family_squares_weekly_seat_holds
+  ADD CONSTRAINT family_squares_weekly_seat_holds_reason_check
+  CHECK (reason IN ('meeting_cancelled', 'registration_unavailable', 'no_answer'));
+ALTER TABLE public.family_squares_weekly_seat_holds ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.family_squares_weekly_seat_holds FROM PUBLIC, anon, authenticated;
+
+-- ── A cancelled Monday ───────────────────────────────────────────────────────
+
+-- What soberhelpline.com last said about one Monday's meeting. Written only by
+-- family-squares-web-sync (the service role): the website's sync reply says
+-- whether the meeting date sent is cancelled, and that answer is kept on every
+-- run, true or false, so a meeting that is put back on is restored. No row
+-- means the website has not said: the meeting is on.
+-- Dates only, no member data. Rows more than eight weeks old are removed
+-- whenever a new answer is written.
+CREATE TABLE IF NOT EXISTS public.family_squares_meeting_status (
+  meeting_date date PRIMARY KEY,
+  cancelled boolean NOT NULL,
+  noted_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.family_squares_meeting_status ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.family_squares_meeting_status FROM PUBLIC, anon, authenticated;
+
+-- Is that Monday's Family Squares cancelled? True only when the website said
+-- so; false when it said the meeting is on or has not said. The app asks this
+-- to show a cancelled week, and every Family Squares push asks it before it
+-- is sent. If the answer cannot be read it is false, so a failure here never
+-- silences a reminder: the pushes go out as they always did.
+--
+-- "Cancelled" is believed only while it is fresh. The sync writes the
+-- website's answer every 15 minutes, so:
+--   * a meeting that has not ended: the answer must be less than six hours
+--     old. Older than that, the sync has stopped and nobody knows whether the
+--     meeting was put back on: that is "not cancelled", so reminders go out.
+--   * a meeting that has ended (8 PM Pacific): the sync has moved on to next
+--     Monday and no longer writes this date, so the answer stands if it was
+--     written on the day of the meeting or later. Tuesday's 1 AM follow-up
+--     asks about last night this way.
+-- This is the only place the status is read: the reminders, the follow-up,
+-- the weekly seats and the Edge Functions all ask here.
+CREATE OR REPLACE FUNCTION public.family_squares_meeting_cancelled(p_meeting_date date)
+RETURNS boolean
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_day_start timestamptz;
+  v_end timestamptz;
+BEGIN
+  -- Worked out here, not in DECLARE, so that nothing can raise outside the
+  -- handler below.
+  v_day_start := p_meeting_date::timestamp AT TIME ZONE 'America/Los_Angeles';
+  v_end := (p_meeting_date + time '20:00') AT TIME ZONE 'America/Los_Angeles';
+  RETURN coalesce((
+    SELECT s.cancelled AND CASE
+        WHEN now() < v_end THEN s.noted_at > now() - interval '6 hours'
+        ELSE s.noted_at >= v_day_start
+      END
+    FROM public.family_squares_meeting_status s
+    WHERE s.meeting_date = p_meeting_date
+  ), false);
+EXCEPTION WHEN OTHERS THEN
+  RETURN false;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.family_squares_meeting_cancelled(date) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.family_squares_meeting_cancelled(date) TO authenticated, service_role;
+
+-- The same question about the coming meeting (tonight's until it ends at
+-- 8 PM Pacific), for the Edge Functions that send Monday's morning note and
+-- the 15-minute reminder: they ask the database which Monday that is instead
+-- of working it out again. The same six-hour rule applies.
+CREATE OR REPLACE FUNCTION public.service_family_squares_coming_meeting_cancelled()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT public.family_squares_meeting_cancelled(public._family_squares_coming_meeting_date(now()));
+$$;
+REVOKE ALL ON FUNCTION public.service_family_squares_coming_meeting_cancelled() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.service_family_squares_coming_meeting_cancelled() TO service_role;
+
+-- Keeps the website's answer for a Monday. Only the coming meeting or the one
+-- before it: a sync that began just before a meeting ended may answer just
+-- after. When the website says the meeting is on, a "that Monday is
+-- cancelled" answer it gave earlier about one member (see the holds above) no
+-- longer stands, so weekly seats are asked about again at once. And when a
+-- cancelled Monday is put back on, any "there's no Family Squares this
+-- Monday" note that has not gone out yet is withdrawn (see
+-- service_family_squares_announce_cancelled below): it would no longer be
+-- true. Nothing is sent to say the meeting is back.
+--
+-- p_one_member: the answer is what the website said about one member
+-- (family-squares-register passes true), not its sync reply. The sync reply
+-- is the authority on whether a Monday is on. While it said so in the last
+-- 30 minutes (two runs of the 15-minute sync), one member's "cancelled"
+-- changes nothing here: nothing is written and nothing is raised. If the
+-- sync's answer is older than that, or cannot be read, her answer is kept as
+-- before.
+DROP FUNCTION IF EXISTS public.service_family_squares_note_meeting_status(date, boolean);
+CREATE OR REPLACE FUNCTION public.service_family_squares_note_meeting_status(
+  p_meeting_date date, p_cancelled boolean, p_one_member boolean DEFAULT false)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_coming date := public._family_squares_coming_meeting_date(now());
+  v_was_cancelled boolean;
+  v_sync_said_on boolean := false;
+BEGIN
+  IF p_meeting_date IS NULL OR p_cancelled IS NULL OR p_meeting_date NOT IN (v_coming, v_coming - 7) THEN
+    RAISE EXCEPTION 'invalid_meeting_status' USING ERRCODE = '22023';
+  END IF;
+  IF p_cancelled AND coalesce(p_one_member, false) THEN
+    BEGIN
+      SELECT NOT s.cancelled AND s.noted_at > now() - interval '30 minutes' INTO v_sync_said_on
+      FROM public.family_squares_meeting_status s WHERE s.meeting_date = p_meeting_date;
+    EXCEPTION WHEN OTHERS THEN
+      v_sync_said_on := false;
+    END;
+    IF coalesce(v_sync_said_on, false) THEN
+      RETURN;
+    END IF;
+  END IF;
+  DELETE FROM public.family_squares_meeting_status s WHERE s.meeting_date < v_coming - 56;
+  -- What was stored until now, however old.
+  SELECT s.cancelled INTO v_was_cancelled
+  FROM public.family_squares_meeting_status s WHERE s.meeting_date = p_meeting_date;
+  INSERT INTO public.family_squares_meeting_status (meeting_date, cancelled, noted_at)
+  VALUES (p_meeting_date, p_cancelled, now())
+  ON CONFLICT (meeting_date) DO UPDATE
+    SET cancelled = EXCLUDED.cancelled, noted_at = EXCLUDED.noted_at;
+  IF NOT p_cancelled THEN
+    DELETE FROM public.family_squares_weekly_seat_holds h
+    WHERE h.meeting_date = p_meeting_date AND h.reason = 'meeting_cancelled';
+    IF coalesce(v_was_cancelled, false) THEN
+      -- The row stays, marked as withdrawn, so its key still allows only one
+      -- note per member. If that Monday is cancelled again, the announce
+      -- function below puts a withdrawn note back in the queue. Withdrawing a
+      -- note must never stop the status itself from being kept.
+      BEGIN
+        UPDATE public.push_outbox o
+        SET failed_at = now(), last_error = 'meeting_restored', processing_at = NULL, processing_token = NULL
+        WHERE o.idempotency_key LIKE 'family-squares-cancelled:' || p_meeting_date::text || ':%'
+          AND o.sent_at IS NULL AND o.failed_at IS NULL;
+      EXCEPTION WHEN OTHERS THEN
+        RAISE WARNING 'family squares cancelled notes not withdrawn: %', SQLERRM;
+      END;
+    END IF;
+  END IF;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.service_family_squares_note_meeting_status(date, boolean, boolean) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.service_family_squares_note_meeting_status(date, boolean, boolean) TO service_role;
+
+-- Members with "Save my seat every Monday" on whose seat for that meeting has
+-- not been saved and may be. One list, so that the two functions that read it
+-- can never disagree: who the website is asked about
+-- (service_family_squares_weekly_seat_candidates) and who is told that a
+-- Monday is off before her seat was saved
+-- (service_family_squares_announce_cancelled).
+--   * No RSVP for Family Squares at all. A member who answered (going or
+--     declined) keeps her answer; and until the Tuesday reset has cleared last
+--     night's RSVPs nobody is returned, so last night's rows are still there
+--     for the Tuesday note and the recorded counts.
+--   * The same people family-squares-register accepts: a verified email on a
+--     real (not anonymous, not deleted) sign-in.
+--   * Not Spanish members: they are invited to La Sobremesa.
+--   * Not a member who paused reminders while she grieves.
+--   * Only members who used the app in the last 180 days, so a seat is not
+--     saved for ever for someone who has left. Any of: her device checked in
+--     (push_token_seen_at, every launch with notifications on), she signed in,
+--     she turned the weekly seat on, she did her daily check-in, or the app
+--     logged something she did (funnel_events: a Join tap, a tool opened).
+--     The window is long on purpose: a regular who keeps notifications off
+--     and joins every Monday from the website's reminder email never opens
+--     the app, and losing her seat would also stop those emails.
+--   * Not a member the website refused for that meeting, or could not answer
+--     for in the last six hours.
+-- Whether that Monday is cancelled is not asked here: each caller decides.
+CREATE OR REPLACE FUNCTION public._family_squares_weekly_seat_members(p_meeting_date date)
+RETURNS TABLE(account_id uuid, email text, name text)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_session uuid := public.family_squares_session_id();
+BEGIN
+  IF v_session IS NULL OR p_meeting_date IS NULL THEN
+    RETURN;
+  END IF;
+  RETURN QUERY
+  SELECT a.id,
+         lower(btrim(u.email::text)),
+         -- The name family-squares-register sends.
+         left(coalesce(nullif(btrim(concat_ws(' ', nullif(btrim(a.first_name), ''), nullif(btrim(a.last_name), ''))), ''), 'Family'), 100)
+  FROM public.accounts a
+  JOIN auth.users u ON u.id = a.user_id
+  WHERE a.family_squares_weekly_seat
+    AND u.email_confirmed_at IS NOT NULL
+    AND nullif(btrim(u.email::text), '') IS NOT NULL
+    AND u.deleted_at IS NULL
+    AND NOT coalesce(u.is_anonymous, false)
+    AND coalesce(a.locale, 'en') NOT LIKE 'es%'
+    AND NOT public._account_reminders_paused(a.id)
+    -- greatest() ignores the signals she does not have; with none it is NULL.
+    AND greatest(
+          a.push_token_seen_at,
+          u.last_sign_in_at,
+          a.family_squares_weekly_seat_set_at,
+          (SELECT max(c.created_at) FROM public.checkins c WHERE c.account_id = a.id),
+          (SELECT max(e.created_at) FROM public.funnel_events e WHERE e.account_id = a.id)
+        ) > now() - interval '180 days'
+    AND NOT EXISTS (
+      SELECT 1 FROM public.session_rsvps r
+      WHERE r.session_id = v_session AND r.account_id = a.id
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM public.family_squares_weekly_seat_holds h
+      WHERE h.account_id = a.id AND h.meeting_date = p_meeting_date
+        AND (h.reason = 'registration_unavailable'
+          OR (h.reason = 'no_answer' AND h.noted_at > now() - interval '6 hours'))
+    );
+END;
+$$;
+REVOKE ALL ON FUNCTION public._family_squares_weekly_seat_members(date) FROM PUBLIC, anon, authenticated;
+
+-- Tells members, once, that the coming Monday is off. Until now their
+-- reminders simply stopped, and their calendar still showed the meeting.
+-- family-squares-web-sync calls this after the website's sync reply (the
+-- authority; never one member's answer) said that Monday is cancelled.
+--
+-- Who is told:
+--   * members who saved a seat for that Monday ('going');
+--   * members with "Save my seat every Monday" on whose seat had not been
+--     saved yet when the Monday was cancelled (no seat is saved while it is
+--     cancelled, so they would otherwise never hear). The same members the
+--     15-minute job would have asked the website about
+--     (_family_squares_weekly_seat_members): a member who said she can't make
+--     it, or whom the website refused, is not told.
+--
+-- It is safe to call on every run: the key allows one note per member per
+-- meeting, ever, and returns how many notes were queued this time. A note
+-- that was withdrawn before it went out (the Monday was put back on:
+-- 'meeting_restored', see above) is queued again if that Monday is cancelled
+-- once more, at the time a new note would get. A note that was sent is never
+-- sent again.
+--
+-- The note goes through push_outbox as a 'family_call_followup', the kind
+-- Tuesday's note uses, so dispatcher_outbox_delivery applies exactly the same
+-- rules when it is sent: Monday reminders on, not a Spanish member, not
+-- paused while she grieves, and only between 8 AM and 9 PM where she is. It
+-- opens Today, like Tuesday's note. It is not shown after the meeting would
+-- have started (7 PM Pacific), and is not queued at all if her morning comes
+-- after that.
+CREATE OR REPLACE FUNCTION public.service_family_squares_announce_cancelled(p_meeting_date date)
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_session uuid := public.family_squares_session_id();
+  v_start timestamptz;
+  v_prev_end timestamptz;
+  v_count integer := 0;
+BEGIN
+  -- Only the coming meeting, and only while the website's "cancelled" is
+  -- fresh (family_squares_meeting_cancelled).
+  IF v_session IS NULL OR p_meeting_date IS NULL
+     OR p_meeting_date IS DISTINCT FROM public._family_squares_coming_meeting_date(now())
+     OR NOT public.family_squares_meeting_cancelled(p_meeting_date) THEN
+    RETURN 0;
+  END IF;
+  v_start := (p_meeting_date + time '19:00') AT TIME ZONE 'America/Los_Angeles';
+  v_prev_end := ((p_meeting_date - 7) + time '20:00') AT TIME ZONE 'America/Los_Angeles';
+  IF now() >= v_start THEN
+    RETURN 0;
+  END IF;
+
+  WITH expecting AS (
+    SELECT r.account_id
+    FROM public.session_rsvps r
+    WHERE r.session_id = v_session AND r.status = 'going'
+      AND (r.family_squares_meeting_date = p_meeting_date
+        -- 4.1 writes no occurrence: an undated seat saved since the last
+        -- meeting ended is for this one.
+        OR (r.family_squares_meeting_date IS NULL AND r.created_at > v_prev_end))
+    UNION
+    -- A weekly seat that had not been saved yet. These members have no RSVP
+    -- row at all, so nobody is in both halves.
+    SELECT m.account_id
+    FROM public._family_squares_weekly_seat_members(p_meeting_date) m
+  ), seats AS (
+    SELECT a.id,
+      CASE WHEN nullif(btrim(coalesce(a.timezone, '')), '') IS NULL THEN 'America/Los_Angeles'
+        ELSE public._invitation_valid_tz(a.timezone) END AS tz
+    FROM expecting x
+    JOIN public.accounts a ON a.id = x.account_id
+    WHERE nullif(a.push_token, '') IS NOT NULL
+      AND coalesce(a.family_call_reminders, false)
+      -- Spanish members are invited to La Sobremesa, not The Family Squares.
+      AND coalesce(a.locale, 'en') NOT LIKE 'es%'
+      AND NOT public._account_reminders_paused(a.id)
+  ), scheduled AS (
+    -- Now if it is daytime where she is; otherwise 8 AM her time.
+    SELECT s.id,
+      CASE
+        WHEN (now() AT TIME ZONE s.tz)::time < time '08:00'
+          THEN ((now() AT TIME ZONE s.tz)::date + time '08:00') AT TIME ZONE s.tz
+        WHEN (now() AT TIME ZONE s.tz)::time < time '20:00' THEN now()
+        ELSE (((now() AT TIME ZONE s.tz)::date + 1) + time '08:00') AT TIME ZONE s.tz
+      END AS due
+    FROM seats s
+  )
+  INSERT INTO public.push_outbox AS o (account_id, kind, title, body, metadata, idempotency_key, scheduled_for, expires_at)
+  SELECT s.id, 'family_call_followup', 'Family Squares',
+    'There''s no Family Squares this Monday. It''s back next week.',
+    jsonb_build_object('kind', 'family_call_followup', 'meeting_date', p_meeting_date::text, 'notice', 'cancelled'),
+    'family-squares-cancelled:' || p_meeting_date::text || ':' || s.id,
+    s.due,
+    v_start
+  FROM scheduled s
+  WHERE s.due < v_start
+  -- One row per member per meeting. A row that is there already is left
+  -- alone, with one exception: a note withdrawn before it was sent goes back
+  -- in the queue, due when a new note would be. Who it is for and what it
+  -- says cannot change (the outbox trigger refuses that, and keeps the
+  -- expiry it was given: the same 7 PM).
+  ON CONFLICT (idempotency_key) WHERE idempotency_key IS NOT NULL DO UPDATE
+    SET failed_at = NULL, last_error = NULL, attempt_count = 0,
+        processing_at = NULL, processing_token = NULL,
+        scheduled_for = EXCLUDED.scheduled_for
+    WHERE o.sent_at IS NULL AND o.failed_at IS NOT NULL AND o.last_error = 'meeting_restored';
+  GET DIAGNOSTICS v_count = ROW_COUNT;
+  RETURN v_count;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.service_family_squares_announce_cancelled(date) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.service_family_squares_announce_cancelled(date) TO service_role;
+
+-- Who family-squares-web-sync should ask the website about for the coming
+-- meeting: members who asked for a seat every Monday, have no RSVP for
+-- Family Squares at all and pass every rule in
+-- _family_squares_weekly_seat_members above. And:
+--   * Nobody while that Monday is cancelled (as the website said in the last
+--     six hours).
+-- At most ten a run, in no fixed order, so one account the website cannot
+-- answer for never holds up the rest.
+CREATE OR REPLACE FUNCTION public.service_family_squares_weekly_seat_candidates(p_meeting_date date)
+RETURNS TABLE(account_id uuid, email text, name text)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_session uuid := public.family_squares_session_id();
+BEGIN
+  -- Only ever the coming meeting: a late or early caller gets nobody.
+  IF v_session IS NULL OR p_meeting_date IS DISTINCT FROM public._family_squares_coming_meeting_date(now()) THEN
+    RETURN;
+  END IF;
+  -- The website said that Monday is cancelled in the last six hours: in its
+  -- sync reply (kept every 15 minutes), or when it was asked about one member.
+  IF public.family_squares_meeting_cancelled(p_meeting_date) THEN
+    RETURN;
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM public.family_squares_weekly_seat_holds h
+    WHERE h.meeting_date = p_meeting_date AND h.reason = 'meeting_cancelled'
+      AND h.noted_at > now() - interval '6 hours'
+  ) THEN
+    RETURN;
+  END IF;
+
+  RETURN QUERY
+  SELECT m.account_id, m.email, m.name
+  FROM public._family_squares_weekly_seat_members(p_meeting_date) m
+  ORDER BY random()
+  LIMIT 10;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.service_family_squares_weekly_seat_candidates(date) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.service_family_squares_weekly_seat_candidates(date) TO service_role;
+
+-- Called only after the website accepted her registration, or had no
+-- objection to it (the Monday is on and she is not blocked, but the website
+-- could not write its own row: the 15-minute sync carries this one to it).
+-- True when a seat was written. It never replaces a row: an answer she gave
+-- in the meantime (going or declined) stands, and so does turning the weekly
+-- seat off.
+CREATE OR REPLACE FUNCTION public.service_family_squares_save_weekly_seat(p_account_id uuid, p_meeting_date date)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_session uuid := public.family_squares_session_id();
+  v_saved boolean;
+BEGIN
+  IF v_session IS NULL OR p_account_id IS NULL
+     OR p_meeting_date IS DISTINCT FROM public._family_squares_coming_meeting_date(now()) THEN
+    RETURN false;
+  END IF;
+  INSERT INTO public.session_rsvps (session_id, account_id, status, family_squares_meeting_date, created_at)
+  SELECT v_session, a.id, 'going', p_meeting_date, now()
+  FROM public.accounts a
+  WHERE a.id = p_account_id AND a.family_squares_weekly_seat
+  ON CONFLICT (session_id, account_id) DO NOTHING;
+  v_saved := FOUND;
+  -- The website said yes: whatever it said about her before no longer holds.
+  DELETE FROM public.family_squares_weekly_seat_holds h
+  WHERE h.account_id = p_account_id AND h.meeting_date = p_meeting_date;
+  RETURN v_saved;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.service_family_squares_save_weekly_seat(uuid, date) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.service_family_squares_save_weekly_seat(uuid, date) TO service_role;
+
+-- Called when the website would not save her seat, or gave no usable answer
+-- for her (see the table above).
+CREATE OR REPLACE FUNCTION public.service_family_squares_hold_weekly_seat(
+  p_account_id uuid, p_meeting_date date, p_reason text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+  IF p_account_id IS NULL OR p_meeting_date IS NULL
+     OR p_reason IS NULL OR p_reason NOT IN ('meeting_cancelled', 'registration_unavailable', 'no_answer') THEN
+    RAISE EXCEPTION 'invalid_hold' USING ERRCODE = '22023';
+  END IF;
+  DELETE FROM public.family_squares_weekly_seat_holds h WHERE h.meeting_date < p_meeting_date - 28;
+  INSERT INTO public.family_squares_weekly_seat_holds (account_id, meeting_date, reason, noted_at)
+  VALUES (p_account_id, p_meeting_date, p_reason, now())
+  ON CONFLICT (account_id, meeting_date) DO UPDATE
+    SET reason = EXCLUDED.reason, noted_at = EXCLUDED.noted_at;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.service_family_squares_hold_weekly_seat(uuid, date, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.service_family_squares_hold_weekly_seat(uuid, date, text) TO service_role;
+
+-- The weekly reset. It records last night's counts first; otherwise unchanged
+-- from 20261103130000_family_squares_reset_keeps_next_week_rsvps.
+CREATE OR REPLACE FUNCTION public.reset_family_squares_weekly_rsvps()
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_local_now timestamp := clock_timestamp() AT TIME ZONE 'America/Los_Angeles';
+  v_deleted integer := 0;
+  v_more integer := 0;
+  v_links integer := 0;
+BEGIN
+  -- pg_cron runs in UTC. The job runs at both possible UTC offsets and this
+  -- guard makes exactly the 2 AM Pacific invocation perform the reset.
+  IF extract(isodow FROM v_local_now) <> 2 OR extract(hour FROM v_local_now) <> 2 THEN
+    RETURN 0;
+  END IF;
+
+  -- Keep last night's RSVP counts for Admin before they are cleared. Counting
+  -- must never stop the reset itself.
+  BEGIN
+    PERFORM public._family_squares_record_meeting_stats(v_local_now::date - 1);
+  EXCEPTION WHEN OTHERS THEN
+    RAISE WARNING 'family squares meeting stats not recorded: %', SQLERRM;
+  END;
+
+  DELETE FROM public.session_rsvps
+  WHERE session_id = public.family_squares_session_id()
+    AND public._family_squares_rsvp_expired(family_squares_meeting_date, created_at, v_local_now);
+  GET DIAGNOSTICS v_deleted = ROW_COUNT;
+
+  -- La Sobremesa: keep members who already reserved next week's call.
+  DELETE FROM public.session_rsvps r
+  WHERE r.session_id = public.la_sobremesa_session_id()
+    AND NOT EXISTS (
+      SELECT 1 FROM public.session_join_links l
+      WHERE l.session_id = r.session_id AND l.account_id = r.account_id
+        AND l.starts_at > clock_timestamp()
+    );
+  GET DIAGNOSTICS v_more = ROW_COUNT;
+
+  DELETE FROM public.session_join_links WHERE starts_at < clock_timestamp();
+  GET DIAGNOSTICS v_links = ROW_COUNT;
+  -- Weekly seats are not saved here: family-squares-web-sync saves them after
+  -- the website agrees (see above).
+  RETURN v_deleted + v_more + v_links;
+END;
+$function$;
+
+REVOKE EXECUTE ON FUNCTION public.reset_family_squares_weekly_rsvps() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.reset_family_squares_weekly_rsvps() TO service_role;
