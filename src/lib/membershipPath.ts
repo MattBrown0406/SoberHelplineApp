@@ -5,7 +5,8 @@ import type { Href } from 'expo-router';
  * finishes a purchase. Each event carries only a tier and a short label for
  * where she came from; the server keeps nothing else and stores any label
  * outside its own list as 'unknown' (migration
- * 20261114130000_membership_path_funnel mirrors both lists).
+ * 20261114130000_membership_path_funnel mirrors both lists; the source list
+ * was last redefined in 20261124110000_membership_invite_placements).
  *
  * Pure (no device or network imports), so it runs in unit tests.
  */
@@ -30,6 +31,7 @@ export const PLAN_SOURCES = [
   'after_meeting',
   'boundary_saved',
   'chat_gate',
+  'checkin_week',
   'crisis_command_plan',
   'crisis_plan_review',
   'diy_planner',
@@ -46,6 +48,7 @@ export const PLAN_SOURCES = [
   'support_upgrade',
   'today_locked_preview',
   'today_membership',
+  'tool_finished',
   'tracker_share',
 ] as const;
 export type PlanSource = (typeof PLAN_SOURCES)[number];

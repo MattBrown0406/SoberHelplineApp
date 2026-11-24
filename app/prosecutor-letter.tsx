@@ -1,5 +1,5 @@
 import { useToolOpened } from '../src/hooks/useToolOpened';
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Platform,
@@ -22,6 +22,7 @@ import { useTheme } from '../src/contexts/ThemeContext';
 import { useProsecutorLetter } from '../src/hooks/useProsecutorLetter';
 import { appAlert } from '../src/lib/appAlert';
 import { logToolUsage } from '../src/lib/toolUsage';
+import { ContextualMembershipInvitation } from '../src/membershipInvitations/ContextualMembershipInvitation';
 import { shareOrCopy, webCanShare } from '../src/lib/webShare';
 import { isSessionOnlyPlanStorage } from '../src/lib/webSessionPlanStore';
 import {
@@ -61,16 +62,22 @@ export default function ProsecutorLetterScreen() {
   }, [letter]);
 
   // Finished when she fills in the last required detail during this visit.
+  // The same moment (and only it) may offer a free member a look at
+  // membership: false until the finished letter has saved, false again when
+  // she starts changing it.
   const sawIncomplete = useRef(false);
+  const [finishedHere, setFinishedHere] = useState(false);
   useEffect(() => {
     if (loadState !== 'ready') return;
     if (!progress.ready) {
       sawIncomplete.current = true;
+      setFinishedHere(false);
       return;
     }
     if (saveState !== 'saved' || !sawIncomplete.current) return;
     sawIncomplete.current = false;
     logToolUsage('prosecutor_letter', 'finished');
+    setFinishedHere(true);
   }, [loadState, progress.ready, saveState]);
 
   const confirmClear = () => appAlert(t('clearTitle'), t('clearBody'), [
@@ -239,6 +246,8 @@ export default function ProsecutorLetterScreen() {
             <Text style={styles.shareButtonText}>{t('share')}</Text>
           </TouchableOpacity>
           <Text style={[styles.shareNote, { color: colors.inkSoft }]}>{t('shareNote')}</Text>
+
+          <ContextualMembershipInvitation accountId={user?.id ?? null} placement="tool-finished" completed={finishedHere} />
 
           <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('startOver')} onPress={confirmClear} style={styles.clearButton}>
             <Text style={[styles.clearText, { color: colors.coral }]}>{t('startOver')}</Text>

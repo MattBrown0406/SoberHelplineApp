@@ -1,5 +1,5 @@
 import { useToolOpened } from '../src/hooks/useToolOpened';
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Platform,
@@ -19,6 +19,7 @@ import { useTheme } from '../src/contexts/ThemeContext';
 import { useHolidayPlan } from '../src/hooks/useHolidayPlan';
 import { appAlert } from '../src/lib/appAlert';
 import { logToolUsage } from '../src/lib/toolUsage';
+import { ContextualMembershipInvitation } from '../src/membershipInvitations/ContextualMembershipInvitation';
 import { shareOrCopy, webCanShare } from '../src/lib/webShare';
 import { isSessionOnlyPlanStorage } from '../src/lib/webSessionPlanStore';
 import { SPANISH_SITE_ORIGIN, WEBSITE_ORIGIN } from '../src/lib/websiteLinks';
@@ -49,16 +50,22 @@ export default function HolidayPlanScreen() {
 
   // Finished when she completes it here: incomplete once loaded, then ready
   // and saved. Opening a plan that is already done is not a new finish.
+  // The same moment (and only it) may offer a free member a look at
+  // membership: false until the finished plan has saved, false again when
+  // she starts changing it.
   const sawIncomplete = useRef(false);
+  const [finishedHere, setFinishedHere] = useState(false);
   useEffect(() => {
     if (loadState !== 'ready') return;
     if (!progress.ready) {
       sawIncomplete.current = true;
+      setFinishedHere(false);
       return;
     }
     if (!savedReady || !sawIncomplete.current) return;
     sawIncomplete.current = false;
     logToolUsage('holiday_plan', 'finished');
+    setFinishedHere(true);
   }, [loadState, progress.ready, savedReady]);
 
   const confirmClear = () => appAlert(t('clearTitle'), t('clearBody'), [
@@ -211,6 +218,8 @@ export default function HolidayPlanScreen() {
             <Text style={styles.shareButtonText}>{t('share')}</Text>
           </TouchableOpacity>
           <Text style={[styles.shareNote, { color: colors.inkSoft }]}>{t('shareNote')}</Text>
+
+          <ContextualMembershipInvitation accountId={user?.id ?? null} placement="tool-finished" completed={finishedHere} />
 
           <Text style={[styles.footer, { color: colors.inkSoft }]}>{t('footer')}</Text>
           <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('startOver')} onPress={confirmClear} style={styles.clearButton}>

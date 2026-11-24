@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { noteVisitAsk } from '../membershipInvitations/visitAsks';
 import { AppState, Linking } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { supabase } from '../lib/supabase';
@@ -18,7 +19,6 @@ import {
   REMINDERS_SUPPORTED,
   isSeatReminderAskShowing,
   loadReminderAskMemory,
-  readBereavedOnDevice,
   readReminderPermission,
   rememberReminderAsk,
   reminderPermissionChanged,
@@ -177,10 +177,8 @@ export function useSeatReminderAsk(
     }
     if (!enabled || !accountId || !justSavedHere || !focusedRef.current) return undefined;
     let active = true;
-    // No prompts of any kind for a bereaved member, on Today or Support
-    // (Today also switches `enabled` off; this covers every other panel).
-    void Promise.all([readReminderPermission(), loadReminderAskMemory(accountId), readBereavedOnDevice(accountId)]).then(([permission, memory, bereaved]) => {
-      if (active && viewRef.current === null) setView(bereaved ? null : decide(permission, memory, new Date()));
+    void Promise.all([readReminderPermission(), loadReminderAskMemory(accountId)]).then(([permission, memory]) => {
+      if (active && viewRef.current === null) setView(decide(permission, memory, new Date()));
     });
     return () => { active = false; };
   }, [rsvp, enabled, accountId, savedHere, decide, focusedRef, setView, viewRef]);
@@ -189,6 +187,8 @@ export function useSeatReminderAsk(
   // the Support tab must not hold back Today's for the whole session.
   const showing = (view === 'ask' || view === 'settings') && focused;
   useEffect(() => { setSeatReminderAskShowing(panel, showing); }, [panel, showing]);
+  // One ask per visit: a reminder ask on screen keeps the membership invitation away this visit.
+  useEffect(() => { if (showing) noteVisitAsk(accountId); }, [accountId, showing]);
   useEffect(() => () => setSeatReminderAskShowing(panel, false), [panel]);
 
   useEffect(() => {

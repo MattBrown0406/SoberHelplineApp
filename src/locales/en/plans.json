@@ -81,6 +81,10 @@
     "practiceCompleted": "You practiced a conversation. Would ongoing practice and coaching support help with the next one? Your take-away stays free.",
     "boundarySaved": "You saved a starting point. Membership can help you practice and adjust your approach. Your boundary remains yours.",
     "afterMeetingTitle": "Keep talking between Mondays",
-    "afterMeeting": "Family Squares is once a week. With a membership you can message a coach on the days in between."
+    "afterMeeting": "Family Squares is once a week. With a membership you can message a coach on the days in between.",
+    "toolFinished": "That’s done. If you ever want someone to think it through with you, a membership lets you message a coach between meetings.",
+    "checkinWeekTitle": "Five days in a row",
+    "checkinWeek": "You’ve checked in five days running. Members also see their week in review and their progress here on Today.",
+    "trial": "Essential starts with a {{trial}}."
   }
 }

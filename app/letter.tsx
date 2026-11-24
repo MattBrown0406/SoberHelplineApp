@@ -27,6 +27,7 @@ import { supabase } from '../src/lib/supabase';
 import { FEATURED_PROVIDER } from '../src/config';
 import type { LetterDraft, ExperienceBlock } from '../src/api/types';
 import { maybeRequestReview } from '../src/lib/reviewPrompt';
+import { ContextualMembershipInvitation } from '../src/membershipInvitations/ContextualMembershipInvitation';
 import { stashPracticeText } from '../src/lib/practiceHandoffAuth';
 import {
   INTERVENTION_LETTER_PAGE_CHAR_LIMIT,
@@ -132,6 +133,10 @@ export default function LetterScreen() {
   const [saveFailed, setSaveFailed] = useState(false);
   const [sendingLetter, setSendingLetter] = useState(false);
   const [finishing, setFinishing] = useState(false);
+  // True once she finished the letter here and the rating-prompt check that
+  // follows has answered (one ask per visit: a requested prompt keeps the
+  // membership invitation away). False again for another letter.
+  const [finishedHere, setFinishedHere] = useState(false);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const pendingSavesRef = useRef(0);
   const accountIdRef = useRef<string | null>(user?.id ?? null);
@@ -145,6 +150,7 @@ export default function LetterScreen() {
     setSaveFailed(false);
     setSendingLetter(false);
     setFinishing(false);
+    setFinishedHere(false);
   }, [user?.id]);
 
   // "Continue your letter" on Today opens straight into that draft.
@@ -167,6 +173,7 @@ export default function LetterScreen() {
   async function loadOrCreateDraft(name: string) {
     if (!user) return;
     const accountId = user.id;
+    setFinishedHere(false);
     const key = draftKey(accountId, name);
     try {
       const stored = await AsyncStorage.getItem(key);
@@ -332,6 +339,8 @@ export default function LetterScreen() {
         void maybeRequestReview({
           accountId: user.id,
           milestone: 'intervention_letter_completed',
+        }).then(() => {
+          if (accountIdRef.current === user.id) setFinishedHere(true);
         });
       }, 750);
     } catch {
@@ -681,6 +690,8 @@ export default function LetterScreen() {
                     {t('preview.finishHint')}
                   </Text>
                 )}
+
+                <ContextualMembershipInvitation accountId={user?.id ?? null} placement="tool-finished" completed={finishedHere} />
 
                 <TouchableOpacity
                   style={[styles.solidBtn, { backgroundColor: colors.primary }]}

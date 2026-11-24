@@ -12,6 +12,9 @@
  * has finished and shows only if no prompt was requested. A check that failed
  * part-way may have put the prompt on screen, so it counts as requested.
  *
+ * It is also the end of a visit for visitAsks (one ask per visit, for every
+ * invitation placement): clearMeetingReturn clears both.
+ *
  * Who may see it (free members only), how often (once every 14 days at most)
  * and "Don't show again" are decided by ContextualMembershipInvitation and
  * its policy; this file only knows that the moment has come. Nothing is
@@ -24,6 +27,8 @@
  *
  * Pure (no device imports), so it runs in unit tests.
  */
+import { clearVisitAsks, noteVisitAsk } from '../membershipInvitations/visitAsks';
+
 export type ReviewCheckOutcome = 'requested' | 'not_eligible' | 'unavailable' | 'failed' | 'none';
 
 type Moment = { accountId: string; review: 'waiting' | 'clear' | 'prompted' };
@@ -58,6 +63,8 @@ export function noteMeetingReturn(accountId: string): void {
  */
 export function noteReviewCheck(accountId: string, outcome: ReviewCheckOutcome): void {
   const promptMayHaveShown = outcome === 'requested' || outcome === 'failed';
+  // Every invitation placement keeps out of a visit that had the prompt (visitAsks).
+  if (promptMayHaveShown) noteVisitAsk(accountId);
   visitCheck = {
     accountId,
     prompted: promptMayHaveShown || (visitCheck?.accountId === accountId && visitCheck.prompted),
@@ -70,6 +77,8 @@ export function noteReviewCheck(accountId: string, outcome: ReviewCheckOutcome):
 /** The app left the foreground (or the account changed): the moment, and the visit, have passed. */
 export function clearMeetingReturn(): void {
   visitCheck = null;
+  // The visit is over for every invitation placement too (one ask per visit).
+  clearVisitAsks();
   if (!moment) return;
   moment = null;
   emit();

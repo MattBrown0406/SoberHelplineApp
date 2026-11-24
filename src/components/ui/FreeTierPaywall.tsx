@@ -5,13 +5,18 @@ import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from './ScreenContainer';
 import { buttonShape } from './Button';
 import { BenefitList } from '../plans/BenefitList';
-import { plansHref, type PlanSource } from '../../lib/membershipPath';
+import { plansHref, purchasableTiers, type PlanSource } from '../../lib/membershipPath';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAccount } from '../../contexts/AccountContext';
 
 /**
  * Shown in place of a member feature. Says what Essential includes (the one
  * benefits list, plans.json), what stays free, and opens the plans screen.
  * `source` is the short label the plans screen logs for where she came from.
+ *
+ * The offer (what Essential includes and "See plans") is only for someone who
+ * can still buy a plan: a provider-covered account and a member with nothing
+ * above her plan see the lock, what stays free and the crisis guide.
  */
 export function FreeTierPaywall({ inline = false, feature, source }: { inline?: boolean; feature?: 'aiRehearsal'; source?: PlanSource }) {
   const { colors } = useTheme();
@@ -19,6 +24,8 @@ export function FreeTierPaywall({ inline = false, feature, source }: { inline?: 
   const { t: tPlans } = useTranslation('plans');
   const router = useRouter();
   const from: PlanSource = source ?? (feature === 'aiRehearsal' ? 'rehearsal_gate' : 'feature_gate');
+  const { accountState, isAttached } = useAccount();
+  const offer = !isAttached && purchasableTiers(accountState).length > 0;
 
   const card = (
     <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
@@ -28,12 +35,12 @@ export function FreeTierPaywall({ inline = false, feature, source }: { inline?: 
       </Text>
       {feature === 'aiRehearsal' ? (
         <Text style={[styles.body, { color: colors.inkSoft }]}>{t('practiceGate.body')}</Text>
-      ) : (
+      ) : offer ? (
         <View style={styles.list}>
           <Text style={[styles.lead, { color: colors.inkSoft }]}>{tPlans('paywall.lead')}</Text>
           <BenefitList plan="essential" limit={4} />
         </View>
-      )}
+      ) : null}
       {feature === 'aiRehearsal' ? (
         <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('practiceGate.freeAction')} onPress={() => router.push('/free-practice')} style={styles.freeAction}>
           <Text style={{ color: colors.primary, textAlign: 'center' }}>{t('practiceGate.freeAction')}</Text>
@@ -42,15 +49,17 @@ export function FreeTierPaywall({ inline = false, feature, source }: { inline?: 
       <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('crisis.copilotButton')} onPress={() => router.push('/crisis-mode')} style={styles.freeAction}>
         <Text style={{ color: colors.primary }}>{t('crisis.copilotButton')}</Text>
       </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.btn, { backgroundColor: colors.primary }]}
-        accessibilityRole="button"
-        accessibilityLabel={tPlans('seePlansLabel')}
-        onPress={() => router.push(plansHref(from))}
-        activeOpacity={0.85}
-      >
-        <Text style={styles.btnText}>{tPlans('seePlans')}</Text>
-      </TouchableOpacity>
+      {offer ? (
+        <TouchableOpacity
+          style={[styles.btn, { backgroundColor: colors.primary }]}
+          accessibilityRole="button"
+          accessibilityLabel={tPlans('seePlansLabel')}
+          onPress={() => router.push(plansHref(from))}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.btnText}>{tPlans('seePlans')}</Text>
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 
