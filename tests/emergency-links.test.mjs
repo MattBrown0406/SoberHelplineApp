@@ -50,7 +50,7 @@ test('a successful dial never shows the fallback alert', async () => {
 test('no crisis screen dials 911/988 without the fallback helper', () => {
   const screens = [
     'src/components/safety/EmergencyActions.tsx',
-    'app/(tabs)/support.tsx',
+    'src/components/support/CrisisSheet.tsx',
     'app/community.tsx',
     'app/diy-intervention-planner.tsx',
     'app/homecoming-week.tsx',

@@ -17,7 +17,8 @@
     "line988": "988 — Suicide & Crisis Lifeline",
     "lineSh": "Sober Helpline (family guidance, not 24/7)",
     "guidanceDivider": "Family guidance",
-    "freeNote": "Immediate crisis guidance and emergency contacts are free — no subscription needed. Paid coaching is separate and is not emergency care."
+    "freeNote": "Immediate crisis guidance and emergency contacts are free — no subscription needed. Paid coaching is separate and is not emergency care.",
+    "buttonHint": "Opens 911, 988, Crisis Copilot and the crisis guide."
   },
   "team": {
     "eyebrow": "Your team",
@@ -68,7 +69,8 @@
   "mondayGroup": {
     "eyebrow": "FREE ACCESS",
     "heading": "Family Squares",
-    "sub": "Our free weekly group call — no subscription needed. Saving your spot tells us you're coming, and you can join without it."
+    "sub": "Our free weekly group call — no subscription needed. Saving your spot tells us you're coming, and you can join without it.",
+    "loadingTitle": "Family Squares"
   },
   "messages": {
     "eyebrow": "Message your coach",
@@ -144,9 +146,6 @@
     "eyebrow": "Membership",
     "covered": "COVERED",
     "coveredSub": "Your organization covers this membership."
-  },
-  "language": {
-    "eyebrow": "Language"
   },
   "community": {
     "openLink": "Family community feed",
@@ -279,7 +278,6 @@
     "statusCancelled": "Cancelled"
   },
   "crisisProtocol": {
-    "eyebrow": "CRISIS PROTOCOL",
     "heading": "Crisis guide",
     "sub": "Step-by-step guidance for when it's happening right now.",
     "tabs": [
@@ -319,8 +317,7 @@
         "Do not attempt to physically restrain them.",
         "Contact your coach or support network once you are safe."
       ]
-    },
-    "close": "Close"
+    }
   },
   "finderCard": {
     "title": "Find treatment · free directory",
@@ -413,12 +410,15 @@
     }
   },
   "intro": "Connect with people here. For words to say, open Practice; for plans and worksheets, open Tools.",
-  "peopleHeading": "TALK TO SOMEONE",
+  "coachingHeading": "Coaching with {{name}}",
   "peopleAccess": "Coach messaging requires Essential or Premier; private video is included with Premier, subject to scheduling. Separate 1:1 coaching is {{rate}}.",
   "coachingGuideLink": "What coaching support looks like",
   "freePracticeLink": "Try a free conversation practice",
   "coachReplies": {
     "title": "Messages from Matt",
     "body": "You have a reply to your situation brief. Tap to read it."
+  },
+  "moreSupport": {
+    "title": "More support"
   }
 }

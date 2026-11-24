@@ -17,7 +17,8 @@
     "line988": "988 Línea de Prevención del Suicidio y Crisis (marca 2 para español)",
     "lineSh": "Sober Helpline (orientación para familias, no es 24/7)",
     "guidanceDivider": "Orientación para familias",
-    "freeNote": "La guía inmediata de crisis y los contactos de emergencia son gratuitos, sin suscripción. El coaching de pago es aparte y no es atención de emergencias."
+    "freeNote": "La guía inmediata de crisis y los contactos de emergencia son gratuitos, sin suscripción. El coaching de pago es aparte y no es atención de emergencias.",
+    "buttonHint": "Abre el 911, el 988, el Copiloto de Crisis y la guía de crisis."
   },
   "team": {
     "eyebrow": "Tu equipo",
@@ -68,7 +69,8 @@
   "mondayGroup": {
     "eyebrow": "ACCESO GRATUITO",
     "heading": "Grupo de Apoyo Familiar — Lunes",
-    "sub": "Nuestra reunión grupal semanal gratuita — sin suscripción. Reserva tu lugar para recibir tu enlace personal de Zoom."
+    "sub": "Nuestra reunión grupal semanal gratuita — sin suscripción. Reserva tu lugar para recibir tu enlace personal de Zoom.",
+    "loadingTitle": "La Sobremesa"
   },
   "messages": {
     "eyebrow": "Escríbele a tu coach",
@@ -144,9 +146,6 @@
     "eyebrow": "Membresía",
     "covered": "CUBIERTA",
     "coveredSub": "Tu organización cubre esta membresía."
-  },
-  "language": {
-    "eyebrow": "Idioma"
   },
   "community": {
     "openLink": "Comunidad de familias",
@@ -279,7 +278,6 @@
     "statusCancelled": "Cancelada"
   },
   "crisisProtocol": {
-    "eyebrow": "PROTOCOLO DE CRISIS",
     "heading": "Guía de crisis",
     "sub": "Pasos a seguir cuando está pasando ahora mismo.",
     "tabs": [
@@ -319,8 +317,7 @@
         "No intentes sujetar físicamente a la persona.",
         "Contacta a tu coach o red de apoyo una vez que estés en un lugar seguro."
       ]
-    },
-    "close": "Cerrar"
+    }
   },
   "finderCard": {
     "title": "Buscar tratamiento · directorio gratuito",
@@ -413,12 +410,15 @@
     }
   },
   "intro": "Conecta con personas aquí. Para saber qué decir, abre Práctica; para planes y hojas de trabajo, abre Guías.",
-  "peopleHeading": "HABLA CON ALGUIEN",
+  "coachingHeading": "Coaching con {{name}}",
   "peopleAccess": "Los mensajes al coach requieren Essential o Premier; el video privado está incluido en Premier, sujeto a programación. El coaching individual por separado cuesta {{rate}}.",
   "coachingGuideLink": "Cómo funciona el apoyo de coaching",
   "freePracticeLink": "Practica una conversación gratis",
   "coachReplies": {
     "title": "Mensajes de Matt",
     "body": "Tienes una respuesta a tu resumen de situación. Toca para leerla."
+  },
+  "moreSupport": {
+    "title": "Más apoyo"
   }
 }

@@ -130,7 +130,7 @@ test('"going" is confirmed once, with or without a link, and never on a cancelle
   // A call other than Family Squares keeps the tap its "You're going" button had while there is no link.
   assert.match(card, /const confirmedTap = !isFamilySquares && !canJoin \? onRsvp : undefined;/);
   const support = read('app/(tabs)/support.tsx');
-  assert.match(support, /<FamilySquaresSpotSavedLine\s+confirmed=\{view\.confirmed\}\s+session=\{sess\}\s+savedHere=\{familySquares \? seatSavedHere : 0\}\s+showDate=\{familySquares\}\s+onPress=\{familySquares \? undefined : \(\) => void handleSessionRsvp\(sess\)\}\s+pressLabel=\{t\('sessions\.confirmLabel', \{ name \}\)\}/);
+  assert.match(support, /<FamilySquaresSpotSavedLine\s+confirmed=\{view\.confirmed\}\s+session=\{sess\}\s+savedHere=\{familySquares \? seatSavedHere : laSobremesa \? sobremesaSavedHere : 0\}\s+showDate=\{familySquares\}\s+onPress=\{familySquares \? undefined : \(\) => void handleSessionRsvp\(sess\)\}\s+pressLabel=\{t\('sessions\.confirmLabel', \{ name \}\)\}/);
   assert.doesNotMatch(support, /sessions\.confirmButton/);
 });
 
@@ -210,12 +210,15 @@ test('Support: one heading for Family Squares, no rule under the last row, and r
   assert.match(support, /const renderSession = \(sess: DbSession, showType: boolean, last: boolean\) => \{/);
   assert.match(support, /style=\{\[styles\.sessionOuter, !last && \{ borderBottomWidth: 1, borderBottomColor: colors\.line \},/);
   assert.match(support, /sessionOuter: \{\s+paddingVertical: 10,\s+\},/);
-  // The same for the moderated groups: a rule under the last one only when the forum link follows.
-  assert.match(support, /const ruleBelow = index < groups\.length - 1 \|\| \(hasMembershipAccess && !COMMUNITY_FEED_VISIBLE\);/);
-  assert.match(support, /style=\{\[styles\.groupRow, ruleBelow && \{ borderBottomWidth: 1, borderBottomColor: colors\.line \}\]\}/);
-  // The three paragraphs that stand between cards keep the cards' spacing below them.
+  // The same for the moderated groups (4.4: their own card): a rule under the last one only when the forum link follows.
+  const groups = read('src/components/support/SupportGroupsCard.tsx');
+  assert.match(groups, /const ruleBelow = index < groups\.length - 1 \|\| \(hasMembershipAccess && !COMMUNITY_FEED_VISIBLE\);/);
+  assert.match(groups, /style=\{\[styles\.groupRow, ruleBelow && \{ borderBottomWidth: 1, borderBottomColor: colors\.line \}\]\}/);
+  // The paragraphs that stand between cards keep the cards' spacing below them.
+  // (The crisis note moved into the crisis sheet in 4.4.)
   assert.match(support, /sectionNote: \{ marginBottom: 12 \},/);
-  for (const key of ["t('intro')", "t('crisis.freeNote')", "t('peopleAccess', { rate: coachingRate.hourly })"]) {
+  assert.match(read('src/components/support/CrisisSheet.tsx'), /\{t\('crisis\.freeNote'\)\}/);
+  for (const key of ["t('intro')", "t('peopleAccess', { rate: coachingRate.hourly })"]) {
     assert.ok(support.includes(`<Text style={[styles.referralBody, styles.sectionNote, { color: colors.inkSoft }]}>{${key}}</Text>`), key);
   }
 });
@@ -223,7 +226,9 @@ test('Support: one heading for Family Squares, no rule under the last row, and r
 test('Support: "How to use your membership" is only for someone who has one', () => {
   const support = read('app/(tabs)/support.tsx');
   assert.match(support, /const hasMembershipAccess = entitlements\.canAccessGroups;/);
-  assert.match(support, /\{hasMembershipAccess && \(\s+<View style=\{\[styles\.card, \{ borderColor: colors\.line, backgroundColor: colors\.white \}\]\}>\s+<TouchableOpacity accessibilityRole="button" accessibilityState=\{\{ expanded: membershipExpanded \}\}/);
+  assert.match(support, /\{hasMembershipAccess && <MembershipGuideCard isAttached=\{isAttached\} offers=\{planOffers\} \/>\}/);
+  assert.equal(support.split('<MembershipGuideCard').length - 1, 1);
+  assert.match(read('src/components/support/MembershipGuideCard.tsx'), /<View style=\{\[styles\.card, \{ borderColor: colors\.line, backgroundColor: colors\.white \}\]\}>\s+<TouchableOpacity accessibilityRole="button" accessibilityState=\{\{ expanded: membershipExpanded \}\}/);
 });
 
 // ── Re-check of the visual pass ─────────────────────────────────────────────
@@ -236,15 +241,15 @@ test('only a Family Squares seat names its day; another call says the seat is sa
   assert.match(read('app/(tabs)/support.tsx'), /showDate=\{familySquares\}/);
 });
 
-test('without a plan, Support still links to how coaching support works (never for a bereaved member: that screen shows plans)', () => {
+test('without a plan, Support still links to how coaching support works', () => {
   const support = read('app/(tabs)/support.tsx');
-  assert.match(support, /\{!hasMembershipAccess && bereaved === false && \(\s*<TouchableOpacity[\s\S]{0,200}?router\.push\('\/membership-guide'\)/);
+  assert.match(support, /\{!hasMembershipAccess && \(\s*<TouchableOpacity[\s\S]{0,200}?router\.push\('\/membership-guide'\)/);
 });
 
-test('Support: the coaching guide is never linked for a bereaved member, with or without a plan; free practice stays for the free tier', () => {
-  const support = read('app/(tabs)/support.tsx');
+test('Support: the coaching guide is linked with or without a plan; free practice stays for the free tier', () => {
+  // (With a plan, the link is in "How to use your membership", its own file since 4.4.)
+  const support = read('app/(tabs)/support.tsx') + read('src/components/support/MembershipGuideCard.tsx');
   const guideLinks = support.split("router.push('/membership-guide')").length - 1;
   assert.equal(guideLinks, 2);
-  assert.equal(support.split(/bereaved === false && \(\s*<TouchableOpacity[^\n]*router\.push\('\/membership-guide'\)/).length - 1, 2, 'both links sit behind the not-bereaved rule');
   assert.match(support, /\{!hasMembershipAccess && \(\s*<TouchableOpacity[^\n]*router\.push\('\/free-practice'\)/);
 });
