@@ -3,7 +3,6 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
-import { EmergencyActions } from '../safety/EmergencyActions';
 
 /**
  * Need-based front door. Families arrive with a question, not a feature in
@@ -16,25 +15,19 @@ const NEEDS: { key: string; icon: string; route?: string; scriptTag?: string }[]
   { key: 'using', icon: '👀', scriptTag: 'RELAPSE' },
   { key: 'treatmentTalk', icon: '💬', scriptTag: 'TREATMENT' },
   { key: 'findTreatment', icon: '🧭', route: '/finder' },
-  { key: 'boundary', icon: '🏰', route: '/(tabs)/boundaries' },
+  { key: 'boundary', icon: '🏰', route: '/(tabs)/scripts?section=boundaries' },
 
 ];
 
-/**
- * `bereaved`: her loved one died. Every need here and Crisis Mode are about
- * them, so she gets emergency help for herself instead (911, 988, text 988).
- */
-export function NeedsRouter({ bereaved = false }: { bereaved?: boolean }) {
+export function NeedsRouter() {
   const { colors } = useTheme();
   const { t } = useTranslation('today');
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
 
-  if (bereaved) return <EmergencyActions />;
-
   return (
     <View style={[styles.card, { borderColor: colors.line }]}>
-      <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
+      <Text accessibilityRole="header" style={[styles.eyebrow, { color: colors.inkSoft }]}>
         {t('needs.eyebrow')}
       </Text>
       <TouchableOpacity

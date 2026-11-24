@@ -47,5 +47,9 @@
   "shelf": {
     "collapseHint": "Collapses this script category",
     "expandHint": "Expands this script category"
+  },
+  "sections": {
+    "conversations": "Conversations",
+    "boundaries": "Boundaries"
   }
 }

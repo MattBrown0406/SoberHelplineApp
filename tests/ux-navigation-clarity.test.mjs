@@ -16,7 +16,8 @@ for (const lang of ['en', 'es']) {
 }
 test('Tools routes preserve distinct intent and paid gate contract', () => {
   const screen = read('app/(tabs)/learn.tsx');
-  for (const route of ['/(tabs)/scripts', '/(tabs)/boundaries', '/finder', '/(tabs)/support']) assert.ok(screen.includes(route));
+  // Boundaries is a part of Practice now: the destination opens Practice on it.
+  for (const route of ['/(tabs)/scripts', '/(tabs)/scripts?section=boundaries', '/finder', '/(tabs)/support']) assert.ok(screen.includes(route));
   assert.ok(screen.includes("useFeatureAccess('diyIntervention')"));
   assert.ok(screen.includes("canUseDiyIntervention ? 'tools.diyIncluded' : 'tools.diyPaid'"));
   assert.ok(screen.includes('entitlements.canAccessLearningContent ?'));
@@ -24,8 +25,18 @@ test('Tools routes preserve distinct intent and paid gate contract', () => {
 });
 test('crisis entry stays unconditional and safe-area tab height remains fixed', () => {
   const screen = read('app/(tabs)/support.tsx');
-  assert.ok(screen.indexOf("t('crisis.freeNote')") < screen.indexOf('{isAttached &&'));
-  assert.ok(screen.includes('onPress={() => setCrisisOpen(true)}'));
+  // One crisis row, unconditional, before anything that depends on her account.
+  const crisisRow = screen.indexOf('onPress={() => setCrisisOpen(true)}');
+  assert.ok(crisisRow > 0);
+  assert.equal(screen.split('setCrisisOpen(true)').length - 1, 1);
+  const header = screen.indexOf("<TabHeader title={t('header')} />");
+  const firstBranch = Math.min(...['{freeTier', '{isAttached &&', '{hasMembershipAccess &&', '{!hasMembershipAccess &&']
+    .map((branch) => screen.indexOf(branch, header)).filter((at) => at > 0));
+  assert.ok(header > 0 && header < crisisRow && crisisRow < firstBranch);
+  // The note that crisis help is free, and the crisis guide, are in the sheet the row opens.
+  const sheet = read('src/components/support/CrisisSheet.tsx');
+  assert.ok(sheet.includes("{t('crisis.freeNote')}"));
+  assert.ok(sheet.includes('{guideOpen && <CrisisGuide />}'));
   const tabs = read('app/(tabs)/_layout.tsx');
   assert.ok(tabs.includes('height: TAB_BAR_HEIGHT + insets.bottom'));
   assert.match(read('src/components/ui/ScreenContainer.tsx'), /export const TAB_BAR_HEIGHT = 64;/);

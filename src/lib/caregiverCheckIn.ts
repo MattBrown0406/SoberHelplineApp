@@ -27,7 +27,7 @@ export const CAREGIVER_RESPONSE_ROUTE: Partial<Record<CaregiverResponseKey, stri
   safety: '/safety-wallet',
   overloaded: '/(tabs)/support',
   connection: '/(tabs)/support',
-  boundary: '/(tabs)/boundaries',
+  boundary: '/(tabs)/scripts?section=boundaries',
 };
 
 export function caregiverResponseKey(

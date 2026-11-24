@@ -47,5 +47,9 @@
   "shelf": {
     "collapseHint": "Contrae esta categoría de guiones",
     "expandHint": "Expande esta categoría de guiones"
+  },
+  "sections": {
+    "conversations": "Conversaciones",
+    "boundaries": "Límites"
   }
 }

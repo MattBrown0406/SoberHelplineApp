@@ -4,9 +4,9 @@ export const JOURNEY_STEPS = ['understand', 'boundary', 'practice', 'support'] a
 export type JourneyStep = typeof JOURNEY_STEPS[number];
 export interface GuidedStart { version: 1; situation: StartSituation | null; completed: JourneyStep[] }
 export const emptyGuidedStart = (): GuidedStart => ({ version: 1, situation: null, completed: [] });
-export const JOURNEY_ROUTES = { understand: '/(tabs)/learn', boundary: '/(tabs)/boundaries', practice: '/(tabs)/scripts', support: '/(tabs)/support' } as const;
+export const JOURNEY_ROUTES = { understand: '/(tabs)/learn', boundary: '/(tabs)/scripts?section=boundaries', practice: '/(tabs)/scripts', support: '/(tabs)/support' } as const;
 export function situationRoute(situation: StartSituation) {
-  return ({ worried: '/(tabs)/learn', refuses: '/(tabs)/scripts', treatment: '/homecoming-week', boundaries: '/(tabs)/boundaries', urgent: '/safety-wallet' } as const)[situation];
+  return ({ worried: '/(tabs)/learn', refuses: '/(tabs)/scripts', treatment: '/homecoming-week', boundaries: '/(tabs)/scripts?section=boundaries', urgent: '/safety-wallet' } as const)[situation];
 }
 export function completeJourneyStep(value: GuidedStart, step: JourneyStep): GuidedStart {
   return JOURNEY_STEPS[value.completed.length] === step ? { ...value, completed: [...value.completed, step] } : value;

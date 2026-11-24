@@ -57,6 +57,10 @@ test('anything outside soberhelpline.com/app is left alone', () => {
     'sober-helpline:///',
     'sober-helpline://chat',
     'sober-helpline://support?sessionId=1',
+    // Old tab names stay with expo-router: /boundaries is the hidden tab that
+    // opens Practice on Boundaries, /tracker the pushed Tracker (4.4).
+    'sober-helpline://boundaries',
+    'sober-helpline://tracker',
     'sober-helpline:///apple',
     'exp+sober-helpline://expo-development-client/?url=http%3A%2F%2F10.0.0.2%3A8081',
     '/chat',

@@ -7,7 +7,8 @@ import ts from 'typescript';
 const read = (path) => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const locale = (lang, ns) => JSON.parse(read(`src/locales/${lang}/${ns}.json`));
 const EMOJI = /\p{Extended_Pictographic}/u;
-const TABS = ['today', 'scripts', 'boundaries', 'tracker', 'learn', 'support'];
+// Four tabs since 4.4: Boundaries is a part of Practice, the Tracker a pushed screen.
+const TABS = ['today', 'scripts', 'learn', 'support'];
 
 const layout = read('app/(tabs)/_layout.tsx');
 const shortcut = read('src/components/safety/SafetyShortcut.tsx');
@@ -33,7 +34,7 @@ test('the tab bar uses one icon set, and every glyph it names exists', () => {
   assert.match(layout, /import MaterialCommunityIcons from '@expo\/vector-icons\/MaterialCommunityIcons';/);
   const glyphs = JSON.parse(read('node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/glyphmaps/MaterialCommunityIcons.json'));
   const icons = [...layout.matchAll(/^ {2}(\w+): \{ outline: '([\w-]+)', filled: '([\w-]+)' \},$/gm)];
-  assert.deepEqual(icons.map((m) => m[1]), ['index', 'scripts', 'boundaries', 'tracker', 'learn', 'support']);
+  assert.deepEqual(icons.map((m) => m[1]), ['index', 'scripts', 'learn', 'support']);
   for (const [, tab, outline, filled] of icons) {
     assert.ok(outline in glyphs, `${tab}: ${outline}`);
     assert.ok(filled in glyphs, `${tab}: ${filled}`);
@@ -49,8 +50,9 @@ test('a tab name stays whole on one line at every text size', () => {
   const label = layout.slice(layout.indexOf('function TabLabel'), layout.indexOf('export default function TabLayout'));
   assert.match(label, /numberOfLines=\{1\}/);
   assert.match(label, /adjustsFontSizeToFit/);
-  assert.match(label, /minimumFontScale=\{0\.7\}/);
-  assert.match(label, /maxFontSizeMultiplier=\{1\.2\}/);
+  // Four tabs leave room: a name shrinks only a little, and only at the largest sizes.
+  assert.match(label, /minimumFontScale=\{0\.85\}/);
+  assert.match(label, /maxFontSizeMultiplier=\{1\.3\}/);
   assert.match(label, /\{ color \}/, 'the label keeps the tab tint');
   assert.match(layout, /fontSize: 11,\s+lineHeight: 14,\s+textAlign: 'center',\s+fontWeight: '700',/);
   assert.match(layout, /tabBarActiveTintColor: colors\.primary/);
@@ -59,8 +61,8 @@ test('a tab name stays whole on one line at every text size', () => {
 
 test('the word on a tab is the word used for that screen', () => {
   const expected = {
-    en: ['Today', 'Practice', 'Boundaries', 'Tracker', 'Tools', 'Support'],
-    es: ['Hoy', 'Práctica', 'Límites', 'Diario', 'Guías', 'Apoyo'],
+    en: ['Today', 'Practice', 'Tools', 'Support'],
+    es: ['Hoy', 'Práctica', 'Guías', 'Apoyo'],
   };
   for (const lang of ['en', 'es']) {
     const common = locale(lang, 'common');
@@ -70,7 +72,7 @@ test('the word on a tab is the word used for that screen', () => {
     assert.equal(locale(lang, 'learn').header, common.nav.learn, lang);
     assert.equal(locale(lang, 'support').header, common.nav.support, lang);
     // What a screen reader hears for a tab still contains the word shown on it.
-    for (const key of ['scripts', 'boundaries', 'learn', 'support']) {
+    for (const key of ['scripts', 'learn', 'support']) {
       assert.ok(common.navPurpose[key].toLowerCase().includes(common.nav[key].toLowerCase()), `${lang}: ${key}`);
     }
   }
@@ -118,8 +120,9 @@ test('tab screens can scroll their last button clear of the Safety button', () =
   assert.match(container, /const onTab = useSegments\(\)\[0\] === '\(tabs\)';/);
   assert.match(container, /onTab && \{\s+paddingBottom: tabScreenBottomPadding\(/);
   assert.match(container, /paddingBottom: 48,/);
-  // Every tab screen is built on ScreenContainer, so the rule reaches all six.
-  for (const screen of ['index', 'scripts', 'boundaries', 'tracker', 'learn', 'support']) {
+  // Every tab screen is built on ScreenContainer, so the rule reaches all four
+  // (Practice's Boundaries part sits inside Practice's container).
+  for (const screen of ['index', 'scripts', 'learn', 'support']) {
     assert.match(read(`app/(tabs)/${screen}.tsx`), /<ScreenContainer[\s>]/, screen);
   }
 });

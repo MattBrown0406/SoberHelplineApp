@@ -1,5 +1,5 @@
 import { useToolOpened } from '../../src/hooks/useToolOpened';
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,13 +7,20 @@ import {
   TouchableOpacity,
   StyleSheet,
   LayoutAnimation,
+  type ScrollView,
 } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { TabHeader } from '../../src/components/ui/TabHeader';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { ScriptCard } from '../../src/components/scripts/ScriptCard';
+import { BoundariesPractice } from '../../src/components/practice/BoundariesPractice';
+import {
+  PracticeSwitch,
+  practiceSectionFromParam,
+  type PracticeSection,
+} from '../../src/components/practice/PracticeSwitch';
 import { getScripts, getDailyScripts, SCRIPT_CATEGORIES } from '../../src/content/scripts';
 import type { Script } from '../../src/api/types';
 
@@ -22,13 +29,33 @@ export function localDailyScriptSlot(date = new Date()): number {
   return Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86_400_000);
 }
 
-export default function ScriptsScreen() {
+/** Records an open of the conversation library only while that part is shown. */
+function ConversationsOpened() {
   useToolOpened('scripts');
+  return null;
+}
+
+/**
+ * The Practice tab: Conversations (the script library) and Boundaries, one
+ * switch at the top. The `section` param picks the part, so a link can open
+ * either (`/(tabs)/scripts?section=boundaries`); the old Boundaries tab
+ * redirects here. The choice lives in the route's params, so it lasts for
+ * the visit and is not saved anywhere.
+ */
+export default function ScriptsScreen() {
   const { colors } = useTheme();
+  const router = useRouter();
   const { t, i18n } = useTranslation('scripts');
   const { t: tCommon } = useTranslation('common');
-  const { q, n } = useLocalSearchParams<{ q?: string; n?: string }>();
+  const { q, n, section: sectionParam } = useLocalSearchParams<{ q?: string; n?: string; section?: string }>();
+  const section = practiceSectionFromParam(sectionParam);
+  const scrollRef = useRef<ScrollView>(null);
   const [query, setQuery] = useState('');
+
+  function chooseSection(next: PracticeSection) {
+    router.setParams({ section: next });
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+  }
 
   // Deep links (e.g. Today's "What do you need right now?") pre-fill the search;
   // `n` changes on every tap, so the same need fills it again.
@@ -91,97 +118,105 @@ export default function ScriptsScreen() {
 
 
   return (
-    <ScreenContainer backgroundColor={colors.cream}>
+    <ScreenContainer scrollRef={scrollRef} backgroundColor={colors.cream} keyboardShouldPersistTaps="handled">
       <TabHeader title={tCommon('nav.scripts')} />
+      <PracticeSwitch value={section} onChange={chooseSection} />
 
-      {/* Search */}
-      <View style={[styles.searchBar, { borderColor: colors.line }]}>
-        <Text style={styles.searchIcon}>🔍</Text>
-        <TextInput
-          style={[styles.searchInput, { color: colors.ink }]}
-          placeholder={t('searchPlaceholder')}
-          placeholderTextColor={colors.inkSoft}
-          value={query}
-          onChangeText={setQuery}
-          returnKeyType="search"
-          autoCorrect={false}
-          accessibilityLabel={t('searchPlaceholder')}
-        />
-      </View>
-
-      {isSearching ? (
-        /* Search results */
-        filtered.length > 0 ? (
-          filtered.map((script) => (
-            <ScriptCard key={script.id} script={script} />
-          ))
-        ) : (
-          <Text style={[styles.empty, { color: colors.inkSoft }]}>
-            {t('noResults')}
-          </Text>
-        )
+      {section === 'boundaries' ? (
+        <BoundariesPractice scrollRef={scrollRef} />
       ) : (
         <>
-          {/* Today's 3 featured scripts */}
-          <Text style={[styles.sectionLabel, { color: colors.inkSoft }]}>
-            {t('todayEyebrow').toUpperCase()}
-          </Text>
-          {todayScripts.map((script) => (
-            <ScriptCard key={script.id} script={script} />
-          ))}
-          <Text style={[styles.freshNote, { color: colors.inkSoft }]}>
-            {t('freshTomorrow')}
-          </Text>
+          <ConversationsOpened />
+          {/* Search */}
+          <View style={[styles.searchBar, { borderColor: colors.line }]}>
+            <Text style={styles.searchIcon}>🔍</Text>
+            <TextInput
+              style={[styles.searchInput, { color: colors.ink }]}
+              placeholder={t('searchPlaceholder')}
+              placeholderTextColor={colors.inkSoft}
+              value={query}
+              onChangeText={setQuery}
+              returnKeyType="search"
+              autoCorrect={false}
+              accessibilityLabel={t('searchPlaceholder')}
+            />
+          </View>
 
-          {/* Full library as collapsed shelves */}
-          <Text style={[styles.sectionLabel, { color: colors.inkSoft }]}>
-            {t('allEyebrow').toUpperCase()}
-          </Text>
-          {shelves.map((shelf) => {
-            const isOpen = !!openShelves[shelf.key];
-            return (
-              <View key={shelf.key}>
-                <TouchableOpacity
-                  style={[styles.shelfHead, { borderColor: colors.line }]}
-                  onPress={() => toggleShelf(shelf.key)}
-                  activeOpacity={0.85}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${t(`categories.${shelf.key}`)}, ${shelf.scripts.length}`}
-                  accessibilityHint={isOpen
-                    ? t('shelf.collapseHint')
-                    : t('shelf.expandHint')}
-                  accessibilityState={{ expanded: isOpen }}
-                >
-                  <Text style={[styles.shelfTitle, { color: colors.ink }]}>
-                    {t(`categories.${shelf.key}`)}
-                  </Text>
-                  <View style={styles.shelfRight} accessible={false}>
-                    <View style={[styles.shelfCount, { backgroundColor: colors.cream }]}>
-                      <Text style={[styles.shelfCountText, { color: colors.inkSoft }]}>
-                        {shelf.scripts.length}
-                      </Text>
-                    </View>
-                    <Text
-                      style={[
-                        styles.shelfArrow,
-                        { color: colors.inkSoft },
-                        isOpen && styles.shelfArrowOpen,
-                      ]}
+          {isSearching ? (
+            /* Search results */
+            filtered.length > 0 ? (
+              filtered.map((script) => (
+                <ScriptCard key={script.id} script={script} />
+              ))
+            ) : (
+              <Text style={[styles.empty, { color: colors.inkSoft }]}>
+                {t('noResults')}
+              </Text>
+            )
+          ) : (
+            <>
+              {/* Today's 3 featured scripts */}
+              <Text style={[styles.sectionLabel, { color: colors.inkSoft }]}>
+                {t('todayEyebrow').toUpperCase()}
+              </Text>
+              {todayScripts.map((script) => (
+                <ScriptCard key={script.id} script={script} />
+              ))}
+              <Text style={[styles.freshNote, { color: colors.inkSoft }]}>
+                {t('freshTomorrow')}
+              </Text>
+
+              {/* Full library as collapsed shelves */}
+              <Text style={[styles.sectionLabel, { color: colors.inkSoft }]}>
+                {t('allEyebrow').toUpperCase()}
+              </Text>
+              {shelves.map((shelf) => {
+                const isOpen = !!openShelves[shelf.key];
+                return (
+                  <View key={shelf.key}>
+                    <TouchableOpacity
+                      style={[styles.shelfHead, { borderColor: colors.line }]}
+                      onPress={() => toggleShelf(shelf.key)}
+                      activeOpacity={0.85}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${t(`categories.${shelf.key}`)}, ${shelf.scripts.length}`}
+                      accessibilityHint={isOpen
+                        ? t('shelf.collapseHint')
+                        : t('shelf.expandHint')}
+                      accessibilityState={{ expanded: isOpen }}
                     >
-                      ▶
-                    </Text>
+                      <Text style={[styles.shelfTitle, { color: colors.ink }]}>
+                        {t(`categories.${shelf.key}`)}
+                      </Text>
+                      <View style={styles.shelfRight} accessible={false}>
+                        <View style={[styles.shelfCount, { backgroundColor: colors.cream }]}>
+                          <Text style={[styles.shelfCountText, { color: colors.inkSoft }]}>
+                            {shelf.scripts.length}
+                          </Text>
+                        </View>
+                        <Text
+                          style={[
+                            styles.shelfArrow,
+                            { color: colors.inkSoft },
+                            isOpen && styles.shelfArrowOpen,
+                          ]}
+                        >
+                          ▶
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                    {isOpen && (
+                      <View style={styles.shelfBody}>
+                        {shelf.scripts.map((script) => (
+                          <ScriptCard key={script.id} script={script} />
+                        ))}
+                      </View>
+                    )}
                   </View>
-                </TouchableOpacity>
-                {isOpen && (
-                  <View style={styles.shelfBody}>
-                    {shelf.scripts.map((script) => (
-                      <ScriptCard key={script.id} script={script} />
-                    ))}
-                  </View>
-                )}
-              </View>
-            );
-          })}
+                );
+              })}
+            </>
+          )}
         </>
       )}
     </ScreenContainer>

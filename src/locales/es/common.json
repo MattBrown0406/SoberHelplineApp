@@ -6,8 +6,6 @@
   "navShort": {
     "today": "Hoy",
     "scripts": "Práctica",
-    "boundaries": "Límites",
-    "tracker": "Diario",
     "learn": "Guías",
     "support": "Apoyo"
   },
@@ -45,8 +43,7 @@
   },
   "comingSoon": "Próximamente",
   "navPurpose": {
-    "scripts": "Práctica: ensaya una conversación",
-    "boundaries": "Establecer límites acordados",
+    "scripts": "Práctica: conversaciones y límites",
     "learn": "Guías: herramientas para planificar y aprender",
     "support": "Apoyo: hablar con alguien o buscar tratamiento"
   },

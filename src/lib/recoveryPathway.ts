@@ -15,16 +15,20 @@ export type RecoveryPhase = (typeof RECOVERY_PHASES)[number];
 const RECOVERY_PHASE_SET = new Set<string>(RECOVERY_PHASES);
 const ACTIVE_USE_STATUSES = new Set(['using', 'escalating', 'crisis']);
 
+/**
+ * Where each phase's next step leads. The Tracker is no longer a tab (4.4): it
+ * is the pushed screen /tracker, which keeps its own membership gate.
+ */
 export const RECOVERY_PHASE_ROUTE: Record<RecoveryPhase, string> = {
   active_use: '/safety-wallet',
   considering_treatment: '/finder',
   in_treatment: '/(tabs)/support',
   returning_home: '/safety-wallet',
-  early_recovery_30: '/(tabs)/tracker',
-  early_recovery_90: '/(tabs)/tracker',
+  early_recovery_30: '/tracker',
+  early_recovery_90: '/tracker',
   ongoing_recovery: '/(tabs)/support',
   return_to_use: '/crisis-mode',
-  unsure: '/(tabs)/tracker',
+  unsure: '/tracker',
 };
 
 /**

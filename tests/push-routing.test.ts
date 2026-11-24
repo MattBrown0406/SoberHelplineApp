@@ -59,10 +59,10 @@ test('does not let an arbitrary screen field choose a route', () => {
   );
 });
 
-test('routes an opted-in family backup notice to Boundaries', () => {
+test('routes an opted-in family backup notice to Boundaries, now a part of Practice', () => {
   assert.deepEqual(
     getPushDestination({ kind: 'family_backup' }),
-    { pathname: '/(tabs)/boundaries' },
+    { pathname: '/(tabs)/scripts', params: { section: 'boundaries' } },
   );
 });
 
@@ -143,7 +143,10 @@ test('session reminder carries the RSVP session to Support, or the live room whe
 });
 
 test('morning note and daily nudge open a tab from an allowlisted hint, defaulting to Today', () => {
-  assert.deepEqual(getPushDestination({ kind: 'morning_note', screen: 'boundaries' }), { pathname: '/(tabs)/boundaries' });
+  assert.deepEqual(getPushDestination({ kind: 'morning_note', screen: 'boundaries' }), { pathname: '/(tabs)/scripts', params: { section: 'boundaries' } });
+  // The Tracker is a pushed screen since 4.4: the old hint opens it directly.
+  assert.deepEqual(getPushDestination({ kind: 'daily_nudge', screen: 'tracker' }), { pathname: '/tracker' });
+  assert.deepEqual(getPushDestination({ kind: 'morning_note', screen: 'learn' }), { pathname: '/(tabs)/learn' });
   assert.deepEqual(getPushDestination({ kind: 'morning_note', screen: 'support' }), { pathname: '/(tabs)/support' });
   assert.deepEqual(getPushDestination({ kind: 'morning_note' }), { pathname: '/(tabs)' });
   assert.deepEqual(getPushDestination({ kind: 'daily_nudge', screen: 'today' }), { pathname: '/(tabs)' });
@@ -209,4 +212,21 @@ test('the invitation SQL producers enqueue exactly the routed kinds', () => {
   assert.deepEqual(kinds, ['admin_invitation_yes', 'invitation_window']);
   const router = readFileSync('src/lib/pushRouting.ts', 'utf8');
   for (const kind of kinds) assert.match(router, new RegExp(`'${kind}'`), kind);
+});
+
+test('a member asking Matt to reach out opens Admin (staff only), whatever the tapper\'s tier', () => {
+  const data = {
+    kind: 'admin_reach_out',
+    request_id: '123e4567-e89b-42d3-a456-426614174333',
+    member_account_id: '123e4567-e89b-42d3-a456-426614174444',
+  };
+  for (const entitlements of [FREE, ESSENTIAL, PREMIER, null]) {
+    assert.deepEqual(getPushDestination(data, { entitlements }), { pathname: '/admin' });
+  }
+  // The payload never carries a deep link the app would follow.
+  assert.deepEqual(getPushDestination({ ...data, screen: 'support', deep_link: 'soberhelpline://chat' }), { pathname: '/admin' });
+  // The SQL producer sends exactly this kind and payload shape.
+  const sql = readFileSync('supabase/migrations/20261124120000_checkin_reach_out_requests.sql', 'utf8');
+  assert.match(sql, /jsonb_build_object\('kind', 'admin_reach_out', 'request_id', v_request, 'member_account_id', v_account\)/);
+  assert.match(sql, /WHEN 'admin_reach_out' THEN/);
 });

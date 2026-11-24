@@ -6,8 +6,6 @@
   "navShort": {
     "today": "Today",
     "scripts": "Practice",
-    "boundaries": "Boundaries",
-    "tracker": "Tracker",
     "learn": "Tools",
     "support": "Support"
   },
@@ -45,8 +43,7 @@
   },
   "comingSoon": "Coming soon",
   "navPurpose": {
-    "scripts": "Practice a conversation",
-    "boundaries": "Set agreed boundaries",
+    "scripts": "Practice: conversations and boundaries",
     "learn": "Tools for planning and learning",
     "support": "Support: talk to someone or find treatment"
   },
