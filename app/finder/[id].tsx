@@ -8,6 +8,7 @@ import { useTheme } from '../../src/contexts/ThemeContext';
 import { fetchProviderById, translatePrice, translateServiceArea, translateTag, type Provider } from '../../src/api/providers';
 import { TypeBadge } from '../../src/components/finder/TypeBadge';
 import { AvailabilityPill } from '../../src/components/finder/AvailabilityPill';
+import { useToolOpened } from '../../src/hooks/useToolOpened';
 
 function Tags({ items }: { items: string[] }) {
   const { colors } = useTheme();
@@ -34,6 +35,7 @@ function Section({ label, children }: { label: string; children: React.ReactNode
 }
 
 export default function ProviderDetailScreen() {
+  useToolOpened('finder_detail');
   const { colors } = useTheme();
   const { t } = useTranslation('finder');
   const router = useRouter();

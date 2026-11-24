@@ -4,11 +4,14 @@
  * Pure, so tests can import it.
  */
 export const USAGE_TOOLS = [
-  'boundaries', 'book_coaching', 'chat', 'choose_treatment', 'crisis_mode', 'diy_planner', 'enabling_costs',
-  'family_outcomes', 'finder', 'free_practice', 'guided_journey', 'holiday_plan', 'homecoming_week',
-  'invitation_engine', 'learn', 'letter', 'membership_guide', 'personal_reminders',
-  'plan_intervention', 'prosecutor_letter', 'rehearsal', 'safety_wallet', 'scripts', 'situation_brief',
-  'support', 'tracker', 'trajectory', 'treatment_action_plan', 'visitation_plan',
+  'book_coaching', 'boundaries', 'chat', 'choose_treatment', 'crisis_mode', 'diy_planner',
+  'enabling_costs', 'family_outcomes', 'fellowship_finder', 'finder', 'finder_detail', 'free_practice',
+  'guided_journey', 'holiday_plan', 'homecoming_week', 'invitation_engine', 'invitation_kit',
+  'invitation_outcome', 'invitation_progress', 'invitation_setup', 'learn', 'letter', 'live_room',
+  'membership_guide', 'personal_reminders', 'plan_intervention', 'plans', 'prosecutor_letter',
+  'rehearsal', 'rehearsal_history', 'safety_wallet', 'scripts', 'settings', 'situation_brief',
+  'support', 'today', 'tracker', 'trajectory', 'treatment_action_plan', 'video_session',
+  'visitation_plan',
 ] as const;
 export type UsageTool = typeof USAGE_TOOLS[number];
 

@@ -18,6 +18,7 @@ import { useTheme } from '../src/contexts/ThemeContext';
 import { RouteActivationGate } from '../src/contexts/RouteActivationContext';
 import { supabase } from '../src/lib/supabase';
 import { LIVEKIT_URL, SUPABASE_URL } from '../src/config';
+import { useToolOpened } from '../src/hooks/useToolOpened';
 
 registerGlobals();
 
@@ -141,6 +142,8 @@ export default function VideoSessionScreen() {
 }
 
 function VideoSessionContent({ sessionId }: { sessionId: string }) {
+  // Counted once the call is allowed to open (below the activation gate).
+  useToolOpened('video_session');
   const { colors } = useTheme();
   const { t } = useTranslation('crisis');
   const router = useRouter();

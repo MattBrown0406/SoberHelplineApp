@@ -21,6 +21,7 @@ import { readDeliveryReport } from '../src/lib/practiceDelivery';
 import { scoreTrend, SCORE_KEYS } from '../src/lib/practiceTrends';
 import { INCOMING_PRESETS, PRACTICE_SITUATIONS } from '../src/lib/practiceScenarios';
 import type { PartnerDebrief } from '../src/hooks/useRehearsalPartner';
+import { useToolOpened } from '../src/hooks/useToolOpened';
 
 // Every dialog here goes through appAlert (react-native-web's Alert.alert is
 // a no-op). Kept under the `Alert` name the screen-audit test substitutes.
@@ -57,6 +58,7 @@ function sessionTags(scenario: SessionRow['scenario']): string[] {
 }
 
 export default function RehearsalHistoryScreen() {
+  useToolOpened('rehearsal_history');
   return <Gate feature="aiRehearsal"><RehearsalHistoryContent /></Gate>;
 }
 
