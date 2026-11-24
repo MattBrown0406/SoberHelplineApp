@@ -4,6 +4,7 @@ import {
   nextFamilySquaresStart,
   pacificDate,
   validZoomJoinUrl,
+  zoomJoinUrlRejection,
 } from './family-squares-time.ts';
 
 function assert(condition: unknown, message: string): void {
@@ -38,6 +39,49 @@ Deno.test('only real Zoom join links are accepted from the website', () => {
   assert(validZoomJoinUrl('https://zoom.us.evil.com/j/81514017886') === null, 'lookalike host');
   assert(validZoomJoinUrl('javascript:alert(1)') === null, 'script');
   assert(validZoomJoinUrl(42) === null, 'not a string');
+});
+
+Deno.test('the website admin form\'s link shapes are accepted too: /w/, /wc/join/, any query', () => {
+  const ok = [
+    'https://us06web.zoom.us/w/81514017886?tk=abc.DEF-123&pwd=xyz',
+    'https://us06web.zoom.us/wc/join/81514017886?pwd=abc',
+    'https://zoom.us/j/81514017886?pwd=abc&uname=Family%20Squares',
+    'https://us02web.zoom.us/j/81514017886?pwd=abc#success',
+    'https://zoom.us/j/81514017886/',
+    'https://US06WEB.ZOOM.US/j/81514017886',
+    '  https://zoom.us/j/81514017886  ',
+  ];
+  for (const link of ok) assert(validZoomJoinUrl(link) === link.trim(), `accepted: ${link}`);
+});
+
+Deno.test('everything else is still rejected, with a reason that never contains the link', () => {
+  const bad: Array<[unknown, string]> = [
+    [undefined, 'missing'],
+    ['   ', 'missing'],
+    ['http://zoom.us/j/81514017886', 'not_https'],
+    ['zoommtg://zoom.us/join?confno=81514017886', 'not_https'],
+    ['javascript:alert(1)', 'not_https'],
+    ['https://zoom.us.evil.com/j/81514017886', 'host'],
+    ['https://evil.example/zoom.us/j/81514017886', 'host'],
+    ['https://evilzoom.us/j/81514017886', 'host'],
+    ['https://zoom.us@evil.com/j/81514017886', 'host'],
+    ['https://user:pw@zoom.us/j/81514017886', 'host'],
+    ['https://zoom.us:8443/j/81514017886', 'host'],
+    ['https://zoom.us/s/81514017886?zak=host', 'path'],
+    ['https://zoom.us/j/abc', 'path'],
+    ['https://zoom.us/j/1234', 'path'],
+    ['https://zoom.us/wc/81514017886/join', 'path'],
+    ['https://zoom.us/j/81514017886/extra', 'path'],
+    ['https://zoom.us/', 'path'],
+    ['https://zoom.us/j/81514017886?pwd=a b', 'malformed'],
+    ['https://zoom.us/j/81514017886?pwd="><script>', 'malformed'],
+    ['not a url', 'malformed'],
+  ];
+  for (const [value, reason] of bad) {
+    assert(validZoomJoinUrl(value) === null, `rejected: ${String(value)}`);
+    assert(zoomJoinUrlRejection(value) === reason, `${String(value)}: ${zoomJoinUrlRejection(value)} (expected ${reason})`);
+  }
+  assert(zoomJoinUrlRejection('https://zoom.us/j/81514017886') === null, 'a good link has no reason');
 });
 
 Deno.test('the website sync names the Pacific date of the next call and when the last one ended', () => {

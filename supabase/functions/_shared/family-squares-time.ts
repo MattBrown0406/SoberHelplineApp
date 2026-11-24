@@ -96,9 +96,36 @@ export function familySquaresSyncWindow(now: Date): { meetingDate: string; start
   return { meetingDate, start, previousCallEnd };
 }
 
-/** A soberhelpline.com Monday link the app can safely open (a Zoom join URL). */
+/** Why a website Monday link was not accepted (never the link itself, so it can be logged). */
+export type ZoomJoinUrlRejection = 'missing' | 'malformed' | 'not_https' | 'host' | 'path';
+
+/**
+ * Checks a soberhelpline.com Monday link. Accepted: https on zoom.us or any
+ * subdomain of it (us06web.zoom.us), no credentials or port, and a join path:
+ * /j/<meeting id>, /w/<meeting id> or /wc/join/<meeting id> (the shapes the
+ * website's admin form allows). Any query (pwd, tk, uname...) and fragment are
+ * kept as they are. Null when accepted.
+ */
+export function zoomJoinUrlRejection(value: unknown): ZoomJoinUrlRejection | null {
+  if (typeof value !== 'string' || !value.trim()) return 'missing';
+  const raw = value.trim();
+  // A real link has no spaces, quotes or angle brackets, and is not huge.
+  if (raw.length > 2048 || /[\s"'<>`\\]/.test(raw)) return 'malformed';
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return 'malformed';
+  }
+  if (url.protocol !== 'https:') return 'not_https';
+  if (url.username || url.password || url.port) return 'host';
+  const host = url.hostname.toLowerCase();
+  if (host !== 'zoom.us' && !/^([a-z0-9-]+\.)+zoom\.us$/.test(host)) return 'host';
+  if (!/^\/(?:j|w|wc\/join)\/\d{9,12}\/?$/.test(url.pathname)) return 'path';
+  return null;
+}
+
+/** A soberhelpline.com Monday link the app can safely open (a Zoom join URL), trimmed; else null. */
 export function validZoomJoinUrl(value: unknown): string | null {
-  if (typeof value !== 'string') return null;
-  const url = value.trim();
-  return /^https:\/\/([a-z0-9-]+\.)?zoom\.us\/j\/\d{9,12}(\?pwd=[A-Za-z0-9._-]+)?$/.test(url) ? url : null;
+  return zoomJoinUrlRejection(value) === null ? (value as string).trim() : null;
 }

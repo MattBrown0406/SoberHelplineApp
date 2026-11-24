@@ -9,7 +9,7 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { requireServiceRole } from '../_shared/service-auth.ts';
-import { nextFamilySquaresStart, validZoomJoinUrl } from '../_shared/family-squares-time.ts';
+import { nextFamilySquaresStart, validZoomJoinUrl, zoomJoinUrlRejection } from '../_shared/family-squares-time.ts';
 
 // soberhelpline.com's public (publishable) project values — the same ones the
 // app uses for the provider directory. site_settings rows read here are public.
@@ -27,8 +27,13 @@ Deno.serve(async (req) => {
     );
     if (!res.ok) return new Response(`website settings: ${res.status}`, { status: 502 });
     const rows = await res.json() as Array<{ key: string; value: unknown }>;
-    const link = validZoomJoinUrl(rows.find((row) => row.key === 'monday_zoom_link')?.value);
-    if (!link) return new Response('website has no valid Monday link — nothing updated', { status: 502 });
+    const published = rows.find((row) => row.key === 'monday_zoom_link')?.value;
+    const link = validZoomJoinUrl(published);
+    if (!link) {
+      // Logged so a rejected link is not silent; the reason only, never the link (it carries the passcode).
+      console.warn(`zoom-sync: website Monday link rejected (${zoomJoinUrlRejection(published)}); app link left as it was`);
+      return new Response('website has no valid Monday link — nothing updated', { status: 502 });
+    }
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
