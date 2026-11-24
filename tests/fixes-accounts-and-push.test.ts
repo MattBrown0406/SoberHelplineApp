@@ -56,7 +56,7 @@ test('every join/provider error message exists in English and Spanish', () => {
       assert.equal(typeof onboarding[ns][key], 'string', `${lang} onboarding ${reason}`);
     }
   }
-  assert.match(read('app/(tabs)/boundaries.tsx'), /familyJoinErrorKey\(result\.reason\)/);
+  assert.match(read('src/components/practice/BoundariesPractice.tsx'), /familyJoinErrorKey\(result\.reason\)/);
   assert.match(read('app/(onboarding)/invite-code.tsx'), /providerCodeErrorKey\(failure\)/);
 });
 

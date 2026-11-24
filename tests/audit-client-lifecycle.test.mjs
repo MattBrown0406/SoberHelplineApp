@@ -452,22 +452,11 @@ test('provider API distinguishes DB failure from missing and never invents avail
   assert.ok(!api.LOC_OPTIONS.center.includes('iop'));
 });
 
-function lovedOneFixture(stored = {}) {
+function lovedOneFixture() {
   const h = harness(); let owner = 'A'; const reads = []; const saves = []; const statuses = [];
   const request = (list) => { const d = deferred(); list.push(d); return d.promise; };
-  const storage = new Map(Object.entries(stored));
-  const asyncStorage = { __esModule: true, default: {
-    getItem: async (key) => storage.get(key) ?? null,
-    setItem: async (key, value) => { storage.set(key, value); },
-    removeItem: async (key) => { storage.delete(key); },
-  } };
-  const bereavement = load('src/lib/bereavement.ts');
   const { useLovedOne } = load('src/hooks/useLovedOne.ts', {
     react: h.react, '../lib/monitoring': monitoring,
-    '@react-native-async-storage/async-storage': asyncStorage,
-    '../lib/bereavement': bereavement,
-    // The real device copy (Support and the invitations follow it too).
-    '../lib/bereavedDevice': load('src/lib/bereavedDevice.ts', { '@react-native-async-storage/async-storage': asyncStorage, './bereavement': bereavement }),
     '../lib/appFlowGuards': load('src/lib/appFlowGuards.ts'),
     // The fixtures' accounts carry no locale; an un-initialized i18n skips the sync.
     i18next: { __esModule: true, default: { language: 'en', isInitialized: false } },
@@ -480,7 +469,7 @@ function lovedOneFixture(stored = {}) {
     } },
   });
   const read = () => h.render(() => useLovedOne(owner)); read(); h.effects();
-  return { h, read, reads, saves, statuses, storage, switchTo(id) { owner = id; } };
+  return { h, read, reads, saves, statuses, switchTo(id) { owner = id; } };
 }
 
 test('a refresh of a loaded loved-one record is silent and keeps the record when it fails', async () => {
@@ -492,42 +481,6 @@ test('a refresh of a loaded loved-one record is silent and keeps the record when
   await assert.rejects(refresh, /offline/);
   assert.equal(f.read().loadError, null); assert.equal(f.read().lovedOne.stage, 'active_use');
   f.h.unmount();
-});
-
-test('a failed reminder pause keeps the death saved and is reported', async () => {
-  const f = lovedOneFixture();
-  f.reads.shift().resolve({ data: { id: 'A', account_id: 'A' }, error: null }); await settle();
-  const marking = f.read().markDied(true, true);
-  f.statuses.shift().resolve({ error: null }); await settle();
-  f.statuses.shift().resolve({ error: new Error('offline') }); await settle();
-  f.reads.shift().resolve({ data: { id: 'A', account_id: 'A', died_at: '2026-11-04T18:00:00Z' }, error: null });
-  assert.equal((await marking).quietFailed, true);
-  assert.equal(f.read().bereaved, true, 'the death is saved');
-  const calm = f.read().markDied(false, false);
-  f.statuses.shift().resolve({ error: null }); await settle();
-  f.reads.shift().resolve({ data: { id: 'A', account_id: 'A', died_at: '2026-11-04T18:00:00Z' }, error: null });
-  assert.equal((await calm).quietFailed, false);
-  f.h.unmount();
-});
-
-test('the device remembers "they died" per account and answers before the record loads', async () => {
-  const f = lovedOneFixture({ '@sh:bereaved:A': '1' }); await settle();
-  assert.equal(f.read().bereaved, true, 'cached answer before the read returns');
-  f.reads.shift().resolve({ data: { id: 'A', account_id: 'A', died_at: null }, error: null }); await settle();
-  assert.equal(f.read().bereaved, false, 'the loaded record decides');
-  assert.equal(f.storage.get('@sh:bereaved:A'), '0', 'and refreshes the device copy');
-  f.h.unmount();
-  // A new device / reinstall: no copy, so unknown (header-only Today) until the read settles.
-  const fresh = lovedOneFixture(); await settle();
-  assert.equal(fresh.read().bereaved, undefined, 'no copy yet: not assumed either way');
-  fresh.reads.shift().resolve({ data: { id: 'A', account_id: 'A', died_at: '2026-11-04T18:00:00Z' }, error: null }); await settle();
-  assert.equal(fresh.read().bereaved, true);
-  assert.equal(fresh.storage.get('@sh:bereaved:A'), '1');
-  fresh.h.unmount();
-  const offline = lovedOneFixture(); await settle();
-  offline.reads.shift().resolve({ data: null, error: new Error('offline') }); await settle();
-  assert.equal(offline.read().bereaved, false, 'no copy and no record: the usual Today, never stuck');
-  offline.h.unmount();
 });
 
 test('loved-one load failure exits loading and refresh exposes recoverable errors', async () => {

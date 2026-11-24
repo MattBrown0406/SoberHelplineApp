@@ -24,6 +24,11 @@ const FILES = [
     .sort()
     .map((name) => `src/components/plans/${name}`),
   'app/(tabs)/support.tsx',
+  // The Support tab's pieces (4.4).
+  ...readdirSync(resolve(root, 'src/components/support'))
+    .filter((name) => name.endsWith('.tsx'))
+    .sort()
+    .map((name) => `src/components/support/${name}`),
   'app/(tabs)/index.tsx',
 ];
 
@@ -59,7 +64,9 @@ test('the plans folder is covered file by file, and the check really finds tappa
   for (const file of ['app/(auth)/sign-in.tsx', 'app/(auth)/sign-up.tsx', 'app/plans.tsx', 'src/components/plans/PlansCard.tsx', 'src/components/today/SituationCard.tsx']) {
     assert.ok(tappables(file).length > 0, `${file}: expected at least one tappable element`);
   }
-  assert.ok(tappables('app/(tabs)/support.tsx').length >= 40);
+  const supportFiles = FILES.filter((file) => file === 'app/(tabs)/support.tsx' || file.startsWith('src/components/support/'));
+  assert.ok(supportFiles.length >= 7);
+  assert.ok(supportFiles.reduce((sum, file) => sum + tappables(file).length, 0) >= 40);
 });
 
 for (const file of FILES) {
@@ -91,8 +98,8 @@ test('Today: the shared header opens Settings on every version of the screen, wi
   // Today's title is her greeting, in the same header as every other tab.
   assert.match(today, /const header = <TabHeader title=\{greeting\} \/>;/);
   assert.doesNotMatch(today, /avatarButton|styles\.avatar/);
-  // One header for the free, member, bereaved and still-loading Today.
-  assert.equal((today.match(/\{header\}/g) ?? []).length, 4);
+  // One header for the free and member Today.
+  assert.equal((today.match(/\{header\}/g) ?? []).length, 2);
   // The Settings button itself: a real size (not hitSlop), a role and a label from the locale files.
   const header = readFileSync(resolve(root, 'src/components/ui/TabHeader.tsx'), 'utf8');
   assert.match(
@@ -117,7 +124,13 @@ test('choices say whether they are chosen: onboarding chips, crisis-guide tabs a
   const lovedOne = readFileSync(resolve(root, 'app/(onboarding)/loved-one.tsx'), 'utf8');
   assert.match(lovedOne, /accessibilityRole=\{role\}\s+accessibilityState=\{\{ checked: selected \}\}/);
   assert.match(lovedOne, /onPress=\{\(\) => toggleSubstance\(s\)\}\s+role="checkbox"/);
+  // The crisis guide now opens inside the crisis sheet (4.4).
+  const crisisSheet = readFileSync(resolve(root, 'src/components/support/CrisisSheet.tsx'), 'utf8');
+  assert.match(crisisSheet, /accessibilityRole="tab"\s+accessibilityState=\{\{ selected: tab === tb\.key \}\}/);
+  // The guide's row says whether it is open.
+  assert.match(crisisSheet, /accessibilityState=\{\{ expanded: guideOpen \}\}/);
+  // The language choice is in Settings only (4.4): Support has no language pills of its own.
   const support = readFileSync(resolve(root, 'app/(tabs)/support.tsx'), 'utf8');
-  assert.match(support, /accessibilityRole="tab"\s+accessibilityState=\{\{ selected: tab === tb\.key \}\}/);
-  assert.match(support, /accessibilityRole="radio"\s+accessibilityState=\{\{ checked: active \}\}/);
+  assert.doesNotMatch(support, /useLanguage\(\)|languages\.map/);
+  assert.match(readFileSync(resolve(root, 'app/settings.tsx'), 'utf8'), /languages\.map\(\(lang\) =>/);
 });

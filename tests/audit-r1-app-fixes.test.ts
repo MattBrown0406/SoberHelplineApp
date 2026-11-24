@@ -148,7 +148,7 @@ test('Today and Boundaries re-read the space and hold log; leaving re-counts mem
   assert.match(holdLog, /AppState\.addEventListener\('change'/);
   assert.match(holdLog, /if \(!mineError\) setOwn/);
 
-  const boundaries = read('app/(tabs)/boundaries.tsx');
+  const boundaries = read('src/components/practice/BoundariesPractice.tsx');
   assert.match(boundaries, /void refreshFamilySpace\(\);\s*void reloadHoldLog\(\)/);
   assert.match(boundaries, /const freshCount = await fetchMemberCount\(spaceId\);\s*const alone = \(freshCount \?\? knownMembers\) <= 1;/);
   assert.match(boundaries, /onPress=\{\(\) => void confirmLeaveFamilySpace\(familySpace\.id, familySpace\.members\.length\)\}/);
@@ -205,7 +205,7 @@ test('the tracker escalates a new warning spike once, never one already logged w
   assert.equal(r.action, 'refresh');
   // Loaded below the threshold, member logs the third sign: escalate.
   assert.equal(step(step(INITIAL_TRACKER_SPIKE_MEMORY, 2).memory, 3).action, 'escalate');
-  const tracker = read('app/(tabs)/tracker.tsx');
+  const tracker = read('app/tracker.tsx');
   assert.match(tracker, /nextTrackerSpike\(spikeMemoryRef\.current, warnCount, ALERT_THRESHOLD, current\)/);
 });
 
@@ -258,7 +258,8 @@ test('support group names, schedule and online counts come from the locale files
   assert.notEqual(es.groups.names.parents, 'Parents of Addicted Young Adults');
   const catalog = read('src/content/supportGroups.ts');
   assert.doesNotMatch(catalog, /name: '|Weekly · moderated/);
-  const screen = read('app/(tabs)/support.tsx');
+  // (The groups card left the Support tab's file in 4.4.)
+  const screen = read('app/(tabs)/support.tsx') + read('src/components/support/SupportGroupsCard.tsx');
   assert.doesNotMatch(screen, /\} online`/);
   assert.match(screen, /t\('groups\.online', \{ count: group\.onlineCount \}\)/);
   assert.match(read('app/enabling-costs.tsx'), /accessibilityLabel=\{t\('back'\)\}/);

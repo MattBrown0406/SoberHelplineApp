@@ -49,7 +49,9 @@ test('questions are screened server-side and a crisis question alerts admins', (
   assert.match(followupSql, /'admin_session_question', '🆘 A question for Monday mentions a crisis'/);
   const support = readFileSync('app/(tabs)/support.tsx', 'utf8');
   assert.match(support, /\.select\('crisis_tier'\)\.single\(\)/);
-  assert.match(support, /\{questionCrisis \? \([\s\S]*?<EmergencyActions prominent offline=\{questionCrisis === 'unsent'\} \/>/);
+  // The sheet itself is its own file since 4.4; the tab hands it what the server answered.
+  assert.match(support, /questionCrisis=\{questionCrisis\}/);
+  assert.match(readFileSync('src/components/support/QuestionSheet.tsx', 'utf8'), /\{questionCrisis \? \([\s\S]*?<EmergencyActions prominent offline=\{questionCrisis === 'unsent'\} \/>/);
   // A failed send keeps her words for a retry with 911/988 on screen, never only an error alert.
   assert.match(support, /\} catch \{\n\s+if \(!current\(\)\) return;[\s\S]*?setQuestionCrisis\('unsent'\);/);
   // A reply after the sheet closed is ignored.
@@ -160,7 +162,8 @@ test('the community feed is hidden everywhere it could be reached', () => {
   assert.equal(COMMUNITY_FEED_VISIBLE, false);
   assert.deepEqual(getPushDestination({ kind: 'community_support', post_id: SESSION }, { entitlements: ESSENTIAL }),
     { pathname: '/(tabs)/support' });
-  const support = readFileSync('app/(tabs)/support.tsx', 'utf8');
+  // The groups card, where the feed's link lives, is its own file since 4.4.
+  const support = readFileSync('app/(tabs)/support.tsx', 'utf8') + readFileSync('src/components/support/SupportGroupsCard.tsx', 'utf8');
   assert.match(support, /\{COMMUNITY_FEED_VISIBLE && \(\s*<TouchableOpacity[\s\S]*?router\.push\('\/community'\)/);
   assert.equal((support.match(/router\.push\('\/community'\)/g) ?? []).length, 1);
   const screen = readFileSync('app/community.tsx', 'utf8');

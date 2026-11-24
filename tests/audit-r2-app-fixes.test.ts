@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
 import { callCardView, seatPanelView, seatSaveFailureKey, type JoinWindow, type SeatAnswer } from '../src/lib/familySquaresCard';
 
 // Audit round 2 (app side): the pure decisions, the words, and the wiring.
@@ -217,16 +218,22 @@ test('the admin note counts Join taps as the server does: from 5:00 PM to 8:30 P
   assert.match(read('supabase/migrations/20261114140000_family_squares_missed_followup.sql'), /v_join_from := \(v_meeting \+ time '17:00'\) AT TIME ZONE 'America\/Los_Angeles';/);
 });
 
-// ── L6: nothing is sold to a bereaved member outside Today either ───────────
+// ── 4.4: the bereavement feature was removed (owner's decision) ────────────
 
-test('the Support tab shows no plans teaser to a bereaved member, or before the device knows', () => {
+test('4.4: no "my loved one died" feature is left, and nothing waits on a bereaved signal', () => {
+  const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', 'app', 'src'], { encoding: 'utf8' })
+    .split('\n').filter((file) => /\.(tsx?|json)$/.test(file) && existsSync(file));
+  for (const file of files) {
+    const text = read(file);
+    assert.doesNotMatch(text, /useBereavedOnDevice|bereavedDevice|lib\/bereavement|bereavementQuiet|GriefCard|BereavementSheet|BereavementSettingsCard|BereavementContactsCard|markDied|clearDied|onTheyDied|\bbereaved\b/, file);
+  }
+  for (const lang of ['en', 'es']) {
+    for (const name of ['today', 'settings']) {
+      assert.equal(JSON.parse(read(`src/locales/${lang}/${name}.json`)).bereavement, undefined, `${lang}/${name}`);
+    }
+  }
+  // The Support tab's plans teaser is shown to every free member again.
   const support = read('app/(tabs)/support.tsx');
-  assert.match(support, /const bereaved = useBereavedOnDevice\(user\?\.id \?\? null\);/);
-  assert.match(support, /\{bereaved === false && <PlansTeaserCard offers=\{planOffers\} source="support_tab" \/>\}/);
+  assert.match(support, /\n\s+<PlansTeaserCard offers=\{planOffers\} source="support_tab" \/>/);
   assert.equal(support.split('<PlansTeaserCard').length - 1, 1);
-  // Today's own record feeds the device copy every screen follows.
-  assert.match(read('src/hooks/useLovedOne.ts'), /rememberBereavedOnDevice\(accountId, bereaved\);/);
-  const hook = read('src/hooks/useBereavedOnDevice.ts');
-  assert.match(hook, /subscribeBereavedOnDevice\(\(changedAccount, bereaved\) => \{\s+if \(active && changedAccount === accountId\) setState\(\{ accountId, bereaved \}\);/);
-  assert.match(hook, /return state\.accountId === accountId \? state\.bereaved : undefined;/);
 });
