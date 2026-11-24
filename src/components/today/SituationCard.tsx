@@ -35,7 +35,7 @@ interface Props {
   onDecline?: () => Promise<boolean>;
   onSupportCallJoin?: () => Promise<void>;
   onSupportCallOpenFailed?: () => Promise<void>;
-  /** False on the bereaved Today: a saved seat is never followed by a reminder ask there. */
+  /** False: a saved seat is not followed by a reminder ask (on by default). */
   seatReminderAsk?: boolean;
   /** Goes up when a Save tap on Today has just saved her seat (useTodayFeed): the reminder ask follows only that. */
   seatSavedHere?: number;

@@ -12,42 +12,46 @@ const read = (file: string) => readFileSync(file, 'utf8');
 const showing = (...cards: NextStepCard[]) => Object.fromEntries(cards.map((card) => [card, true]));
 
 test('the next-step slot holds at most one card, by priority', () => {
-  assert.deepEqual([...NEXT_STEP_PRIORITY], ['willingnessWindow', 'lovedOneCheck', 'holidayPlan', 'invitation', 'guidedStart']);
-  // Everything showing: the willingness window wins, the rest wait in order.
+  assert.deepEqual([...NEXT_STEP_PRIORITY], ['willingnessWindow', 'lovedOneCheck', 'holidayPlan', 'invitation', 'pathStep']);
+  // Everything showing: the willingness window wins, the rest wait in order
+  // (her path's step is not listed: "Your path" under More already shows it).
   assert.deepEqual(chooseNextStep(showing(...NEXT_STEP_PRIORITY)), {
     slot: 'willingnessWindow',
-    more: ['lovedOneCheck', 'holidayPlan', 'invitation', 'guidedStart'],
+    more: ['lovedOneCheck', 'holidayPlan', 'invitation'],
   });
   // Each card wins once everything above it has nothing to show.
   NEXT_STEP_PRIORITY.forEach((card, index) => {
     const below = NEXT_STEP_PRIORITY.slice(index);
-    assert.deepEqual(chooseNextStep(showing(...below)), { slot: card, more: below.slice(1) });
+    assert.deepEqual(chooseNextStep(showing(...below)), { slot: card, more: below.slice(1).filter((c) => c !== 'pathStep') });
   });
   assert.deepEqual(chooseNextStep(showing('invitation', 'holidayPlan')), { slot: 'holidayPlan', more: ['invitation'] });
 });
 
 test('a card with nothing to show never takes the slot and is not listed under More', () => {
   assert.deepEqual(chooseNextStep({}), { slot: null, more: [] });
-  assert.deepEqual(chooseNextStep({ willingnessWindow: false, lovedOneCheck: false, guidedStart: true }), { slot: 'guidedStart', more: [] });
+  assert.deepEqual(chooseNextStep({ willingnessWindow: false, lovedOneCheck: false, pathStep: true }), { slot: 'pathStep', more: [] });
   assert.deepEqual(chooseNextStep({ lovedOneCheck: true, holidayPlan: false, invitation: true }), { slot: 'lovedOneCheck', more: ['invitation'] });
 });
 
+test('the guided-start panel is no longer a candidate: her path\'s step is the last resort', () => {
+  assert.ok(!(NEXT_STEP_PRIORITY as readonly string[]).includes('guidedStart'));
+  assert.equal(NEXT_STEP_FALLBACK, 'pathStep');
+  assert.equal(NEXT_STEP_PRIORITY[NEXT_STEP_PRIORITY.length - 1], NEXT_STEP_FALLBACK);
+});
+
 test('the always-there fallback waits for the cards above it before taking the slot', () => {
-  assert.equal(NEXT_STEP_FALLBACK, 'guidedStart');
   // Still waiting: the slot stays empty rather than showing a card that is about to be replaced.
-  // And it is not listed under More meanwhile: the "More for this week" toggle must not
-  // show for a second and a half and then vanish when the card takes the slot.
-  assert.deepEqual(chooseNextStep(showing('guidedStart'), { fallbackReady: false }), { slot: null, more: [] });
-  // The toggle never goes away once shown for these cards: before and after the wait agree.
-  for (const cards of [['guidedStart'], ['invitation', 'guidedStart'], ['holidayPlan', 'invitation', 'guidedStart'], ['holidayPlan']] as const) {
+  assert.deepEqual(chooseNextStep(showing('pathStep'), { fallbackReady: false }), { slot: null, more: [] });
+  // What is listed under More never shrinks once the wait is over.
+  for (const cards of [['pathStep'], ['invitation', 'pathStep'], ['holidayPlan', 'invitation', 'pathStep'], ['holidayPlan']] as const) {
     const waiting = chooseNextStep(showing(...cards), { fallbackReady: false });
     const settled = chooseNextStep(showing(...cards), { fallbackReady: true });
     assert.ok(waiting.more.length <= settled.more.length, cards.join('+'));
     if (waiting.more.length) assert.deepEqual(waiting, settled, cards.join('+'));
   }
-  // A card that is ready takes the slot at once, waiting or not.
-  assert.deepEqual(chooseNextStep(showing('invitation', 'guidedStart'), { fallbackReady: false }), { slot: 'invitation', more: ['guidedStart'] });
-  assert.deepEqual(chooseNextStep(showing('guidedStart'), { fallbackReady: true }), { slot: 'guidedStart', more: [] });
+  // A card that is ready takes the slot at once, waiting or not; the path step is never listed under More.
+  assert.deepEqual(chooseNextStep(showing('invitation', 'pathStep'), { fallbackReady: false }), { slot: 'invitation', more: [] });
+  assert.deepEqual(chooseNextStep(showing('pathStep'), { fallbackReady: true }), { slot: 'pathStep', more: [] });
 });
 
 test('Today wires every candidate card through the slot, and the losers stay reachable', () => {
@@ -59,14 +63,15 @@ test('Today wires every candidate card through the slot, and the losers stay rea
     'lovedOneCheck: lovedOneCheckCard,',
     'holidayPlan: holidayCard,',
     'invitation: invitationCard,',
-    'guidedStart: <GuidedStartPanel />,',
+    'pathStep: <PathNextStepCard stage={lovedOne?.stage} status={lovedOneStatus} loading={lovedOneLoading} />,',
   ]) assert.ok(cards.includes(entry), entry);
+  assert.doesNotMatch(today, /GuidedStartPanel/);
   assert.match(today, /const nextStepSlot = nextStep\.slot \? \[nextStepItem\(nextStep\.slot, true\)\] : \[\];/);
-  // Every card that did not win is still mounted, and shown under an open "More for this week".
+  // Every card that did not win is still mounted, and shown under an open "More for you".
   assert.match(today, /NEXT_STEP_PRIORITY\.filter\(\(card\) => card !== nextStep\.slot\)\s*\.map\(\(card\) => nextStepItem\(card, moreOpen && nextStep\.more\.includes\(card\)\)\)/);
-  assert.match(today, /nextStep\.more\.length \? \[\s*<TodayDisclosureToggle\s+key="more"\s+title=\{t\('disclosure\.more'\)\}/);
+  assert.match(today, /<TodayDisclosureToggle\s+title=\{t\('disclosure\.more'\)\}\s+expanded=\{moreOpen\}/);
   // One keyed list, so a card is not remounted when it moves between the slot and More.
-  assert.equal((today.match(/\{\[\.\.\.nextStepSlot, <NeedsRouter key="needs" \/>, \.\.\.moreForThisWeek\]\}/g) ?? []).length, 2);
+  assert.equal((today.match(/\{\[\.\.\.nextStepSlot, <NeedsRouter key="needs" \/>, \.\.\.moreForYou\(/g) ?? []).length, 2);
   assert.match(today, /<NextStepItem key=\{card\} shown=\{shown\} onShowing=\{\(showing\) => nextStep\.report\(card, showing\)\}>/);
 
   const item = read('src/components/today/NextStepItem.tsx');
@@ -78,9 +83,11 @@ test('Today wires every candidate card through the slot, and the losers stay rea
   assert.match(item, /onLayout=\{\(event\) => onShowing\(event\.nativeEvent\.layout\.height > 0\)\}/);
 
   // The cards themselves were not changed to make this work.
-  for (const file of ['today/WillingnessWindowAlert', 'today/LovedOneCheckCard', 'today/HolidayPlanTodayCard', 'invitation/InvitationTodayCard', 'today/GuidedStartPanel']) {
+  for (const file of ['today/WillingnessWindowAlert', 'today/LovedOneCheckCard', 'today/HolidayPlanTodayCard', 'invitation/InvitationTodayCard', 'today/PathNextStepCard']) {
     assert.doesNotMatch(read(`src/components/${file}.tsx`), /todayNextStep|NextStepItem/);
   }
+  // The path step draws nothing while the phase loads, so the slot never shows a guess.
+  assert.match(read('src/components/today/PathNextStepCard.tsx'), /if \(loading\) return null;/);
 });
 
 test('the section toggle is shared, labelled and says whether it is open', () => {
@@ -90,6 +97,8 @@ test('the section toggle is shared, labelled and says whether it is open', () =>
   assert.match(disclosure, /<TodayDisclosureToggle\s+title=\{title\}\s+expanded=\{expanded\}/);
   for (const lang of ['en', 'es']) {
     const copy = JSON.parse(read(`src/locales/${lang}/today.json`)).disclosure;
-    assert.ok(copy.more && copy.invite && copy.pathway && copy.practice && copy.membership);
+    assert.ok(copy.more && copy.membership);
+    assert.equal(copy.pathway, undefined);
+    assert.equal(copy.practice, undefined);
   }
 });

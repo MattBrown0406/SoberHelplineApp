@@ -12,7 +12,7 @@ import {
  * show/hide rules and is not changed: this wrapper only notices whether the
  * card drew anything, and tucks it out of sight (still mounted, so it keeps
  * what she typed and can speak up later) when it is neither in the slot nor
- * under an open "More for this week".
+ * under an open "More for you".
  */
 export function NextStepItem({ shown, onShowing, children }: {
   shown: boolean;

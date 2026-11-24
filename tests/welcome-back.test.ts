@@ -60,7 +60,7 @@ test('the hook welcomes a return once: it reads the last visit, then writes this
 
 test('Today shows the card at the top; either action or Close puts it away', () => {
   const today = read('app/(tabs)/index.tsx');
-  const screens = today.split('<ScreenContainer').slice(1).filter((screen) => screen.includes('{checkInCard}') && !screen.includes('<GriefCard'));
+  const screens = today.split('<ScreenContainer').slice(1).filter((screen) => screen.includes('{checkInCard}'));
   assert.equal(screens.length, 2);
   for (const screen of screens) {
     assert.match(screen, /\{header\}\s*\{welcomeBackCard\}\s*\{mondayCallCard\}/);

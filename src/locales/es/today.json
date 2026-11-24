@@ -101,8 +101,8 @@
       },
       "plan": {
         "title": "Planifica solo la siguiente decisión",
-        "body": "Anota lo que sabes, lo que debe decidirse hoy y lo que puede esperar. Abre El camino de tu familia más abajo para orientarte.",
-        "cta": "Revisar el camino de hoy"
+        "body": "Anota lo que sabes, lo que debe decidirse hoy y lo que puede esperar. Tu camino, en Más para ti, te muestra un paso para hoy.",
+        "cta": "Ver tu camino"
       },
       "rest": {
         "title": "Reduce una exigencia",
@@ -134,15 +134,17 @@
   "disclosure": {
     "show": "Mostrar",
     "hide": "Ocultar",
-    "more": "Más para esta semana",
-    "pathway": "El camino de tu familia",
+    "more": "Más para ti",
     "invite": "Invita a alguien a La Sobremesa",
-    "practice": "Guiones, práctica y tu progreso",
     "membership": "Explorar la membresía"
   },
-  "freeDaily": {
-    "eyebrow": "Guion de hoy",
-    "note": "Este es el guion de hoy. La biblioteca completa está en la pestaña {{tab}}."
+  "moreForYou": {
+    "signsTitle": "Señales a observar",
+    "signsBody": "Señales de alerta y de recuperación, día a día."
+  },
+  "pathStep": {
+    "eyebrow": "Tu siguiente paso",
+    "title": "Tu camino: {{phase}}"
   },
   "passItOn": {
     "eyebrow": "Compártelo",
@@ -178,7 +180,7 @@
     "encourage": "Esta constancia es la recuperación vista desde la familia. Sigue así."
   },
   "pathway": {
-    "eyebrow": "Camino de tu familia",
+    "eyebrow": "Tu camino",
     "title": "Lo que ayuda en esta etapa",
     "changePhase": "Cambiar la etapa actual",
     "choosePhase": "¿Qué etapa describe mejor el día de hoy?",
@@ -508,43 +510,37 @@
     "notNow": "Ahora no",
     "thanks": "Gracias. Hoy ya refleja dónde están las cosas."
   },
-  "bereavement": {
-    "sheet": {
-      "title": "Lo sentimos muchísimo.",
-      "body": "Si tu ser querido falleció, la app dejará de preguntarte por esa persona y de enviarte notas sobre su recuperación. Tus registros diarios, la llamada de los lunes y Apoyo siguen aquí para ti. Puedes deshacer esto en Configuración.",
-      "contact": "Que Matt o un coach se comunique contigo personalmente",
-      "confirm": "Sí, falleció",
-      "cancel": "Cancelar",
-      "error": "No pudimos guardarlo. Inténtalo de nuevo.",
-      "quiet": "Pausar recordatorios y notas por ahora"
+  "fellowships": {
+    "intro": "Los días difíciles se llevan mejor con personas que entienden. Muchas familias encuentran apoyo en una reunión gratuita para familias.",
+    "question": "¿Cuál te gustaría considerar?",
+    "options": {
+      "alAnon": { "name": "Al-Anon", "description": "Para familiares y amigos de alguien que bebe" },
+      "narAnon": { "name": "Nar-Anon", "description": "Para familiares y amigos de alguien que consume drogas" },
+      "aca": { "name": "ACA", "description": "Adult Children of Alcoholics and Dysfunctional Families: para personas adultas que crecieron entre el alcohol o la disfunción familiar" },
+      "coda": { "name": "CoDA", "description": "Co-Dependents Anonymous: para construir relaciones más sanas" },
+      "pal": { "name": "PAL", "description": "Parents of Addicted Loved Ones: para madres, padres, parejas y familiares de alguien con una adicción" }
     },
-    "link": "Mi ser querido falleció",
-    "grief": {
-      "eyebrow": "LO SENTIMOS MUCHÍSIMO",
-      "title": "No hay una forma correcta de vivir este duelo",
-      "paragraphs": [
-        "El duelo después de una adicción es un duelo distinto. Puedes sentir una pérdida que aplasta y, algunos días, alivio de que la espera terminó, y luego culpa por ese alivio. Todo eso es normal.",
-        "Tú no causaste esto. Amaste a alguien durante una enfermedad que se lo llevó, y nada de lo que hiciste o dejaste de hacer un día lo decidió.",
-        "Puede que algunas personas a tu alrededor no sepan qué decir, o no traten esta pérdida como otras. Tu duelo cuenta de todos modos."
-      ],
-      "grasp": {
-        "title": "GRASP: Grief Recovery After a Substance Passing",
-        "body": "Grupos gratuitos de apoyo entre pares, en persona y en línea, para familias que perdieron a alguien por adicción o sobredosis (en inglés).",
-        "button": "Abrir grasphelp.org"
-      },
-      "compassionateFriends": {
-        "title": "The Compassionate Friends",
-        "body": "Apoyo para familias después de la muerte de un hijo o hija de cualquier edad, también para hermanos y abuelos.",
-        "button": "Abrir compassionatefriends.org"
-      },
-      "crisisTitle": "Si no quieres seguir aquí",
-      "crisisBody": "Cuando alguien muere por una adicción, aumenta el riesgo de suicidio en su familia y en quienes estaban cerca. Si estás pensando en no querer seguir aquí, llama al 988 (marca 2 para español) o envía AYUDA al 988. Pedir ayuda no es un fracaso.",
-      "stillHere": "Matt y la llamada de los lunes siguen aquí para ti, todo el tiempo que los necesites.",
-      "openError": "No pudimos abrir esa página. Visita {{site}} en tu navegador.",
-      "pause": "Pausar todos los recordatorios",
-      "resume": "Volver a activar los recordatorios",
-      "pausedNote": "Los recordatorios y las notas están en pausa. Los mensajes de Matt, de un coach o de tu familia, y las sesiones que agendaste, siguen llegando.",
-      "quietError": "No pudimos cambiar tus recordatorios. Inténtalo de nuevo."
-    }
+    "find": "Buscar una reunión de {{name}}",
+    "findHint": "Abre el buscador oficial de reuniones de {{name}} en tu navegador",
+    "remembered": "Tu elección queda guardada en este dispositivo. Toca otra para cambiarla.",
+    "notNow": "Ahora no",
+    "openErrorTitle": "No pudimos abrir el buscador de reuniones",
+    "openErrorBody": "Visita {{site}} en tu navegador.",
+    "reachOut": {
+      "question": "¿Te gustaría que {{name}} se comunique contigo?",
+      "yes": "Sí, que se comunique conmigo",
+      "no": "No, gracias",
+      "sending": "Enviando…",
+      "sent": "Le avisamos a {{name}} y se comunicará contigo.",
+      "emergency": "Sober Helpline no atiende las 24 horas. En una emergencia, llama al 911, o llama o envía un mensaje de texto al 988 (marca 2 para español).",
+      "failed": "No se pudo enviar. Inténtalo de nuevo.",
+      "retry": "Intentar de nuevo"
+    },
+    "booking": {
+      "question": "¿Te gustaría ayuda para agendar una sesión de coaching?",
+      "yes": "Ayúdame a agendar",
+      "no": "No, gracias"
+    },
+    "closing": "Está bien. Trátate con cariño hoy."
   }
 }

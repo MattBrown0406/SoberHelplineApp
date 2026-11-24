@@ -56,11 +56,12 @@ test('ordinary browser-share and iOS-print dismissal are neutral cancellations',
   assert.equal(isResourceActionCancellation('not an error'), false);
 });
 
-test('Today surfaces both distribution actions with explicit accessibility state', () => {
+test('the pass-it-on card has both distribution actions with explicit accessibility state, and is not on Today', () => {
   const today = readFileSync(resolve('app/(tabs)/index.tsx'), 'utf8');
   const card = readFileSync(resolve('src/components/today/PassItOnCard.tsx'), 'utf8');
   const funnel = readFileSync(resolve('src/lib/funnel.ts'), 'utf8');
-  assert.ok((today.match(/<PassItOnCard/g) ?? []).length >= 2);
+  // 4.4: the card left Today (Today does one job); it lives on the Support tab.
+  assert.doesNotMatch(today, /PassItOnCard/);
   assert.match(card, /Share\.share/);
   assert.match(card, /navigator\.share/);
   assert.match(card, /navigator\.clipboard/);
