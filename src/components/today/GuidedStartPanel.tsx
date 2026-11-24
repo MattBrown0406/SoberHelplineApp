@@ -9,9 +9,9 @@ import { guidedStartCopy } from '../../content/guidedStartCopy';
 import { SITUATIONS, situationRoute, type StartSituation } from '../../lib/guidedStart';
 import { EmergencyActions } from '../safety/EmergencyActions';
 
-export function GuidedButton({ label, onPress, disabled = false }: { label: string; onPress: () => void; disabled?: boolean }) {
+export function GuidedButton({ label, onPress, disabled = false, hint }: { label: string; onPress: () => void; disabled?: boolean; hint?: string }) {
   const { colors } = useTheme();
-  return <TouchableOpacity accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}
+  return <TouchableOpacity accessibilityRole="button" accessibilityHint={hint} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}
     style={{ minHeight: 48, justifyContent: 'center', padding: 12, borderWidth: 1, borderColor: colors.primary, borderRadius: 12, marginTop: 8, opacity: disabled ? 0.5 : 1 }}>
     <Text style={{ color: colors.primary, fontSize: 15, fontWeight: '600' }}>{label}</Text>
   </TouchableOpacity>;

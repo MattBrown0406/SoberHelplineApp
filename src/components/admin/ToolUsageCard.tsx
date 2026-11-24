@@ -5,6 +5,31 @@ import { supabase } from '../../lib/supabase';
 
 type ToolRow = { tool: string; members_opened: number; members_finished: number; days_opened: number };
 
+/**
+ * Admin-only English labels where the plain name (underscores as spaces) reads
+ * poorly. Screens (4.4) are marked so they aren't mistaken for tools; any other
+ * name shows as itself.
+ */
+const TOOL_LABELS: Record<string, string> = {
+  today: 'Today (screen)',
+  fellowship_finder: 'Meeting finder (check-in card)',
+  settings: 'Settings (screen)',
+  plans: 'Plans (screen)',
+  rehearsal_history: 'Practice history (screen)',
+  finder_detail: 'Finder: provider page',
+  video_session: 'Private video call',
+  live_room: 'Live room',
+  invitation_setup: 'Invitation: setup',
+  invitation_kit: 'Invitation: kit',
+  invitation_progress: 'Invitation: progress',
+  invitation_outcome: 'Invitation: outcome',
+  diy_planner: 'DIY planner',
+};
+
+export function toolUsageLabel(tool: string): string {
+  return TOOL_LABELS[tool] ?? tool.replace(/_/g, ' ');
+}
+
 export function parseToolUsage(value: unknown): { days: number; tools: ToolRow[] } | null {
   const row = value as { days?: unknown; tools?: unknown } | null;
   if (!row || typeof row.days !== 'number' || !Array.isArray(row.tools)) return null;
@@ -17,8 +42,8 @@ export function parseToolUsage(value: unknown): { days: number; tools: ToolRow[]
 }
 
 /**
- * Admin-only (English): which tools members opened and finished in the last
- * 30 days (tool_opened / tool_finished events; names only, no content).
+ * Admin-only (English): which tools and screens members opened and finished in
+ * the last 30 days (tool_opened / tool_finished events; names only, no content).
  */
 export function ToolUsageCard() {
   const { colors } = useTheme();
@@ -42,7 +67,7 @@ export function ToolUsageCard() {
 
   return (
     <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
-      <Text style={[styles.title, { color: colors.ink }]}>Tool usage — last {data?.days ?? 30} days</Text>
+      <Text style={[styles.title, { color: colors.ink }]}>Tools and screens opened — last {data?.days ?? 30} days</Text>
       {error ? (
         <Text accessibilityRole="alert" style={[styles.note, { color: colors.coral }]}>{error}</Text>
       ) : !data ? (
@@ -50,20 +75,23 @@ export function ToolUsageCard() {
       ) : (
         <>
           <View style={styles.row}>
-            <Text style={[styles.head, styles.name, { color: colors.inkSoft }]}>Tool</Text>
-            <Text style={[styles.head, styles.num, { color: colors.inkSoft }]}>Opened</Text>
+            <Text style={[styles.head, styles.name, { color: colors.inkSoft }]}>Tool or screen</Text>
+            <Text style={[styles.head, styles.num, { color: colors.inkSoft }]}>People</Text>
+            <Text style={[styles.head, styles.num, { color: colors.inkSoft }]}>Opens</Text>
             <Text style={[styles.head, styles.num, { color: colors.inkSoft }]}>Finished</Text>
           </View>
           {data.tools.map((t) => (
             <View key={t.tool} style={styles.row}>
-              <Text style={[styles.cell, styles.name, { color: t.members_opened ? colors.ink : colors.inkSoft }]}>{t.tool.replace(/_/g, ' ')}</Text>
+              <Text style={[styles.cell, styles.name, { color: t.members_opened ? colors.ink : colors.inkSoft }]}>{toolUsageLabel(t.tool)}</Text>
               <Text style={[styles.cell, styles.num, { color: colors.ink }]}>{t.members_opened}</Text>
+              <Text style={[styles.cell, styles.num, { color: colors.ink }]}>{t.days_opened}</Text>
               <Text style={[styles.cell, styles.num, { color: colors.ink }]}>{t.members_finished || '—'}</Text>
             </View>
           ))}
           <Text style={[styles.note, { color: colors.inkSoft }]}>
-            Members, counted once per tool. Finished is recorded for tools with a clear end (letter done, practice done,
-            brief sent, coaching or provider request sent). Counting started with 4.2 (3); older app versions send nothing.
+            People: members who opened it. Opens: member-days (one per member per day). Finished is recorded for tools
+            with a clear end (letter done, practice done, brief sent, coaching or provider request sent). Counting started
+            with 4.2 (3); screens marked (screen) and the invitation steps from 4.4; older app versions send nothing.
           </Text>
         </>
       )}
@@ -78,6 +106,6 @@ const styles = StyleSheet.create({
   head: { fontSize: 11.5, fontWeight: '700' },
   cell: { fontSize: 13.5 },
   name: { flex: 1 },
-  num: { width: 72, textAlign: 'right' },
+  num: { width: 60, textAlign: 'right' },
   note: { fontSize: 12, lineHeight: 17, marginTop: 8 },
 });
