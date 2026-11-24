@@ -66,9 +66,6 @@ Message a coach, join live support groups, or book a one-on-one session. When yo
 CRISIS SUPPORT, ALWAYS FREE
 Open immediate safety guidance, 911, 988 and Poison Control shortcuts, and an offline household Safety Wallet without a subscription.
 
-IF THE WORST HAPPENS
-If your loved one dies, tell the app once. It stops asking about them, offers grief support, and lets you pause reminders whenever you need quiet.
-
 IN ENGLISH AND SPANISH
 The entire app, including the support that matters most, in both languages.
 
@@ -139,9 +136,6 @@ Escribe a un coach, únete a grupos de apoyo en vivo o agenda una sesión indivi
 
 APOYO EN CRISIS, SIEMPRE GRATIS
 Orientación inmediata de seguridad, accesos al 911, al 988 y a Control de Envenenamiento, y una Cartera de Seguridad del hogar sin conexión y sin suscripción.
-
-SI PASA LO PEOR
-Si tu ser querido muere, díselo a la app una sola vez. Deja de preguntar por esa persona, te ofrece apoyo en el duelo y te permite pausar los recordatorios cuando necesites silencio.
 
 EN ESPAÑOL E INGLÉS
 Toda la app, incluido el apoyo que más importa, en ambos idiomas.

@@ -116,6 +116,7 @@
     "errorTitle": "La cuenta no se eliminó",
     "errorMessage": "No pudimos eliminar tu cuenta. Aún tienes la sesión iniciada y no se completó ninguna eliminación. Inténtalo de nuevo.",
     "websiteErrorMessage": "No pudimos eliminar tu cuenta de soberhelpline.com ni cancelar su membresía, así que no se eliminó nada. Aún tienes la sesión iniciada. Inténtalo de nuevo en unos minutos.",
+    "appErrorMessage": "Eliminamos tu cuenta de soberhelpline.com, pero no pudimos terminar de eliminar tu cuenta de la app. Aún tienes la sesión iniciada. Inténtalo de nuevo.",
     "cleanupErrorTitle": "Cuenta eliminada",
     "cleanupErrorMessage": "Tu cuenta se eliminó, pero este dispositivo no pudo cerrar la sesión. Cierra y vuelve a abrir la aplicación para borrar la sesión anterior."
   },
@@ -128,21 +129,5 @@
   },
   "reminders": {
     "channelName": "Recordatorios personales"
-  },
-  "bereavement": {
-    "eyebrow": "TU SER QUERIDO",
-    "body": "Si tu ser querido falleció, puedes decírnoslo aquí. La app dejará de preguntarte por esa persona y de enviarte notas sobre su recuperación.",
-    "tell": "Mi ser querido falleció",
-    "bereavedBody": "Nos dijiste que tu ser querido falleció. Lo sentimos muchísimo. La app ya no te pregunta por esa persona ni te envía notas sobre su recuperación.",
-    "undo": "Lo elegí por error",
-    "undoTitle": "¿Deshacer esto?",
-    "undoBody": "La app volverá a preguntarte por tu ser querido y a enviarte notas sobre su recuperación.",
-    "undoConfirm": "Deshacer",
-    "undoCancel": "Cancelar",
-    "errorTitle": "No se pudo guardar",
-    "errorBody": "Revisa tu conexión e inténtalo de nuevo.",
-    "remindersLabel": "Recordatorios y notas",
-    "remindersDesc": "Apágalo para pausar todos los recordatorios y notas el tiempo que necesites. Los mensajes de Matt, de un coach o de tu familia, y las sesiones que agendaste, siguen llegando.",
-    "quietFailed": "Guardamos que tu ser querido falleció, pero no se pausaron los recordatorios. Usa el interruptor de abajo para intentarlo de nuevo."
   }
 }

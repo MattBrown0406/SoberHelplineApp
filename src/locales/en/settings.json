@@ -116,6 +116,7 @@
     "errorTitle": "Account not deleted",
     "errorMessage": "We couldn't delete your account. You are still signed in and no deletion was completed. Please try again.",
     "websiteErrorMessage": "We couldn't remove your soberhelpline.com account or cancel its membership, so nothing was deleted. You are still signed in. Please try again in a few minutes.",
+    "appErrorMessage": "Your soberhelpline.com account was removed, but we couldn't finish deleting your app account. You are still signed in. Please try again.",
     "cleanupErrorTitle": "Account deleted",
     "cleanupErrorMessage": "Your account was deleted, but this device couldn't finish signing out. Close and reopen the app to clear the old session."
   },
@@ -128,21 +129,5 @@
   },
   "reminders": {
     "channelName": "Personal reminders"
-  },
-  "bereavement": {
-    "eyebrow": "YOUR LOVED ONE",
-    "body": "If your loved one has died, you can tell us here. The app will stop asking about them and stop sending notes about their recovery.",
-    "tell": "My loved one died",
-    "bereavedBody": "You told us your loved one died. We're so sorry. The app no longer asks about them or sends notes about their recovery.",
-    "undo": "I chose this by mistake",
-    "undoTitle": "Undo this?",
-    "undoBody": "The app will ask about your loved one again and send notes about their recovery.",
-    "undoConfirm": "Undo",
-    "undoCancel": "Cancel",
-    "errorTitle": "Couldn't save",
-    "errorBody": "Please check your connection and try again.",
-    "remindersLabel": "Reminders and notes",
-    "remindersDesc": "Turn off to pause every reminder and note for as long as you need. Messages from Matt, a coach, or your family, and sessions you've booked, still come through.",
-    "quietFailed": "Your loved one's death is saved, but reminders weren't paused. Use the switch below to try again."
   }
 }

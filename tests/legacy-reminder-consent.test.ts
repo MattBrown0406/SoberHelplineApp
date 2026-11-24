@@ -4,9 +4,8 @@ import fs from 'node:fs';
 import ts from 'typescript';
 import { AsyncWriteBarrier } from '../src/lib/appFlowGuards';
 
-function harness(platform = 'ios', serverDailyOptIn = false, server: { pushToken?: string | null; hour?: number | null; quiet?: boolean; oldSchema?: boolean } = {}) {
+function harness(platform = 'ios', serverDailyOptIn = false, server: { pushToken?: string | null; hour?: number | null } = {}) {
   const selects: string[] = [];
-  const quietCalls: string[] = [];
   let serverHour = server.hour ?? null;
   const store = new Map<string, string>();
   const scheduled: any[] = []; const canceled: string[] = []; let writes = 0;
@@ -39,24 +38,19 @@ function harness(platform = 'ios', serverDailyOptIn = false, server: { pushToken
         return { data: true };
       },
       auth: { getSession: async () => ({ data: { session: { user: { id: 'auth' } } } }) },
-      from: () => ({ select: (columns: string) => ({ eq: () => ({ maybeSingle: async () => (selects.push(columns), server.oldSchema && columns.includes('bereavement_quiet')
-        ? { data: null, error: { code: '42703', message: 'column loved_ones_1.bereavement_quiet does not exist' } }
-        : { data: { id: 'A', timezone: null, daily_push_opt_in: serverDailyOptIn, daily_push_hour: serverHour, push_token: server.pushToken ?? null, loved_ones: server.quiet === undefined ? null : { died_at: '2026-11-04T00:00:00Z', bereavement_quiet: server.quiet } } }) }) }) }),
+      from: () => ({ select: (columns: string) => ({ eq: () => ({ maybeSingle: async () => (selects.push(columns),
+        { data: { id: 'A', timezone: null, daily_push_opt_in: serverDailyOptIn, daily_push_hour: serverHour, push_token: server.pushToken ?? null } }) }) }) }),
     } }, '../storage/checkIn': { getCheckIn: async () => null },
     '../lib/appFlowGuards': { AsyncWriteBarrier }, '../lib/pushRouting': {},
     '../lib/pendingPushTokenRevoke': { settlePendingPushTokenRevoke: async () => 'none' }, '../lib/pushDevice': { isDeviceSignedIn: () => true },
     '../reminders/personalReminders': { REMINDER_PREFIX: 'personal-reminder:' },
-    '../reminders/bereavementQuiet': {
-      pausePersonalRemindersForQuiet: async (id: string) => { quietCalls.push(`pause:${id}`); },
-      resumePersonalRemindersAfterQuiet: async (id: string) => { quietCalls.push(`resume:${id}`); },
-    },
   };
   const code = ts.transpileModule(fs.readFileSync('src/hooks/usePushNotifications.ts', 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true },
   }).outputText;
   const exports: any = {};
   new Function('require', 'exports', code)((name: string) => modules[name], exports);
-  return { api: exports, store, scheduled, canceled, writes: () => writes, rpcCalls, quietCalls, selects };
+  return { api: exports, store, scheduled, canceled, writes: () => writes, rpcCalls, selects };
 }
 
 test('web logout preserves token barrier without invoking an unavailable native scheduler', async () => {
@@ -122,10 +116,9 @@ test('a morning reminder hour with this device\'s token on file is sent by the s
 // which only the paid Today shows.
 const weekly = (h: ReturnType<typeof harness>) => h.scheduled.filter((x) => x.identifier === 'legacy-daily-nudge:v1:weekly');
 test('the Sunday week-review note is scheduled only for a member who can see the week review', async () => {
-  assert.equal(harness().api.shouldScheduleWeekReview({ canSeeWeekReview: true, bereaved: false }), true);
-  assert.equal(harness().api.shouldScheduleWeekReview({ canSeeWeekReview: false, bereaved: false }), false);
-  assert.equal(harness().api.shouldScheduleWeekReview({ canSeeWeekReview: null, bereaved: false }), false, 'not while her access is still unknown');
-  assert.equal(harness().api.shouldScheduleWeekReview({ canSeeWeekReview: true, bereaved: true }), false, 'the bereaved Today has no week review');
+  assert.equal(harness().api.shouldScheduleWeekReview({ canSeeWeekReview: true }), true);
+  assert.equal(harness().api.shouldScheduleWeekReview({ canSeeWeekReview: false }), false);
+  assert.equal(harness().api.shouldScheduleWeekReview({ canSeeWeekReview: null }), false, 'not while her access is still unknown');
 
   const paid = harness();
   await paid.api.setWeekReviewAccess('A', true);
@@ -182,15 +175,6 @@ test('noting week-review access before the device is registered never cancels he
   assert.equal(h.scheduled.length, 0);
 });
 
-test('a bereaved member gets no Sunday week-review note, paused or not', async () => {
-  const h = harness('ios', false, { pushToken: null, quiet: false });
-  h.store.set('reminderHour', '18');
-  await h.api.setWeekReviewAccess('A', true);
-  assert.equal(await h.api.registerForPushNotifications('A', true, true), true);
-  assert.ok(dailyNudges(h).length > 0, 'the daily reminder she chose still comes');
-  assert.equal(weekly(h).length, 0);
-});
-
 test('the push hook reads week-review access from the feature map once entitlements have settled', () => {
   const source = fs.readFileSync('src/hooks/usePushNotifications.ts', 'utf8');
   assert.match(source, /entitlements && entitlementsSettled\s*\? canAccessFeature\(\{ feature: 'todayFull', entitlements \}\)\s*: null/);
@@ -221,49 +205,12 @@ test('when another device holds the server token, this device keeps its own nudg
   assert.ok(dailyNudges(h).length > 0);
 });
 
-test('a bereaved member who paused reminders gets nothing scheduled on this device; turning them back on restores', async () => {
-  const quiet = harness('ios', false, { pushToken: null, quiet: true });
-  quiet.store.set('reminderHour', '18');
-  quiet.store.set('legacy-daily-nudge-opt-in:v1:A', 'true');
-  await quiet.api.registerForPushNotifications('A', false);
-  assert.equal(quiet.scheduled.length, 0, 'no daily nudge, no week review');
-  assert.ok(quiet.canceled.includes('legacy-daily-nudge:v1:daily-1'), 'already scheduled nudges are cancelled');
-  assert.ok(quiet.quietCalls.includes('pause:A'), 'personal reminders pause too');
-  assert.equal(quiet.store.get('legacy-daily-nudge:quiet:v1:A'), 'on', 'the earlier setting is remembered');
-  assert.equal(quiet.store.get('legacy-daily-nudge-opt-in:v1:A'), 'false');
-  // She turns the daily reminder on herself during the pause: respected, from this device.
-  await quiet.api.registerForPushNotifications('A', true, true);
-  assert.ok(dailyNudges(quiet).length > 0, 'an explicit "on" during the pause schedules');
-  await quiet.api.rearmDailyNudge();
-  assert.equal(quiet.store.get('legacy-daily-nudge-opt-in:v1:A'), 'true', 'and is not switched off again');
-  // Reminders back on: the earlier setting comes back and the marker is cleared.
-  const back = harness('ios', false, { pushToken: null, quiet: false });
-  back.store.set('reminderHour', '18');
-  back.store.set('legacy-daily-nudge:quiet:v1:A', 'on');
-  back.store.set('legacy-daily-nudge-opt-in:v1:A', 'false');
-  await back.api.registerForPushNotifications('A', false);
-  assert.equal(back.store.get('legacy-daily-nudge-opt-in:v1:A'), 'true');
-  assert.equal(back.store.has('legacy-daily-nudge:quiet:v1:A'), false);
-  assert.ok(back.quietCalls.includes('resume:A'));
-  assert.ok(dailyNudges(back).length > 0, 'nudges are scheduled again');
-});
-
-test('turning the daily reminder off during the pause stays off afterwards', async () => {
-  const h = harness('ios', false, { pushToken: null, quiet: true });
-  h.store.set('reminderHour', '18');
-  h.store.set('legacy-daily-nudge-opt-in:v1:A', 'true');
-  await h.api.registerForPushNotifications('A', false);
-  assert.equal(h.store.get('legacy-daily-nudge:quiet:v1:A'), 'on');
-  await h.api.registerForPushNotifications('A', true, true);
-  await h.api.disableDailyNudges('A');
-  assert.equal(h.store.get('legacy-daily-nudge:quiet:v1:A'), 'off', 'her explicit choice replaces the earlier setting');
-});
-
-test('a backend without the pause column still re-arms the daily reminder', async () => {
-  const h = harness('ios', false, { pushToken: null, oldSchema: true });
+test('the daily re-arm reads only her account row (4.4: no loved-one pause any more)', async () => {
+  const h = harness('ios', false, { pushToken: null });
   h.store.set('reminderHour', '18');
   await h.api.registerForPushNotifications('A', true, true);
-  assert.ok(h.selects.some((c) => c.includes('bereavement_quiet')) && h.selects.some((c) => !c.includes('loved_ones')), 'retried without the column');
-  assert.ok(dailyNudges(h).length > 0, 'nudges are still scheduled');
-  assert.ok(h.quietCalls.includes('resume:A'), 'treated as not paused');
+  assert.ok(h.selects.length > 0 && h.selects.every((c) => !c.includes('loved_ones')));
+  assert.ok(dailyNudges(h).length > 0, 'nudges are scheduled');
+  const source = fs.readFileSync('src/hooks/usePushNotifications.ts', 'utf8');
+  assert.doesNotMatch(source, /bereav|died_at|quiet/i);
 });

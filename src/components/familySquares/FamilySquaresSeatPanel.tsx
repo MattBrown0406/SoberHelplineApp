@@ -6,10 +6,9 @@ import { appAlert } from '../../lib/appAlert';
 import { FAMILY_SQUARES_CALENDAR_URL } from '../../lib/websiteLinks';
 import { useFamilySquaresWeeklySeat } from '../../hooks/useFamilySquaresWeeklySeat';
 import { useSeatReminderAsk } from '../../hooks/useReminderAsk';
-import { useBereavedOnDevice } from '../../hooks/useBereavedOnDevice';
 import { useFamilySquaresSeatRefused } from '../../hooks/useFamilySquaresSeatRefused';
 import { ReminderAskNote } from '../reminders/ReminderAskNote';
-import { seatPanelView, weeklySeatNoteHeld } from '../../lib/familySquaresCard';
+import { seatPanelView } from '../../lib/familySquaresCard';
 
 /** Her answer for the coming Family Squares meeting. */
 export type FamilySquaresRsvp = 'going' | 'declined' | 'none';
@@ -48,8 +47,8 @@ interface Props {
  * turn on reminders (see ReminderAskNote).
  * With no seat yet but her weekly seat on, it says her seat is usually saved
  * for her (so the card's "Save my spot" does not look as if the switch were
- * off). Not to someone the server saves no weekly seat for, as far as this
- * device can tell (weeklySeatNoteHeld): she sees the switch by itself.
+ * off). Not when the website just refused her a seat for the coming meeting
+ * on this device: she sees the switch by itself.
  * On a cancelled week it shows the switch and nothing else.
  * Which of these it is: seatPanelView (familySquaresCard).
  */
@@ -61,12 +60,10 @@ export function FamilySquaresSeatPanel({ accountId, rsvp, onDecline, tone = 'car
   // Watches for the moment her seat is saved, so it runs for every answer.
   // (A cancelled week has no seat to be reminded of: nothing is asked.)
   const reminders = useSeatReminderAsk(accountId, cancelled ? 'none' : rsvp, reminderAsk && !cancelled, seatSavedHere);
-  // "Your seat is saved for you" is said only where it is true: never to a
-  // bereaved member (or before the device knows), and not for a meeting the
-  // website has just refused her a seat for.
-  const bereaved = useBereavedOnDevice(accountId);
+  // "Your seat is saved for you" is said only where it is true: not for a
+  // meeting the website has just refused her a seat for.
   const refusedHere = useFamilySquaresSeatRefused(accountId);
-  const panelView = seatPanelView({ cancelled, answer: rsvp, weeklySeatOn: weekly.enabled, weeklyNoteHeld: weeklySeatNoteHeld({ bereaved, refusedHere }) });
+  const panelView = seatPanelView({ cancelled, answer: rsvp, weeklySeatOn: weekly.enabled, weeklyNoteHeld: refusedHere });
 
   if (panelView === 'hidden') return null;
 
@@ -81,7 +78,7 @@ export function FamilySquaresSeatPanel({ accountId, rsvp, onDecline, tone = 'car
       <View style={[styles.panel, { borderTopColor: rule }]}>
         <Text style={[styles.desc, { color: soft }]} accessibilityLiveRegion="polite">
           {/* "Saved again from next Monday" only where the weekly seat really is saved for her. */}
-          {t(weekly.enabled && bereaved === false ? 'familySquares.decline.doneWeekly' : 'familySquares.decline.done')}
+          {t(weekly.enabled ? 'familySquares.decline.doneWeekly' : 'familySquares.decline.done')}
         </Text>
       </View>
     );

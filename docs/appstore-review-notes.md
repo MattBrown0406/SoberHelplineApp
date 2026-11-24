@@ -21,7 +21,6 @@ WHAT'S NEW IN 4.2
 - Tools tab: Holiday Plan (also a Today card Nov 1 to Jan 6), "How to choose a treatment program", and a letter asking a prosecutor for treatment instead of jail. Plans and letters are saved only on the device; sharing uses the iOS share sheet.
 - Crisis Mode adds "Arrested, in jail, or calling from jail"; the FAQ covers bail, court-ordered treatment and medication. General information, not legal or medical advice.
 - Today asks in one tap where things stand with her loved one; a 26-week family reading.
-- If a member says her loved one died (Today or Settings), Today shows grief resources (988, GRASP, The Compassionate Friends), loved-one content and related notifications stop, and she can pause all reminders. Undo is in Settings.
 - If an App Store free trial is offered, the plan screen states its length, the price after it and how to cancel; ineligible members never see one.
 - The community feed is no longer offered.
 
