@@ -306,7 +306,7 @@
   },
   "setup": {
     "kicker": "PATTERN MAP",
-    "progress": "Step {{step}} of {{total}}",
+    "progress": "Question {{step}} of {{total}}",
     "privacy": "Private to you. Family members never see your answers.",
     "saveError": "That didn't save. Check your connection and try again — your answers are still here.",
     "loadErrorTitle": "Your pattern map couldn't be opened",
@@ -682,5 +682,19 @@
     "acknowledge": "I'm safe right now — show my lines",
     "reviewSafety": "Review your safety answer",
     "acknowledgedNote": "You said you're safe right now. If that changes, stop and call 911."
+  },
+  "flow": {
+    "title": "Your steps",
+    "steps": {
+      "setup": "Map their patterns",
+      "kit": "Get ready to ask",
+      "outcome": "Log how it went",
+      "progress": "See what's working"
+    },
+    "stepOf": "Step {{step}} of {{total}}",
+    "stepLine": "Step {{step}} of {{total}} · {{name}}",
+    "current": "You are here",
+    "done": "Done",
+    "back": "← Invitation Engine"
   }
 }

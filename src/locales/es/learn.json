@@ -1,7 +1,9 @@
 {
   "header": "Guías",
   "tools": {
-    "eyebrow": "PLANIFICA TUS PRÓXIMOS PASOS",
+    "forNowEyebrow": "PARA TU MOMENTO ACTUAL",
+    "forNowBody": "Elegidas según dónde nos dijiste que está tu ser querido. Las demás están en Todas las guías.",
+    "allTitle": "Todas las guías",
     "costTitle": "Hoja de dinero y límites",
     "costBody": "Calcula lo que la adicción activa le ha costado a tu familia y decide qué financiarás y qué no financiarás en adelante.",
     "costButton": "Iniciar actividad",
@@ -96,7 +98,7 @@
     },
     "fellowships": {
       "title": "Al-Anon y Nar-Anon",
-      "body": "Reuniones de pares gratuitas para familias y amigos — no colocación en tratamiento ni una llamada de ventas. Al-Anon es para familias afectadas por la bebida de otra persona; Nar-Anon, por el uso de drogas. Busca al-anon.org o naranon.org. Puedes ir aunque tu ser querido siga consumiendo."
+      "body": "Reuniones de pares gratuitas para familias y amigos — no colocación en tratamiento ni una llamada de ventas. Al-Anon es para familias afectadas por la bebida de otra persona; Nar-Anon, por el uso de drogas. Busca al-anon.org o nar-anon.org. Puedes ir aunque tu ser querido siga consumiendo."
     },
     "naloxone": {
       "title": "Naloxona (Narcan)",

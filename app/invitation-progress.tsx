@@ -1,17 +1,19 @@
 import React, { useMemo } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Gate } from '../src/components/auth/Gate';
 import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import { useAccount } from '../src/contexts/AccountContext';
 import { useTheme } from '../src/contexts/ThemeContext';
 import { useInvitationProgress } from '../src/hooks/useInvitationProgress';
-import { BackLink, EngineCard, Kicker, PrimaryButton } from '../src/components/invitation/ui';
+import { EngineCard, Kicker, PrimaryButton } from '../src/components/invitation/ui';
+import { EngineBackLink, FlowStepLine } from '../src/components/invitation/FlowSteps';
+import { useToolOpened } from '../src/hooks/useToolOpened';
 import { formatLocalDate } from '../src/lib/invitationCopy';
 import { learningSummary, progressSummary, type LearningRow } from '../src/lib/invitationOutcomes';
 
 export default function InvitationProgressScreen() {
+  useToolOpened('invitation_progress');
   const { user } = useAccount();
   return (
     <Gate feature="invitationEngine">
@@ -27,7 +29,6 @@ function InvitationProgressContent() {
   const { user } = useAccount();
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('invitation');
-  const router = useRouter();
   const { data, learning, loading, error, reload } = useInvitationProgress(user?.id ?? null);
 
   const summary = useMemo(
@@ -51,7 +52,8 @@ function InvitationProgressContent() {
 
   return (
     <ScreenContainer contentContainerStyle={styles.wrap}>
-      <BackLink label={t('common.back')} onPress={() => router.back()} />
+      <EngineBackLink />
+      <FlowStepLine step="progress" />
       <Kicker>{t('progress.kicker')}</Kicker>
       <Text accessibilityRole="header" style={[styles.title, { color: colors.ink }]}>{t('progress.title')}</Text>
       <Text style={[styles.body, { color: colors.ink }]}>{t('progress.body')}</Text>

@@ -1,5 +1,5 @@
 import { useToolOpened } from '../../src/hooks/useToolOpened';
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Text, TextInput, TouchableOpacity, View, StyleSheet } from 'react-native';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { TabHeader } from '../../src/components/ui/TabHeader';
@@ -12,7 +12,11 @@ import { useWebSSO } from '../../src/hooks/useWebSSO';
 import { useFeatureAccess } from '../../src/hooks/useFeatureAccess';
 import { WEBSITE_PATHS } from '../../src/lib/websiteLinks';
 import { plansHref } from '../../src/lib/membershipPath';
-import { useBereavedOnDevice } from '../../src/hooks/useBereavedOnDevice';
+import { useLovedOne } from '../../src/hooks/useLovedOne';
+import { useSituation } from '../../src/hooks/useSituation';
+import { normalizeRecoveryPhase } from '../../src/lib/recoveryPathway';
+import { TOOL_IDS, toolsForPhase, type ToolId } from '../../src/lib/toolsForPhase';
+import { TodayDisclosure } from '../../src/components/today/TodayDisclosure';
 
 
 type ContentSection = { key: 'education' | 'recordings'; path: string };
@@ -55,9 +59,17 @@ export default function LearnScreen() {
   const spanish = i18n.language.startsWith('es');
   const sections = spanish ? SECTIONS.filter(({ key }) => key === 'education') : SECTIONS;
   const { user, entitlements } = useAccount();
-  // The device's copy of "her loved one died" (kept by Today): true, false, or not known yet.
-  const bereaved = useBereavedOnDevice(user?.id ?? null);
   const canUseDiyIntervention = useFeatureAccess('diyIntervention');
+  // Where her loved one is (the phase she set on Today) and how things are
+  // now (the situation band) pick the tools shown first.
+  const { lovedOne, loading: lovedOneLoading } = useLovedOne(user?.id ?? null);
+  const { situation, loaded: situationLoaded } = useSituation(user?.id ?? null);
+  const phase = lovedOne?.stage ? normalizeRecoveryPhase(lovedOne.stage, lovedOne.status) : null;
+  const { forNow, others } = toolsForPhase(phase, situationLoaded ? situation.band : null);
+  // Not before the loved-one record has loaded, so the picks never jump.
+  // Every tool stays under "All tools".
+  const showForNow = !lovedOneLoading;
+  const allTools: readonly ToolId[] = showForNow ? others : TOOL_IDS;
   const router = useRouter();
   const { openWithSSO } = useWebSSO();
   const [faqQuery, setFaqQuery] = useState('');
@@ -74,27 +86,10 @@ export default function LearnScreen() {
     );
   }, [faqItems, faqQuery]);
 
-  return (
-    <ScreenContainer scroll contentContainerStyle={styles.inner}>
-      <TabHeader title={t('header')} />
-
-      <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t('intro')}</Text>
-      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
-        <Text accessibilityRole="header" style={[styles.cardTitle, { color: colors.ink }]}>{t('destinations.title')}</Text>
-        {([
-          ['conversation', '/(tabs)/scripts'],
-          ['boundaries', '/(tabs)/boundaries'],
-          ['treatment', '/finder'],
-          ['someone', '/(tabs)/support'],
-        ] as const).map(([key, route]) => (
-          <TouchableOpacity key={key} accessibilityRole="button" onPress={() => router.push(route as never)} style={styles.destination}>
-            <Text style={[styles.cardButtonText, { color: colors.primary, textAlign: 'left' }]}>{t(`destinations.${key}`)} →</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-      <Text accessibilityRole="header" style={[styles.sectionEyebrow, { color: colors.inkSoft }]}>{t('tools.eyebrow')}</Text>
-
-      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.coral }]}>
+  // Every tool card, as before; the order and the split come from toolsForPhase.
+  const toolCards: Record<ToolId, React.ReactNode> = {
+    invitation: (
+      <View key="invitation" style={[styles.card, { backgroundColor: colors.white, borderColor: colors.coral }]}>
         <View style={styles.toolTopRow}>
           <Text style={styles.toolIcon}>💌</Text>
           <Text style={[styles.toolBadge, { backgroundColor: colors.coral }]}>{t('tools.invitationBadge')}</Text>
@@ -111,8 +106,9 @@ export default function LearnScreen() {
           <Text style={styles.cardButtonText}>{t('tools.invitationButton')}</Text>
         </TouchableOpacity>
       </View>
-
-      <View style={[styles.featuredTool, { backgroundColor: colors.primaryDark }]}>
+    ),
+    actionPlan: (
+      <View key="actionPlan" style={[styles.featuredTool, { backgroundColor: colors.primaryDark }]}>
         <View style={styles.toolTopRow}>
           <Text style={styles.toolIcon}>✅</Text>
           <Text style={[styles.toolBadge, { backgroundColor: colors.coral }]}>{t('tools.actionBadge')}</Text>
@@ -130,8 +126,9 @@ export default function LearnScreen() {
           <Text style={[styles.cardButtonText, { color: colors.primary }]}>{t('tools.actionButton')}</Text>
         </TouchableOpacity>
       </View>
-
-      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.primary }]}>
+    ),
+    diy: (
+      <View key="diy" style={[styles.card, { backgroundColor: colors.white, borderColor: colors.primary }]}>
         <View style={styles.toolTopRow}>
           <Text style={styles.toolIcon}>🧭</Text>
           <Text style={[styles.toolBadge, { backgroundColor: colors.primary }]}>{t('tools.diyBadge')}</Text>
@@ -149,8 +146,9 @@ export default function LearnScreen() {
           <Text style={styles.cardButtonText}>{!canUseDiyIntervention ? t('tools.diyLockedButton') : t('tools.diyButton')}</Text>
         </TouchableOpacity>
       </View>
-
-      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.coral }]}>
+    ),
+    homecoming: (
+      <View key="homecoming" style={[styles.card, { backgroundColor: colors.white, borderColor: colors.coral }]}>
         <View style={styles.toolTopRow}>
           <Text style={styles.toolIcon}>🏠</Text>
           <Text style={[styles.toolBadge, { backgroundColor: colors.coral }]}>{t('tools.homecomingBadge')}</Text>
@@ -167,8 +165,9 @@ export default function LearnScreen() {
           <Text style={styles.cardButtonText}>{t('tools.homecomingButton')}</Text>
         </TouchableOpacity>
       </View>
-
-      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.primary }]}>
+    ),
+    visitation: (
+      <View key="visitation" style={[styles.card, { backgroundColor: colors.white, borderColor: colors.primary }]}>
         <View style={styles.toolTopRow}>
           <Text style={styles.toolIcon}>🕰️</Text>
           <Text style={[styles.toolBadge, { backgroundColor: colors.primary }]}>{t('tools.visitationBadge')}</Text>
@@ -185,8 +184,9 @@ export default function LearnScreen() {
           <Text style={styles.cardButtonText}>{t('tools.visitationButton')}</Text>
         </TouchableOpacity>
       </View>
-
-      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.coral }]}>
+    ),
+    holiday: (
+      <View key="holiday" style={[styles.card, { backgroundColor: colors.white, borderColor: colors.coral }]}>
         <View style={styles.toolTopRow}>
           <Text style={styles.toolIcon}>🕯️</Text>
           <Text style={[styles.toolBadge, { backgroundColor: colors.coral }]}>{t('tools.holidayBadge')}</Text>
@@ -203,8 +203,9 @@ export default function LearnScreen() {
           <Text style={styles.cardButtonText}>{t('tools.holidayButton')}</Text>
         </TouchableOpacity>
       </View>
-
-      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.primary }]}>
+    ),
+    prosecutor: (
+      <View key="prosecutor" style={[styles.card, { backgroundColor: colors.white, borderColor: colors.primary }]}>
         <View style={styles.toolTopRow}>
           <Text style={styles.toolIcon}>⚖️</Text>
           <Text style={[styles.toolBadge, { backgroundColor: colors.primary }]}>{t('tools.prosecutorBadge')}</Text>
@@ -221,8 +222,9 @@ export default function LearnScreen() {
           <Text style={styles.cardButtonText}>{t('tools.prosecutorButton')}</Text>
         </TouchableOpacity>
       </View>
-
-      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.green }]}>
+    ),
+    choose: (
+      <View key="choose" style={[styles.card, { backgroundColor: colors.white, borderColor: colors.green }]}>
         <View style={styles.toolTopRow}>
           <Text style={styles.toolIcon}>🔎</Text>
           <Text style={[styles.toolBadge, { color: colors.green, backgroundColor: colors.greenLight }]}>{t('tools.chooseBadge')}</Text>
@@ -239,8 +241,9 @@ export default function LearnScreen() {
           <Text style={styles.cardButtonText}>{t('tools.chooseButton')}</Text>
         </TouchableOpacity>
       </View>
-
-      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
+    ),
+    costs: (
+      <View key="costs" style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
         <View style={styles.toolTopRow}>
           <Text style={styles.toolIcon}>💵</Text>
           <Text style={[styles.toolBadge, { color: colors.ink, backgroundColor: colors.secondary }]}>{t('tools.costBadge')}</Text>
@@ -257,8 +260,9 @@ export default function LearnScreen() {
           <Text style={styles.cardButtonText}>{t('tools.costButton')}</Text>
         </TouchableOpacity>
       </View>
-
-      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.green }]}>
+    ),
+    safety: (
+      <View key="safety" style={[styles.card, { backgroundColor: colors.white, borderColor: colors.green }]}>
         <View style={styles.toolTopRow}>
           <Text style={styles.toolIcon}>🛟</Text>
           <Text style={[styles.toolBadge, { color: colors.green, backgroundColor: colors.greenLight }]}>{t('tools.safetyBadge')}</Text>
@@ -276,16 +280,49 @@ export default function LearnScreen() {
           <Text style={styles.cardButtonText}>{t('tools.safetyButton')}</Text>
         </TouchableOpacity>
       </View>
+    ),
+  };
 
-      <Text style={[styles.sectionEyebrow, { color: colors.inkSoft }]}>{t('tools.learningEyebrow')}</Text>
+  return (
+    <ScreenContainer scroll contentContainerStyle={styles.inner}>
+      <TabHeader title={t('header')} />
+
+      <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t('intro')}</Text>
+      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
+        <Text accessibilityRole="header" style={[styles.cardTitle, { color: colors.ink }]}>{t('destinations.title')}</Text>
+        {([
+          ['conversation', '/(tabs)/scripts'],
+          ['boundaries', '/(tabs)/scripts?section=boundaries'],
+          ['treatment', '/finder'],
+          ['someone', '/(tabs)/support'],
+        ] as const).map(([key, route]) => (
+          <TouchableOpacity key={key} accessibilityRole="button" onPress={() => router.push(route as never)} style={styles.destination}>
+            <Text style={[styles.cardButtonText, { color: colors.primary, textAlign: 'left' }]}>{t(`destinations.${key}`)} →</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      {showForNow && (
+        <>
+          <Text accessibilityRole="header" style={[styles.sectionEyebrow, { color: colors.inkSoft }]}>{t('tools.forNowEyebrow')}</Text>
+          <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t('tools.forNowBody')}</Text>
+          {forNow.map((tool) => toolCards[tool])}
+        </>
+      )}
+
+      {/* Every other tool, one tap away: each keeps its own gate and badge. */}
+      <View style={styles.disclosure}>
+        <TodayDisclosure title={t('tools.allTitle')}>
+          {allTools.map((tool) => toolCards[tool])}
+        </TodayDisclosure>
+      </View>
+
+      <Text accessibilityRole="header" style={[styles.sectionEyebrow, { color: colors.inkSoft }]}>{t('tools.learningEyebrow')}</Text>
 
       {entitlements.canAccessLearningContent ? (
         <>
           {/* The website library and recordings are members-only pages; for
               everyone else they would be a website paywall, so free members
-              see where the library lives and the in-app plans instead.
-              Never for a bereaved member (or before the device knows): no
-              sales prompts of any kind. Plans stay reachable from Settings. */}
+              see where the library lives and the in-app plans instead. */}
           {entitlements.canAccessGroups || spanish ? sections.map(({ key, path }) => (
             <View key={key} style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
               <Text style={[styles.cardTitle, { color: colors.ink }]}>{t(`${key}.title`)}</Text>
@@ -300,7 +337,7 @@ export default function LearnScreen() {
                 <Text style={styles.cardButtonText}>{t(`${key}.button`)}</Text>
               </TouchableOpacity>
             </View>
-          )) : bereaved === false ? (
+          )) : (
             <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
               <Text style={[styles.cardTitle, { color: colors.ink }]}>{t('membersLibrary.title')}</Text>
               <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t('membersLibrary.body')}</Text>
@@ -314,27 +351,30 @@ export default function LearnScreen() {
                 <Text style={styles.cardButtonText}>{t('membersLibrary.button')}</Text>
               </TouchableOpacity>
             </View>
-          ) : null}
+          )}
 
-          {/* In-app answers to the questions every family asks — no web round-trip. */}
-          <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
-            <Text accessibilityRole="header" style={[styles.cardTitle, { color: colors.ink }]}>{t('faq.eyebrow')}</Text>
-            <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t('faq.sub')}</Text>
-            <View style={[styles.faqSearch, { borderColor: colors.line }]}>
-              <Text style={styles.faqSearchIcon}>🔍</Text>
-              <TextInput
-                style={[styles.faqSearchInput, { color: colors.ink }]}
-                value={faqQuery}
-                onChangeText={setFaqQuery}
-                placeholder={t('faq.eyebrow')}
-                placeholderTextColor={colors.inkSoft}
-                autoCorrect={false}
-                accessibilityLabel={t('faq.eyebrow')}
-              />
-            </View>
-            {filteredFaq.map((item) => (
-              <FaqRow key={item.q} item={item} colors={colors} />
-            ))}
+          {/* In-app answers to the questions every family asks — no web round-trip. Starts closed. */}
+          <View style={styles.disclosure}>
+            <TodayDisclosure title={t('faq.eyebrow')}>
+              <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
+                <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t('faq.sub')}</Text>
+                <View style={[styles.faqSearch, { borderColor: colors.line }]}>
+                  <Text style={styles.faqSearchIcon}>🔍</Text>
+                  <TextInput
+                    style={[styles.faqSearchInput, { color: colors.ink }]}
+                    value={faqQuery}
+                    onChangeText={setFaqQuery}
+                    placeholder={t('faq.eyebrow')}
+                    placeholderTextColor={colors.inkSoft}
+                    autoCorrect={false}
+                    accessibilityLabel={t('faq.eyebrow')}
+                  />
+                </View>
+                {filteredFaq.map((item) => (
+                  <FaqRow key={item.q} item={item} colors={colors} />
+                ))}
+              </View>
+            </TodayDisclosure>
           </View>
         </>
       ) : null}
@@ -347,6 +387,7 @@ const styles = StyleSheet.create({
   // Side and top padding are ScreenContainer's own, as on every other tab, so
   // the shared header sits in the same place here.
   inner: { paddingBottom: 40 },
+  disclosure: { marginBottom: 16 },
   sectionEyebrow: {
     fontSize: 11,
     fontWeight: '800',

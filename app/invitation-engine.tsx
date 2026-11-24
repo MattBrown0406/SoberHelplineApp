@@ -14,6 +14,8 @@ import { DailyMovesCard } from '../src/components/invitation/DailyMovesCard';
 import { ForecastCard } from '../src/components/invitation/ForecastCard';
 import { PausedCard } from '../src/components/invitation/PausedCard';
 import { SafetyFirstPanel } from '../src/components/invitation/SafetyFirstPanel';
+import { FlowStepList } from '../src/components/invitation/FlowSteps';
+import { invitationFlowState } from '../src/components/invitation/invitationFlow';
 import {
   BackLink,
   EngineCard,
@@ -50,6 +52,10 @@ function InvitationEngineContent() {
   const [alertsPending, setAlertsPending] = useState(false);
 
   const name = profile?.name?.trim() ?? '';
+  // Where she is in the four steps (none on the safety-first path).
+  const flow = snapshot && stage
+    ? invitationFlowState({ stage, hasAttempt: !!snapshot.lastAttempt, paused: !!forecast?.paused })
+    : null;
 
   async function toggleAlerts(enabled: boolean) {
     if (alertsPending) return;
@@ -79,6 +85,8 @@ function InvitationEngineContent() {
           <Text style={styles.heroNote}>{t('engine.familyPlan', { count: snapshot.plan.members })}</Text>
         )}
       </View>
+
+      {flow && <FlowStepList state={flow} />}
 
       {!snapshot && engine.loading && (
         <View style={styles.loading} accessibilityLiveRegion="polite">
