@@ -4,12 +4,12 @@
   "crisis": {
     "button": "Get help now · free crisis guidance",
     "copilotTitle": "Free crisis guidance",
-    "copilotBody": "Free step-by-step safety guidance. This is an in-app guide, not a live coach.",
+    "copilotBody": "Step-by-step safety guidance in the app. Not a live coach.",
     "copilotButton": "Open Crisis Copilot",
     "sheetTitle": "You're not alone right now",
     "attachedSub": "is on call for your family tonight.",
     "directSub": "is on call and will respond first.",
-    "freeSub": "can help through the free Crisis Copilot; messaging is available with Essential and Premier.",
+    "freeSub": "can help through the free Crisis Copilot. Messaging comes with Essential and Premier.",
     "callButton": "Call",
     "messageButton": "Message",
     "divider": "Emergency contacts — no subscription needed",
@@ -17,7 +17,8 @@
     "line988": "988 — Suicide & Crisis Lifeline",
     "lineSh": "Sober Helpline (family guidance, not 24/7)",
     "guidanceDivider": "Family guidance",
-    "freeNote": "Immediate crisis guidance and emergency contacts are free — no subscription needed. Paid coaching is separate and is not emergency care."
+    "freeNote": "Crisis guidance and emergency contacts are free, no subscription needed. Paid coaching is not emergency care.",
+    "buttonHint": "Opens 911, 988, Crisis Copilot and the crisis guide."
   },
   "team": {
     "eyebrow": "Your team",
@@ -50,7 +51,7 @@
   },
   "practiceGate": {
     "heading": "AI conversation practice",
-    "body": "AI conversation practice is included with Essential and Premier. Rehearse a conversation with a simulated partner; this is not a live coach or emergency care.",
+    "body": "Included with Essential and Premier. Rehearse with a simulated partner. Not a live coach or emergency care.",
     "freeAction": "Try free guided practice"
   },
   "paywall": {
@@ -68,18 +69,19 @@
   "mondayGroup": {
     "eyebrow": "FREE ACCESS",
     "heading": "Family Squares",
-    "sub": "Our free weekly group call — no subscription needed. Saving your spot tells us you're coming, and you can join without it."
+    "sub": "Our free weekly call, no subscription needed. Saving your spot tells us you're coming; you can join without it.",
+    "loadingTitle": "Family Squares"
   },
   "messages": {
     "eyebrow": "Message your coach",
     "placeholder": "Type a message…",
     "sendButton": "Send",
-    "comingSoon": "Messaging launches with your coach assignment. Tap 'Talk to someone now' for immediate support."
+    "comingSoon": "Messaging starts once you have a coach. For help now, tap 'Talk to someone now'."
   },
   "referral": {
     "eyebrow": "Need more than an app?",
     "title": "Work with a professional interventionist.",
-    "body": "Get matched with a vetted provider organization for assigned coaching, family sessions, and intervention support.",
+    "body": "A vetted provider for coaching, family sessions and intervention support.",
     "button": "Find a provider"
   },
   "providerSheet": {
@@ -133,20 +135,17 @@
     "rsvpButton": "Get notified",
     "rsvpDone": "Notifying",
     "rsvpErrorTitle": "Couldn't save notification",
-    "rsvpErrorBody": "Your notification request wasn't saved. Allow notifications in Settings, check your connection, and try again.",
+    "rsvpErrorBody": "Not saved. Allow notifications in Settings, check your connection and try again.",
     "online_one": "{{count}} online",
     "online_other": "{{count}} online",
     "moreIntro": "More groups and topics at",
     "moreLink": "SoberHelpline.com",
-    "removedBody": "The host removed you from live groups, so you can't RSVP. If you think this was a mistake, message Matt from the Support tab."
+    "removedBody": "The host removed you from live groups, so you can't RSVP. Think it's a mistake? Message Matt from Support."
   },
   "membership": {
     "eyebrow": "Membership",
     "covered": "COVERED",
     "coveredSub": "Your organization covers this membership."
-  },
-  "language": {
-    "eyebrow": "Language"
   },
   "community": {
     "openLink": "Family community feed",
@@ -156,14 +155,14 @@
     "belongingNoSchedule_one": "{{count}} family is part of this community.",
     "belongingNoSchedule_other": "{{count}} families are part of this community.",
     "belongingZero": "Be the first to say hello.",
-    "guidelines": "Be kind. This is peer support between families — not medical advice. In an emergency, call 911 or 988.",
-    "empty": "No posts yet. Share an encouragement, a small win, or a question.",
+    "guidelines": "Be kind. This is peer support between families, not medical advice. In an emergency, call 911 or 988.",
+    "empty": "No posts yet. Share an encouragement, a small win or a question.",
     "composerPlaceholder": "Share something with other families…",
     "postButton": "Post",
     "postError": "Couldn't post. Please try again.",
     "report": "Report",
     "reportConfirmTitle": "Report this post?",
-    "reportConfirmBody": "Our team will review it. Thanks for keeping this space safe.",
+    "reportConfirmBody": "Our team will review it. Thank you for keeping this space safe.",
     "reportConfirm": "Report",
     "delete": "Delete",
     "deleteConfirmTitle": "Delete your post?",
@@ -174,7 +173,7 @@
     "crisisCall911": "Call 911",
     "crisisMessageCoach": "Message my coach",
     "crisisClose": "Close",
-    "postRateLimited": "You've posted a lot in the last hour. Please wait a little before posting again.",
+    "postRateLimited": "You've posted a lot this hour. Please wait a bit before posting again.",
     "crisisPostPast": "This isn't happening right now — post it",
     "safetyFooter": "In crisis? Call or text 988, or call 911.",
     "timeNow": "just now",
@@ -189,7 +188,7 @@
     "anonymousAuthor": "A family member",
     "block": "Block",
     "blockConfirmTitle": "Block {{name}}?",
-    "blockConfirmBody": "You won't see their posts anymore, and they won't be told. You can unblock them anytime.",
+    "blockConfirmBody": "You won't see their posts, and they won't be told. Unblock anytime.",
     "blockConfirm": "Block",
     "blockedTitle": "People you blocked",
     "blockedEmpty": "You haven't blocked anyone.",
@@ -199,7 +198,7 @@
     "unblockA11y": "Unblock {{name}}",
     "unblockConfirmTitle": "Unblock {{name}}?",
     "unblockConfirmBody": "Their posts will show in your feed again.",
-    "resourceNoteBody": "Your post is shared. If you or someone you love is in danger right now, call 911. For thoughts of suicide or a mental health crisis, call or text 988 — any time, day or night.",
+    "resourceNoteBody": "Your post is shared. If anyone is in danger right now, call 911. For thoughts of suicide or a mental health crisis, call or text 988, day or night.",
     "resourceNoteDismiss": "Got it"
   },
   "chat": {
@@ -208,52 +207,52 @@
     "openButton": "Open my message thread",
     "archiveButton": "Archive",
     "archiveTitle": "Archive this conversation?",
-    "archiveBody": "This conversation will be saved and a new one will start. You can ask your coach to access past conversations.",
+    "archiveBody": "This one is saved and a new one starts. Your coach can pull up past conversations if you ask.",
     "archiveConfirm": "Archive & start new",
     "archiveCancel": "Cancel",
     "archiveError": "Couldn't archive this conversation. Check your connection and try again.",
     "reactionDone": "Done",
     "presenceTitle": "Ask {{coach}} anything",
-    "presenceBody": "No question is too small or too messy — insurance, a hard conversation, something you saw last night. You can write to {{coach}}; a coach replies as soon as available. This is not emergency care.",
+    "presenceBody": "No question is too small or too messy: insurance, a hard talk, something you saw last night. Write to {{coach}}; a coach replies as soon as available. Not emergency care.",
     "presenceNextSession": "Next live session · {{schedule}}"
   },
   "intervention": {
     "eyebrow": "PLANNING AHEAD",
     "title": "When you're ready, you don't have to do it alone",
-    "intro": "An intervention isn't an ambush — it's a planned, loving conversation, and having a professional guide it changes everything. There's no pressure here and no timeline but your own.",
+    "intro": "An intervention isn't an ambush. It's a planned, loving conversation, guided by a professional. No pressure, and no timeline but yours.",
     "whatTitle": "What planning with Matt looks like",
-    "step1": "A private conversation about your situation — no judgment, nothing to memorize.",
+    "step1": "A private talk about your situation. No judgment, nothing to memorize.",
     "step2": "A plan built around your family: who's in the room, what's said, and what comes after.",
-    "step3": "Matt stays with you through the conversation itself and the steps that follow.",
+    "step3": "Matt stays with you through the conversation and the steps after it.",
     "providerEyebrow": "Your interventionist",
     "emailButton": "Email {{name}}",
     "webButton": "Visit website",
     "primaryCta": "Start a conversation",
-    "primaryCtaSub": "We'll reach out to set up a time — no commitment.",
-    "reassure": "Not yet? That's completely okay. This will be here when you're ready.",
+    "primaryCtaSub": "We'll reach out to set a time. No commitment.",
+    "reassure": "Not yet? That's okay. This will be here when you're ready.",
     "crisisNote": "If someone is in immediate danger, call 911 or 988."
   },
   "coaching": {
-    "submitError": "Your request was not sent. Check your connection and try again. Your selections have been kept.",
-    "loadError": "Your existing requests could not be loaded. Please refresh before sending another request.",
+    "submitError": "Your request was not sent. Your choices are kept. Check your connection and try again.",
+    "loadError": "Your requests couldn't load. Refresh before sending another one.",
     "eyebrow": "1:1 coaching",
     "cardTitle": "Private Zoom session with a coach",
-    "cardBody": "A full hour, one-on-one — your situation, your questions, a concrete plan. {{rate}}.",
+    "cardBody": "One hour, one-on-one: your questions and a concrete plan. {{rate}}.",
     "cardButton": "Book a session",
     "title": "Book 1:1 coaching",
     "bookedTitle": "You're booked",
-    "bookedBody": "Thank you — your coaching session is booked. Your confirmation and Zoom link come by email from soberhelpline.com.",
+    "bookedBody": "Thank you. Your session is booked. Your confirmation and Zoom link come by email from soberhelpline.com.",
     "bookTitle": "Pick a time with Matt",
-    "bookBody": "See Matt's real open time slots, choose one, and pay securely on soberhelpline.com. It opens in your browser, already signed in with your Sober Helpline account.",
+    "bookBody": "See Matt's open times, choose one and pay securely on soberhelpline.com. It opens in your browser, already signed in.",
     "bookPriceMember": "Your member price: {{price}} (instead of {{standard}}).",
     "bookPriceStandard": "{{price}} per session. Essential and Premier members pay {{memberPrice}}.",
     "bookButton": "Choose a time on soberhelpline.com",
     "bookButtonHint": "Opens soberhelpline.com in your browser",
-    "bookSignedOut": "Sign in to the app first so soberhelpline.com can sign you in and apply your member price.",
+    "bookSignedOut": "Sign in to the app first so soberhelpline.com knows you and applies your member price.",
     "bookOpenError": "soberhelpline.com didn't open. Check your connection and try again.",
     "requestTitle": "Or send Matt a request",
     "subtitle": "{{rate}} · private Zoom session",
-    "description": "Prefer that Matt reaches out? Tell us when you're usually free and what you want to work on. He'll contact you to confirm a time and arrange payment — your private Zoom link appears here once confirmed.",
+    "description": "Prefer that Matt reaches out? Tell us when you're usually free and what you want to work on. He'll confirm a time and payment, and your private Zoom link appears here.",
     "dateLabel": "Preferred date",
     "timePeriodLabel": "Preferred time",
     "contactNotePrefix": "Contact: {{contact}}",
@@ -267,9 +266,9 @@
     "notePlaceholder": "Boundaries with my son, preparing for an intervention...",
     "submitButton": "Send my request",
     "paymentNote": "{{rate}}. Matt will confirm your time and send payment details by message within one business day.",
-    "submitted": "✓ Request received — we will be in touch to confirm your time and arrange payment.",
+    "submitted": "✓ Request received. We'll be in touch to confirm your time and payment.",
     "myBookings": "My sessions",
-    "websiteBookingsNote": "Sessions you book on soberhelpline.com with this email address appear here too.",
+    "websiteBookingsNote": "Sessions you book on soberhelpline.com with this email show here too.",
     "websiteSessionStatus": "{{status}} · booked on soberhelpline.com",
     "websiteLinkPending": "Your Zoom link is coming by email.",
     "statusRequested": "Requested · awaiting payment & confirmation",
@@ -279,7 +278,6 @@
     "statusCancelled": "Cancelled"
   },
   "crisisProtocol": {
-    "eyebrow": "CRISIS PROTOCOL",
     "heading": "Crisis guide",
     "sub": "Step-by-step guidance for when it's happening right now.",
     "tabs": [
@@ -319,31 +317,30 @@
         "Do not attempt to physically restrain them.",
         "Contact your coach or support network once you are safe."
       ]
-    },
-    "close": "Close"
+    }
   },
   "finderCard": {
     "title": "Find treatment · free directory",
-    "sub": "Browse treatment centers, interventionists, and sober coaches. Directory access is free; provider services may have costs. Confirm availability and fees directly."
+    "sub": "Treatment centers, interventionists and sober coaches. The directory is free; providers may charge. Check availability and fees with them."
   },
   "textline": {
     "back": "Back",
     "freeUrgentHelp": "Free urgent help",
     "gatedTitle": "Message your coach",
-    "gatedBody": "Private messaging is included with Essential and Premier. A coach replies as soon as available; this is not emergency care.",
+    "gatedBody": "Private messaging comes with Essential and Premier. A coach replies as soon as available. Not emergency care.",
     "viewPlans": "View plans",
     "sendErrorTitle": "Message not sent",
     "sendErrorBody": "Please try again.",
     "attachmentErrorTitle": "Photo not sent",
-    "attachmentErrorBody": "Your message was sent, but the photo didn't upload. Please try attaching it again.",
+    "attachmentErrorBody": "Your message was sent, but the photo didn't upload. Please attach it again.",
     "photosPermTitle": "Photos permission needed",
-    "photosPermBody": "Allow photo access to attach screenshots to this private support thread.",
+    "photosPermBody": "Allow photo access to attach screenshots to this private thread.",
     "photoOnlyBody": "📷 Shared a photo"
   },
   "privateVideo": {
     "eyebrow": "Private video support",
     "title": "Premier private video session",
-    "body": "Included for Premier members, subject to scheduling and staff availability. Request a private in-app video support session; this is not an emergency service.",
+    "body": "Included with Premier, subject to scheduling and staff availability. Request a private video session here. Not an emergency service.",
     "requestedOn": "Requested {{date}}",
     "join": "Join private video",
     "received": "Request received",
@@ -357,7 +354,7 @@
     },
     "scheduledFor": "Scheduled for {{date}}",
     "scheduling": {
-      "timezone": "Times you request use your detected timezone: {{timezone}}",
+      "timezone": "Times use your detected timezone: {{timezone}}",
       "loading": "Loading video session",
       "retry": "Refresh",
       "request": "Choose a day and time",
@@ -397,11 +394,11 @@
       "errors": {
         "invalidTitle": "Choose another time",
         "future": "Select a day and time in the future.",
-        "version_conflict": "This session changed on another device. We refreshed it; please review and try again.",
+        "version_conflict": "This session changed on another device. We refreshed it; review and try again.",
         "active_session_exists": "You already have an active video request.",
         "invalid_request": "Check the date, time, and note, then try again.",
-        "invalid_timezone": "Your device timezone could not be used. Refresh and try again.",
-        "proposal_not_found": "That proposal is no longer available. Refresh to see the latest time.",
+        "invalid_timezone": "Your device timezone couldn't be used. Refresh and try again.",
+        "proposal_not_found": "That proposal is gone. Refresh to see the latest time.",
         "session_not_found": "This session is no longer available.",
         "premium_video_access_required": "Premier video access is required.",
         "invalid_transition": "That action is no longer available for this session.",
@@ -413,12 +410,15 @@
     }
   },
   "intro": "Connect with people here. For words to say, open Practice; for plans and worksheets, open Tools.",
-  "peopleHeading": "TALK TO SOMEONE",
-  "peopleAccess": "Coach messaging requires Essential or Premier; private video is included with Premier, subject to scheduling. Separate 1:1 coaching is {{rate}}.",
+  "coachingHeading": "Coaching with {{name}}",
+  "peopleAccess": "Messaging comes with Essential or Premier; private video with Premier, subject to scheduling. 1:1 coaching is separate: {{rate}}.",
   "coachingGuideLink": "What coaching support looks like",
   "freePracticeLink": "Try a free conversation practice",
   "coachReplies": {
     "title": "Messages from Matt",
     "body": "You have a reply to your situation brief. Tap to read it."
+  },
+  "moreSupport": {
+    "title": "More support"
   }
 }

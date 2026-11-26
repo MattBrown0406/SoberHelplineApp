@@ -56,7 +56,7 @@ test('primary tab icons are decorative and inactive labels use readable ink', as
 });
 
 test('tracker toggles expose checkbox state and trajectory is a labeled button', async () => {
-  const tracker = await source('app/(tabs)/tracker.tsx');
+  const tracker = await source('app/tracker.tsx');
   assert.match(tracker, /accessibilityRole="checkbox"/);
   assert.match(tracker, /accessibilityState=\{\{ checked: active \}\}/);
   assert.match(tracker, /accessibilityLabel=\{t\('trajectory\.openButton'\)\}/);

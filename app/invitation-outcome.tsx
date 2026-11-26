@@ -9,7 +9,9 @@ import { useTheme } from '../src/contexts/ThemeContext';
 import { useAsyncScope } from '../src/hooks/useAsyncScope';
 import { useInvitationEngine } from '../src/hooks/useInvitationEngine';
 import { SafetyFirstPanel } from '../src/components/invitation/SafetyFirstPanel';
-import { BackLink, EngineCard, Kicker, PrimaryButton, TextLink } from '../src/components/invitation/ui';
+import { EngineCard, Kicker, PrimaryButton, TextLink } from '../src/components/invitation/ui';
+import { EngineBackLink, FlowStepLine } from '../src/components/invitation/FlowSteps';
+import { useToolOpened } from '../src/hooks/useToolOpened';
 import { logInvitationAttempt } from '../src/lib/invitationApi';
 import { formatLocalDate } from '../src/lib/invitationCopy';
 import { isSafetyFirst, localClock } from '../src/lib/invitationEngine';
@@ -29,6 +31,7 @@ import {
 import { captureAppError } from '../src/lib/monitoring';
 
 export default function InvitationOutcomeScreen() {
+  useToolOpened('invitation_outcome');
   const { user } = useAccount();
   return (
     <Gate feature="invitationEngine">
@@ -104,10 +107,15 @@ function InvitationOutcomeContent() {
     }
   }
 
+  // The engine shows no steps on the safety-first path, so neither does this
+  // screen (as the kit): "Step 3 of 4" only once the snapshot says it is not.
+  const showStepLine = !!engine.snapshot && !isSafetyFirst(engine.snapshot);
+
   if (logged) {
     return (
       <ScreenContainer contentContainerStyle={styles.wrap}>
-        <BackLink label={t('common.back')} onPress={() => router.back()} />
+        <EngineBackLink />
+        {showStepLine && <FlowStepLine step="outcome" />}
         <EngineCard tone="warm">
           <Kicker>{t('outcome.kicker')}</Kicker>
           <Text accessibilityRole="header" style={[styles.title, { color: colors.ink }]}>{t(`outcome.repairTitles.${logged.outcome}`)}</Text>
@@ -136,7 +144,8 @@ function InvitationOutcomeContent() {
 
   return (
     <ScreenContainer keyboardShouldPersistTaps="handled" contentContainerStyle={styles.wrap}>
-      <BackLink label={t('common.back')} onPress={() => router.back()} />
+      <EngineBackLink />
+      {showStepLine && <FlowStepLine step="outcome" />}
       {isSafetyFirst(engine.snapshot) && (
         <SafetyFirstPanel />
       )}

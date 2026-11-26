@@ -11,8 +11,9 @@ import { useLovedOneProfile } from '../src/hooks/useLovedOneProfile';
 import { useTreatmentActionPlan } from '../src/hooks/useTreatmentActionPlan';
 import { CrisisResourcesPanel } from '../src/components/invitation/CrisisResourcesPanel';
 import { SafetyFirstPanel } from '../src/components/invitation/SafetyFirstPanel';
+import { EngineBackLink, FlowStepLine } from '../src/components/invitation/FlowSteps';
+import { useToolOpened } from '../src/hooks/useToolOpened';
 import {
-  BackLink,
   EngineCard,
   Kicker,
   PrimaryButton,
@@ -34,6 +35,7 @@ import {
 } from '../src/lib/invitationLines';
 
 export default function InvitationKitScreen() {
+  useToolOpened('invitation_kit');
   const { user } = useAccount();
   return (
     <Gate feature="invitationEngine">
@@ -194,7 +196,7 @@ function InvitationKitContent() {
   if (!engine.snapshot) {
     return (
       <ScreenContainer contentContainerStyle={styles.wrap}>
-        <BackLink label={t('common.back')} onPress={() => router.back()} />
+        <EngineBackLink />
         {engine.loadError ? (
           <EngineCard tone="alert">
             <Text accessibilityRole="alert" style={[styles.cardTitle, { color: colors.coral }]}>{t('common.loadErrorTitle')}</Text>
@@ -213,7 +215,7 @@ function InvitationKitContent() {
   if (isSafetyFirst(engine.snapshot)) {
     return (
       <ScreenContainer contentContainerStyle={styles.wrap}>
-        <BackLink label={t('common.back')} onPress={() => router.back()} />
+        <EngineBackLink />
         <SafetyFirstPanel />
       </ScreenContainer>
     );
@@ -221,7 +223,8 @@ function InvitationKitContent() {
 
   return (
     <ScreenContainer keyboardShouldPersistTaps="handled" contentContainerStyle={styles.wrap}>
-      <BackLink label={t('common.back')} onPress={() => router.back()} />
+      <EngineBackLink />
+      <FlowStepLine step="kit" />
       <Kicker>{t('kit.kicker')}</Kicker>
       <Text accessibilityRole="header" style={[styles.title, { color: colors.ink }]}>{t('kit.title')}</Text>
       <Text style={[styles.body, { color: colors.ink }]}>{t('kit.body')}</Text>

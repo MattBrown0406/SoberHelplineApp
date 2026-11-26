@@ -1,8 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { walletMembershipCopy } from '../src/content/walletMembershipCopy';
-const support = readFileSync('app/(tabs)/support.tsx', 'utf8');
+// The Support tab and its pieces (split into src/components/support in 4.4).
+const support = ['app/(tabs)/support.tsx', ...readdirSync('src/components/support').map((name) => `src/components/support/${name}`)]
+  .map((file) => readFileSync(file, 'utf8'))
+  .join('\n');
 const sheet = readFileSync('src/components/plans/UpgradeSheet.tsx', 'utf8');
 const card = readFileSync('src/components/plans/PlansCard.tsx', 'utf8');
 const teaser = readFileSync('src/components/plans/PlansTeaserCard.tsx', 'utf8');
@@ -18,6 +21,9 @@ test('purchase surface never substitutes hardcoded locale prices for StoreKit', 
   assert.match(card, /disabled=\{purchasing \|\| !subscriptionPrices\[tier\]\}/);
   assert.match(card, /onPress=\{retryPrices\}/);
   assert.match(support, /retryPrices/);
+  // A free member whose plans card says "Store price unavailable" can read the prices again from the tab.
+  const tab = readFileSync('app/(tabs)/support.tsx', 'utf8');
+  assert.match(tab, /\{!subscriptionPrices\.essential && \(\s+<TouchableOpacity\s+accessibilityRole="button"\s+accessibilityLabel=\{tPlans\('retryPricesLabel'\)\}[\s\S]*?onPress=\{retryPrices\}/);
   for (const lang of ['en', 'es']) {
     const raw = readFileSync(`src/locales/${lang}/plans.json`, 'utf8');
     // No amount of any kind in the plans copy: prices are the store's, the coaching rate is the app's.

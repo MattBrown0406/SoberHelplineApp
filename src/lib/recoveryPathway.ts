@@ -15,17 +15,51 @@ export type RecoveryPhase = (typeof RECOVERY_PHASES)[number];
 const RECOVERY_PHASE_SET = new Set<string>(RECOVERY_PHASES);
 const ACTIVE_USE_STATUSES = new Set(['using', 'escalating', 'crisis']);
 
+/**
+ * Where each phase's next step leads. The Tracker is no longer a tab (4.4): it
+ * is the pushed screen /tracker, which keeps its own membership gate.
+ */
 export const RECOVERY_PHASE_ROUTE: Record<RecoveryPhase, string> = {
   active_use: '/safety-wallet',
   considering_treatment: '/finder',
   in_treatment: '/(tabs)/support',
   returning_home: '/safety-wallet',
-  early_recovery_30: '/(tabs)/tracker',
-  early_recovery_90: '/(tabs)/tracker',
+  early_recovery_30: '/tracker',
+  early_recovery_90: '/tracker',
   ongoing_recovery: '/(tabs)/support',
   return_to_use: '/crisis-mode',
-  unsure: '/(tabs)/tracker',
+  unsure: '/tracker',
 };
+
+/**
+ * Without the Tracker (a members-only screen), the phases whose step leads
+ * there get a free, useful place instead, so a free member's one next step on
+ * Today is never a locked screen. Not sure yet: Tools (picked for where she
+ * is). Early recovery: Practice's Boundaries part (decide her response to a
+ * warning sign, keep the boundaries that matter). The values are locale keys
+ * in `today` for the button.
+ */
+const FREE_PHASE_STEP: Readonly<Partial<Record<RecoveryPhase, { route: string; ctaKey: string }>>> = Object.freeze({
+  unsure: { route: '/(tabs)/learn', ctaKey: 'pathway.freeCta.tools' },
+  early_recovery_30: { route: '/(tabs)/scripts?section=boundaries', ctaKey: 'pathway.freeCta.boundaries' },
+  early_recovery_90: { route: '/(tabs)/scripts?section=boundaries', ctaKey: 'pathway.freeCta.boundaries' },
+});
+
+/**
+ * The button for a phase's next step: where it goes and the `today` key for
+ * its label. `trackerAccess` is whether she can open the Tracker; without it
+ * a step that would open the Tracker goes to a free place instead (pure: the
+ * caller passes the access in).
+ */
+export function phaseNextStep(
+  phase: RecoveryPhase,
+  trackerAccess: boolean,
+): { route: string; ctaKey: string } {
+  const route = RECOVERY_PHASE_ROUTE[phase];
+  const free = FREE_PHASE_STEP[phase];
+  if (!trackerAccess && route === '/tracker' && free) return free;
+  return { route, ctaKey: `pathway.phases.${phase}.cta` };
+}
 
 /**
  * Maps both the original onboarding stages and the expanded family pathway to
@@ -54,6 +88,23 @@ export function normalizeRecoveryPhase(
   if (status === 'in_treatment') return 'in_treatment';
   if (ACTIVE_USE_STATUSES.has(status ?? '')) return 'active_use';
   return 'unsure';
+}
+
+const LEGACY_STAGES = new Set(['using', 'seeking_help', 'recovery', 'unsure']);
+
+/**
+ * The same phase as normalizeRecoveryPhase (Today's "Your path"), or null
+ * when neither the stage nor the status says anything (normalizeRecoveryPhase
+ * would only fall back to 'unsure'). For places that must not claim to know
+ * where her loved one is when nothing was ever said.
+ */
+export function knownRecoveryPhase(
+  stage: string | null | undefined,
+  status: string | null | undefined,
+): RecoveryPhase | null {
+  const stageSays = !!stage && (RECOVERY_PHASE_SET.has(stage) || LEGACY_STAGES.has(stage));
+  const statusSays = status === 'in_treatment' || ACTIVE_USE_STATUSES.has(status ?? '');
+  return stageSays || statusSays ? normalizeRecoveryPhase(stage, status) : null;
 }
 
 /** A local-calendar rotation, unaffected by daylight-saving time changes. */

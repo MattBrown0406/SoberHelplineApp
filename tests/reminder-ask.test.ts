@@ -149,17 +149,12 @@ test('"Not now" on the "off in Settings" line is a lasting no: 90 days, on Today
   assert.match(hook, /const said = viewRef\.current;\s+setView\(null\);[\s\S]*?rememberReminderAsk\(accountId, reminderNotNowChange\(dismissedField, said === 'settings' \? 'settings' : 'ask', new Date\(\)\)\)/);
 });
 
-test('a bereaved member is never asked under a saved seat, on Today or Support', () => {
-  const screen = read('app/(tabs)/index.tsx');
-  assert.match(screen, /seatReminderAsk=\{!bereaved && !bereavedUnknown\}/);
+test('a saved seat is followed by the reminder ask, on Today and Support', () => {
   const card = read('src/components/today/SituationCard.tsx');
   assert.match(card, /seatReminderAsk = true, seatSavedHere = 0 \}: Props\)/);
   assert.match(card, /<FamilySquaresSeatPanel[\s\S]*?onDecline=\{onDecline\}\s+reminderAsk=\{seatReminderAsk\}\s+seatSavedHere=\{seatSavedHere\}\s+cancelled=\{view\.cancelledLine\}\s+\/>/);
-  // Every other seat panel (Support) asks the device's own copy before showing anything.
   const hook = read('src/hooks/useReminderAsk.ts');
-  assert.match(hook, /readBereavedOnDevice\(accountId\)\]\)\.then\(\(\[permission, memory, bereaved\]\) => \{\s+if \(active && viewRef\.current === null\) setView\(bereaved \? null : decide\(permission, memory, new Date\(\)\)\);/);
-  const store = read('src/lib/reminderAskStore.ts');
-  assert.match(store, /return \(await AsyncStorage\.getItem\(bereavedCacheKey\(accountId\)\)\) === '1';\s+\} catch \{\s+return false;/);
+  assert.match(hook, /Promise\.all\(\[readReminderPermission\(\), loadReminderAskMemory\(accountId\)\]\)\.then\(\(\[permission, memory\]\) => \{\s+(\/\/[^\n]*\n\s+)?if \(active && viewRef\.current === null && !invitationThisVisit\(accountId\)\) setView\(decide\(permission, memory, new Date\(\)\)\);/);
 });
 
 test('what the device remembers is per account and survives bad data', () => {
@@ -243,13 +238,12 @@ test('the seat ask appears only after her own Save tap on that screen has saved 
   assert.match(onboarding, /await markOnboarded\(user\.id\);[\s\S]*?void rememberReminderAsk\(user\.id, \{ onboardedAt: new Date\(\)\.toISOString\(\) \}\);/);
 });
 
-test('Today shows its second chance under the call card, not on the bereaved Today or a welcome-back visit', () => {
+test('Today shows its second chance under the call card, not on a welcome-back visit', () => {
   const screen = read('app/(tabs)/index.tsx');
-  assert.match(screen, /useTodayReminderAsk\(bereaved \|\| bereavedUnknown \? null : user\?\.id \?\? null, user\?\.joinedAt, !welcome\.ready \|\| welcome\.returned, welcome\.decided, mondayCancelled\)/);
+  assert.match(screen, /useTodayReminderAsk\(user\?\.id \?\? null, user\?\.joinedAt, !welcome\.ready \|\| welcome\.returned, welcome\.decided, mondayCancelled\)/);
   assert.match(screen, /const reminderAskCard = <ReminderAskNote ask=\{reminderAsk\} place="today" \/>;/);
   const screens = screen.split('<ScreenContainer').slice(1);
   assert.equal(screens.filter((part) => /\{mondayCallCard\}\s*\{reminderAskCard\}/.test(part)).length, 2);
-  assert.ok(screens.filter((part) => part.includes('<GriefCard')).every((part) => !part.includes('{reminderAskCard}')));
   const hook = read('src/hooks/useReminderAsk.ts');
   // (Recorded only when Today is in front and the ask is on it: audit round 3, L4.)
   assert.match(hook, /if \(recordsTodayShowing\(\{ kind, focused: focusedRef\.current, showing: viewRef\.current, memory, now \}\)\) \{\s*await rememberReminderAsk\(accountId, \{ todayShownAt: now\.toISOString\(\) \}\);/);

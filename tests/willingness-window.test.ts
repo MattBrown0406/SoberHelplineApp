@@ -102,7 +102,7 @@ test('an active window changes the Today posture, not only the Tracker detail sc
   assert.match(alert, /willingnessWindowState/);
   assert.match(alert, /treatmentActionProgress/);
   assert.match(alert, /window\.sayText/);
-  assert.match(alert, /router\.push\('\/\(tabs\)\/tracker'/);
+  assert.match(alert, /router\.push\('\/tracker'/);
   assert.ok(alert.indexOf('window.safety') < alert.indexOf('window.sayLabel'));
   assert.ok(alert.indexOf('function ActiveWillingnessWindow') < alert.indexOf('useTreatmentActionPlan(accountId)'));
   assert.equal(copy.window.openTitle, 'This is the window.');

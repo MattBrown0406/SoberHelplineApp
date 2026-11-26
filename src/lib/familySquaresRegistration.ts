@@ -42,7 +42,7 @@ export function familySquaresRsvpIsCurrent(meetingDate: unknown, now = new Date(
 // The meeting date the website would not save a seat for, as it last answered
 // a Save tap from this account on this device (this run of the app only). The
 // weekly seat is not saved for her that week either, so the panel does not
-// say it will be (familySquaresCard.weeklySeatNoteHeld).
+// say it will be (FamilySquaresSeatPanel, seatPanelView's weeklyNoteHeld).
 const refusedMeetingDate = new Map<string, string>();
 const refusedListeners = new Set<() => void>();
 

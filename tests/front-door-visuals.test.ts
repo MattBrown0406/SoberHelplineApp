@@ -58,14 +58,33 @@ test('a signed-out launch stays on the launch screen until the front door is in 
   // A slow start never lifts the cover early onto the tabs; it puts the
   // emergency actions on the cover instead, so help is never out of reach.
   assert.match(layout, /setTimeout\(\(\) => setLaunchCoverSlow\(true\), LAUNCH_COVER_EMERGENCY_MS\)/);
-  assert.match(read('src/components/auth/LaunchCover.tsx'), /\{emergency \? \(\s*<View style=\{styles\.emergency\}>\s*<View style=\{styles\.emergencyInner\}>\s*<EmergencyActions \/>/);
+  assert.match(read('src/components/auth/LaunchCover.tsx'), /\{emergency && viewportHeight > 0 \? \(\s*<ScrollView[\s\S]*?<View style=\{styles\.emergency\}[\s\S]*?>\s*<View style=\{styles\.emergencyInner\}>\s*<EmergencyActions \/>[\s\S]*?<\/ScrollView>/);
   // It lies on top of the one router stack: the stack is never hidden or unmounted for it.
   assert.match(layout, /<View style=\{\{ flex: 1, display: overlay \? 'none' : 'flex' \}\}>\s+<Stack screenOptions=\{\{ headerShown: false \}\} \/>\s+<\/View>\s+\{overlay\}\s+\{showLaunchCover \? <LaunchCover emergency=\{launchCoverSlow\} \/> : null\}/);
   assert.equal((layout.match(/<Stack /g) ?? []).length, 1);
   // No blank frame while the words load.
   assert.match(layout, /if \(!i18nReady\) return <LaunchCover \/>;/);
   const cover = read('src/components/auth/LaunchCover.tsx');
-  assert.match(cover, /<View accessibilityViewIsModal style=\{\[StyleSheet\.absoluteFill, styles\.cover\]\}>/);
+  assert.match(cover, /<View\s+accessibilityViewIsModal\s+style=\{\[StyleSheet\.absoluteFill, styles\.cover\]\}/);
+});
+
+test('a slow start\'s emergency card scrolls instead of covering the lighthouse (Spanish, large text)', () => {
+  const cover = read('src/components/auth/LaunchCover.tsx');
+  // The mark is centred where the launch screen draws it while the card fits; moved up, then scrolled, when it doesn't.
+  assert.match(cover, /contentContainerStyle=\{\[styles\.scrollContent, \{ paddingTop: launchMarkTop\(viewportHeight, cardHeight\) \}\]\}/);
+  assert.match(cover, /<View style=\{styles\.emergency\} onLayout=\{\(e\) => setCardHeight\(e\.nativeEvent\.layout\.height\)\}>/);
+  assert.match(cover, /scrollContent: \{ flexGrow: 1, alignItems: 'center' \}/);
+  // Before the slow start, the cover is the plain centred mark.
+  assert.match(cover, /\) : \(\s*<Image accessible=\{false\} source=\{MARK\} style=\{styles\.mark\} \/>\s*\)\}/);
+  const start = cover.indexOf('const MARK_GAP');
+  const end = cover.indexOf('/**', cover.indexOf('export function launchMarkTop'));
+  const js = ts.transpileModule(cover.slice(start, end).replace('export function', 'function'),
+    { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  const launchMarkTop = new Function('LAUNCH_MARK_WIDTH', `${js}; return launchMarkTop;`)(130) as (h: number, c: number) => number;
+  assert.equal(launchMarkTop(844, 0), (844 - 130) / 2, 'before the card is measured: centred');
+  assert.equal(launchMarkTop(844, 300), (844 - 130) / 2, 'a card that fits: still centred');
+  assert.equal(launchMarkTop(844, 500), 844 - 500 - 24 - 130, 'a taller card: the mark moves up just enough');
+  assert.equal(launchMarkTop(667, 700), 56, 'never under the status bar; past that the cover scrolls');
 });
 
 // ── Status bar ───────────────────────────────────────────────────────────────
@@ -157,7 +176,7 @@ function loadWelcome(language: string, guided: Record<string, unknown>) {
     useState(initial: unknown) {
       const index = cursor++;
       if (!(index in slots)) slots[index] = initial;
-      return [slots[index], (value: unknown) => { slots[index] = value; }];
+      return [slots[index], (value: unknown) => { slots[index] = typeof value === 'function' ? (value as (prev: unknown) => unknown)(slots[index]) : value; }];
     },
   };
   const code = ts.transpileModule(read('app/(onboarding)/welcome.tsx'), {
@@ -168,7 +187,7 @@ function loadWelcome(language: string, guided: Record<string, unknown>) {
     if (id === 'react') return React;
     if (id === 'react-native') return { View: 'View', Text: 'Text', TouchableOpacity: 'Button', ScrollView: 'ScrollView', StyleSheet: { create: (styles: unknown) => styles } };
     if (id === 'react-native-safe-area-context') return { SafeAreaView: 'SafeAreaView' };
-    if (id === 'expo-router') return { useRouter: () => ({ push: () => assert.fail('the first question never leaves the screen') }) };
+    if (id === 'expo-router') return { useRouter: () => ({ push: () => assert.fail('urgent help never leaves the screen') }) };
     if (id === 'react-i18next') return { useTranslation: () => ({ t: (key: string) => key, i18n: { language } }) };
     if (id.includes('ThemeContext')) return { useTheme: () => ({ colors: { primary: 'primary', white: 'white', line: 'line', ink: 'ink', inkSoft: 'inkSoft', coral: 'coral' } }) };
     if (id.includes('AccountContext')) return { useAccount: () => ({ user: { id: 'a' } }) };
@@ -187,91 +206,43 @@ function loadWelcome(language: string, guided: Record<string, unknown>) {
     ? node.map(words).join('')
     : typeof node === 'string' ? node : node && typeof node === 'object' ? words((node as Node).props.children) : '';
   return {
-    render(onContinue: () => void) {
+    render() {
       cursor = 0;
-      const nodes = flatten(exports.StartingPointQuestion({ accountId: 'a', onContinue }));
+      // WelcomeScreen renders <WelcomeContent>; render that body directly.
+      const content = exports.default();
+      const nodes = flatten((content.type as (props: unknown) => unknown)(content.props));
       const tappable = (label: string) => {
         const found = nodes.find((node) => node.type === 'Button' && words(node) === label || node.type === 'Button' && words(node) === `${label}✓`);
         assert.ok(found, `a tappable "${label}"`);
         return found;
       };
-      return { nodes, tappable };
+      return { nodes, tappable, words };
     },
   };
 }
 
-test('the first question: urgent help and Skip never wait for the device store, in English and Spanish', async () => {
+test('the first screen: urgent help opens in place and never leaves the screen or waits, in English and Spanish', () => {
   for (const language of ['en', 'es']) {
-    let writes = 0;
-    let continued = 0;
-    const welcome = loadWelcome(language, {
-      ready: false, busy: true, error: 'load', value: emptyGuidedStart(),
-      edit: async () => { writes += 1; throw Error('disk'); },
-    });
+    const welcome = loadWelcome(language, {});
     const c = guidedStartCopy(language);
-    let view = welcome.render(() => { continued += 1; });
-    // Every other answer waits for the store; urgent help does not.
-    assert.equal(view.tappable(c.situations.worried).props.disabled, true);
+    let view = welcome.render();
+    // The emergency contacts are not shown until asked for.
+    assert.equal(view.nodes.some((node) => node.type === 'EmergencyActions'), false);
     const urgent = view.tappable(c.situations.urgent);
-    assert.equal(urgent.props.disabled, false);
-    await urgent.props.onPress();
-    view = welcome.render(() => { continued += 1; });
+    assert.equal(urgent.props.accessibilityRole, 'button');
+    assert.deepEqual(urgent.props.accessibilityState, { expanded: false });
+    urgent.props.onPress();
+    view = welcome.render();
     assert.ok(view.nodes.some((node) => node.type === 'EmergencyActions' && node.props.prominent === true));
-    assert.equal(writes, 0);
-    // Continue stays off for an unsaved answer; Skip always moves on.
-    assert.equal(view.tappable(c.continue).props.disabled, true);
-    const skip = view.tappable(c.skip);
-    assert.ok(!skip.props.disabled);
-    skip.props.onPress();
-    assert.equal(continued, 1);
+    assert.ok(view.nodes.some((node) => node.props.accessibilityRole === 'alert' && view.words(node) === c.disclaimer));
+    assert.deepEqual(view.tappable(c.situations.urgent).props.accessibilityState, { expanded: true });
   }
 });
 
-test('the first question: a chosen answer is filled in, Continue is the main button and Skip a quiet link', async () => {
-  let saved: GuidedStart = emptyGuidedStart();
-  const guided = {
-    ready: true, busy: false, error: null,
-    get value() { return saved; },
-    edit: async (change: (value: GuidedStart) => GuidedStart) => { saved = change(saved); },
-  };
-  const welcome = loadWelcome('en', guided);
-  const c = guidedStartCopy('en');
-  let continued = 0;
-  let view = welcome.render(() => { continued += 1; });
-  // Nothing chosen yet: plain answers, and Continue is off.
-  const before = view.tappable(c.situations.refuses);
-  assert.equal(before.props.accessibilityRole, 'radio');
-  assert.deepEqual(before.props.accessibilityState, { checked: false, disabled: false });
-  assert.equal(before.props.style[1].backgroundColor, 'white');
-  assert.equal(view.tappable(c.continue).props.disabled, true);
-
-  await before.props.onPress();
-  assert.equal(saved.situation, 'refuses' satisfies StartSituation);
-  view = welcome.render(() => { continued += 1; });
-  const chosen = view.tappable(c.situations.refuses);
-  // The loved-one step's treatment: filled with the primary colour, white words.
-  assert.deepEqual(chosen.props.accessibilityState, { checked: true, disabled: false });
-  assert.equal(chosen.props.style[1].backgroundColor, 'primary');
-  assert.equal(view.tappable(c.situations.worried).props.style[1].backgroundColor, 'white');
-  // Continue: the one filled button. Skip: words only.
-  const next = view.tappable(c.continue);
-  assert.equal(next.props.disabled, false);
-  assert.equal(next.props.style[1].backgroundColor, 'primary');
-  next.props.onPress();
-  assert.equal(continued, 1);
-  const skip = view.tappable(c.skip);
-  assert.equal(skip.props.style.borderWidth, undefined);
-  assert.equal(skip.props.style.backgroundColor, undefined);
-
+test('the first screen: no starting-point question; the two ways in, then a quiet urgent-help link', () => {
   const screen = read('app/(onboarding)/welcome.tsx');
-  assert.match(screen, /continueBtn: \{ borderRadius: 99, minHeight: 48,/);
-  assert.match(screen, /skipBtn: \{[^}]*minHeight: 44/);
-  assert.doesNotMatch(screen, /GuidedButton|GuidedStartPanel \}/);
-});
-
-test('the path step: "Change starting point" is a quiet link and "I\'m here on my own" is plainly available', () => {
-  const screen = read('app/(onboarding)/welcome.tsx');
-  assert.match(screen, /<TouchableOpacity accessibilityRole="button" style=\{styles\.changeLink\} onPress=\{\(\) => setChoosing\(true\)\}>\s+<Text style=\{styles\.changeLinkText\}>\{guidedStartCopy\(i18n\.language\)\.change\}<\/Text>/);
+  assert.doesNotMatch(screen, /StartingPointQuestion|useGuidedStart|setChoosing/);
+  assert.match(screen, /style=\{styles\.changeLink\}\s+onPress=\{\(\) => setUrgent\(\(open\) => !open\)\}/);
   assert.match(screen, /changeLink: \{[^}]*minHeight: 44/);
   assert.doesNotMatch(/changeLink: \{[^}]*\}/.exec(screen)?.[0] ?? '', /border|backgroundColor/);
   // A solid white outline and white words, not a faint fill.

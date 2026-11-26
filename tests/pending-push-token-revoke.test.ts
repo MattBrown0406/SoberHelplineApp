@@ -104,7 +104,7 @@ test('the push hook settles a pending revoke before re-registering, and skips re
       from: () => ({ update: () => ({ eq: async () => { calls.push('update:push_token'); return { error: null }; } }) }),
     } },
     '../storage/checkIn': { getCheckIn: async () => null }, '../lib/appFlowGuards': { AsyncWriteBarrier: Barrier },
-    '../lib/pushRouting': {}, '../lib/familySquaresPushJoin': {}, '../reminders/personalReminders': { REMINDER_PREFIX: 'personal-reminder:' }, '../reminders/bereavementQuiet': { pausePersonalRemindersForQuiet: async () => {}, resumePersonalRemindersAfterQuiet: async () => {} },
+    '../lib/pushRouting': {}, '../lib/familySquaresPushJoin': {}, '../reminders/personalReminders': { REMINDER_PREFIX: 'personal-reminder:' },
     '../lib/pushDevice': { isDeviceSignedIn: () => true },
     '../lib/pushColdStart': { shouldDeferPushRouting: () => false },
     '../lib/featureAccess': { canAccessFeature: () => false },

@@ -1,13 +1,16 @@
 {
   "header": "Tools",
   "tools": {
-    "eyebrow": "PLAN YOUR NEXT STEPS",
+    "forNowEyebrow": "FOR WHERE YOU ARE NOW",
+    "forNowBody": "Picked for where your loved one is now. The rest are under All tools.",
+    "forNowBodyNeutral": "A few tools to start with. The rest are under All tools.",
+    "allTitle": "All tools",
     "costTitle": "Money & Boundaries Worksheet",
-    "costBody": "Estimate what active addiction has cost your family, then decide what you will—and will not—fund going forward.",
+    "costBody": "Add up what addiction has cost your family, then decide what you will and won't fund.",
     "costButton": "Start worksheet",
     "costBadge": "Free · Private",
     "safetyTitle": "Offline Safety Wallet",
-    "safetyBody": "Keep emergency contacts, naloxone information, and your household response plan ready even without service.",
+    "safetyBody": "Emergency contacts, naloxone info, and your home response plan, ready even without service.",
     "safetyButton": "Open Safety Wallet",
     "safetyBadge": "Free · Offline",
     "actionTitle": "Treatment Action Plan",
@@ -20,7 +23,7 @@
     "diyButton": "Open DIY Intervention Planner",
     "diyLockedButton": "Unlock with Essential",
     "homecomingTitle": "Homecoming Week",
-    "homecomingBody": "Build the age-aware, housing-safe plan for days 0–7 after discharge—before the ride home and first weekend.",
+    "homecomingBody": "A plan for the first week after discharge, made before the ride home.",
     "homecomingButton": "Build Homecoming Week",
     "homecomingBadge": "Free · Days 0–7",
     "visitationTitle": "Family Visitation Plan",
@@ -28,15 +31,15 @@
     "visitationButton": "Write the visit",
     "visitationBadge": "Free · Visit planning",
     "holidayTitle": "Holiday Plan",
-    "holidayBody": "Who's invited, on what terms, what happens if they show up using, and what to tell the relatives. Written before the day, shared with everyone hosting.",
+    "holidayBody": "Who's invited, on what terms, what if they show up using, and what to tell relatives. Shared with everyone hosting.",
     "holidayButton": "Write the holiday plan",
     "holidayBadge": "Free · Holidays",
     "prosecutorTitle": "Treatment instead of jail",
-    "prosecutorBody": "If they're facing charges: a letter asking the prosecutor to allow the treatment your family arranged, with completion, written progress updates, and a meeting to review the charges.",
+    "prosecutorBody": "Facing charges? A letter asking the prosecutor to allow the treatment your family arranged, with written progress updates and a review of the charges.",
     "prosecutorButton": "Write the letter",
     "prosecutorBadge": "Free · Legal",
     "chooseTitle": "How to choose a treatment program",
-    "chooseBody": "The questions to ask every program, the red flags that mean walk away, and what to have ready before they say yes.",
+    "chooseBody": "Questions to ask every program, red flags that mean walk away, and what to have ready before they say yes.",
     "chooseButton": "Read the checklist",
     "chooseBadge": "Free · Treatment",
     "learningEyebrow": "LEARN · FREE RESOURCES",
@@ -44,12 +47,12 @@
     "diyPaid": "Paid feature · Essential or Premier membership required.",
     "invitationBadge": "New",
     "invitationTitle": "Invitation Engine",
-    "invitationBody": "A day-by-day plan built on CRAFT, the most proven way families help a resistant loved one say yes to treatment: understand their pattern, reward sober moments, spot the right window and ask well.",
+    "invitationBody": "A day-by-day plan built on CRAFT, the most proven way families help a resistant loved one say yes to treatment.",
     "invitationButton": "Open the Invitation Engine"
   },
   "education": {
     "title": "Family Education",
-    "body": "The full family education library is on soberhelpline.com. It opens in your browser, already signed in with your Sober Helpline account. The FAQ below answers the questions every family asks, right here in the app.",
+    "body": "The full family education library is on soberhelpline.com. It opens in your browser, already signed in.",
     "button": "Open on soberhelpline.com",
     "sections": [
       {
@@ -96,7 +99,7 @@
     },
     "fellowships": {
       "title": "Al-Anon and Nar-Anon",
-      "body": "Free peer meetings for families and friends — not treatment placement, not a sales call. Al-Anon is for families affected by someone else's drinking; Nar-Anon is for families affected by someone else's drug use. Search al-anon.org or naranon.org for local and online meetings. You can go even if your loved one is still using."
+      "body": "Free peer meetings for families and friends — not treatment placement, not a sales call. Al-Anon is for families affected by someone else's drinking; Nar-Anon is for families affected by someone else's drug use. Search al-anon.org or nar-anon.org for local and online meetings. You can go even if your loved one is still using."
     },
     "naloxone": {
       "title": "Naloxone (Narcan)",
@@ -114,7 +117,7 @@
   },
   "recordings": {
     "title": "Past Recordings",
-    "body": "Watch past Family Squares Zoom calls you may have missed. They're on soberhelpline.com and open in your browser, already signed in.",
+    "body": "Watch past Family Squares calls on soberhelpline.com. They open in your browser, already signed in.",
     "button": "Watch on soberhelpline.com"
   },
   "membersLibrary": {
@@ -124,77 +127,77 @@
   },
   "faq": {
     "eyebrow": "Common questions",
-    "sub": "The questions almost every family asks — answered straight.",
+    "sub": "What almost every family asks, answered straight.",
     "items": [
       {
         "q": "Is it addiction, or just a phase?",
-        "a": "Look at consequences, not quantity. When someone keeps using despite mounting damage — job trouble, broken trust, health scares, money disappearing — that pattern is the signal. You don't need to be certain it's \"addiction\" to take it seriously; if their use is hurting your family, that alone justifies getting support."
+        "a": "Look at consequences, not amount. Using despite mounting damage (job trouble, broken trust, health scares, missing money) is the signal. You don't need to be sure it's \"addiction.\" If their use hurts your family, that's reason enough to get support."
       },
       {
         "q": "What do detox, residential, PHP, IOP, and outpatient actually mean?",
-        "a": "They're levels of care, from most to least intensive. Detox is medically supervised withdrawal (days). Residential means living at a facility (usually 30–90 days). PHP is full days of treatment while sleeping at home; IOP is a few hours several days a week; outpatient is weekly sessions. Most people step down through levels as they stabilize — the right starting point depends on safety, substance, and history."
+        "a": "Levels of care, most to least intensive. Detox: medically supervised withdrawal (days). Residential: living at a facility (usually 30–90 days). PHP: full treatment days, sleeping at home. IOP: a few hours, several days a week. Outpatient: weekly sessions. Most people step down as they stabilize; where to start depends on safety, substance, and history."
       },
       {
         "q": "Will insurance pay for treatment?",
-        "a": "Often yes, at least partially — mental health parity laws require most plans to cover addiction treatment like any other medical care. Call the number on the insurance card and ask about \"substance use disorder benefits,\" or let a treatment center run a verification (they do this daily and it's free). Ask about deductibles, in-network facilities, and prior authorization before committing."
+        "a": "Often, at least partly: parity laws make most plans cover addiction treatment like other medical care. Call the number on the insurance card and ask about \"substance use disorder benefits,\" or let a treatment center check for free. Ask about deductibles, in-network facilities, and prior authorization first."
       },
       {
         "q": "What if they refuse treatment?",
-        "a": "Refusal is a stage, not a verdict — most people who enter treatment said no first. Your leverage is consistency: clear boundaries, consequences you actually keep, and repeated calm invitations. A professionally guided intervention exists exactly for this moment. And your own support shouldn't wait for their yes — families recover in parallel, not after."
+        "a": "Refusal is a stage, not a verdict; most people in treatment said no first. Your leverage is consistency: clear boundaries, consequences you keep, calm repeated invitations. A professional intervention is built for this moment. And get support now, without waiting for their yes: families recover in parallel."
       },
       {
         "q": "Am I helping or enabling?",
-        "a": "A useful test: does this action protect the person, or protect the addiction from consequences? Rides to a meeting, food, treatment costs — help. Paying the debts, calling in sick for them, covering up incidents — those cushion the addiction. Enabling usually comes from love and fear; naming it isn't blame, it's the first boundary."
+        "a": "Ask: does this protect the person, or protect the addiction from consequences? Rides to a meeting, food, treatment costs: help. Paying debts, calling in sick for them, covering up incidents: that cushions the addiction. Enabling comes from love and fear. Naming it isn't blame; it's the first boundary."
       },
       {
         "q": "Should I give them money?",
-        "a": "Cash to someone in active addiction almost always becomes the substance, whatever the stated reason. You can say no to money and yes to the need behind it: pay the pharmacy directly, bring groceries, cover a treatment fee paid to the provider. \"I love you, and I don't give cash\" is a complete sentence."
+        "a": "Cash almost always becomes the substance, whatever the reason given. Say no to money and yes to the need: pay the pharmacy, bring groceries, pay treatment fees to the provider. \"I love you, and I don't give cash\" is a complete sentence."
       },
       {
         "q": "What actually happens in an intervention?",
-        "a": "Not an ambush — a planned, rehearsed, loving conversation. Family members read prepared letters describing what they've seen, what they feel, and what they're asking, with treatment arranged and ready before the conversation starts. A professional interventionist manages the room, the objections, and the follow-through. Most well-planned interventions end with the person accepting help."
+        "a": "Not an ambush: a planned, rehearsed, loving conversation. Family members read letters about what they've seen, what they feel, and what they're asking, with treatment ready beforehand. A professional interventionist handles the room, the objections, and the follow-through. Most well-planned interventions end with the person accepting help."
       },
       {
         "q": "They relapsed after treatment. Did it fail?",
-        "a": "Relapse is common in recovery from addiction, as it is in other chronic conditions — it means the plan needs adjusting, not that treatment was wasted or your loved one is hopeless. What matters most is how fast they reconnect to support. Hold your boundaries, skip the shame, and treat it as information: what was missing, and what needs to change this time?"
+        "a": "Relapse is common, as in other chronic conditions. It means the plan needs adjusting, not that treatment was wasted or your loved one is hopeless. What matters most is how fast they reconnect to support. Hold your boundaries, skip the shame, and ask what needs to change this time."
       },
       {
         "q": "What do we tell the kids?",
-        "a": "More than you think, in age-sized pieces. Kids already sense something is wrong; silence teaches them not to trust their own perception. Use the \"Seven Cs\": they didn't Cause it, can't Control it, can't Cure it — but they can learn to Cope, Communicate, make good Choices, and Celebrate themselves. Keep routines steady and let them ask anything."
+        "a": "More than you think, sized to their age. Kids sense something is wrong; silence teaches them to doubt what they see. Use the \"Seven Cs\": they didn't Cause it, can't Control it, can't Cure it, but can learn to Cope, Communicate, make good Choices, and Celebrate themselves. Keep routines steady and welcome their questions."
       },
       {
         "q": "Do we have to wait for rock bottom?",
-        "a": "No — that's one of the most damaging myths in addiction. \"Rock bottom\" is just the moment consequences finally outweigh denial, and you can raise the bottom by ending the cushioning that delays it. People enter treatment because of court dates, ultimatums, and interventions all the time, and their outcomes are as good as anyone's. Waiting risks the one bottom you can't come back from."
+        "a": "No, that's a damaging myth. \"Rock bottom\" is just when consequences outweigh denial, and you can raise it by ending the cushioning. People enter treatment through court dates, ultimatums, and interventions all the time, and do as well as anyone. Waiting risks the one bottom you can't come back from."
       },
       {
         "q": "Why do I need support? I'm not the one using.",
-        "a": "Because addiction is a family illness: living alongside it rewires you toward vigilance, crisis management, and self-neglect. Your steadiness is also the single most powerful influence on your loved one — a regulated, boundaried family changes the equation. Groups, coaching, and your daily check-in here aren't extras; they're your treatment."
+        "a": "Addiction is a family illness: living with it pulls you into vigilance, crisis mode, and self-neglect. Your steadiness is also your strongest influence on your loved one. Groups, coaching, and your daily check-in here aren't extras. They're your treatment."
       },
       {
         "q": "When is it an emergency?",
-        "a": "Call 911 for overdose signs — unresponsive, blue lips, slow or stopped breathing, gurgling. Call or text 988 for any talk of suicide or self-harm. Don't wait to be sure; being wrong and safe beats being right and late. Save both numbers in your phone now, and if opioids are involved, keep naloxone (Narcan) at home — Narcan nasal spray is available over the counter at pharmacies nationwide."
+        "a": "Call 911 for overdose signs: unresponsive, blue lips, slow or stopped breathing, gurgling. Call or text 988 for any talk of suicide or self-harm. Don't wait to be sure; wrong and safe beats right and late. Save both numbers now. If opioids may be involved, keep naloxone (Narcan) at home; Narcan nasal spray is sold over the counter at pharmacies nationwide."
       },
       {
         "q": "They've been arrested. Should we bail them out?",
-        "a": "Not right away. Don't rush to post bail: they're afraid and uncomfortable, but they're safe. Breathe. No treatment plan yet? Make one now, with a program that meets their needs, not just their insurance (a session with Matt Brown can help). Then make treatment the condition: bail only if they go straight from jail to treatment, no stop at home. If they back out once they're out, the family can revoke the bond, but confirm that first: a bail bond agent can usually return them to custody; cash bail often can't be undone. Once they're in treatment, bring in an attorney or the public defender. Tell jail medical staff about withdrawal risk or suicide talk, and don't discuss the case on jail calls; they're recorded. Crisis Mode has the full plan. Not legal advice."
+        "a": "Not right away. They're scared and uncomfortable, but safe. Breathe. No treatment plan yet? Make one now, with a program that meets their needs, not just their insurance (a session with Matt Brown can help). Then make treatment the condition: bail only if they go straight from jail to treatment, no stop at home. If they back out, the family can revoke the bond, but confirm first: a bail bond agent can usually return them to custody; cash bail often can't be undone. Once they're in treatment, bring in an attorney or public defender. Tell jail medical staff about withdrawal risk or suicide talk. Don't discuss the case on jail calls; they're recorded. Crisis Mode has the full plan. Not legal advice."
       },
       {
         "q": "Can we make them go to treatment?",
-        "a": "Sometimes. Most states have a civil commitment law for addiction (Florida's Marchman Act, Kentucky's Casey's Law, and Massachusetts' Section 35 are well-known examples), but the rules vary widely. Usually a family member petitions a court, there's an evaluation, and you have to show danger to self or others or an inability to care for themselves. Stays are often short, and some states have no such law. A criminal court can also order treatment through drug court or diversion. Ask a local attorney or the county court clerk how it works where you live. Many families reach the same goal without a court through a planned, professional intervention, and a Sober Helpline coach can help you weigh it. This is general information, not legal advice."
+        "a": "Sometimes. Most states have a civil commitment law for addiction (Florida's Marchman Act, Kentucky's Casey's Law, Massachusetts' Section 35), but rules vary widely. Usually a family member petitions a court, there's an evaluation, and you must show danger to self or others or an inability to care for themselves. Stays are often short; some states have no such law. A criminal court can also order treatment through drug court or diversion. Ask a local attorney or the county court clerk how it works where you live. Many families reach the same goal through a planned, professional intervention instead; a Sober Helpline coach can help you weigh it. This is general information, not legal advice."
       },
       {
         "q": "Can we ask the prosecutor for treatment instead of jail?",
-        "a": "Yes, and it helps to ask in writing. The Tools tab has a letter asking the prosecutor to let them enter the treatment your family arranged and complete it, with the program sending written progress updates to the prosecutor's office, then an in-person meeting to review whether the charges should continue or be reduced. Give it to the defense attorney first, and don't write about what happened: anything in writing can be used in the case. The program can send updates only after your loved one signs a release. This is general information, not legal advice."
+        "a": "Yes, and ask in writing. The Tools tab has a letter asking the prosecutor to let them enter the treatment your family arranged and complete it, with written progress updates from the program, then an in-person meeting to review whether the charges should continue or be reduced. Give it to the defense attorney first, and don't write about what happened: anything in writing can be used in the case. The program can send updates only after your loved one signs a release. This is general information, not legal advice."
       },
       {
         "q": "Isn't medication just trading one drug for another?",
-        "a": "No, though it's a fair question. For opioid addiction, buprenorphine (Suboxone), methadone, and naltrexone (Vivitrol) are proven treatments, and buprenorphine or methadone taken as prescribed cuts the risk of dying from an overdose roughly in half. At a stable prescribed dose they don't produce a high; they quiet cravings and withdrawal so people can work, parent, and do the rest of recovery. For alcohol, naltrexone and acamprosate can reduce cravings. Medication works best alongside counseling and support. Ask any program whether it offers or allows medication, and leave the choice of medication to a doctor. This is general information, not medical advice."
+        "a": "No, though it's a fair question. For opioid addiction, buprenorphine (Suboxone), methadone, and naltrexone (Vivitrol) are proven treatments; buprenorphine or methadone taken as prescribed cuts the risk of dying from an overdose roughly in half. At a stable prescribed dose they don't produce a high. They quiet cravings and withdrawal so people can work, parent, and do the rest of recovery. For alcohol, naltrexone and acamprosate can reduce cravings. Medication works best with counseling and support. Ask programs whether they offer or allow it, and leave the choice of medication to a doctor. This is general information, not medical advice."
       }
     ],
     "collapseHint": "Collapses this answer",
     "expandHint": "Expands this answer"
   },
-  "intro": "Practice is for what to say. Boundaries is for the limits you will hold. Use these tools to plan next steps, or open Support to connect with people.",
+  "intro": "Plan your next steps here. Practice helps with what to say; Support connects you with people.",
   "destinations": {
     "title": "What do you need to do?",
     "conversation": "Practice a conversation",

@@ -17,13 +17,15 @@ import { COMMUNITY_FEED_VISIBLE } from './communityFeed';
  * | member_message             | thread_id?             | /admin-thread (coach device)                   |
  * | session_reminder           | session_id?, room_name?, ask? | /live-room (community) or Support + session_id (ask=question opens its question sheet). A Family Squares reminder without ask ("tap to join") is then taken further by familySquaresPushJoin: Zoom at meeting time, else Today's call card |
  * | family_call_followup       | meeting_date?          | Today (this week's one thing, next Monday's seat) |
- * | morning_note, daily_nudge  | screen? (tab name)     | that tab, default Today                        |
- * | winback                    | —                      | /guided-journey                                |
- * | family_backup              | wavering_event_id?     | Boundaries (where the family wall lives)       |
+ * | morning_note, daily_nudge  | screen? (tab name)     | that tab, default Today (see TAB_SCREENS)      |
+ * | winback                    | —                      | Today with "More for you" open (more=1, n)     |
+ * | family_backup              | wavering_event_id?     | Practice › Boundaries (the family wall)        |
  * | group_live                 | room_name              | /live-room (community) else Support            |
  * | situation_brief            | —                      | /admin                                         |
  * | invitation_window          | —                      | /invitation-engine (paid) else Today           |
  * | admin_invitation_yes       | —                      | /admin (a member logged a YES to treatment)    |
+ * | admin_reach_out            | request_id, member_account_id | /admin (a member asked Matt to reach out; staff only) |
+ * | admin_bereavement          | —                      | /admin (sent by 4.3 phones only; staff only)  |
  * | *_video_* (see below)      | session_id             | /video-session (live, any tier), /admin, Support|
  * | anything else / no kind    | screen? (tab name)     | that tab, default Today — never a crash        |
  *
@@ -53,13 +55,24 @@ const SESSION_KINDS = new Set([
   'member_plan_update_requested',
 ]);
 
-/** Legacy `screen` hints (morning note, daily nudge) may only pick a tab. */
+/**
+ * Boundaries is a part of the Practice tab since 4.4: open Practice on that
+ * part directly (the old `/(tabs)/boundaries` tab only forwards there).
+ */
+const BOUNDARIES: PushDestination = { pathname: '/(tabs)/scripts', params: { section: 'boundaries' } };
+
+/**
+ * Legacy `screen` hints (morning note, daily nudge) may only pick a fixed
+ * place. The hint names stay as the server sends them: `boundaries` opens
+ * Practice's Boundaries part, and `tracker` the Tracker, a pushed screen
+ * since 4.4 (it keeps its own membership gate).
+ */
 const TAB_SCREENS: Readonly<Record<string, PushDestination>> = Object.freeze({
   today: { pathname: '/(tabs)' },
   home: { pathname: '/(tabs)' },
   support: { pathname: '/(tabs)/support' },
-  boundaries: { pathname: '/(tabs)/boundaries' },
-  tracker: { pathname: '/(tabs)/tracker' },
+  boundaries: BOUNDARIES,
+  tracker: { pathname: '/tracker' },
   learn: { pathname: '/(tabs)/learn' },
 });
 
@@ -77,13 +90,13 @@ export type PushDestination =
   | { pathname: '/community' }
   | { pathname: '/admin-thread'; params: { threadId: string } }
   | { pathname: '/admin' }
-  | { pathname: '/guided-journey' }
   | { pathname: '/invitation-engine' }
   | { pathname: '/crisis-mode'; params: { focus: 'session' } }
   | { pathname: '/(tabs)' }
+  | { pathname: '/(tabs)'; params: { more: '1'; n: string } }
   | { pathname: '/(tabs)/support'; params?: { sessionId: string; ask?: 'question' } }
-  | { pathname: '/(tabs)/boundaries' }
-  | { pathname: '/(tabs)/tracker' }
+  | { pathname: '/(tabs)/scripts'; params: { section: 'boundaries' } }
+  | { pathname: '/tracker' }
   | { pathname: '/(tabs)/learn' };
 
 export type PushRoutingOptions = {
@@ -171,8 +184,11 @@ export function getPushDestination(data: PushData, options: PushRoutingOptions |
     return tabFromScreenHint(data);
   }
 
+  // "Come back": Today with "More for you" open, where her path is. Straight
+  // to Today, not through `/guided-journey` (kept for older links), and a
+  // fresh `n` so a repeat tap opens it again.
   if (kind === 'winback') {
-    return { pathname: '/guided-journey' };
+    return { pathname: '/(tabs)', params: { more: '1', n: String(nowMs) } };
   }
 
   // Admin-only: a member sent a situation brief. Lands on the admin dashboard,
@@ -192,10 +208,25 @@ export function getPushDestination(data: PushData, options: PushRoutingOptions |
     return { pathname: '/admin' };
   }
 
+  // Admin-only: after a hard check-in a member asked Matt to reach out. Opens
+  // Admin, where the reach-out requests card sits first (Admin redirects anyone
+  // who is not staff; no member data beyond ids rides in the payload).
+  if (kind === 'admin_reach_out') {
+    return { pathname: '/admin' };
+  }
+
+  // Admin-only, from 4.3 phones still in the field (4.4 removed the feature
+  // for members): a family reported a death and may have asked to be
+  // contacted. Opens Admin like a reach-out request; Admin redirects anyone
+  // who is not staff, and no member data rides in the payload.
+  if (kind === 'admin_bereavement') {
+    return { pathname: '/admin' };
+  }
+
   // A relative opted in to share that they are wavering on a wall; the wall
-  // and its backup notices live on Boundaries.
+  // and its backup notices live on Boundaries (a part of Practice).
   if (kind === 'family_backup') {
-    return { pathname: '/(tabs)/boundaries' };
+    return BOUNDARIES;
   }
 
   // Someone supported the member's community post.

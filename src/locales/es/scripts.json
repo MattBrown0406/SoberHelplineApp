@@ -7,7 +7,7 @@
   "practice": "Practicar esto",
   "todayEyebrow": "Guiones de hoy",
   "allEyebrow": "Explora por situación",
-  "freshTomorrow": "Tres guiones nuevos cada día — vuelve mañana por otros.",
+  "freshTomorrow": "Tres guiones nuevos cada día. Vuelve mañana.",
   "comebackTheySay": "SI TE DICE",
   "comebackYouSay": "PUEDES DECIR",
   "categories": {
@@ -47,5 +47,9 @@
   "shelf": {
     "collapseHint": "Contrae esta categoría de guiones",
     "expandHint": "Expande esta categoría de guiones"
+  },
+  "sections": {
+    "conversations": "Conversaciones",
+    "boundaries": "Límites"
   }
 }

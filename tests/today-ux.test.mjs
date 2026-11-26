@@ -86,13 +86,6 @@ test('safety help is actionable before save; hidden note and failed save preserv
   assert.equal(ui.nodes().find(n => n.type === 'TextInput').props.value, 'keep this');
 });
 
-test('bereaved: the needs card is emergency help for her, not Crisis Mode about the loved one', () => {
-  const ui = mount('NeedsRouter', { bereaved: true });
-  assert.ok(ui.nodes().some((n) => n.type === 'EmergencyActions'));
-  assert.equal(ui.button('needs.crisis'), undefined);
-  assert.equal(ui.button('needs.more'), undefined);
-});
-
 test('needs front door keeps crisis immediate and reveals every secondary route', () => {
   const ui = mount('NeedsRouter'); ui.press('needs.crisis'); assert.equal(ui.routes[0], '/crisis-mode');
   assert.equal(ui.button('needs.findTreatment'), undefined); ui.press('needs.more'); ui.press('needs.findTreatment');
@@ -134,47 +127,95 @@ test('a section row is the title and a chevron, and says open or closed without 
   assert.deepEqual(title().props.children, ['Practice']);
 });
 
-test('both Today tiers lead with the call and check-in, then one next step, needs and the tucked-away sections', () => {
+test('both Today tiers do one job: call, check-in, one next step and needs, then ONE collapsed "More for you"', () => {
   const source = readFileSync(new URL('../app/(tabs)/index.tsx', import.meta.url), 'utf8');
   const all = source.split('<ScreenContainer').slice(1);
-  // The bereaved Today: immediate help, then the grief card, then the call and her check-in.
-  const bereaved = all.filter((screen) => screen.includes('<GriefCard'));
-  assert.equal(bereaved.length, 1);
-  assert.ok(bereaved[0].indexOf('<NeedsRouter') < bereaved[0].indexOf('<GriefCard'));
-  assert.ok(bereaved[0].indexOf('<GriefCard') < bereaved[0].indexOf('{mondayCallCard}'));
-  assert.ok(bereaved[0].indexOf('{mondayCallCard}') < bereaved[0].indexOf('{checkInCard}'));
-  const screens = all.filter((screen) => !screen.includes('<GriefCard') && screen.includes('{checkInCard}')); assert.equal(screens.length, 2);
+  // Two Todays, free and member (4.4: the bereaved Today was removed).
+  assert.equal(all.length, 2);
+  const screens = all.filter((screen) => screen.includes('{checkInCard}')); assert.equal(screens.length, 2);
   for (const screen of screens) {
-    // Greeting, the free Monday call (saving a seat is a new member's first
-    // step), the check-in and its feedback, ONE next step, "What do you need
-    // right now?", then the collapsed sections.
-    const order = ['{header}', '{mondayCallCard}', '{checkInCard}', '<CheckInFeedbackCard', '...nextStepSlot', '<NeedsRouter', '...moreForThisWeek', 'disclosure.pathway', 'disclosure.invite', '<PassItOnCard', 'disclosure.practice', '<MoodChart'];
+    // Greeting (and welcome back), the Monday meeting with its reminder ask,
+    // the check-in and its feedback, ONE next step, "What do you need right
+    // now?", then the one collapsed section.
+    const order = ['{header}', '{welcomeBackCard}', '{mondayCallCard}', '{reminderAskCard}', '{checkInCard}', '<CheckInFeedbackCard', '...nextStepSlot', '<NeedsRouter', '...moreForYou(', '{curriculumCard}', '{holdLogCard}', '<MoodChart', '{signsToWatchRow}'];
     const at = order.map((piece) => screen.indexOf(piece));
     assert.ok(at.every((index) => index >= 0), `missing: ${order.filter((_, i) => at[i] < 0).join(', ')}`);
     assert.deepEqual(at, [...at].sort((a, b) => a - b), 'Today order');
+    // Only one collapsed section at the top level; no second set of sections.
+    assert.equal((screen.match(/<TodayDisclosure /g) ?? []).length, screen.includes('<ExploreMembership') ? 1 : 0);
     // The cards that compete for the slot are never also stacked on the screen.
-    for (const card of ['{willingnessWindowAlert}', '{lovedOneCheckCard}', '{holidayCard}', '{invitationCard}', '<GuidedStartPanel']) {
+    for (const card of ['{willingnessWindowAlert}', '{lovedOneCheckCard}', '{holidayCard}', '{invitationCard}', '<GuidedStartPanel', '<PathNextStepCard']) {
       assert.ok(!screen.includes(card), `${card} only through the next-step slot`);
     }
+    // Moved off Today: the invite card (Support) and the free daily script (Practice).
+    for (const gone of ['<PassItOnCard', '<ScriptCard', 'freeDaily', 'disclosure.invite', 'disclosure.practice', 'disclosure.pathway']) {
+      assert.ok(!screen.includes(gone), `${gone} is not on Today`);
+    }
   }
-  // Paid-only cards stay where they were, inside the practice section, on the paid Today only.
+  assert.ok(!source.includes('PassItOnCard') && !source.includes('getDailyScripts'));
+  // "More for you": her path first, then this week's other steps, then the rest; all mounted once she opens it.
+  const more = source.slice(source.indexOf('const moreForYou = '), source.indexOf('const curriculumCard'));
+  const moreOrder = ["title={t('disclosure.more')}", "moreSection('path', pathwayCard)", 'NEXT_STEP_PRIORITY.filter', "moreSection('rest', rest)"].map((piece) => more.indexOf(piece));
+  assert.ok(moreOrder.every((index) => index >= 0));
+  assert.deepEqual(moreOrder, [...moreOrder].sort((a, b) => a - b));
+  assert.match(source, /<View key=\{key\} style=\{\{ display: moreOpen \? 'flex' : 'none' \}\}>\s*\{moreVisited && children\}/);
+  // "Signs to watch" opens the Tracker screen (no longer a tab).
+  assert.match(source, /router\.push\('\/tracker' as never\)/);
+  // Paid-only cards stay on the paid Today only, inside "More for you".
   const paid = screens.filter((screen) => screen.includes('<HeroCard'));
   assert.equal(paid.length, 1);
-  const paidOrder = ['disclosure.practice', '<HeroCard', '<HoldLogCard', '<ContinueLetterCard', '<WeekReviewCard', '<MoodChart'].map((piece) => paid[0].indexOf(piece));
+  const paidOrder = ['...moreForYou(', '{holdLogCard}', '<ContinueLetterCard', '<HeroCard', '<WeekReviewCard', '<MoodChart', '{signsToWatchRow}'].map((piece) => paid[0].indexOf(piece));
   assert.deepEqual(paidOrder, [...paidOrder].sort((a, b) => a - b));
   const free = screens.find((screen) => !screen.includes('<HeroCard'));
   for (const card of ['<ContinueLetterCard', '<WeekReviewCard']) assert.ok(!free.includes(card));
-  // The free Today ends with the membership invitation (the plans teaser), not a lock card.
+  // The free Today ends with the membership invitation (the plans teaser), last inside "More for you".
   assert.ok(free.includes('<ExploreMembership />'));
+  assert.ok(free.indexOf('{signsToWatchRow}') < free.indexOf('<ExploreMembership />'));
+  assert.match(free, /\n\s+<TodayDisclosure title=\{t\('disclosure\.membership'\)\}>/);
   assert.ok(!paid[0].includes('<ExploreMembership'), 'a member with a plan sees no sales card');
   assert.ok(!source.includes('FreeTierPaywall'));
+  // The after-meeting invitation stays on the free Today, under the reminder ask, before the check-in.
+  assert.ok(free.indexOf('{reminderAskCard}') < free.indexOf('<ContextualMembershipInvitation'));
+  assert.ok(free.indexOf('<ContextualMembershipInvitation') < free.indexOf('{checkInCard}'));
+  assert.match(source, /useToolOpened\('today'\)/);
   for (const lang of ['en', 'es']) {
     const locale = JSON.parse(readFileSync(new URL(`../src/locales/${lang}/today.json`, import.meta.url), 'utf8'));
     for (const key of ['progress', 'next', 'back', 'addNote', 'hideNote']) assert.ok(locale.checkIn[key]);
-    assert.ok(locale.disclosure.practice); assert.ok(locale.needs.more);
-    // The share card's section says what it is; the old "Free Monday call & connection" title is gone.
-    // (In Spanish the card shares La Sobremesa, so that is the meeting its title names.)
+    assert.ok(locale.needs.more);
+    assert.ok(locale.disclosure.more && locale.disclosure.membership);
+    assert.ok(locale.moreForYou.signsTitle && locale.moreForYou.signsBody);
+    assert.match(locale.pathStep.title, /\{\{phase\}\}/);
+    assert.equal(locale.freeDaily, undefined);
+    // The share card's section title is kept for the Support tab (it shares La Sobremesa in Spanish).
     assert.match(locale.disclosure.invite, lang === 'es' ? /La Sobremesa/ : /Family Squares/); assert.equal(locale.disclosure.connection, undefined);
-    assert.ok(locale.disclosure.more);
   }
+});
+
+test('winback push, check-in feedback and /guided-journey lead to Today with "More for you" open, without stacking the tabs', () => {
+  // The old route pops back to the tabs below it (POP_TO); a <Redirect> (REPLACE)
+  // would stack a second copy of the tabs on every visit.
+  const route = readFileSync(new URL('../app/guided-journey.tsx', import.meta.url), 'utf8');
+  assert.match(route, /router\.dismissTo\(\{ pathname: '\/\(tabs\)', params: \{ more: '1', n: visit \} \}\)/);
+  assert.doesNotMatch(route, /<Redirect href|useGuidedStart|GuidedButton/);
+  // The check-in's "a practical next step" opens Today itself (a tab navigation), with a fresh n per tap.
+  const feedback = readFileSync(new URL('../src/lib/checkInFeedback.ts', import.meta.url), 'utf8');
+  assert.match(feedback, /MORE_FOR_YOU_ROUTE = '\/\(tabs\)\?more=1'/);
+  assert.match(feedback, /plan: MORE_FOR_YOU_ROUTE/);
+  assert.doesNotMatch(feedback, /guided-journey'/);
+  const card = readFileSync(new URL('../src/components/today/CheckInFeedbackCard.tsx', import.meta.url), 'utf8');
+  assert.match(card, /router\.push\(checkInFeedbackHref\(feedback\.route\) as never\)/);
+  const today = readFileSync(new URL('../app/(tabs)/index.tsx', import.meta.url), 'utf8');
+  assert.match(today, /useLocalSearchParams<\{ more\?: string; n\?: string \}>\(\)/);
+  assert.match(today, /if \(openMoreParam !== '1'\) return;\s*setMoreVisited\(true\);\s*setMoreOpen\(true\);/);
+  // Consumed once opened, so a remount of Today does not reopen it.
+  assert.match(today, /navigation\.setParams\(\{ more: undefined, n: undefined \} as never\);\s*\}, \[openMoreParam, openMoreNonce, navigation\]\);/);
+});
+
+test('a hard check-in today keeps the after-meeting invitation away, as it does the five-day card', () => {
+  const today = readFileSync(new URL('../app/(tabs)/index.tsx', import.meta.url), 'utf8');
+  assert.match(today, /const hardCheckInToday = !!todayCheckIn && isDifficultCheckIn\(\{\s+moodScore: todayCheckIn\.moodScore,\s+capacityScore: todayCheckIn\.capacityScore \?\? 3,\s+pressureScore: todayCheckIn\.pressureScore \?\? 3,\s+supportNeed: todayCheckIn\.supportNeed \?\? 'steady',\s+\}\);/);
+  // The moment is let go when it rises after a hard check-in ...
+  assert.match(today, /useAfterMeetingInvite\(\s+user\?\.id \?\? null,\s+welcome\.visible \|\| !!reminderAsk\.view \|\| hardCheckInToday,\s+\);/);
+  // ... and a card already up goes away when she checks in that way.
+  assert.match(today, /placement="after-meeting"\s+completed=\{afterMeeting && !hardCheckInToday\}/);
 });

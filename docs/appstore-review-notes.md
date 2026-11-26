@@ -16,14 +16,12 @@ Email: appreview@soberhelpline.com
 Password: APPREVIEW
 A free account; paid features unlock after a sandbox purchase.
 
-WHAT'S NEW IN 4.2
-- Today leads with the free Monday call (The Family Squares; La Sobremesa for members using Spanish, from AyudaSobria.com): save a seat, send a question ahead, and one note the next morning (only with call reminders on).
-- Tools tab: Holiday Plan (also a Today card Nov 1 to Jan 6), "How to choose a treatment program", and a letter asking a prosecutor for treatment instead of jail. Plans and letters are saved only on the device; sharing uses the iOS share sheet.
-- Crisis Mode adds "Arrested, in jail, or calling from jail"; the FAQ covers bail, court-ordered treatment and medication. General information, not legal or medical advice.
-- Today asks in one tap where things stand with her loved one; a 26-week family reading.
-- If a member says her loved one died (Today or Settings), Today shows grief resources (988, GRASP, The Compassionate Friends), loved-one content and related notifications stop, and she can pause all reminders. Undo is in Settings.
-- If an App Store free trial is offered, the plan screen states its length, the price after it and how to cancel; ineligible members never see one.
-- The community feed is no longer offered.
+WHAT'S NEW IN 4.4 (simpler, no features removed)
+- Four tabs: Today, Practice, Tools, Support. Boundaries is now a part of Practice; the Tracker opens from Today > More for you > Signs to watch.
+- Today shows the check-in and one next step; the rest is under "More for you".
+- After a hard check-in, the app may suggest a family support meeting (Al-Anon, Nar-Anon, ACA, CoDA or PAL) and open that fellowship's own meeting finder in Safari. If she declines, a member can ask Matt to reach out (our team gets a notification); a free account is offered help booking a coaching session.
+- A quiet, occasional membership invitation after she finishes something (at most 3 in 30 days, never in her first 3 days, never on crisis or safety screens). It opens the in-app plan screen; purchases stay Apple in-app purchase only.
+- The floating Safety button, 911, 988 and Poison Control are unchanged and never behind a paywall.
 
 WHAT THE APP IS
 Support for families of people struggling with addiction: check-ins, boundary tools, education, conversation practice, peer support and coaches. Coaching, education and peer support only, not medical care, therapy or treatment.
@@ -38,7 +36,7 @@ WEBSITE PAGES
 Coaching booking, the members' library, recordings and the forum open in Safari with a single-use sign-in token and a "from the app" marker (Spanish: AyudaSobria.com). Those pages hide all membership purchase links.
 
 LIVE SUPPORT GROUPS (Guideline 1.2)
-Support > Groups > "Join live" (Essential and Premier, while a host is live). Hosted by our staff; members can chat, and the host can remove and ban a participant.
+Support > More support > Groups > "Join live" (Essential and Premier, while a host is live). Hosted by our staff; members can chat, and the host can remove and ban a participant.
 
 QUESTIONS FOR THE MONDAY CALL
 Questions go only to our team. One describing an emergency shows 911, 988 and Poison Control at once and alerts our team; if one cannot be sent, the same numbers show with a retry.

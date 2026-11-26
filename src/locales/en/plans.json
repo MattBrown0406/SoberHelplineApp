@@ -37,7 +37,7 @@
       "commandPlan": "The Family Command Plan"
     }
   },
-  "notEmergency": "Messaging is for questions that can wait. It is not emergency care and does not guarantee an immediate reply.",
+  "notEmergency": "Messaging is for questions that can wait. It is not emergency care, and a reply may not be immediate.",
   "yourPlan": "Your plan",
   "currentPlan": "Current plan",
   "covered": "Your organization covers your membership. There is nothing to buy.",
@@ -74,13 +74,17 @@
   },
   "invite": {
     "title": "More support, if you want it",
-    "body": "Look at the plans at your own pace. You can keep using the free tools.",
+    "body": "Look at the plans at your own pace. The free tools stay free.",
     "cta": "See plans",
     "later": "Not now",
     "never": "Don’t show again",
-    "practiceCompleted": "You practiced a conversation. Would ongoing practice and coaching support help with the next one? Your take-away stays free.",
-    "boundarySaved": "You saved a starting point. Membership can help you practice and adjust your approach. Your boundary remains yours.",
+    "practiceCompleted": "You practiced a conversation. Would more practice and coaching help with the next one? Your take-away stays free.",
+    "boundarySaved": "You saved a starting point. Membership can help you practice and adjust it. Your boundary stays yours.",
     "afterMeetingTitle": "Keep talking between Mondays",
-    "afterMeeting": "Family Squares is once a week. With a membership you can message a coach on the days in between."
+    "afterMeeting": "Family Squares is once a week. With a membership you can message a coach on the days in between.",
+    "toolFinished": "Done. If you want someone to think it through with you, members can message a coach between meetings.",
+    "checkinWeekTitle": "Five days in a row",
+    "checkinWeek": "You’ve checked in five days running. Members also see their week in review and their progress here on Today.",
+    "trial": "Essential starts with a {{trial}}."
   }
 }

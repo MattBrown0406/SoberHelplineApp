@@ -1,36 +1,36 @@
 {
   "welcome": {
     "title": "Te damos la bienvenida a Sober Helpline",
-    "subtitle": "La intervención es un momento. La recuperación de la familia es un camino. Preparemos el tuyo.",
+    "subtitle": "La recuperación de tu familia es un camino. Preparemos el tuyo.",
     "providerButton": "Trabajo con un proveedor",
-    "providerSub": "Ingresa el código de invitación de tu intervencionista o consejero",
+    "providerSub": "Usa el código de tu intervencionista o consejero",
     "directButton": "Vengo por mi cuenta",
-    "directSub": "Comienza con registros diarios, límites y apoyo en crisis"
+    "directSub": "Registros diarios, límites y apoyo en crisis"
   },
   "invite": {
     "title": "Ingresa tu código de invitación",
-    "subtitle": "Tu proveedor te dio un código que conecta tu cuenta con su equipo de cuidado.",
+    "subtitle": "El código de tu proveedor te conecta con su equipo de cuidado.",
     "placeholder": "Código de tu proveedor",
     "submitButton": "Conectar mi cuenta",
     "skipButton": "No tengo código",
-    "errorInvalid": "Ese código no corresponde a un proveedor activo. Revísalo e intenta de nuevo, o continúa por tu cuenta.",
+    "errorInvalid": "Ese código no funcionó. Revísalo e inténtalo de nuevo, o continúa por tu cuenta.",
     "errorNetwork": "No pudimos conectar con Sober Helpline. Revisa tu conexión e inténtalo de nuevo.",
-    "errorTooManyAttempts": "Se probaron demasiados códigos. Espera una hora y vuelve a intentarlo, o continúa por tu cuenta.",
+    "errorTooManyAttempts": "Demasiados intentos. Espera una hora y vuelve a intentarlo, o continúa por tu cuenta.",
     "subscriptionWarningTitle": "Tu suscripción propia se sigue cobrando",
-    "subscriptionWarningBody": "Ya pagas Sober Helpline por medio de la App Store o Google Play. Conectarte con tu proveedor no la cancela. Cancélala en Administrar suscripción para que no te cobren dos veces.",
+    "subscriptionWarningBody": "Ya pagas por medio de la App Store o Google Play. Conectarte con tu proveedor no cancela tu suscripción. Para no pagar dos veces, cancélala en Administrar suscripción.",
     "manageSubscription": "Administrar suscripción",
     "continueAnyway": "Conectar mi cuenta de todos modos",
     "success": "Conectado con {{org}}"
   },
   "consent": {
     "title": "¿Compartir tus registros con tu coach?",
-    "body": "Tus registros diarios y las entradas del monitor ayudan a tu coach a ver patrones y acompañarte cuando importa. Solo tu coach asignado los ve — nunca tu familia, nunca el personal administrativo. Puedes desactivarlo cuando quieras en Configuración.",
+    "body": "Tus registros y las entradas del monitor ayudan a tu coach a ver patrones y acompañarte cuando importa. Solo tu coach asignado los ve, nunca tu familia ni el personal administrativo. Desactívalo cuando quieras en Configuración.",
     "acceptButton": "Compartir con mi coach",
     "declineButton": "Ahora no"
   },
   "lovedOne": {
     "title": "¿Por quién estás aquí?",
-    "subtitle": "Algunos detalles sobre tu ser querido nos ayudan a personalizar tu apoyo diario. Esto es privado — solo tú puedes verlo.",
+    "subtitle": "Algunos detalles nos ayudan a adaptar tu apoyo diario. Solo tú puedes verlos.",
     "relationshipLabel": "Es mi…",
     "relationship": {
       "son": "Hijo",
@@ -73,7 +73,7 @@
   },
   "notifications": {
     "title": "Un pequeño recordatorio al día",
-    "body": "Un recordatorio diario para tu registro de 90 segundos, y avisos de sesiones. Eso incluye La Sobremesa, nuestra reunión gratuita de los lunes, cuando reservas tu lugar. Sin presión, sin spam.",
+    "body": "Un recordatorio diario para tu registro y avisos de sesiones. Eso incluye La Sobremesa, nuestra reunión gratuita de los lunes, cuando reservas tu lugar. Sin presión, sin spam.",
     "acceptButton": "Activar recordatorios",
     "declineButton": "Quizás después",
     "unavailable": "No se activaron los recordatorios. Puedes reintentar en Configuración."
@@ -85,9 +85,9 @@
   "done": {
     "title": "Tu castillo comienza hoy",
     "castle": "Un límite es una regla que tú pones. Cada uno es una muralla de tu castillo.",
-    "body": "Regístrate una vez al día. Ancla tu primera muralla cuando estés lista. La ayuda está a un toque — siempre.",
+    "body": "Regístrate una vez al día. Ancla tu primera muralla cuando estés lista. La ayuda está siempre a un toque.",
     "button": "Entrar a Sober Helpline",
-    "rsvpButton": "Reservar mi lugar en la llamada del lunes",
-    "rsvpDone": "✓ Estás dentro — nos vemos el lunes"
+    "rsvpButton": "Reservar mi lugar gratis en La Sobremesa",
+    "rsvpDone": "✓ Estás dentro. Nos vemos el lunes"
   }
 }

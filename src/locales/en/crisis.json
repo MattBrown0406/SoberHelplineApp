@@ -4,7 +4,7 @@
   "title": "Help me know what to do right now",
   "intro": "Answer what is true. This does not replace 911, 988, poison control, medical care, or law enforcement.",
   "emergency": {
-    "offlineNote": "Phone service is still required. If a button cannot connect, move to a place with cellular service or ask someone nearby to call.",
+    "offlineNote": "You need phone service. If a button can't connect, move to where you have signal or ask someone nearby to call.",
     "buttonHint": "Opens your phone or messaging app; service is required to connect",
     "title": "Immediate danger?",
     "note": "These actions are always free. Calls and texts require phone service.",
@@ -49,13 +49,13 @@
     "YELLOW": {
       "label": "Yellow",
       "title": "Escalating concern",
-      "body": "The pattern needs a clear family response. This is a good time to set a boundary, document what happened, and plan before the next escalation.",
+      "body": "The pattern needs a clear family response. Set a boundary, write down what happened, and plan before it escalates again.",
       "action": "Build a boundary and update the incident log/safety plan."
     },
     "GREEN": {
       "label": "Green",
       "title": "Stable concern",
-      "body": "There may not be immediate danger, but the family should still plan, align, and stop enabling patterns early.",
+      "body": "There may be no immediate danger, but the family should still plan, align and stop enabling patterns early.",
       "action": "Use education, readiness, and boundary tools before things escalate."
     }
   },
@@ -204,20 +204,20 @@
     "placeholder": "Tap to enter"
   },
   "wallet": {
-    "storageError": "Device storage could not be read or updated. Editing is paused to protect saved records. Recent edits may not be saved. Retry to reload the stored copy.",
+    "storageError": "This device's storage couldn't be read or saved. Editing is paused to protect your records, and recent edits may not be saved. Retry to reload the saved copy.",
     "signInRequired": "Sign in to access your saved safety wallet. Emergency help remains available.",
     "kicker": "ALWAYS FREE",
     "title": "Safety Wallet",
-    "body": "Keep the household details you may need when it is hard to think clearly. Nothing here is shared unless you choose to export it.",
+    "body": "The household details you may need when it's hard to think clearly. Nothing is shared unless you choose to export it.",
     "offline": "Saved on this device · available offline",
     "startGuide": "Something is happening now — open the Crisis Guide",
     "loading": "Opening your saved safety plan…",
     "savedCount_one": "{{count}} safety detail ready",
     "savedCount_other": "{{count}} safety details ready",
-    "autoSave": "Changes save automatically for this account on this device. Avoid entering private details on a shared device.",
+    "autoSave": "Saves automatically for this account on this device. Avoid private details on a shared device.",
     "coreProgress": "Core plan: {{completed}} of {{total}} essentials ready",
     "readyTitle": "Your core Safety Wallet is ready",
-    "readyBody": "You can keep adding details anytime. Review this plan regularly and update contacts, locations, and family roles when they change.",
+    "readyBody": "Add details anytime. Update contacts, places and family roles when they change.",
     "finish": "Finish for now",
     "groups": {
       "household": "Household essentials",
@@ -226,7 +226,7 @@
       "family": "Family response plan"
     },
     "groupHelp": {
-      "household": "Record the contacts and destination your family would otherwise have to search for during a crisis.",
+      "household": "The contacts and places your family would otherwise have to hunt for in a crisis.",
       "overdose": "If opioids may be involved, keep naloxone where people can find it quickly and follow its package instructions.",
       "dependents": "Plan only actions that can be taken safely. Leave and call emergency services when violence or weapons are possible.",
       "family": "Choose who makes decisions and what the family will consistently do next."
@@ -275,7 +275,7 @@
     "familyCard": {
       "button": "Share with family",
       "title": "SOBER HELPLINE FAMILY EMERGENCY CARD",
-      "intro": "A one-screen card with only what a family member needs in the first minutes: where naloxone is, who to call, and what the family agreed to do. Private history is never included. Nothing is preselected.",
+      "intro": "One screen with what family needs in the first minutes: where naloxone is, who to call, what you agreed to do. Private history is never included. Nothing is preselected.",
       "empty": "Add naloxone location, emergency contacts, a treatment contact, or the agreed plan to build a card.",
       "sections": {
         "naloxone": "Naloxone (Narcan)",
@@ -349,10 +349,10 @@
     "none": "None entered",
     "consent": "I choose to share the meeting details and plan sections previewed above with Sober Helpline staff for meeting preparation. I understand this is not an emergency service.",
     "blockedTitle": "Plan review is waiting on your current video request",
-    "blockedBody": "Only one private video request can be active at a time. View, reschedule, or cancel the current request above before starting a separate plan review.",
+    "blockedBody": "Only one private video request can be active at a time. View, reschedule or cancel the one above first.",
     "checkoutOpenErrorTitle": "Checkout couldn't open",
     "checkoutOpenErrorBody": "Check your connection and try again. Your session remains pending payment.",
-    "pendingPayment": "The request will remain pending payment. Scheduling cannot be confirmed until the existing coaching payment record is verified as paid.",
+    "pendingPayment": "This request stays pending until the coaching payment is verified. Then the time can be confirmed.",
     "payNow": "Pay {{amount}} securely",
     "dateField": "Session date",
     "timeField": "Session time",
@@ -493,7 +493,7 @@
     "safetyLead": "Safety lead",
     "unifiedFamilyStatement": "Unified family statement",
     "crisisCopilot": "CRISIS COPILOT",
-    "takeOneBreathYouDo": "Take one breath. You do not have to solve the entire addiction tonight. We will decide the next safe step.",
+    "takeOneBreathYouDo": "Take one breath. You don't have to solve the whole addiction tonight. We'll decide the next safe step.",
     "crisisAssessmentProgress": "Crisis assessment progress",
     "youAreUsingOfflineTools": "You are using offline tools",
     "whatIsHappeningRightNow": "What is happening right now?",
@@ -513,7 +513,7 @@
     "next72HourPlan": "Next 72-hour plan",
     "clearSavedCrisisData2": "Clear saved crisis data",
     "familyCommandPlan": "Family Command Plan",
-    "assignRolesAndShareOne": "Assign roles and share one unified family position. This version creates a private command plan; a live multi-user room comes later.",
+    "assignRolesAndShareOne": "Assign roles and share one family position. For now, this plan is private to you.",
     "crisisCoordinator": "Crisis coordinator",
     "singleFamilyCommunicator": "Single family communicator",
     "childrenAndSafetyLead": "Children and safety lead",
@@ -523,7 +523,7 @@
     "premierAddsRoleAssignmentsA": "Premier adds role assignments, a unified family position, and private video support.",
     "textSupportIsAvailableWith": "Text support is available with Essential and Premier. For immediate danger, use 911 or 988.",
     "tierRequired": "{{tier}} required",
-    "offlineToolsBody": "Assessment, scripts, 24/72-hour guidance, and the Safety Wallet remain available. Chat, video, and booking return after your connection is restored."
+    "offlineToolsBody": "Assessment, scripts, 24/72-hour guidance and the Safety Wallet still work. Chat, video and booking return when you're back online."
   },
   "arrestLinks": {
     "chooseProgram": "How to choose a treatment program",

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
 import { callCardView, seatPanelView, seatSaveFailureKey, type JoinWindow, type SeatAnswer } from '../src/lib/familySquaresCard';
 
 // Audit round 2 (app side): the pure decisions, the words, and the wiring.
@@ -198,11 +199,14 @@ test('the weekly seat says plainly when it pauses, where the switch is described
   const en = locale('en', 'common').familySquares.weekly.desc as string;
   const es = locale('es', 'common').familySquares.weekly.desc as string;
   assert.match(en, /each week/);
-  assert.match(en, /pauses while your reminders are paused/);
+  // 4.4: no "while your reminders are paused" (only the removed grief pause did that).
+  assert.doesNotMatch(en, /reminders are paused/);
+  assert.match(en, /It pauses after about six months away/);
   // (The server now pauses it after about six months away, not five weeks: audit round 3, L12.)
   assert.match(en, /about six months/);
   assert.doesNotMatch(en, /five weeks/);
-  assert.match(es, /Se pausa mientras tus recordatorios estén en pausa/);
+  assert.doesNotMatch(es, /recordatorios estén en pausa/);
+  assert.match(es, /Se pausa después de unos seis meses/);
   assert.match(es, /unos seis meses/);
   assert.doesNotMatch(es, /cinco semanas/);
   // One description for the seat panel and for Settings.
@@ -217,16 +221,40 @@ test('the admin note counts Join taps as the server does: from 5:00 PM to 8:30 P
   assert.match(read('supabase/migrations/20261114140000_family_squares_missed_followup.sql'), /v_join_from := \(v_meeting \+ time '17:00'\) AT TIME ZONE 'America\/Los_Angeles';/);
 });
 
-// ── L6: nothing is sold to a bereaved member outside Today either ───────────
+// ── 4.4: the bereavement feature was removed (owner's decision) ────────────
 
-test('the Support tab shows no plans teaser to a bereaved member, or before the device knows', () => {
+test('4.4: no "my loved one died" feature is left, and nothing waits on a bereaved signal', () => {
+  const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', 'app', 'src'], { encoding: 'utf8' })
+    .split('\n').filter((file) => /\.(tsx?|json)$/.test(file) && existsSync(file));
+  for (const file of files) {
+    const text = read(file);
+    assert.doesNotMatch(text, /useBereavedOnDevice|bereavedDevice|lib\/bereavement|bereavementQuiet|GriefCard|BereavementSheet|BereavementSettingsCard|BereavementContactsCard|markDied|clearDied|onTheyDied|\bbereaved\b/, file);
+  }
+  for (const lang of ['en', 'es']) {
+    for (const name of ['today', 'settings']) {
+      assert.equal(JSON.parse(read(`src/locales/${lang}/${name}.json`)).bereavement, undefined, `${lang}/${name}`);
+    }
+  }
+  // The Support tab's plans teaser is shown to every free member again.
   const support = read('app/(tabs)/support.tsx');
-  assert.match(support, /const bereaved = useBereavedOnDevice\(user\?\.id \?\? null\);/);
-  assert.match(support, /\{bereaved === false && <PlansTeaserCard offers=\{planOffers\} source="support_tab" \/>\}/);
+  assert.match(support, /\n\s+<PlansTeaserCard offers=\{planOffers\} source="support_tab" \/>/);
   assert.equal(support.split('<PlansTeaserCard').length - 1, 1);
-  // Today's own record feeds the device copy every screen follows.
-  assert.match(read('src/hooks/useLovedOne.ts'), /rememberBereavedOnDevice\(accountId, bereaved\);/);
-  const hook = read('src/hooks/useBereavedOnDevice.ts');
-  assert.match(hook, /subscribeBereavedOnDevice\(\(changedAccount, bereaved\) => \{\s+if \(active && changedAccount === accountId\) setState\(\{ accountId, bereaved \}\);/);
-  assert.match(hook, /return state\.accountId === accountId \? state\.bereaved : undefined;/);
+});
+
+test('4.4 Admin still lists contact requests from older app versions (staff only, shown only when there are any)', () => {
+  // Older apps (4.3) still in use can still report a death and push the owner (admin_bereavement);
+  // the staff card lists those requests so none goes unseen. Nothing member-facing reads them.
+  const card = read('src/components/admin/ReachOutRequestsCard.tsx');
+  assert.match(card, /supabase\.rpc\('admin_bereavement_contacts'\)/);
+  assert.match(card, /\{\(olderApp\.length > 0 \|\| olderAppError\) && \(/);
+  assert.match(card, /Told an older app version their loved one died/);
+  assert.match(card, /onPress=\{\(\) => void message\(\{ id: key, account_id: row\.account_id \}\)\}/);
+  // No "Done" for these rows: the server function has no way to mark one handled.
+  const section = card.slice(card.indexOf('Told an older app version'));
+  assert.doesNotMatch(section, />Done</);
+  assert.doesNotMatch(card, /admin_mark_bereavement|mark_loved_one_died/);
+  const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', 'app', 'src'], { encoding: 'utf8' })
+    .split('\n').filter((file) => /\.(tsx?|json)$/.test(file) && existsSync(file));
+  assert.deepEqual(files.filter((file) => /admin_bereavement_contacts/.test(read(file))), ['src/components/admin/ReachOutRequestsCard.tsx']);
+  assert.match(read('app/admin.tsx'), /<ReachOutRequestsCard \/>/);
 });

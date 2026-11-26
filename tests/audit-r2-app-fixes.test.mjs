@@ -270,32 +270,3 @@ test('the device remembers the other sessions it has seen, added to what it alre
   // Only session ids are kept: nothing about the member.
   assert.doesNotMatch(source('src/lib/familySquaresSessionCache.ts'), /accountId|email|user/i);
 });
-
-// ── L6: the device's copy of "her loved one died" ───────────────────────────
-
-test('screens that sell follow the device\'s copy, and "not known" never shows a sales prompt', async () => {
-  const device = deviceStore({ '@sh:bereaved:account-B': '1', '@sh:bereaved:account-C': '0', '@sh:bereaved:account-D': 'maybe' });
-  const lib = load('src/lib/bereavedDevice.ts', { '@react-native-async-storage/async-storage': device.module, './bereavement': load('src/lib/bereavement.ts') });
-  assert.equal(lib.knownBereavedOnDevice('account-A'), undefined);
-  assert.equal(await lib.loadBereavedOnDevice('account-A'), undefined, 'a new phone: not known');
-  assert.equal(await lib.loadBereavedOnDevice('account-B'), true);
-  assert.equal(await lib.loadBereavedOnDevice('account-C'), false);
-  assert.equal(await lib.loadBereavedOnDevice('account-D'), undefined);
-  assert.equal(lib.salesAllowedForBereavement(false), true);
-  assert.equal(lib.salesAllowedForBereavement(true), false);
-  assert.equal(lib.salesAllowedForBereavement(undefined), false);
-  // Today marks it: every screen hears at once, and the device keeps it.
-  const heard = [];
-  const unsubscribe = lib.subscribeBereavedOnDevice((account, bereaved) => heard.push([account, bereaved]));
-  lib.rememberBereavedOnDevice('account-A', true);
-  assert.deepEqual(heard, [['account-A', true]]);
-  assert.equal(lib.knownBereavedOnDevice('account-A'), true);
-  assert.equal(await lib.loadBereavedOnDevice('account-A'), true);
-  await settle();
-  assert.equal(device.store.get('@sh:bereaved:account-A'), '1');
-  unsubscribe(); lib.rememberBereavedOnDevice('account-A', false);
-  assert.equal(heard.length, 1); assert.equal(lib.knownBereavedOnDevice('account-A'), false);
-  // Unreadable storage is "not known", never a throw.
-  const broken = load('src/lib/bereavedDevice.ts', { '@react-native-async-storage/async-storage': { default: { getItem: async () => { throw Error('locked'); }, setItem: async () => {} } }, './bereavement': load('src/lib/bereavement.ts') });
-  assert.equal(await broken.loadBereavedOnDevice('account-A'), undefined);
-});

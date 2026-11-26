@@ -271,3 +271,16 @@ test('post-win producers are wired after durable success and avoid unsafe false 
   assert.match(situationCard, /onSupportCallJoin[\s\S]*catch[\s\S]*Linking\.openURL/);
   assert.match(continueLetter, /useFocusEffect/);
 });
+
+// One ask per visit, the other way: a visit that had a membership invitation gets no rating prompt.
+test('gives way to a membership invitation shown this visit, checked at each step', () => {
+  assert.deepEqual(reviewPromptDecision({
+    state: EMPTY_REVIEW_PROMPT_STATE,
+    appVersion: '3.6',
+    now: NOW,
+    safety: { invitationThisVisit: true, situationBand: 'calm' },
+  }), { eligible: false, reason: 'invitation_this_visit' });
+  const source = readFileSync(resolve(process.cwd(), 'src/lib/reviewPrompt.ts'), 'utf8');
+  assert.match(source, /invitationThisVisit: invitationThisVisit\(accountId\) \|\| safety\?\.invitationThisVisit,/);
+  assert.equal([...source.matchAll(/mergedReviewSafety\(accountId, /g)].length, 2, 'before the first check and again before the prompt');
+});

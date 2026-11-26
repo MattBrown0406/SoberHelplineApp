@@ -83,7 +83,7 @@ test('feature-to-entitlement map is complete and immutable', () => {
 
 test('gated route shells use Gate and do not re-derive paid access', async () => {
   const routes: Array<[string, ProductFeature]> = [
-    ['app/(tabs)/tracker.tsx', 'tracker'],
+    ['app/tracker.tsx', 'tracker'],
     ['app/community.tsx', 'community'],
     ['app/diy-intervention-planner.tsx', 'diyIntervention'],
     ['app/rehearsal-live.tsx', 'aiRehearsal'],

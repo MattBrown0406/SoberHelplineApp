@@ -306,7 +306,7 @@
   },
   "setup": {
     "kicker": "MAPA DE PATRONES",
-    "progress": "Paso {{step}} de {{total}}",
+    "progress": "Pregunta {{step}} de {{total}}",
     "privacy": "Solo lo ves tú. Tu familia nunca ve tus respuestas.",
     "saveError": "No se guardó. Revisa tu conexión e inténtalo de nuevo; tus respuestas siguen aquí.",
     "loadErrorTitle": "No se pudo abrir tu mapa de patrones",
@@ -682,5 +682,19 @@
     "acknowledge": "Estoy a salvo ahora — mostrar mis frases",
     "reviewSafety": "Revisar tu respuesta de seguridad",
     "acknowledgedNote": "Dijiste que estás a salvo ahora. Si eso cambia, detente y llama al 911."
+  },
+  "flow": {
+    "title": "Tus pasos",
+    "steps": {
+      "setup": "Mapea sus patrones",
+      "kit": "Prepárate para pedirlo",
+      "outcome": "Anota cómo te fue",
+      "progress": "Mira qué funciona"
+    },
+    "stepOf": "Paso {{step}} de {{total}}",
+    "stepLine": "Paso {{step}} de {{total}} · {{name}}",
+    "current": "Estás aquí",
+    "done": "Hecho",
+    "back": "← Motor de Invitación"
   }
 }

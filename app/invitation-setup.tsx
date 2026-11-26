@@ -13,6 +13,8 @@ import { registerForPushNotifications } from '../src/hooks/usePushNotifications'
 import { ChipPicker } from '../src/components/invitation/ChipPicker';
 import { SafetyFirstPanel } from '../src/components/invitation/SafetyFirstPanel';
 import { StepProgress } from '../src/components/invitation/StepProgress';
+import { FlowStepLine } from '../src/components/invitation/FlowSteps';
+import { useToolOpened } from '../src/hooks/useToolOpened';
 import { BackLink, EngineCard, Kicker, PrimaryButton } from '../src/components/invitation/ui';
 import {
   completeInvitationSetup,
@@ -53,6 +55,7 @@ import { captureAppError } from '../src/lib/monitoring';
  * final "alerts" step is paid and never offered on the safety-first path.
  */
 export default function InvitationSetupScreen() {
+  useToolOpened('invitation_setup');
   const { user } = useAccount();
   return <InvitationSetupContent key={user?.id ?? 'signed-out'} />;
 }
@@ -418,6 +421,7 @@ function InvitationSetupContent() {
         busy={leavingBusy}
         onPress={() => { void leaveSetup(); }}
       />
+      <FlowStepLine step="setup" />
       <Kicker>{t('setup.kicker')}</Kicker>
       <StepProgress step={stepIndex + 1} total={steps.length} />
 

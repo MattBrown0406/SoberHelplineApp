@@ -11,13 +11,14 @@ listing. Update `promotionalText` anytime without re-review.
 
 ## English (U.S.)
 
-### What's New in Version 4.2
-• Today starts with the free Monday family call: save your seat, send a question ahead, and get "this week's one thing" the morning after.
-• Holiday Plan: decide who's invited, on what terms, and what happens if they show up using. Share it with everyone hosting.
-• If they're arrested: a step-by-step plan, a letter asking the prosecutor for treatment instead of jail, and a checklist for choosing a treatment program.
-• A 26-week family reading, a one-tap check on where things stand, and new answers on bail, court-ordered treatment, and medication.
-• If your loved one dies, the app changes to support your grief, and you can pause reminders.
-• Members using the app in Spanish now join La Sobremesa, our free Spanish-language Monday call.
+### What's New in Version 4.4
+A simpler, calmer app. Nothing you rely on was taken away.
+• Four tabs instead of six: Today, Practice, Tools, and Support.
+• Today shows your check-in and one next step. Everything else waits under "More for you."
+• Practice holds both conversation practice and your boundaries.
+• Tools shows the ones that fit where things stand right now.
+• On a hard day, the check-in can point you to a family support meeting near you or online, or let you ask for a personal call.
+• Shorter, plainer words on the screens you use most.
 
 ### App Name
 Sober Helpline
@@ -40,7 +41,7 @@ A FREE FAMILY CALL EVERY MONDAY
 Join The Family Squares, a free live call for families. Save your seat, send a question ahead, and get one thing to try that week. Members using the app in Spanish join La Sobremesa, our free call in Spanish.
 
 A DAILY PLAN THAT FITS YOUR WEEK
-A 90-second check-in captures how you're holding up and what would help today. Tell the app where things stand, from active use to treatment, the return home, early recovery, or a return to use, and get one thing to do, one thing to avoid, and what may be normal right now. A 26-week family reading moves forward with you.
+A 90-second check-in captures how you're holding up and what would help today. Tell the app where things stand, from active use to treatment, the return home, early recovery, or a return to use, and get one thing to do, one thing to avoid, and what may be normal right now. A 26-week family reading moves forward with you. On a hard day, the check-in can point you to a family support meeting near you or online.
 
 BOUNDARIES THAT HOLD
 Build boundaries anchored in two honest questions, "Have I enabled the addiction?" and "Has it harmed me?", not in guilt or anger. Learn the castle approach: protect what matters, and decide who and what you let in.
@@ -66,9 +67,6 @@ Message a coach, join live support groups, or book a one-on-one session. When yo
 CRISIS SUPPORT, ALWAYS FREE
 Open immediate safety guidance, 911, 988 and Poison Control shortcuts, and an offline household Safety Wallet without a subscription.
 
-IF THE WORST HAPPENS
-If your loved one dies, tell the app once. It stops asking about them, offers grief support, and lets you pause reminders whenever you need quiet.
-
 IN ENGLISH AND SPANISH
 The entire app, including the support that matters most, in both languages.
 
@@ -88,13 +86,14 @@ Hope. Help. Recovery.
 
 ## Spanish (Mexico) — es-MX
 
-### Novedades de la versión 4.2
-• Hoy empieza con la llamada familiar gratis de los lunes: guarda tu lugar, envía una pregunta antes y recibe "lo único de esta semana" a la mañana siguiente.
-• Plan para las fiestas: decide quién está invitado, con qué condiciones y qué pasa si llega intoxicado/a. Compártelo con todos los que reciben.
-• Si lo/la arrestan: un plan paso a paso, una carta para pedirle a la fiscalía tratamiento en lugar de cárcel y una guía para elegir un programa de tratamiento.
-• Una lectura familiar de 26 semanas, una pregunta de un toque sobre cómo están las cosas y nuevas respuestas sobre fianza, tratamiento ordenado por la corte y medicamentos.
-• Si tu ser querido muere, la app cambia para acompañar tu duelo, y puedes pausar los recordatorios.
-• Si usas la app en español, ahora te unes a La Sobremesa, nuestra llamada gratuita de los lunes en español.
+### Novedades de la versión 4.4
+Una app más sencilla y tranquila. No quitamos nada de lo que usas.
+• Cuatro pestañas en lugar de seis: Hoy, Práctica, Guías y Apoyo.
+• Hoy muestra tu registro diario y un siguiente paso. Lo demás espera en "Más para ti".
+• Práctica reúne la práctica de conversaciones y tus límites.
+• Guías muestra las herramientas que encajan con el momento que vives.
+• En un día difícil, el registro puede sugerirte una reunión de apoyo para familias cerca de ti o en línea, o que pidas una llamada personal.
+• Palabras más cortas y claras en las pantallas que más usas.
 
 ### Subtitle
 Apoyo Familiar en Adicción
@@ -114,7 +113,7 @@ UNA LLAMADA FAMILIAR GRATIS CADA LUNES
 Únete a La Sobremesa, nuestra llamada en vivo y gratuita en español para familias. Guarda tu lugar y recibe una cosa para practicar esa semana. En inglés, la llamada es The Family Squares.
 
 UN PLAN DIARIO PARA TU SEMANA
-Un registro diario de 90 segundos capta cómo estás y qué te ayudaría hoy. Dile a la app en qué punto están las cosas, desde el consumo activo hasta el tratamiento, el regreso a casa, la recuperación temprana o un regreso al consumo, y recibe una acción para hoy, algo que conviene evitar y lo que puede ser normal ahora. Una lectura familiar de 26 semanas avanza contigo.
+Un registro diario de 90 segundos capta cómo estás y qué te ayudaría hoy. Dile a la app en qué punto están las cosas, desde el consumo activo hasta el tratamiento, el regreso a casa, la recuperación temprana o un regreso al consumo, y recibe una acción para hoy, algo que conviene evitar y lo que puede ser normal ahora. Una lectura familiar de 26 semanas avanza contigo. En un día difícil, el registro puede sugerirte una reunión de apoyo para familias cerca de ti o en línea.
 
 LÍMITES QUE SE SOSTIENEN
 Construye límites anclados en dos preguntas honestas, "¿He facilitado la adicción?" y "¿Me ha dañado?", no en la culpa ni en la ira. Aprende el enfoque del castillo: protege lo que importa y decide a quién y qué dejas entrar.
@@ -139,9 +138,6 @@ Escribe a un coach, únete a grupos de apoyo en vivo o agenda una sesión indivi
 
 APOYO EN CRISIS, SIEMPRE GRATIS
 Orientación inmediata de seguridad, accesos al 911, al 988 y a Control de Envenenamiento, y una Cartera de Seguridad del hogar sin conexión y sin suscripción.
-
-SI PASA LO PEOR
-Si tu ser querido muere, díselo a la app una sola vez. Deja de preguntar por esa persona, te ofrece apoyo en el duelo y te permite pausar los recordatorios cuando necesites silencio.
 
 EN ESPAÑOL E INGLÉS
 Toda la app, incluido el apoyo que más importa, en ambos idiomas.

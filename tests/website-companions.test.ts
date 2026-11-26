@@ -94,7 +94,8 @@ test('every soberhelpline.com member page the app opens goes through the signed-
   walk('src');
   assert.deepEqual(offenders, [], 'member pages are opened by path through useWebSSO');
 
-  const support = read('app/(tabs)/support.tsx');
+  // The family forum link is in the Support tab's groups card (its own file since 4.4).
+  const support = read('app/(tabs)/support.tsx') + read('src/components/support/SupportGroupsCard.tsx');
   assert.match(support, /openWithSSO\(user\?\.id \?\? null, WEBSITE_PATHS\.familyForum\)/);
   assert.doesNotMatch(support, /GROUPS_URL/);
   const learn = read('app/(tabs)/learn.tsx');
@@ -212,14 +213,16 @@ test('a soberhelpline.com membership is recognised from either website grant', (
 });
 
 test('the phone line is (458) 298-8008; the WhatsApp number is never dialed', () => {
-  const support = read('app/(tabs)/support.tsx');
+  // The crisis sheet (its own file since 4.4) is where the line is dialed.
+  const support = read('src/components/support/CrisisSheet.tsx');
+  assert.doesNotMatch(read('app/(tabs)/support.tsx'), /tel:/);
   assert.match(support, /const CRISIS_LINE_TEL = 'tel:\+14582988008';/);
   assert.match(support, /const CRISIS_LINE_DISPLAY = '\(458\) 298-8008';/);
   assert.doesNotMatch(support, /tel:\+?1?5038362136/);
 });
 
 test('the helpline is not listed as an emergency line, and website members are told how the app finds them', () => {
-  const support = read('app/(tabs)/support.tsx');
+  const support = read('src/components/support/CrisisSheet.tsx');
   const settings = read('app/settings.tsx');
   // 911 and 988 stay under "Emergency contacts"; the helpline follows in its own group.
   const order = ['crisis.divider', 'crisis.line911', 'crisis.line988', 'crisis.guidanceDivider', 'crisis.lineSh']
@@ -264,10 +267,10 @@ test('email confirmation lands on soberhelpline.com', () => {
 test('store builds ship on the production update channel', () => {
   const eas = JSON.parse(read('eas.json'));
   assert.equal(eas.build.production.channel, 'production');
-  assert.equal(eas.build['release-4-3-0'].extends, 'production');
-  assert.equal(eas.build['release-4-3-0'].autoIncrement, false);
+  assert.equal(eas.build['release-4-4-0'].extends, 'production');
+  assert.equal(eas.build['release-4-4-0'].autoIncrement, false);
   const app = JSON.parse(read('app.json'));
-  assert.equal(app.expo.version, '4.3');
+  assert.equal(app.expo.version, '4.4');
   assert.equal(app.expo.ios.buildNumber, '1');
   assert.deepEqual(app.expo.runtimeVersion, { policy: 'appVersion' });
   assert.match(app.expo.updates.url, /^https:\/\/u\.expo\.dev\//);

@@ -31,12 +31,12 @@
     "progress": "Step {{current}} of {{total}}",
     "next": "Continue",
     "back": "Back",
-    "addNote": "Add a private note (optional)",
-    "hideNote": "Hide note — keep my words",
+    "addNote": "Add a private note",
+    "hideNote": "Hide note, keep my words",
     "eyebrow": "Daily check-in",
     "question": "How are you holding up today?",
     "moodQuestion": "Where is your mood right now?",
-    "capacityQuestion": "How much capacity do you have for today?",
+    "capacityQuestion": "How much capacity do you have today?",
     "capacityLow": "Running on empty",
     "capacityHigh": "Room to cope",
     "capacityAccessibility": "Capacity",
@@ -56,32 +56,32 @@
     "noteLabel": "One sentence you need to get out",
     "notePlaceholder": "Optional private note…",
     "optional": "Optional",
-    "completionHint": "Choose one answer in each section to complete your check-in.",
+    "completionHint": "Choose one answer in each step to finish.",
     "incompleteTitle": "Finish your check-in",
-    "incompleteMessage": "Choose your mood, capacity, pressure, and what would help most today.",
+    "incompleteMessage": "Choose your mood, capacity, pressure and what would help.",
     "privacy": "Your answers are private.",
     "privacyAttached": "Patterns are shared only with your {{orgName}} coach.",
-    "privacyDirect": "Patterns stay private unless you choose to share them with a coach.",
+    "privacyDirect": "Patterns stay private unless you share them with a coach.",
     "completeButton": "Complete check-in",
     "savingButton": "Saving check-in…",
     "moodAccessibility": "Mood {{score}} out of 5",
     "moodHint": "Tap an emoji above to select your mood",
     "noMoodTitle": "Select a mood",
-    "noMoodMessage": "Tap one of the emojis above to record how you're feeling, then complete your check-in.",
+    "noMoodMessage": "Tap an emoji to choose your mood, then finish your check-in.",
     "errorTitle": "Couldn't save check-in",
-    "errorMessage": "Something went wrong saving your check-in. Please try again.",
+    "errorMessage": "Something went wrong. Please try again.",
     "done": "✓ Check-in complete!",
-    "pendingSync": "Saved on this device — it will sync when you're back online.",
+    "pendingSync": "Saved on this device. It will sync when you're back online.",
     "doneStreak": "✓ Check-in complete — {{count}}-day streak!",
     "doneCoach": "{{orgFirst}} will see your update.",
     "lowSupportTitle": "A heavy stretch",
-    "lowSupportBody_one": "That's {{count}} hard day lately — a lot to carry alone. A coach can help you steady things in one private hour, just for you.",
-    "lowSupportBody_other": "That's {{count}} hard days lately — a lot to carry alone. A coach can help you steady things in one private hour, just for you.",
+    "lowSupportBody_one": "That's {{count}} hard day lately, a lot to carry alone. A private hour with a coach can help.",
+    "lowSupportBody_other": "That's {{count}} hard days lately, a lot to carry alone. A private hour with a coach can help.",
     "lowSupportButton": "Talk to a coach",
     "responses": {
       "safety": {
         "title": "Safety comes first",
-        "body": "Make the next step about immediate safety, not resolving the whole situation. If anyone may be in danger or you suspect an overdose, call emergency services now.",
+        "body": "Focus on safety right now, not the whole situation. If anyone may be in danger or you suspect an overdose, call emergency services now.",
         "cta": "Open the Safety Wallet"
       },
       "overloaded": {
@@ -101,8 +101,8 @@
       },
       "plan": {
         "title": "Only plan the next decision",
-        "body": "Write down what is known, what must be decided today, and what can wait. Open Your family pathway below for guidance.",
-        "cta": "Review today's pathway"
+        "body": "Write down what is known, what must be decided today, and what can wait. Your path, under More for you, shows a step for today.",
+        "cta": "See your path"
       },
       "rest": {
         "title": "Reduce one demand",
@@ -134,27 +134,29 @@
   "disclosure": {
     "show": "Show",
     "hide": "Hide",
-    "more": "More for this week",
-    "pathway": "Your family pathway",
+    "more": "More for you",
     "invite": "Invite someone to Family Squares",
-    "practice": "Scripts, practice & your progress",
     "membership": "Explore membership"
   },
-  "freeDaily": {
-    "eyebrow": "Today's script",
-    "note": "This is today's script. The full library is in the {{tab}} tab."
+  "moreForYou": {
+    "signsTitle": "Signs to watch",
+    "signsBody": "Warning signs and recovery signs, day by day."
+  },
+  "pathStep": {
+    "eyebrow": "Your next step",
+    "title": "Your path: {{phase}}"
   },
   "passItOn": {
     "eyebrow": "Pass it on",
     "title": "Help the next family find the room",
-    "body": "Share the free Monday family call or print a practical boundary card for a meeting, church, or treatment family day.",
+    "body": "Share the free Monday family call, or print a boundary card for a meeting, church or treatment family day.",
     "shareTitle": "Free Monday family support call",
     "shareButton": "Share the free Monday call",
     "sharing": "Opening share options…",
-    "copied": "Call details copied. You can paste them anywhere.",
+    "copied": "Call details copied. Paste them anywhere.",
     "printButton": "Print the boundary card",
     "printing": "Opening print options…",
-    "privacy": "Only public Sober Helpline resources are shared. Nothing from your account or family is included.",
+    "privacy": "Only public resources are shared, never anything from your account or family.",
     "shareError": "We couldn't open the share options. Please try again.",
     "printError": "We couldn't open the print options. Please try again."
   },
@@ -175,10 +177,10 @@
     "highPressureDays_other": "{{count}} high-pressure days",
     "boundaries_one": "{{count}} boundary held",
     "boundaries_other": "{{count}} boundaries held",
-    "encourage": "Steadiness like this is what recovery looks like from the family side. Keep going."
+    "encourage": "This is what family recovery looks like. Keep going."
   },
   "pathway": {
-    "eyebrow": "Your family pathway",
+    "eyebrow": "Your path",
     "title": "What helps in this phase",
     "changePhase": "Change the current phase",
     "choosePhase": "Which phase best fits today?",
@@ -195,12 +197,12 @@
     "phases": {
       "active_use": {
         "label": "Active use",
-        "description": "When use is active, the goal is less chaos and more safety — not winning an argument.",
+        "description": "While use is active, aim for safety and less chaos, not winning an argument.",
         "cta": "Review your Safety Wallet",
         "do": [
-          "Confirm who you can call and where you can go if the home becomes unsafe.",
-          "Keep money, medications, keys, and important documents where only you can reach them.",
-          "Choose one clear boundary you can actually hold today."
+          "Know who to call and where to go if home becomes unsafe.",
+          "Keep money, medications, keys and documents where only you can reach them.",
+          "Choose one boundary you can hold today."
         ],
         "avoid": [
           "Do not argue about substance use while they are intoxicated.",
@@ -215,12 +217,12 @@
       },
       "considering_treatment": {
         "label": "Considering treatment",
-        "description": "Interest in help often comes with ambivalence. Prepare a small next step before the window opens.",
+        "description": "Wanting help often comes with mixed feelings. Prepare one small step before the window opens.",
         "cta": "Explore treatment options",
         "do": [
-          "Write down two realistic help options and the first call required for each.",
-          "Choose a calm, sober time and lead with one observable fact and one offer of help.",
-          "Decide what practical help you can offer — a ride or a call — without taking over."
+          "Write down two realistic options and the first call for each.",
+          "At a calm, sober time, start with one fact you saw and one offer of help.",
+          "Offer practical help, like a ride or a call, without taking over."
         ],
         "avoid": [
           "Do not make threats or ultimatums you are not prepared to carry out.",
@@ -235,11 +237,11 @@
       },
       "in_treatment": {
         "label": "In treatment",
-        "description": "Treatment gives the family room to steady itself too. Your work is support, boundaries, and your own recovery.",
+        "description": "Treatment gives the family room to steady too. Your part: support, boundaries and your own recovery.",
         "cta": "Find family support",
         "do": [
-          "Ask the program what family education or support is available and what consent allows them to share.",
-          "Restart one routine that supports your sleep, meals, work, or connection.",
+          "Ask the program about family support and what they can share with consent.",
+          "Restart one routine for your sleep, meals, work or connection.",
           "Write down the boundaries that will still matter after treatment."
         ],
         "avoid": [
@@ -255,12 +257,12 @@
       },
       "returning_home": {
         "label": "Preparing to return home",
-        "description": "A planned transition is safer than an improvised one. Make expectations and responses clear before the first hard day.",
+        "description": "A planned return is safer than an improvised one. Set expectations before the first hard day.",
         "cta": "Prepare the home safety plan",
         "do": [
-          "Agree on basic home expectations, supports, and what happens if a boundary is crossed.",
-          "Update emergency contacts, safe places, medication storage, and overdose-response supplies.",
-          "Plan the first week: transportation, appointments, household roles, and quiet recovery time."
+          "Agree on home expectations, supports and what happens if a boundary is crossed.",
+          "Update emergency contacts, safe places, medication storage and overdose-response supplies.",
+          "Plan the first week: rides, appointments, household roles and quiet recovery time."
         ],
         "avoid": [
           "Do not wait for a crisis to decide how the household will respond.",
@@ -275,12 +277,12 @@
       },
       "early_recovery_30": {
         "label": "First 30 days",
-        "description": "The first month is about structure, support, and safety. Stability matters more than dramatic promises.",
+        "description": "The first month is about structure, support and safety. Stability matters more than big promises.",
         "cta": "Track what you observe",
         "do": [
-          "Protect recovery routines and choose one small routine that steadies you too.",
-          "Decide how you will respond to one warning sign before it appears.",
-          "Notice and name one recovery action without demanding reassurance."
+          "Protect recovery routines, and keep one small routine that steadies you.",
+          "Decide how you'll respond to a warning sign before it appears.",
+          "Name one recovery action you notice, without asking for reassurance."
         ],
         "avoid": [
           "Do not treat every hard mood as proof of a return to use.",
@@ -295,12 +297,12 @@
       },
       "early_recovery_90": {
         "label": "Days 31–90",
-        "description": "As daily life returns, protect the routines that work and rebuild trust in small, observable steps.",
+        "description": "As daily life returns, keep the routines that work and rebuild trust in small, visible steps.",
         "cta": "Review recent patterns",
         "do": [
-          "Hold one calm weekly check-in about routines, needs, and household responsibilities.",
-          "Rebuild one shared activity that does not revolve around recovery talk.",
-          "Recognize consistent behavior, not just intentions or promises."
+          "Hold one calm weekly check-in about routines, needs and chores.",
+          "Do one thing together that isn't about recovery.",
+          "Notice steady behavior, not just promises."
         ],
         "avoid": [
           "Do not rush to restore money, access, or responsibilities before trust is ready.",
@@ -315,12 +317,12 @@
       },
       "ongoing_recovery": {
         "label": "Ongoing recovery",
-        "description": "Longer-term recovery still benefits from honest connection, durable boundaries, and a life that belongs to each person.",
+        "description": "Long-term recovery still benefits from honest connection, firm boundaries and a life of one's own.",
         "cta": "Strengthen your support network",
         "do": [
-          "Keep one boundary and one support practice active even during a calm stretch.",
-          "Review the household safety plan and contact list before you need them.",
-          "Make room for a relationship moment that is not about addiction or recovery."
+          "Keep one boundary and one support habit going, even when things are calm.",
+          "Review the home safety plan and contact list before you need them.",
+          "Make room for time together that isn't about addiction."
         ],
         "avoid": [
           "Do not abandon the plan simply because things have been well.",
@@ -335,12 +337,12 @@
       },
       "return_to_use": {
         "label": "Return to use",
-        "description": "A return to use is serious, especially after abstinence. Move from shock to safety, facts, and the next available support.",
+        "description": "A return to use is serious, especially after time sober. Move from shock to safety, facts and the next support.",
         "cta": "Open crisis support",
         "do": [
-          "Assess immediate danger and use your safety plan; call emergency services for a suspected overdose or immediate threat.",
-          "State what you observed in simple facts and follow the boundary you already set.",
-          "Contact your own support person and gather the next appropriate care option."
+          "Check for immediate danger and use your safety plan. Call emergency services for a suspected overdose or immediate threat.",
+          "State what you saw in simple facts and keep the boundary you already set.",
+          "Call your own support person and line up the next care option."
         ],
         "avoid": [
           "Do not shame, lecture, or try to force insight in the middle of intoxication.",
@@ -355,12 +357,12 @@
       },
       "unsure": {
         "label": "Not sure yet",
-        "description": "Uncertainty is exhausting. Start with safety and observable facts instead of trying to solve the whole story today.",
+        "description": "Not knowing is exhausting. Start with safety and facts you can see, not the whole story.",
         "cta": "Track observable signs",
         "do": [
-          "Write down only what you directly saw or heard, with a date and time.",
-          "Check your own body and the household for immediate safety concerns.",
-          "Choose one trusted person you can speak with without needing to prove anything."
+          "Write down only what you saw or heard, with the date and time.",
+          "Check your body and your home for immediate safety concerns.",
+          "Choose one trusted person to talk to without having to prove anything."
         ],
         "avoid": [
           "Do not make an accusation when you only have a feeling or one ambiguous sign.",
@@ -373,6 +375,10 @@
           "Clarity may come from a pattern of facts rather than one conversation."
         ]
       }
+    },
+    "freeCta": {
+      "tools": "Find a tool to start with",
+      "boundaries": "Plan your boundaries"
     }
   },
   "focus": {
@@ -452,7 +458,7 @@
   },
   "moodChart": {
     "eyebrow": "YOUR LAST 14 DAYS",
-    "noData": "Check in daily to see your emotional arc here.",
+    "noData": "Check in daily to see your mood here.",
     "legendHard": "Hard",
     "legendOkay": "Okay",
     "legendGood": "Good"
@@ -469,16 +475,16 @@
     "freeCall": "Save my spot on the free call",
     "coaching": "Talk 1:1 with a coach",
     "intervention": "Plan an intervention with Matt",
-    "coachingSub": "Carrying a lot this week? A private hour to map your next move — {{rate}}.",
-    "coachingSubCrisis": "Carrying a lot this week? A private hour with a coach is available after you use 911, 988, or Crisis Copilot.",
-    "interventionSub": "When it's time for more than an app, Matt will walk with you step by step.",
+    "coachingSub": "Carrying a lot? A private hour to plan your next move: {{rate}}.",
+    "coachingSubCrisis": "Use 911, 988 or Crisis Copilot first. Then a private hour with a coach can help.",
+    "interventionSub": "When an app isn't enough, Matt walks with you step by step.",
     "finderLink": "Find treatment & support near you →",
     "sendBrief": "Send Matt this week",
-    "sendBriefSub": "Put your last two weeks in front of Matt — your check-ins, warning signs, and boundaries. He reads every brief and replies personally.",
+    "sendBriefSub": "Send Matt your last two weeks: check-ins, warning signs and boundaries. He reads every one and replies personally.",
     "askQuestion": "Send a question for the call",
     "oneThing": "THIS WEEK'S ONE THING",
     "oneThingFromCall": "THIS WEEK'S ONE THING · FROM MONDAY'S CALL",
-    "oneThingSupport": "This week, let someone carry this with you: use one of the options below."
+    "oneThingSupport": "This week, let someone carry this with you. Pick an option below."
   },
   "curriculum": {
     "weekLabel": "WEEK {{week}}",
@@ -501,50 +507,44 @@
     "titleStaleNoName": "Has anything changed with your loved one?",
     "titlePressure": "Today sounds heavy. Has something changed with {{name}}?",
     "titlePressureNoName": "Today sounds heavy. Has something changed with your loved one?",
-    "body": "One tap keeps Today matched to where things are: the support it offers, the weekly reading, and when it suggests a call.",
+    "body": "One tap keeps Today's support and weekly reading matched to where things are.",
     "same": "Still the same: {{phase}}",
     "sameAccessibility": "Still the same: {{phase}}. Saves that nothing has changed.",
     "saveError": "We couldn't save that. Please try again.",
     "notNow": "Not now",
     "thanks": "Thanks. Today now fits where things are."
   },
-  "bereavement": {
-    "sheet": {
-      "title": "We're so sorry.",
-      "body": "If your loved one has died, the app will stop asking about them and stop sending notes about their recovery. Your check-ins, the Monday call, and Support stay here for you. You can undo this in Settings.",
-      "contact": "Let Matt or a coach reach out to you personally",
-      "confirm": "Yes, they died",
-      "cancel": "Cancel",
-      "error": "We couldn't save that. Please try again.",
-      "quiet": "Pause reminders and notes for now"
+  "fellowships": {
+    "intro": "Hard days are easier with people who understand. Many families find help at a free family meeting.",
+    "question": "Which one would you like to consider?",
+    "options": {
+      "alAnon": { "name": "Al-Anon", "description": "For families and friends of someone who drinks" },
+      "narAnon": { "name": "Nar-Anon", "description": "For families and friends of someone who uses drugs" },
+      "aca": { "name": "ACA", "description": "Adult Children of Alcoholics and Dysfunctional Families: for adults who grew up around drinking or dysfunction" },
+      "coda": { "name": "CoDA", "description": "Co-Dependents Anonymous: for building healthier relationships" },
+      "pal": { "name": "PAL", "description": "Parents of Addicted Loved Ones: for parents, spouses and family of someone with an addiction" }
     },
-    "link": "My loved one died",
-    "grief": {
-      "eyebrow": "WE'RE SO SORRY",
-      "title": "There's no right way to grieve this",
-      "paragraphs": [
-        "Grief after addiction is its own kind of grief. You may feel crushing loss, and some days relief that the waiting is over, and then guilt for the relief. All of it is normal.",
-        "You didn't cause this. You loved someone through an illness that took them, and nothing you did or didn't do on one day decided it.",
-        "Some people around you may not know what to say, or may not treat this like other losses. Your grief counts anyway."
-      ],
-      "grasp": {
-        "title": "GRASP: Grief Recovery After a Substance Passing",
-        "body": "Free peer groups, in person and online, for families who lost someone to addiction or overdose.",
-        "button": "Open grasphelp.org"
-      },
-      "compassionateFriends": {
-        "title": "The Compassionate Friends",
-        "body": "Support for families after the death of a child of any age, including brothers, sisters, and grandparents.",
-        "button": "Open compassionatefriends.org"
-      },
-      "crisisTitle": "If you don't want to be here",
-      "crisisBody": "After someone dies from addiction, the risk of suicide rises for the people who loved them. If you're thinking about not wanting to be here, call or text 988. Reaching out is not a failure.",
-      "stillHere": "Matt and the Monday call are still here for you, for as long as you want them.",
-      "openError": "We couldn't open that page. Visit {{site}} in your browser.",
-      "pause": "Pause all reminders",
-      "resume": "Turn reminders back on",
-      "pausedNote": "Reminders and notes are paused. Messages from Matt, a coach, or your family, and sessions you've booked, still come through.",
-      "quietError": "We couldn't change your reminders. Please try again."
-    }
+    "find": "Find {{name}} meetings",
+    "findHint": "Opens the official {{name}} meeting finder in your browser",
+    "remembered": "Saved on this device. Tap another to change it.",
+    "notNow": "Not right now",
+    "openErrorTitle": "We couldn't open the meeting finder",
+    "openErrorBody": "Visit {{site}} in your browser.",
+    "reachOut": {
+      "question": "Would you like {{name}} to reach out to you?",
+      "yes": "Yes, please reach out",
+      "no": "No thanks",
+      "sending": "Sending…",
+      "sent": "{{name}} has been told and will reach out to you.",
+      "emergency": "Sober Helpline is not a 24/7 service. In an emergency, call 911, or call or text 988.",
+      "failed": "That didn't go through. Please try again.",
+      "retry": "Try again"
+    },
+    "booking": {
+      "question": "Would you like help booking a coaching session?",
+      "yes": "Help me book",
+      "no": "No thanks"
+    },
+    "closing": "That's okay. Be gentle with yourself today."
   }
 }

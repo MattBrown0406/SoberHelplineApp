@@ -5,6 +5,7 @@ import { Linking } from 'react-native';
 import { captureAppError } from './monitoring';
 import { logFunnelEvent } from './funnel';
 import { supabase } from './supabase';
+import { invitationThisVisit, noteReviewPending, noteVisitAsk } from '../membershipInvitations/visitAsks';
 import {
   parseReviewPromptState,
   buildAuthoritativeReviewSafety,
@@ -79,7 +80,16 @@ export function maybeRequestReview({
   const existing = requestsInFlight.get(accountId);
   if (existing) return existing;
 
-  const request = runReviewRequest(accountId, milestone, safety).finally(() => {
+  // One ask per visit: while the check runs, and after a prompt was (or may
+  // have been) requested, no membership invitation is offered (visitAsks).
+  // The other way round, a visit that had an invitation gets no prompt
+  // (invitationThisVisit, checked before each step in mergedReviewSafety).
+  noteReviewPending(accountId, true);
+  const request = runReviewRequest(accountId, milestone, safety).then((outcome) => {
+    if (outcome === 'requested' || outcome === 'failed') noteVisitAsk(accountId);
+    return outcome;
+  }).finally(() => {
+    noteReviewPending(accountId, false);
     if (requestsInFlight.get(accountId) === request) requestsInFlight.delete(accountId);
   });
   requestsInFlight.set(accountId, request);
@@ -102,7 +112,7 @@ async function runReviewRequest(
     const decision = reviewPromptDecision({
       state,
       appVersion: version,
-      safety: mergedReviewSafety(authoritativeSafety, safety),
+      safety: mergedReviewSafety(accountId, authoritativeSafety, safety),
     });
     if (!decision.eligible) return 'not_eligible';
 
@@ -128,7 +138,7 @@ async function runReviewRequest(
     if (!finalAuthoritativeSafety || !reviewPromptDecision({
       state,
       appVersion: version,
-      safety: mergedReviewSafety(finalAuthoritativeSafety, safety),
+      safety: mergedReviewSafety(accountId, finalAuthoritativeSafety, safety),
     }).eligible) return 'not_eligible';
 
     logFunnelEvent('review_prompt_requested', { milestone, app_version: version });
@@ -141,19 +151,21 @@ async function runReviewRequest(
 }
 
 function mergedReviewSafety(
+  accountId: string,
   authoritativeSafety: ReviewSafetyContext,
   safety?: ReviewSafetyContext,
 ): ReviewSafetyContext {
   return {
     ...safety,
     ...authoritativeSafety,
+    // Read now, at each step: an invitation may have appeared during the awaits.
+    invitationThisVisit: invitationThisVisit(accountId) || safety?.invitationThisVisit,
     checkIn: authoritativeSafety.checkIn ?? safety?.checkIn ?? null,
     recentCrisisAt: mostRecentTimestamp(
       authoritativeSafety.recentCrisisAt,
       safety?.recentCrisisAt,
     ),
     recentLowMood: authoritativeSafety.recentLowMood || safety?.recentLowMood,
-    bereaved: authoritativeSafety.bereaved || safety?.bereaved,
     inCrisisFlow: currentRouteIsCrisis || safety?.inCrisisFlow,
     inPurchaseFlow: purchaseFlowDepth > 0 || currentRouteIsPaywall
       || embeddedPaywallVisible || safety?.inPurchaseFlow,
@@ -168,7 +180,7 @@ function mostRecentTimestamp(first?: string | null, second?: string | null): str
 }
 
 async function authoritativeReviewSafety(accountId: string): Promise<ReviewSafetyContext | null> {
-  const [accountResult, situationResult, checkInResult, lovedOneResult] = await Promise.all([
+  const [accountResult, situationResult, checkInResult] = await Promise.all([
     supabase.rpc('my_account_id'),
     supabase.rpc('my_situation'),
     supabase
@@ -178,16 +190,12 @@ async function authoritativeReviewSafety(accountId: string): Promise<ReviewSafet
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
-    supabase.from('loved_ones').select('died_at').eq('account_id', accountId).maybeSingle(),
   ]);
   if (accountResult.error || accountResult.data !== accountId
-    || situationResult.error || checkInResult.error || lovedOneResult.error
+    || situationResult.error || checkInResult.error
     || !situationResult.data || typeof situationResult.data !== 'object') return null;
 
-  const built = buildAuthoritativeReviewSafety(situationResult.data, checkInResult.data);
-  // Her loved one died: the rating prompt never appears, from any screen.
-  const diedAt = (lovedOneResult.data as { died_at?: unknown } | null)?.died_at;
-  return built && { ...built, bereaved: typeof diedAt === 'string' && diedAt.length > 0 };
+  return buildAuthoritativeReviewSafety(situationResult.data, checkInResult.data);
 }
 
 /** Queue a review request until the member returns from the external meeting. */

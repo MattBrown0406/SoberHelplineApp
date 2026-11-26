@@ -1,4 +1,4 @@
-import { useToolOpened } from '../../src/hooks/useToolOpened';
+import { useToolOpened } from '../src/hooks/useToolOpened';
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   View,
@@ -6,21 +6,21 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
-import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
-import { TabHeader } from '../../src/components/ui/TabHeader';
+import { ScreenContainer, TAB_SCREEN_BOTTOM_CLEARANCE } from '../src/components/ui/ScreenContainer';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { useAccount } from '../../src/contexts/AccountContext';
-import { useTheme } from '../../src/contexts/ThemeContext';
-import { useTracker } from '../../src/hooks/useTracker';
-import { useSituation } from '../../src/hooks/useSituation';
-import { INITIAL_TRACKER_SPIKE_MEMORY, nextTrackerSpike, type TrackerSpikeMemory } from '../../src/lib/trackerSpike';
-import { SituationOffRamp } from '../../src/components/situation/SituationOffRamp';
-import type { FunnelDoor } from '../../src/lib/situation';
-import { supabase } from '../../src/lib/supabase';
-import { appAlert } from '../../src/lib/appAlert';
-import { WillingnessWindowCard } from '../../src/components/tracker/WillingnessWindowCard';
-import { Gate } from '../../src/components/auth/Gate';
+import { useAccount } from '../src/contexts/AccountContext';
+import { useTheme } from '../src/contexts/ThemeContext';
+import { useTracker } from '../src/hooks/useTracker';
+import { useSituation } from '../src/hooks/useSituation';
+import { INITIAL_TRACKER_SPIKE_MEMORY, nextTrackerSpike, type TrackerSpikeMemory } from '../src/lib/trackerSpike';
+import { SituationOffRamp } from '../src/components/situation/SituationOffRamp';
+import type { FunnelDoor } from '../src/lib/situation';
+import { supabase } from '../src/lib/supabase';
+import { appAlert } from '../src/lib/appAlert';
+import { WillingnessWindowCard } from '../src/components/tracker/WillingnessWindowCard';
+import { Gate } from '../src/components/auth/Gate';
+import { FreeTierPaywall } from '../src/components/ui/FreeTierPaywall';
 
 const ALERT_THRESHOLD = 3;
 
@@ -98,9 +98,58 @@ function SignToggle({
   );
 }
 
+/**
+ * The Tracker (signs to watch), a pushed screen since 4.4: it is no longer a
+ * tab. Reached from Today and a tracker push. No tab may be named `tracker`
+ * (it would capture `/tracker`). Its membership gate is unchanged.
+ */
 export default function TrackerScreen() {
   useToolOpened('tracker');
-  return <Gate feature="tracker"><TrackerContent /></Gate>;
+  return (
+    <Gate feature="tracker" fallback={<TrackerLocked />}>
+      <TrackerContent />
+    </Gate>
+  );
+}
+
+/** The title row: a 44-point Back, then the screen's name. */
+function TrackerHeader() {
+  const { colors } = useTheme();
+  const router = useRouter();
+  const { t } = useTranslation('tracker');
+  // Opened from a notification or a link there may be nothing to go back to: then Today.
+  const goBack = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/(tabs)');
+  };
+  return (
+    <View style={styles.headerRow}>
+      <TouchableOpacity
+        onPress={goBack}
+        accessibilityRole="button"
+        accessibilityLabel={t('common:a11y.back')}
+        style={styles.backButton}
+      >
+        <Text accessible={false} style={[styles.backChevron, { color: colors.primary }]}>‹</Text>
+      </TouchableOpacity>
+      <Text accessibilityRole="header" style={[styles.heading, { color: colors.ink }]}>
+        {t('common:nav.tracker')}
+      </Text>
+    </View>
+  );
+}
+
+// The floating Safety button shows on the Tracker too (SafetyShortcut): the
+// last row scrolls clear of it, as on the tabs.
+/** Without membership: the same plans card the tab showed, under a way back. */
+function TrackerLocked() {
+  const { colors } = useTheme();
+  return (
+    <ScreenContainer backgroundColor={colors.cream} contentContainerStyle={styles.clearSafety}>
+      <TrackerHeader />
+      <FreeTierPaywall inline />
+    </ScreenContainer>
+  );
 }
 
 function TrackerContent() {
@@ -138,7 +187,7 @@ function TrackerContent() {
   // logged when the tracker loads must not re-raise a status the family has
   // since brought down from the Today pathway card.
   const spikeMemoryRef = useRef<TrackerSpikeMemory>(INITIAL_TRACKER_SPIKE_MEMORY);
-  // Tabs stay mounted: re-read the band on focus so a status changed on the
+  // Re-read the band on focus (also on return from Trajectory) so a status changed on the
   // Today pathway card is what a new spike compares against.
   useFocusEffect(useCallback(() => { void refreshSituation(); }, [refreshSituation]));
   useEffect(() => {
@@ -179,8 +228,8 @@ function TrackerContent() {
     t('privacyNote') + (isAttached ? t('privacyNoteCoach') : t('privacyNoteDirect'));
 
   return (
-    <ScreenContainer backgroundColor={colors.cream}>
-        <TabHeader title={t('common:nav.tracker')} />
+    <ScreenContainer backgroundColor={colors.cream} contentContainerStyle={styles.clearSafety}>
+        <TrackerHeader />
         <WillingnessWindowCard
           accountId={user?.id ?? null}
           onSituationRefresh={refreshSituation}
@@ -280,6 +329,23 @@ function TrackerContent() {
 }
 
 const styles = StyleSheet.create({
+  clearSafety: { paddingBottom: TAB_SCREEN_BOTTOM_CLEARANCE },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    marginBottom: 16,
+  },
+  // A full 44-point target; the negative margin keeps the chevron in line with the cards.
+  backButton: {
+    minWidth: 44,
+    minHeight: 44,
+    marginLeft: -10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backChevron: { fontSize: 32, lineHeight: 36, fontWeight: '300' },
+  heading: { flex: 1, fontSize: 24, fontWeight: '700', letterSpacing: -0.4 },
   card: {
     backgroundColor: '#fff',
     borderRadius: 18,

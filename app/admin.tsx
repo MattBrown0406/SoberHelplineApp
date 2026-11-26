@@ -24,7 +24,8 @@ import { useAdminVideoSessions } from '../src/hooks/useAdminVideoSessions';
 import type { AdminBriefRow } from '../src/lib/situationBrief';
 import { FamilyCallTakeawayCard } from '../src/components/admin/FamilyCallTakeawayCard';
 import { ToolUsageCard } from '../src/components/admin/ToolUsageCard';
-import { BereavementContactsCard } from '../src/components/admin/BereavementContactsCard';
+import { InvitationPlacementsCard } from '../src/components/admin/InvitationPlacementsCard';
+import { ReachOutRequestsCard } from '../src/components/admin/ReachOutRequestsCard';
 import type { MembershipPathStage } from '../src/lib/membershipPath';
 
 type FunnelStats = {
@@ -199,9 +200,10 @@ export default function AdminScreen() {
       </TouchableOpacity>
 
       <Text style={[styles.heading, { color: colors.ink }]}>Admin</Text>
+      {/* First, so the "asked you to reach out" push lands on it. */}
+      <ReachOutRequestsCard />
 
       <InvitationStatsCard />
-      <BereavementContactsCard />
       <ToolUsageCard />
 
       {/* ── Funnel & family health ── */}
@@ -252,6 +254,8 @@ export default function AdminScreen() {
                 <Text style={[styles.funnelStage, { color: colors.inkSoft }]}>
                   Invitations: {funnel.membership_path_30d.membership_invite_shown ?? 0} shown one → {funnel.membership_path_30d.membership_invite_tapped ?? 0} tapped
                 </Text>
+                {/* Which moments work: shown, tapped and joined, per place. */}
+                <InvitationPlacementsCard viewerId={user?.id ?? null} />
               </>
             ) : null}
 

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
@@ -17,11 +17,11 @@ const locale = (lang: string, name: string) => JSON.parse(read(`src/locales/${la
 // ── One header on every tab ──────────────────────────────────────────────────
 
 test('every tab starts with the same header: its name on the left, Settings on the right', () => {
+  // Four tabs since 4.4: Boundaries is a part of Practice and the Tracker a
+  // pushed screen (their old tab routes only forward, see below).
   const titles: Record<string, RegExp> = {
     'app/(tabs)/index.tsx': /const header = <TabHeader title=\{greeting\} \/>;/,
     'app/(tabs)/scripts.tsx': /<TabHeader title=\{tCommon\('nav\.scripts'\)\} \/>/,
-    'app/(tabs)/boundaries.tsx': /<TabHeader title=\{tCommon\('nav\.boundaries'\)\} \/>/,
-    'app/(tabs)/tracker.tsx': /<TabHeader title=\{t\('common:nav\.tracker'\)\} \/>/,
     'app/(tabs)/learn.tsx': /<TabHeader title=\{t\('header'\)\} \/>/,
     'app/(tabs)/support.tsx': /<TabHeader title=\{t\('header'\)\} \/>/,
   };
@@ -34,10 +34,21 @@ test('every tab starts with the same header: its name on the left, Settings on t
     // The header is the first thing in the scrolling content of each version of the screen.
     assert.doesNotMatch(screen, /a11y\.settings/, `${file}: the Settings button lives in the shared header`);
   }
+  // Practice keeps its one header, with the Conversations | Boundaries switch right under it.
+  assert.match(read('app/(tabs)/scripts.tsx'), /<TabHeader title=\{tCommon\('nav\.scripts'\)\} \/>\s+<PracticeSwitch value=\{section\} onChange=\{chooseSection\} \/>/);
+  // The Boundaries part draws no header of its own (Practice's is above it).
+  assert.doesNotMatch(read('src/components/practice/BoundariesPractice.tsx'), /TabHeader|<ScreenContainer/);
+  // The Tracker is a pushed screen: a 44-point Back and its name as the header, no Settings gear.
+  const tracker = read('app/tracker.tsx');
+  assert.doesNotMatch(tracker, /TabHeader|a11y\.settings/);
+  assert.match(tracker, /accessibilityRole="button"\s+accessibilityLabel=\{t\('common:a11y\.back'\)\}/);
+  assert.match(tracker, /<Text accessibilityRole="header" style=\{\[styles\.heading, \{ color: colors\.ink \}\]\}>\s+\{t\('common:nav\.tracker'\)\}/);
+  assert.match(tracker, /backButton: \{\s+minWidth: 44,\s+minHeight: 44,/);
   // The words: each tab's title is the word on its tab.
   for (const lang of ['en', 'es']) {
     const common = locale(lang, 'common');
-    for (const tab of ['scripts', 'boundaries', 'tracker']) assert.equal(common.nav[tab], common.navShort[tab], `${lang} ${tab}`);
+    assert.equal(common.nav.scripts, common.navShort.scripts, lang);
+    assert.ok(common.nav.tracker, lang);
     assert.equal(locale(lang, 'learn').header, common.navShort.learn, lang);
     assert.equal(locale(lang, 'support').header, common.navShort.support, lang);
     assert.ok(common.a11y.settings, lang);
@@ -76,9 +87,15 @@ test('the button shape is written once: the pill of the sign-up and onboarding s
 
 test('full-width buttons on the tabs, plans and settings all use the shared shape', () => {
   const styles: Record<string, string[]> = {
-    'app/(tabs)/support.tsx': ['sosButton', 'solidBtn', 'outlineBtn', 'copilotButton'],
+    'app/(tabs)/support.tsx': ['sosButton', 'solidBtn', 'outlineBtn'],
+    // The Support tab's pieces (4.4).
+    'src/components/support/CrisisSheet.tsx': ['copilotButton'],
+    'src/components/support/MemberPlanCard.tsx': ['solidBtn', 'outlineBtn'],
+    'src/components/support/MembershipGuideCard.tsx': ['outlineBtn'],
+    'src/components/support/QuestionSheet.tsx': ['solidBtn'],
+    'src/components/support/TeamCard.tsx': ['outlineBtn'],
     'app/(tabs)/learn.tsx': ['cardButton'],
-    'app/(tabs)/boundaries.tsx': ['solidBtn'],
+    'src/components/practice/BoundariesPractice.tsx': ['solidBtn'],
     'app/settings.tsx': ['restoreBtn', 'adminBtn', 'retryBtn', 'signOutBtn'],
     'src/components/plans/PlansCard.tsx': ['solidBtn', 'outlineBtn'],
     'src/components/plans/PlansTeaserCard.tsx': ['button'],
@@ -90,8 +107,6 @@ test('full-width buttons on the tabs, plans and settings all use the shared shap
     'src/components/today/LovedOneCheckCard.tsx': ['same'],
     'src/components/scripts/ScriptCard.tsx': ['practiceBtn'],
     'src/components/boundaries/HoldLogCard.tsx': ['shareBtn'],
-    'src/components/bereavement/BereavementSettingsCard.tsx': ['button'],
-    'src/components/bereavement/BereavementSheet.tsx': ['confirm'],
     'src/components/ui/FreeTierPaywall.tsx': ['btn'],
     'src/components/video/PremierVideoSchedulingCard.tsx': ['action', 'secondary'],
   };
@@ -121,7 +136,10 @@ test('colour: a navy main button, an outlined second one; coral only for safety,
   assert.match(tools, /backgroundColor: colors\.primary \}\]\}\s+onPress=\{\(\) => router\.push\('\/invitation-engine' as never\)\}/);
   assert.doesNotMatch(tools, /cardButton, \{ backgroundColor: colors\.(?:green|secondary) \}/);
 
-  const support = read('app/(tabs)/support.tsx');
+  // The Support tab with its pieces (src/components/support since 4.4).
+  const support = ['app/(tabs)/support.tsx', ...readdirSync(resolve(root, 'src/components/support')).map((name) => `src/components/support/${name}`)]
+    .map(read)
+    .join('\n');
   // Every outlined button says its colour (an unstated border draws black), and none is amber.
   const outlined = support.match(/style=\{[^\n]*styles\.outlineBtn\b[^\n]*/g) ?? [];
   assert.ok(outlined.length >= 11);

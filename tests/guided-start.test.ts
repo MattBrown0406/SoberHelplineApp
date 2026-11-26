@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { emptyGuidedStart, parseGuidedStart, completeJourneyStep, JOURNEY_STEPS, situationRoute } from '../src/lib/guidedStart';
 import { createGuidedStartStore } from '../src/storage/guidedStartStore';
-import { checkInFeedback } from '../src/lib/checkInFeedback';
+import { checkInFeedback, checkInFeedbackHref } from '../src/lib/checkInFeedback';
 
 test('strict corruption/version validation and sequential explicit completion', () => {
   assert.throws(() => parseGuidedStart('{'));
@@ -68,4 +68,14 @@ test('feedback follows saved answers with safety priority and useful optional ac
   for(const supportNeed of ['rest','connection','boundary','plan','steady'] as const) {
     const result=checkInFeedback({...base,supportNeed}); assert.equal(result.key,supportNeed); assert.ok(result.route);
   }
+});
+
+test('"a practical next step" opens Today with "More for you" open, a fresh n per tap; other answers keep their route', () => {
+  const base={moodScore:3,capacityScore:3,pressureScore:3,supportNeed:'plan'} as const;
+  const plan=checkInFeedback(base);
+  assert.equal(plan.route,'/(tabs)?more=1');
+  assert.equal(checkInFeedbackHref(plan.route,1700000000000),'/(tabs)?more=1&n=1700000000000');
+  assert.notEqual(checkInFeedbackHref(plan.route,1),checkInFeedbackHref(plan.route,2));
+  const boundary=checkInFeedback({...base,supportNeed:'boundary'});
+  assert.equal(checkInFeedbackHref(boundary.route,1),'/(tabs)/scripts?section=boundaries');
 });

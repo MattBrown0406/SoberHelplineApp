@@ -21,6 +21,7 @@ import {
   plansHref,
   purchasableTiers,
 } from '../src/lib/membershipPath';
+import { INVITATION_PLACEMENTS, invitationPlacementRows, placementLabel } from '../src/components/admin/invitationPlacements';
 import {
   afterMeetingInviteReady,
   clearMeetingReturn,
@@ -49,9 +50,14 @@ function sourceFiles(): string[] {
   return out;
 }
 
-/** The text[] a SQL list helper returns. */
+/** Every migration, oldest first. */
+const MIGRATIONS = readdirSync('supabase/migrations').filter((name) => name.endsWith('.sql')).sort()
+  .map((name) => ({ name, sql: read(join('supabase/migrations', name)) }));
+/** The text[] a SQL list helper returns, as the LATEST migration that defines it says. */
 function sqlList(name: string): string[] {
-  const body = new RegExp(`FUNCTION public\\.${name}\\(\\)[\\s\\S]*?SELECT ARRAY\\[([\\s\\S]*?)\\]::text\\[\\]`).exec(FUNNEL_SQL)?.[1] ?? '';
+  const pattern = new RegExp(`FUNCTION public\\.${name}\\(\\)[\\s\\S]*?SELECT ARRAY\\[([\\s\\S]*?)\\]::text\\[\\]`);
+  let body = '';
+  for (const { sql } of MIGRATIONS) body = pattern.exec(sql)?.[1] ?? body;
   return [...body.matchAll(/'([a-z0-9_]+)'/g)].map((m) => m[1]);
 }
 
@@ -202,15 +208,18 @@ test('every "see plans" or "upgrade" entry point opens the plans screen and says
     ['app/diy-intervention-planner.tsx', /<FreeTierPaywall inline source="diy_planner" \/>/],
     // Today's "Explore membership" is the plans teaser (an invitation), not the lock card.
     ['app/(tabs)/index.tsx', /<PlansTeaserCard offers=\{offers\} source="today_membership" \/>/],
-    ['app/(tabs)/index.tsx', /source="today_locked_preview"/],
-    ['app/(tabs)/support.tsx', /router\.push\(plansHref\('support_upgrade', 'premium'\)\)/],
-    ['app/(tabs)/support.tsx', /router\.push\(plansHref\('support_groups', 'essential'\)\)/],
+    // The Support tab's plan card and groups card (their own files since 4.4).
+    ['src/components/support/MemberPlanCard.tsx', /router\.push\(plansHref\('support_upgrade', 'premium'\)\)/],
+    ['src/components/support/SupportGroupsCard.tsx', /router\.push\(plansHref\('support_groups', 'essential'\)\)/],
   ];
   for (const [file, pattern] of expected) assert.match(read(file), pattern, file);
   // Both chat gates, both plan-review cards, both group buttons.
   assert.equal(read('app/chat.tsx').split("plansHref('chat_gate')").length - 1, 2);
   assert.equal(read('app/crisis-mode.tsx').split("plansHref('crisis_plan_review', 'premium')").length - 1, 2);
-  assert.equal(read('app/(tabs)/support.tsx').split("plansHref('support_groups', 'essential')").length - 1, 2);
+  // 4.4: the group buttons share one "See plans" button for a free member.
+  const groups = read('src/components/support/SupportGroupsCard.tsx');
+  assert.equal(groups.split("plansHref('support_groups', 'essential')").length - 1, 1);
+  assert.match(groups, /\) : !hasMembershipAccess && \(isLive \|\| room\) \? \(\s+<TouchableOpacity[\s\S]{0,400}plansHref\('support_groups', 'essential'\)/);
   // Nothing sends her to the top of the Support tab to find the plans any more:
   // every remaining push to Support is a real trip to Support.
   const allowed = new Set([
@@ -232,10 +241,13 @@ test('every "see plans" or "upgrade" entry point opens the plans screen and says
     const source = read(file);
     for (const m of source.matchAll(/plansHref\('([a-z_]+)'/g)) used.add(m[1]);
     for (const m of source.matchAll(/<(?:FreeTierPaywall|LockedPreviewRow|PlansTeaserCard)[^>]*?source="([a-z_]+)"/g)) used.add(m[1]);
-    for (const m of source.matchAll(/'(?:practice-completed|boundary-saved|after-meeting)': '([a-z_]+)'/g)) used.add(m[1]);
+    for (const m of source.matchAll(/'(?:practice-completed|boundary-saved|after-meeting|tool-finished|checkin-week)': '([a-z_]+)'/g)) used.add(m[1]);
     for (const m of source.matchAll(/\? '(rehearsal_gate)' : '(feature_gate)'/g)) { used.add(m[1]); used.add(m[2]); }
   }
-  assert.deepEqual([...used].sort(), [...PLAN_SOURCES].sort());
+  // Labels no screen uses any more stay on the list so past events keep their name.
+  const retired = ['today_locked_preview']; // 4.4: the locked row left Today
+  for (const label of retired) assert.ok(!used.has(label), `${label} is retired`);
+  assert.deepEqual([...used, ...retired].sort(), [...PLAN_SOURCES].sort());
 });
 
 test('inside the app nothing sends her to the website to buy, and no price is written into copy', () => {
@@ -281,9 +293,9 @@ test('the plans screen leads with a plan she can buy, and its button sits under 
 test('Today invites a free member to look at membership with the plans teaser, never the lock card', () => {
   const today = read('app/(tabs)/index.tsx');
   assert.doesNotMatch(today, /FreeTierPaywall/);
-  // Only in the free Today, and never for a bereaved member or before the device knows.
-  const free = today.slice(today.indexOf('if (!canAccessFullToday) {'), today.indexOf('{bereavementSheet}', today.indexOf('if (!canAccessFullToday) {')));
-  assert.match(free, /\{bereavedState === false && \(\s+<TodayDisclosure title=\{t\('disclosure\.membership'\)\}>\s+<ExploreMembership \/>\s+<\/TodayDisclosure>\s+\)\}/);
+  // Only in the free Today.
+  const free = today.slice(today.indexOf('if (!canAccessFullToday) {'), today.indexOf("\n  return (\n    <ScreenContainer backgroundColor={colors.cream} scrollRef={scrollRef}>", today.indexOf('if (!canAccessFullToday) {')));
+  assert.match(free, /<TodayDisclosure title=\{t\('disclosure\.membership'\)\}>\s+<ExploreMembership \/>\s+<\/TodayDisclosure>/);
   assert.equal(today.split('<ExploreMembership').length - 1, 1);
   assert.equal(today.split("t('disclosure.membership')").length - 1, 1);
   // The store is read inside the section (mounted when she opens it), and the price is the store's.
@@ -369,11 +381,11 @@ test('the locale files hold the one ordered list, in both languages', () => {
 
 test('every place that describes a plan reads the one list', () => {
   for (const file of ['src/components/plans/PlansCard.tsx', 'src/components/plans/UpgradeSheet.tsx', 'src/components/plans/PlansTeaserCard.tsx',
-    'src/components/ui/FreeTierPaywall.tsx', 'app/membership-guide.tsx', 'app/(tabs)/support.tsx']) {
+    'src/components/ui/FreeTierPaywall.tsx', 'app/membership-guide.tsx', 'src/components/support/MembershipGuideCard.tsx']) {
     assert.match(read(file), /<BenefitList plan=/, file);
   }
   assert.match(read('app/settings.tsx'), /benefitSummary\(accountState === 'direct-premium' \? 'premier' : 'essential', tPlans, i18n\.language\)/);
-  assert.match(read('app/(tabs)/support.tsx'), /benefitSummary\(accountState === 'direct-premium' \? 'premier' : 'essential', tPlans as never, current\)/);
+  assert.match(read('src/components/support/MemberPlanCard.tsx'), /benefitSummary\(accountState === 'direct-premium' \? 'premier' : 'essential', tPlans as never, current\)/);
   // The four older descriptions are gone, in both languages.
   for (const lang of ['en', 'es']) {
     const settings = locale(lang, 'settings').membership;
@@ -463,24 +475,119 @@ test('the invitation is wired to the real return from the meeting, on the free T
   assert.match(read('src/lib/meetingAttendance.ts'), /logFunnelEventConfirmed\('attended_10min', \{ meeting_date: mark\.meetingDate, source: mark\.source \}\),[\s\S]*?if \(!logged\) return false;[\s\S]*?return true;/);
 
   const today = read('app/(tabs)/index.tsx');
-  // Never for a bereaved member (or before we know), and never beside another ask.
-  assert.match(today, /useAfterMeetingInvite\(\s+bereaved \|\| bereavedUnknown \? null : user\?\.id \?\? null,\s+welcome\.visible \|\| !!reminderAsk\.view,\s+\);/);
+  // Never beside another ask, nor after a hard check-in today (the support it asked for comes first).
+  assert.match(today, /useAfterMeetingInvite\(\s+user\?\.id \?\? null,\s+welcome\.visible \|\| !!reminderAsk\.view \|\| hardCheckInToday,\s+\);/);
   const [beforeFree, afterFree] = today.split('if (!canAccessFullToday) {');
   const [freeToday, paidToday] = afterFree.split("\n  return (\n    <ScreenContainer backgroundColor={colors.cream} scrollRef={scrollRef}>");
   assert.ok(freeToday && paidToday, 'the free and paid Today are separate returns');
-  assert.match(freeToday, /<ContextualMembershipInvitation\s+accountId=\{user\?\.id \?\? null\}\s+placement="after-meeting"\s+completed=\{afterMeeting\}\s+\/>/);
-  assert.ok(!beforeFree.includes('<ContextualMembershipInvitation'), 'not on the bereaved Today');
+  assert.match(freeToday, /<ContextualMembershipInvitation\s+accountId=\{user\?\.id \?\? null\}\s+placement="after-meeting"\s+completed=\{afterMeeting && !hardCheckInToday\}\s+\/>/);
+  assert.ok(!beforeFree.includes('<ContextualMembershipInvitation'), 'only in the free Today');
   assert.ok(!paidToday.includes('<ContextualMembershipInvitation'), 'not on the paid Today');
   // The card itself refuses anyone who is not a free member.
   const card = read('src/membershipInvitations/ContextualMembershipInvitation.tsx');
-  assert.match(card, /!account\.isAdmin && !account\.isAttached && account\.accountState === 'direct-free' && bereaved === false;/);
+  assert.match(card, /!account\.isAdmin && !account\.isAttached && account\.accountState === 'direct-free';/);
   assert.match(card, /'after-meeting': 'after_meeting',/);
   for (const lang of ['en', 'es']) {
     const invite = locale(lang, 'plans').invite;
     assert.match(invite.afterMeeting, lang === 'es' ? /La Sobremesa/ : /Family Squares/);
     assert.match(invite.afterMeeting, /coach/);
-    for (const key of ['title', 'body', 'cta', 'later', 'never', 'practiceCompleted', 'boundarySaved', 'afterMeetingTitle']) assert.ok(invite[key], `${lang}: invite.${key}`);
+    for (const key of ['title', 'body', 'cta', 'later', 'never', 'practiceCompleted', 'boundarySaved', 'afterMeetingTitle',
+      'toolFinished', 'checkinWeekTitle', 'checkinWeek', 'trial']) assert.ok(invite[key], `${lang}: invite.${key}`);
   }
+});
+
+// ── 15c. Two more moments (4.4) ─────────────────────────────────────────────
+
+test('the server learns the two new labels in one migration that changes nothing else', () => {
+  const sql = read('supabase/migrations/20261124110000_membership_invite_placements.sql');
+  const code = sql.split('\n').map((line) => line.replace(/--.*$/, '')).join('\n');
+  // Only the source list is redefined, and it stays locked away from clients.
+  assert.deepEqual([...code.matchAll(/CREATE OR REPLACE FUNCTION public\.(\w+)/g)].map((m) => m[1]), ['_membership_path_sources']);
+  assert.doesNotMatch(code, /ALTER TABLE|CREATE TABLE|DROP |log_funnel_event|admin_funnel_stats|_membership_path_stages/);
+  assert.match(code, /REVOKE EXECUTE ON FUNCTION public\._membership_path_sources\(\) FROM PUBLIC, anon, authenticated;/);
+  // Every label from before is still there, plus the two new ones.
+  const before = (/FUNCTION public\._membership_path_sources\(\)[\s\S]*?SELECT ARRAY\[([\s\S]*?)\]::text\[\]/.exec(FUNNEL_SQL)?.[1] ?? '').match(/'[a-z_]+'/g) ?? ([] as string[]);
+  const after = sqlList('_membership_path_sources');
+  for (const label of before) assert.ok(after.includes(label.slice(1, -1)), label);
+  assert.deepEqual(after.filter((label) => !before.includes(`'${label}'`)).sort(), ['checkin_week', 'tool_finished']);
+});
+
+test('the invitation names only what Essential really adds, never a price or the website', () => {
+  const essential = ESSENTIAL_BENEFITS.map((benefit) => benefit.key);
+  // tool-finished names coach messaging; checkin-week names the week in review and progress on Today.
+  assert.ok(essential.includes('coachMessaging') && essential.includes('todayFull'));
+  const en = locale('en', 'plans');
+  assert.match(en.invite.toolFinished, /message a coach between meetings/);
+  assert.match(en.benefits.essential.coachMessaging, /Message a coach between meetings/);
+  assert.match(en.invite.checkinWeek, /week in review and their progress here on Today/);
+  assert.match(en.benefits.essential.todayFull, /week in review and progress on Today/);
+  for (const lang of ['en', 'es']) {
+    const invite = locale(lang, 'plans').invite;
+    for (const key of ['toolFinished', 'checkinWeekTitle', 'checkinWeek', 'trial']) {
+      assert.doesNotMatch(invite[key], /[!¡$€£]|\d|soberhelpline|website|sitio web|today only|solo hoy|hurry|don't miss|no te lo pierdas/i, `${lang}: invite.${key}`);
+    }
+    // The trial line names only the trial the store gives (interpolated), nothing more.
+    assert.match(invite.trial, /^Essential .*\{\{trial\}\}\.$/);
+  }
+});
+
+test('tool-finished sits where each free tool already logs its finish, and the check-in moment is the fifth day', () => {
+  for (const [file, tool] of [['app/holiday-plan.tsx', 'holiday_plan'], ['app/prosecutor-letter.tsx', 'prosecutor_letter']] as const) {
+    const screen = read(file);
+    assert.match(screen, new RegExp(`logToolUsage\\('${tool}', 'finished'\\);\\s+setFinishedHere\\(true\\);`), file);
+    assert.match(screen, /sawIncomplete\.current = true;\s+setFinishedHere\(false\);/, file);
+    assert.match(screen, /<ContextualMembershipInvitation accountId=\{user\?\.id \?\? null\} placement="tool-finished" completed=\{finishedHere\} \/>/, file);
+    assert.equal(screen.split('<ContextualMembershipInvitation').length - 1, 1, file);
+  }
+  const letter = read('app/letter.tsx');
+  // After the rating-prompt check has answered: never on the same visit as a requested prompt.
+  assert.match(letter, /await updateDraft\(\{ status: 'complete' \}\);\s+logToolUsage\('letter', 'finished'\);[\s\S]*?void maybeRequestReview\(\{[\s\S]*?\}\)\.then\(\(\) => \{\s+if \(accountIdRef\.current === user\.id\) setFinishedHere\(true\);/);
+  assert.match(letter, /<ContextualMembershipInvitation accountId=\{user\?\.id \?\? null\} placement="tool-finished" completed=\{finishedHere\} \/>/);
+  assert.equal(letter.split('<ContextualMembershipInvitation').length - 1, 1);
+
+  const today = read('app/(tabs)/index.tsx');
+  // The fifth day, and never on a hard check-in (a difficult answer only keeps the card away).
+  assert.match(today, /if \(nextStreak\.currentStreak === 5 && !isDifficultCheckIn\(input\)\) setCheckinWeek\(true\);\s+if \(nextStreak\.currentStreak === 7\) \{/);
+  assert.match(today, /useFocusEffect\(useCallback\(\(\) => \(\) => setCheckinWeek\(false\), \[\]\)\);/);
+  const [beforeFree, afterFree] = today.split('if (!canAccessFullToday) {');
+  const [freeToday, paidToday] = afterFree.split("\n  return (\n    <ScreenContainer backgroundColor={colors.cream} scrollRef={scrollRef}>");
+  // Under the check-in, on the free Today only.
+  assert.match(freeToday, /\{checkInCard\}\s+<CheckInFeedbackCard checkIn=\{todayCheckIn\} \/>\s+\{\/\*[^*]*\*\/\}\s+<ContextualMembershipInvitation\s+accountId=\{user\?\.id \?\? null\}\s+placement="checkin-week"\s+completed=\{checkinWeek\}\s+\/>/);
+  assert.ok(!beforeFree.includes('placement="checkin-week"') && !paidToday.includes('placement="checkin-week"'));
+  // One ask per visit: Today's reminder ask is reported once it shows.
+  assert.match(today, /useEffect\(\(\) => \{\s+if \(reminderAskOpen\) noteVisitAsk\(user\?\.id \?\? null\);\s+\}, \[reminderAskOpen, user\?\.id\]\);/);
+  // The rating prompt reports itself, for every milestone, in one place.
+  const review = read('src/lib/reviewPrompt.ts');
+  assert.match(review, /noteReviewPending\(accountId, true\);\s+const request = runReviewRequest\(accountId, milestone, safety\)\.then\(\(outcome\) => \{\s+if \(outcome === 'requested' \|\| outcome === 'failed'\) noteVisitAsk\(accountId\);/);
+  assert.match(review, /\.finally\(\(\) => \{\s+noteReviewPending\(accountId, false\);/);
+  assert.match(read('src/lib/afterMeetingInvite.ts'), /export function clearMeetingReturn\(\): void \{\s+visitCheck = null;[\s\S]*?clearVisitAsks\(\);/);
+  assert.match(read('src/membershipInvitations/ContextualMembershipInvitation.tsx'), /createInvitationPolicy\(AsyncStorage, Date\.now, askedThisVisit\)/);
+});
+
+test('admin shows each invitation place: shown, tapped and joined', () => {
+  const admin = read('app/admin.tsx');
+  const block = admin.slice(admin.indexOf('{funnel.membership_path_30d ? ('), admin.indexOf('Readiness bands'));
+  assert.match(block, /<InvitationPlacementsCard viewerId=\{user\?\.id \?\? null\} \/>/);
+  // Members counted once per column; the admin looking is left out; a purchase counts for the place she came from.
+  const rows = invitationPlacementRows([
+    { account_id: 'm1', stage: 'membership_invite_shown', metadata: { source: 'tool_finished' } },
+    { account_id: 'm1', stage: 'membership_invite_shown', metadata: { source: 'tool_finished' } },
+    { account_id: 'm2', stage: 'membership_invite_shown', metadata: { source: 'tool_finished' } },
+    { account_id: 'm1', stage: 'membership_invite_tapped', metadata: { source: 'tool_finished' } },
+    { account_id: 'm1', stage: 'purchase_succeeded', metadata: { source: 'tool_finished', tier: 'essential' } },
+    { account_id: 'm3', stage: 'purchase_succeeded', metadata: { source: 'support_tab' } },
+    { account_id: 'm2', stage: 'membership_invite_shown', metadata: { source: 'today_locked_preview' } },
+    { account_id: 'me', stage: 'membership_invite_shown', metadata: { source: 'checkin_week' } },
+    { account_id: 'm4', stage: 'membership_invite_shown', metadata: null },
+  ], 'me');
+  assert.deepEqual(rows.map((row) => row.source), [...INVITATION_PLACEMENTS, 'today_locked_preview']);
+  assert.deepEqual(rows.find((row) => row.source === 'tool_finished'), { source: 'tool_finished', shown: 2, tapped: 1, subscribed: 1 });
+  assert.deepEqual(rows.find((row) => row.source === 'checkin_week'), { source: 'checkin_week', shown: 0, tapped: 0, subscribed: 0 });
+  assert.deepEqual(invitationPlacementRows(null, null).map((row) => row.shown), [0, 0, 0, 0, 0]);
+  for (const place of INVITATION_PLACEMENTS) assert.ok(PLAN_SOURCES.includes(place), place);
+  assert.equal(placementLabel('checkin_week'), 'Five-day check-in streak');
+  const card = read('src/components/admin/InvitationPlacementsCard.tsx');
+  assert.match(card, /\.from\('funnel_events'\)\s+\.select\('account_id, stage, metadata'\)\s+\.in\('stage', \['membership_invite_shown', 'membership_invite_tapped', 'purchase_succeeded'\]\)/);
 });
 
 // ── 15b. Missed it ──────────────────────────────────────────────────────────
@@ -519,15 +626,14 @@ test('a member who saved a seat and never tapped Join gets her own Tuesday note,
 
 // ── 16. Show what is locked ─────────────────────────────────────────────────
 
-test('the free Today says what members see in the progress section, with no fake data', () => {
+test('the free Today has one "See plans" (Explore membership), no locked row, and no fake member data', () => {
   const today = read('app/(tabs)/index.tsx');
   const [, afterFree] = today.split('if (!canAccessFullToday) {');
-  const [freeToday, paidToday] = afterFree.split("\n  return (\n    <ScreenContainer backgroundColor={colors.cream} scrollRef={scrollRef}>");
-  // One row, inside "Scripts, practice & your progress", on the free Today only.
-  assert.equal(today.split('<LockedPreviewRow').length - 1, 1);
-  const section = freeToday.slice(freeToday.indexOf("t('disclosure.practice')"), freeToday.indexOf("t('disclosure.membership')"));
-  assert.match(section, /<LockedPreviewRow\s+source="today_locked_preview"\s+line=\{i18n\.t\('plans:locked\.todayLine'\)\}\s+label=\{i18n\.t\('plans:locked\.todayLabel'\)\}\s+\/>/);
-  assert.ok(!paidToday.includes('<LockedPreviewRow'));
+  const [freeToday] = afterFree.split("\n  return (\n    <ScreenContainer backgroundColor={colors.cream} scrollRef={scrollRef}>");
+  // 4.4: "Explore membership" is the one quiet plans door in "More for you"; the
+  // locked row said the same thing a second time.
+  assert.ok(!today.includes('<LockedPreviewRow'));
+  assert.match(freeToday, /t\('disclosure\.membership'\)/);
   // The member cards themselves are not rendered for her, blurred or otherwise.
   for (const card of ['<HeroCard', '<ContinueLetterCard', '<WeekReviewCard']) assert.ok(!freeToday.includes(card), card);
   const row = read('src/components/plans/LockedPreviewRow.tsx');
@@ -539,17 +645,12 @@ test('the free Today says what members see in the progress section, with no fake
     const plans = locale(lang, 'plans');
     assert.ok(plans.locked.todayLine && plans.locked.todayLabel.startsWith(plans.locked.todayLine));
     assert.ok(plans.seePlans);
-    // Today's script is not "unlocked": the whole library is free in Practice.
-    const freeDaily = locale(lang, 'today').freeDaily;
-    assert.doesNotMatch(`${freeDaily.eyebrow} ${freeDaily.note}`, /unlock|desbloque/i, lang);
-    // The tab is named by the label in the tab bar ("Practice" / "Práctica"), filled in from that same key.
-    assert.match(freeDaily.note, /\{\{tab\}\}/, `${lang}: names the tab by its visible label`);
-    assert.doesNotMatch(freeDaily.note, new RegExp(locale(lang, 'common').nav.scripts), `${lang}: the name is filled in, not typed into the sentence`);
+    // 4.4: the free daily script left Today (Practice has the scripts, all free).
+    assert.equal(locale(lang, 'today').freeDaily, undefined, lang);
     // The word on the tab is the word in that screen's title.
     assert.equal(locale(lang, 'common').navShort.scripts, locale(lang, 'common').nav.scripts, lang);
   }
-  // Today names the tab by the Practice screen's own title key (the tab bar's word is the same, above).
-  assert.match(read('app/(tabs)/index.tsx'), /t\('freeDaily\.note', \{ tab: t\('common:nav\.scripts'\) \}\)/);
+  assert.doesNotMatch(read('app/(tabs)/index.tsx'), /freeDaily|<ScriptCard|getDailyScripts/);
   assert.match(read('app/(tabs)/scripts.tsx'), /<TabHeader title=\{tCommon\('nav\.scripts'\)\} \/>/);
   assert.match(read('app/(tabs)/_layout.tsx'), /tab\('scripts', t\('navShort\.scripts'\)\)/);
   assert.equal(locale('en', 'common').navShort.scripts, 'Practice');

@@ -1,7 +1,6 @@
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
-import { bereavedCacheKey } from './bereavement';
 import {
   parseReminderAskMemory,
   reminderAskStorageKey,
@@ -31,19 +30,6 @@ export async function loadReminderAskMemory(accountId: string): Promise<Reminder
     return parseReminderAskMemory(await AsyncStorage.getItem(reminderAskStorageKey(accountId)));
   } catch {
     return null;
-  }
-}
-
-/**
- * The device's copy of "her loved one died" (written by useLovedOne on Today,
- * which is always mounted). A bereaved member is never asked anything; an
- * unreadable or missing copy answers false, as Today itself does.
- */
-export async function readBereavedOnDevice(accountId: string): Promise<boolean> {
-  try {
-    return (await AsyncStorage.getItem(bereavedCacheKey(accountId))) === '1';
-  } catch {
-    return false;
   }
 }
 

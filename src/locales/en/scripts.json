@@ -7,7 +7,7 @@
   "practice": "Practice this",
   "todayEyebrow": "Today's scripts",
   "allEyebrow": "Browse by situation",
-  "freshTomorrow": "Three fresh scripts every day — check back tomorrow for a new set.",
+  "freshTomorrow": "Three new scripts every day. Check back tomorrow.",
   "comebackTheySay": "IF THEY SAY",
   "comebackYouSay": "YOU CAN SAY",
   "categories": {
@@ -47,5 +47,9 @@
   "shelf": {
     "collapseHint": "Collapses this script category",
     "expandHint": "Expands this script category"
+  },
+  "sections": {
+    "conversations": "Conversations",
+    "boundaries": "Boundaries"
   }
 }

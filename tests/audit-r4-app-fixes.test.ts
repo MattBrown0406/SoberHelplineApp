@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
-import { seatPanelView, weeklySeatNoteHeld, type SeatAnswer } from '../src/lib/familySquaresCard';
+import { seatPanelView, type SeatAnswer } from '../src/lib/familySquaresCard';
 import { RESEND_COOLDOWN_SECONDS, resendSecondsLeft, signUpEmailAlreadySentAt, signUpFailure } from '../src/lib/frontDoor';
 import { MEMBERSHIP_PATH_STAGES, PLAN_SOURCES, planSource, plansHref, purchasableTiers } from '../src/lib/membershipPath';
 import { mondayCallShareMessage } from '../src/lib/passItOnResources';
@@ -51,13 +51,7 @@ test('A2: in Spanish the reminder ask promises only what La Sobremesa sends', ()
 
 // ── A4: "your seat is saved for you" is said only where it is true ──────────
 
-test('A4: the weekly note is held back from anyone the server may not save a seat for', () => {
-  // Shown only when the device KNOWS she is not bereaved, and no Save tap here was refused for this meeting.
-  assert.equal(weeklySeatNoteHeld({ bereaved: false, refusedHere: false }), false);
-  assert.equal(weeklySeatNoteHeld({ bereaved: true, refusedHere: false }), true);
-  assert.equal(weeklySeatNoteHeld({ bereaved: undefined, refusedHere: false }), true, 'not known yet: never on a guess');
-  assert.equal(weeklySeatNoteHeld({ bereaved: false, refusedHere: true }), true);
-
+test('A4: the weekly note is held back when a Save tap here was refused for this meeting', () => {
   // Held: the switch is still shown (so "Save my spot" does not look as if it were off), without the sentence.
   assert.equal(seatPanelView({ cancelled: false, answer: 'none', weeklySeatOn: true, weeklyNoteHeld: true }), 'weekly_only');
   assert.equal(seatPanelView({ cancelled: false, answer: 'none', weeklySeatOn: true, weeklyNoteHeld: false }), 'weekly_note');
@@ -72,9 +66,9 @@ test('A4: the weekly note is held back from anyone the server may not save a sea
   }
 
   const panel = read('src/components/familySquares/FamilySquaresSeatPanel.tsx');
-  assert.match(panel, /const bereaved = useBereavedOnDevice\(accountId\);\s+const refusedHere = useFamilySquaresSeatRefused\(accountId\);\s+const panelView = seatPanelView\(\{ cancelled, answer: rsvp, weeklySeatOn: weekly\.enabled, weeklyNoteHeld: weeklySeatNoteHeld\(\{ bereaved, refusedHere \}\) \}\);/);
-  // "Saved again from next Monday" follows the same rule.
-  assert.match(panel, /t\(weekly\.enabled && bereaved === false \? 'familySquares\.decline\.doneWeekly' : 'familySquares\.decline\.done'\)/);
+  assert.match(panel, /const refusedHere = useFamilySquaresSeatRefused\(accountId\);\s+const panelView = seatPanelView\(\{ cancelled, answer: rsvp, weeklySeatOn: weekly\.enabled, weeklyNoteHeld: refusedHere \}\);/);
+  // "Saved again from next Monday" only where the weekly seat is on.
+  assert.match(panel, /t\(weekly\.enabled \? 'familySquares\.decline\.doneWeekly' : 'familySquares\.decline\.done'\)/);
   const refused = read('src/hooks/useFamilySquaresSeatRefused.ts');
   assert.match(refused, /useEffect\(\(\) => subscribeFamilySquaresSeatRefused\(/);
   assert.match(refused, /return familySquaresSeatRefusedHere\(accountId\);/);

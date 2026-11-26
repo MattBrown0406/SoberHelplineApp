@@ -132,7 +132,7 @@ function ActiveWillingnessWindow({
           accessibilityRole="button"
           accessibilityLabel={t('window.openTracker')}
           style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-          onPress={() => router.push('/(tabs)/tracker' as never)}
+          onPress={() => router.push('/tracker' as never)}
         >
           <Text style={styles.primaryButtonText}>{t('window.openTracker')}</Text>
         </TouchableOpacity>

@@ -31,12 +31,12 @@
     "progress": "Paso {{current}} de {{total}}",
     "next": "Continuar",
     "back": "Atrás",
-    "addNote": "Agregar una nota privada (opcional)",
+    "addNote": "Agregar una nota privada",
     "hideNote": "Ocultar nota y conservar mis palabras",
     "eyebrow": "Registro diario",
     "question": "¿Cómo estás hoy?",
     "moodQuestion": "¿Cómo está tu ánimo ahora?",
-    "capacityQuestion": "¿Cuánta capacidad tienes para el día de hoy?",
+    "capacityQuestion": "¿Cuánta capacidad tienes hoy?",
     "capacityLow": "Sin energía disponible",
     "capacityHigh": "Con espacio para afrontar",
     "capacityAccessibility": "Capacidad",
@@ -56,32 +56,32 @@
     "noteLabel": "Una frase que necesitas sacar",
     "notePlaceholder": "Nota privada opcional…",
     "optional": "Opcional",
-    "completionHint": "Elige una respuesta en cada sección para completar tu registro.",
+    "completionHint": "Elige una respuesta en cada paso para terminar.",
     "incompleteTitle": "Completa tu registro",
-    "incompleteMessage": "Elige tu ánimo, capacidad, presión y lo que más te ayudaría hoy.",
+    "incompleteMessage": "Elige tu ánimo, capacidad, presión y lo que te ayudaría.",
     "privacy": "Tus respuestas son privadas.",
     "privacyAttached": "Los patrones se comparten únicamente con tu coach de {{orgName}}.",
-    "privacyDirect": "Los patrones son privados a menos que elijas compartirlos con un coach.",
+    "privacyDirect": "Los patrones son privados a menos que los compartas con un coach.",
     "completeButton": "Completar registro",
     "savingButton": "Guardando registro…",
     "moodAccessibility": "Estado de ánimo {{score}} de 5",
     "moodHint": "Toca un emoji arriba para seleccionar tu estado de ánimo",
     "noMoodTitle": "Selecciona un estado de ánimo",
-    "noMoodMessage": "Toca uno de los emojis de arriba para registrar cómo te sientes y luego completa tu registro.",
+    "noMoodMessage": "Toca un emoji para elegir tu ánimo y luego termina tu registro.",
     "errorTitle": "No se pudo guardar el registro",
-    "errorMessage": "Algo salió mal al guardar tu registro. Por favor, inténtalo de nuevo.",
+    "errorMessage": "Algo salió mal. Inténtalo de nuevo.",
     "done": "✓ ¡Registro completo!",
-    "pendingSync": "Guardado en este dispositivo: se sincronizará cuando vuelvas a tener conexión.",
+    "pendingSync": "Guardado en este dispositivo. Se sincronizará cuando vuelvas a tener conexión.",
     "doneStreak": "✓ Registro completo — ¡{{count}} días seguidos!",
     "doneCoach": "{{orgFirst}} verá tu actualización.",
     "lowSupportTitle": "Una etapa difícil",
-    "lowSupportBody_one": "Has tenido {{count}} día difícil últimamente — mucho para llevarlo sola. Un coach puede ayudarte a estabilizar las cosas en una hora privada, solo para ti.",
-    "lowSupportBody_other": "Han sido {{count}} días difíciles últimamente — mucho para llevarlo sola. Un coach puede ayudarte a estabilizar las cosas en una hora privada, solo para ti.",
+    "lowSupportBody_one": "Has tenido {{count}} día difícil últimamente, mucho para llevarlo sola. Una hora privada con un coach puede ayudarte.",
+    "lowSupportBody_other": "Han sido {{count}} días difíciles últimamente, mucho para llevarlo sola. Una hora privada con un coach puede ayudarte.",
     "lowSupportButton": "Hablar con un coach",
     "responses": {
       "safety": {
         "title": "La seguridad es lo primero",
-        "body": "Haz que el siguiente paso se centre en la seguridad inmediata, no en resolver toda la situación. Si alguien puede estar en peligro o sospechas una sobredosis, llama a emergencias ahora.",
+        "body": "Céntrate ahora en la seguridad, no en toda la situación. Si alguien puede estar en peligro o sospechas una sobredosis, llama a emergencias ahora.",
         "cta": "Abrir la Cartera de Seguridad"
       },
       "overloaded": {
@@ -101,8 +101,8 @@
       },
       "plan": {
         "title": "Planifica solo la siguiente decisión",
-        "body": "Anota lo que sabes, lo que debe decidirse hoy y lo que puede esperar. Abre El camino de tu familia más abajo para orientarte.",
-        "cta": "Revisar el camino de hoy"
+        "body": "Anota lo que sabes, lo que debe decidirse hoy y lo que puede esperar. Tu camino, en Más para ti, te muestra un paso para hoy.",
+        "cta": "Ver tu camino"
       },
       "rest": {
         "title": "Reduce una exigencia",
@@ -134,27 +134,29 @@
   "disclosure": {
     "show": "Mostrar",
     "hide": "Ocultar",
-    "more": "Más para esta semana",
-    "pathway": "El camino de tu familia",
+    "more": "Más para ti",
     "invite": "Invita a alguien a La Sobremesa",
-    "practice": "Guiones, práctica y tu progreso",
     "membership": "Explorar la membresía"
   },
-  "freeDaily": {
-    "eyebrow": "Guion de hoy",
-    "note": "Este es el guion de hoy. La biblioteca completa está en la pestaña {{tab}}."
+  "moreForYou": {
+    "signsTitle": "Señales a observar",
+    "signsBody": "Señales de alerta y de recuperación, día a día."
+  },
+  "pathStep": {
+    "eyebrow": "Tu siguiente paso",
+    "title": "Tu camino: {{phase}}"
   },
   "passItOn": {
     "eyebrow": "Compártelo",
     "title": "Ayuda a la próxima familia a encontrar apoyo",
-    "body": "Comparte la llamada familiar gratuita de los lunes o imprime una tarjeta práctica de límites para una reunión, iglesia o día familiar de tratamiento.",
+    "body": "Comparte la llamada familiar gratuita de los lunes, o imprime una tarjeta de límites para una reunión, iglesia o día familiar de tratamiento.",
     "shareTitle": "Llamada gratuita de apoyo familiar los lunes",
     "shareButton": "Compartir la llamada gratuita",
     "sharing": "Abriendo opciones para compartir…",
-    "copied": "Los datos de la llamada se copiaron. Puedes pegarlos donde quieras.",
+    "copied": "Datos de la llamada copiados. Pégalos donde quieras.",
     "printButton": "Imprimir la tarjeta de límites",
     "printing": "Abriendo opciones de impresión…",
-    "privacy": "Solo se comparten recursos públicos de Sober Helpline. No se incluye nada de tu cuenta ni de tu familia.",
+    "privacy": "Solo se comparten recursos públicos, nunca nada de tu cuenta ni de tu familia.",
     "shareError": "No pudimos abrir las opciones para compartir. Inténtalo de nuevo.",
     "printError": "No pudimos abrir las opciones de impresión. Inténtalo de nuevo."
   },
@@ -175,10 +177,10 @@
     "highPressureDays_other": "{{count}} días de alta presión",
     "boundaries_one": "{{count}} límite sostenido",
     "boundaries_other": "{{count}} límites sostenidos",
-    "encourage": "Esta constancia es la recuperación vista desde la familia. Sigue así."
+    "encourage": "Así se ve la recuperación desde la familia. Sigue así."
   },
   "pathway": {
-    "eyebrow": "Camino de tu familia",
+    "eyebrow": "Tu camino",
     "title": "Lo que ayuda en esta etapa",
     "changePhase": "Cambiar la etapa actual",
     "choosePhase": "¿Qué etapa describe mejor el día de hoy?",
@@ -195,12 +197,12 @@
     "phases": {
       "active_use": {
         "label": "Consumo activo",
-        "description": "Cuando el consumo está activo, la meta es reducir el caos y aumentar la seguridad, no ganar una discusión.",
+        "description": "Mientras hay consumo activo, busca seguridad y menos caos, no ganar una discusión.",
         "cta": "Revisar tu Cartera de Seguridad",
         "do": [
-          "Confirma a quién puedes llamar y adónde puedes ir si el hogar deja de ser seguro.",
-          "Guarda dinero, medicamentos, llaves y documentos importantes donde solo tú puedas acceder.",
-          "Elige un límite claro que realmente puedas mantener hoy."
+          "Ten claro a quién llamar y adónde ir si el hogar deja de ser seguro.",
+          "Guarda dinero, medicamentos, llaves y documentos donde solo tú puedas acceder.",
+          "Elige un límite que puedas mantener hoy."
         ],
         "avoid": [
           "No discutas sobre el consumo mientras la persona esté intoxicada.",
@@ -215,12 +217,12 @@
       },
       "considering_treatment": {
         "label": "Considerando tratamiento",
-        "description": "El interés por recibir ayuda suele venir con dudas. Prepara un paso pequeño antes de que se abra la oportunidad.",
+        "description": "Querer ayuda suele venir con dudas. Prepara un paso pequeño antes de que se abra la oportunidad.",
         "cta": "Explorar opciones de tratamiento",
         "do": [
-          "Anota dos opciones realistas de ayuda y la primera llamada necesaria para cada una.",
-          "Elige un momento tranquilo y sobrio; empieza con un hecho observable y una oferta de ayuda.",
-          "Decide qué ayuda práctica puedes ofrecer, como transporte o una llamada, sin hacerte cargo de todo."
+          "Anota dos opciones realistas y la primera llamada para cada una.",
+          "En un momento tranquilo y sobrio, empieza con un hecho que viste y una oferta de ayuda.",
+          "Ofrece ayuda práctica, como transporte o una llamada, sin hacerte cargo de todo."
         ],
         "avoid": [
           "No hagas amenazas ni ultimátums que no estés dispuesta a cumplir.",
@@ -235,11 +237,11 @@
       },
       "in_treatment": {
         "label": "En tratamiento",
-        "description": "El tratamiento también le da a la familia espacio para estabilizarse. Tu tarea es apoyar, mantener límites y cuidar tu recuperación.",
+        "description": "El tratamiento también le da espacio a la familia para estabilizarse. Tu parte: apoyo, límites y tu propia recuperación.",
         "cta": "Encontrar apoyo para la familia",
         "do": [
-          "Pregunta al programa qué educación o apoyo familiar ofrece y qué información puede compartir con consentimiento.",
-          "Retoma una rutina que apoye tu sueño, alimentación, trabajo o conexión con otros.",
+          "Pregunta al programa por el apoyo familiar y qué puede compartir con consentimiento.",
+          "Retoma una rutina para tu sueño, comidas, trabajo o conexión.",
           "Anota los límites que seguirán siendo importantes después del tratamiento."
         ],
         "avoid": [
@@ -255,12 +257,12 @@
       },
       "returning_home": {
         "label": "Preparando el regreso a casa",
-        "description": "Una transición planificada es más segura que una improvisada. Aclara expectativas y respuestas antes del primer día difícil.",
+        "description": "Un regreso planificado es más seguro que uno improvisado. Aclara expectativas antes del primer día difícil.",
         "cta": "Preparar el plan de seguridad del hogar",
         "do": [
-          "Acuerden expectativas básicas del hogar, apoyos y qué ocurrirá si se cruza un límite.",
+          "Acuerden expectativas del hogar, apoyos y qué pasa si se cruza un límite.",
           "Actualiza contactos de emergencia, lugares seguros, almacenamiento de medicamentos y suministros para responder a una sobredosis.",
-          "Planifica la primera semana: transporte, citas, tareas del hogar y tiempo tranquilo para la recuperación."
+          "Planifica la primera semana: transporte, citas, tareas del hogar y tiempo tranquilo de recuperación."
         ],
         "avoid": [
           "No esperes una crisis para decidir cómo responderá el hogar.",
@@ -275,12 +277,12 @@
       },
       "early_recovery_30": {
         "label": "Primeros 30 días",
-        "description": "El primer mes se centra en estructura, apoyo y seguridad. La estabilidad importa más que las grandes promesas.",
+        "description": "El primer mes es estructura, apoyo y seguridad. La estabilidad importa más que las grandes promesas.",
         "cta": "Registrar lo que observas",
         "do": [
-          "Protege las rutinas de recuperación y elige una rutina pequeña que también te estabilice.",
+          "Protege las rutinas de recuperación y mantén una rutina pequeña que te estabilice.",
           "Decide cómo responderás a una señal de alerta antes de que aparezca.",
-          "Nota y reconoce en voz alta una acción de recuperación, sin exigirle garantías a cambio."
+          "Reconoce en voz alta una acción de recuperación, sin pedir garantías."
         ],
         "avoid": [
           "No tomes cada estado de ánimo difícil como prueba de un regreso al consumo.",
@@ -295,12 +297,12 @@
       },
       "early_recovery_90": {
         "label": "Días 31–90",
-        "description": "A medida que vuelve la vida diaria, protege las rutinas que funcionan y reconstruye la confianza con pasos pequeños y observables.",
+        "description": "Al volver la vida diaria, cuida las rutinas que funcionan y reconstruye la confianza con pasos pequeños y visibles.",
         "cta": "Revisar patrones recientes",
         "do": [
-          "Tengan una conversación semanal y tranquila sobre rutinas, necesidades y responsabilidades del hogar.",
-          "Retomen una actividad compartida que no gire alrededor de hablar de recuperación.",
-          "Reconoce la conducta constante, no solo las intenciones o promesas."
+          "Tengan una charla semanal tranquila sobre rutinas, necesidades y tareas del hogar.",
+          "Hagan algo juntos que no gire en torno a la recuperación.",
+          "Reconoce la conducta constante, no solo las promesas."
         ],
         "avoid": [
           "No apresures la devolución de dinero, acceso o responsabilidades antes de que la confianza esté lista.",
@@ -315,12 +317,12 @@
       },
       "ongoing_recovery": {
         "label": "Recuperación continua",
-        "description": "La recuperación a largo plazo sigue beneficiándose de conexión honesta, límites duraderos y una vida propia para cada persona.",
+        "description": "La recuperación a largo plazo sigue beneficiándose de conexión honesta, límites firmes y una vida propia.",
         "cta": "Fortalecer tu red de apoyo",
         "do": [
-          "Mantén activo un límite y una práctica de apoyo incluso durante una etapa tranquila.",
+          "Mantén un límite y un hábito de apoyo, incluso en una etapa tranquila.",
           "Revisa el plan de seguridad del hogar y la lista de contactos antes de necesitarlos.",
-          "Haz espacio para un momento de relación que no trate sobre adicción o recuperación."
+          "Haz espacio para un momento juntos que no trate sobre la adicción."
         ],
         "avoid": [
           "No abandones el plan simplemente porque las cosas hayan estado bien.",
@@ -335,12 +337,12 @@
       },
       "return_to_use": {
         "label": "Regreso al consumo",
-        "description": "Un regreso al consumo es serio, especialmente después de la abstinencia. Pasa del impacto inicial a la seguridad, los hechos y el próximo apoyo disponible.",
+        "description": "Un regreso al consumo es serio, sobre todo después de un tiempo sin consumir. Pasa del impacto a la seguridad, los hechos y el próximo apoyo.",
         "cta": "Abrir apoyo para crisis",
         "do": [
-          "Evalúa el peligro inmediato y usa tu plan de seguridad; llama a emergencias ante una posible sobredosis o amenaza inmediata.",
-          "Explica lo que observaste con hechos sencillos y mantén el límite que ya estableciste.",
-          "Contacta a una persona de tu red de apoyo y reúne la siguiente opción adecuada de atención."
+          "Evalúa el peligro inmediato y usa tu plan de seguridad. Llama a emergencias ante una posible sobredosis o amenaza inmediata.",
+          "Di lo que observaste con hechos sencillos y mantén el límite que ya pusiste.",
+          "Llama a tu propia persona de apoyo y prepara la siguiente opción de atención."
         ],
         "avoid": [
           "No avergüences, sermonees ni intentes forzar una reflexión durante la intoxicación.",
@@ -355,12 +357,12 @@
       },
       "unsure": {
         "label": "Aún no lo sé",
-        "description": "La incertidumbre agota. Empieza por la seguridad y los hechos observables en lugar de intentar resolver toda la historia hoy.",
+        "description": "No saber agota. Empieza por la seguridad y los hechos que puedes ver, no por toda la historia.",
         "cta": "Registrar señales observables",
         "do": [
-          "Anota solo lo que viste u oíste directamente, con fecha y hora.",
-          "Revisa cómo se siente tu cuerpo y si hay riesgos inmediatos en el hogar.",
-          "Elige una persona de confianza con quien puedas hablar sin tener que demostrar nada."
+          "Anota solo lo que viste u oíste, con fecha y hora.",
+          "Revisa tu cuerpo y tu hogar por si hay algún riesgo inmediato.",
+          "Elige una persona de confianza con quien hablar sin tener que demostrar nada."
         ],
         "avoid": [
           "No hagas una acusación cuando solo tienes una sensación o una señal ambigua.",
@@ -373,6 +375,10 @@
           "La claridad puede surgir de un patrón de hechos, no de una sola conversación."
         ]
       }
+    },
+    "freeCta": {
+      "tools": "Busca una herramienta para empezar",
+      "boundaries": "Planea tus límites"
     }
   },
   "focus": {
@@ -452,14 +458,14 @@
   },
   "moodChart": {
     "eyebrow": "TUS ÚLTIMOS 14 DÍAS",
-    "noData": "Haz tu registro diario para ver aquí tu arco emocional.",
+    "noData": "Haz tu registro diario para ver aquí tu ánimo.",
     "legendHard": "Difícil",
     "legendOkay": "Regular",
     "legendGood": "Bien"
   },
   "situationCta": {
     "eyebrow": "ESTA SEMANA",
-    "freeCallTitle": "Llamada de Apoyo Familiar — Lunes",
+    "freeCallTitle": "La Sobremesa",
     "join": "Unirse al Zoom",
     "rsvp": "Reservar mi lugar",
     "going": "Asistirás ✓",
@@ -469,16 +475,16 @@
     "freeCall": "Reservar mi lugar en la llamada gratuita",
     "coaching": "Habla 1 a 1 con un coach",
     "intervention": "Planear una intervención con Matt",
-    "coachingSub": "¿Cargas con mucho esta semana? Una hora privada para planear tu próximo paso — {{rate}}.",
-    "coachingSubCrisis": "¿Cargas con mucho esta semana? Puedes tener una hora privada con un coach después de usar el 911, el 988 o el Copiloto de Crisis.",
-    "interventionSub": "Cuando es momento de más que una app, Matt te acompañará paso a paso.",
+    "coachingSub": "¿Cargas con mucho? Una hora privada para planear tu próximo paso: {{rate}}.",
+    "coachingSubCrisis": "Usa primero el 911, el 988 o el Copiloto de Crisis. Después, una hora privada con un coach puede ayudarte.",
+    "interventionSub": "Cuando una app no basta, Matt te acompaña paso a paso.",
     "finderLink": "Encuentra tratamiento y apoyo cerca de ti →",
     "sendBrief": "Envíale tu semana a Matt",
-    "sendBriefSub": "Pon tus últimas dos semanas frente a Matt — tus registros, señales de alerta y límites. Él lee cada informe y responde personalmente.",
+    "sendBriefSub": "Envíale a Matt tus últimas dos semanas: registros, señales de alerta y límites. Él lee cada informe y responde personalmente.",
     "askQuestion": "Envía una pregunta para la llamada",
     "oneThing": "LO DE ESTA SEMANA",
     "oneThingFromCall": "LO DE ESTA SEMANA · DE LA LLAMADA DEL LUNES",
-    "oneThingSupport": "Esta semana, deja que alguien lo cargue contigo: usa una de las opciones de aquí abajo."
+    "oneThingSupport": "Esta semana, deja que alguien lo cargue contigo. Elige una opción de aquí abajo."
   },
   "curriculum": {
     "weekLabel": "SEMANA {{week}}",
@@ -501,50 +507,44 @@
     "titleStaleNoName": "¿Ha cambiado algo con tu ser querido?",
     "titlePressure": "Hoy se siente pesado. ¿Ha cambiado algo con {{name}}?",
     "titlePressureNoName": "Hoy se siente pesado. ¿Ha cambiado algo con tu ser querido?",
-    "body": "Un toque mantiene Hoy al día con lo que está pasando: el apoyo que te ofrece, la lectura de la semana y cuándo te sugiere una llamada.",
+    "body": "Un toque mantiene el apoyo de Hoy y la lectura semanal al día con lo que está pasando.",
     "same": "Sigue igual: {{phase}}",
     "sameAccessibility": "Sigue igual: {{phase}}. Guarda que nada ha cambiado.",
     "saveError": "No pudimos guardarlo. Inténtalo de nuevo.",
     "notNow": "Ahora no",
     "thanks": "Gracias. Hoy ya refleja dónde están las cosas."
   },
-  "bereavement": {
-    "sheet": {
-      "title": "Lo sentimos muchísimo.",
-      "body": "Si tu ser querido falleció, la app dejará de preguntarte por esa persona y de enviarte notas sobre su recuperación. Tus registros diarios, la llamada de los lunes y Apoyo siguen aquí para ti. Puedes deshacer esto en Configuración.",
-      "contact": "Que Matt o un coach se comunique contigo personalmente",
-      "confirm": "Sí, falleció",
-      "cancel": "Cancelar",
-      "error": "No pudimos guardarlo. Inténtalo de nuevo.",
-      "quiet": "Pausar recordatorios y notas por ahora"
+  "fellowships": {
+    "intro": "Los días difíciles se llevan mejor con personas que entienden. Muchas familias encuentran ayuda en una reunión gratuita para familias.",
+    "question": "¿Cuál te gustaría considerar?",
+    "options": {
+      "alAnon": { "name": "Al-Anon", "description": "Para familiares y amigos de alguien que bebe" },
+      "narAnon": { "name": "Nar-Anon", "description": "Para familiares y amigos de alguien que consume drogas" },
+      "aca": { "name": "ACA", "description": "Adult Children of Alcoholics and Dysfunctional Families: para personas adultas que crecieron entre el alcohol o la disfunción familiar" },
+      "coda": { "name": "CoDA", "description": "Co-Dependents Anonymous: para construir relaciones más sanas" },
+      "pal": { "name": "PAL", "description": "Parents of Addicted Loved Ones: para madres, padres, parejas y familiares de alguien con una adicción" }
     },
-    "link": "Mi ser querido falleció",
-    "grief": {
-      "eyebrow": "LO SENTIMOS MUCHÍSIMO",
-      "title": "No hay una forma correcta de vivir este duelo",
-      "paragraphs": [
-        "El duelo después de una adicción es un duelo distinto. Puedes sentir una pérdida que aplasta y, algunos días, alivio de que la espera terminó, y luego culpa por ese alivio. Todo eso es normal.",
-        "Tú no causaste esto. Amaste a alguien durante una enfermedad que se lo llevó, y nada de lo que hiciste o dejaste de hacer un día lo decidió.",
-        "Puede que algunas personas a tu alrededor no sepan qué decir, o no traten esta pérdida como otras. Tu duelo cuenta de todos modos."
-      ],
-      "grasp": {
-        "title": "GRASP: Grief Recovery After a Substance Passing",
-        "body": "Grupos gratuitos de apoyo entre pares, en persona y en línea, para familias que perdieron a alguien por adicción o sobredosis (en inglés).",
-        "button": "Abrir grasphelp.org"
-      },
-      "compassionateFriends": {
-        "title": "The Compassionate Friends",
-        "body": "Apoyo para familias después de la muerte de un hijo o hija de cualquier edad, también para hermanos y abuelos.",
-        "button": "Abrir compassionatefriends.org"
-      },
-      "crisisTitle": "Si no quieres seguir aquí",
-      "crisisBody": "Cuando alguien muere por una adicción, aumenta el riesgo de suicidio en su familia y en quienes estaban cerca. Si estás pensando en no querer seguir aquí, llama al 988 (marca 2 para español) o envía AYUDA al 988. Pedir ayuda no es un fracaso.",
-      "stillHere": "Matt y la llamada de los lunes siguen aquí para ti, todo el tiempo que los necesites.",
-      "openError": "No pudimos abrir esa página. Visita {{site}} en tu navegador.",
-      "pause": "Pausar todos los recordatorios",
-      "resume": "Volver a activar los recordatorios",
-      "pausedNote": "Los recordatorios y las notas están en pausa. Los mensajes de Matt, de un coach o de tu familia, y las sesiones que agendaste, siguen llegando.",
-      "quietError": "No pudimos cambiar tus recordatorios. Inténtalo de nuevo."
-    }
+    "find": "Buscar una reunión de {{name}}",
+    "findHint": "Abre el buscador oficial de reuniones de {{name}} en tu navegador",
+    "remembered": "Guardada en este dispositivo. Toca otra para cambiarla.",
+    "notNow": "Ahora no",
+    "openErrorTitle": "No pudimos abrir el buscador de reuniones",
+    "openErrorBody": "Visita {{site}} en tu navegador.",
+    "reachOut": {
+      "question": "¿Te gustaría que {{name}} se comunique contigo?",
+      "yes": "Sí, que se comunique conmigo",
+      "no": "No, gracias",
+      "sending": "Enviando…",
+      "sent": "Le avisamos a {{name}} y se comunicará contigo.",
+      "emergency": "Sober Helpline no atiende las 24 horas. En una emergencia, llama al 911, o llama o envía un mensaje de texto al 988 (marca 2 para español).",
+      "failed": "No se pudo enviar. Inténtalo de nuevo.",
+      "retry": "Intentar de nuevo"
+    },
+    "booking": {
+      "question": "¿Te gustaría ayuda para agendar una sesión de coaching?",
+      "yes": "Ayúdame a agendar",
+      "no": "No, gracias"
+    },
+    "closing": "Está bien. Trátate con cariño hoy."
   }
 }

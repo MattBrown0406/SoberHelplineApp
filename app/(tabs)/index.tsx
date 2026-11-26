@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, type LayoutChangeEvent, type ScrollView } from 'react-native';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { TabHeader } from '../../src/components/ui/TabHeader';
@@ -6,35 +6,33 @@ import { useTranslation } from 'react-i18next';
 import { appAlert } from '../../src/lib/appAlert';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { useTheme } from '../../src/contexts/ThemeContext';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { TodayDisclosure, TodayDisclosureToggle } from '../../src/components/today/TodayDisclosure';
 import { NextStepItem, useNextStep } from '../../src/components/today/NextStepItem';
 import { WelcomeBackCard } from '../../src/components/today/WelcomeBackCard';
 import { ReminderAskNote } from '../../src/components/reminders/ReminderAskNote';
 import { HeroCard } from '../../src/components/today/HeroCard';
 import { CheckInFeedbackCard } from '../../src/components/today/CheckInFeedbackCard';
-import { GuidedStartPanel } from '../../src/components/today/GuidedStartPanel';
 import { CheckInCard } from '../../src/components/today/CheckInCard';
 import { RecoveryPathwayCard } from '../../src/components/today/RecoveryPathwayCard';
+import { PathNextStepCard } from '../../src/components/today/PathNextStepCard';
 import { MoodChart } from '../../src/components/today/MoodChart';
-import { LockedPreviewRow } from '../../src/components/plans/LockedPreviewRow';
 import { PlansTeaserCard } from '../../src/components/plans/PlansTeaserCard';
 import { ContextualMembershipInvitation } from '../../src/membershipInvitations/ContextualMembershipInvitation';
 import { useAfterMeetingInvite } from '../../src/hooks/useAfterMeetingInvite';
+import { isDifficultCheckIn } from '../../src/lib/reviewPromptPolicy';
+import { noteVisitAsk } from '../../src/membershipInvitations/visitAsks';
 import { SituationCard, type WeeklyOneThing } from '../../src/components/today/SituationCard';
 import { NeedsRouter } from '../../src/components/today/NeedsRouter';
 import { ContinueLetterCard } from '../../src/components/today/ContinueLetterCard';
 import { WeekReviewCard } from '../../src/components/today/WeekReviewCard';
-import { ScriptCard } from '../../src/components/scripts/ScriptCard';
 import { HoldLogCard } from '../../src/components/boundaries/HoldLogCard';
 import { CurriculumCard } from '../../src/components/today/CurriculumCard';
 import { WillingnessWindowAlert } from '../../src/components/today/WillingnessWindowAlert';
-import { PassItOnCard } from '../../src/components/today/PassItOnCard';
 import { InvitationTodayCard } from '../../src/components/invitation/InvitationTodayCard';
 import { LovedOneCheckCard } from '../../src/components/today/LovedOneCheckCard';
 import { HolidayPlanTodayCard } from '../../src/components/today/HolidayPlanTodayCard';
-import { GriefCard } from '../../src/components/bereavement/GriefCard';
-import { BereavementSheet } from '../../src/components/bereavement/BereavementSheet';
 import { useCheckIn } from '../../src/hooks/useCheckIn';
 import { useTodayFeed } from '../../src/hooks/useTodayFeed';
 import { useLovedOne } from '../../src/hooks/useLovedOne';
@@ -43,8 +41,7 @@ import { useHoldLog } from '../../src/hooks/useHoldLog';
 import { useFamilyCallTakeaway } from '../../src/hooks/useFamilyCallTakeaway';
 import { useWelcomeBack } from '../../src/hooks/useWelcomeBack';
 import { useTodayReminderAsk } from '../../src/hooks/useReminderAsk';
-import { rearmDailyNudge } from '../../src/hooks/usePushNotifications';
-import { getDailyScripts } from '../../src/content/scripts';
+import { useToolOpened } from '../../src/hooks/useToolOpened';
 import { PHASE_LABEL_KEY, selectCurriculumPiece } from '../../src/content/curriculum';
 import { useFeatureAccess } from '../../src/hooks/useFeatureAccess';
 import { usePlanOffers } from '../../src/hooks/usePlanPurchase';
@@ -70,19 +67,14 @@ export default function TodayScreen() {
 }
 
 function TodayContent() {
+  useToolOpened('today');
   const { user, isAttached, isAdmin } = useAccount();
   const { colors } = useTheme();
   const { t, i18n } = useTranslation('today');
   const router = useRouter();
   const { todayCheckIn, streak, saveCheckIn, pendingSync } = useCheckIn(user?.id ?? null, user?.timezone);
-  const { lovedOne, loading: lovedOneLoading, loadError: lovedOneLoadError, save: saveLovedOne, markDied, setQuiet, refresh: refreshLovedOne, bereaved: bereavedState } = useLovedOne(user?.id ?? null);
-  // Her loved one died: Today shows the grief card instead of everything about them.
-  // The device's copy answers before the record loads (or offline), so a
-  // bereaved member never sees the loved-one Today first.
-  const bereaved = bereavedState === true;
-  const bereavedUnknown = bereavedState === undefined;
-  const [diedSheetOpen, setDiedSheetOpen] = useState(false);
-  const { dayCount, boundariesHeld, groupSessions, quoteIndex, scriptSlot, curriculumWeek, curriculumPhase, situation, primaryDoor, nextFreeCall, rsvpFreeCall, seatSavedHere, declineFreeCall, reload: reloadFeed } =
+  const { lovedOne, loading: lovedOneLoading, loadError: lovedOneLoadError, save: saveLovedOne, refresh: refreshLovedOne } = useLovedOne(user?.id ?? null);
+  const { dayCount, boundariesHeld, groupSessions, quoteIndex, curriculumWeek, curriculumPhase, situation, primaryDoor, nextFreeCall, rsvpFreeCall, seatSavedHere, declineFreeCall, reload: reloadFeed } =
     useTodayFeed(user?.id ?? null, user?.joinedAt ?? null);
   const youLabel = user?.firstName || t('boundaries:journal.you');
   const { space: familySpace, refresh: refreshFamilySpace } = useFamilySpace(user?.id ?? null, { you: youLabel, member: t('boundaries:journal.member') });
@@ -94,7 +86,7 @@ function TodayContent() {
     useCallback(() => {
       void refreshFamilySpace();
       void reloadHoldLog().catch(() => undefined);
-      // Settings can mark or undo "They died" while Today stays mounted.
+      // Another screen can change her loved one's record while Today stays mounted.
       void refreshLovedOne().catch(() => undefined);
     }, [refreshFamilySpace, reloadHoldLog, refreshLovedOne]),
   );
@@ -102,24 +94,68 @@ function TodayContent() {
   const takeaway = useFamilyCallTakeaway(user?.id ?? null);
   // Back after a week or more away: one small hello at the top, for this visit.
   const welcome = useWelcomeBack(user?.id ?? null);
-  // A gentle second chance to turn on reminders. Not on the bereaved Today,
-  // and not on a visit that opened with the welcome-back card (or before we
+  // A gentle second chance to turn on reminders. Not on a visit that opened with the welcome-back card (or before we
   // know whether it did: it waits for welcome.decided each time).
   // (Nor "a reminder before Monday's meeting" in a week the website cancelled it.)
   const mondayCancelled = isFamilySquaresSession(nextFreeCall) && isCancelledMeetingDate(nextFreeCall?.cancelledDate);
-  const reminderAsk = useTodayReminderAsk(bereaved || bereavedUnknown ? null : user?.id ?? null, user?.joinedAt, !welcome.ready || welcome.returned, welcome.decided, mondayCancelled);
-  // Just back from Family Squares, and no rating prompt on this visit. Never
-  // on the bereaved Today; free members only (the invitation checks that).
+  const reminderAsk = useTodayReminderAsk(user?.id ?? null, user?.joinedAt, !welcome.ready || welcome.returned, welcome.decided, mondayCancelled);
+  // A hard check-in today gets the support it asked for (the feedback card's
+  // meeting / "Matt can reach out" step), not an invitation: the same rule as
+  // the five-day card. The after-meeting moment is let go, and a card already
+  // up goes away once she checks in that way.
+  // (A part an older version did not save counts as not hard.)
+  const hardCheckInToday = !!todayCheckIn && isDifficultCheckIn({
+    moodScore: todayCheckIn.moodScore,
+    capacityScore: todayCheckIn.capacityScore ?? 3,
+    pressureScore: todayCheckIn.pressureScore ?? 3,
+    supportNeed: todayCheckIn.supportNeed ?? 'steady',
+  });
+  // Just back from Family Squares, and no rating prompt on this visit. Free
+  // members only (the invitation checks that).
   const afterMeeting = useAfterMeetingInvite(
-    bereaved || bereavedUnknown ? null : user?.id ?? null,
-    welcome.visible || !!reminderAsk.view,
+    user?.id ?? null,
+    welcome.visible || !!reminderAsk.view || hardCheckInToday,
   );
-  // The one "next step" under the check-in, and what waits under "More for this week".
+  // One ask per visit: once the reminder ask has been on Today, no membership
+  // invitation is offered anywhere until she next leaves the app (visitAsks).
+  const reminderAskOpen = reminderAsk.view === 'ask' || reminderAsk.view === 'settings';
+  useEffect(() => {
+    if (reminderAskOpen) noteVisitAsk(user?.id ?? null);
+  }, [reminderAskOpen, user?.id]);
+  // Her check-in streak just reached five days (never the seventh, which is
+  // the rating prompt's day). Starts false; true only once that check-in
+  // saved, for as long as Today stays in view. Free members only (the
+  // invitation checks that).
+  const [checkinWeek, setCheckinWeek] = useState(false);
+  useFocusEffect(useCallback(() => () => setCheckinWeek(false), []));
+  // The one "next step" under the check-in, and everything else in one
+  // collapsed "More for you" (mounted the first time she opens it).
   const nextStep = useNextStep();
   const [moreOpen, setMoreOpen] = useState(false);
+  const [moreVisited, setMoreVisited] = useState(false);
   const scrollRef = useRef<ScrollView | null>(null);
   const checkInY = useRef(0);
   const scrollToCheckIn = useRef(false);
+  const moreY = useRef(0);
+  const scrollToMore = useRef(false);
+  // The winback push, the check-in's "a practical next step" and the old
+  // `/guided-journey` route land here with `more=1`: open "More for you",
+  // where her path is. `n` makes a repeat visit open it again. The params
+  // are consumed on this screen (as Support does with `ask`), so a later
+  // remount of Today (another account signing in) does not open it again.
+  const navigation = useNavigation();
+  const { more: openMoreParam, n: openMoreNonce } = useLocalSearchParams<{ more?: string; n?: string }>();
+  useEffect(() => {
+    if (openMoreParam !== '1') return;
+    setMoreVisited(true);
+    setMoreOpen(true);
+    if (moreY.current > 0) {
+      scrollRef.current?.scrollTo({ y: Math.max(0, moreY.current - 8), animated: true });
+    } else {
+      scrollToMore.current = true;
+    }
+    navigation.setParams({ more: undefined, n: undefined } as never);
+  }, [openMoreParam, openMoreNonce, navigation]);
 
   const firstName = user?.firstName?.trim() ?? '';
   const greeting = timeGreeting(t, firstName);
@@ -127,6 +163,10 @@ function TodayContent() {
   const dailyQuote = t(`dailyQuote.${quoteIndex}`);
   async function completeCheckIn(input: CaregiverCheckInInput): Promise<void> {
     const nextStreak = await saveCheckIn(input);
+    // Five days in a row, on a check-in that went all right: a hard day gets
+    // the support it asked for, not an invitation (nothing is read to target
+    // her; a difficult answer only keeps the card away).
+    if (nextStreak.currentStreak === 5 && !isDifficultCheckIn(input)) setCheckinWeek(true);
     if (nextStreak.currentStreak === 7) {
       setTimeout(() => {
         void maybeRequestReview({
@@ -135,7 +175,6 @@ function TodayContent() {
           safety: {
             situationBand: situation.band,
             checkIn: input,
-            bereaved,
           },
         });
       }, 750);
@@ -145,7 +184,7 @@ function TodayContent() {
   function queueMondayMeetingReview(): Promise<void> {
     return queueSupportCallReview({
       accountId: user?.id ?? null,
-      safety: { situationBand: situation.band, bereaved },
+      safety: { situationBand: situation.band },
     });
   }
 
@@ -163,7 +202,7 @@ function TodayContent() {
       void maybeRequestReview({
         accountId: user?.id ?? null,
         milestone: 'boundary_follow_through',
-        safety: { situationBand: situation.band, bereaved },
+        safety: { situationBand: situation.band },
       });
     }, 750);
   }
@@ -183,7 +222,6 @@ function TodayContent() {
       status={lovedOneStatus}
       loading={lovedOneLoading}
       onSavePhase={saveLovedOnePhase}
-      onTheyDied={() => setDiedSheetOpen(true)}
     />
   );
   // Signup lets her skip the loved-one step: ask again on Today, in one tap.
@@ -194,21 +232,6 @@ function TodayContent() {
       ready={!lovedOneLoading && !lovedOneLoadError}
       pressureScore={todayCheckIn?.pressureScore}
       onSavePhase={saveLovedOnePhase}
-      onTheyDied={() => setDiedSheetOpen(true)}
-    />
-  );
-  const bereavementSheet = (
-    <BereavementSheet
-      visible={diedSheetOpen}
-      onCancel={() => setDiedSheetOpen(false)}
-      onConfirm={async (contact, quiet) => {
-        const { quietFailed } = await markDied(contact, quiet);
-        if (quietFailed) appAlert(t('bereavement.grief.quietError'));
-        // The device's own reminders follow the server's pause.
-        void rearmDailyNudge().catch(() => undefined);
-        setDiedSheetOpen(false);
-        void reloadFeed();
-      }}
     />
   );
   const holidayCard = <HolidayPlanTodayCard accountId={user?.id ?? null} />;
@@ -227,7 +250,7 @@ function TodayContent() {
   // when he wrote one, otherwise her own week's practice.
   // A week on fire has no exercise: then the one thing is leaning on the
   // support doors the card shows below it.
-  const weeklyOneThing: WeeklyOneThing | null = bereaved ? null : takeaway && !i18n.language.startsWith('es')
+  const weeklyOneThing: WeeklyOneThing | null = takeaway && !i18n.language.startsWith('es')
     ? { text: takeaway.body, fromCall: true }
     : curriculumPiece ? { text: curriculumPiece.practice, fromCall: false }
       : primaryDoor !== 'free_call' ? { text: t('situationCta.oneThingSupport'), fromCall: false } : null;
@@ -237,21 +260,18 @@ function TodayContent() {
     <SituationCard
       accountId={user?.id ?? null}
       nextFreeCall={nextFreeCall}
-      // No coaching or intervention door about a loved one who died.
-      primaryDoor={bereaved ? 'free_call' : primaryDoor}
+      primaryDoor={primaryDoor}
       weeklyOneThing={weeklyOneThing}
       onRsvp={rsvpFreeCall}
       onDecline={declineFreeCall}
       onSupportCallJoin={queueMondayMeetingReview}
       onSupportCallOpenFailed={() => cancelQueuedSupportCallReview(user?.id ?? null)}
-      // No prompts of any kind for a bereaved member: no reminder ask under her seat.
-      seatReminderAsk={!bereaved && !bereavedUnknown}
       seatSavedHere={seatSavedHere}
     />
   );
 
   // The same header as every tab (title left, Settings right); Today's title
-  // is her greeting. On every version of Today: free, member and bereaved.
+  // is her greeting. On every version of Today: free and member.
   const header = <TabHeader title={greeting} />;
 
   const checkInCard = (
@@ -298,79 +318,97 @@ function TodayContent() {
   const reminderAskCard = <ReminderAskNote ask={reminderAsk} place="today" />;
 
   // One "next step" under the check-in: the first of these with something to
-  // show takes the slot (chooseNextStep); the rest wait under "More for this
-  // week". Each card still decides for itself whether it shows.
+  // show takes the slot (chooseNextStep); the rest wait under "More for you".
+  // Each card still decides for itself whether it shows. Her path's step is
+  // the last resort; outside the slot it stays tucked, since "Your path"
+  // under "More for you" already shows it.
   const nextStepCards: Record<NextStepCard, React.ReactNode> = {
     willingnessWindow: willingnessWindowAlert,
     lovedOneCheck: lovedOneCheckCard,
     holidayPlan: holidayCard,
     invitation: invitationCard,
-    guidedStart: <GuidedStartPanel />,
+    pathStep: <PathNextStepCard stage={lovedOne?.stage} status={lovedOneStatus} loading={lovedOneLoading} />,
   };
   const nextStepItem = (card: NextStepCard, shown: boolean) => (
     <NextStepItem key={card} shown={shown} onShowing={(showing) => nextStep.report(card, showing)}>
       {nextStepCards[card]}
     </NextStepItem>
   );
+  const onMoreLayout = (event: LayoutChangeEvent) => {
+    moreY.current = event.nativeEvent.layout.y;
+    if (!scrollToMore.current) return;
+    scrollToMore.current = false;
+    scrollRef.current?.scrollTo({ y: Math.max(0, moreY.current - 8), animated: true });
+  };
+  const moreSection = (key: string, children: React.ReactNode) => (
+    <View key={key} style={{ display: moreOpen ? 'flex' : 'none' }}>
+      {moreVisited && children}
+    </View>
+  );
   // Both lists go into one keyed list on the screen, so a card stays mounted
   // (and keeps what she typed) when it moves between the slot and "More".
   const nextStepSlot = nextStep.slot ? [nextStepItem(nextStep.slot, true)] : [];
-  const moreForThisWeek = [
-    ...(nextStep.more.length ? [
+  // ONE collapsed "More for you": her path first, then this week's other
+  // steps, then what the tier adds (`rest`: this week's piece, boundary wins,
+  // progress, signs to watch and, for a free member, membership last).
+  const moreForYou = (rest: React.ReactNode) => [
+    <View key="more" onLayout={onMoreLayout}>
       <TodayDisclosureToggle
-        key="more"
         title={t('disclosure.more')}
         expanded={moreOpen}
-        onPress={() => setMoreOpen((open) => !open)}
-      />,
-    ] : []),
+        onPress={() => {
+          setMoreVisited(true);
+          setMoreOpen((open) => !open);
+        }}
+      />
+    </View>,
+    moreSection('path', pathwayCard),
     ...NEXT_STEP_PRIORITY.filter((card) => card !== nextStep.slot)
       .map((card) => nextStepItem(card, moreOpen && nextStep.more.includes(card))),
+    moreSection('rest', rest),
   ];
+  const curriculumCard = curriculumPiece ? (
+    <CurriculumCard
+      piece={curriculumPiece}
+      week={curriculumWeek}
+      phaseLabel={t(PHASE_LABEL_KEY[curriculumPhase])}
+    />
+  ) : null;
+  const holdLogCard = (
+    <HoldLogCard
+      own={holdLog.own}
+      shared={holdLog.shared}
+      saving={holdLog.saving}
+      canShare={!!familySpace}
+      nameFor={(id) => familySpace?.members.find((m) => m.accountId === id)?.displayName ?? youLabel}
+      onSave={(result, share) => { void saveBoundaryWin(result, share); }}
+    />
+  );
+  // The Tracker is a pushed screen, not a tab: this row is its door from
+  // Today. /tracker keeps its own membership gate for a free member.
+  const signsToWatchRow = (
+    <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityLabel={t('moreForYou.signsTitle')}
+      accessibilityHint={t('moreForYou.signsBody')}
+      onPress={() => router.push('/tracker' as never)}
+      activeOpacity={0.75}
+      style={[styles.signsRow, { backgroundColor: colors.white, borderColor: colors.line }]}
+    >
+      <View style={styles.signsText}>
+        <Text style={[styles.signsTitle, { color: colors.ink }]}>{t('moreForYou.signsTitle')}</Text>
+        <Text style={[styles.signsBody, { color: colors.inkSoft }]}>{t('moreForYou.signsBody')}</Text>
+      </View>
+      <MaterialCommunityIcons name="chevron-right" size={24} color={colors.primary} accessible={false} importantForAccessibility="no" />
+    </TouchableOpacity>
+  );
 
   // The Monday call and the daily check-in lead for every membership tier.
-  // After her loved one died: immediate help, the grief card, the Monday call
-  // and her own check-in — nothing about their recovery.
-  // A moment on a cold start: neither the record nor the device's copy is known.
-  // Emergency numbers are right for anyone, so they show even now.
-  if (bereavedUnknown) {
-    return (
-      <ScreenContainer backgroundColor={colors.cream}>
-        {header}
-        <NeedsRouter bereaved />
-      </ScreenContainer>
-    );
-  }
-  if (bereaved) {
-    return (
-      <ScreenContainer backgroundColor={colors.cream}>
-        {header}
-        <NeedsRouter bereaved />
-        <GriefCard
-          quiet={lovedOne?.bereavement_quiet === true}
-          onSetQuiet={async (quiet) => {
-            await setQuiet(quiet);
-            void rearmDailyNudge().catch(() => undefined);
-          }}
-        />
-        {mondayCallCard}
-        {checkInCard}
-        <CheckInFeedbackCard checkIn={todayCheckIn} />
-        <MoodChart accountId={user?.id ?? null} timezone={user?.timezone} />
-        {isAdmin && (
-          <TouchableOpacity accessibilityRole="button" onPress={() => router.push('/admin')} style={styles.adminLink}>
-            <Text style={[styles.adminLinkText, { color: colors.inkSoft }]}>Admin</Text>
-          </TouchableOpacity>
-        )}
-      </ScreenContainer>
-    );
-  }
-
-  // Secondary content stays reachable without overwhelming the first screen:
-  // greeting, the Monday call, the check-in, one next step, then "What do you
-  // need right now?" and the tucked-away sections.
+  // Today does one job: greeting (and, after time away, the welcome back),
+  // the Monday meeting, the check-in, ONE next step and "What do you need
+  // right now?" (the door for a bad day). Everything else waits in ONE
+  // collapsed "More for you".
   if (!canAccessFullToday) {
-    const freeScript = getDailyScripts(scriptSlot, i18n.language)[0];
     return (
       <ScreenContainer backgroundColor={colors.cream} scrollRef={scrollRef}>
         {header}
@@ -382,66 +420,33 @@ function TodayContent() {
         <ContextualMembershipInvitation
           accountId={user?.id ?? null}
           placement="after-meeting"
-          completed={afterMeeting}
+          completed={afterMeeting && !hardCheckInToday}
         />
         <View onLayout={onCheckInLayout}>
           {checkInCard}
           <CheckInFeedbackCard checkIn={todayCheckIn} />
-        </View>
-        {[...nextStepSlot, <NeedsRouter key="needs" />, ...moreForThisWeek]}
-        <TodayDisclosure title={t('disclosure.pathway')}>
-          {pathwayCard}
-        </TodayDisclosure>
-        <TodayDisclosure title={t('disclosure.invite')}>
-        <PassItOnCard />
-        </TodayDisclosure>
-        <TodayDisclosure title={t('disclosure.practice')}>
-        {freeScript && (
-          <>
-            <Text style={[styles.sectionLabel, { color: colors.inkSoft }]}>
-              {t('freeDaily.eyebrow').toUpperCase()}
-            </Text>
-            <ScriptCard script={freeScript} />
-            <Text style={[styles.freeNote, { color: colors.inkSoft }]}>
-              {/* The tab is named as its own header names it (the tab bar says the same). */}
-              {t('freeDaily.note', { tab: t('common:nav.scripts') })}
-            </Text>
-          </>
-        )}
-        <HoldLogCard
-          own={holdLog.own}
-          shared={holdLog.shared}
-          saving={holdLog.saving}
-          canShare={!!familySpace}
-          nameFor={(id) => familySpace?.members.find((m) => m.accountId === id)?.displayName ?? youLabel}
-          onSave={(result, share) => { void saveBoundaryWin(result, share); }}
-        />
-        {/* Members see their week in review and progress in this section;
-            say so in one row, with no sample or blurred data. */}
-        <LockedPreviewRow
-          source="today_locked_preview"
-          line={i18n.t('plans:locked.todayLine')}
-          label={i18n.t('plans:locked.todayLabel')}
-        />
-        <MoodChart accountId={user?.id ?? null} timezone={user?.timezone} />
-        {curriculumPiece && (
-          <CurriculumCard
-            piece={curriculumPiece}
-            week={curriculumWeek}
-            phaseLabel={t(PHASE_LABEL_KEY[curriculumPhase])}
+          {/* Five days of check-ins: the same soft card, under the check-in. */}
+          <ContextualMembershipInvitation
+            accountId={user?.id ?? null}
+            placement="checkin-week"
+            completed={checkinWeek}
           />
-        )}
-        </TodayDisclosure>
-        {/* An invitation, not a lock: the same card as the Support tab (what
-            Essential adds, the store's price, "See plans"). Free members only
-            (this branch), and never for a bereaved member or before the device
-            knows: both of those Todays returned above. */}
-        {bereavedState === false && (
-          <TodayDisclosure title={t('disclosure.membership')}>
-            <ExploreMembership />
-          </TodayDisclosure>
-        )}
-        {bereavementSheet}
+        </View>
+        {[...nextStepSlot, <NeedsRouter key="needs" />, ...moreForYou(
+          <>
+            {curriculumCard}
+            {holdLogCard}
+            <MoodChart accountId={user?.id ?? null} timezone={user?.timezone} />
+            {signsToWatchRow}
+            {/* An invitation, not a lock: the same card as the Support tab
+                (what Essential adds, the store's price, "See plans"), last.
+                Free members only (this branch). Its own row, so the store is
+                asked for prices only when she opens it. */}
+            <TodayDisclosure title={t('disclosure.membership')}>
+              <ExploreMembership />
+            </TodayDisclosure>
+          </>,
+        )]}
       </ScreenContainer>
     );
   }
@@ -456,52 +461,29 @@ function TodayContent() {
         {checkInCard}
         <CheckInFeedbackCard checkIn={todayCheckIn} />
       </View>
-      {[...nextStepSlot, <NeedsRouter key="needs" />, ...moreForThisWeek]}
-      <TodayDisclosure title={t('disclosure.pathway')}>
-        {pathwayCard}
-      </TodayDisclosure>
-      <TodayDisclosure title={t('disclosure.invite')}>
-      <PassItOnCard />
-      </TodayDisclosure>
-      <TodayDisclosure title={t('disclosure.practice')}>
-      <HeroCard
-        dayCount={dayCount}
-        contextLabel={contextLabel}
-        quote={dailyQuote}
-        checkInStreak={streak.currentStreak}
-        boundariesHeld={boundariesHeld}
-        groupSessions={groupSessions}
-      />
-
-      <HoldLogCard
-        own={holdLog.own}
-        shared={holdLog.shared}
-        saving={holdLog.saving}
-        canShare={!!familySpace}
-        nameFor={(id) => familySpace?.members.find((m) => m.accountId === id)?.displayName ?? youLabel}
-        onSave={(result, share) => { void saveBoundaryWin(result, share); }}
-      />
-
-      <ContinueLetterCard accountId={user?.id ?? null} />
-
-      <WeekReviewCard accountId={user?.id ?? null} boundariesHeld={boundariesHeld} />
-
-      <MoodChart accountId={user?.id ?? null} timezone={user?.timezone} />
-
-      {curriculumPiece && (
-        <CurriculumCard
-          piece={curriculumPiece}
-          week={curriculumWeek}
-          phaseLabel={t(PHASE_LABEL_KEY[curriculumPhase])}
-        />
-      )}
-      </TodayDisclosure>
+      {[...nextStepSlot, <NeedsRouter key="needs" />, ...moreForYou(
+        <>
+          {curriculumCard}
+          {holdLogCard}
+          <ContinueLetterCard accountId={user?.id ?? null} />
+          <HeroCard
+            dayCount={dayCount}
+            contextLabel={contextLabel}
+            quote={dailyQuote}
+            checkInStreak={streak.currentStreak}
+            boundariesHeld={boundariesHeld}
+            groupSessions={groupSessions}
+          />
+          <WeekReviewCard accountId={user?.id ?? null} boundariesHeld={boundariesHeld} />
+          <MoodChart accountId={user?.id ?? null} timezone={user?.timezone} />
+          {signsToWatchRow}
+        </>,
+      )]}
       {isAdmin && (
         <TouchableOpacity accessibilityRole="button" onPress={() => router.push('/admin')} style={styles.adminLink}>
           <Text style={[styles.adminLinkText, { color: colors.inkSoft }]}>Admin</Text>
         </TouchableOpacity>
       )}
-      {bereavementSheet}
     </ScreenContainer>
   );
 }
@@ -524,19 +506,21 @@ function timeGreeting(t: TFunction<'today'>, name: string): string {
 }
 
 const styles = StyleSheet.create({
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    marginBottom: 10,
-    marginTop: 4,
-  },
-  freeNote: {
-    fontSize: 12,
-    fontStyle: 'italic',
-    textAlign: 'center',
+  // "Signs to watch": a full-width row, as tall as the text needs.
+  signsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 56,
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     marginBottom: 12,
   },
+  signsText: { flex: 1 },
+  signsTitle: { fontSize: 16, lineHeight: 22, fontWeight: '600' },
+  signsBody: { fontSize: 13, lineHeight: 18, marginTop: 2 },
   adminLink: { alignSelf: 'center', marginTop: 32, paddingVertical: 8, paddingHorizontal: 16 },
   adminLinkText: { fontSize: 12 },
 });

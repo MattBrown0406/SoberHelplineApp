@@ -92,12 +92,12 @@ test('scheduling cards and They Said Yes use the cross-platform field', () => {
 // ── Alert.alert is a no-op on web ───────────────────────────────────────────
 test('member screens use appAlert instead of the web no-op Alert.alert', () => {
   const files = [
-    'app/(tabs)/boundaries.tsx', 'app/family-outcomes.tsx', 'app/family-visitation-plan.tsx', 'app/holiday-plan.tsx', 'app/prosecutor-letter.tsx', 'app/homecoming-week.tsx',
+    'src/components/practice/BoundariesPractice.tsx', 'app/family-outcomes.tsx', 'app/family-visitation-plan.tsx', 'app/holiday-plan.tsx', 'app/prosecutor-letter.tsx', 'app/homecoming-week.tsx',
     'app/diy-intervention-planner.tsx', 'app/community.tsx', 'app/book-coaching.tsx',
     'src/components/tracker/WillingnessWindowCard.tsx', 'src/components/treatment/TheySaidYesMode.tsx',
     'src/components/video/PlanReviewBookingCard.tsx', 'src/components/video/PremierVideoSchedulingCard.tsx',
     'app/(onboarding)/consent.tsx', 'app/(onboarding)/loved-one.tsx', 'app/(onboarding)/notifications.tsx',
-    'app/crisis-mode.tsx', 'src/components/today/CheckInCard.tsx', 'app/(tabs)/tracker.tsx', 'app/trajectory.tsx',
+    'app/crisis-mode.tsx', 'src/components/today/CheckInCard.tsx', 'app/tracker.tsx', 'app/trajectory.tsx',
     'app/finder/inquiry.tsx', 'src/components/safety/FamilyEmergencyCard.tsx', 'src/components/safety/SafetyWalletExport.tsx',
   ];
   for (const file of files) assert.doesNotMatch(read(file), /Alert\.alert\(/, `${file} still calls Alert.alert`);

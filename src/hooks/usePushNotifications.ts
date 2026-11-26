@@ -18,7 +18,6 @@ import type { ReminderTapPlan } from '../lib/familySquaresJoin';
 import { useAccount } from '../contexts/AccountContext';
 import { canAccessFeature } from '../lib/featureAccess';
 import type { Entitlements } from '../api/types';
-import { pausePersonalRemindersForQuiet, resumePersonalRemindersAfterQuiet } from '../reminders/bereavementQuiet';
 export const LEGACY_NUDGE_PREFIX = 'legacy-daily-nudge:v1:';
 const LEGACY_OPT_IN_KEY = 'legacy-daily-nudge-opt-in:v1:';
 
@@ -38,44 +37,9 @@ async function setServerDailyHour(hour: number): Promise<void> {
   if (error) throw error;
 }
 
-/**
- * A bereaved member paused reminders: the daily reminder is switched off once,
- * when the pause starts, and its earlier setting remembered here (the key
- * holds the account id, so the deletion purge removes it). A daily reminder
- * she turns on herself during the pause is respected; turning reminders back
- * on restores the earlier setting.
- */
-export const DAILY_QUIET_KEY = 'legacy-daily-nudge:quiet:v1:';
-
-/** PostgREST / Postgres "no such column" (an older schema). */
-export function isMissingColumn(error: { code?: string; message?: string } | null | undefined): boolean {
-  return error?.code === '42703' || error?.code === 'PGRST204'
-    || /column .* does not exist|could not find .* column/i.test(error?.message ?? '');
-}
-
-async function followBereavementQuiet(accountId: string, paused: boolean): Promise<void> {
-  const marker = await AsyncStorage.getItem(DAILY_QUIET_KEY + accountId);
-  if (paused && marker === null) {
-    const wasOn = await isDailyNudgeEnabled(accountId);
-    await AsyncStorage.setItem(DAILY_QUIET_KEY + accountId, wasOn ? 'on' : 'off');
-    if (wasOn) await AsyncStorage.setItem(LEGACY_OPT_IN_KEY + accountId, 'false');
-  } else if (!paused && marker !== null) {
-    if (marker === 'on') await AsyncStorage.setItem(LEGACY_OPT_IN_KEY + accountId, 'true');
-    await AsyncStorage.removeItem(DAILY_QUIET_KEY + accountId);
-  }
-}
-
-/** Her explicit daily choice during a pause is what comes back after it. */
-async function rememberDailyChoiceDuringQuiet(accountId: string, on: boolean): Promise<void> {
-  if ((await AsyncStorage.getItem(DAILY_QUIET_KEY + accountId)) !== null) {
-    await AsyncStorage.setItem(DAILY_QUIET_KEY + accountId, on ? 'on' : 'off');
-  }
-}
-
 export async function disableDailyNudges(accountId: string): Promise<void> {
   await setServerDailyOptIn(false);
   await AsyncStorage.setItem(LEGACY_OPT_IN_KEY + accountId, 'false');
-  await rememberDailyChoiceDuringQuiet(accountId, false).catch(() => undefined);
   await rearmDailyNudge();
 }
 
@@ -123,11 +87,11 @@ let weekReviewAccess: { accountId: string; canSee: boolean } | null = null;
 
 /**
  * The Sunday 6pm "Your week, at a glance" note points at the week review on
- * Today, which only the paid Today shows (and never the bereaved Today). It is
- * scheduled only for someone who will find that card when she taps it.
+ * Today, which only the paid Today shows. It is scheduled only for someone
+ * who will find that card when she taps it.
  */
-export function shouldScheduleWeekReview(input: { canSeeWeekReview: boolean | null; bereaved: boolean }): boolean {
-  return input.canSeeWeekReview === true && !input.bereaved;
+export function shouldScheduleWeekReview(input: { canSeeWeekReview: boolean | null }): boolean {
+  return input.canSeeWeekReview === true;
 }
 
 /**
@@ -214,32 +178,16 @@ async function performDailyNudgeRearm(): Promise<void> {
   type DailyAccount = {
     id: string; timezone: string | null; daily_push_opt_in: boolean;
     daily_push_hour: number | null; push_token: string | null;
-    loved_ones?: { died_at: string | null; bereavement_quiet: boolean | null } | null;
   };
   let account: DailyAccount | null = null;
-  // Bereaved and asked for quiet: nothing scheduled on this device either.
-  let remindersPaused = false;
-  // Her loved one died: the bereaved Today has no week review.
-  let bereaved = false;
   // The server morning note reaches her (via the token on file) at this hour.
   let serverMorningNote = false;
   if (accountId && session?.user.id) {
-    const select = (columns: string) => supabase.from('accounts').select(columns).eq('user_id', session.user.id).maybeSingle();
-    let { data, error } = await select('id, timezone, daily_push_opt_in, daily_push_hour, push_token, loved_ones(died_at, bereavement_quiet)');
-    // A backend without the pause column yet (the migration lags this build):
-    // read without it, as not paused, instead of stopping every re-arm.
-    if (error && isMissingColumn(error)) {
-      ({ data, error } = await select('id, timezone, daily_push_opt_in, daily_push_hour, push_token'));
-    }
+    const { data, error } = await supabase.from('accounts')
+      .select('id, timezone, daily_push_opt_in, daily_push_hour, push_token')
+      .eq('user_id', session.user.id).maybeSingle();
     if (error) return;
     account = data as DailyAccount | null;
-    bereaved = account?.id === accountId && !!account.loved_ones?.died_at;
-    remindersPaused = bereaved && account?.loved_ones?.bereavement_quiet === true;
-    // The pause turns the daily reminder off once (and back on after); before
-    // the opt-in below is mirrored to the server.
-    if (account?.id === accountId && current()) {
-      await followBereavementQuiet(accountId, remindersPaused).catch(() => undefined);
-    }
     // Only an explicit opt-in on this device consents to the server's daily
     // push; keep the server in step (older builds never reported it).
     const optedIn = await isDailyNudgeEnabled(accountId);
@@ -252,9 +200,7 @@ async function performDailyNudgeRearm(): Promise<void> {
     if (account?.id === accountId && serverHour !== chosenHour && current()) {
       serverHour = await setServerDailyHour(chosenHour).then(() => chosenHour, () => serverHour);
     }
-    // While she is paused the server sends no morning note: a daily reminder
-    // she turned on during the pause comes from this device.
-    serverMorningNote = !remindersPaused && account?.id === accountId && serverOptIn && !!account.push_token
+    serverMorningNote = account?.id === accountId && serverOptIn && !!account.push_token
       && devicePushToken?.accountId === accountId && devicePushToken.token === account.push_token
       && serverHour === chosenHour && chosenHour < MORNING_NOTE_BEFORE_HOUR;
   }
@@ -266,12 +212,6 @@ async function performDailyNudgeRearm(): Promise<void> {
     if (request.identifier.startsWith(LEGACY_NUDGE_PREFIX)) {
       await Notifications.cancelScheduledNotificationAsync(request.identifier);
     }
-  }
-
-  // Her own personal reminders follow the same pause (and come back after it).
-  if (accountId && account?.id === accountId && current()) {
-    await (remindersPaused ? pausePersonalRemindersForQuiet(accountId) : resumePersonalRemindersAfterQuiet(accountId))
-      .catch(() => undefined);
   }
 
   if (!accountId || !current() || !(await isDailyNudgeEnabled(accountId))) return;
@@ -310,7 +250,7 @@ async function performDailyNudgeRearm(): Promise<void> {
   // WeekReviewCard on Today. One-shot; re-armed on every foreground. Only for
   // members whose Today shows that card: for anyone else the one scheduled
   // earlier was cancelled above and is not put back.
-  if (!shouldScheduleWeekReview({ canSeeWeekReview, bereaved })) return;
+  if (!shouldScheduleWeekReview({ canSeeWeekReview })) return;
   const sunday = new Date();
   sunday.setHours(18, 0, 0, 0);
   sunday.setDate(sunday.getDate() + ((7 - sunday.getDay()) % 7));
@@ -380,7 +320,6 @@ export async function registerForPushNotifications(accountId: string, requestPer
     if (optInDailyNudges && requestPermission) {
       await pushWriteBarrier.track(accountId, setServerDailyOptIn(true));
       await pushWriteBarrier.track(accountId, AsyncStorage.setItem(LEGACY_OPT_IN_KEY + accountId, 'true'));
-      await rememberDailyChoiceDuringQuiet(accountId, true).catch(() => undefined);
       if (!pushWriteBarrier.isCurrent(accountId, generation) || activePushAccountId !== accountId) return false;
     }
     await rearmDailyNudge().catch((error) => {
@@ -509,11 +448,19 @@ export function usePushNotifications(
         || (live.current.mounted && live.current.accountId === accountId && live.current.navigationReady);
       if (!stillHers) return false;
       if (!shouldHandlePushResponse(data, response.notification.request.identifier)) return true;
-      // A relative's backup notice lands on the already-mounted Boundaries tab
-      // (and Today keeps its own copy): re-read the family space now.
+      // A relative's backup notice opens Practice's Boundaries part (and Today
+      // keeps its own copy): re-read the family space now.
       if (data.kind === 'family_backup') requestFamilySpaceRefresh();
       try {
-        routerRef.current.push(route as never);
+        // A tab (Today, Practice, Tools, Support) is returned to, never pushed:
+        // from a pushed screen (Settings, the Tracker, a letter) both push and
+        // navigate append a second copy of the tabs (expo-router reuses a stack
+        // route on NAVIGATE only when it is already in front). dismissTo pops
+        // back to the existing tabs and hands the tab its params, the same as
+        // app/guided-journey.tsx.
+        const pathname = typeof route === 'string' ? route : (route as { pathname?: string }).pathname ?? '';
+        if (pathname.startsWith('/(tabs)')) routerRef.current.dismissTo(route as never);
+        else routerRef.current.push(route as never);
       } catch (error) {
         console.warn('[push] notification navigation failed', error);
         return false;

@@ -11,6 +11,7 @@ import { usePlanPurchase } from '../src/hooks/usePlanPurchase';
 import { useRestorePurchases } from '../src/hooks/useRestorePurchases';
 import { logMembershipPath } from '../src/lib/funnel';
 import { planSource, planTier, purchasableTiers } from '../src/lib/membershipPath';
+import { useToolOpened } from '../src/hooks/useToolOpened';
 
 /**
  * How long after the screen is ready a named plan's sheet is presented: longer
@@ -26,6 +27,7 @@ const SHEET_SETTLE_MS = 450;
  * which opens that plan's purchase sheet straight away.
  */
 export default function PlansScreen() {
+  useToolOpened('plans');
   const params = useLocalSearchParams<{ source?: string; tier?: string }>();
   const source = planSource(params.source);
   const requestedTier = planTier(params.tier);

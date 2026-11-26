@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
-import { bereavedCacheKey, isBereaved } from '../lib/bereavement';
-import { rememberBereavedOnDevice } from '../lib/bereavedDevice';
 import { requireSavedData } from '../lib/appFlowGuards';
 import { captureAppError } from '../lib/monitoring';
 
@@ -24,10 +21,6 @@ export interface LovedOne {
   status: LovedOneStatus;
   created_at: string;
   updated_at: string;
-  /** Set when she tells us her loved one died; null otherwise (and on old rows). */
-  died_at?: string | null;
-  /** Bereaved and asked to pause every reminder and note. */
-  bereavement_quiet?: boolean | null;
 }
 
 export interface LovedOneInput {
@@ -38,40 +31,15 @@ export interface LovedOneInput {
   status?: LovedOneStatus;
 }
 
-/**
- * Device copy of "her loved one died", so Today is right before (or without)
- * the network read. Support and the membership invitations follow the same
- * copy (bereavedDevice), so they hear every change at once.
- */
-function rememberBereaved(accountId: string, bereaved: boolean): void {
-  rememberBereavedOnDevice(accountId, bereaved);
-}
-
 /** CRUD for the account's single loved-one record. */
 export function useLovedOne(accountId: string | null) {
   const [record, setRecord] = useState<{ accountId: string | null; value: LovedOne | null }>({ accountId: null, value: null });
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<unknown>(null);
-  // The device's last word on "they died" for this account: undefined until read.
-  const [cached, setCached] = useState<{ accountId: string | null; bereaved: boolean | undefined }>({ accountId: null, bereaved: undefined });
   const scopeRef = useRef({ accountId, request: 0 });
   // The account whose record has loaded: later reads refresh it quietly.
   const settledFor = useRef<string | null>(null);
   if (scopeRef.current.accountId !== accountId) scopeRef.current = { accountId, request: 0 };
-
-  useEffect(() => {
-    if (!accountId) {
-      setCached({ accountId, bereaved: false });
-      return undefined;
-    }
-    let cancelled = false;
-    AsyncStorage.getItem(bereavedCacheKey(accountId))
-      .then((value) => {
-        if (!cancelled) setCached({ accountId, bereaved: value === '1' ? true : value === '0' ? false : undefined });
-      })
-      .catch(() => { if (!cancelled) setCached({ accountId, bereaved: undefined }); });
-    return () => { cancelled = true; };
-  }, [accountId]);
 
   const load = useCallback(async () => {
     const scope = scopeRef.current;
@@ -97,7 +65,6 @@ export function useLovedOne(accountId: string | null) {
         setRecord({ accountId, value: (data as LovedOne) ?? null });
         setLoadError(null);
         settledFor.current = accountId;
-        rememberBereaved(accountId, isBereaved(data as LovedOne | null));
       }
     } catch (error) {
       if (!silent && scopeRef.current === scope && scope.request === request) setLoadError(error);
@@ -144,58 +111,9 @@ export function useLovedOne(accountId: string | null) {
     }
   }, [accountId, load]);
 
-  // "They died": her own account only (the RPC reads the signed-in account).
-  // `contact` lets an admin know so someone can reach out.
-  const markDied = useCallback(async (contact: boolean, quiet = false): Promise<{ quietFailed: boolean }> => {
-    if (!accountId || scopeRef.current.accountId !== accountId) throw new Error('Cannot update without the active account');
-    const { error } = await supabase.rpc('mark_loved_one_died', { p_contact: contact });
-    if (error) throw error;
-    // Pausing reminders is a second, separate choice; the death is saved either
-    // way. A failed pause is reported so she can try again from Today.
-    let quietFailed = false;
-    if (quiet) {
-      const paused = await supabase.rpc('set_bereavement_quiet', { p_quiet: true }).then(
-        (result) => !result.error,
-        () => false,
-      );
-      quietFailed = !paused;
-    }
-    rememberBereaved(accountId, true);
-    setCached({ accountId, bereaved: true });
-    await load().catch(() => undefined);
-    return { quietFailed };
-  }, [accountId, load]);
-
-  const clearDied = useCallback(async (): Promise<void> => {
-    if (!accountId || scopeRef.current.accountId !== accountId) throw new Error('Cannot update without the active account');
-    const { error } = await supabase.rpc('clear_loved_one_died');
-    if (error) throw error;
-    rememberBereaved(accountId, false);
-    setCached({ accountId, bereaved: false });
-    await load().catch(() => undefined);
-  }, [accountId, load]);
-
-  const settled = !loading && !loadError && record.accountId === accountId;
-  const cachedBereaved = cached.accountId === accountId ? cached.bereaved : undefined;
-  // A new device, a reinstall or the web has no copy: unknown until the read
-  // settles. Offline with no copy, the usual Today: never stuck.
-  const unreadable = !!loadError && record.accountId === accountId && !loading;
-  // Pause (or bring back) every reminder and note while she grieves.
-  const setQuiet = useCallback(async (quiet: boolean): Promise<void> => {
-    if (!accountId || scopeRef.current.accountId !== accountId) throw new Error('Cannot update without the active account');
-    const { error } = await supabase.rpc('set_bereavement_quiet', { p_quiet: quiet });
-    if (error) throw error;
-    await load().catch(() => undefined);
-  }, [accountId, load]);
-
   return {
     lovedOne: record.accountId === accountId ? record.value : null,
-    /**
-     * Her loved one died: the loaded record decides; until it loads (or when
-     * offline) the device's copy does. undefined only before either is known.
-     */
-    bereaved: settled ? isBereaved(record.value) : cachedBereaved ?? (unreadable ? false : undefined),
     loading: loading || record.accountId !== accountId,
-    loadError, save, setStatus, markDied, clearDied, setQuiet, refresh: load,
+    loadError, save, setStatus, refresh: load,
   };
 }

@@ -32,6 +32,7 @@ import { appAlert } from '../src/lib/appAlert';
 import { openEmergencyLink } from '../src/lib/emergencyLinks';
 import { LIVEKIT_URL, SUPABASE_URL } from '../src/config';
 import { useResponsive } from '../src/hooks/useResponsive';
+import { useToolOpened } from '../src/hooks/useToolOpened';
 
 registerGlobals();
 
@@ -350,6 +351,8 @@ export default function LiveRoomScreen() {
 }
 
 function LiveRoomSession({ roomName }: { roomName: string }) {
+  // Counted once the call is allowed to open (below the activation gate).
+  useToolOpened('live_room');
   const { colors } = useTheme();
   const { t } = useTranslation('live');
   const router = useRouter();

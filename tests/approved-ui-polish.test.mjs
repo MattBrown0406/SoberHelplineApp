@@ -30,10 +30,14 @@ test('invitation choices expose native and web checked state and call selection 
 
 test('feature-specific paywall renders the AI feature and routes free exercise without changing the default gate', () => {
   const nav = [];
+  // A free member, unless a check below says otherwise.
+  const who = { account: { user: { id: 'a' }, accountState: 'direct-free', isAttached: false } };
   const Gate = runDeclaration('src/components/ui/FreeTierPaywall.tsx', 'FreeTierPaywall', {
     React: { createElement: element }, ...native, ScreenContainer: 'ScreenContainer', useTheme: theme,
     useTranslation: () => ({ t: k => k, i18n: { language: 'en' } }), BenefitList: 'BenefitList',
     plansHref: source => ({ pathname: '/plans', params: { source } }),
+    purchasableTiers: state => (state === 'direct-free' ? ['essential', 'premium'] : state === 'direct-essential' ? ['premium'] : []),
+    useAccount: () => who.account,
     useRouter: () => ({ push: path => { nav.push(path); } }), styles: {},
   });
   const tree = Gate({ feature: 'aiRehearsal' });
@@ -60,6 +64,16 @@ test('feature-specific paywall renders the AI feature and routes free exercise w
     { pathname: '/plans', params: { source: 'feature_gate' } },
     { pathname: '/plans', params: { source: 'diy_planner' } },
   ]);
+  // No offer for a provider-covered account or a member with nothing above her plan:
+  // the lock, what stays free and the crisis guide only.
+  for (const account of [{ ...who.account, accountState: 'attached', isAttached: true }, { ...who.account, accountState: 'direct-premium' }]) {
+    Object.assign(who, { account });
+    for (const tree of [Gate({}), Gate({ feature: 'aiRehearsal' })]) {
+      const text = JSON.stringify(tree);
+      assert.ok(!text.includes('seePlans') && !text.includes('BenefitList'), account.accountState);
+      assert.ok(text.includes('crisis.copilotButton'));
+    }
+  }
   assert.match(read('src/components/rehearsal/PracticeHandoffPaywall.tsx'), /releasePracticeText\(handoff\)/);
   assert.match(read('app/rehearsal-live.tsx'), /Gate feature="aiRehearsal" fallback=\{<PracticeHandoffPaywall/);
 });
@@ -79,9 +93,10 @@ test('free chat gate retains plans and adds safe Back and ungated crisis route',
 for (const lang of ['en', 'es']) test(`${lang}: short labels retain full titles; paid messaging/practice promises stay honest`, () => {
   const common = JSON.parse(read(`src/locales/${lang}/common.json`));
   const support = JSON.parse(read(`src/locales/${lang}/support.json`));
-  for (const key of ['today', 'scripts', 'boundaries', 'tracker', 'learn', 'support']) {
+  // Four tabs since 4.4 (Boundaries is inside Practice, the Tracker is a pushed screen).
+  for (const key of ['today', 'scripts', 'learn', 'support']) {
     assert.ok(common.navShort[key]); assert.ok(common.nav[key]);
-    // The word on the tab is the word in that screen's title; the tab bar shrinks a long one to fit.
+    // The word on the tab is the word in that screen's title.
     assert.equal(common.navShort[key], common.nav[key]);
     assert.ok(common.navShort[key].length <= 10);
     assert.match(read('app/(tabs)/_layout.tsx'), new RegExp(`tab\\('${key === 'today' ? 'index' : key}', t\\('navShort\\.${key}'\\)\\)`));
@@ -122,20 +137,26 @@ test('practice explanation toggles only disclosure, with warm-up ahead of setup 
 
 test('Support actions precede disclosure and pricing remains separate; disclosure does not own scheduling form', () => {
   const s = read('app/(tabs)/support.tsx');
-  const urgent = s.indexOf("t('crisis.freeNote')"), message = s.indexOf("t('chat.openButton')"), video = s.indexOf('<PremierVideoSchedulingCard'), explanation = s.indexOf('{copy.benefits}');
-  assert.ok(urgent < message && message < video && video < explanation);
+  // 4.4 order: crisis help, the meeting, coaching (messages, private video, booking), then membership.
+  const crisis = s.indexOf('onPress={() => setCrisisOpen(true)}'), meeting = s.indexOf("t('mondayGroup.sub')"), message = s.indexOf("t('chat.openButton')"), video = s.indexOf('<PremierVideoSchedulingCard'), booking = s.indexOf("t('coaching.cardBody', { rate: coachingRate.hourly })"), explanation = s.indexOf('<MembershipGuideCard');
+  assert.ok(crisis > 0 && crisis < meeting && meeting < message && message < video && video < booking && booking < explanation);
   assert.equal(s.split('<PremierVideoSchedulingCard').length - 1, 1);
-  assert.match(s, /\[membershipExpanded, setMembershipExpanded\] = useState\(false\)/);
-  assert.match(s, /aria-expanded=\{membershipExpanded\}/);
-  assert.match(s, /display: membershipExpanded \? 'flex' : 'none'/);
-  assert.ok(s.indexOf("t('coaching.cardBody', { rate: coachingRate.hourly })") > explanation);
+  // The membership explanation is its own card, closed until she opens it.
+  const guide = read('src/components/support/MembershipGuideCard.tsx');
+  assert.match(guide, /\[membershipExpanded, setMembershipExpanded\] = useState\(false\)/);
+  assert.match(guide, /aria-expanded=\{membershipExpanded\}/);
+  assert.match(guide, /display: membershipExpanded \? 'flex' : 'none'/);
+  assert.doesNotMatch(guide, /PremierVideoSchedulingCard/);
 });
 
 test('primary practice/invitation/support/scheduling hit areas have explicit 44pt minimums', () => {
   for (const [file, keys] of [
     ['app/rehearsal-live.tsx', ['chip', 'smallChip', 'voiceToggle', 'historyLink', 'disclosureButton']],
     ['app/invitation-setup.tsx', ['choice']],
-    ['app/(tabs)/support.tsx', ['outlineBtn', 'solidBtn', 'membershipDisclosure']],
+    ['app/(tabs)/support.tsx', ['outlineBtn', 'solidBtn']],
+    ['src/components/support/MembershipGuideCard.tsx', ['outlineBtn', 'membershipDisclosure', 'manageLink']],
+    ['src/components/support/MemberPlanCard.tsx', ['outlineBtn', 'solidBtn']],
+    ['src/components/support/CrisisSheet.tsx', ['copilotButton', 'sheetRow', 'sheetActionBtn', 'protocolTab']],
     ['src/components/video/PremierVideoSchedulingCard.tsx', ['action', 'secondary', 'field']],
   // A full-width button takes its height from the app's one button shape
   // (buttonShape in Button.tsx); a smaller control states its own 44 points.

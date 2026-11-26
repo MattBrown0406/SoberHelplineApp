@@ -3,10 +3,11 @@ import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useFeatureAccess } from '../../hooks/useFeatureAccess';
 import {
   normalizeRecoveryPhase,
   pathwayDaySlot,
-  RECOVERY_PHASE_ROUTE,
+  phaseNextStep,
   RECOVERY_PHASES,
   type RecoveryPhase,
 } from '../../lib/recoveryPathway';
@@ -16,8 +17,6 @@ interface Props {
   status: string | null | undefined;
   loading?: boolean;
   onSavePhase: (phase: RecoveryPhase) => Promise<unknown>;
-  /** Opens the gentle "They died" confirmation. */
-  onTheyDied?: () => void;
 }
 
 const GUIDANCE_ROWS = [
@@ -31,12 +30,14 @@ export function RecoveryPathwayCard({
   status,
   loading = false,
   onSavePhase,
-  onTheyDied,
 }: Props) {
   const { colors } = useTheme();
   const { t } = useTranslation('today');
   const router = useRouter();
   const phase = normalizeRecoveryPhase(stage, status);
+  // The same next step as Today's slot: never a members-only screen for a free member.
+  const trackerAccess = useFeatureAccess('tracker');
+  const nextStep = phaseNextStep(phase, trackerAccess);
   const slot = pathwayDaySlot(new Date());
   const [editing, setEditing] = useState(false);
   const [selectedPhase, setSelectedPhase] = useState<RecoveryPhase>(phase);
@@ -65,7 +66,7 @@ export function RecoveryPathwayCard({
       <View style={styles.headerRow}>
         <View style={styles.headerText}>
           <Text style={[styles.eyebrow, { color: colors.primary }]}>{t('pathway.eyebrow')}</Text>
-          <Text style={[styles.title, { color: colors.ink }]}>{t('pathway.title')}</Text>
+          <Text accessibilityRole="header" style={[styles.title, { color: colors.ink }]}>{t('pathway.title')}</Text>
         </View>
         <TouchableOpacity
           accessibilityRole="button"
@@ -135,11 +136,6 @@ export function RecoveryPathwayCard({
               {t('pathway.saveError')}
             </Text>
           )}
-          {onTheyDied ? (
-            <TouchableOpacity accessibilityRole="button" onPress={onTheyDied} disabled={saving} style={styles.diedLink}>
-              <Text style={[styles.diedText, { color: colors.inkSoft }]}>{t('bereavement.link')}</Text>
-            </TouchableOpacity>
-          ) : null}
         </View>
       )}
 
@@ -204,12 +200,12 @@ export function RecoveryPathwayCard({
 
           <TouchableOpacity
             accessibilityRole="button"
-            onPress={() => router.push(RECOVERY_PHASE_ROUTE[phase] as never)}
+            onPress={() => router.push(nextStep.route as never)}
             style={[styles.nextButton, { borderColor: colors.primary }]}
             activeOpacity={0.8}
           >
             <Text style={[styles.nextButtonText, { color: colors.primary }]}>
-              {t(`pathway.phases.${phase}.cta`)}
+              {t(nextStep.ctaKey)}
             </Text>
             <Text style={[styles.chevron, { color: colors.primary }]}>›</Text>
           </TouchableOpacity>
@@ -280,8 +276,6 @@ const styles = StyleSheet.create({
   },
   saveButtonText: { color: '#fff', fontSize: 14, fontWeight: '700' },
   errorText: { fontSize: 12, textAlign: 'center', marginTop: 8 },
-  diedLink: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: 12, marginTop: 6 },
-  diedText: { fontSize: 12.5, fontWeight: '600', textDecorationLine: 'underline' },
   description: { fontSize: 13.5, lineHeight: 20, marginTop: 12, marginBottom: 14 },
   guidance: { borderWidth: 1, borderRadius: 14, overflow: 'hidden' },
   guidanceRow: { flexDirection: 'row', gap: 11, padding: 12, alignItems: 'flex-start' },

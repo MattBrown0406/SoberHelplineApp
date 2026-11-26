@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import { buttonShape } from '../src/components/ui/Button';
-import { BereavementSettingsCard } from '../src/components/bereavement/BereavementSettingsCard';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAccount } from '../src/contexts/AccountContext';
@@ -44,6 +43,7 @@ import { isOfflineFallbackError } from '../src/lib/offlineAccountCache';
 import { offlineOutbox } from '../src/lib/offlineOutbox';
 import { hasOutboxImpact, outboxImpact } from '../src/lib/localSignOut';
 import { membershipBilling, type MembershipEntitlementRow } from '../src/lib/membershipSource';
+import { useToolOpened } from '../src/hooks/useToolOpened';
 
 const CONSENT_SHARE_CHECKINS = '2';
 const CONSENT_VERSION = '1.0';
@@ -76,6 +76,7 @@ const DEFAULT_PRACTICE_PUSH: PracticePushSettings = {
 };
 
 export default function SettingsScreen() {
+  useToolOpened('settings');
   const { colors } = useTheme();
   const { user, isAttached, accountState, signOutLocally } = useAccount();
   const { t } = useTranslation('settings');
@@ -452,31 +453,40 @@ export default function SettingsScreen() {
           onPress: async () => {
             setDeletingAccount(true);
             let deletionCompleted = false;
+            let websiteRemoved = false;
             try {
               if (!await clearRemindersBeforeExit()) return;
               // Read before deleting: a token refresh for a deleted user fails.
               const { data: { session: deletingSession } } = await supabase.auth.getSession();
-              // Stored photos don't cascade with the account; remove them first so
-              // nothing is left behind if the deletion goes through.
-              const { error: purgeError } = await supabase.functions.invoke('purge-account-files');
-              if (purgeError) {
-                restoreRemindersAfterAbortedExit();
-                appAlert(t('deleteAccount.errorTitle'), t('deleteAccount.errorMessage'));
-                return;
-              }
               // "Delete my account" means everywhere: the soberhelpline.com account with
               // this email goes too, and a website membership billed through PayPal is
-              // cancelled. If the website can't finish, stop here so nothing is half done.
+              // cancelled. The website goes first: if it can't finish, stop here before
+              // the app account is touched (websiteErrorMessage says so). A retry is safe:
+              // the second time the website answers not_found (ok).
               const { data: websiteOutcome, error: websiteError } = await supabase.functions.invoke('delete-website-account');
               if (websiteError || websiteOutcome?.ok !== true) {
                 restoreRemindersAfterAbortedExit();
                 appAlert(t('deleteAccount.errorTitle'), t('deleteAccount.websiteErrorMessage'));
                 return;
               }
+              // From here on, a failure leaves the app account in place. Photos may already
+              // be gone, and on a retry the website may have been removed by the earlier try
+              // (not_found now), so the message never says "nothing was deleted": it names
+              // the website only when this try removed it.
+              websiteRemoved = websiteOutcome?.result === 'deleted';
+              const appErrorKey = websiteRemoved ? 'deleteAccount.appErrorMessage' : 'deleteAccount.errorMessage';
+              // Stored photos don't cascade with the account; remove them before the
+              // account so nothing is left behind if the deletion goes through.
+              const { error: purgeError } = await supabase.functions.invoke('purge-account-files');
+              if (purgeError) {
+                restoreRemindersAfterAbortedExit();
+                appAlert(t('deleteAccount.errorTitle'), t(appErrorKey));
+                return;
+              }
               const { error: deletionError } = await supabase.rpc('delete_own_account');
               if (deletionError) {
                 restoreRemindersAfterAbortedExit();
-                appAlert(t('deleteAccount.errorTitle'), t('deleteAccount.errorMessage'));
+                appAlert(t('deleteAccount.errorTitle'), t(appErrorKey));
                 return;
               }
 
@@ -492,7 +502,9 @@ export default function SettingsScreen() {
               if (!deletionCompleted) restoreRemindersAfterAbortedExit();
               appAlert(
                 t(deletionCompleted ? 'deleteAccount.cleanupErrorTitle' : 'deleteAccount.errorTitle'),
-                t(deletionCompleted ? 'deleteAccount.cleanupErrorMessage' : 'deleteAccount.errorMessage'),
+                t(deletionCompleted
+                  ? 'deleteAccount.cleanupErrorMessage'
+                  : websiteRemoved ? 'deleteAccount.appErrorMessage' : 'deleteAccount.errorMessage'),
               );
             } finally {
               setDeletingAccount(false);
@@ -622,9 +634,8 @@ export default function SettingsScreen() {
               </Text>
             ) : null}
 
-            {/* A quiet door to the plans for anyone who could still choose one,
-                bereaved members included (Support and Learn show them no
-                offer): one plain row. No benefits, no price, no badge. */}
+            {/* A quiet door to the plans for anyone who could still choose one:
+                one plain row. No benefits, no price, no badge. */}
             {canSeePlans && (
               <TouchableOpacity
                 style={[
@@ -678,18 +689,6 @@ export default function SettingsScreen() {
             <Text style={[styles.restoreText, { color: colors.primary }]}>{t('personalReminders.action')}</Text>
           </TouchableOpacity>
         </View>
-
-        <BereavementSettingsCard
-          accountId={user?.id ?? null}
-          // A pause or its end changes the daily reminder: show what is on now.
-          onRemindersChanged={() => {
-            const accountId = user?.id;
-            if (!accountId) return;
-            void isDailyNudgeEnabled(accountId).then((enabled) => {
-              if (practiceAccountRef.current === accountId) setDailyEnabled(enabled);
-            }).catch(() => undefined);
-          }}
-        />
 
         {/* Language */}
         <View style={[styles.card, { borderColor: colors.line }]}>

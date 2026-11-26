@@ -3,16 +3,10 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
-  Modal,
   Linking,
   StyleSheet,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  useWindowDimensions,
-  ScrollView,
   AccessibilityInfo,
 } from 'react-native';
 import { supabase } from '../../src/lib/supabase';
@@ -24,20 +18,12 @@ import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from '
 import { useTranslation } from 'react-i18next';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { useTheme } from '../../src/contexts/ThemeContext';
-import { walletMembershipCopy } from '../../src/content/walletMembershipCopy';
-import { useLanguage } from '../../src/hooks/useLanguage';
-import { getSupportGroups } from '../../src/content/supportGroups';
 import { PRIMARY_ON_CALL } from '../../src/content/onCall';
 import { useSessions, type DbSession } from '../../src/hooks/useSessions';
-import { useGroupPresence } from '../../src/hooks/useGroupPresence';
-import { useGroupRsvps } from '../../src/hooks/useGroupRsvps';
 import { usePrivateVideoSessions } from '../../src/hooks/usePrivateVideoSessions';
 import { PremierVideoSchedulingCard } from '../../src/components/video/PremierVideoSchedulingCard';
-import { FEATURED_PROVIDER } from '../../src/config';
-import { useWebSSO } from '../../src/hooks/useWebSSO';
-import { WEBSITE_PATHS, withAppContext } from '../../src/lib/websiteLinks';
+import { withAppContext } from '../../src/lib/websiteLinks';
 import { useCoachingRate } from '../../src/hooks/useCoachingRate';
-import { COACHING_MEMBER_PRICE, fillCoachingRates } from '../../src/lib/coachingPrice';
 import { useSessionSchedule } from '../../src/hooks/useSessionSchedule';
 import { LA_SOBREMESA_CALL_LENGTH_MS, isFamilySquaresSession, isLaSobremesaSession, sessionDisplayTitle } from '../../src/lib/familySquaresSchedule';
 import { clearFamilySquaresJoin, markFamilySquaresJoin } from '../../src/lib/meetingAttendance';
@@ -46,27 +32,30 @@ import { FamilySquaresFirstTimerNote } from '../../src/components/familySquares/
 import { FamilySquaresSpotSavedLine } from '../../src/components/familySquares/FamilySquaresSpotSavedLine';
 import { usePlanOffers } from '../../src/hooks/usePlanPurchase';
 import { PlansTeaserCard } from '../../src/components/plans/PlansTeaserCard';
-import { BenefitList } from '../../src/components/plans/BenefitList';
-import { benefitSummary } from '../../src/lib/membershipBenefits';
-import { plansHref } from '../../src/lib/membershipPath';
 import { useSituation } from '../../src/hooks/useSituation';
-import { funnelDoor, type FunnelDoor } from '../../src/lib/situation';
-import { SituationOffRamp } from '../../src/components/situation/SituationOffRamp';
+import { funnelDoor } from '../../src/lib/situation';
 import { logFunnelEventAndWait } from '../../src/lib/funnel';
 import { callCardView, seatSaveFailureKey, sessionJoinWindow } from '../../src/lib/familySquaresCard';
 import { isCancelledMeetingDate, isFamilySquaresKnownCancelled } from '../../src/lib/familySquaresCancelled';
-import { useBereavedOnDevice } from '../../src/hooks/useBereavedOnDevice';
-import { isAdminEmail } from '../../src/lib/admin';
-import { openEmergencyLink } from '../../src/lib/emergencyLinks';
-import { COMMUNITY_FEED_VISIBLE } from '../../src/lib/communityFeed';
-import { EmergencyActions } from '../../src/components/safety/EmergencyActions';
-import type { StaffMember, SupportGroup } from '../../src/api/types';
+import { TodayDisclosure } from '../../src/components/today/TodayDisclosure';
+import { PassItOnCard } from '../../src/components/today/PassItOnCard';
+import { CrisisSheet } from '../../src/components/support/CrisisSheet';
+import { ProviderSheet } from '../../src/components/support/ProviderSheet';
+import { QuestionSheet } from '../../src/components/support/QuestionSheet';
+import { TeamCard } from '../../src/components/support/TeamCard';
+import { SupportGroupsCard } from '../../src/components/support/SupportGroupsCard';
+import { MemberPlanCard } from '../../src/components/support/MemberPlanCard';
+import { MembershipGuideCard } from '../../src/components/support/MembershipGuideCard';
+import { supportCard, supportEyebrow } from '../../src/components/support/cardStyle';
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-function roleLabel(staff: StaffMember): string {
-  return staff.roleLabel;
-}
+// The Support tab, top to bottom:
+//   1. the header;
+//   2. crisis help: one row that opens the crisis sheet (911, 988, Crisis
+//      Copilot, the on-call coach, the crisis guide, the helpline);
+//   3. Family Squares (La Sobremesa in Spanish): the meeting, with Save and Join;
+//   4. coaching with Matt: messages, private video, booking, an attached family's team;
+//   5. membership: her plan and how to use it, or the plans card;
+//   6. "More support", closed: treatment finder, a provider, groups, Pass it on.
 
 function sessionTypeKey(kind: DbSession['kind'], t: (k: string) => string): string {
   if (kind === 'group') return t('sessions.typeGroup');
@@ -74,408 +63,31 @@ function sessionTypeKey(kind: DbSession['kind'], t: (k: string) => string): stri
   return t('sessions.typeFamily');
 }
 
-// ── Crisis sheet ─────────────────────────────────────────────────────────────
-
-// Sober Helpline's phone line (direct dial). (503) 836-2136 is the WhatsApp
-// chat line only — never dial it from here.
-const CRISIS_LINE_TEL = 'tel:+14582988008';
-const CRISIS_LINE_DISPLAY = '(458) 298-8008';
-
-function CrisisSheet({
-  visible,
-  onClose,
-  isAttached,
-  canMessage,
-  onMessage,
-  onCopilot,
-  door,
-  t,
-  colors,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  isAttached: boolean;
-  canMessage: boolean;
-  onMessage: () => void;
-  onCopilot: () => void;
-  door: FunnelDoor;
-  t: (key: string) => string;
-  colors: ReturnType<typeof useTheme>['colors'];
-}) {
-  const { width: screenWidth } = useWindowDimensions();
-  const sheetOffset = Math.max(0, (screenWidth - 520) / 2);
-  const primary = PRIMARY_ON_CALL;
-
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={onClose}
-    >
-      <TouchableOpacity
-        accessibilityRole="button"
-        accessibilityLabel={t('common:a11y.close')}
-        style={styles.modalOverlay}
-        activeOpacity={1}
-        onPress={onClose}
-      />
-      <ScrollView
-        style={[styles.sheet, { backgroundColor: colors.white, left: sheetOffset, right: sheetOffset }]}
-        contentContainerStyle={styles.sheetContent}
-        keyboardShouldPersistTaps="handled"
-        bounces={false}
-      >
-        <View style={[styles.sheetHandle, { backgroundColor: colors.line }]} />
-
-        <Text style={[styles.sheetTitle, { color: colors.ink }]}>
-          {t('crisis.sheetTitle')}
-        </Text>
-        <Text style={[styles.sheetSub, { color: colors.inkSoft }]}>
-          {primary.firstName} {isAttached ? t('crisis.attachedSub') : canMessage ? t('crisis.directSub') : t('crisis.freeSub')}
-        </Text>
-
-        <View style={[styles.copilotCard, { backgroundColor: colors.primaryLight, borderColor: colors.primary }]}>
-          <View style={styles.copilotCopy}>
-            <Text style={[styles.copilotTitle, { color: colors.ink }]}>{t('crisis.copilotTitle')}</Text>
-            <Text style={[styles.copilotBody, { color: colors.inkSoft }]}>{t('crisis.copilotBody')}</Text>
-          </View>
-          <TouchableOpacity
-            accessibilityRole="button"
-            style={[styles.copilotButton, { backgroundColor: colors.primary }]}
-            onPress={() => { onClose(); onCopilot(); }}
-          >
-            <Text style={styles.copilotButtonText}>{t('crisis.copilotButton')}</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={[styles.sheetRow, { borderBottomColor: colors.line }]}>
-          <View>
-            <Text style={[styles.sheetRowName, { color: colors.ink }]}>
-              {primary.firstName} {primary.lastName}
-            </Text>
-            {primary.credentialDisplay ? (
-              <Text style={[styles.sheetRowSub, { color: colors.inkSoft }]}>
-                {roleLabel(primary)} · {primary.credentialDisplay}
-              </Text>
-            ) : (
-              <Text style={[styles.sheetRowSub, { color: colors.inkSoft }]}>
-                {roleLabel(primary)}
-              </Text>
-            )}
-          </View>
-          <TouchableOpacity
-            accessibilityRole="button"
-            style={[styles.sheetActionBtn, { backgroundColor: colors.primary }]}
-            activeOpacity={0.8}
-            onPress={() => {
-              if (isAttached) {
-                openEmergencyLink(CRISIS_LINE_TEL, CRISIS_LINE_DISPLAY);
-              } else if (canMessage) {
-                onClose();
-                onMessage();
-              } else {
-                onClose();
-                onCopilot();
-              }
-            }}
-          >
-            <Text style={styles.sheetActionBtnText}>
-              {isAttached ? t('crisis.callButton') : canMessage ? t('crisis.messageButton') : t('crisis.copilotButton')}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={[styles.dividerRow, { borderTopColor: colors.line }]}>
-          <Text style={[styles.dividerText, { color: colors.inkSoft }]}>
-            {t('crisis.divider')}
-          </Text>
-        </View>
-
-        <TouchableOpacity
-          accessibilityRole="button"
-          style={[styles.sheetRow, styles.sheetRowLast, { borderBottomColor: colors.line }]}
-          onPress={() => openEmergencyLink('tel:911')}
-        >
-          <Text style={[styles.sheetRowName, { color: colors.ink }]}>{t('crisis.line911')}</Text>
-          <Text style={[styles.sheetRowAction, { color: colors.coral }]}>{t('crisis.callButton')}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          accessibilityRole="button"
-          style={[styles.sheetRow, styles.sheetRowLast]}
-          onPress={() => openEmergencyLink('tel:988')}
-        >
-          <Text style={[styles.sheetRowName, { color: colors.ink }]}>{t('crisis.line988')}</Text>
-          <Text style={[styles.sheetRowAction, { color: colors.primary }]}>{t('crisis.callButton')}</Text>
-        </TouchableOpacity>
-
-        {/* Sober Helpline is family guidance, not an emergency service and not
-            staffed around the clock, so it sits in its own group below 911/988. */}
-        <View style={[styles.dividerRow, { borderTopColor: colors.line }]}>
-          <Text style={[styles.dividerText, { color: colors.inkSoft }]}>
-            {t('crisis.guidanceDivider')}
-          </Text>
-        </View>
-
-        <TouchableOpacity
-          accessibilityRole="button"
-          style={[styles.sheetRow, styles.sheetRowLast]}
-          onPress={() => openEmergencyLink(CRISIS_LINE_TEL, CRISIS_LINE_DISPLAY)}
-        >
-          <Text style={[styles.sheetRowName, { color: colors.ink }]}>{t('crisis.lineSh')}</Text>
-          <Text style={[styles.sheetRowAction, { color: colors.primary }]}>{t('crisis.callButton')}</Text>
-        </TouchableOpacity>
-
-        {/* Situation-aware next step — only for an escalated band, and only for
-            self-guided members (attached families already have a provider).
-            Always below the safety lines and never in their place. */}
-        {door !== 'free_call' && !isAttached && (
-          <View style={styles.offRampWrap}>
-            <SituationOffRamp door={door} onBeforeNavigate={onClose} compact hidePrice />
-          </View>
-        )}
-      </ScrollView>
-    </Modal>
-  );
+/** A heading over a group of cards (read as a heading by VoiceOver). */
+function SectionHeading({ title }: { title: string }) {
+  const { colors } = useTheme();
+  return <Text accessibilityRole="header" style={[styles.sectionHeading, { color: colors.inkSoft }]}>{title}</Text>;
 }
-
-// ── Crisis protocol sheet ─────────────────────────────────────────────────────
-
-type CrisisTab = 'overdose' | 'selfHarm' | 'unsafe';
-
-function CrisisProtocolSheet({
-  visible,
-  onClose,
-  t,
-  colors,
-  sheetOffset,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  t: ReturnType<typeof useTranslation<'support'>>['t'];
-  colors: ReturnType<typeof useTheme>['colors'];
-  sheetOffset: number;
-}) {
-  const [tab, setTab] = useState<CrisisTab>('overdose');
-  const tabs: { key: CrisisTab; label: string }[] = [
-    { key: 'overdose', label: t('crisisProtocol.tabs.0') },
-    { key: 'selfHarm', label: t('crisisProtocol.tabs.1') },
-    { key: 'unsafe', label: t('crisisProtocol.tabs.2') },
-  ];
-  const section = t(`crisisProtocol.${tab}.title`);
-  const steps = [
-    t(`crisisProtocol.${tab}.steps.0`),
-    t(`crisisProtocol.${tab}.steps.1`),
-    t(`crisisProtocol.${tab}.steps.2`),
-    t(`crisisProtocol.${tab}.steps.3`),
-    t(`crisisProtocol.${tab}.steps.4`),
-    t(`crisisProtocol.${tab}.steps.5`),
-  ];
-
-  return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('common:a11y.close')} style={styles.modalOverlay} activeOpacity={1} onPress={onClose} />
-      <ScrollView
-        style={[styles.sheet, { backgroundColor: colors.white, left: sheetOffset, right: sheetOffset }]}
-        contentContainerStyle={styles.sheetContent}
-        keyboardShouldPersistTaps="handled"
-        bounces={false}
-      >
-        <View style={[styles.sheetHandle, { backgroundColor: colors.line }]} />
-        <Text style={[styles.sheetTitle, { color: colors.ink }]}>
-          {t('crisisProtocol.heading')}
-        </Text>
-        <Text style={[styles.sheetSub, { color: colors.inkSoft, marginBottom: 14 }]}>
-          {t('crisisProtocol.sub')}
-        </Text>
-
-        {/* Tab bar */}
-        <View style={[styles.protocolTabBar, { borderBottomColor: colors.line }]}>
-          {tabs.map((tb) => (
-            <TouchableOpacity
-              key={tb.key}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: tab === tb.key }}
-              style={[
-                styles.protocolTab,
-                tab === tb.key && { borderBottomColor: colors.primary, borderBottomWidth: 2 },
-              ]}
-              onPress={() => setTab(tb.key)}
-            >
-              <Text
-                style={[
-                  styles.protocolTabText,
-                  { color: tab === tb.key ? colors.primary : colors.inkSoft },
-                ]}
-              >
-                {tb.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Steps */}
-        <View style={styles.protocolSteps}>
-          <Text style={[styles.protocolSectionTitle, { color: colors.ink }]}>{section}</Text>
-          {steps.map((step, i) => (
-            <View key={i} style={styles.protocolStep}>
-              <View style={[styles.protocolStepNum, { backgroundColor: colors.primary }]}>
-                <Text style={styles.protocolStepNumText}>{i + 1}</Text>
-              </View>
-              <Text style={[styles.protocolStepText, { color: colors.ink }]}>{step}</Text>
-            </View>
-          ))}
-        </View>
-
-        <TouchableOpacity accessibilityRole="button" style={[styles.sheetRow, styles.sheetRowLast, { marginTop: 4 }]} onPress={onClose}>
-          <Text style={[styles.sheetRowName, { color: colors.inkSoft }]}>
-            {t('crisisProtocol.close')}
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </Modal>
-  );
-}
-
-// ── Provider sheet ────────────────────────────────────────────────────────────
-
-function ProviderSheet({
-  visible,
-  onClose,
-  t,
-  colors,
-  sheetOffset,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  t: ReturnType<typeof useTranslation<'support'>>['t'];
-  colors: ReturnType<typeof useTheme>['colors'];
-  sheetOffset: number;
-}) {
-  return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('common:a11y.close')} style={styles.modalOverlay} activeOpacity={1} onPress={onClose} />
-      <ScrollView
-        style={[styles.sheet, { backgroundColor: colors.white, left: sheetOffset, right: sheetOffset }]}
-        contentContainerStyle={styles.sheetContent}
-        keyboardShouldPersistTaps="handled"
-        bounces={false}
-      >
-        <View style={[styles.sheetHandle, { backgroundColor: colors.line }]} />
-        <Text style={[styles.sheetTitle, { color: colors.ink }]}>
-          {t('providerSheet.title')}
-        </Text>
-
-        <View style={[styles.sheetRow, { borderBottomColor: colors.line }]}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.sheetRowName, { color: colors.ink }]}>
-              {FEATURED_PROVIDER.name} · {FEATURED_PROVIDER.org}
-            </Text>
-            <Text style={[styles.sheetRowSub, { color: colors.inkSoft }]}>
-              {t('providerSheet.credential', {
-                credential: FEATURED_PROVIDER.credential,
-                credentialFull: t('common:provider.credentialFull'),
-              })}
-            </Text>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          accessibilityRole="link"
-          accessibilityLabel={t('providerSheet.emailButton', { name: FEATURED_PROVIDER.name })}
-          style={[styles.sheetRow, { borderBottomColor: colors.line }]}
-          onPress={() => void Linking.openURL(`mailto:${FEATURED_PROVIDER.email}`)}
-        >
-          <Text style={[styles.sheetRowName, { color: colors.ink }]}>
-            {t('providerSheet.emailButton', { name: FEATURED_PROVIDER.name })}
-          </Text>
-          <Text style={[styles.sheetRowAction, { color: colors.primary }]}>→</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          accessibilityRole="link"
-          accessibilityLabel={t('providerSheet.webButton')}
-          style={[styles.sheetRow, styles.sheetRowLast, { borderBottomColor: colors.line }]}
-          onPress={() => void Linking.openURL(FEATURED_PROVIDER.web)}
-        >
-          <Text style={[styles.sheetRowName, { color: colors.ink }]}>
-            {t('providerSheet.webButton')}
-          </Text>
-          <Text style={[styles.sheetRowAction, { color: colors.primary }]}>→</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity accessibilityRole="button" style={[styles.sheetRow, styles.sheetRowLast]} onPress={onClose}>
-          <Text style={[styles.sheetRowName, { color: colors.inkSoft }]}>
-            {t('providerSheet.close')}
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </Modal>
-  );
-}
-
-// ── Staff chip ────────────────────────────────────────────────────────────────
-
-function StaffChip({
-  staff,
-  label,
-  colors,
-}: {
-  staff: StaffMember;
-  label: string;
-  colors: ReturnType<typeof useTheme>['colors'];
-}) {
-  const initials = `${staff.firstName[0]}${staff.lastName[0]}`;
-  return (
-    <View style={styles.staffChip}>
-      <View style={[styles.staffAvatar, { backgroundColor: colors.primaryLight }]}>
-        <Text style={[styles.staffInitials, { color: colors.primary }]}>{initials}</Text>
-      </View>
-      <View style={styles.staffInfo}>
-        <Text style={[styles.staffName, { color: colors.ink }]}>
-          {staff.firstName} {staff.lastName}
-          {staff.credentialDisplay ? `, ${staff.credentialDisplay}` : ''}
-        </Text>
-        <Text style={[styles.staffRole, { color: colors.inkSoft }]}>
-          {roleLabel(staff)}
-          {staff.isOnCall ? ` · ${label}` : ''}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-// ── Main screen ───────────────────────────────────────────────────────────────
 
 export default function SupportScreen() {
   useToolOpened('support');
   const { colors } = useTheme();
   const { user, isAttached, accountState, entitlements } = useAccount();
-  // Her loved one died (the device's copy, kept by Today): nothing is sold to her here.
-  const bereaved = useBereavedOnDevice(user?.id ?? null);
   // A session-reminder push carries the RSVP'd session id so the card it is about stands out.
   // soberhelpline.com/app/family-squares opens Support with focus=family-squares.
   // ask=question (the hour-before reminder) opens that session's question sheet.
   const { sessionId: sessionIdParam, focus, ask } = useLocalSearchParams<{ sessionId?: string; focus?: string; ask?: string }>();
   const { t } = useTranslation('support');
-  const { current, change, languages } = useLanguage();
-  const copy = walletMembershipCopy(current);
   const router = useRouter();
-  const { width: screenWidth } = useWindowDimensions();
-  const sheetOffset = Math.max(0, (screenWidth - 520) / 2);
   // Prices and trial eligibility for the plans card. Buying happens on the
   // plans screen (app/plans.tsx); this tab only opens it.
   const planOffers = usePlanOffers();
   const { subscriptionPrices, retryPrices } = planOffers;
   const { t: tPlans } = useTranslation('plans');
-  const { openWithSSO } = useWebSSO();
   const coachingRate = useCoachingRate();
   const scheduleFor = useSessionSchedule();
 
   const [crisisOpen, setCrisisOpen] = useState(false);
-  const [membershipExpanded, setMembershipExpanded] = useState(false);
-  const [crisisProtocolOpen, setCrisisProtocolOpen] = useState(false);
   const [providerOpen, setProviderOpen] = useState(false);
   const [questionSession, setQuestionSession] = useState<DbSession | null>(null);
   const [questionText, setQuestionText] = useState('');
@@ -537,8 +149,7 @@ export default function SupportScreen() {
   const { situation } = useSituation(user?.id ?? null);
   const crisisDoor = funnelDoor(situation);
 
-  const roster = { primaryOnCall: PRIMARY_ON_CALL, available: [] as StaffMember[] };
-  const { sessions, toggleRsvp, declineRsvp, seatSavedHere } = useSessions(user?.id ?? null);
+  const { sessions, loading: sessionsLoading, toggleRsvp, declineRsvp, seatSavedHere } = useSessions(user?.id ?? null);
   const focusedSessionId = sessionIdParam
     ?? (focus === 'family-squares'
       ? sessions.find((s) => isFamilySquaresSession(s) || isLaSobremesaSession(s))?.id
@@ -572,8 +183,14 @@ export default function SupportScreen() {
     // (No question for a Monday the website cancelled.)
     if (!isLaSobremesaSession(session) && !isCancelledMeetingDate(session.cancelledDate)) setQuestionSession(session);
   }, [pendingAsk, supportFocused, sessions]);
+  // Goes up when a Save tap on this screen has just saved her La Sobremesa
+  // seat, so the confirmation is read out as Family Squares' is (useSessions
+  // counts only Family Squares seats).
+  const [sobremesaSavedHere, setSobremesaSavedHere] = useState(0);
   const handleSessionRsvp = async (session: DbSession) => {
+    const wasSaved = !!session.rsvped;
     const saved = await toggleRsvp(session);
+    if (saved === true && !wasSaved && isLaSobremesaSession(session)) setSobremesaSavedHere((count) => count + 1);
     if (saved === 'not_available') appAlert(t('sessions.rsvpErrorTitle'), t('common:laSobremesa.notAvailable'));
     // The website refused (a cancelled week, or it will not register her):
     // not a connection problem, so the message says what is true. When the
@@ -614,6 +231,7 @@ export default function SupportScreen() {
   const renderSession = (sess: DbSession, showType: boolean, last: boolean) => {
     const name = sessionDisplayTitle(sess, t);
     const familySquares = isFamilySquaresSession(sess);
+    const laSobremesa = isLaSobremesaSession(sess);
     // The Monday meetings (Family Squares, La Sobremesa) use Today's words: "Save my spot".
     const mondayMeeting = familySquares || isLaSobremesaSession(sess);
     // What a Family Squares row offers is decided in one place
@@ -669,11 +287,12 @@ export default function SupportScreen() {
           <View style={styles.sessionActions}>
             {/* The one confirmation: "Your spot is saved for Monday, November 16". A call
                 other than Family Squares keeps the tap its "Confirmed" button had
-                (Family Squares has "Can't make it this week" below). */}
+                (Family Squares has "Can't make it this week" below). A seat saved
+                here is read out, La Sobremesa's as Family Squares'. */}
             <FamilySquaresSpotSavedLine
               confirmed={view.confirmed}
               session={sess}
-              savedHere={familySquares ? seatSavedHere : 0}
+              savedHere={familySquares ? seatSavedHere : laSobremesa ? sobremesaSavedHere : 0}
               showDate={familySquares}
               onPress={familySquares ? undefined : () => void handleSessionRsvp(sess)}
               pressLabel={t('sessions.confirmLabel', { name })}
@@ -723,11 +342,17 @@ export default function SupportScreen() {
       </View>
     );
   };
-  const groups = getSupportGroups((key) => t(key as never));
-  const { myRooms, liveRooms } = useGroupPresence(user?.id ?? null);
-  const { rsvpedRooms, pendingRooms, toggleRsvp: toggleGroupRsvp } = useGroupRsvps(user?.id ?? null);
+  // While the list is still loading (or could not be read), the card still
+  // names the meeting instead of showing an empty title.
+  const meetingPlaceholder = (
+    <View style={styles.sessionOuter} accessibilityState={{ busy: sessionsLoading }}>
+      <Text style={[styles.sessionTitle, { color: colors.ink }]}>{t('mondayGroup.loadingTitle')}</Text>
+      {sessionsLoading && <ActivityIndicator style={styles.sessionLoading} color={colors.primary} />}
+    </View>
+  );
   const canAccessPrivateVideo = !!user && entitlements.canAccessPrivateVideo;
   const hasMembershipAccess = entitlements.canAccessGroups;
+  const freeTier = !isAttached && !hasMembershipAccess;
   // Members off the Text Line plan can still read Matt's replies to their
   // situation briefs; give them a lasting way back to them.
   const [hasCoachReplies, setHasCoachReplies] = useState(false);
@@ -748,7 +373,7 @@ export default function SupportScreen() {
     return () => { active = false; };
   }, [user?.id, hasMembershipAccess]);
   const privateVideo = usePrivateVideoSessions(user?.id ?? null, canAccessPrivateVideo);
-  const isAdmin = isAdminEmail(user?.email);
+  const groupSessions = sessions.filter((s) => s.kind === 'group');
 
   return (
     <ScreenContainer backgroundColor={colors.cream}>
@@ -760,33 +385,31 @@ export default function SupportScreen() {
         onMessage={() => router.push('/chat')}
         onCopilot={() => router.push('/crisis-mode')}
         door={crisisDoor}
-        t={t}
-        colors={colors}
       />
-      <CrisisProtocolSheet
-        visible={crisisProtocolOpen}
-        onClose={() => setCrisisProtocolOpen(false)}
-        t={t}
-        colors={colors}
-        sheetOffset={sheetOffset}
-      />
-      <ProviderSheet
-        visible={providerOpen}
-        onClose={() => setProviderOpen(false)}
-        t={t}
-        colors={colors}
-        sheetOffset={sheetOffset}
+      <ProviderSheet visible={providerOpen} onClose={() => setProviderOpen(false)} />
+      <QuestionSheet
+        visible={questionSession !== null}
+        questionText={questionText}
+        onChangeText={setQuestionText}
+        questionSubmitting={questionSubmitting}
+        questionSubmitted={questionSubmitted}
+        questionCrisis={questionCrisis}
+        onSubmit={() => void submitQuestion()}
+        onClose={closeQuestionSheet}
       />
 
-        {/* Header: the same one as every tab, with the same Settings button. */}
+        {/* 1. Header: the same one as every tab, with the same Settings button. */}
         <TabHeader title={t('header')} />
 
         <Text style={[styles.referralBody, styles.sectionNote, { color: colors.inkSoft }]}>{t('intro')}</Text>
 
-        {/* Crisis button — always visible */}
+        {/* 2. Crisis help — always visible, one tap, before anything that
+            depends on her account. The sheet holds 911, 988, Crisis Copilot,
+            the on-call coach, the crisis guide and the helpline. */}
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel={t('crisis.button')}
+          accessibilityHint={t('crisis.buttonHint')}
           style={[styles.sosButton, { backgroundColor: colors.coral }]}
           onPress={() => setCrisisOpen(true)}
           activeOpacity={0.85}
@@ -794,621 +417,231 @@ export default function SupportScreen() {
           <Text style={styles.sosText}>🆘  {t('crisis.button')}</Text>
         </TouchableOpacity>
 
-        <Text style={[styles.referralBody, styles.sectionNote, { color: colors.inkSoft }]}>{t('crisis.freeNote')}</Text>
-
-        {/* Entitled member actions stay ahead of membership explanations. */}
-        {hasMembershipAccess && (<>
-            <View style={[styles.card, { borderColor: colors.line }]}>
-              <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
-                {t('messages.eyebrow')}
-              </Text>
-              <TouchableOpacity
-                accessibilityRole="button"
-                style={[styles.outlineBtn, { borderColor: colors.primary, marginTop: 0 }]}
-                activeOpacity={0.8}
-                onPress={() => router.push('/chat')}
-              >
-                <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
-                  {t('chat.openButton')}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {canAccessPrivateVideo ? (
-              <View style={[styles.card, { borderColor: colors.line }]}>
-                <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>{t('privateVideo.eyebrow').toUpperCase()}</Text>
-                <Text style={[styles.referralTitle, { color: colors.ink }]}>{t('privateVideo.title')}</Text>
-                <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{t('privateVideo.body')}</Text>
-                <PremierVideoSchedulingCard
-                  controller={privateVideo}
-                  t={t}
-                  translationRoot="privateVideo.scheduling"
-                  onJoin={(session) => router.push({ pathname: '/video-session' as never, params: { sessionId: session.id, room: session.room_name } })}
-                />
-              </View>
-            ) : null}
-
-        </>)}
-
-        {/* Crisis protocol guide */}
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel={`${t('crisisProtocol.heading')}. ${t('crisisProtocol.sub')}`}
-          style={[styles.protocolCard, { borderColor: colors.line, backgroundColor: colors.white }]}
-          onPress={() => setCrisisProtocolOpen(true)}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.protocolCardIcon}>📋</Text>
-          <View style={styles.protocolCardBody}>
-            <Text style={[styles.protocolCardEyebrow, { color: colors.inkSoft }]}>
-              {t('crisisProtocol.eyebrow')}
+        {/* 3. Family Squares (La Sobremesa in Spanish): the main thing people come here for. */}
+        {freeTier ? (
+          <View style={[styles.card, { borderColor: colors.line }]}>
+            <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
+              {t('mondayGroup.eyebrow')}
             </Text>
-            <Text style={[styles.protocolCardTitle, { color: colors.ink }]}>
-              {t('crisisProtocol.heading')}
+            {/* The meeting's name is the row's own title below: one heading, not two. */}
+            <Text style={[styles.referralBody, { color: colors.inkSoft }]}>
+              {t('mondayGroup.sub')}
             </Text>
-            <Text style={[styles.protocolCardSub, { color: colors.inkSoft }]}>
-              {t('crisisProtocol.sub')}
-            </Text>
+            {groupSessions.length === 0 && meetingPlaceholder}
+            {groupSessions.map((sess, index, list) => renderSession(sess, false, index === list.length - 1))}
           </View>
-          <Text style={[styles.protocolCardArrow, { color: colors.inkSoft }]}>›</Text>
-        </TouchableOpacity>
+        ) : (
+          // Members and attached families: every upcoming session, Family Squares among them.
+          <View style={[styles.card, { borderColor: colors.line }]}>
+            <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
+              {t('sessions.eyebrow')}
+            </Text>
+            {sessions.length === 0 && meetingPlaceholder}
+            {sessions.map((sess, index, list) => renderSession(sess, true, index === list.length - 1))}
+          </View>
+        )}
 
-        <Text accessibilityRole="header" style={[styles.eyebrow, { color: colors.inkSoft }]}>{t('peopleHeading')}</Text>
+        {/* 4. Coaching with Matt. */}
+        <SectionHeading title={t('coachingHeading', { name: PRIMARY_ON_CALL.firstName })} />
         <Text style={[styles.referralBody, styles.sectionNote, { color: colors.inkSoft }]}>{t('peopleAccess', { rate: coachingRate.hourly })}</Text>
 
-        {/* "How to use your membership" is for someone who has one. Without a
-            plan, the one link that explains coaching stays (the only way to that
-            screen). That screen shows the plans and their prices, so, like every
-            other offer here, it is only for someone known not to be bereaved. */}
-        {!hasMembershipAccess && bereaved === false && (
-          <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary, marginBottom: 12 }]} onPress={() => router.push('/membership-guide')}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{t('coachingGuideLink')}</Text></TouchableOpacity>
-        )}
-        {/* The free conversation practice stays one tap away without a plan. */}
-        {!hasMembershipAccess && (
-          <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary, marginBottom: 12 }]} onPress={() => router.push('/free-practice')}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{t('freePracticeLink')}</Text></TouchableOpacity>
-        )}
-        {hasMembershipAccess && (
-        <View style={[styles.card, { borderColor: colors.line, backgroundColor: colors.white }]}>
-          <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: membershipExpanded }} aria-expanded={membershipExpanded} onPress={() => setMembershipExpanded((value) => !value)} style={styles.membershipDisclosure}>
-            <Text style={[styles.referralTitle, { color: colors.ink }]}>{copy.benefits} {membershipExpanded ? '−' : '+'}</Text>
-          </TouchableOpacity>
-          <View style={{ display: membershipExpanded ? 'flex' : 'none' }}>
-          {/* The coaching guide ends with plans and prices: never for a bereaved member. */}
-          {bereaved === false && (
-            <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary }]} onPress={() => router.push('/membership-guide')}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{t('coachingGuideLink')}</Text></TouchableOpacity>
-          )}
-          <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary }]} onPress={() => router.push('/free-practice')}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{t('freePracticeLink')}</Text></TouchableOpacity>
-          <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{copy.free}</Text>
-          {/* The one benefits list (plans.json): Essential, then what Premier adds. */}
-          <Text style={[styles.tierName, { color: colors.ink, marginTop: 12 }]}>{t('tier.essentialName')}</Text>
-          <BenefitList plan="essential" />
-          <Text style={[styles.tierName, { color: colors.ink, marginTop: 12 }]}>{t('tier.premiumName')} · {tPlans('headings.premier')}</Text>
-          <BenefitList plan="premier" />
-          <Text style={[styles.referralBody, { color: colors.inkSoft, marginTop: 10 }]}>{tPlans('notEmergency')}</Text>
-          <Text style={[styles.referralBody, { color: colors.inkSoft, marginTop: 10 }]}>{fillCoachingRates(copy.service, { rate: coachingRate.hourly, memberRate: COACHING_MEMBER_PRICE })}</Text>
-          {hasMembershipAccess && <>
-            <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary }]} onPress={() => router.push('/safety-wallet')}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{copy.wallet}</Text></TouchableOpacity>
-            <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary }]} onPress={() => router.push('/crisis-mode')}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{copy.copilot}</Text></TouchableOpacity>
-            <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary }]} onPress={() => router.push('/chat')}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{copy.chat}</Text></TouchableOpacity>
-          </>}
-          <TouchableOpacity accessibilityRole="button" style={{ paddingVertical: 14 }} onPress={() => router.push('/settings')}><Text style={{ color: colors.primary }}>{copy.manage}</Text></TouchableOpacity>
-          {(!subscriptionPrices.essential || !subscriptionPrices.premium) && !isAttached && <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary }]} onPress={retryPrices}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{copy.retryPrices}</Text></TouchableOpacity>}
-          </View>
-        </View>
-        )}
-
-        {/* Attached: team + sessions */}
-        {isAttached && (
-          <>
-            <View style={[styles.card, { borderColor: colors.line }]}>
-              <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
-                {t('team.eyebrow')}
-              </Text>
-              <StaffChip
-                staff={roster.primaryOnCall}
-                label={t('team.onCall')}
-                colors={colors}
-              />
-              {roster.available.map((s) => (
-                <StaffChip key={s.id} staff={s} label="" colors={colors} />
-              ))}
-              <TouchableOpacity
-                accessibilityRole="button"
-                style={[styles.outlineBtn, { borderColor: colors.primary }]}
-                activeOpacity={0.8}
-                onPress={() => router.push('/chat')}
-              >
-                <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
-                  {t('team.messageButton')}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={[styles.card, { borderColor: colors.line }]}>
-              <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
-                {t('sessions.eyebrow')}
-              </Text>
-              {sessions.map((sess, index, list) => renderSession(sess, true, index === list.length - 1))}
-            </View>
-
-            <View style={[styles.card, { borderColor: colors.line }]}>
-              <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
-                {t('membership.eyebrow')}
-              </Text>
-              <View style={styles.membershipRow}>
-                <View style={[styles.coveredChip, { backgroundColor: colors.greenLight }]}>
-                  <Text style={[styles.coveredText, { color: colors.green }]}>
-                    {t('membership.covered')}
-                  </Text>
-                </View>
-                <Text style={[styles.membershipSub, { color: colors.inkSoft }]}>
-                  {t('membership.coveredSub')}
-                </Text>
-              </View>
-            </View>
-
-          </>
-        )}
-
-        {/* Free tier: Monday group + upgrade card */}
-        {!isAttached && !hasMembershipAccess && (
-          <>
-            {hasCoachReplies ? (
-              <TouchableOpacity
-                accessibilityRole="button"
-                style={[styles.card, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]}
-                onPress={() => router.push('/chat')}
-                activeOpacity={0.85}
-              >
-                <Text style={[styles.referralTitle, { color: colors.ink }]}>{t('coachReplies.title')}</Text>
-                <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{t('coachReplies.body')}</Text>
-              </TouchableOpacity>
-            ) : null}
-            <View style={[styles.card, { borderColor: colors.line }]}>
-              <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
-                {t('mondayGroup.eyebrow')}
-              </Text>
-              {/* The meeting's name is the row's own title below: one heading, not two. */}
-              <Text style={[styles.referralBody, { color: colors.inkSoft }]}>
-                {t('mondayGroup.sub')}
-              </Text>
-              {sessions.filter((s) => s.kind === 'group').map((sess, index, list) => renderSession(sess, false, index === list.length - 1))}
-            </View>
-
-            {/* The plans in short; the plans screen has all of it and is where a plan is bought.
-                Never for a bereaved member (or before the device knows): no sales prompts of any kind. */}
-            {bereaved === false && <PlansTeaserCard offers={planOffers} source="support_tab" />}
-          </>
-        )}
-
-        {/* Essential / Premier: full content */}
-        {!isAttached && hasMembershipAccess && (
-          <>
-            {/* Show one unambiguous current plan. Upgrade and review are explicit actions. */}
-            <View style={[styles.card, { borderColor: colors.line }]}>
-                <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
-                  {t('tier.eyebrow')}
-                </Text>
-                <Text style={[styles.referralBody, { color: colors.inkSoft, marginBottom: 12 }]}>
-                  {t('tier.reviewIntro')}
-                </Text>
-
-                <View style={[styles.tierRow, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]}>
-                  <View style={styles.tierInfo}>
-                    <Text style={[styles.tierName, { color: colors.primary }]}>
-                      {t(accountState === 'direct-premium' ? 'tier.premiumName' : 'tier.essentialName')}
-                    </Text>
-                    <Text style={[styles.tierFeatures, { color: colors.inkSoft }]}>
-                      {benefitSummary(accountState === 'direct-premium' ? 'premier' : 'essential', tPlans as never, current)}
-                    </Text>
-                  </View>
-                  <View style={styles.tierRight}>
-                    <Text style={[styles.tierCurrent, { color: colors.primary }]}>
-                      {t('tier.current')}
-                    </Text>
-                  </View>
-                </View>
-
-                <TouchableOpacity
-                  accessibilityRole="button"
-                  style={[styles.solidBtn, { backgroundColor: colors.primary }]}
-                  activeOpacity={0.85}
-                  onPress={() => router.push('/crisis-mode')}
-                >
-                  <Text style={styles.solidBtnText}>{t('tier.openPlanReview')}</Text>
-                </TouchableOpacity>
-
-                {/* Never for a bereaved member (or before the device knows): no
-                    sales prompts of any kind. Plans stay reachable from Settings. */}
-                {accountState === 'direct-essential' && bereaved === false && (
-                  <TouchableOpacity
-                    style={[styles.outlineBtn, { borderColor: colors.primary }]}
-                    activeOpacity={0.85}
-                    accessibilityRole="button"
-                    accessibilityLabel={tPlans('support.upgradeLabel')}
-                    onPress={() => router.push(plansHref('support_upgrade', 'premium'))}
-                  >
-                    <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
-                      {t('tier.upgradeButton')}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-            </View>
-
-            <View style={[styles.card, { borderColor: colors.line }]}>
-              <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
-                {t('coaching.eyebrow')}
-              </Text>
-              <Text style={[styles.referralTitle, { color: colors.ink }]}>
-                {t('coaching.cardTitle')}
-              </Text>
-              <Text style={[styles.referralBody, { color: colors.inkSoft }]}>
-                {t('coaching.cardBody', { rate: coachingRate.hourly })}
-              </Text>
-              <TouchableOpacity
-                accessibilityRole="button"
-                style={[styles.outlineBtn, { borderColor: colors.primary, marginTop: 12 }]}
-                activeOpacity={0.8}
-                onPress={() => router.push('/book-coaching')}
-              >
-                <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
-                  {t('coaching.cardButton')}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={[styles.card, { borderColor: colors.line }]}>
-              <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
-                {t('sessions.eyebrow')}
-              </Text>
-              {sessions.map((sess, index, list) => renderSession(sess, true, index === list.length - 1))}
-            </View>
-
-            <View style={[styles.card, { borderColor: colors.line }]}>
-              <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
-                {t('referral.eyebrow')}
-              </Text>
-              <Text style={[styles.referralTitle, { color: colors.ink }]}>
-                {t('referral.title')}
-              </Text>
-              <Text style={[styles.referralBody, { color: colors.inkSoft }]}>
-                {t('referral.body')}
-              </Text>
-              <TouchableOpacity
-                accessibilityRole="button"
-                style={[styles.outlineBtn, { borderColor: colors.primary, marginTop: 12 }]}
-                activeOpacity={0.8}
-                onPress={() => setProviderOpen(true)}
-              >
-                <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
-                  {t('referral.button')}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </>
-        )}
-
-        {/* Treatment Finder — all account types */}
-        <TouchableOpacity
-          accessibilityRole="button"
-          activeOpacity={0.85}
-          onPress={() => router.push('/finder')}
-          style={[styles.finderCard, { backgroundColor: colors.primary }]}
-        >
-          <Text style={styles.finderTitle}>{t('finderCard.title')}</Text>
-          <Text style={styles.finderSub}>{t('finderCard.sub')}</Text>
-        </TouchableOpacity>
-
-        {/* Groups — both account types */}
-        <View style={[styles.card, { borderColor: colors.line }]}>
-          <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
-            {t('groups.eyebrow')}
-          </Text>
-          {groups.map((group: SupportGroup, index: number) => {
-            const room = group.liveRoomId;
-            // A rule between groups, and under the last one only when the forum
-            // link follows it (the community row draws its own).
-            const ruleBelow = index < groups.length - 1 || (hasMembershipAccess && !COMMUNITY_FEED_VISIBLE);
-            const isMyRoom = !!(isAdmin && room && myRooms.includes(room));
-            const isLive = !!(room && liveRooms.includes(room));
-            const isRsvped = !!(room && rsvpedRooms.has(room));
-            const isRsvpPending = !!(room && pendingRooms.has(room));
-            return (
-              <View
-                key={group.id}
-                style={[styles.groupRow, ruleBelow && { borderBottomWidth: 1, borderBottomColor: colors.line }]}
-              >
-                <View style={[styles.groupIcon, { backgroundColor: group.accentColor }]}>
-                  <Text style={styles.groupIconText}>{group.icon}</Text>
-                </View>
-                <View style={styles.groupInfo}>
-                  <Text style={[styles.groupName, { color: colors.ink }]}>{group.name}</Text>
-                  <Text style={[styles.groupMeta, { color: colors.inkSoft }]}>
-                    {group.onlineCount > 0
-                      ? `${group.scheduleLabel}  ·  ${t('groups.online', { count: group.onlineCount })}`
-                      : group.scheduleLabel}
-                  </Text>
-                </View>
-                {/* Status button */}
-                {isMyRoom ? (
-                  <TouchableOpacity
-                    accessibilityRole="button"
-                    accessibilityLabel={`${group.name}: ${t('groups.goLive')}`}
-                    style={[styles.joinBtn, { borderColor: colors.coral, backgroundColor: colors.coral }]}
-                    activeOpacity={0.8}
-                    onPress={() => router.push({ pathname: '/live-room' as never, params: { room: room ?? '' } })}
-                  >
-                    <Text style={[styles.joinBtnText, { color: '#fff' }]}>{t('groups.goLive')}</Text>
-                  </TouchableOpacity>
-                ) : isLive ? (
-                  <TouchableOpacity
-                    style={[styles.joinBtn, { borderColor: colors.coral, backgroundColor: '#111111' }]}
-                    activeOpacity={0.8}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${group.name}: ${t('groups.joinLive')}`}
-                    onPress={() => (hasMembershipAccess
-                      ? router.push({ pathname: '/live-room' as never, params: { room: room ?? '' } })
-                      : router.push(plansHref('support_groups', 'essential')))}
-                  >
-                    <Text style={[styles.joinBtnText, { color: '#fff' }]}>{t('groups.joinLive')}</Text>
-                  </TouchableOpacity>
-                ) : room ? (
-                  <TouchableOpacity
-                    style={[
-                      styles.joinBtn,
-                      {
-                        borderColor: isRsvped ? colors.green : colors.primary,
-                        backgroundColor: isRsvped ? colors.greenLight : colors.primaryLight,
-                      },
-                    ]}
-                    activeOpacity={0.8}
-                    disabled={isRsvpPending}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${group.name}: ${isRsvped ? t('groups.rsvpDone') : t('groups.rsvpButton')}`}
-                    accessibilityState={{ disabled: isRsvpPending, selected: isRsvped, busy: isRsvpPending }}
-                    onPress={async () => {
-                      if (!hasMembershipAccess) {
-                        router.push(plansHref('support_groups', 'essential'));
-                        return;
-                      }
-                      const saved = await toggleGroupRsvp(room);
-                      if (saved === 'removed') {
-                        appAlert(t('groups.rsvpErrorTitle'), t('groups.removedBody'));
-                      } else if (!saved) {
-                        appAlert(t('groups.rsvpErrorTitle'), t('groups.rsvpErrorBody'));
-                      }
-                    }}
-                  >
-                    {isRsvpPending ? (
-                      <ActivityIndicator size="small" color={colors.primary} />
-                    ) : (
-                      <Text style={[styles.joinBtnText, { color: isRsvped ? colors.green : colors.primary }]}>
-                        {isRsvped ? t('groups.rsvpDone') : t('groups.rsvpButton')}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                ) : (
-                  <View style={[styles.joinBtn, { borderColor: colors.primary, backgroundColor: '#e0e0e0' }]}>
-                    <Text style={[styles.joinBtnText, { color: '#aaaaaa' }]}>{t('groups.joinButton')}</Text>
-                  </View>
-                )}
-              </View>
-            );
-          })}
-          {COMMUNITY_FEED_VISIBLE && (
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel={t('community.openLink')}
-              style={[styles.communityRow, { borderColor: colors.line }]}
-              activeOpacity={0.8}
-              onPress={() => router.push('/community')}
-            >
-              <Text style={[styles.communityRowText, { color: colors.ink }]}>
-                {t('community.openLink')}
-              </Text>
-              <Text style={{ color: colors.primary, fontSize: 20, fontWeight: '700' }}>›</Text>
-            </TouchableOpacity>
-          )}
-          {/* The family forum is a members-only soberhelpline.com page: open it
-              signed in, and only for members (it would be a website paywall
-              for anyone else). */}
-          {hasMembershipAccess ? (
-            <TouchableOpacity
-              style={styles.moreGroupsRow}
-              activeOpacity={0.7}
-              accessibilityRole="link"
-              onPress={() => void openWithSSO(user?.id ?? null, WEBSITE_PATHS.familyForum)}
-            >
-              <Text style={[styles.moreGroupsText, { color: colors.inkSoft }]}>
-                {t('groups.moreIntro')}{' '}
-                <Text style={{ color: colors.primary, fontWeight: '700' }}>
-                  {t('groups.moreLink')}
-                </Text>
-              </Text>
-            </TouchableOpacity>
-          ) : null}
-        </View>
-
-        {/* Language selector */}
-        <View style={[styles.card, { borderColor: colors.line }]}>
-          <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
-            {t('language.eyebrow')}
-          </Text>
-          <View style={styles.pillRow}>
-            {languages.map((lang) => {
-              const active = current === lang.code;
-              return (
-                <TouchableOpacity
-                  key={lang.code}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: active }}
-                  aria-checked={active}
-                  style={[
-                    styles.pill,
-                    {
-                      borderColor: active ? colors.primary : colors.line,
-                      backgroundColor: active ? colors.primaryLight : '#fff',
-                    },
-                  ]}
-                  onPress={() => change(lang.code)}
-                  activeOpacity={0.8}
-                >
-                  <Text
-                    style={[
-                      styles.pillText,
-                      { color: active ? colors.primary : colors.inkSoft },
-                    ]}
-                  >
-                    {lang.nativeLabel}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-      {/* ── Question modal ── */}
-      <Modal visible={questionSession !== null} animationType="slide" transparent onRequestClose={closeQuestionSheet}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.questionModalKAV}
-        >
+        {freeTier && hasCoachReplies ? (
           <TouchableOpacity
             accessibilityRole="button"
-            accessibilityLabel={t('common:a11y.close')}
-            style={[StyleSheet.absoluteFill, styles.modalOverlay]}
-            activeOpacity={1}
-            onPress={closeQuestionSheet}
-          />
-          <View style={[styles.questionSheet, { backgroundColor: colors.white, marginHorizontal: sheetOffset }]}>
-            <View style={[styles.sheetHandle, { backgroundColor: colors.line }]} />
-            <Text style={[styles.sheetTitle, { color: colors.ink }]}>{t('questionModal.title')}</Text>
-            <Text style={[styles.sheetSub, { color: colors.inkSoft, marginBottom: 14 }]}>{t('questionModal.sub')}</Text>
+            style={[styles.card, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]}
+            onPress={() => router.push('/chat')}
+            activeOpacity={0.85}
+          >
+            <Text style={[styles.referralTitle, { color: colors.ink }]}>{t('coachReplies.title')}</Text>
+            <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{t('coachReplies.body')}</Text>
+          </TouchableOpacity>
+        ) : null}
 
-            {questionCrisis ? (
-              <ScrollView style={styles.questionCrisisScroll} contentContainerStyle={{ paddingBottom: 8 }}>
-                <Text accessibilityRole="alert" style={[styles.sheetSub, { color: colors.ink, marginBottom: 12 }]}>
-                  {t(questionCrisis === 'sent' ? 'questionModal.crisisNote' : 'questionModal.crisisNotSent')}
+        {/* Entitled member actions stay ahead of membership explanations. */}
+        {hasMembershipAccess && (
+          <View style={[styles.card, { borderColor: colors.line }]}>
+            <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
+              {t('messages.eyebrow')}
+            </Text>
+            <TouchableOpacity
+              accessibilityRole="button"
+              style={[styles.outlineBtn, { borderColor: colors.primary, marginTop: 0 }]}
+              activeOpacity={0.8}
+              onPress={() => router.push('/chat')}
+            >
+              <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
+                {t('chat.openButton')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {hasMembershipAccess && canAccessPrivateVideo ? (
+          <View style={[styles.card, { borderColor: colors.line }]}>
+            <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>{t('privateVideo.eyebrow').toUpperCase()}</Text>
+            <Text style={[styles.referralTitle, { color: colors.ink }]}>{t('privateVideo.title')}</Text>
+            <Text style={[styles.referralBody, { color: colors.inkSoft }]}>{t('privateVideo.body')}</Text>
+            <PremierVideoSchedulingCard
+              controller={privateVideo}
+              t={t}
+              translationRoot="privateVideo.scheduling"
+              onJoin={(session) => router.push({ pathname: '/video-session' as never, params: { sessionId: session.id, room: session.room_name } })}
+            />
+          </View>
+        ) : null}
+
+        {/* Attached: their team. */}
+        {isAttached && <TeamCard />}
+
+        {/* Booking a private session: members (not attached families), as before 4.4. */}
+        {!isAttached && hasMembershipAccess && (
+          <View style={[styles.card, { borderColor: colors.line }]}>
+            <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
+              {t('coaching.eyebrow')}
+            </Text>
+            <Text style={[styles.referralTitle, { color: colors.ink }]}>
+              {t('coaching.cardTitle')}
+            </Text>
+            <Text style={[styles.referralBody, { color: colors.inkSoft }]}>
+              {t('coaching.cardBody', { rate: coachingRate.hourly })}
+            </Text>
+            <TouchableOpacity
+              accessibilityRole="button"
+              style={[styles.outlineBtn, { borderColor: colors.primary, marginTop: 12 }]}
+              activeOpacity={0.8}
+              onPress={() => router.push('/book-coaching')}
+            >
+              <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
+                {t('coaching.cardButton')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Without a plan, the one link that explains coaching stays (the only
+            way to that screen). */}
+        {!hasMembershipAccess && (
+          <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary, marginTop: 0, marginBottom: 12 }]} onPress={() => router.push('/membership-guide')}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{t('coachingGuideLink')}</Text></TouchableOpacity>
+        )}
+
+        {/* 5. Membership. */}
+        {/* (A heading only for someone with a membership: no new promotion for anyone else.) */}
+        {(hasMembershipAccess || isAttached) && <SectionHeading title={t('membership.eyebrow')} />}
+
+        {/* Members: one unambiguous current plan; upgrade and review are explicit actions. */}
+        {!isAttached && hasMembershipAccess && <MemberPlanCard accountState={accountState} />}
+
+        {/* "How to use your membership" is for someone who has one. */}
+        {hasMembershipAccess && <MembershipGuideCard isAttached={isAttached} offers={planOffers} />}
+
+        {isAttached && (
+          <View style={[styles.card, { borderColor: colors.line }]}>
+            <View style={styles.membershipRow}>
+              <View style={[styles.coveredChip, { backgroundColor: colors.greenLight }]}>
+                <Text style={[styles.coveredText, { color: colors.green }]}>
+                  {t('membership.covered')}
                 </Text>
-                <EmergencyActions prominent offline={questionCrisis === 'unsent'} />
-                {questionCrisis === 'unsent' && (
-                  <TouchableOpacity
-                    accessibilityRole="button"
-                    accessibilityLabel={t('questionModal.retry')}
-                    accessibilityState={{ disabled: questionSubmitting, busy: questionSubmitting }}
-                    style={[styles.solidBtn, { backgroundColor: colors.primary, marginTop: 12 }]}
-                    disabled={questionSubmitting}
-                    onPress={() => void submitQuestion()}
-                    activeOpacity={0.85}
-                  >
-                    {questionSubmitting
-                      ? <ActivityIndicator color="#fff" />
-                      : <Text style={styles.solidBtnText}>{t('questionModal.retry')}</Text>}
-                  </TouchableOpacity>
-                )}
+              </View>
+              <Text style={[styles.membershipSub, { color: colors.inkSoft }]}>
+                {t('membership.coveredSub')}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* The free conversation practice stays one tap away without a plan. */}
+        {!hasMembershipAccess && (
+          <TouchableOpacity accessibilityRole="button" style={[styles.outlineBtn, { borderColor: colors.primary, marginTop: 0, marginBottom: 12 }]} onPress={() => router.push('/free-practice')}><Text style={[styles.outlineBtnText, { color: colors.primary }]}>{t('freePracticeLink')}</Text></TouchableOpacity>
+        )}
+
+        {freeTier && (
+          <>
+            {/* The plans in short; the plans screen has all of it and is where a plan is bought. */}
+            <PlansTeaserCard offers={planOffers} source="support_tab" />
+            {/* The card says "Store price unavailable" when the store did not
+                answer: one tap reads the prices again, as on the plans card. */}
+            {!subscriptionPrices.essential && (
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={tPlans('retryPricesLabel')}
+                style={[styles.outlineBtn, { borderColor: colors.primary, marginTop: 0, marginBottom: 12 }]}
+                onPress={retryPrices}
+              >
+                <Text style={[styles.outlineBtnText, { color: colors.primary }]}>{tPlans('retryPrices')}</Text>
+              </TouchableOpacity>
+            )}
+          </>
+        )}
+
+        {/* 6. More support, closed until she opens it. */}
+        <View style={styles.moreSupport}>
+          <TodayDisclosure title={t('moreSupport.title')}>
+            {/* Treatment Finder — all account types */}
+            <TouchableOpacity
+              accessibilityRole="button"
+              activeOpacity={0.85}
+              onPress={() => router.push('/finder')}
+              style={[styles.finderCard, { backgroundColor: colors.primary }]}
+            >
+              <Text style={styles.finderTitle}>{t('finderCard.title')}</Text>
+              <Text style={styles.finderSub}>{t('finderCard.sub')}</Text>
+            </TouchableOpacity>
+
+            {/* A vetted interventionist (members). */}
+            {!isAttached && hasMembershipAccess && (
+              <View style={[styles.card, { borderColor: colors.line }]}>
+                <Text style={[styles.eyebrow, { color: colors.inkSoft }]}>
+                  {t('referral.eyebrow')}
+                </Text>
+                <Text style={[styles.referralTitle, { color: colors.ink }]}>
+                  {t('referral.title')}
+                </Text>
+                <Text style={[styles.referralBody, { color: colors.inkSoft }]}>
+                  {t('referral.body')}
+                </Text>
                 <TouchableOpacity
                   accessibilityRole="button"
-                  style={[questionCrisis === 'sent' ? styles.solidBtn : styles.sheetRow, questionCrisis === 'sent' ? { backgroundColor: colors.primary, marginTop: 12 } : styles.sheetRowLast]}
-                  onPress={closeQuestionSheet}
-                  activeOpacity={0.85}
+                  style={[styles.outlineBtn, { borderColor: colors.primary, marginTop: 12 }]}
+                  activeOpacity={0.8}
+                  onPress={() => setProviderOpen(true)}
                 >
-                  <Text style={questionCrisis === 'sent' ? styles.solidBtnText : [styles.sheetRowName, { color: colors.inkSoft }]}>
-                    {t(questionCrisis === 'sent' ? 'questionModal.done' : 'questionModal.cancel')}
+                  <Text style={[styles.outlineBtnText, { color: colors.primary }]}>
+                    {t('referral.button')}
                   </Text>
                 </TouchableOpacity>
-              </ScrollView>
-            ) : questionSubmitted ? (
-              <Text style={[styles.sheetTitle, { color: colors.green, fontSize: 16, textAlign: 'center', marginVertical: 24 }]}>
-                {t('questionModal.submitted')}
-              </Text>
-            ) : (
-              <>
-                <TextInput
-                  style={[styles.questionInput, { borderColor: colors.line, color: colors.ink }]}
-                  placeholder={t('questionModal.placeholder')}
-                  placeholderTextColor={colors.inkSoft}
-                  value={questionText}
-                  onChangeText={setQuestionText}
-                  multiline
-                  maxLength={500}
-                  autoFocus
-                />
-                <TouchableOpacity
-                  accessibilityRole="button"
-                  accessibilityLabel={t('questionModal.submit')}
-                  accessibilityState={{ disabled: !questionText.trim() || questionSubmitting, busy: questionSubmitting }}
-                  style={[styles.solidBtn, { backgroundColor: questionText.trim() ? colors.primary : colors.line, marginTop: 12 }]}
-                  disabled={!questionText.trim() || questionSubmitting}
-                  onPress={submitQuestion}
-                  activeOpacity={0.85}
-                >
-                  {questionSubmitting
-                    ? <ActivityIndicator color="#fff" />
-                    : <Text style={styles.solidBtnText}>{t('questionModal.submit')}</Text>}
-                </TouchableOpacity>
-                <TouchableOpacity accessibilityRole="button" style={[styles.sheetRow, styles.sheetRowLast, { marginTop: 4 }]} onPress={closeQuestionSheet}>
-                  <Text style={[styles.sheetRowName, { color: colors.inkSoft }]}>{t('questionModal.cancel')}</Text>
-                </TouchableOpacity>
-              </>
+              </View>
             )}
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+
+            {/* Groups — every account type; the family forum for members. */}
+            <SupportGroupsCard hasMembershipAccess={hasMembershipAccess} />
+
+            {/* "Pass it on" (it left Today): public resources only. */}
+            <PassItOnCard />
+          </TodayDisclosure>
+        </View>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  questionCrisisScroll: { maxHeight: 460 },
   sosButton: {
     ...buttonShape,
-    padding: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     marginBottom: 14,
   },
-  sosText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  sosText: { color: '#fff', fontSize: 16, fontWeight: '700', textAlign: 'center' },
 
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    shadowColor: '#22302f',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 1,
-  },
-  eyebrow: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    marginBottom: 12,
-  },
-
-  staffChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-    gap: 10,
-  },
-  staffAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  staffInitials: { fontWeight: '700', fontSize: 14 },
-  staffInfo: { flex: 1 },
-  staffName: { fontSize: 14, fontWeight: '600' },
-  staffRole: { fontSize: 12, marginTop: 1 },
+  card: supportCard,
+  eyebrow: supportEyebrow,
+  sectionHeading: { ...supportEyebrow, marginTop: 10, marginBottom: 8 },
 
   sessionOuter: {
     paddingVertical: 10,
   },
   sessionTitle: { fontSize: 15, fontWeight: '700' },
   sessionMeta: { fontSize: 12.5, marginTop: 2 },
+  sessionLoading: { alignSelf: 'flex-start', marginTop: 10 },
   sessionActions: { marginTop: 10, gap: 6 },
   sessionQuietRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', columnGap: 22 },
   sessionQuietLink: { minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
@@ -1424,46 +657,7 @@ const styles = StyleSheet.create({
   questionBtnText: { fontSize: 12, fontWeight: '600' },
   rsvpNote: { fontSize: 11.5, lineHeight: 16, marginTop: 8 },
   cancelledLine: { fontSize: 13.5, lineHeight: 19, marginTop: 8 },
-  questionInput: {
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 12,
-    fontSize: 14,
-    minHeight: 100,
-    textAlignVertical: 'top',
-  },
-  questionModalKAV: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  questionSheet: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    paddingBottom: 40,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 20,
-  },
 
-  tierRow: {
-    flexDirection: 'row',
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 12,
-    marginBottom: 8,
-    alignItems: 'center',
-  },
-  tierInfo: { flex: 1 },
-  tierName: { fontSize: 14, fontWeight: '700' },
-  tierFeatures: { fontSize: 12, marginTop: 2 },
-  tierRight: { alignItems: 'flex-end' },
-  tierCurrent: { fontSize: 11, marginTop: 2 },
-
-
-  membershipDisclosure: { minHeight: 44, justifyContent: 'center' },
   membershipRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   coveredChip: {
     borderRadius: 8,
@@ -1473,59 +667,10 @@ const styles = StyleSheet.create({
   coveredText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
   membershipSub: { fontSize: 12, flex: 1 },
 
-  groupRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    gap: 10,
-  },
-  groupIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  groupIconText: { fontSize: 20 },
-  groupInfo: { flex: 1 },
-  groupName: { fontSize: 14, fontWeight: '600' },
-  groupMeta: { fontSize: 12, marginTop: 2 },
-  joinBtn: { minHeight: 44, justifyContent: 'center',
-    borderRadius: 8,
-    borderWidth: 1,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-  },
-  joinBtnText: { fontSize: 12, fontWeight: '600' },
-  rsvpInlineBtn: { minHeight: 44, justifyContent: 'center',
-    alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderRadius: 6,
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    marginTop: 6,
-  },
-  rsvpInlineBtnText: { fontSize: 11, fontWeight: '700' },
-  moreGroupsRow: { paddingTop: 12, alignItems: 'center' },
-  moreGroupsText: { fontSize: 12.5, lineHeight: 18, textAlign: 'center' },
-  communityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderTopWidth: 1,
-    marginTop: 8,
-    paddingTop: 14,
-  },
-  communityRowText: { fontSize: 14, fontWeight: '700' },
-
   referralTitle: { fontSize: 15, fontWeight: '700', marginBottom: 6 },
   referralBody: { fontSize: 13, lineHeight: 19 },
   // A paragraph that stands between cards keeps the cards' own spacing below it.
   sectionNote: { marginBottom: 12 },
-  videoStatusBox: { borderWidth: 1, borderRadius: 12, padding: 12, marginTop: 12 },
-  videoStatusTitle: { fontSize: 14, fontWeight: '800', textTransform: 'capitalize' },
-  videoStatusBody: { fontSize: 12.5, marginTop: 3 },
-  errorInline: { fontSize: 13, lineHeight: 18, marginTop: 10 },
 
   // Every full-width button here is the app's one pill (buttonShape).
   solidBtn: {
@@ -1542,125 +687,8 @@ const styles = StyleSheet.create({
   },
   outlineBtnText: { fontWeight: '700', fontSize: 14, lineHeight: 20, textAlign: 'center', flexShrink: 1 },
 
-  pillRow: { flexDirection: 'row', gap: 8 },
-  pill: { minHeight: 44, justifyContent: 'center',
-    borderWidth: 1.5,
-    borderRadius: 99,
-    paddingVertical: 8,
-    paddingHorizontal: 18,
-  },
-  pillText: { fontSize: 13, fontWeight: '600' },
-
-  // Crisis sheet
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-  },
-  // Scrolls: at large accessibility text sizes the content is taller than
-  // the screen, and its top (title, coach buttons) must stay reachable.
-  sheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    maxHeight: '92%',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 20,
-  },
-  sheetContent: { padding: 24, paddingBottom: 40 },
-  sheetHandle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 20,
-  },
-  sheetTitle: { fontSize: 20, fontWeight: '700', marginBottom: 4 },
-  sheetSub: { fontSize: 14, marginBottom: 20 },
-  copilotCard: { borderWidth: 1, borderRadius: 16, padding: 14, marginBottom: 10 },
-  copilotCopy: { marginBottom: 10 },
-  copilotTitle: { fontSize: 16, fontWeight: '800', marginBottom: 4 },
-  copilotBody: { fontSize: 13, lineHeight: 18 },
-  copilotButton: { ...buttonShape, paddingVertical: 11 },
-  copilotButtonText: { color: '#fff', fontSize: 14, fontWeight: '800' },
-  sheetRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-  },
-  sheetRowLast: { borderBottomWidth: 0 },
-  offRampWrap: { marginTop: 14 },
-  sheetRowName: { fontSize: 14, fontWeight: '600', flex: 1 },
-  sheetRowSub: { fontSize: 12, marginTop: 2 },
-  sheetRowAction: { fontSize: 14, fontWeight: '700' },
-  sheetActionBtn: { minHeight: 44, justifyContent: 'center',
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  sheetActionBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  dividerRow: {
-    borderTopWidth: 1,
-    paddingTop: 14,
-    paddingBottom: 4,
-  },
-  dividerText: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
-
-  // Crisis protocol card (trigger)
-  protocolCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 14,
-    marginBottom: 12,
-    gap: 12,
-    backgroundColor: '#fff',
-  },
-  protocolCardIcon: { fontSize: 22 },
-  protocolCardBody: { flex: 1 },
-  protocolCardEyebrow: { fontSize: 10, fontWeight: '700', letterSpacing: 1.2, marginBottom: 2 },
-  protocolCardTitle: { fontSize: 14, fontWeight: '700' },
-  protocolCardSub: { fontSize: 12, marginTop: 2, lineHeight: 17 },
-  protocolCardArrow: { fontSize: 22, fontWeight: '300' },
-
-  finderCard: { borderRadius: 16, padding: 18, marginBottom: 16 },
+  moreSupport: { marginTop: 4 },
+  finderCard: { borderRadius: 16, padding: 18, marginBottom: 12 },
   finderTitle: { color: '#fff', fontSize: 17, fontWeight: '700', marginBottom: 4 },
   finderSub: { color: '#c9d6e6', fontSize: 13.5, lineHeight: 19 },
-
-  // Crisis protocol sheet (modal)
-  protocolTabBar: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    marginBottom: 16,
-  },
-  protocolTab: {
-    flex: 1,
-    alignItems: 'center',
-    paddingBottom: 10,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  protocolTabText: { fontSize: 12, fontWeight: '700' },
-  protocolSteps: { marginBottom: 8 },
-  protocolSectionTitle: { fontSize: 15, fontWeight: '700', marginBottom: 14 },
-  protocolStep: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 12 },
-  protocolStepNum: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-    marginTop: 1,
-  },
-  protocolStepNumText: { color: '#fff', fontWeight: '800', fontSize: 13 },
-  protocolStepText: { flex: 1, fontSize: 14, lineHeight: 21 },
 });

@@ -6,8 +6,6 @@
   "navShort": {
     "today": "Hoy",
     "scripts": "Práctica",
-    "boundaries": "Límites",
-    "tracker": "Diario",
     "learn": "Guías",
     "support": "Apoyo"
   },
@@ -32,12 +30,12 @@
   },
   "accountLoad": {
     "title": "No pudimos cargar tu cuenta",
-    "body": "Tu sesión sigue iniciada. Revisa tu conexión e inténtalo de nuevo; no necesitas ingresar tu contraseña otra vez.",
+    "body": "Tu sesión sigue iniciada, no necesitas tu contraseña. Revisa tu conexión e inténtalo de nuevo.",
     "retry": "Intentar de nuevo"
   },
   "authBootstrap": {
     "title": "Iniciando tu sesión…",
-    "body": "Tu cuenta está segura. Estamos preparando tu experiencia de Sober Helpline."
+    "body": "Tu cuenta está segura. Estamos preparando todo."
   },
   "safetyShortcut": {
     "label": "Seguridad",
@@ -45,8 +43,7 @@
   },
   "comingSoon": "Próximamente",
   "navPurpose": {
-    "scripts": "Práctica: ensaya una conversación",
-    "boundaries": "Establecer límites acordados",
+    "scripts": "Práctica: conversaciones y límites",
     "learn": "Guías: herramientas para planificar y aprender",
     "support": "Apoyo: hablar con alguien o buscar tratamiento"
   },
@@ -73,7 +70,7 @@
     "registrationUnavailable": "La inscripción para Family Squares de esta semana no está disponible en este momento.",
     "weekly": {
       "title": "Guardar mi lugar todos los lunes",
-      "desc": "Guardamos tu lugar en Family Squares cada semana, para que no tengas que hacerlo otra vez. Se pausa mientras tus recordatorios estén en pausa, o después de unos seis meses sin abrir la app.",
+      "desc": "Guardamos tu lugar cada semana. Se pausa después de unos seis meses sin abrir la app.",
       "onNote": "Tu lugar semanal está activado. Normalmente guardamos tu lugar para el próximo lunes en unas horas, y también puedes reservarlo ahora.",
       "errorTitle": "No se pudo guardar",
       "errorBody": "Revisa tu conexión e inténtalo de nuevo."
@@ -87,8 +84,8 @@
     "decline": {
       "button": "Esta semana no puedo ir",
       "label": "Avisar que esta semana no puedes ir a Family Squares",
-      "done": "Esta semana no vas. Si eso cambia, puedes reservar tu lugar de nuevo.",
-      "doneWeekly": "Esta semana no vas. Tu lugar queda guardado otra vez a partir del próximo lunes. Si esta semana cambia, puedes reservar tu lugar de nuevo.",
+      "done": "Esta semana no vas. Si eso cambia, reserva tu lugar de nuevo.",
+      "doneWeekly": "Esta semana no vas. Tu lugar queda guardado otra vez desde el próximo lunes. Si esta semana cambia, reserva tu lugar de nuevo.",
       "errorTitle": "No se guardó",
       "errorBody": "Revisa tu conexión e inténtalo de nuevo."
     },
@@ -109,7 +106,7 @@
     "remindMeLabel": "Recordarme la reunión del lunes",
     "notNow": "Ahora no",
     "notNowLabel": "Ahora no. Ocultar este aviso de recordatorios",
-    "settingsBody": "Los recordatorios de Sober Helpline están desactivados en este dispositivo. Puedes activarlos en Configuración.",
+    "settingsBody": "Los recordatorios están desactivados en este dispositivo. Actívalos en Configuración.",
     "openSettings": "Abrir Configuración",
     "openSettingsLabel": "Abrir la configuración del dispositivo para permitir notificaciones",
     "on": "Los recordatorios están activados. Si reservas tu lugar, te avisamos 15 minutos antes de La Sobremesa.",
@@ -120,7 +117,7 @@
   "laSobremesa": {
     "scheduleFallback": "Lunes · 8:00 p. m. del Pacífico",
     "note": "La Sobremesa es nuestra reunión en español de AyudaSobria. Al reservar recibes tu enlace personal aquí y por correo. Al reservar aceptas respetar la privacidad y la confidencialidad de las demás familias.",
-    "notAvailable": "La próxima reunión todavía no está abierta para reservar. Vuelve a intentarlo más tarde."
+    "notAvailable": "La próxima reunión todavía no está abierta para reservar. Inténtalo más tarde."
   },
   "provider": {
     "credentialFull": "Profesional Certificado en Intervención"

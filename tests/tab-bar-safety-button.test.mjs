@@ -7,7 +7,8 @@ import ts from 'typescript';
 const read = (path) => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const locale = (lang, ns) => JSON.parse(read(`src/locales/${lang}/${ns}.json`));
 const EMOJI = /\p{Extended_Pictographic}/u;
-const TABS = ['today', 'scripts', 'boundaries', 'tracker', 'learn', 'support'];
+// Four tabs since 4.4: Boundaries is a part of Practice, the Tracker a pushed screen.
+const TABS = ['today', 'scripts', 'learn', 'support'];
 
 const layout = read('app/(tabs)/_layout.tsx');
 const shortcut = read('src/components/safety/SafetyShortcut.tsx');
@@ -33,7 +34,7 @@ test('the tab bar uses one icon set, and every glyph it names exists', () => {
   assert.match(layout, /import MaterialCommunityIcons from '@expo\/vector-icons\/MaterialCommunityIcons';/);
   const glyphs = JSON.parse(read('node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/glyphmaps/MaterialCommunityIcons.json'));
   const icons = [...layout.matchAll(/^ {2}(\w+): \{ outline: '([\w-]+)', filled: '([\w-]+)' \},$/gm)];
-  assert.deepEqual(icons.map((m) => m[1]), ['index', 'scripts', 'boundaries', 'tracker', 'learn', 'support']);
+  assert.deepEqual(icons.map((m) => m[1]), ['index', 'scripts', 'learn', 'support']);
   for (const [, tab, outline, filled] of icons) {
     assert.ok(outline in glyphs, `${tab}: ${outline}`);
     assert.ok(filled in glyphs, `${tab}: ${filled}`);
@@ -49,8 +50,9 @@ test('a tab name stays whole on one line at every text size', () => {
   const label = layout.slice(layout.indexOf('function TabLabel'), layout.indexOf('export default function TabLayout'));
   assert.match(label, /numberOfLines=\{1\}/);
   assert.match(label, /adjustsFontSizeToFit/);
-  assert.match(label, /minimumFontScale=\{0\.7\}/);
-  assert.match(label, /maxFontSizeMultiplier=\{1\.2\}/);
+  // Four tabs leave room: a name shrinks only a little, and only at the largest sizes.
+  assert.match(label, /minimumFontScale=\{0\.85\}/);
+  assert.match(label, /maxFontSizeMultiplier=\{1\.3\}/);
   assert.match(label, /\{ color \}/, 'the label keeps the tab tint');
   assert.match(layout, /fontSize: 11,\s+lineHeight: 14,\s+textAlign: 'center',\s+fontWeight: '700',/);
   assert.match(layout, /tabBarActiveTintColor: colors\.primary/);
@@ -59,8 +61,8 @@ test('a tab name stays whole on one line at every text size', () => {
 
 test('the word on a tab is the word used for that screen', () => {
   const expected = {
-    en: ['Today', 'Practice', 'Boundaries', 'Tracker', 'Tools', 'Support'],
-    es: ['Hoy', 'Práctica', 'Límites', 'Diario', 'Guías', 'Apoyo'],
+    en: ['Today', 'Practice', 'Tools', 'Support'],
+    es: ['Hoy', 'Práctica', 'Guías', 'Apoyo'],
   };
   for (const lang of ['en', 'es']) {
     const common = locale(lang, 'common');
@@ -70,7 +72,7 @@ test('the word on a tab is the word used for that screen', () => {
     assert.equal(locale(lang, 'learn').header, common.nav.learn, lang);
     assert.equal(locale(lang, 'support').header, common.nav.support, lang);
     // What a screen reader hears for a tab still contains the word shown on it.
-    for (const key of ['scripts', 'boundaries', 'learn', 'support']) {
+    for (const key of ['scripts', 'learn', 'support']) {
       assert.ok(common.navPurpose[key].toLowerCase().includes(common.nav[key].toLowerCase()), `${lang}: ${key}`);
     }
   }
@@ -85,14 +87,22 @@ test('the word on a tab is the word used for that screen', () => {
 
 test('the Safety button is on every tab, above the tab bar, and still opens the Safety Wallet', () => {
   assert.match(read('app/_layout.tsx'), /<SafetyShortcut \/>/);
-  // Shown to every signed-in member on the tabs; nothing else hides it.
-  assert.match(shortcut, /if \(!isAuthenticated \|\| !user \|\| segments\[0\] !== '\(tabs\)'\) return null;/);
+  // Shown to every signed-in member on the tabs and on the Tracker (a pushed screen since 4.4, where she
+  // logs warning signs); nothing else hides it.
+  assert.match(shortcut, /const onTabs = segments\[0\] === '\(tabs\)';/);
+  assert.match(shortcut, /const onTracker = \(segments\[0\] as string \| undefined\) === 'tracker';/);
+  assert.match(shortcut, /if \(!isAuthenticated \|\| !user \|\| !\(onTabs \|\| onTracker\)\) return null;/);
+  // The Tracker's content scrolls clear of it.
+  const tracker = read('app/tracker.tsx');
+  assert.equal(tracker.split('<ScreenContainer backgroundColor={colors.cream} contentContainerStyle={styles.clearSafety}>').length - 1, 2);
+  assert.match(tracker, /clearSafety: \{ paddingBottom: TAB_SCREEN_BOTTOM_CLEARANCE \},/);
   assert.match(shortcut, /accessibilityRole="button"\s+accessibilityLabel=\{t\('safetyShortcut\.accessibility'\)\}\s+onPress=\{\(\) => router\.push\('\/safety-wallet' as never\)\}/);
   assert.match(shortcut, /\{t\('safetyShortcut\.label'\)\}/, 'the word stays next to the icon');
   assert.match(shortcut, /name="lifebuoy"/);
   assert.doesNotMatch(shortcut, EMOJI);
   // Its offset starts at the top of the tab bar on every device, so it never sits on the bar.
-  assert.match(shortcut, /bottom: TAB_BAR_HEIGHT \+ insets\.bottom \+ SAFETY_SHORTCUT_GAP/);
+  // (On the Tracker, which has no tab bar, it starts at the bottom inset.)
+  assert.match(shortcut, /bottom: \(onTabs \? TAB_BAR_HEIGHT : 0\) \+ insets\.bottom \+ SAFETY_SHORTCUT_GAP/);
   assert.match(layout, /height: TAB_BAR_HEIGHT \+ insets\.bottom/);
   assert.match(shortcut, /minHeight: SAFETY_SHORTCUT_TARGET,\s+minWidth: SAFETY_SHORTCUT_TARGET,/);
   const metrics = containerMetrics();
@@ -118,8 +128,9 @@ test('tab screens can scroll their last button clear of the Safety button', () =
   assert.match(container, /const onTab = useSegments\(\)\[0\] === '\(tabs\)';/);
   assert.match(container, /onTab && \{\s+paddingBottom: tabScreenBottomPadding\(/);
   assert.match(container, /paddingBottom: 48,/);
-  // Every tab screen is built on ScreenContainer, so the rule reaches all six.
-  for (const screen of ['index', 'scripts', 'boundaries', 'tracker', 'learn', 'support']) {
+  // Every tab screen is built on ScreenContainer, so the rule reaches all four
+  // (Practice's Boundaries part sits inside Practice's container).
+  for (const screen of ['index', 'scripts', 'learn', 'support']) {
     assert.match(read(`app/(tabs)/${screen}.tsx`), /<ScreenContainer[\s>]/, screen);
   }
 });

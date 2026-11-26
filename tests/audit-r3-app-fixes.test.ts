@@ -65,7 +65,7 @@ test('M2: the Monday line never shows in a cancelled week or after "can\'t make 
     assert.equal(mondayChallengeShown({ spanish: true, localMonday: true, meetingDay, cancelled, declined }), true);
     assert.equal(mondayChallengeShown({ spanish: true, localMonday: false, meetingDay, cancelled, declined }), false);
   }
-  const screen = read('app/(tabs)/boundaries.tsx');
+  const screen = read('src/components/practice/BoundariesPractice.tsx');
   assert.match(screen, /const meetingDay = !spanish && isFamilySquaresMeetingDay\(now\);\s+const mondayWeek = useMondayMeetingWeek\(user\?\.id \?\? null, meetingDay\);\s+const isMonday = mondayChallengeShown\(\{/);
   assert.doesNotMatch(screen, /const isMonday = now\.getDay\(\) === 1;/);
   // The same two sources Today reads, both kept as the date they were read for; any failure is "show it".
@@ -215,16 +215,15 @@ test('L8: "Reminders are on" is said only after her own tap whose preference cha
   assert.match(hook, /const preferenceSaved = registered && askSystem \? await turnMondayRemindersOn\(\) : false;/);
 });
 
-// ── L6: no sales prompts for a bereaved member ──────────────────────────────
+// ── L6 (4.4: the bereavement feature was removed): the Upgrade button and the library card ──
 
-test('L6: a bereaved member is shown no Upgrade button on Support and no "See plans" card on Learn', () => {
-  const support = read('app/(tabs)/support.tsx');
-  assert.match(support, /\{accountState === 'direct-essential' && bereaved === false && \(\s+<TouchableOpacity[\s\S]*?plansHref\('support_upgrade', 'premium'\)/);
+test('L6: an Essential member sees Upgrade on Support and a free member sees the library card on Learn', () => {
+  assert.match(read('app/(tabs)/support.tsx'), /<MemberPlanCard accountState=\{accountState\} \/>/);
+  const support = read('src/components/support/MemberPlanCard.tsx');
+  assert.match(support, /\{accountState === 'direct-essential' && \(\s+<TouchableOpacity[\s\S]*?plansHref\('support_upgrade', 'premium'\)/);
   const learn = read('app/(tabs)/learn.tsx');
-  assert.match(learn, /const bereaved = useBereavedOnDevice\(user\?\.id \?\? null\);/);
-  // "Not known yet" shows nothing either, as everywhere else that sells.
-  assert.match(learn, /\)\) : bereaved === false \? \(\s+<View[^>]*>\s+<Text[^>]*>\{t\('membersLibrary\.title'\)\}<\/Text>[\s\S]*?plansHref\('learn_library'\)[\s\S]*?\) : null\}/);
-  // Plans stay reachable on purpose from Settings and the membership guide.
+  assert.match(learn, /\)\) : \(\s+<View[^>]*>\s+<Text[^>]*>\{t\('membersLibrary\.title'\)\}<\/Text>[\s\S]*?plansHref\('learn_library'\)[\s\S]*?\)\}/);
+  // Plans stay reachable from Settings and the membership guide too.
   assert.match(read('app/settings.tsx') + read('app/membership-guide.tsx'), /plansHref\(/);
 });
 
@@ -272,6 +271,6 @@ test('L11: Spanish plans copy names La Sobremesa as the free meeting, never Fami
 });
 
 test('L12: the weekly seat pauses after about six months away, in both languages', () => {
-  assert.match(locale('en', 'common').familySquares.weekly.desc, /or after about six months away from the app\.$/);
-  assert.match(locale('es', 'common').familySquares.weekly.desc, /o después de unos seis meses sin abrir la app\.$/);
+  assert.match(locale('en', 'common').familySquares.weekly.desc, /It pauses after about six months away from the app\.$/);
+  assert.match(locale('es', 'common').familySquares.weekly.desc, /Se pausa después de unos seis meses sin abrir la app\.$/);
 });

@@ -222,19 +222,14 @@ test('Today shows the engine card on both tiers, after check-in; the Monday call
   const today = readFileSync('app/(tabs)/index.tsx', 'utf8');
   const all = today.split('<ScreenContainer').slice(1);
   // The engine card is one of the "next step" cards: in the slot under the
-  // check-in when it wins, under "More for this week" when it does not.
+  // check-in when it wins, under "More for you" when it does not.
   assert.match(today, /const nextStepCards: Record<NextStepCard, React\.ReactNode> = \{[^}]*invitation: invitationCard,/);
-  // The bereaved Today (her loved one died) has nothing about them.
-  const bereaved = all.filter((screen) => screen.includes('<GriefCard'));
-  assert.equal(bereaved.length, 1);
-  for (const card of ['nextStepSlot', 'moreForThisWeek', '{invitationCard}', '{lovedOneCheckCard}', '{holidayCard}', '{pathwayCard}', '{willingnessWindowAlert}', '<CurriculumCard']) {
-    assert.ok(!bereaved[0].includes(card), `bereaved Today has no ${card}`);
-  }
-  // The cold-start moment before the bereaved flag is known renders only the header.
-  const screens = all.filter((screen) => !screen.includes('<GriefCard') && screen.includes('{checkInCard}'));
+  // Two Todays (free and member); no other version (4.4: the bereaved Today was removed).
+  assert.equal(all.length, 2);
+  const screens = all.filter((screen) => screen.includes('{checkInCard}'));
   assert.equal(screens.length, 2);
   for (const screen of screens) {
-    assert.ok(screen.includes('...nextStepSlot') && screen.includes('...moreForThisWeek'));
+    assert.ok(screen.includes('...nextStepSlot') && screen.includes('...moreForYou('));
     assert.ok(screen.indexOf('{checkInCard}') < screen.indexOf('...nextStepSlot'));
     // The free Monday call leads, then the check-in; "What do you need right
     // now?" (NeedsRouter) follows the one next step.
