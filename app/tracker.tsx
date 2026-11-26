@@ -100,8 +100,8 @@ function SignToggle({
 
 /**
  * The Tracker (signs to watch), a pushed screen since 4.4: it is no longer a
- * tab. Reached from Today, a tracker push, and the old `/(tabs)/tracker`
- * link (that hidden tab forwards here). Its membership gate is unchanged.
+ * tab. Reached from Today and a tracker push. No tab may be named `tracker`
+ * (it would capture `/tracker`). Its membership gate is unchanged.
  */
 export default function TrackerScreen() {
   useToolOpened('tracker');

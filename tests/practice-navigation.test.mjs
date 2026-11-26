@@ -6,21 +6,23 @@ import Module from 'node:module';
 import { createRequire } from 'node:module';
 
 // 4.4 navigation: four tabs (Today, Practice, Tools, Support). Boundaries is a
-// part of Practice, the Tracker a pushed screen; their old tab routes stay
-// registered (hidden) and forward, so every old link still lands.
+// part of Practice (its old tab route stays registered, hidden, and forwards);
+// the Tracker is a pushed screen with no tab of the same name.
 
 const root = new URL('..', import.meta.url).pathname;
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
 const locale = (lang, ns) => JSON.parse(read(`src/locales/${lang}/${ns}.json`));
 
-test('the tab bar shows four tabs in order; Boundaries and Tracker stay registered but hidden', () => {
+test('the tab bar shows four tabs in order; Boundaries stays registered but hidden; no tracker tab', () => {
   const layout = read('app/(tabs)/_layout.tsx');
   const visible = [...layout.matchAll(/<Tabs\.Screen\s+name="(\w+)"\s+options=\{\{\s+title:/g)].map((m) => m[1]);
   assert.deepEqual(visible, ['index', 'scripts', 'learn', 'support']);
   assert.match(layout, /<Tabs\.Screen name="boundaries" options=\{\{ href: null \}\} \/>/);
-  assert.match(layout, /<Tabs\.Screen name="tracker" options=\{\{ href: null \}\} \/>/);
-  // The route files themselves remain, so their URLs resolve.
-  for (const file of ['app/(tabs)/boundaries.tsx', 'app/(tabs)/tracker.tsx', 'app/tracker.tsx']) assert.ok(fs.existsSync(path.join(root, file)), file);
+  // A tab named "tracker" would capture router.push('/tracker') (seen on a
+  // simulator in 4.4: a blank hidden tab), so neither the screen nor the file may exist.
+  assert.doesNotMatch(layout, /name="tracker"/);
+  assert.ok(!fs.existsSync(path.join(root, 'app/(tabs)/tracker.tsx')));
+  for (const file of ['app/(tabs)/boundaries.tsx', 'app/tracker.tsx']) assert.ok(fs.existsSync(path.join(root, file)), file);
 });
 
 test('Practice: a Conversations | Boundaries switch that reads and writes the section param', () => {
@@ -76,12 +78,9 @@ test('the Tracker is a pushed screen with Back; the old tab leaves for Today, th
   assert.match(tracker, /if \(router\.canGoBack\(\)\) router\.back\(\);\s+else router\.replace\('\/\(tabs\)'\);/);
   // Without membership: the plans card, under the same way back.
   assert.match(tracker, /function TrackerLocked\(\) \{[\s\S]*<TrackerHeader \/>\s+<FreeTierPaywall inline \/>/);
-  const redirect = read('app/(tabs)/tracker.tsx');
-  assert.match(redirect, /router\.navigate\('\/\(tabs\)'\);\s+router\.push\('\/tracker'\);/);
-  assert.doesNotMatch(redirect, /<Redirect|supabase|useTracker/);
 });
 
-test('a plain /tracker resolves to the pushed screen, never the hidden tab (no redirect loop)', () => {
+test('a plain /tracker resolves to the pushed screen', () => {
   // Build expo-router's real linking config from the files under app/ and ask it.
   const require = createRequire(import.meta.url);
   const original = Module._load;
@@ -111,11 +110,10 @@ test('a plain /tracker resolves to the pushed screen, never the hidden tab (no r
       for (let node = state?.routes?.[0]; node; node = node.state?.routes?.[0]) out.push(node.name);
       return out;
     };
-    // From a tab, from the hidden tracker tab itself, and from a pushed screen.
-    for (const segments of [['(tabs)'], ['(tabs)', 'tracker'], ['settings'], []]) {
+    // From a tab and from a pushed screen.
+    for (const segments of [['(tabs)'], ['(tabs)', 'index'], ['settings'], []]) {
       assert.deepEqual(names(getStateFromPath('/tracker', config, segments)), ['tracker'], JSON.stringify(segments));
     }
-    assert.deepEqual(names(getStateFromPath('/(tabs)/tracker', config, ['settings'])), ['(tabs)', 'tracker']);
     assert.deepEqual(names(getStateFromPath('/(tabs)/boundaries', config, ['(tabs)'])), ['(tabs)', 'boundaries']);
     const practice = getStateFromPath('/(tabs)/scripts?section=boundaries', config, ['(tabs)', 'boundaries']);
     assert.deepEqual(names(practice), ['(tabs)', 'scripts']);

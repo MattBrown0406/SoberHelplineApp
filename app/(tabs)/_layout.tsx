@@ -15,9 +15,12 @@ type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
  * filled one when the tab is selected.
  *
  * Boundaries now lives inside Practice and the Tracker is a pushed screen
- * (4.4). Their old tab routes stay registered but hidden (`href: null`), so
- * `/(tabs)/boundaries` and `/(tabs)/tracker` links still resolve; each one
- * forwards to its new place.
+ * (4.4). The old Boundaries tab route stays registered but hidden
+ * (`href: null`), so `/(tabs)/boundaries` links still resolve and forward to
+ * Practice's Boundaries part. There is deliberately NO tab named `tracker`:
+ * a tab with that name captures `router.push('/tracker')` (navigation picks
+ * the nearest navigator holding a route of that name) and the Tracker screen
+ * at `app/tracker.tsx` would never open.
  */
 const TAB_ICONS = {
   index: { outline: 'lighthouse', filled: 'lighthouse-on' },
@@ -124,9 +127,8 @@ export default function TabLayout() {
           ...tab('support', t('navShort.support')),
         }}
       />
-      {/* Hidden: old links only. Boundaries opens Practice's Boundaries part; Tracker opens /tracker. */}
+      {/* Hidden: old links only. Boundaries opens Practice's Boundaries part. */}
       <Tabs.Screen name="boundaries" options={{ href: null }} />
-      <Tabs.Screen name="tracker" options={{ href: null }} />
     </Tabs>
   );
 }
