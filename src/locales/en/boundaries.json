@@ -5,49 +5,49 @@
       "id": "castle",
       "icon": "🏰",
       "title": "Your family is a castle on a hill",
-      "body": "Inside the castle are the people, values, resources, and peace you care about most. A castle's job is not to prove its strength by taking constant damage — it's to protect what matters and decide, with wisdom, who and what is allowed inside. When addiction is active and there are no boundaries, the castle has no defenses: anyone can walk in, take what they want, and leave wreckage behind. Bills disappear, trust erodes, and the whole household orbits the crisis. Boundaries don't remove love — they restore the truth that this castle has a right and a responsibility to protect itself."
+      "body": "Inside the castle are the people, values, resources, and peace you care about most. When addiction is active and there are no boundaries, the castle has no defenses: anyone can walk in, take what they want, and leave wreckage behind. Bills disappear, trust erodes, and the whole household orbits the crisis. Boundaries don't remove love. They protect what matters."
     },
     {
       "id": "walls",
       "icon": "🧱",
       "title": "The walls — what is non-negotiable",
-      "body": "Walls are the firm limits that keep danger out: \"No drugs or alcohol in this house.\" \"We will not lie for you or cover up DUIs.\" \"You cannot stay here if you are violent or refusing all help.\" These are not threats — they are statements of reality about what is allowed inside the family. With walls, you can say: \"Your choices are yours, but we will not let them destroy our home.\" A clearly stated wall, followed through, also ends the exhausting re-negotiation — the rules stop changing every time emotions run high."
+      "body": "Walls are the firm limits that keep danger out: \"No drugs or alcohol in this house.\" \"We will not lie for you or cover up DUIs.\" \"You cannot stay here if you are violent or refusing all help.\" These are not threats. They state what is allowed inside the family. A clear wall you follow through on also ends the exhausting re-negotiation."
     },
     {
       "id": "moat",
       "icon": "🌊",
       "title": "The moat — emotional & physical distance",
-      "body": "The moat is the space that keeps you from being pulled into every emergency, lie, or manipulation: not answering middle-of-the-night calls unless there's a true safety issue, refusing circular arguments with someone intoxicated. Families feel guilty about this distance, as if it means they don't care. In reality, the moat is what keeps everyone from drowning. It lets you respond instead of react — to think, get support, and decide from principles instead of panic. The moat doesn't cut your loved one off from help; it stops their addiction from constantly crashing against the walls."
+      "body": "The moat is the space that keeps you from being pulled into every emergency, lie, or manipulation: not answering middle-of-the-night calls unless it's a real safety issue, not arguing in circles with someone intoxicated. This distance can feel like not caring. It isn't. It lets you respond instead of react, and it doesn't cut your loved one off from help."
     },
     {
       "id": "drawbridge",
       "icon": "🌉",
       "title": "The drawbridge — when and how you engage",
-      "body": "The drawbridge is your active choice. Lower it for honest conversations, treatment planning, sober visits, therapy. Raise it when your loved one is intoxicated, abusive, demanding money, or refusing all responsibility. Enabling is leaving the drawbridge down 24/7 — even while people charge in with torches. Healthy support says: \"We will meet you on the bridge when you are reaching for recovery. We will not let your addiction storm the castle.\" The more consistently the bridge moves, the clearer the message: love is available, but access is tied to respect and safety."
+      "body": "The drawbridge is your choice. Lower it for honest conversations, treatment planning, sober visits, therapy. Raise it when your loved one is intoxicated, abusive, demanding money, or refusing all responsibility. Enabling is leaving it down all the time. Healthy support says: \"We will meet you on the bridge when you are reaching for recovery. We will not let your addiction storm the castle.\""
     },
     {
       "id": "maintenance",
       "icon": "🔧",
       "title": "Maintenance — keeping the castle strong",
-      "body": "Real castles need upkeep: walls patched, moats cleared, bridges repaired. It's easy to slip — lending money \"just this once,\" letting substances back in, softening agreed consequences. Regular family check-ins (often with professional guidance) catch cracks before they become breaches. Remember: the goal isn't to punish your loved one — it's to make ongoing use less comfortable and less protected while the door to change stays open. The castle stands firm; help is always available."
+      "body": "Castles need upkeep. It's easy to slip: lending money \"just this once,\" letting substances back in, softening agreed consequences. Regular family check-ins (often with a professional) catch cracks early. The goal isn't to punish. It's to make use less comfortable while the door to change stays open."
     },
     {
       "id": "guardians",
       "icon": "🛡️",
       "title": "Guardians, not hostages",
-      "body": "You cannot control whether your loved one chooses recovery. You can control the strength of your walls, the depth of your moat, and the position of your drawbridge. The message becomes clear and consistent: \"We love you deeply. We will not participate in your destruction. We will stand ready to welcome you when you choose a different path.\" Boundaries aren't harsh or selfish — they're the architecture of love that survives addiction, and they leave room for a prodigal to come home through the front gate when they're finally ready."
+      "body": "You can't control whether your loved one chooses recovery. You can control your walls, your moat, and your drawbridge. The message stays clear: \"We love you deeply. We will not participate in your destruction. We will stand ready to welcome you when you choose a different path.\" Boundaries aren't harsh or selfish. They are love that survives addiction."
     },
     {
       "id": "anchored",
       "icon": "⚓",
       "title": "Anchored in answers, not emotions",
-      "body": "Anger fades, guilt creeps in, fear spikes at 2 AM — a boundary anchored in emotion shifts with it. Lasting boundaries are anchored in your honest answers to two questions: Have I enabled the addiction in any way? Has the addiction harmed me in any way? If either answer is yes, the boundary isn't optional and it isn't cruel — it's the foundation stone. Answer both below and build your walls on bedrock."
+      "body": "Anger fades, guilt creeps in, fear spikes at 2 AM. A boundary built on emotion shifts with it. Build yours on honest answers to two questions: Have I enabled the addiction in any way? Has the addiction harmed me in any way? If either answer is yes, the boundary isn't optional, and it isn't cruel. Answer both below."
     }
   ],
   "anchor1": {
     "eyebrow": "Anchor question 1",
     "question": "Have I enabled the addiction in any way?",
-    "sub": "Be honest — this is bedrock, not blame. Tap all that apply.",
+    "sub": "This is bedrock, not blame. Tap all that apply.",
     "pills": [
       {
         "id": "e-fin",
@@ -122,7 +122,7 @@
   },
   "walls": {
     "eyebrow": "My boundaries (castle walls)",
-    "empty": "No boundaries saved yet. Use a suggestion above or write one clear limit.",
+    "empty": "No boundaries yet. Use a suggestion or write one clear limit.",
     "shareAttached": "Review walls with my coach",
     "shareDirect": "Share walls with the on-call coach",
     "deleteTitle": "Remove this boundary?",
@@ -134,64 +134,64 @@
     "eyebrow": "TODAY'S CHALLENGE",
     "streakEyebrow": "CHECK-IN STREAK",
     "weekdayLetters": ["S", "M", "T", "W", "T", "F", "S"],
-    "monday": "It's Monday — join the Family Squares Zoom meeting tonight at 7:00 PM Pacific. Be with people who understand what you're going through.",
+    "monday": "It's Monday. Join Family Squares on Zoom tonight at 7:00 PM Pacific, with people who understand.",
     "daily": [
-      "Practice saying \"no\" once today — and resist the urge to explain yourself afterward.",
-      "Write down one limit you've held this week, even if it was hard. Notice how it felt.",
+      "Say \"no\" once today, and don't explain yourself afterward.",
+      "Write down one limit you held this week. Notice how it felt.",
       "Take a 20-minute walk without your phone. Just you and your thoughts.",
-      "Tell someone who supports you \"I appreciate you\" today — a text counts.",
-      "Identify one responsibility you've been carrying that truly belongs to someone else.",
-      "Make a nourishing meal just for yourself today. Sit down and actually taste it.",
+      "Tell someone who supports you \"I appreciate you.\" A text counts.",
+      "Name one responsibility you carry that belongs to someone else.",
+      "Make a good meal just for you today. Sit down and taste it.",
       "Write a single sentence you can say the next time someone pressures you.",
       "Do something for 30 minutes that has nothing to do with your loved one.",
-      "Check in with your body — are you running on empty? Do one thing to refuel.",
+      "Check in with your body. Running on empty? Do one thing to refuel.",
       "Name one enabling behavior you want to change. Write it down, just for you.",
-      "Reach out to one person in your support network today, even just to say hello.",
-      "When you feel the urge to rescue someone today, pause and ask: \"Is this mine to carry?\"",
-      "Give yourself permission to rest today — no problem-solving, just rest.",
-      "Write down your three most important values. Are your actions reflecting them today?",
+      "Reach out to one person who supports you, even just to say hello.",
+      "When you want to rescue someone today, pause and ask: \"Is this mine to carry?\"",
+      "Let yourself rest today. No problem-solving, just rest.",
+      "Write down your three most important values. Do your actions show them today?",
       "Plan one small thing to look forward to this week. Put it in your calendar.",
       "Tell yourself out loud: \"I am doing the best I can. That is enough.\"",
-      "Identify one situation where you said yes when you wanted to say no. What stopped you?",
+      "Recall one time you said yes but wanted to say no. What stopped you?",
       "Set a technology-free hour this evening. Read, draw, or just sit.",
       "Write two sentences about why you are doing this hard work.",
       "Do a physical reset: stretch, take a bath, or breathe deeply for five minutes.",
-      "Reflect on one moment this week when a limit you held helped keep the peace.",
+      "Recall one moment this week when a limit you held kept the peace.",
       "Notice one thing today that you're grateful for that has nothing to do with recovery.",
       "Write one sentence you would say to a close friend in your exact situation.",
-      "Identify a relationship in your life that genuinely energizes you. Invest in it today.",
-      "Celebrate one small win from this week — no matter how minor it seems.",
+      "Think of someone who gives you energy. Spend time with them today.",
+      "Celebrate one small win from this week, however minor.",
       "Spend 10 minutes in complete silence. No phone. No background noise. Just you.",
       "Write down three things you love about yourself that have nothing to do with caregiving.",
       "Let yourself feel what you're feeling today without trying to fix or change it.",
-      "Choose one thing today that is purely for your own joy — and do not apologize for it."
+      "Do one thing today just for your own joy, and don't apologize for it."
     ]
   },
   "enabling": {
     "eyebrow": "THIS WEEK'S CHECK-IN",
     "heading": "Am I enabling?",
-    "sub": "Honest reflection — no judgment.",
+    "sub": "Honest, no judgment.",
     "yes": "Yes",
     "no": "No",
-    "done": "Come back next week for a new set.",
+    "done": "New questions next week.",
     "retake": "Start over",
     "results": {
       "r0": "This week you held strong limits. Stay consistent.",
-      "low": "A couple of moments worth noticing — patterns often start small.",
-      "mid": "These are common but worth addressing. Review your walls this week.",
-      "high": "This is important information. Consider talking with your coach."
+      "low": "A few moments worth noticing. Patterns start small.",
+      "mid": "Common, but worth addressing. Review your walls this week.",
+      "high": "Worth taking seriously. Consider talking with your coach."
     },
     "sets": [
       [
         "Did you give money that might have been used on substances?",
         "Did you make excuses or cover for them to others?",
-        "Did you allow a limit you had set to be crossed without a consequence?",
+        "Did you let a limit be crossed without a consequence?",
         "Did you avoid bringing up their use to keep the peace?",
         "Did you take on a responsibility that belongs to them?",
         "Did you minimize or rationalize their behavior to yourself or others?"
       ],
       [
-        "Did you make a decision out of fear of their reaction, rather than what felt right?",
+        "Did you decide out of fear of their reaction, not what felt right?",
         "Did you rescue them from a consequence of their own making?",
         "Did you give them another chance after a broken promise without any real change?",
         "Did you stay in a situation that felt unsafe rather than leave?",
@@ -202,8 +202,8 @@
         "Did you accept an excuse for behavior you normally would not tolerate?",
         "Did you feel responsible for their emotional state this week?",
         "Did you cancel your own plans because of their behavior?",
-        "Did you avoid seeking support for yourself to avoid feeling disloyal?",
-        "Did you try to control their use — hiding it, pouring it out, or counting it?",
+        "Did you skip getting support so you wouldn't feel disloyal?",
+        "Did you try to control their use: hiding it, pouring it out, or counting it?",
         "Did you feel as though their choices were somehow your fault?"
       ]
     ]
@@ -218,7 +218,7 @@
     "spaceTitle": "{{name}}'s Family",
     "postErrorTitle": "Could not post your note",
     "postErrorBody": "Check your connection and try again. Your note is still here.",
-    "pendingSync": "Saved on this device — it will post when you're back online."
+    "pendingSync": "Saved on this device. It posts when you're back online."
   },
-  "intro": "Castle walls means agreed boundaries: clear limits about what you will and will not do to protect your safety and wellbeing. Write your own first, then invite family to agree. You do not need your loved one’s permission to set a personal limit."
+  "intro": "Castle walls are agreed boundaries: clear limits on what you will and won't do to stay safe and well. Write yours first, then invite family to agree. You don't need your loved one's permission."
 }

@@ -4,14 +4,14 @@
     "eyebrow": "Account",
     "nameLabel": "Name",
     "emailLabel": "Email",
-    "websiteLogin": "Pages you open from the app sign you in to soberhelpline.com (and, in Spanish, ayudasobria.com) automatically. To sign in there directly, use “Forgot password?” on that site to set a website password."
+    "websiteLogin": "Pages you open from the app sign you in to soberhelpline.com (ayudasobria.com in Spanish). To sign in there yourself, use “Forgot password?” on the site to set a password."
   },
   "privacy": {
     "eyebrow": "Privacy",
     "shareCheckIns": "Share check-ins with my coach",
-    "shareCheckInsDesc": "Your assigned coach can see your daily check-ins and tracker entries. You can turn this off at any time.",
+    "shareCheckInsDesc": "Your assigned coach can see your check-ins and tracker entries. Turn this off anytime.",
     "updateErrorTitle": "Privacy setting not changed",
-    "updateErrorBody": "We couldn't save that privacy change. Your previous setting is still active. Please try again."
+    "updateErrorBody": "Your previous setting is still on. Please try again."
   },
   "language": {
     "eyebrow": "Language"
@@ -29,7 +29,7 @@
       "Your check-in is waiting whenever you are."
     ],
     "reminderEyebrow": "Daily reminder",
-    "reminderDesc": "Choose a time to enable daily check-in reminders. Personal reminders have separate controls.",
+    "reminderDesc": "Pick a time for a daily check-in reminder. Personal reminders are set separately.",
     "reminderMorning": "Morning",
     "reminderMidday": "Midday",
     "reminderEvening": "Evening",
@@ -38,7 +38,7 @@
     "weekReviewBody": "You showed up this week. Open the app to see your check-ins, mood arc, and boundaries held.",
     "practiceEyebrow": "Practice calls",
     "practiceTitle": "Let AI initiate practice",
-    "practiceDesc": "Receive an occasional, clearly labeled practice call. Tap it, answer when ready, and the AI will open a realistic conversation.",
+    "practiceDesc": "Get an occasional, clearly labeled practice call. Answer when ready and the AI starts a realistic conversation.",
     "practiceFrequencyLabel": "How often",
     "practiceFrequency_one": "{{count}} time per week",
     "practiceFrequency_other": "{{count}} times per week",
@@ -46,18 +46,18 @@
     "practiceWindowMorning": "Morning · 8 AM–12 PM",
     "practiceWindowAfternoon": "Afternoon · 12–5 PM",
     "practiceWindowEvening": "Evening · 5–9 PM",
-    "practicePrivacy": "Notifications never include names, family details, or conversation content. You can decline any call without penalty.",
+    "practicePrivacy": "Notifications never show names, family details or conversation content. You can decline any call, no penalty.",
     "practicePermissionTitle": "Notifications are off",
-    "practicePermissionBody": "Allow notifications for Sober Helpline in your device settings, then try again. Practice calls stay off until permission and token registration succeed.",
+    "practicePermissionBody": "Allow notifications for Sober Helpline in your device settings, then try again. Practice calls stay off until then.",
     "practiceSaveErrorTitle": "Practice calls not changed",
-    "practiceSaveErrorBody": "We couldn't save that setting. Your previous setting is still active. Please try again.",
-    "practiceLoadError": "We couldn't load your practice-call settings. Nothing was changed.",
+    "practiceSaveErrorBody": "Your previous setting is still on. Please try again.",
+    "practiceLoadError": "We couldn't load your practice-call settings. Nothing changed.",
     "practiceRetry": "Try again",
     "pauseDaily": "Pause daily check-in reminders",
     "dailyErrorTitle": "Reminder change not confirmed",
-    "dailyErrorBody": "Check notification permission in device Settings and retry. No reminder delivery is guaranteed.",
+    "dailyErrorBody": "Check notification permission in device Settings and try again. Reminders can't be guaranteed.",
     "familyCallTitle": "Family Squares reminder",
-    "familyCallDesc": "Reminders for Family Squares, our free family support call on Zoom (Mondays, 7:00 PM Pacific): an hour before and again 15 minutes before if you've saved your spot, or 30 minutes before if you haven't, plus a short note the next morning after a call you saved a spot for or joined.",
+    "familyCallDesc": "For Family Squares, our free Zoom call (Mondays, 7:00 PM Pacific). Spot saved: reminders 1 hour and 15 minutes before. Not saved: 30 minutes before. And a short note the next morning after a call you saved or joined.",
     "familyCallErrorTitle": "Couldn't update the reminder",
     "familyCallErrorBody": "Check your connection and try again."
   },
@@ -65,30 +65,30 @@
     "eyebrow": "Membership",
     "premiumPlan": "Premier",
     "essentialPlan": "Essential",
-    "websiteSource": "Your membership is through our website (soberhelpline.com or ayudasobria.com) — manage billing there.",
-    "websiteAlsoSource": "You also have a membership through our website (soberhelpline.com or ayudasobria.com). It is billed there separately — cancel it there if you no longer need it.",
-    "websiteMemberHint": "Already a member on soberhelpline.com? Your membership follows your email address. Sign in here with the same email you used on the website.",
-    "websiteMemberHintWithEmail": "Already a member on soberhelpline.com? Your membership follows your email address. Sign in here with the same email you used on the website. You are signed in as {{email}}.",
+    "websiteSource": "Your membership is through our website (soberhelpline.com or ayudasobria.com). Manage billing there.",
+    "websiteAlsoSource": "You also have a membership through our website (soberhelpline.com or ayudasobria.com), billed separately. Cancel it there if you don't need it.",
+    "websiteMemberHint": "Already a member on soberhelpline.com? Your membership follows your email. Sign in here with the same email.",
+    "websiteMemberHintWithEmail": "Already a member on soberhelpline.com? Your membership follows your email. Sign in here with the same email. You're signed in as {{email}}.",
     "manage": "Manage subscription",
     "seePlans": "See plans",
     "restore": "Restore Purchases",
     "restoreSuccessTitle": "Purchases restored",
     "restoreSuccessBody": "Your subscription is active again.",
     "restoreActiveTitle": "Your plan is active",
-    "restoreActiveBody": "Your membership was found and is active on this account.",
+    "restoreActiveBody": "Your membership is active on this account.",
     "restoreNoneTitle": "Nothing to restore",
     "restoreNoneBody": "We couldn't find any previous purchases for this Apple ID.",
     "restoreErrorTitle": "Couldn't restore",
-    "restoreErrorBody": "Something went wrong restoring your purchases. Please try again.",
-    "attachedStoreNote": "Your provider covers your access. If you also subscribed through the App Store or Google Play, cancel it here so you are not charged twice."
+    "restoreErrorBody": "We couldn't restore your purchases. Please try again.",
+    "attachedStoreNote": "Your provider covers your access. If you also subscribed through the App Store or Google Play, cancel that here so you aren't charged twice."
   },
   "review": {
     "eyebrow": "Support the app",
     "title": "Rate Sober Helpline",
-    "body": "Your App Store rating helps another family find support when they need it.",
+    "body": "Your App Store rating helps another family find support.",
     "button": "Rate Sober Helpline",
     "unavailableTitle": "App Store unavailable",
-    "unavailableBody": "We couldn't open the App Store right now. Please try again later."
+    "unavailableBody": "We couldn't open the App Store. Please try again later."
   },
   "legal": {
     "eyebrow": "Legal",
@@ -100,8 +100,8 @@
   "signOutErrorBody": "We couldn't remove this device from private notifications. Check your connection and try again.",
   "signOutOffline": {
     "title": "No connection right now",
-    "body": "We can't reach the server, so this device can't be removed from notifications yet. You can still sign out on this device: your signed-in details here will be erased, and notifications for this account will be turned off for this device the next time you sign in with a connection.",
-    "bodyWithQueue": "We can't reach the server, so this device can't be removed from notifications yet. You can still sign out on this device: your signed-in details here will be erased, and {{checkins}} unsent check-in(s) and {{notes}} unsent journal note(s) waiting to sync will be discarded. Notifications for this account will be turned off for this device the next time you sign in with a connection.",
+    "body": "We can't reach the server to stop notifications on this device yet. You can still sign out: your sign-in details on this device are erased, and its notifications for this account turn off the next time you sign in with a connection.",
+    "bodyWithQueue": "We can't reach the server to stop notifications on this device yet. You can still sign out: your sign-in details on this device are erased, and {{checkins}} unsent check-in(s) and {{notes}} unsent journal note(s) are discarded. Its notifications for this account turn off the next time you sign in with a connection.",
     "cancel": "Stay signed in",
     "confirm": "Sign out anyway"
   },
@@ -114,18 +114,18 @@
     "confirmButton": "Yes, delete my account",
     "cancelButton": "Cancel",
     "errorTitle": "Account not deleted",
-    "errorMessage": "We couldn't delete your account. You are still signed in and no deletion was completed. Please try again.",
+    "errorMessage": "We couldn't delete your account. Nothing was deleted and you are still signed in. Please try again.",
     "websiteErrorMessage": "We couldn't remove your soberhelpline.com account or cancel its membership, so nothing was deleted. You are still signed in. Please try again in a few minutes.",
     "appErrorMessage": "Your soberhelpline.com account was removed, but we couldn't finish deleting your app account. You are still signed in. Please try again.",
     "cleanupErrorTitle": "Account deleted",
-    "cleanupErrorMessage": "Your account was deleted, but this device couldn't finish signing out. Close and reopen the app to clear the old session."
+    "cleanupErrorMessage": "Your account was deleted, but this device couldn't finish signing out. Close and reopen the app to clear it."
   },
   "personalReminders": {
     "title": "Personal reminders",
-    "body": "Choose a discreet reminder for your own next step. Optional, easy to pause, and saved on this device.",
+    "body": "A discreet reminder for your own next step. Optional, easy to pause, saved on this device.",
     "action": "Manage personal reminders",
     "cleanupTitle": "Reminder cleanup could not be confirmed",
-    "cleanupBody": "You are still signed in. Retry before signing out or deleting your account. You can disable notifications in your device Settings."
+    "cleanupBody": "You are still signed in. Retry before signing out or deleting your account. You can turn off notifications in device Settings."
   },
   "reminders": {
     "channelName": "Personal reminders"

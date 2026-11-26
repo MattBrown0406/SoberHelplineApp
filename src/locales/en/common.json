@@ -30,12 +30,12 @@
   },
   "accountLoad": {
     "title": "We couldn't load your account",
-    "body": "You're still signed in. Check your connection and try again—there's no need to enter your password again.",
+    "body": "You're still signed in, so no password needed. Check your connection and try again.",
     "retry": "Try again"
   },
   "authBootstrap": {
     "title": "Signing you in…",
-    "body": "Your account is secure. We're preparing your Sober Helpline experience."
+    "body": "Your account is secure. Getting things ready."
   },
   "safetyShortcut": {
     "label": "Safety",
@@ -70,7 +70,7 @@
     "registrationUnavailable": "Registration for this week's Family Squares isn't available right now.",
     "weekly": {
       "title": "Save my seat every Monday",
-      "desc": "We'll save your seat at Family Squares each week, so you don't have to do it again. It pauses while your reminders are paused, or after about six months away from the app.",
+      "desc": "We'll save your seat each week. It pauses while your reminders are paused, or after about six months away from the app.",
       "onNote": "Your weekly seat is on. We usually save your seat for the coming Monday within a few hours, and you can also save it now.",
       "errorTitle": "Couldn't save that",
       "errorBody": "Check your connection and try again."
@@ -84,8 +84,8 @@
     "decline": {
       "button": "Can't make it this week",
       "label": "Tell us you can't make it to Family Squares this week",
-      "done": "You're sitting this week out. If that changes, you can save your spot again.",
-      "doneWeekly": "You're sitting this week out. Your seat is saved again from next Monday. If this week changes, you can save your spot again.",
+      "done": "You're sitting this week out. If that changes, save your spot again.",
+      "doneWeekly": "You're sitting this week out. Your seat is saved again from next Monday. If this week changes, save your spot again.",
       "errorTitle": "That wasn't saved",
       "errorBody": "Check your connection and try again."
     },
@@ -106,7 +106,7 @@
     "remindMeLabel": "Remind me about the Monday meeting",
     "notNow": "Not now",
     "notNowLabel": "Not now. Hide this reminder offer",
-    "settingsBody": "Reminders are off for Sober Helpline on this device. You can turn them on in Settings.",
+    "settingsBody": "Reminders are off on this device. Turn them on in Settings.",
     "openSettings": "Open Settings",
     "openSettingsLabel": "Open this device's Settings to allow notifications",
     "on": "Reminders are on. We'll let you know before the meeting.",
@@ -117,7 +117,7 @@
   "laSobremesa": {
     "scheduleFallback": "Mondays · 8:00 PM Pacific",
     "note": "La Sobremesa is AyudaSobria's Spanish-language meeting. Reserving gives you your personal link here and by email. By reserving you agree to respect the privacy and confidentiality of the other families.",
-    "notAvailable": "The next meeting isn't open for reservations yet. Please try again later."
+    "notAvailable": "The next meeting isn't open for reservations yet. Try again later."
   },
   "provider": {
     "credentialFull": "Certified Intervention Professional"

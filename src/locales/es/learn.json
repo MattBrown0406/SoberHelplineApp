@@ -2,14 +2,14 @@
   "header": "Guías",
   "tools": {
     "forNowEyebrow": "PARA TU MOMENTO ACTUAL",
-    "forNowBody": "Elegidas según dónde nos dijiste que está tu ser querido. Las demás están en Todas las guías.",
+    "forNowBody": "Elegidas según dónde está tu ser querido ahora. Las demás están en Todas las guías.",
     "allTitle": "Todas las guías",
     "costTitle": "Hoja de dinero y límites",
-    "costBody": "Calcula lo que la adicción activa le ha costado a tu familia y decide qué financiarás y qué no financiarás en adelante.",
+    "costBody": "Calcula lo que la adicción le ha costado a tu familia y decide qué financiarás y qué no.",
     "costButton": "Iniciar actividad",
     "costBadge": "Gratis · Privado",
     "safetyTitle": "Cartera de seguridad sin conexión",
-    "safetyBody": "Mantén los contactos de emergencia, la información sobre naloxona y el plan de respuesta del hogar disponibles incluso sin servicio.",
+    "safetyBody": "Contactos de emergencia, información sobre naloxona y el plan de respuesta del hogar, listos incluso sin servicio.",
     "safetyButton": "Abrir cartera de seguridad",
     "safetyBadge": "Gratis · Sin conexión",
     "actionTitle": "Plan de acción para el tratamiento",
@@ -22,7 +22,7 @@
     "diyButton": "Abrir Planificador de Intervención DIY",
     "diyLockedButton": "Desbloquear con Essential",
     "homecomingTitle": "Semana de Regreso",
-    "homecomingBody": "Crea el plan según edad y vivienda segura para los días 0–7 después del alta, antes del viaje a casa y el primer fin de semana.",
+    "homecomingBody": "Un plan para la primera semana después del alta, hecho antes del viaje a casa.",
     "homecomingButton": "Crear Semana de Regreso",
     "homecomingBadge": "Gratis · Días 0–7",
     "visitationTitle": "Plan Familiar de Visita",
@@ -30,15 +30,15 @@
     "visitationButton": "Escribir la visita",
     "visitationBadge": "Gratis · Plan de visita",
     "holidayTitle": "Plan para las fiestas",
-    "holidayBody": "Quién está invitado, con qué condiciones, qué pasa si llega intoxicado/a y qué decir a los familiares. Escrito antes del día y compartido con todos los que reciben.",
+    "holidayBody": "Quién está invitado, con qué condiciones, qué pasa si llega intoxicado/a y qué decir a los familiares. Compartido con todos los que reciben.",
     "holidayButton": "Escribir el plan",
     "holidayBadge": "Gratis · Fiestas",
     "prosecutorTitle": "Tratamiento en lugar de cárcel",
-    "prosecutorBody": "Si enfrenta cargos: una carta para pedirle a la fiscalía que permita el tratamiento que tu familia consiguió, con el tratamiento completo, informes escritos de progreso y una reunión para revisar los cargos.",
+    "prosecutorBody": "¿Enfrenta cargos? Una carta para pedirle a la fiscalía que permita el tratamiento que tu familia consiguió, con informes escritos de progreso y una revisión de los cargos.",
     "prosecutorButton": "Escribir la carta",
     "prosecutorBadge": "Gratis · Legal",
     "chooseTitle": "Cómo elegir un programa de tratamiento",
-    "chooseBody": "Las preguntas para cada programa, las señales de alerta para alejarte y lo que debes tener listo antes de que diga que sí.",
+    "chooseBody": "Preguntas para cada programa, señales de alerta para alejarte y qué tener listo antes de que diga que sí.",
     "chooseButton": "Ver la lista",
     "chooseBadge": "Gratis · Tratamiento",
     "learningEyebrow": "APRENDE · RECURSOS GRATUITOS",
@@ -46,12 +46,12 @@
     "diyPaid": "Función de pago · requiere membresía Essential o Premier.",
     "invitationBadge": "Nuevo",
     "invitationTitle": "Motor de Invitación",
-    "invitationBody": "Un plan día a día basado en CRAFT, la forma más comprobada en que las familias ayudan a un ser querido que se resiste a decir sí al tratamiento: entiende su patrón, refuerza los momentos sobrios, detecta el momento adecuado y pide bien.",
+    "invitationBody": "Un plan día a día basado en CRAFT, la forma más comprobada en que las familias ayudan a un ser querido que se resiste a decir sí al tratamiento.",
     "invitationButton": "Abrir el Motor de Invitación"
   },
   "education": {
     "title": "Educación familiar",
-    "body": "La biblioteca completa de educación familiar en español está en ayudasobria.com, nuestro sitio en español. Se abre en tu navegador con tu cuenta de Sober Helpline ya iniciada. Las preguntas frecuentes de abajo responden aquí mismo, en la app, lo que toda familia pregunta.",
+    "body": "La biblioteca completa de educación familiar en español está en ayudasobria.com. Se abre en tu navegador con tu sesión ya iniciada.",
     "button": "Abrir en ayudasobria.com",
     "sections": [
       {
@@ -116,7 +116,7 @@
   },
   "recordings": {
     "title": "Grabaciones anteriores",
-    "body": "Mira las grabaciones de La Sobremesa, nuestra reunión de los lunes en español, que te hayas perdido. Están en ayudasobria.com y se abren en tu navegador con tu sesión ya iniciada.",
+    "body": "Mira grabaciones de La Sobremesa, nuestra reunión de los lunes en español, en ayudasobria.com. Se abren con tu sesión ya iniciada.",
     "button": "Ver en ayudasobria.com"
   },
   "membersLibrary": {
@@ -126,77 +126,77 @@
   },
   "faq": {
     "eyebrow": "Preguntas frecuentes",
-    "sub": "Las preguntas que casi toda familia se hace — respondidas sin rodeos.",
+    "sub": "Lo que casi toda familia pregunta, respondido sin rodeos.",
     "items": [
       {
         "q": "¿Es adicción o solo una etapa?",
-        "a": "Fíjate en las consecuencias, no en la cantidad. Cuando alguien sigue consumiendo a pesar del daño creciente — problemas de trabajo, confianza rota, sustos de salud, dinero que desaparece — ese patrón es la señal. No necesitas estar segura de que es \"adicción\" para tomarlo en serio; si su consumo está dañando a tu familia, eso ya justifica buscar apoyo."
+        "a": "Fíjate en las consecuencias, no en la cantidad. Seguir consumiendo pese al daño creciente (problemas de trabajo, confianza rota, sustos de salud, dinero que falta) es la señal. No necesitas estar segura de que es \"adicción\". Si su consumo daña a tu familia, eso basta para buscar apoyo."
       },
       {
         "q": "¿Qué significan desintoxicación, residencial, PHP, IOP y ambulatorio?",
-        "a": "Son niveles de atención, del más al menos intensivo. La desintoxicación es la abstinencia con supervisión médica (días). Residencial significa vivir en un centro (normalmente 30–90 días). PHP son días completos de tratamiento durmiendo en casa; IOP son varias horas algunos días a la semana; ambulatorio son sesiones semanales. La mayoría va bajando de nivel al estabilizarse — el punto de partida depende de la seguridad, la sustancia y el historial."
+        "a": "Niveles de atención, del más al menos intensivo. Desintoxicación: abstinencia con supervisión médica (días). Residencial: vivir en un centro (normalmente 30–90 días). PHP: días completos de tratamiento, durmiendo en casa. IOP: unas horas, varios días a la semana. Ambulatorio: sesiones semanales. La mayoría baja de nivel al estabilizarse; dónde empezar depende de la seguridad, la sustancia y el historial."
       },
       {
         "q": "¿El seguro pagará el tratamiento?",
-        "a": "Muchas veces sí, al menos en parte — las leyes de paridad exigen que la mayoría de los planes cubran el tratamiento de adicciones como cualquier otra atención médica. Llama al número de la tarjeta del seguro y pregunta por los \"beneficios para trastornos por uso de sustancias\", o deja que un centro verifique la cobertura (lo hacen a diario y es gratis). Pregunta por deducibles, centros dentro de la red y autorización previa antes de comprometerte."
+        "a": "Muchas veces, al menos en parte: las leyes de paridad obligan a la mayoría de los planes a cubrir el tratamiento de adicciones como cualquier otra atención médica. Llama al número de la tarjeta del seguro y pregunta por los \"beneficios para trastornos por uso de sustancias\", o deja que un centro lo verifique gratis. Pregunta antes por deducibles, centros dentro de la red y autorización previa."
       },
       {
         "q": "¿Y si se niega a ir a tratamiento?",
-        "a": "El rechazo es una etapa, no un veredicto — la mayoría de quienes entran a tratamiento primero dijeron que no. Tu palanca es la constancia: límites claros, consecuencias que sí cumples e invitaciones tranquilas repetidas. La intervención guiada por un profesional existe exactamente para este momento. Y tu propio apoyo no debe esperar su sí — las familias se recuperan en paralelo, no después."
+        "a": "El rechazo es una etapa, no un veredicto; la mayoría de quienes están en tratamiento primero dijeron que no. Tu palanca es la constancia: límites claros, consecuencias que cumples, invitaciones tranquilas y repetidas. Una intervención profesional existe para este momento. Y busca apoyo ya, sin esperar su sí: las familias se recuperan en paralelo."
       },
       {
         "q": "¿Estoy ayudando o facilitando?",
-        "a": "Una prueba útil: ¿esta acción protege a la persona o protege a la adicción de sus consecuencias? Llevarle a una reunión, comida, costear tratamiento — ayuda. Pagar sus deudas, llamar al trabajo por él o ella, tapar incidentes — eso amortigua la adicción. Facilitar casi siempre nace del amor y del miedo; nombrarlo no es culpa, es el primer límite."
+        "a": "Pregúntate: ¿esto protege a la persona o protege a la adicción de sus consecuencias? Llevarle a una reunión, comida, costear tratamiento: ayuda. Pagar sus deudas, llamar al trabajo por él o ella, tapar incidentes: eso amortigua la adicción. Facilitar nace del amor y del miedo. Nombrarlo no es culpa; es el primer límite."
       },
       {
         "q": "¿Debería darle dinero?",
-        "a": "El efectivo en la adicción activa casi siempre termina en la sustancia, sea cual sea la razón declarada. Puedes decir no al dinero y sí a la necesidad detrás: paga directamente en la farmacia, lleva comida, cubre una cuota pagada al centro. \"Te quiero, y no doy efectivo\" es una frase completa."
+        "a": "El efectivo casi siempre termina en la sustancia, sea cual sea la razón. Di no al dinero y sí a la necesidad: paga la farmacia, lleva comida, paga el tratamiento directamente al centro. \"Te quiero, y no doy efectivo\" es una frase completa."
       },
       {
         "q": "¿Qué pasa realmente en una intervención?",
-        "a": "No es una emboscada — es una conversación planeada, ensayada y amorosa. La familia lee cartas preparadas que describen lo que ha visto, lo que siente y lo que pide, con el tratamiento ya organizado antes de empezar la conversación. Un intervencionista profesional maneja la sala, las objeciones y el seguimiento. La mayoría de las intervenciones bien planeadas terminan con la persona aceptando ayuda."
+        "a": "No es una emboscada: es una conversación planeada, ensayada y amorosa. La familia lee cartas sobre lo que ha visto, lo que siente y lo que pide, con el tratamiento listo de antemano. Un intervencionista profesional maneja la sala, las objeciones y el seguimiento. La mayoría de las intervenciones bien planeadas terminan con la persona aceptando ayuda."
       },
       {
         "q": "Recayó después del tratamiento. ¿Falló?",
-        "a": "La recaída es común en la recuperación de una adicción, como en otras condiciones crónicas — significa que el plan necesita ajustes, no que el tratamiento fue en vano ni que tu ser querido no tiene remedio. Lo que más importa es qué tan rápido se reconecta con el apoyo. Mantén tus límites, deja fuera la vergüenza y trátalo como información: ¿qué faltó y qué debe cambiar esta vez?"
+        "a": "La recaída es común, como en otras condiciones crónicas. Significa que el plan necesita ajustes, no que el tratamiento fue en vano ni que tu ser querido no tiene remedio. Lo que más importa es qué tan rápido se reconecta con el apoyo. Mantén tus límites, deja fuera la vergüenza y pregúntate qué debe cambiar esta vez."
       },
       {
         "q": "¿Qué les decimos a los niños?",
-        "a": "Más de lo que crees, en porciones para su edad. Los niños ya sienten que algo anda mal; el silencio les enseña a desconfiar de su propia percepción. Usa las \"Siete C\": no lo Causaron, no lo pueden Controlar, no lo pueden Curar — pero sí pueden aprender a Cuidarse, Comunicarse, tomar buenas deCisiones y Celebrarse. Mantén las rutinas estables y deja que pregunten lo que sea."
+        "a": "Más de lo que crees, a la medida de su edad. Los niños sienten que algo anda mal; el silencio les enseña a dudar de lo que perciben. Usa las \"Siete C\": no lo Causaron, no lo pueden Controlar, no lo pueden Curar, pero pueden aprender a Cuidarse, Comunicarse, tomar buenas deCisiones y Celebrarse. Mantén las rutinas y acoge sus preguntas."
       },
       {
         "q": "¿Hay que esperar a que toque fondo?",
-        "a": "No — ese es uno de los mitos más dañinos de la adicción. \"Tocar fondo\" es solo el momento en que las consecuencias pesan más que la negación, y puedes subir ese fondo dejando de amortiguar lo que lo retrasa. La gente entra a tratamiento por citas en la corte, ultimátums e intervenciones todo el tiempo, y sus resultados son tan buenos como los de cualquiera. Esperar arriesga el único fondo del que no se vuelve."
+        "a": "No, es un mito dañino. \"Tocar fondo\" es solo el momento en que las consecuencias pesan más que la negación, y puedes subir ese fondo dejando de amortiguar. La gente entra a tratamiento por citas en la corte, ultimátums e intervenciones todo el tiempo, y le va tan bien como a cualquiera. Esperar arriesga el único fondo del que no se vuelve."
       },
       {
         "q": "¿Por qué necesito apoyo yo? No soy quien consume.",
-        "a": "Porque la adicción es una enfermedad familiar: vivir a su lado te reconfigura hacia la vigilancia, la gestión de crisis y el descuido propio. Tu estabilidad es además la influencia más poderosa sobre tu ser querido — una familia regulada y con límites cambia la ecuación. Los grupos, el coaching y tu registro diario aquí no son extras; son tu tratamiento."
+        "a": "La adicción es una enfermedad familiar: vivir a su lado te empuja a la vigilancia, al modo crisis y al descuido propio. Tu estabilidad también es tu mayor influencia sobre tu ser querido. Los grupos, el coaching y tu registro diario aquí no son extras. Son tu tratamiento."
       },
       {
         "q": "¿Cuándo es una emergencia?",
-        "a": "Llama al 911 ante señales de sobredosis — no responde, labios azules, respiración lenta o detenida, gorgoteo. Llama al 988 (marca 2 para español) o envía AYUDA al 988 ante cualquier mención de suicidio o autolesión. No esperes a estar segura; equivocarse y estar a salvo es mejor que tener razón y llegar tarde. Guarda ambos números en tu teléfono ahora, y si hay opioides, ten naloxona (Narcan) en casa — el aerosol nasal Narcan está disponible sin receta en farmacias de todo el país."
+        "a": "Llama al 911 ante señales de sobredosis: no responde, labios azules, respiración lenta o detenida, gorgoteo. Llama al 988 (marca 2 para español) o envía AYUDA al 988 ante cualquier mención de suicidio o autolesión. No esperes a estar segura; equivocarse y estar a salvo es mejor que tener razón y llegar tarde. Guarda ambos números ahora. Si puede haber opioides, ten naloxona (Narcan) en casa; el aerosol nasal Narcan se vende sin receta en farmacias de todo el país."
       },
       {
         "q": "Arrestaron a mi ser querido. ¿Pagamos la fianza?",
-        "a": "No te apresures a pagar la fianza: tiene miedo y está incómodo/a, pero está a salvo. Respira. ¿No hay plan de tratamiento? Prepáralo ya, con un programa según sus necesidades, no solo su seguro (una sesión con Matt Brown puede ayudar). Luego pon el tratamiento como condición: fianza solo si va directo de la cárcel al tratamiento, sin pasar por la casa. Si se echa atrás, la familia puede pedir que se revoque la fianza, pero confírmalo antes: un agente de fianzas suele poder devolverlo/la a la custodia; la fianza en efectivo a menudo no se deshace. Ya en tratamiento, busca abogado o defensor público. Avisa al personal médico de la cárcel sobre abstinencia o si habla de suicidio, y no hables del caso por teléfono: se graba. Plan completo en el Modo Crisis. No es asesoría legal."
+        "a": "No te apresures a pagar la fianza: tiene miedo y está incómodo/a, pero está a salvo. Respira. ¿No hay plan de tratamiento? Prepáralo ya, con un programa según sus necesidades, no solo su seguro (una sesión con Matt Brown puede ayudar). Luego pon el tratamiento como condición: fianza solo si va directo de la cárcel al tratamiento, sin pasar por la casa. Si se echa atrás, la familia puede pedir que se revoque la fianza, pero confírmalo antes: un agente de fianzas suele poder devolverlo/la a la custodia; la fianza en efectivo a menudo no se deshace. Ya en tratamiento, busca abogado o defensor público. Avisa al personal médico de la cárcel sobre abstinencia o si habla de suicidio. No hables del caso por teléfono: se graba. Plan completo en el Modo Crisis. No es asesoría legal."
       },
       {
         "q": "¿Podemos obligar a nuestro ser querido a ir a tratamiento?",
-        "a": "A veces. La mayoría de los estados tiene una ley de internamiento civil por adicción (la Marchman Act de Florida, la Casey's Law de Kentucky y la Section 35 de Massachusetts son ejemplos conocidos), pero las reglas varían mucho. Por lo general, un familiar lo pide ante un tribunal, hay una evaluación y debe haber peligro para sí o para otros, o incapacidad de cuidarse. Los internamientos suelen ser cortos, y algunos estados no tienen esta ley. Un tribunal penal también puede ordenar tratamiento mediante la corte de drogas o un programa de desvío. Pregunta a un abogado local o al tribunal de tu condado cómo funciona donde vives. Muchas familias logran lo mismo sin un tribunal, con una intervención profesional planificada, y un coach de Sober Helpline puede ayudarte a evaluarlo. Es información general, no asesoría legal."
+        "a": "A veces. La mayoría de los estados tiene una ley de internamiento civil por adicción (la Marchman Act de Florida, la Casey's Law de Kentucky, la Section 35 de Massachusetts), pero las reglas varían mucho. Por lo general, un familiar lo pide ante un tribunal, hay una evaluación y debe haber peligro para sí o para otros, o incapacidad de cuidarse. Los internamientos suelen ser cortos; algunos estados no tienen esta ley. Un tribunal penal también puede ordenar tratamiento mediante la corte de drogas o un programa de desvío. Pregunta a un abogado local o al tribunal de tu condado cómo funciona donde vives. Muchas familias logran lo mismo con una intervención profesional planificada; un coach de Sober Helpline puede ayudarte a evaluarlo. Es información general, no asesoría legal."
       },
       {
         "q": "¿Podemos pedirle a la fiscalía tratamiento en lugar de cárcel?",
-        "a": "Sí, y ayuda pedirlo por escrito. En la pestaña Guías hay una carta para pedirle a la fiscalía que permita el tratamiento que tu familia consiguió y que tu ser querido lo complete, con informes escritos de progreso del programa a la fiscalía y luego una reunión en persona para revisar si los cargos deben continuar o reducirse. Dásela primero al abogado defensor y no escribas sobre lo que pasó: todo lo escrito puede usarse en el caso. El programa solo puede enviar informes después de que tu ser querido firme una autorización. Es información general, no asesoría legal."
+        "a": "Sí, y conviene pedirlo por escrito. En la pestaña Guías hay una carta para pedirle a la fiscalía que permita el tratamiento que tu familia consiguió y que tu ser querido lo complete, con informes escritos de progreso del programa y luego una reunión en persona para decidir si los cargos deben continuar o reducirse. Dásela primero al abogado defensor y no escribas sobre lo que pasó: todo lo escrito puede usarse en el caso. El programa solo puede enviar informes después de que tu ser querido firme una autorización. Es información general, no asesoría legal."
       },
       {
         "q": "¿La medicación no es solo cambiar una droga por otra?",
-        "a": "No, aunque es una pregunta justa. Para la adicción a los opioides, la buprenorfina (Suboxone), la metadona y la naltrexona (Vivitrol) son tratamientos comprobados, y la buprenorfina o la metadona, tomadas como se recetan, reducen aproximadamente a la mitad el riesgo de morir por sobredosis. A una dosis estable recetada no producen euforia: calman el deseo de consumir y la abstinencia, para que la persona pueda trabajar, criar a sus hijos y hacer el resto de su recuperación. Para el alcohol, la naltrexona y el acamprosato pueden reducir el deseo de beber. La medicación funciona mejor junto con terapia y apoyo. Pregunta a cualquier programa si ofrece o permite medicación, y deja la elección del medicamento a un médico. Es información general, no consejo médico."
+        "a": "No, aunque es una pregunta justa. Para la adicción a los opioides, la buprenorfina (Suboxone), la metadona y la naltrexona (Vivitrol) son tratamientos comprobados; la buprenorfina o la metadona, tomadas como se recetan, reducen aproximadamente a la mitad el riesgo de morir por sobredosis. A una dosis estable recetada no producen euforia. Calman el deseo de consumir y la abstinencia, para que la persona pueda trabajar, criar a sus hijos y seguir con su recuperación. Para el alcohol, la naltrexona y el acamprosato pueden reducir el deseo de beber. La medicación funciona mejor con terapia y apoyo. Pregunta a los programas si la ofrecen o permiten, y deja la elección del medicamento a un médico. Es información general, no consejo médico."
       }
     ],
     "collapseHint": "Oculta esta respuesta",
     "expandHint": "Muestra esta respuesta"
   },
-  "intro": "Práctica te ayuda a saber qué decir. Límites te ayuda a decidir qué vas a mantener. Usa estas herramientas para planificar, o abre Apoyo para conectar con otras personas.",
+  "intro": "Planifica aquí tus próximos pasos. Práctica te ayuda con qué decir; Apoyo te conecta con personas.",
   "destinations": {
     "title": "¿Qué necesitas hacer?",
     "conversation": "Practicar una conversación",

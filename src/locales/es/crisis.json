@@ -4,7 +4,7 @@
   "title": "Ayúdame a saber qué hacer ahora mismo",
   "intro": "Marca lo que sea cierto. Esto no reemplaza al 911, al 988, al control de envenenamiento, a la atención médica ni a la policía.",
   "emergency": {
-    "offlineNote": "Aún se requiere servicio telefónico. Si un botón no conecta, ve a un lugar con señal celular o pide a alguien cercano que llame.",
+    "offlineNote": "Necesitas servicio telefónico. Si un botón no conecta, ve a donde tengas señal o pide a alguien cercano que llame.",
     "buttonHint": "Abre el teléfono o la aplicación de mensajes; se requiere servicio para conectar",
     "title": "¿Hay peligro inmediato?",
     "note": "Estas acciones siempre son gratuitas. Las llamadas y mensajes requieren servicio telefónico.",
@@ -49,13 +49,13 @@
     "YELLOW": {
       "label": "Amarillo",
       "title": "Preocupación en aumento",
-      "body": "El patrón necesita una respuesta familiar clara. Es buen momento para poner un límite, documentar lo ocurrido y planear antes de la próxima escalada.",
+      "body": "El patrón necesita una respuesta familiar clara. Pon un límite, anota lo ocurrido y planea antes de que vuelva a escalar.",
       "action": "Define un límite y actualiza el registro de incidentes y el plan de seguridad."
     },
     "GREEN": {
       "label": "Verde",
       "title": "Preocupación estable",
-      "body": "Quizá no haya peligro inmediato, pero la familia igual debe planear, alinearse y frenar los patrones de facilitación temprano.",
+      "body": "Quizá no haya peligro inmediato, pero la familia igual debe planear, alinearse y frenar pronto los patrones de facilitación.",
       "action": "Usa las herramientas de educación, preparación y límites antes de que las cosas escalen."
     }
   },
@@ -204,20 +204,20 @@
     "placeholder": "Toca para escribir"
   },
   "wallet": {
-    "storageError": "No se pudo leer o actualizar el almacenamiento. La edición está pausada para proteger los datos. Los cambios recientes podrían no estar guardados. Reintenta para cargar la copia guardada.",
+    "storageError": "No se pudo leer o guardar en este dispositivo. La edición está pausada para proteger tus datos, y los cambios recientes podrían no estar guardados. Reintenta para cargar la copia guardada.",
     "signInRequired": "Inicia sesión para acceder a tu Cartera de Seguridad guardada. La ayuda de emergencia sigue disponible.",
     "kicker": "SIEMPRE GRATIS",
     "title": "Cartera de Seguridad",
-    "body": "Guarda los datos del hogar que podrías necesitar cuando sea difícil pensar con claridad. Nada se comparte a menos que elijas exportarlo.",
+    "body": "Los datos del hogar que podrías necesitar cuando cueste pensar con claridad. Nada se comparte a menos que elijas exportarlo.",
     "offline": "Guardado en este dispositivo · disponible sin conexión",
     "startGuide": "Algo está pasando ahora — abrir la Guía de Crisis",
     "loading": "Abriendo tu plan de seguridad guardado…",
     "savedCount_one": "{{count}} dato de seguridad listo",
     "savedCount_other": "{{count}} datos de seguridad listos",
-    "autoSave": "Los cambios se guardan automáticamente para esta cuenta en este dispositivo. Evita ingresar datos privados en un dispositivo compartido.",
+    "autoSave": "Se guarda automáticamente para esta cuenta en este dispositivo. Evita datos privados en un dispositivo compartido.",
     "coreProgress": "Plan principal: {{completed}} de {{total}} datos esenciales listos",
     "readyTitle": "Tu Cartera de Seguridad principal está lista",
-    "readyBody": "Puedes seguir agregando información cuando quieras. Revisa este plan con frecuencia y actualiza contactos, ubicaciones y roles familiares cuando cambien.",
+    "readyBody": "Agrega información cuando quieras. Actualiza contactos, lugares y roles familiares cuando cambien.",
     "finish": "Terminar por ahora",
     "groups": {
       "household": "Datos esenciales del hogar",
@@ -226,7 +226,7 @@
       "family": "Plan de respuesta familiar"
     },
     "groupHelp": {
-      "household": "Anota los contactos y el destino que tu familia tendría que buscar durante una crisis.",
+      "household": "Los contactos y lugares que tu familia tendría que buscar durante una crisis.",
       "overdose": "Si puede haber opioides, guarda la naloxona donde todos puedan encontrarla rápido y sigue las instrucciones del empaque.",
       "dependents": "Planea solo acciones que puedan hacerse con seguridad. Sal y llama a emergencias si puede haber violencia o armas.",
       "family": "Elijan quién toma decisiones y qué hará la familia de forma consistente."
@@ -275,7 +275,7 @@
     "familyCard": {
       "button": "Compartir con la familia",
       "title": "TARJETA DE EMERGENCIA FAMILIAR DE SOBER HELPLINE",
-      "intro": "Una tarjeta de una sola pantalla con solo lo que un familiar necesita en los primeros minutos: dónde está la naloxona, a quién llamar y qué acordó hacer la familia. El historial privado nunca se incluye. Nada está preseleccionado.",
+      "intro": "Una pantalla con lo que tu familia necesita en los primeros minutos: dónde está la naloxona, a quién llamar y qué acordaron hacer. El historial privado nunca se incluye. Nada está preseleccionado.",
       "empty": "Agrega la ubicación de la naloxona, contactos de emergencia, un contacto de tratamiento o el plan acordado para crear una tarjeta.",
       "sections": {
         "naloxone": "Naloxona (Narcan)",
@@ -349,10 +349,10 @@
     "none": "No se ingresó nada",
     "consent": "Elijo compartir los detalles de la reunión y las secciones del plan mostradas arriba con el personal de Sober Helpline para preparar la reunión. Entiendo que este no es un servicio de emergencia.",
     "blockedTitle": "La revisión del plan espera a que termine tu solicitud de video actual",
-    "blockedBody": "Solo puede haber una solicitud de video privado activa a la vez. Revisa, cambia o cancela la solicitud actual de arriba antes de iniciar otra revisión del plan.",
+    "blockedBody": "Solo puede haber una solicitud de video privado activa a la vez. Primero revisa, cambia o cancela la de arriba.",
     "checkoutOpenErrorTitle": "No se pudo abrir el pago",
     "checkoutOpenErrorBody": "Revisa tu conexión e inténtalo de nuevo. Tu sesión sigue pendiente de pago.",
-    "pendingPayment": "La solicitud quedará pendiente de pago. El horario no se puede confirmar hasta que el registro de pago de coaching sea verificado como pagado.",
+    "pendingPayment": "Esta solicitud queda pendiente hasta que se verifique el pago del coaching. Después se puede confirmar el horario.",
     "payNow": "Pagar {{amount}} de forma segura",
     "dateField": "Fecha de la sesión",
     "timeField": "Hora de la sesión",
@@ -513,7 +513,7 @@
     "next72HourPlan": "Plan para las próximas 72 horas",
     "clearSavedCrisisData2": "Borrar datos de crisis guardados",
     "familyCommandPlan": "Plan de Comando Familiar",
-    "assignRolesAndShareOne": "Asigna roles y comparte una sola posición familiar. Esta versión crea un plan privado; la sala multiusuario en vivo llegará después.",
+    "assignRolesAndShareOne": "Asigna roles y comparte una sola posición familiar. Por ahora, este plan es privado.",
     "crisisCoordinator": "Coordinador de la crisis",
     "singleFamilyCommunicator": "Única persona que comunica",
     "childrenAndSafetyLead": "Responsable de niños/seguridad",
@@ -523,7 +523,7 @@
     "premierAddsRoleAssignmentsA": "Premier agrega roles, una posición unificada y apoyo por video privado.",
     "textSupportIsAvailableWith": "El apoyo por texto está disponible con Essential y Premier. Para peligro inmediato, usa 911 o 988.",
     "tierRequired": "{{tier}} requerido",
-    "offlineToolsBody": "La evaluación, los guiones, las guías de 24/72 horas y la Cartera de Seguridad siguen disponibles. El chat, video y las reservaciones volverán cuando se restablezca la conexión."
+    "offlineToolsBody": "La evaluación, los guiones, las guías de 24/72 horas y la Cartera de Seguridad siguen funcionando. El chat, el video y las reservas vuelven cuando tengas conexión."
   },
   "arrestLinks": {
     "chooseProgram": "Cómo elegir un programa de tratamiento",
