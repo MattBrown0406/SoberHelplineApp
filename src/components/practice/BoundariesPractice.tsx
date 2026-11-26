@@ -1,3 +1,4 @@
+import { InvitationPartVisible } from '../../membershipInvitations/ContextualMembershipInvitation';
 import { useToolOpened } from '../../hooks/useToolOpened';
 import React, { useCallback, useEffect, useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
@@ -393,7 +394,7 @@ export function BoundariesPractice({ scrollRef, active }: { scrollRef: React.Ref
   const firstName = user?.firstName ?? '';
 
   return (
-    <>
+    <InvitationPartVisible.Provider value={active}>
       {active && <BoundariesOpened />}
         <Text style={[styles.enablingSub, { color: colors.inkSoft }]}>{content.intro}</Text>
 
@@ -837,7 +838,7 @@ export function BoundariesPractice({ scrollRef, active }: { scrollRef: React.Ref
             </>
           )}
         </View>
-    </>
+    </InvitationPartVisible.Provider>
   );
 }
 

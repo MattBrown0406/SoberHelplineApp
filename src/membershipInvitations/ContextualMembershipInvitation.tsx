@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAccount } from '../contexts/AccountContext';
 import { usePlanOffers } from '../hooks/usePlanPurchase';
@@ -13,6 +13,8 @@ import { askedThisVisit, noteInvitationShowing } from './visitAsks';
 // One ask per visit: never on a visit that had the rating prompt or the reminder ask
 // (and, while the card is up, those give way to it: noteInvitationShowing).
 const policy = createInvitationPolicy(AsyncStorage, Date.now, askedThisVisit);
+/** False while the part of a screen holding the card is hidden (Practice's Boundaries behind Conversations). */
+export const InvitationPartVisible = createContext(true);
 /** Where she was when the invitation appeared: the only thing logged about it. */
 const SOURCE: Record<Placement, PlanSource> = {
   'practice-completed': 'practice_completed',
@@ -101,13 +103,19 @@ export function ContextualMembershipInvitation({ accountId, completed, placement
   }, [scope, allowed, settled, completed, placement, source]);
   useEffect(() => () => { if (scope && owned.current === scope) { policy.release(scope); owned.current = null; } }, [scope]);
   const onScreen = !!scope && allowed && completed && shownFor === scope;
+  // Really in front of her: its screen is focused and its part of the screen
+  // is shown (Practice keeps Boundaries mounted but hidden behind Conversations).
+  const [focused, setFocused] = useState(true);
+  useFocusEffect(useCallback(() => { setFocused(true); return () => setFocused(false); }, []));
+  const partVisible = useContext(InvitationPartVisible);
+  const inFront = onScreen && focused && partVisible;
   // One ask per visit, the other way: the rating prompt and the reminder asks
-  // give way on a visit that had this card, and while it is on screen.
+  // give way on a visit that had this card, and while it is in front of her.
   useEffect(() => {
-    if (!onScreen || !scope) return undefined;
+    if (!inFront || !scope) return undefined;
     noteInvitationShowing(scope, true);
     return () => noteInvitationShowing(scope, false);
-  }, [onScreen, scope]);
+  }, [inFront, scope]);
   if (!onScreen || !scope) return null;
   const dismiss = (permanent: boolean) => {
     setShownFor(null); owned.current = null;

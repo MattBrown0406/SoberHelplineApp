@@ -452,11 +452,14 @@ export function usePushNotifications(
       // keeps its own copy): re-read the family space now.
       if (data.kind === 'family_backup') requestFamilySpaceRefresh();
       try {
-        // A tab (Today, Practice, Tools, Support) is switched to, never pushed:
-        // pushing a tab route over another screen stacks a second copy of the
-        // tabs (expo-router never reuses a route without an id on PUSH).
+        // A tab (Today, Practice, Tools, Support) is returned to, never pushed:
+        // from a pushed screen (Settings, the Tracker, a letter) both push and
+        // navigate append a second copy of the tabs (expo-router reuses a stack
+        // route on NAVIGATE only when it is already in front). dismissTo pops
+        // back to the existing tabs and hands the tab its params, the same as
+        // app/guided-journey.tsx.
         const pathname = typeof route === 'string' ? route : (route as { pathname?: string }).pathname ?? '';
-        if (pathname.startsWith('/(tabs)')) routerRef.current.navigate(route as never);
+        if (pathname.startsWith('/(tabs)')) routerRef.current.dismissTo(route as never);
         else routerRef.current.push(route as never);
       } catch (error) {
         console.warn('[push] notification navigation failed', error);

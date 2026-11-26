@@ -524,7 +524,7 @@
       "coda": { "name": "CoDA", "description": "Co-Dependents Anonymous: for building healthier relationships" },
       "pal": { "name": "PAL", "description": "Parents of Addicted Loved Ones: for parents, spouses and family of someone with an addiction" }
     },
-    "find": "Find a {{name}} meeting",
+    "find": "Find {{name}} meetings",
     "findHint": "Opens the official {{name}} meeting finder in your browser",
     "remembered": "Saved on this device. Tap another to change it.",
     "notNow": "Not right now",

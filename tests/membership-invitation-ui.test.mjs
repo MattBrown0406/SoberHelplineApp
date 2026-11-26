@@ -21,6 +21,10 @@ function mount({ completed = false, account = {}, delayed = false, placement = '
     useRef(value) { const i = cursor++; return slots[i] ??= { current: value }; },
     useState(value) { const i = cursor++; if (!(i in slots)) slots[i] = value; return [slots[i], next => { slots[i] = typeof next === 'function' ? next(slots[i]) : next; }]; },
     useEffect(fn, deps) { const i = cursor++; const old = slots[i]; if (!old || deps.some((d, j) => !Object.is(d, old.deps[j]))) { pending.push(() => { old?.cleanup?.(); slots[i] = { deps, cleanup: fn() }; }); } },
+    useCallback(fn) { return fn; },
+    // The screen is focused and its part shown unless a test says otherwise.
+    createContext(value) { return { value }; },
+    useContext(context) { return context.value; },
   };
   const policy = {
     claim(...args) { claims.push(args); return delayed ? new Promise(resolve => { resolveClaim = resolve; }) : Promise.resolve(claimAnswers.length ? claimAnswers.shift() : true); },
@@ -32,7 +36,7 @@ function mount({ completed = false, account = {}, delayed = false, placement = '
     if (id === 'react') return React;
     if (id === 'react-native') return { View: 'View', Text: 'Text', Pressable: 'Pressable', StyleSheet: { create: v => v } };
     if (id === '@react-native-async-storage/async-storage') return {};
-    if (id === 'expo-router') return { useRouter: () => ({ push: route => { routes.push(route); } }) };
+    if (id === 'expo-router') return { useRouter: () => ({ push: route => { routes.push(route); } }), useFocusEffect: () => {} };
     if (id === 'react-i18next') return { useTranslation: ns => { assert.equal(ns, 'plans'); return { t: translate, i18n: { language: 'en' } }; } };
     if (id.endsWith('lib/funnel')) return { logMembershipPath: (stage, meta) => { logged.push([stage, { ...meta }]); } };
     if (id.endsWith('lib/membershipPath')) return { plansHref: source => ({ pathname: '/plans', params: { source } }) };
