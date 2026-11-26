@@ -536,7 +536,7 @@
       "no": "No, gracias",
       "sending": "Enviando…",
       "sent": "Le avisamos a {{name}} y se comunicará contigo.",
-      "emergency": "Sober Helpline no atiende las 24 horas. En una emergencia, llama al 911, o llama o envía un mensaje de texto al 988 (marca 2 para español).",
+      "emergency": "Sober Helpline no atiende las 24 horas. En Estados Unidos, llama al 911 si hay peligro inmediato. Para recibir ayuda en español, llama al 988 y presiona 2, o envía AYUDA por mensaje de texto al 988.",
       "failed": "No se pudo enviar. Inténtalo de nuevo.",
       "retry": "Intentar de nuevo"
     },
