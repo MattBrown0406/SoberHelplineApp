@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { noteVisitAsk } from '../membershipInvitations/visitAsks';
+import { invitationThisVisit, noteVisitAsk } from '../membershipInvitations/visitAsks';
 import { AppState, Linking } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { supabase } from '../lib/supabase';
@@ -178,7 +178,8 @@ export function useSeatReminderAsk(
     if (!enabled || !accountId || !justSavedHere || !focusedRef.current) return undefined;
     let active = true;
     void Promise.all([readReminderPermission(), loadReminderAskMemory(accountId)]).then(([permission, memory]) => {
-      if (active && viewRef.current === null) setView(decide(permission, memory, new Date()));
+      // One ask per visit: a visit that had a membership invitation gets no reminder ask.
+      if (active && viewRef.current === null && !invitationThisVisit(accountId)) setView(decide(permission, memory, new Date()));
     });
     return () => { active = false; };
   }, [rsvp, enabled, accountId, savedHere, decide, focusedRef, setView, viewRef]);
@@ -250,7 +251,8 @@ export function useTodayReminderAsk(
     const [permission, memory] = await Promise.all([readReminderPermission(), loadReminderAskMemory(accountId)]);
     if (identity.current !== accountId || busyRef.current || viewRef.current === 'on' || viewRef.current === 'failed') return;
     const now = new Date();
-    const kind = welcomed ? null : decide(permission, memory, now);
+    // One ask per visit: none on a visit that had a membership invitation (or while one is up).
+    const kind = welcomed || invitationThisVisit(accountId) ? null : decide(permission, memory, now);
     setView(kind);
     // This look runs on every return to the app and every store notice,
     // whichever tab is in front. The showing is recorded (and its 14 days

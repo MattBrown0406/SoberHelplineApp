@@ -271,6 +271,6 @@ test('L11: Spanish plans copy names La Sobremesa as the free meeting, never Fami
 });
 
 test('L12: the weekly seat pauses after about six months away, in both languages', () => {
-  assert.match(locale('en', 'common').familySquares.weekly.desc, /or after about six months away from the app\.$/);
-  assert.match(locale('es', 'common').familySquares.weekly.desc, /o después de unos seis meses sin abrir la app\.$/);
+  assert.match(locale('en', 'common').familySquares.weekly.desc, /It pauses after about six months away from the app\.$/);
+  assert.match(locale('es', 'common').familySquares.weekly.desc, /Se pausa después de unos seis meses sin abrir la app\.$/);
 });

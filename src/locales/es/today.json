@@ -375,6 +375,10 @@
           "La claridad puede surgir de un patrón de hechos, no de una sola conversación."
         ]
       }
+    },
+    "freeCta": {
+      "tools": "Busca una herramienta para empezar",
+      "boundaries": "Planea tus límites"
     }
   },
   "focus": {

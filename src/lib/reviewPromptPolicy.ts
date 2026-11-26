@@ -22,6 +22,8 @@ export type ReviewPromptState = {
 export type ReviewSafetyContext = {
   inCrisisFlow?: boolean;
   inPurchaseFlow?: boolean;
+  /** A membership invitation was (or is) on screen this visit: one ask per visit. */
+  invitationThisVisit?: boolean;
   situationBand?: 'calm' | 'watch' | 'elevated' | 'crisis' | null;
   recentCrisisAt?: string | null;
   recentLowMood?: boolean;
@@ -40,6 +42,7 @@ export type ReviewPromptDecision =
       reason:
         | 'crisis_flow'
         | 'purchase_flow'
+        | 'invitation_this_visit'
         | 'crisis_band'
         | 'recent_crisis'
         | 'recent_low_mood'
@@ -89,6 +92,7 @@ export function reviewPromptDecision({
 }): ReviewPromptDecision {
   if (safety?.inCrisisFlow) return { eligible: false, reason: 'crisis_flow' };
   if (safety?.inPurchaseFlow) return { eligible: false, reason: 'purchase_flow' };
+  if (safety?.invitationThisVisit) return { eligible: false, reason: 'invitation_this_visit' };
   if (safety?.situationBand === 'crisis') return { eligible: false, reason: 'crisis_band' };
 
   if (safety?.recentCrisisAt) {

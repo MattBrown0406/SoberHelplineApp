@@ -1,11 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
   AFTER_MEETING_GAP, createInvitationPolicy, DAY, invitationKey, legacyInvitationKey, MAX_IN_WINDOW, MIN_GAP,
   NEW_ACCOUNT_QUIET, NOT_NOW_SNOOZES, PLACEMENTS, UNANSWERED_LIMIT, UNANSWERED_PAUSE, WINDOW,
 } from '../src/membershipInvitations/policy';
-import { askedThisVisit, clearVisitAsks, noteReviewPending, noteVisitAsk } from '../src/membershipInvitations/visitAsks';
+import { askedThisVisit, clearVisitAsks, invitationThisVisit, noteInvitationShowing, noteReviewPending, noteVisitAsk } from '../src/membershipInvitations/visitAsks';
 
+const read = (path: string) => readFileSync(path, 'utf8');
 // An account well past its first days, unless a test says otherwise.
 const OLD = { joinedAt: 0 };
 function fixture(asked: (id: string) => boolean = () => false) {
@@ -150,6 +152,34 @@ test('visitAsks: the rating prompt (running or requested) and the reminder ask h
   assert.equal(askedThisVisit('a'), true);
   noteReviewPending('a', false);
   assert.equal(askedThisVisit('a'), false);
+});
+
+test('visitAsks, the other way: an invitation this visit (or still on screen) holds the rating prompt and the reminder asks back', () => {
+  clearVisitAsks();
+  assert.equal(invitationThisVisit('a'), false);
+  assert.equal(invitationThisVisit(null), false, 'no account: nothing to give way to');
+  noteInvitationShowing('a', true);
+  assert.equal(invitationThisVisit('a'), true);
+  assert.equal(invitationThisVisit('b'), false, 'per account');
+  // Answered or gone: still this visit.
+  noteInvitationShowing('a', false);
+  assert.equal(invitationThisVisit('a'), true);
+  clearVisitAsks();
+  assert.equal(invitationThisVisit('a'), false, 'the next visit starts clear');
+  // A card still up across a quick trip out of the app keeps counting until it goes.
+  noteInvitationShowing('a', true); clearVisitAsks();
+  assert.equal(invitationThisVisit('a'), true);
+  noteInvitationShowing('a', false);
+  assert.equal(invitationThisVisit('a'), true, 'it was shown on this visit');
+  clearVisitAsks();
+  assert.equal(invitationThisVisit('a'), false);
+  // The invitation's own showing never holds back the next invitation decision (the policy's limits do that).
+  assert.equal(askedThisVisit('a'), false);
+  // The rating prompt and both reminder asks read it.
+  assert.match(read('src/lib/reviewPrompt.ts'), /invitationThisVisit\(accountId\)/);
+  const reminder = read('src/hooks/useReminderAsk.ts');
+  assert.match(reminder, /const kind = welcomed \|\| invitationThisVisit\(accountId\) \? null : decide\(permission, memory, now\);/);
+  assert.match(reminder, /viewRef\.current === null && !invitationThisVisit\(accountId\)\) setView/);
 });
 
 test('account isolation and stale/logged-out scope are fail closed without writes', async () => {

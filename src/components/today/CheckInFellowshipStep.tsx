@@ -88,6 +88,17 @@ export function CheckInFellowshipStep({ checkIn, checkInDay }: { checkIn: CheckI
     });
   }, [save, checkInDay]);
 
+  // Her account known for certain (a web or store membership may still be syncing).
+  const settled = !account.isLoading && !account.accountError && !account.isOfflineAccountFallback && account.entitlementsSettled;
+  const followUp = () => fellowshipFollowUp({ settled, isAttached: account.isAttached, isAdmin: account.isAdmin, isMember });
+  // "Not right now" came before that: nothing was saved, and the right
+  // follow-up (reach out, booking, or nothing) comes as soon as it is known.
+  useEffect(() => {
+    if (step === 'waiting' && settled) {
+      advance({ type: 'settled', followUp: fellowshipFollowUp({ settled, isAttached: account.isAttached, isAdmin: account.isAdmin, isMember }) });
+    }
+  }, [step, settled, account.isAttached, account.isAdmin, isMember, advance]);
+
   if (!showFellowshipStep({ checkIn, loaded: loaded !== null, closedDay: loaded?.closedDay ?? null, checkInDay })) {
     return null;
   }
@@ -106,11 +117,7 @@ export function CheckInFellowshipStep({ checkIn, checkInDay }: { checkIn: CheckI
   };
 
   const notNow = () => {
-    const settled = !account.isLoading && !account.accountError && !account.isOfflineAccountFallback && account.entitlementsSettled;
-    advance({
-      type: 'notNow',
-      followUp: fellowshipFollowUp({ settled, isAttached: account.isAttached, isAdmin: account.isAdmin, isMember }),
-    });
+    advance({ type: 'notNow', followUp: followUp() });
   };
 
   const requestReachOut = async () => {
@@ -210,7 +217,7 @@ export function CheckInFellowshipStep({ checkIn, checkInDay }: { checkIn: CheckI
         <QuietButton label={t('fellowships.booking.no')} onPress={() => advance({ type: 'decline' })} />
       </>}
 
-      {step === 'closed' && <Text style={text}>{t('fellowships.closing')}</Text>}
+      {(step === 'closed' || step === 'waiting') && <Text style={text}>{t('fellowships.closing')}</Text>}
     </View>
   );
 }

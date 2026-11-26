@@ -55,7 +55,7 @@ test('the hook welcomes a return once: it reads the last visit, then writes this
   assert.match(hook, /const dismiss = useCallback\(\(\) => \{\s*live\.current\.visible = false;\s*setVisible\(false\);\s*\}, \[\]\);/);
   // Today's reminder ask waits for the welcome-back answer on every return (welcome-back-hook.test.mjs runs it).
   assert.match(read('app/(tabs)/index.tsx'), /!welcome\.ready \|\| welcome\.returned, welcome\.decided, mondayCancelled\)/);
-  assert.match(read('src/hooks/useReminderAsk.ts'), /const welcomed = welcomeBackDecided \? await welcomeBackDecided\(\)\.catch\(\(\) => false\) : false;[\s\S]*?const kind = welcomed \? null : decide\(permission, memory, now\);/);
+  assert.match(read('src/hooks/useReminderAsk.ts'), /const welcomed = welcomeBackDecided \? await welcomeBackDecided\(\)\.catch\(\(\) => false\) : false;[\s\S]*?const kind = welcomed \|\| invitationThisVisit\(accountId\) \? null : decide\(permission, memory, now\);/);
 });
 
 test('Today shows the card at the top; either action or Close puts it away', () => {

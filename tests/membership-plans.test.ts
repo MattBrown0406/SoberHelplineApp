@@ -475,12 +475,12 @@ test('the invitation is wired to the real return from the meeting, on the free T
   assert.match(read('src/lib/meetingAttendance.ts'), /logFunnelEventConfirmed\('attended_10min', \{ meeting_date: mark\.meetingDate, source: mark\.source \}\),[\s\S]*?if \(!logged\) return false;[\s\S]*?return true;/);
 
   const today = read('app/(tabs)/index.tsx');
-  // Never beside another ask.
-  assert.match(today, /useAfterMeetingInvite\(\s+user\?\.id \?\? null,\s+welcome\.visible \|\| !!reminderAsk\.view,\s+\);/);
+  // Never beside another ask, nor after a hard check-in today (the support it asked for comes first).
+  assert.match(today, /useAfterMeetingInvite\(\s+user\?\.id \?\? null,\s+welcome\.visible \|\| !!reminderAsk\.view \|\| hardCheckInToday,\s+\);/);
   const [beforeFree, afterFree] = today.split('if (!canAccessFullToday) {');
   const [freeToday, paidToday] = afterFree.split("\n  return (\n    <ScreenContainer backgroundColor={colors.cream} scrollRef={scrollRef}>");
   assert.ok(freeToday && paidToday, 'the free and paid Today are separate returns');
-  assert.match(freeToday, /<ContextualMembershipInvitation\s+accountId=\{user\?\.id \?\? null\}\s+placement="after-meeting"\s+completed=\{afterMeeting\}\s+\/>/);
+  assert.match(freeToday, /<ContextualMembershipInvitation\s+accountId=\{user\?\.id \?\? null\}\s+placement="after-meeting"\s+completed=\{afterMeeting && !hardCheckInToday\}\s+\/>/);
   assert.ok(!beforeFree.includes('<ContextualMembershipInvitation'), 'only in the free Today');
   assert.ok(!paidToday.includes('<ContextualMembershipInvitation'), 'not on the paid Today');
   // The card itself refuses anyone who is not a free member.

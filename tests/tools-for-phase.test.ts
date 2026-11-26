@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { RECOVERY_PHASES } from '../src/lib/recoveryPathway';
+import { knownRecoveryPhase, normalizeRecoveryPhase, RECOVERY_PHASES } from '../src/lib/recoveryPathway';
 import { FOR_NOW_MAX, PHASE_TOOLS, TOOL_IDS, toolsForPhase } from '../src/lib/toolsForPhase';
 import {
   FLOW_ROUTES,
@@ -64,12 +64,34 @@ test('an elevated or crisis band puts the Safety Wallet first, keeping at most t
   assert.deepEqual(toolsForPhase('in_treatment', 'watch').forNow, ['visitation', 'holiday', 'actionPlan']);
 });
 
+test('Tools and Today read the same phase; nothing said means no phase, not a guess', () => {
+  // A record with only a status: the same phase as Today's path.
+  for (const status of ['in_treatment', 'using', 'escalating', 'crisis']) {
+    assert.equal(knownRecoveryPhase(null, status), normalizeRecoveryPhase(null, status), status);
+  }
+  assert.equal(knownRecoveryPhase(null, 'in_treatment'), 'in_treatment');
+  // Any stage she chose (new or original) is known and matches Today.
+  for (const stage of [...RECOVERY_PHASES, 'using', 'seeking_help', 'recovery']) {
+    assert.equal(knownRecoveryPhase(stage, 'stable'), normalizeRecoveryPhase(stage, 'stable'), stage);
+  }
+  // Nothing said (or nothing that maps): null, where Today would only fall back to "Not sure yet".
+  for (const [stage, status] of [[null, null], [undefined, 'stable'], ['', 'unknown'], ['bogus', null]] as const) {
+    assert.equal(knownRecoveryPhase(stage, status), null, `${stage} ${status}`);
+  }
+});
+
 // ── The Tools tab ────────────────────────────────────────────────────────────
 
 test('Tools: picks for where she is, the rest one tap away', () => {
   const tools = read('app/(tabs)/learn.tsx');
   assert.match(tools, /const \{ lovedOne, loading: lovedOneLoading \} = useLovedOne\(user\?\.id \?\? null\);/);
-  assert.match(tools, /const phase = lovedOne\?\.stage \? normalizeRecoveryPhase\(lovedOne\.stage, lovedOne\.status\) : null;/);
+  // The phase is read exactly as Today's "Your path" reads it (stage, then the record's status, then the situation's).
+  assert.match(tools, /const phase = knownRecoveryPhase\(\s+lovedOne\?\.stage,\s+lovedOne\?\.status \?\? \(situationLoaded \? situation\.drivers\.loved_one_status : null\),\s+\);/);
+  const today = read('app/(tabs)/index.tsx');
+  assert.match(today, /const lovedOneStatus = lovedOne\?\.status \?\? situation\.drivers\.loved_one_status;/);
+  assert.match(today, /<PathNextStepCard stage=\{lovedOne\?\.stage\} status=\{lovedOneStatus\}/);
+  // With nothing known, the line does not claim the picks fit her loved one.
+  assert.match(tools, /\{t\(phase \? 'tools\.forNowBody' : 'tools\.forNowBodyNeutral'\)\}/);
   assert.match(tools, /toolsForPhase\(phase, situationLoaded \? situation\.band : null\)/);
   // Only once the record has loaded, so the picks never jump.
   assert.match(tools, /const showForNow = !lovedOneLoading;/);
@@ -87,8 +109,13 @@ test('Tools: picks for where she is, the rest one tap away', () => {
   assert.match(tools, /\['boundaries', '\/\(tabs\)\/scripts\?section=boundaries'\]/);
   for (const lang of ['en', 'es']) {
     const learn = locale(lang, 'learn');
-    for (const key of ['forNowEyebrow', 'forNowBody', 'allTitle']) assert.ok(learn.tools[key], `${lang} ${key}`);
+    for (const key of ['forNowEyebrow', 'forNowBody', 'forNowBodyNeutral', 'allTitle']) assert.ok(learn.tools[key], `${lang} ${key}`);
     assert.equal(learn.tools.eyebrow, undefined, `${lang}: the old eyebrow is gone`);
+    // The prosecutor FAQ: the meeting is to review the charges (the family cannot decide them).
+    const prosecutor = (learn.faq.items as { q: string; a: string }[]).find((item) => /prosecutor|fiscal/i.test(item.q));
+    assert.ok(prosecutor, lang);
+    assert.match(prosecutor.a, lang === 'en' ? /meeting to review whether the charges/ : /reunión en persona para revisar si los cargos/);
+    assert.doesNotMatch(prosecutor.a, lang === 'en' ? /to decide whether/ : /para decidir si/);
   }
 });
 
@@ -119,6 +146,13 @@ test('the engine shows the steps; every step screen says its step and is counted
     assert.match(source, new RegExp(`<FlowStepLine step="${step}" />`), file);
     assert.match(source, new RegExp(`useToolOpened\\('invitation_${step}'\\)`), file);
   }
+  // The safety-first path shows no steps on the engine, so the outcome screen (reachable from the kit and the
+  // paused card) hides its step line there too, and until the snapshot says. Progress opens only from the
+  // engine's active stage.
+  const outcome = read('app/invitation-outcome.tsx');
+  assert.match(outcome, /const showStepLine = !!engine\.snapshot && !isSafetyFirst\(engine\.snapshot\);/);
+  assert.equal(outcome.split('{showStepLine && <FlowStepLine step="outcome" />}').length - 1, 2);
+  assert.equal(outcome.split('<FlowStepLine').length - 1, 2);
   // Kit, outcome and progress go back to the engine (setup keeps its own save-then-leave).
   for (const file of ['invitation-kit', 'invitation-outcome', 'invitation-progress']) {
     const source = read(`app/${file}.tsx`);

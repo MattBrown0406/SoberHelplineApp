@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { appAlert } from '../../src/lib/appAlert';
 import { useAccount } from '../../src/contexts/AccountContext';
 import { useTheme } from '../../src/contexts/ThemeContext';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { TodayDisclosure, TodayDisclosureToggle } from '../../src/components/today/TodayDisclosure';
 import { NextStepItem, useNextStep } from '../../src/components/today/NextStepItem';
@@ -99,11 +99,22 @@ function TodayContent() {
   // (Nor "a reminder before Monday's meeting" in a week the website cancelled it.)
   const mondayCancelled = isFamilySquaresSession(nextFreeCall) && isCancelledMeetingDate(nextFreeCall?.cancelledDate);
   const reminderAsk = useTodayReminderAsk(user?.id ?? null, user?.joinedAt, !welcome.ready || welcome.returned, welcome.decided, mondayCancelled);
+  // A hard check-in today gets the support it asked for (the feedback card's
+  // meeting / "Matt can reach out" step), not an invitation: the same rule as
+  // the five-day card. The after-meeting moment is let go, and a card already
+  // up goes away once she checks in that way.
+  // (A part an older version did not save counts as not hard.)
+  const hardCheckInToday = !!todayCheckIn && isDifficultCheckIn({
+    moodScore: todayCheckIn.moodScore,
+    capacityScore: todayCheckIn.capacityScore ?? 3,
+    pressureScore: todayCheckIn.pressureScore ?? 3,
+    supportNeed: todayCheckIn.supportNeed ?? 'steady',
+  });
   // Just back from Family Squares, and no rating prompt on this visit. Free
   // members only (the invitation checks that).
   const afterMeeting = useAfterMeetingInvite(
     user?.id ?? null,
-    welcome.visible || !!reminderAsk.view,
+    welcome.visible || !!reminderAsk.view || hardCheckInToday,
   );
   // One ask per visit: once the reminder ask has been on Today, no membership
   // invitation is offered anywhere until she next leaves the app (visitAsks).
@@ -127,9 +138,12 @@ function TodayContent() {
   const scrollToCheckIn = useRef(false);
   const moreY = useRef(0);
   const scrollToMore = useRef(false);
-  // `/guided-journey` (the old starting-point journey; a winback push still
-  // opens it) lands here with `more=1`: open "More for you", where her path is.
-  // `n` makes a repeat visit open it again.
+  // The winback push, the check-in's "a practical next step" and the old
+  // `/guided-journey` route land here with `more=1`: open "More for you",
+  // where her path is. `n` makes a repeat visit open it again. The params
+  // are consumed on this screen (as Support does with `ask`), so a later
+  // remount of Today (another account signing in) does not open it again.
+  const navigation = useNavigation();
   const { more: openMoreParam, n: openMoreNonce } = useLocalSearchParams<{ more?: string; n?: string }>();
   useEffect(() => {
     if (openMoreParam !== '1') return;
@@ -140,7 +154,8 @@ function TodayContent() {
     } else {
       scrollToMore.current = true;
     }
-  }, [openMoreParam, openMoreNonce]);
+    navigation.setParams({ more: undefined, n: undefined } as never);
+  }, [openMoreParam, openMoreNonce, navigation]);
 
   const firstName = user?.firstName?.trim() ?? '';
   const greeting = timeGreeting(t, firstName);
@@ -405,7 +420,7 @@ function TodayContent() {
         <ContextualMembershipInvitation
           accountId={user?.id ?? null}
           placement="after-meeting"
-          completed={afterMeeting}
+          completed={afterMeeting && !hardCheckInToday}
         />
         <View onLayout={onCheckInLayout}>
           {checkInCard}

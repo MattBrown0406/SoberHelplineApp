@@ -153,8 +153,23 @@ test('morning note and daily nudge open a tab from an allowlisted hint, defaulti
   assert.deepEqual(getPushDestination({ kind: 'daily_nudge', screen: '/video-session' }), { pathname: '/(tabs)' });
 });
 
-test('winback opens the guided journey', () => {
-  assert.deepEqual(getPushDestination({ kind: 'winback' }, { entitlements: FREE }), { pathname: '/guided-journey' });
+test('winback opens Today with "More for you" open, never the /guided-journey hop', () => {
+  const now = Date.parse('2026-11-25T12:00:00Z');
+  assert.deepEqual(
+    getPushDestination({ kind: 'winback' }, { entitlements: FREE, nowMs: now }),
+    { pathname: '/(tabs)', params: { more: '1', n: String(now) } },
+  );
+  // A fresh `n` on every tap, so a repeat winback opens "More for you" again.
+  assert.notDeepEqual(
+    getPushDestination({ kind: 'winback' }, { nowMs: now }),
+    getPushDestination({ kind: 'winback' }, { nowMs: now + 1 }),
+  );
+  assert.doesNotMatch(readFileSync('src/lib/pushRouting.ts', 'utf8'), /pathname: '\/guided-journey'/);
+  // The old route stays for older links, and pops back to the tabs below it
+  // (POP_TO) instead of replacing itself with a second copy of the tabs.
+  const route = readFileSync('app/guided-journey.tsx', 'utf8');
+  assert.match(route, /router\.dismissTo\(\{ pathname: '\/\(tabs\)', params: \{ more: '1', n: visit \} \}\)/);
+  assert.doesNotMatch(route, /<Redirect href|router\.(push|replace)\(/);
 });
 
 test('unknown and legacy payloads open the app on a tab and never a gated screen', () => {
@@ -229,4 +244,14 @@ test('a member asking Matt to reach out opens Admin (staff only), whatever the t
   const sql = readFileSync('supabase/migrations/20261124120000_checkin_reach_out_requests.sql', 'utf8');
   assert.match(sql, /jsonb_build_object\('kind', 'admin_reach_out', 'request_id', v_request, 'member_account_id', v_account\)/);
   assert.match(sql, /WHEN 'admin_reach_out' THEN/);
+});
+
+test('an old 4.3 "a family lost their loved one" push opens Admin for staff, like a reach-out request', () => {
+  assert.deepEqual(getPushDestination({ kind: 'admin_bereavement' }), { pathname: '/admin' });
+  assert.deepEqual(getPushDestination({ kind: 'admin_bereavement' }, { entitlements: FREE }), { pathname: '/admin' });
+  assert.deepEqual(
+    getPushDestination({ kind: 'admin_bereavement' }, { entitlements: FREE }),
+    getPushDestination({ kind: 'admin_reach_out', request_id: PRACTICE_EVENT_ID }, { entitlements: FREE }),
+  );
+  assert.match(readFileSync('src/lib/pushRouting.ts', 'utf8'), /if \(kind === 'admin_bereavement'\) \{\s*return \{ pathname: '\/admin' \};/);
 });

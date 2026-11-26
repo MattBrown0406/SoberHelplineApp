@@ -3,10 +3,11 @@ import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useFeatureAccess } from '../../hooks/useFeatureAccess';
 import {
   normalizeRecoveryPhase,
   pathwayDaySlot,
-  RECOVERY_PHASE_ROUTE,
+  phaseNextStep,
   RECOVERY_PHASES,
   type RecoveryPhase,
 } from '../../lib/recoveryPathway';
@@ -34,6 +35,9 @@ export function RecoveryPathwayCard({
   const { t } = useTranslation('today');
   const router = useRouter();
   const phase = normalizeRecoveryPhase(stage, status);
+  // The same next step as Today's slot: never a members-only screen for a free member.
+  const trackerAccess = useFeatureAccess('tracker');
+  const nextStep = phaseNextStep(phase, trackerAccess);
   const slot = pathwayDaySlot(new Date());
   const [editing, setEditing] = useState(false);
   const [selectedPhase, setSelectedPhase] = useState<RecoveryPhase>(phase);
@@ -196,12 +200,12 @@ export function RecoveryPathwayCard({
 
           <TouchableOpacity
             accessibilityRole="button"
-            onPress={() => router.push(RECOVERY_PHASE_ROUTE[phase] as never)}
+            onPress={() => router.push(nextStep.route as never)}
             style={[styles.nextButton, { borderColor: colors.primary }]}
             activeOpacity={0.8}
           >
             <Text style={[styles.nextButtonText, { color: colors.primary }]}>
-              {t(`pathway.phases.${phase}.cta`)}
+              {t(nextStep.ctaKey)}
             </Text>
             <Text style={[styles.chevron, { color: colors.primary }]}>›</Text>
           </TouchableOpacity>

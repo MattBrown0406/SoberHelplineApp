@@ -49,10 +49,10 @@ A claim is refused unless every one of these holds:
 | "Don’t show again" | permanent |
 | Shown 3 times in a row with no tap and no dismissal | 30-day pause after the third (`UNANSWERED_LIMIT`, `UNANSWERED_PAUSE`); the count starts again after the pause or at any tap/dismissal |
 | `after-meeting` | at most once every 14 days, on top of the above (`AFTER_MEETING_GAP`) |
-| One ask per visit | none on a visit (until the app next leaves the foreground) when the App Store rating prompt was requested, may have been (a failed check), or is still being checked, or when the reminder ask was shown (`visitAsks.ts`) |
+| One ask per visit | none on a visit (until the app next leaves the foreground) when the App Store rating prompt was requested, may have been (a failed check), or is still being checked, or when the reminder ask was shown (`visitAsks.ts`). The other way too: after an invitation was on screen this visit (or while one still is), the rating prompt and the reminder asks (Today's and the one under a saved seat) give way (`invitationThisVisit`) |
 | One card at a time | while one card is visible for an account, no other placement can claim |
 
-One ask per visit is decided in one place, `visitAsks.ts`: `src/lib/reviewPrompt.ts` reports every rating-prompt check (running, and requested/failed) for every milestone; `src/lib/afterMeetingInvite.ts` reports the after-meeting check; Today reports its reminder ask. `clearMeetingReturn()` (called by the app layout when the app leaves the foreground or the account changes) ends the visit. The reminder ask under a saved seat (`useSeatReminderAsk`) does not report yet (see the 4.4 notes).
+One ask per visit is decided in one place, `visitAsks.ts`: `src/lib/reviewPrompt.ts` reports every rating-prompt check (running, and requested/failed) for every milestone; `src/lib/afterMeetingInvite.ts` reports the after-meeting check; Today reports its reminder ask. The card reports itself while it is on screen (`noteInvitationShowing`); `src/lib/reviewPrompt.ts` and `src/hooks/useReminderAsk.ts` read `invitationThisVisit`. `clearMeetingReturn()` (called by the app layout when the app leaves the foreground or the account changes) ends the visit; a card still on screen then counts for the new visit too. An invitation waits until `entitlementsSettled` (a web or store membership still syncing reads as free until then).
 
 ## Storage
 

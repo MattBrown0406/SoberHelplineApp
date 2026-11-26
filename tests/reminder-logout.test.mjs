@@ -17,7 +17,7 @@ test('account deletion removes the website account first, then her stored files,
         functions:{invoke:async name=>{calls.push(name);return name==='delete-website-account'?website:{error:purgeError}}}}});
     fn();await confirm();return{calls,alerts,restored};
   };
-  // The website can't finish: nothing of hers is touched, and she is told nothing was deleted.
+  // The website can't finish: nothing more of hers is touched, and she is told the app account was not.
   let r=await run({website:{data:{ok:false,result:'unreachable'},error:null}});
   assert.deepEqual(r.calls,['delete-website-account']);
   assert.deepEqual(r.alerts,[['deleteAccount.errorTitle','deleteAccount.websiteErrorMessage']]);
@@ -39,4 +39,10 @@ test('account deletion removes the website account first, then her stored files,
   // No website account (not_found): the ordinary message.
   r=await run({website:{data:{ok:true,result:'not_found'},error:null},rpcError:new Error('db')});
   assert.deepEqual(r.alerts,[['deleteAccount.errorTitle','deleteAccount.errorMessage']]);
+  // The words stay true in every branch: photos may already be gone, and on a retry the
+  // website account may have gone on the earlier try, so no message says "nothing was deleted".
+  for(const lang of ['en','es']){
+    const copy=JSON.parse(fs.readFileSync(new URL(`../src/locales/${lang}/settings.json`,import.meta.url),'utf8')).deleteAccount;
+    for(const key of ['errorMessage','websiteErrorMessage','appErrorMessage'])assert.doesNotMatch(copy[key],/nothing was deleted|no se eliminó nada/i,`${lang}.${key}`);
+  }
 });

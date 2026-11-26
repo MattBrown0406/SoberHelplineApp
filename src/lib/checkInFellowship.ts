@@ -38,14 +38,15 @@ export function showFellowshipStep(gate: FellowshipStepGate): boolean {
   return isStruggling(gate.checkIn);
 }
 
-export type FellowshipFollowUp = 'reachOut' | 'booking' | null;
+export type FellowshipFollowUp = 'reachOut' | 'booking' | 'wait' | null;
 
 /**
  * What follows "Not right now". A member (Essential or Premier, from the App
  * Store or soberhelpline.com) may ask Matt to reach out; a free direct account
  * is offered help booking a session. An attached account's own team handles
- * it, an admin is not a member, and nothing is offered while her account is
- * not known for certain.
+ * it, and an admin is not a member. While her account is not known for
+ * certain, nothing is decided yet ('wait'): the right follow-up comes once it
+ * is, so a slow start never costs her the day's offer.
  */
 export function fellowshipFollowUp(input: {
   settled: boolean;
@@ -54,13 +55,17 @@ export function fellowshipFollowUp(input: {
   /** useFeatureAccess('coachMessaging'): a paid membership. */
   isMember: boolean;
 }): FellowshipFollowUp {
-  if (!input.settled || input.isAttached || input.isAdmin) return null;
+  if (!input.settled) return 'wait';
+  if (input.isAttached || input.isAdmin) return null;
   return input.isMember ? 'reachOut' : 'booking';
 }
 
-export type FellowshipStep = 'choose' | 'reachOut' | 'booking' | 'sending' | 'sent' | 'failed' | 'closed';
+/** 'waiting': she said "Not right now" before her account was known; nothing is saved yet. */
+export type FellowshipStep = 'choose' | 'waiting' | 'reachOut' | 'booking' | 'sending' | 'sent' | 'failed' | 'closed';
 export type FellowshipEvent =
   | { type: 'notNow'; followUp: FellowshipFollowUp }
+  /** Her account became known while 'waiting'. */
+  | { type: 'settled'; followUp: FellowshipFollowUp }
   | { type: 'send' }
   | { type: 'sendResult'; ok: boolean }
   | { type: 'book' }
@@ -69,7 +74,9 @@ export type FellowshipEvent =
 export function nextFellowshipStep(step: FellowshipStep, event: FellowshipEvent): FellowshipStep {
   switch (event.type) {
     case 'notNow':
-      return step === 'choose' ? (event.followUp ?? 'closed') : step;
+      return step === 'choose' ? afterNotNow(event.followUp) : step;
+    case 'settled':
+      return step === 'waiting' ? afterNotNow(event.followUp) : step;
     case 'send':
       return step === 'reachOut' || step === 'failed' ? 'sending' : step;
     case 'sendResult':
@@ -81,6 +88,10 @@ export function nextFellowshipStep(step: FellowshipStep, event: FellowshipEvent)
     default:
       return step;
   }
+}
+
+function afterNotNow(followUp: FellowshipFollowUp): FellowshipStep {
+  return followUp === 'wait' ? 'waiting' : followUp ?? 'closed';
 }
 
 /** Steps that end the day's offer: it is not shown again for this check-in. */

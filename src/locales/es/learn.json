@@ -3,6 +3,7 @@
   "tools": {
     "forNowEyebrow": "PARA TU MOMENTO ACTUAL",
     "forNowBody": "Elegidas según dónde está tu ser querido ahora. Las demás están en Todas las guías.",
+    "forNowBodyNeutral": "Algunas guías para empezar. Las demás están en Todas las guías.",
     "allTitle": "Todas las guías",
     "costTitle": "Hoja de dinero y límites",
     "costBody": "Calcula lo que la adicción le ha costado a tu familia y decide qué financiarás y qué no.",
@@ -186,7 +187,7 @@
       },
       {
         "q": "¿Podemos pedirle a la fiscalía tratamiento en lugar de cárcel?",
-        "a": "Sí, y conviene pedirlo por escrito. En la pestaña Guías hay una carta para pedirle a la fiscalía que permita el tratamiento que tu familia consiguió y que tu ser querido lo complete, con informes escritos de progreso del programa y luego una reunión en persona para decidir si los cargos deben continuar o reducirse. Dásela primero al abogado defensor y no escribas sobre lo que pasó: todo lo escrito puede usarse en el caso. El programa solo puede enviar informes después de que tu ser querido firme una autorización. Es información general, no asesoría legal."
+        "a": "Sí, y conviene pedirlo por escrito. En la pestaña Guías hay una carta para pedirle a la fiscalía que permita el tratamiento que tu familia consiguió y que tu ser querido lo complete, con informes escritos de progreso del programa y luego una reunión en persona para revisar si los cargos deben continuar o reducirse. Dásela primero al abogado defensor y no escribas sobre lo que pasó: todo lo escrito puede usarse en el caso. El programa solo puede enviar informes después de que tu ser querido firme una autorización. Es información general, no asesoría legal."
       },
       {
         "q": "¿La medicación no es solo cambiar una droga por otra?",

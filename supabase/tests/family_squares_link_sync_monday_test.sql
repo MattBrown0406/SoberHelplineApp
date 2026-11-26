@@ -5,7 +5,7 @@ SELECT plan(4);
 
 -- Monday evenings the website link is copied every 2 minutes, next to the 10-minute job.
 SELECT is((SELECT schedule FROM cron.job WHERE jobname = 'shl-family-squares-link-sync-monday'),
-  '*/2 0-4 * * 2', 'every 2 minutes, Tuesday 00:00-04:59 UTC (Monday 5-9 PM Pacific)');
+  '*/2 0-4 * * 2', 'every 2 minutes, Tuesday 00:00-04:58 UTC (Monday 4:00-8:58 PM PST, 5:00-9:58 PM PDT)');
 SELECT is((SELECT schedule FROM cron.job WHERE jobname = 'shl-family-squares-link-sync'),
   '*/10 * * * *', 'the 10-minute job is unchanged');
 SELECT ok((SELECT command LIKE '%/functions/v1/zoom-sync%' FROM cron.job WHERE jobname = 'shl-family-squares-link-sync-monday'),

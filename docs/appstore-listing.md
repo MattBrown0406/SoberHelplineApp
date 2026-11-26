@@ -16,7 +16,6 @@ listing. Update `promotionalText` anytime without re-review.
 • Holiday Plan: decide who's invited, on what terms, and what happens if they show up using. Share it with everyone hosting.
 • If they're arrested: a step-by-step plan, a letter asking the prosecutor for treatment instead of jail, and a checklist for choosing a treatment program.
 • A 26-week family reading, a one-tap check on where things stand, and new answers on bail, court-ordered treatment, and medication.
-• If your loved one dies, the app changes to support your grief, and you can pause reminders.
 • Members using the app in Spanish now join La Sobremesa, our free Spanish-language Monday call.
 
 ### App Name
@@ -90,7 +89,6 @@ Hope. Help. Recovery.
 • Plan para las fiestas: decide quién está invitado, con qué condiciones y qué pasa si llega intoxicado/a. Compártelo con todos los que reciben.
 • Si lo/la arrestan: un plan paso a paso, una carta para pedirle a la fiscalía tratamiento en lugar de cárcel y una guía para elegir un programa de tratamiento.
 • Una lectura familiar de 26 semanas, una pregunta de un toque sobre cómo están las cosas y nuevas respuestas sobre fianza, tratamiento ordenado por la corte y medicamentos.
-• Si tu ser querido muere, la app cambia para acompañar tu duelo, y puedes pausar los recordatorios.
 • Si usas la app en español, ahora te unes a La Sobremesa, nuestra llamada gratuita de los lunes en español.
 
 ### Subtitle

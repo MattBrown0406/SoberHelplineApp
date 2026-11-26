@@ -461,16 +461,18 @@ export default function SettingsScreen() {
               // "Delete my account" means everywhere: the soberhelpline.com account with
               // this email goes too, and a website membership billed through PayPal is
               // cancelled. The website goes first: if it can't finish, stop here before
-              // anything of hers is removed, so "nothing was deleted" stays true. A retry
-              // is safe: the second time the website answers not_found (ok).
+              // the app account is touched (websiteErrorMessage says so). A retry is safe:
+              // the second time the website answers not_found (ok).
               const { data: websiteOutcome, error: websiteError } = await supabase.functions.invoke('delete-website-account');
               if (websiteError || websiteOutcome?.ok !== true) {
                 restoreRemindersAfterAbortedExit();
                 appAlert(t('deleteAccount.errorTitle'), t('deleteAccount.websiteErrorMessage'));
                 return;
               }
-              // From here on, a failure leaves the app account in place; say so when the
-              // website account is already gone.
+              // From here on, a failure leaves the app account in place. Photos may already
+              // be gone, and on a retry the website may have been removed by the earlier try
+              // (not_found now), so the message never says "nothing was deleted": it names
+              // the website only when this try removed it.
               websiteRemoved = websiteOutcome?.result === 'deleted';
               const appErrorKey = websiteRemoved ? 'deleteAccount.appErrorMessage' : 'deleteAccount.errorMessage';
               // Stored photos don't cascade with the account; remove them before the

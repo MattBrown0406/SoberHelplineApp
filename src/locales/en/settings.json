@@ -114,8 +114,8 @@
     "confirmButton": "Yes, delete my account",
     "cancelButton": "Cancel",
     "errorTitle": "Account not deleted",
-    "errorMessage": "We couldn't delete your account. Nothing was deleted and you are still signed in. Please try again.",
-    "websiteErrorMessage": "We couldn't remove your soberhelpline.com account or cancel its membership, so nothing was deleted. You are still signed in. Please try again in a few minutes.",
+    "errorMessage": "We couldn't finish deleting your app account. You are still signed in. Please try again.",
+    "websiteErrorMessage": "We couldn't remove your soberhelpline.com account or cancel its membership, so we stopped before deleting your app account. You are still signed in. Please try again in a few minutes.",
     "appErrorMessage": "Your soberhelpline.com account was removed, but we couldn't finish deleting your app account. You are still signed in. Please try again.",
     "cleanupErrorTitle": "Account deleted",
     "cleanupErrorMessage": "Your account was deleted, but this device couldn't finish signing out. Close and reopen the app to clear it."

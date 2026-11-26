@@ -11,12 +11,18 @@
  * - the reminder ask (Today's card, app/(tabs)/index.tsx).
  *
  * A membership invitation is never claimed on a visit that had one of them
- * (policy.ts, askedThisVisit). Nothing is stored and nothing is logged.
+ * (policy.ts, askedThisVisit). The other way round too: once an invitation was
+ * on screen this visit (ContextualMembershipInvitation reports it), or while one
+ * still is (a card stays up across a quick trip out of the app), the rating
+ * prompt and the reminder asks give way (invitationThisVisit). Nothing is
+ * stored and nothing is logged.
  *
  * Pure (no device imports), so it runs in unit tests.
  */
 const asked = new Set<string>();
 const pending = new Map<string, number>();
+const invited = new Set<string>();
+const invitationsOnScreen = new Map<string, number>();
 
 /** Another ask was on screen (or may have been) on this visit, for this account. */
 export function noteVisitAsk(accountId: string | null | undefined): void {
@@ -36,7 +42,26 @@ export function askedThisVisit(accountId: string | null | undefined): boolean {
   return !accountId || asked.has(accountId) || pending.has(accountId);
 }
 
-/** The visit is over. A rating-prompt check still running keeps counting until it ends. */
+/** A membership invitation appeared (true) or left the screen (false) for this account. */
+export function noteInvitationShowing(accountId: string | null | undefined, showing: boolean): void {
+  if (!accountId) return;
+  if (showing) invited.add(accountId);
+  const next = (invitationsOnScreen.get(accountId) ?? 0) + (showing ? 1 : -1);
+  if (next > 0) invitationsOnScreen.set(accountId, next);
+  else invitationsOnScreen.delete(accountId);
+}
+
+/** True when the rating prompt and the reminder asks must give way: an invitation had this visit. */
+export function invitationThisVisit(accountId: string | null | undefined): boolean {
+  return !!accountId && (invited.has(accountId) || invitationsOnScreen.has(accountId));
+}
+
+/**
+ * The visit is over. A rating-prompt check still running keeps counting until
+ * it ends, and an invitation still on screen was shown on the new visit too.
+ */
 export function clearVisitAsks(): void {
   asked.clear();
+  invited.clear();
+  for (const accountId of invitationsOnScreen.keys()) invited.add(accountId);
 }

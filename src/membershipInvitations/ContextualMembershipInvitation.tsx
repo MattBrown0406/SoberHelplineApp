@@ -8,9 +8,10 @@ import { usePlanOffers } from '../hooks/usePlanPurchase';
 import { logMembershipPath } from '../lib/funnel';
 import { plansHref, type PlanSource } from '../lib/membershipPath';
 import { createInvitationPolicy, type Placement } from './policy';
-import { askedThisVisit } from './visitAsks';
+import { askedThisVisit, noteInvitationShowing } from './visitAsks';
 
-// One ask per visit: never on a visit that had the rating prompt or the reminder ask.
+// One ask per visit: never on a visit that had the rating prompt or the reminder ask
+// (and, while the card is up, those give way to it: noteInvitationShowing).
 const policy = createInvitationPolicy(AsyncStorage, Date.now, askedThisVisit);
 /** Where she was when the invitation appeared: the only thing logged about it. */
 const SOURCE: Record<Placement, PlanSource> = {
@@ -48,7 +49,10 @@ export function ContextualMembershipInvitation({ accountId, completed, placement
   const scope = account.user?.id ?? null;
   // "Settled": who she is and what she has are known for certain. Until then
   // nothing is shown, but a moment that arrives meanwhile is kept (below).
-  const settled = !account.isLoading && !account.accountError && !account.isOfflineAccountFallback;
+  // entitlementsSettled: a web or store membership may still be syncing (a
+  // member reads as free until it is), so nothing is offered before it is.
+  const settled = !account.isLoading && !account.accountError && !account.isOfflineAccountFallback &&
+    account.entitlementsSettled;
   const allowed = !!scope && scope === accountId && account.isAuthenticated && settled &&
     !account.isAdmin && !account.isAttached && account.accountState === 'direct-free';
   const joinedAt = joinedAtMs(account.user?.joinedAt);
@@ -96,7 +100,15 @@ export function ContextualMembershipInvitation({ accountId, completed, placement
     return () => { active = false; };
   }, [scope, allowed, settled, completed, placement, source]);
   useEffect(() => () => { if (scope && owned.current === scope) { policy.release(scope); owned.current = null; } }, [scope]);
-  if (!allowed || !completed || shownFor !== scope || !scope) return null;
+  const onScreen = !!scope && allowed && completed && shownFor === scope;
+  // One ask per visit, the other way: the rating prompt and the reminder asks
+  // give way on a visit that had this card, and while it is on screen.
+  useEffect(() => {
+    if (!onScreen || !scope) return undefined;
+    noteInvitationShowing(scope, true);
+    return () => noteInvitationShowing(scope, false);
+  }, [onScreen, scope]);
+  if (!onScreen || !scope) return null;
   const dismiss = (permanent: boolean) => {
     setShownFor(null); owned.current = null;
     void policy.dismiss(scope, permanent, () => live.current.scope === scope && live.current.allowed);

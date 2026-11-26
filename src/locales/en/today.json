@@ -375,6 +375,10 @@
           "Clarity may come from a pattern of facts rather than one conversation."
         ]
       }
+    },
+    "freeCta": {
+      "tools": "Find a tool to start with",
+      "boundaries": "Plan your boundaries"
     }
   },
   "focus": {

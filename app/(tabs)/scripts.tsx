@@ -49,6 +49,13 @@ export default function ScriptsScreen() {
   const { t: tCommon } = useTranslation('common');
   const { q, n, section: sectionParam } = useLocalSearchParams<{ q?: string; n?: string; section?: string }>();
   const section = practiceSectionFromParam(sectionParam);
+  // Boundaries mounts the first time it is chosen (no reads before), then
+  // stays mounted and is only hidden behind Conversations, so her drafts
+  // there (a wall, a journal note, a family code) survive the switch.
+  const [boundariesOpened, setBoundariesOpened] = useState(section === 'boundaries');
+  useEffect(() => {
+    if (section === 'boundaries') setBoundariesOpened(true);
+  }, [section]);
   const scrollRef = useRef<ScrollView>(null);
   const [query, setQuery] = useState('');
 
@@ -122,9 +129,12 @@ export default function ScriptsScreen() {
       <TabHeader title={tCommon('nav.scripts')} />
       <PracticeSwitch value={section} onChange={chooseSection} />
 
-      {section === 'boundaries' ? (
-        <BoundariesPractice scrollRef={scrollRef} />
-      ) : (
+      {(boundariesOpened || section === 'boundaries') && (
+        <View style={{ display: section === 'boundaries' ? 'flex' : 'none' }}>
+          <BoundariesPractice scrollRef={scrollRef} active={section === 'boundaries'} />
+        </View>
+      )}
+      {section !== 'boundaries' && (
         <>
           <ConversationsOpened />
           {/* Search */}

@@ -70,7 +70,7 @@
     "registrationUnavailable": "La inscripción para Family Squares de esta semana no está disponible en este momento.",
     "weekly": {
       "title": "Guardar mi lugar todos los lunes",
-      "desc": "Guardamos tu lugar cada semana. Se pausa mientras tus recordatorios estén en pausa, o después de unos seis meses sin abrir la app.",
+      "desc": "Guardamos tu lugar cada semana. Se pausa después de unos seis meses sin abrir la app.",
       "onNote": "Tu lugar semanal está activado. Normalmente guardamos tu lugar para el próximo lunes en unas horas, y también puedes reservarlo ahora.",
       "errorTitle": "No se pudo guardar",
       "errorBody": "Revisa tu conexión e inténtalo de nuevo."

@@ -448,11 +448,16 @@ export function usePushNotifications(
         || (live.current.mounted && live.current.accountId === accountId && live.current.navigationReady);
       if (!stillHers) return false;
       if (!shouldHandlePushResponse(data, response.notification.request.identifier)) return true;
-      // A relative's backup notice lands on the already-mounted Boundaries tab
-      // (and Today keeps its own copy): re-read the family space now.
+      // A relative's backup notice opens Practice's Boundaries part (and Today
+      // keeps its own copy): re-read the family space now.
       if (data.kind === 'family_backup') requestFamilySpaceRefresh();
       try {
-        routerRef.current.push(route as never);
+        // A tab (Today, Practice, Tools, Support) is switched to, never pushed:
+        // pushing a tab route over another screen stacks a second copy of the
+        // tabs (expo-router never reuses a route without an id on PUSH).
+        const pathname = typeof route === 'string' ? route : (route as { pathname?: string }).pathname ?? '';
+        if (pathname.startsWith('/(tabs)')) routerRef.current.navigate(route as never);
+        else routerRef.current.push(route as never);
       } catch (error) {
         console.warn('[push] notification navigation failed', error);
         return false;

@@ -87,14 +87,22 @@ test('the word on a tab is the word used for that screen', () => {
 
 test('the Safety button is on every tab, above the tab bar, and still opens the Safety Wallet', () => {
   assert.match(read('app/_layout.tsx'), /<SafetyShortcut \/>/);
-  // Shown to every signed-in member on the tabs; nothing else hides it.
-  assert.match(shortcut, /if \(!isAuthenticated \|\| !user \|\| segments\[0\] !== '\(tabs\)'\) return null;/);
+  // Shown to every signed-in member on the tabs and on the Tracker (a pushed screen since 4.4, where she
+  // logs warning signs); nothing else hides it.
+  assert.match(shortcut, /const onTabs = segments\[0\] === '\(tabs\)';/);
+  assert.match(shortcut, /const onTracker = \(segments\[0\] as string \| undefined\) === 'tracker';/);
+  assert.match(shortcut, /if \(!isAuthenticated \|\| !user \|\| !\(onTabs \|\| onTracker\)\) return null;/);
+  // The Tracker's content scrolls clear of it.
+  const tracker = read('app/tracker.tsx');
+  assert.equal(tracker.split('<ScreenContainer backgroundColor={colors.cream} contentContainerStyle={styles.clearSafety}>').length - 1, 2);
+  assert.match(tracker, /clearSafety: \{ paddingBottom: TAB_SCREEN_BOTTOM_CLEARANCE \},/);
   assert.match(shortcut, /accessibilityRole="button"\s+accessibilityLabel=\{t\('safetyShortcut\.accessibility'\)\}\s+onPress=\{\(\) => router\.push\('\/safety-wallet' as never\)\}/);
   assert.match(shortcut, /\{t\('safetyShortcut\.label'\)\}/, 'the word stays next to the icon');
   assert.match(shortcut, /name="lifebuoy"/);
   assert.doesNotMatch(shortcut, EMOJI);
   // Its offset starts at the top of the tab bar on every device, so it never sits on the bar.
-  assert.match(shortcut, /bottom: TAB_BAR_HEIGHT \+ insets\.bottom \+ SAFETY_SHORTCUT_GAP/);
+  // (On the Tracker, which has no tab bar, it starts at the bottom inset.)
+  assert.match(shortcut, /bottom: \(onTabs \? TAB_BAR_HEIGHT : 0\) \+ insets\.bottom \+ SAFETY_SHORTCUT_GAP/);
   assert.match(layout, /height: TAB_BAR_HEIGHT \+ insets\.bottom/);
   assert.match(shortcut, /minHeight: SAFETY_SHORTCUT_TARGET,\s+minWidth: SAFETY_SHORTCUT_TARGET,/);
   const metrics = containerMetrics();

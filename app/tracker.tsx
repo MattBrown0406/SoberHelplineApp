@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
-import { ScreenContainer } from '../src/components/ui/ScreenContainer';
+import { ScreenContainer, TAB_SCREEN_BOTTOM_CLEARANCE } from '../src/components/ui/ScreenContainer';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAccount } from '../src/contexts/AccountContext';
@@ -139,11 +139,13 @@ function TrackerHeader() {
   );
 }
 
+// The floating Safety button shows on the Tracker too (SafetyShortcut): the
+// last row scrolls clear of it, as on the tabs.
 /** Without membership: the same plans card the tab showed, under a way back. */
 function TrackerLocked() {
   const { colors } = useTheme();
   return (
-    <ScreenContainer backgroundColor={colors.cream}>
+    <ScreenContainer backgroundColor={colors.cream} contentContainerStyle={styles.clearSafety}>
       <TrackerHeader />
       <FreeTierPaywall inline />
     </ScreenContainer>
@@ -226,7 +228,7 @@ function TrackerContent() {
     t('privacyNote') + (isAttached ? t('privacyNoteCoach') : t('privacyNoteDirect'));
 
   return (
-    <ScreenContainer backgroundColor={colors.cream}>
+    <ScreenContainer backgroundColor={colors.cream} contentContainerStyle={styles.clearSafety}>
         <TrackerHeader />
         <WillingnessWindowCard
           accountId={user?.id ?? null}
@@ -327,6 +329,7 @@ function TrackerContent() {
 }
 
 const styles = StyleSheet.create({
+  clearSafety: { paddingBottom: TAB_SCREEN_BOTTOM_CLEARANCE },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',

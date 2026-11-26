@@ -12,9 +12,9 @@ const plans = JSON.parse(readFileSync(new URL('../src/locales/en/plans.json', im
 const translate = (key, options = {}) => String(key.split('.').reduce((node, part) => node?.[part], plans) ?? key)
   .replace(/\{\{(\w+)\}\}/g, (_, name) => String(options[name]));
 function mount({ completed = false, account = {}, delayed = false, placement = 'practice-completed', claimAnswers = [], trial = null } = {}) {
-  let state = { user: { id: 'a', joinedAt: '2026-01-01T00:00:00.000Z' }, isAuthenticated: true, isLoading: false, accountError: null, isOfflineAccountFallback: false, isAdmin: false, isAttached: false, accountState: 'direct-free', ...account };
+  let state = { user: { id: 'a', joinedAt: '2026-01-01T00:00:00.000Z' }, isAuthenticated: true, isLoading: false, accountError: null, isOfflineAccountFallback: false, entitlementsSettled: true, isAdmin: false, isAttached: false, accountState: 'direct-free', ...account };
   let props = { accountId: 'a', completed, placement };
-  const slots = [], pending = [], claims = [], releases = [], dismissals = [], taps = [], routes = [], logged = [];
+  const slots = [], pending = [], claims = [], releases = [], dismissals = [], taps = [], routes = [], logged = [], showing = [];
   let cursor = 0, tree, resolveClaim;
   const React = {
     createElement: (type, props, ...children) => ({ type, props: { ...props, children } }),
@@ -38,8 +38,9 @@ function mount({ completed = false, account = {}, delayed = false, placement = '
     if (id.endsWith('lib/membershipPath')) return { plansHref: source => ({ pathname: '/plans', params: { source } }) };
     if (id.endsWith('AccountContext')) return { useAccount: () => state };
     if (id === './policy') return { createInvitationPolicy: () => policy };
-    // One ask per visit is decided in the policy (tests/membership-invitations.test.ts).
-    if (id === './visitAsks') return { askedThisVisit: () => false };
+    // One ask per visit is decided in the policy (tests/membership-invitations.test.ts);
+    // the card reports when it is on screen, so the other asks give way.
+    if (id === './visitAsks') return { askedThisVisit: () => false, noteInvitationShowing: (id, on) => { showing.push([id, on]); } };
     // What the App Store says about a free trial for Essential (null: none, or not known).
     if (id.endsWith('hooks/usePlanPurchase')) return { usePlanOffers: () => ({ trialLabel: tier => (tier === 'essential' ? trial : null) }) };
     throw Error(`Unexpected import ${id}`);
@@ -48,7 +49,7 @@ function mount({ completed = false, account = {}, delayed = false, placement = '
   const flatten = n => !n || typeof n !== 'object' ? [] : Array.isArray(n) ? n.flatMap(flatten) : [n, ...flatten(n.props.children)];
   const text = n => typeof n === 'string' ? n : Array.isArray(n) ? n.map(text).join(' ') : n?.props ? text(n.props.children) : '';
   const api = {
-    claims, releases, dismissals, taps, routes, logged,
+    claims, releases, dismissals, taps, routes, logged, showing,
     text: () => text(tree),
     // The trial line is its own small component: render it as the card would.
     trialText: () => { const node = flatten(tree).find(n => typeof n.type === 'function'); return node ? text(node.type()) : null; },
@@ -79,7 +80,7 @@ test('initial completed hydration does not claim; persistent false-to-true claim
   assert.equal(hydrated.logged.length, 0);
 });
 
-const ELIGIBLE = { user: { id: 'a', joinedAt: '2026-01-01T00:00:00.000Z' }, isAuthenticated: true, isLoading: false, accountError: null, isOfflineAccountFallback: false, isAdmin: false, isAttached: false, accountState: 'direct-free' };
+const ELIGIBLE = { user: { id: 'a', joinedAt: '2026-01-01T00:00:00.000Z' }, isAuthenticated: true, isLoading: false, accountError: null, isOfflineAccountFallback: false, entitlementsSettled: true, isAdmin: false, isAttached: false, accountState: 'direct-free' };
 test('eligibility gates suppress claims, and someone who simply may not see it is never shown it later', async () => {
   for (const account of [{ user: null }, { user: { id: 'b' } }, { isAuthenticated: false }, { isAdmin: true }, { isAttached: true }, { accountState: 'direct-essential' }]) {
     const ui = mount({ account }); ui.render({ completed: true }); await settle(); ui.render();
@@ -92,7 +93,8 @@ test('eligibility gates suppress claims, and someone who simply may not see it i
 
 // L3: the moment used to be lost for good when it arrived before the account was known.
 test('a moment that arrives while the account is still loading (or offline) is kept, and claimed once the account is known', async () => {
-  for (const account of [{ isLoading: true }, { isOfflineAccountFallback: true }, { accountError: 'error' }]) {
+  // entitlementsSettled false: a web or store membership is still syncing (she may be a member).
+  for (const account of [{ isLoading: true }, { isOfflineAccountFallback: true }, { accountError: 'error' }, { entitlementsSettled: false }]) {
     const ui = mount({ placement: 'after-meeting', account }); ui.render({ completed: true }); await settle(); ui.render();
     assert.equal(ui.claims.length, 0, JSON.stringify(account)); assert.equal(ui.visible(), false);
     ui.render({}, ELIGIBLE); await settle(); ui.render();
@@ -124,7 +126,7 @@ test('who may see it is decided by the account alone, and a card on screen goes 
   assert.equal(ui.visible(), true);
   ui.render({}, { accountState: 'direct-essential' }); ui.render();
   assert.equal(ui.visible(), false); assert.deepEqual(ui.releases, ['a']);
-  assert.match(source, /const settled = !account\.isLoading && !account\.accountError && !account\.isOfflineAccountFallback;/);
+  assert.match(source, /const settled = !account\.isLoading && !account\.accountError && !account\.isOfflineAccountFallback &&\s+account\.entitlementsSettled;/);
   assert.match(source, /account\.accountState === 'direct-free';/);
   assert.doesNotMatch(source, /bereav/i);
 });
@@ -249,4 +251,21 @@ test('a free trial is said once, only when the App Store offers one', async () =
   assert.equal(without.trialText(), '', 'no trial, or not known: nothing about a trial');
   assert.doesNotMatch(without.text(), /trial/i);
   assert.match(source, /const trial = usePlanOffers\(\)\.trialLabel\('essential'\);/);
+});
+
+// One ask per visit, the other way: the card says when it is on screen, so the
+// rating prompt and the reminder asks give way (visitAsks.invitationThisVisit).
+test('the card reports itself on screen while it shows, and off when it goes', async () => {
+  const ui = mount(); ui.render({ completed: true }); await settle(); ui.render();
+  assert.equal(ui.visible(), true);
+  assert.deepEqual(ui.showing, [['a', true]]);
+  ui.button('Not now')(); ui.render();
+  assert.equal(ui.visible(), false);
+  assert.deepEqual(ui.showing, [['a', true], ['a', false]]);
+  // Never reported for a card that never showed.
+  const none = mount({ account: { accountState: 'direct-essential' } }); none.render({ completed: true }); await settle(); none.render();
+  assert.deepEqual(none.showing, []);
+  // Unmounting with the card up reports it gone.
+  const up = mount(); up.render({ completed: true }); await settle(); up.render(); up.unmount();
+  assert.deepEqual(up.showing, [['a', true], ['a', false]]);
 });

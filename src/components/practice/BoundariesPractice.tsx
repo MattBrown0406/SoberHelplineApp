@@ -42,18 +42,28 @@ import type { BoundaryWall } from '../../api/types';
 
 type BoundariesContent = typeof enContent;
 
+/** Records an open of Boundaries only while that part is shown. */
+function BoundariesOpened() {
+  useToolOpened('boundaries');
+  return null;
+}
+
 /**
  * The Boundaries part of the Practice tab (what used to be the Boundaries
  * tab): the daily challenge, the enabling check, the castle framework, her
  * walls, the hold log, the letter, and the family space with its journal.
  *
  * Practice draws the header, the switch and the scrolling container; this
- * part is mounted only while it is the chosen part, so opening Practice on
- * Conversations starts none of the reads below. `scrollRef` is Practice's
- * scroll view, used to bring the wall builder into view after a suggestion.
+ * part is mounted the first time it is chosen, so opening Practice on
+ * Conversations starts none of the reads below. After that it stays mounted
+ * (hidden while Conversations is shown, `active` false), so a half-written
+ * wall, journal note or family code survives a look at a script, as it did
+ * when Boundaries was its own tab. While hidden it counts no open and starts
+ * no focus re-read; it re-reads when it is shown again. `scrollRef` is
+ * Practice's scroll view, used to bring the wall builder into view after a
+ * suggestion.
  */
-export function BoundariesPractice({ scrollRef }: { scrollRef: React.RefObject<ScrollView | null> }) {
-  useToolOpened('boundaries');
+export function BoundariesPractice({ scrollRef, active }: { scrollRef: React.RefObject<ScrollView | null>; active: boolean }) {
   const { colors } = useTheme();
   const { user, isAttached } = useAccount();
   const { i18n } = useTranslation('common');
@@ -230,7 +240,8 @@ export function BoundariesPractice({ scrollRef }: { scrollRef: React.RefObject<S
 
   useFocusEffect(
     useCallback(() => {
-      if (!user?.id) return;
+      // Hidden behind Conversations: nothing to re-read until it is shown again.
+      if (!active || !user?.id) return;
       // checkin_date is the account-local day (server-derived in the account
       // timezone); created_at is UTC and lands evening check-ins on tomorrow.
       const since = recentLocalDays(7, user.timezone)[0];
@@ -247,7 +258,7 @@ export function BoundariesPractice({ scrollRef }: { scrollRef: React.RefObject<S
       // space and this week's hold log whenever the tab comes into view.
       void refreshFamilySpace();
       void reloadHoldLog().catch(() => undefined);
-    }, [user?.id, user?.timezone, familySpace?.id, loadJournal, refreshFamilySpace, reloadHoldLog]),
+    }, [active, user?.id, user?.timezone, familySpace?.id, loadJournal, refreshFamilySpace, reloadHoldLog]),
   );
 
   // Leaving as the only member deletes the space (and its journal and shared
@@ -383,6 +394,7 @@ export function BoundariesPractice({ scrollRef }: { scrollRef: React.RefObject<S
 
   return (
     <>
+      {active && <BoundariesOpened />}
         <Text style={[styles.enablingSub, { color: colors.inkSoft }]}>{content.intro}</Text>
 
         {/* ── Daily Challenge ──────────────────────────────────────── */}

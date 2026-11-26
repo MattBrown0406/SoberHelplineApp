@@ -107,11 +107,15 @@ function InvitationOutcomeContent() {
     }
   }
 
+  // The engine shows no steps on the safety-first path, so neither does this
+  // screen (as the kit): "Step 3 of 4" only once the snapshot says it is not.
+  const showStepLine = !!engine.snapshot && !isSafetyFirst(engine.snapshot);
+
   if (logged) {
     return (
       <ScreenContainer contentContainerStyle={styles.wrap}>
         <EngineBackLink />
-        <FlowStepLine step="outcome" />
+        {showStepLine && <FlowStepLine step="outcome" />}
         <EngineCard tone="warm">
           <Kicker>{t('outcome.kicker')}</Kicker>
           <Text accessibilityRole="header" style={[styles.title, { color: colors.ink }]}>{t(`outcome.repairTitles.${logged.outcome}`)}</Text>
@@ -141,7 +145,7 @@ function InvitationOutcomeContent() {
   return (
     <ScreenContainer keyboardShouldPersistTaps="handled" contentContainerStyle={styles.wrap}>
       <EngineBackLink />
-      <FlowStepLine step="outcome" />
+      {showStepLine && <FlowStepLine step="outcome" />}
       {isSafetyFirst(engine.snapshot) && (
         <SafetyFirstPanel />
       )}

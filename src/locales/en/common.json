@@ -70,7 +70,7 @@
     "registrationUnavailable": "Registration for this week's Family Squares isn't available right now.",
     "weekly": {
       "title": "Save my seat every Monday",
-      "desc": "We'll save your seat each week. It pauses while your reminders are paused, or after about six months away from the app.",
+      "desc": "We'll save your seat each week. It pauses after about six months away from the app.",
       "onNote": "Your weekly seat is on. We usually save your seat for the coming Monday within a few hours, and you can also save it now.",
       "errorTitle": "Couldn't save that",
       "errorBody": "Check your connection and try again."

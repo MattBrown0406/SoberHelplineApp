@@ -14,7 +14,7 @@ import { WEBSITE_PATHS } from '../../src/lib/websiteLinks';
 import { plansHref } from '../../src/lib/membershipPath';
 import { useLovedOne } from '../../src/hooks/useLovedOne';
 import { useSituation } from '../../src/hooks/useSituation';
-import { normalizeRecoveryPhase } from '../../src/lib/recoveryPathway';
+import { knownRecoveryPhase } from '../../src/lib/recoveryPathway';
 import { TOOL_IDS, toolsForPhase, type ToolId } from '../../src/lib/toolsForPhase';
 import { TodayDisclosure } from '../../src/components/today/TodayDisclosure';
 
@@ -64,7 +64,13 @@ export default function LearnScreen() {
   // now (the situation band) pick the tools shown first.
   const { lovedOne, loading: lovedOneLoading } = useLovedOne(user?.id ?? null);
   const { situation, loaded: situationLoaded } = useSituation(user?.id ?? null);
-  const phase = lovedOne?.stage ? normalizeRecoveryPhase(lovedOne.stage, lovedOne.status) : null;
+  // Read exactly as Today's "Your path" reads it (the record's stage, then its
+  // status, then the situation's), so the two never disagree; null when
+  // nothing says where her loved one is (then the line says so neutrally).
+  const phase = knownRecoveryPhase(
+    lovedOne?.stage,
+    lovedOne?.status ?? (situationLoaded ? situation.drivers.loved_one_status : null),
+  );
   const { forNow, others } = toolsForPhase(phase, situationLoaded ? situation.band : null);
   // Not before the loved-one record has loaded, so the picks never jump.
   // Every tool stays under "All tools".
@@ -304,7 +310,7 @@ export default function LearnScreen() {
       {showForNow && (
         <>
           <Text accessibilityRole="header" style={[styles.sectionEyebrow, { color: colors.inkSoft }]}>{t('tools.forNowEyebrow')}</Text>
-          <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t('tools.forNowBody')}</Text>
+          <Text style={[styles.cardBody, { color: colors.inkSoft }]}>{t(phase ? 'tools.forNowBody' : 'tools.forNowBodyNeutral')}</Text>
           {forNow.map((tool) => toolCards[tool])}
         </>
       )}

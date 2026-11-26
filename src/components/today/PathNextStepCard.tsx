@@ -4,7 +4,8 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { buttonShape } from '../ui/Button';
-import { normalizeRecoveryPhase, pathwayDaySlot, RECOVERY_PHASE_ROUTE } from '../../lib/recoveryPathway';
+import { useFeatureAccess } from '../../hooks/useFeatureAccess';
+import { normalizeRecoveryPhase, pathwayDaySlot, phaseNextStep } from '../../lib/recoveryPathway';
 
 interface Props {
   stage: string | null | undefined;
@@ -17,14 +18,18 @@ interface Props {
  * where she is (the loved one's phase), one thing to do today, and the one
  * button for that phase. The whole path (change the phase, what to avoid,
  * what may be normal) is "Your path" under "More for you". Draws nothing
- * while the phase loads, so the slot does not show a guess.
+ * while the phase loads, so the slot does not show a guess. Without the
+ * Tracker (members only), a step that would open it goes to a free place
+ * (phaseNextStep), so the one next step is never a locked screen.
  */
 export function PathNextStepCard({ stage, status, loading = false }: Props) {
   const { colors } = useTheme();
   const { t } = useTranslation('today');
   const router = useRouter();
+  const trackerAccess = useFeatureAccess('tracker');
   if (loading) return null;
   const phase = normalizeRecoveryPhase(stage, status);
+  const step = phaseNextStep(phase, trackerAccess);
   const slot = pathwayDaySlot(new Date());
   return (
     <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
@@ -35,11 +40,11 @@ export function PathNextStepCard({ stage, status, loading = false }: Props) {
       <Text style={[styles.body, { color: colors.inkSoft }]}>{t(`pathway.phases.${phase}.do.${slot}`)}</Text>
       <TouchableOpacity
         accessibilityRole="button"
-        onPress={() => router.push(RECOVERY_PHASE_ROUTE[phase] as never)}
+        onPress={() => router.push(step.route as never)}
         style={[styles.button, { borderColor: colors.primary }]}
         activeOpacity={0.8}
       >
-        <Text style={[styles.buttonText, { color: colors.primary }]}>{t(`pathway.phases.${phase}.cta`)}</Text>
+        <Text style={[styles.buttonText, { color: colors.primary }]}>{t(step.ctaKey)}</Text>
       </TouchableOpacity>
     </View>
   );

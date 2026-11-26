@@ -3,7 +3,7 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import type { CaregiverCheckInInput, CheckIn } from '../src/api/types';
 import { FELLOWSHIPS, FELLOWSHIP_FINDERS, isFellowship } from '../src/content/fellowshipFinders';
-import { checkInFeedback } from '../src/lib/checkInFeedback';
+import { checkInFeedback, checkInFeedbackHref } from '../src/lib/checkInFeedback';
 import {
   EMPTY_FELLOWSHIP_RECORD,
   fellowshipFollowUp,
@@ -49,7 +49,9 @@ test('never on a safety answer: crisis help comes first and stays as it is', () 
   // the meeting step is never mounted for a safety answer.
   const card = read('src/components/today/CheckInFeedbackCard.tsx');
   assert.match(card, /\{feedback\.key === 'safety' && <Text[^>]*>\{c\.disclaimer\}<\/Text>\}/);
-  assert.match(card, /<GuidedButton label=\{action\} onPress=\{\(\) => router\.push\(feedback\.route\)\} \/>/);
+  // (checkInFeedbackHref adds a fresh `n` only to "More for you"; the safety route goes through as it is.)
+  assert.match(card, /<GuidedButton label=\{action\} onPress=\{\(\) => router\.push\(checkInFeedbackHref\(feedback\.route\) as never\)\} \/>/);
+  assert.equal(checkInFeedbackHref('/safety-wallet'), '/safety-wallet');
   assert.match(card, /\{feedback\.key !== 'safety' && <CheckInFellowshipStep /);
 });
 
@@ -73,7 +75,9 @@ test('after "Not right now": member, free, attached and admin outcomes', () => {
   assert.equal(fellowshipFollowUp({ ...who, isAttached: true, isMember: true }), null, 'attached: their own team');
   assert.equal(fellowshipFollowUp({ ...who, isAttached: true }), null);
   assert.equal(fellowshipFollowUp({ ...who, isAdmin: true, isMember: true }), null, 'an admin is not a member');
-  assert.equal(fellowshipFollowUp({ ...who, isMember: true, settled: false }), null, 'account not known for certain');
+  // Not known for certain yet: nothing is decided, and the offer waits (it is not lost for the day).
+  assert.equal(fellowshipFollowUp({ ...who, isMember: true, settled: false }), 'wait', 'account not known for certain');
+  assert.equal(fellowshipFollowUp({ ...who, isAttached: true, settled: false }), 'wait');
 });
 
 test('the step flow: fellowship -> not now -> reach out / booking / closed', () => {
@@ -92,8 +96,17 @@ test('the step flow: fellowship -> not now -> reach out / booking / closed', () 
   assert.equal(run([{ type: 'notNow', followUp: 'booking' }]), 'booking');
   assert.equal(run([{ type: 'notNow', followUp: 'booking' }, { type: 'book' }]), 'closed');
   assert.equal(run([{ type: 'notNow', followUp: 'booking' }, { type: 'decline' }]), 'closed');
-  // Attached, admin, unsettled: nothing follows.
+  // Attached, admin: nothing follows.
   assert.equal(run([{ type: 'notNow', followUp: null }]), 'closed');
+  // Not settled yet: she waits (nothing saved), then gets the right follow-up once it is known.
+  assert.equal(run([{ type: 'notNow', followUp: 'wait' }]), 'waiting');
+  assert.equal(run([{ type: 'notNow', followUp: 'wait' }, { type: 'settled', followUp: 'reachOut' }]), 'reachOut');
+  assert.equal(run([{ type: 'notNow', followUp: 'wait' }, { type: 'settled', followUp: 'booking' }]), 'booking');
+  assert.equal(run([{ type: 'notNow', followUp: 'wait' }, { type: 'settled', followUp: null }]), 'closed');
+  assert.equal(run([{ type: 'notNow', followUp: 'wait' }, { type: 'settled', followUp: 'wait' }]), 'waiting');
+  assert.equal(nextFellowshipStep('choose', { type: 'settled', followUp: 'reachOut' }), 'choose', 'only after her own tap');
+  assert.equal(nextFellowshipStep('waiting', { type: 'send' }), 'waiting');
+  assert.equal(nextFellowshipStep('waiting', { type: 'notNow', followUp: 'reachOut' }), 'waiting');
   // Events out of place change nothing.
   assert.equal(nextFellowshipStep('choose', { type: 'send' }), 'choose');
   assert.equal(nextFellowshipStep('booking', { type: 'send' }), 'booking', 'a free account never sends a reach-out');
@@ -101,7 +114,11 @@ test('the step flow: fellowship -> not now -> reach out / booking / closed', () 
   assert.equal(nextFellowshipStep('sent', { type: 'send' }), 'sent', 'one request');
   assert.equal(nextFellowshipStep('reachOut', { type: 'book' }), 'reachOut');
   // Only a finished offer is closed for the day; opening a finder is not.
-  assert.deepEqual((['choose', 'reachOut', 'booking', 'sending', 'sent', 'failed', 'closed'] as FellowshipStep[]).filter(fellowshipStepEnded), ['sent', 'closed']);
+  assert.deepEqual((['choose', 'waiting', 'reachOut', 'booking', 'sending', 'sent', 'failed', 'closed'] as FellowshipStep[]).filter(fellowshipStepEnded), ['sent', 'closed']);
+  // The step moves on from 'waiting' as soon as her account is known.
+  const step = read('src/components/today/CheckInFellowshipStep.tsx');
+  assert.match(step, /const settled = !account\.isLoading && !account\.accountError && !account\.isOfflineAccountFallback && account\.entitlementsSettled;/);
+  assert.match(step, /if \(step === 'waiting' && settled\) \{\s+advance\(\{ type: 'settled', followUp: fellowshipFollowUp\(/);
 });
 
 test('her fellowship is remembered per account, versioned; a corrupt value is ignored', () => {

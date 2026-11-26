@@ -199,11 +199,14 @@ test('the weekly seat says plainly when it pauses, where the switch is described
   const en = locale('en', 'common').familySquares.weekly.desc as string;
   const es = locale('es', 'common').familySquares.weekly.desc as string;
   assert.match(en, /each week/);
-  assert.match(en, /pauses while your reminders are paused/);
+  // 4.4: no "while your reminders are paused" (only the removed grief pause did that).
+  assert.doesNotMatch(en, /reminders are paused/);
+  assert.match(en, /It pauses after about six months away/);
   // (The server now pauses it after about six months away, not five weeks: audit round 3, L12.)
   assert.match(en, /about six months/);
   assert.doesNotMatch(en, /five weeks/);
-  assert.match(es, /Se pausa mientras tus recordatorios estén en pausa/);
+  assert.doesNotMatch(es, /recordatorios estén en pausa/);
+  assert.match(es, /Se pausa después de unos seis meses/);
   assert.match(es, /unos seis meses/);
   assert.doesNotMatch(es, /cinco semanas/);
   // One description for the seat panel and for Settings.
@@ -236,4 +239,22 @@ test('4.4: no "my loved one died" feature is left, and nothing waits on a bereav
   const support = read('app/(tabs)/support.tsx');
   assert.match(support, /\n\s+<PlansTeaserCard offers=\{planOffers\} source="support_tab" \/>/);
   assert.equal(support.split('<PlansTeaserCard').length - 1, 1);
+});
+
+test('4.4 Admin still lists contact requests from older app versions (staff only, shown only when there are any)', () => {
+  // Older apps (4.3) still in use can still report a death and push the owner (admin_bereavement);
+  // the staff card lists those requests so none goes unseen. Nothing member-facing reads them.
+  const card = read('src/components/admin/ReachOutRequestsCard.tsx');
+  assert.match(card, /supabase\.rpc\('admin_bereavement_contacts'\)/);
+  assert.match(card, /\{\(olderApp\.length > 0 \|\| olderAppError\) && \(/);
+  assert.match(card, /Told an older app version their loved one died/);
+  assert.match(card, /onPress=\{\(\) => void message\(\{ id: key, account_id: row\.account_id \}\)\}/);
+  // No "Done" for these rows: the server function has no way to mark one handled.
+  const section = card.slice(card.indexOf('Told an older app version'));
+  assert.doesNotMatch(section, />Done</);
+  assert.doesNotMatch(card, /admin_mark_bereavement|mark_loved_one_died/);
+  const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', 'app', 'src'], { encoding: 'utf8' })
+    .split('\n').filter((file) => /\.(tsx?|json)$/.test(file) && existsSync(file));
+  assert.deepEqual(files.filter((file) => /admin_bereavement_contacts/.test(read(file))), ['src/components/admin/ReachOutRequestsCard.tsx']);
+  assert.match(read('app/admin.tsx'), /<ReachOutRequestsCard \/>/);
 });

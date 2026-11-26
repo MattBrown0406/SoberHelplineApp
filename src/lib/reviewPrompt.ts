@@ -5,7 +5,7 @@ import { Linking } from 'react-native';
 import { captureAppError } from './monitoring';
 import { logFunnelEvent } from './funnel';
 import { supabase } from './supabase';
-import { noteReviewPending, noteVisitAsk } from '../membershipInvitations/visitAsks';
+import { invitationThisVisit, noteReviewPending, noteVisitAsk } from '../membershipInvitations/visitAsks';
 import {
   parseReviewPromptState,
   buildAuthoritativeReviewSafety,
@@ -82,6 +82,8 @@ export function maybeRequestReview({
 
   // One ask per visit: while the check runs, and after a prompt was (or may
   // have been) requested, no membership invitation is offered (visitAsks).
+  // The other way round, a visit that had an invitation gets no prompt
+  // (invitationThisVisit, checked before each step in mergedReviewSafety).
   noteReviewPending(accountId, true);
   const request = runReviewRequest(accountId, milestone, safety).then((outcome) => {
     if (outcome === 'requested' || outcome === 'failed') noteVisitAsk(accountId);
@@ -110,7 +112,7 @@ async function runReviewRequest(
     const decision = reviewPromptDecision({
       state,
       appVersion: version,
-      safety: mergedReviewSafety(authoritativeSafety, safety),
+      safety: mergedReviewSafety(accountId, authoritativeSafety, safety),
     });
     if (!decision.eligible) return 'not_eligible';
 
@@ -136,7 +138,7 @@ async function runReviewRequest(
     if (!finalAuthoritativeSafety || !reviewPromptDecision({
       state,
       appVersion: version,
-      safety: mergedReviewSafety(finalAuthoritativeSafety, safety),
+      safety: mergedReviewSafety(accountId, finalAuthoritativeSafety, safety),
     }).eligible) return 'not_eligible';
 
     logFunnelEvent('review_prompt_requested', { milestone, app_version: version });
@@ -149,12 +151,15 @@ async function runReviewRequest(
 }
 
 function mergedReviewSafety(
+  accountId: string,
   authoritativeSafety: ReviewSafetyContext,
   safety?: ReviewSafetyContext,
 ): ReviewSafetyContext {
   return {
     ...safety,
     ...authoritativeSafety,
+    // Read now, at each step: an invitation may have appeared during the awaits.
+    invitationThisVisit: invitationThisVisit(accountId) || safety?.invitationThisVisit,
     checkIn: authoritativeSafety.checkIn ?? safety?.checkIn ?? null,
     recentCrisisAt: mostRecentTimestamp(
       authoritativeSafety.recentCrisisAt,

@@ -6,7 +6,7 @@ import type { CheckIn } from '../../api/types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { guidedStartCopy } from '../../content/guidedStartCopy';
 import { useAccount } from '../../contexts/AccountContext';
-import { checkInFeedback } from '../../lib/checkInFeedback';
+import { checkInFeedback, checkInFeedbackHref } from '../../lib/checkInFeedback';
 import { toDateStr } from '../../storage/checkIn';
 import { CheckInFellowshipStep } from './CheckInFellowshipStep';
 import { GuidedButton } from './GuidedStartPanel';
@@ -21,7 +21,7 @@ export function CheckInFeedbackCard({ checkIn }: { checkIn: CheckIn | null }) {
     <Text accessibilityRole="header" style={{ color: colors.ink, fontSize: 18, fontWeight: '700' }}>{c.feedbackTitle}</Text>
     <Text style={{ color: colors.ink, lineHeight: 22, marginTop: 8 }}>{body}</Text>
     {feedback.key === 'safety' && <Text style={{ color: colors.ink, lineHeight: 21, marginTop: 8 }}>{c.disclaimer}</Text>}
-    <GuidedButton label={action} onPress={() => router.push(feedback.route)} />
+    <GuidedButton label={action} onPress={() => router.push(checkInFeedbackHref(feedback.route) as never)} />
     <Text style={{ color: colors.inkSoft, fontSize: 12, lineHeight: 18, marginTop: 12 }}>{c.feedbackNote}</Text>
     {/* After a hard check-in (never a safety answer): a meeting for families, then Matt or booking. */}
     {feedback.key !== 'safety' && <CheckInFellowshipStep key={`${user?.id ?? 'none'}:${checkInDay}`} checkIn={checkIn} checkInDay={checkInDay} />}

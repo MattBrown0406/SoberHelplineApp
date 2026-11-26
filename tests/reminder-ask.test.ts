@@ -154,7 +154,7 @@ test('a saved seat is followed by the reminder ask, on Today and Support', () =>
   assert.match(card, /seatReminderAsk = true, seatSavedHere = 0 \}: Props\)/);
   assert.match(card, /<FamilySquaresSeatPanel[\s\S]*?onDecline=\{onDecline\}\s+reminderAsk=\{seatReminderAsk\}\s+seatSavedHere=\{seatSavedHere\}\s+cancelled=\{view\.cancelledLine\}\s+\/>/);
   const hook = read('src/hooks/useReminderAsk.ts');
-  assert.match(hook, /Promise\.all\(\[readReminderPermission\(\), loadReminderAskMemory\(accountId\)\]\)\.then\(\(\[permission, memory\]\) => \{\s+if \(active && viewRef\.current === null\) setView\(decide\(permission, memory, new Date\(\)\)\);/);
+  assert.match(hook, /Promise\.all\(\[readReminderPermission\(\), loadReminderAskMemory\(accountId\)\]\)\.then\(\(\[permission, memory\]\) => \{\s+(\/\/[^\n]*\n\s+)?if \(active && viewRef\.current === null && !invitationThisVisit\(accountId\)\) setView\(decide\(permission, memory, new Date\(\)\)\);/);
 });
 
 test('what the device remembers is per account and survives bad data', () => {

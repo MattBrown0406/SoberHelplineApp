@@ -29,13 +29,21 @@ test('Practice: a Conversations | Boundaries switch that reads and writes the se
   assert.match(screen, /useLocalSearchParams<\{ q\?: string; n\?: string; section\?: string \}>\(\)/);
   assert.match(screen, /const section = practiceSectionFromParam\(sectionParam\);/);
   assert.match(screen, /router\.setParams\(\{ section: next \}\);/);
-  // Boundaries mounts only when chosen: opening Practice on Conversations reads nothing over the network.
-  assert.match(screen, /\{section === 'boundaries' \? \(\s+<BoundariesPractice scrollRef=\{scrollRef\} \/>\s+\) : \(/);
+  // Boundaries mounts the first time it is chosen (opening Practice on Conversations reads nothing over the
+  // network), then stays mounted and is only hidden, so a half-written wall, note or code survives the switch.
+  assert.match(screen, /const \[boundariesOpened, setBoundariesOpened\] = useState\(section === 'boundaries'\);/);
+  assert.match(screen, /if \(section === 'boundaries'\) setBoundariesOpened\(true\);/);
+  assert.match(screen, /\{\(boundariesOpened \|\| section === 'boundaries'\) && \(\s+<View style=\{\{ display: section === 'boundaries' \? 'flex' : 'none' \}\}>\s+<BoundariesPractice scrollRef=\{scrollRef\} active=\{section === 'boundaries'\} \/>/);
+  assert.match(screen, /\{section !== 'boundaries' && \(\s+<>\s+<ConversationsOpened \/>/);
+  // While hidden it counts no open and starts no focus re-read.
+  const boundaries = read('src/components/practice/BoundariesPractice.tsx');
+  assert.match(boundaries, /\{active && <BoundariesOpened \/>\}/);
+  assert.match(boundaries, /if \(!active \|\| !user\?\.id\) return;/);
   // The search links from Today (q, n) still fill the search.
   assert.match(screen, /if \(typeof q === 'string' && q\.length > 0\) setQuery\(q\);\s+\}, \[q, n\]\);/);
   // Each part counts its own opens.
   assert.match(screen, /function ConversationsOpened\(\) \{\s+useToolOpened\('scripts'\);/);
-  assert.match(read('src/components/practice/BoundariesPractice.tsx'), /useToolOpened\('boundaries'\);/);
+  assert.match(boundaries, /function BoundariesOpened\(\) \{\s+useToolOpened\('boundaries'\);/);
   // An accessible two-part switch: a tab list of 44-point tabs with their selected state.
   assert.match(sw, /accessibilityRole="tablist"/);
   assert.match(sw, /accessibilityRole="tab"\s+accessibilityState=\{\{ selected \}\}/);

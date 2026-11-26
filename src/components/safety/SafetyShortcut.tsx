@@ -13,7 +13,12 @@ import { SAFETY_SHORTCUT_GAP, SAFETY_SHORTCUT_TARGET, TAB_BAR_HEIGHT } from '../
 // The word "Safety" shows either way.
 MaterialCommunityIcons.loadFont().catch(() => {});
 
-/** A safety entry point that remains visible from every primary app tab. */
+/**
+ * A safety entry point that remains visible from every primary app tab, and
+ * on the Tracker: a pushed screen since 4.4 (it was a tab), where she logs
+ * warning signs. There is no tab bar there, so the button sits just above
+ * the bottom inset.
+ */
 export function SafetyShortcut() {
   const router = useRouter();
   const segments = useSegments();
@@ -22,7 +27,9 @@ export function SafetyShortcut() {
   const { colors } = useTheme();
   const { t } = useTranslation('common');
 
-  if (!isAuthenticated || !user || segments[0] !== '(tabs)') return null;
+  const onTabs = segments[0] === '(tabs)';
+  const onTracker = (segments[0] as string | undefined) === 'tracker';
+  if (!isAuthenticated || !user || !(onTabs || onTracker)) return null;
 
   return (
     <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
@@ -34,8 +41,8 @@ export function SafetyShortcut() {
         activeOpacity={0.88}
         style={[
           styles.target,
-          // Always above the tab bar, whatever the device's bottom inset.
-          { bottom: TAB_BAR_HEIGHT + insets.bottom + SAFETY_SHORTCUT_GAP, right: 12 + insets.right },
+          // Always above the tab bar, whatever the device's bottom inset (the Tracker has no tab bar).
+          { bottom: (onTabs ? TAB_BAR_HEIGHT : 0) + insets.bottom + SAFETY_SHORTCUT_GAP, right: 12 + insets.right },
         ]}
       >
         <View style={[styles.pill, { backgroundColor: colors.coral }]}>

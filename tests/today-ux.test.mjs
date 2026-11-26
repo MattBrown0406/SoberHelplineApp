@@ -191,12 +191,31 @@ test('both Today tiers do one job: call, check-in, one next step and needs, then
   }
 });
 
-test('/guided-journey (winback push, check-in feedback) leads to Today with "More for you" open', () => {
+test('winback push, check-in feedback and /guided-journey lead to Today with "More for you" open, without stacking the tabs', () => {
+  // The old route pops back to the tabs below it (POP_TO); a <Redirect> (REPLACE)
+  // would stack a second copy of the tabs on every visit.
   const route = readFileSync(new URL('../app/guided-journey.tsx', import.meta.url), 'utf8');
-  assert.match(route, /<Redirect href=\{\{ pathname: '\/\(tabs\)', params: \{ more: '1', n: visit \} \}\} \/>/);
-  assert.doesNotMatch(route, /useGuidedStart|GuidedButton/);
+  assert.match(route, /router\.dismissTo\(\{ pathname: '\/\(tabs\)', params: \{ more: '1', n: visit \} \}\)/);
+  assert.doesNotMatch(route, /<Redirect href|useGuidedStart|GuidedButton/);
+  // The check-in's "a practical next step" opens Today itself (a tab navigation), with a fresh n per tap.
+  const feedback = readFileSync(new URL('../src/lib/checkInFeedback.ts', import.meta.url), 'utf8');
+  assert.match(feedback, /MORE_FOR_YOU_ROUTE = '\/\(tabs\)\?more=1'/);
+  assert.match(feedback, /plan: MORE_FOR_YOU_ROUTE/);
+  assert.doesNotMatch(feedback, /guided-journey'/);
+  const card = readFileSync(new URL('../src/components/today/CheckInFeedbackCard.tsx', import.meta.url), 'utf8');
+  assert.match(card, /router\.push\(checkInFeedbackHref\(feedback\.route\) as never\)/);
   const today = readFileSync(new URL('../app/(tabs)/index.tsx', import.meta.url), 'utf8');
   assert.match(today, /useLocalSearchParams<\{ more\?: string; n\?: string \}>\(\)/);
   assert.match(today, /if \(openMoreParam !== '1'\) return;\s*setMoreVisited\(true\);\s*setMoreOpen\(true\);/);
-  assert.match(today, /\}, \[openMoreParam, openMoreNonce\]\);/);
+  // Consumed once opened, so a remount of Today does not reopen it.
+  assert.match(today, /navigation\.setParams\(\{ more: undefined, n: undefined \} as never\);\s*\}, \[openMoreParam, openMoreNonce, navigation\]\);/);
+});
+
+test('a hard check-in today keeps the after-meeting invitation away, as it does the five-day card', () => {
+  const today = readFileSync(new URL('../app/(tabs)/index.tsx', import.meta.url), 'utf8');
+  assert.match(today, /const hardCheckInToday = !!todayCheckIn && isDifficultCheckIn\(\{\s+moodScore: todayCheckIn\.moodScore,\s+capacityScore: todayCheckIn\.capacityScore \?\? 3,\s+pressureScore: todayCheckIn\.pressureScore \?\? 3,\s+supportNeed: todayCheckIn\.supportNeed \?\? 'steady',\s+\}\);/);
+  // The moment is let go when it rises after a hard check-in ...
+  assert.match(today, /useAfterMeetingInvite\(\s+user\?\.id \?\? null,\s+welcome\.visible \|\| !!reminderAsk\.view \|\| hardCheckInToday,\s+\);/);
+  // ... and a card already up goes away when she checks in that way.
+  assert.match(today, /placement="after-meeting"\s+completed=\{afterMeeting && !hardCheckInToday\}/);
 });
