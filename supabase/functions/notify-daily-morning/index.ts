@@ -235,6 +235,10 @@ Deno.serve(async (req) => {
       // cancelled it, or she said she can't make it this week, she gets her
       // ordinary morning note instead. (Spanish members are invited to
       // La Sobremesa, which is not cancelled here and has no decline.)
+      const sequence = lang === 'en' ? await supabase.rpc('monday_reminders_enabled') : { data: false, error: null };
+      if (sequence.error) { counts.skipped++; continue; }
+      // The meeting coordinator owns Monday's morning message when activated.
+      if (lang === 'en' && sequence.data === true && localWeekday(Date.now(), a.timezone) === 1) { counts.skipped++; continue; }
       const isMonday = localWeekday(Date.now(), a.timezone) === 1 &&
         !(lang === 'en' && (await familySquaresIsCancelled() ||
           await declinedFamilySquares(await familySquaresSessionId(), a.id)));

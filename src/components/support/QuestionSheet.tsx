@@ -6,6 +6,7 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -26,7 +27,8 @@ import { EmergencyActions } from '../safety/EmergencyActions';
  */
 export function QuestionSheet({
   visible,
-  questionText,
+  readAnonymously,
+  onReadAnonymouslyChange,  questionText,
   onChangeText,
   questionSubmitting,
   questionSubmitted,
@@ -35,6 +37,8 @@ export function QuestionSheet({
   onClose,
 }: {
   visible: boolean;
+  readAnonymously: boolean;
+  onReadAnonymouslyChange: (value: boolean) => void;
   questionText: string;
   onChangeText: (text: string) => void;
   questionSubmitting: boolean;
@@ -98,9 +102,9 @@ export function QuestionSheet({
               </TouchableOpacity>
             </ScrollView>
           ) : questionSubmitted ? (
-            <Text accessibilityLiveRegion="polite" style={[styles.sheetTitle, { color: colors.green, fontSize: 16, textAlign: 'center', marginVertical: 24 }]}>
+            <View><Text accessibilityLiveRegion="polite" style={[styles.sheetTitle, { color: colors.green, fontSize: 16, textAlign: 'center', marginVertical: 24 }]}>
               {t('questionModal.submitted')}
-            </Text>
+            </Text><TouchableOpacity accessibilityRole="button" onPress={onClose} style={[styles.solidBtn, { backgroundColor: colors.primary }]}><Text style={styles.solidBtnText}>{t('questionModal.done')}</Text></TouchableOpacity></View>
           ) : (
             <>
               <TextInput
@@ -109,10 +113,15 @@ export function QuestionSheet({
                 placeholderTextColor={colors.inkSoft}
                 value={questionText}
                 onChangeText={onChangeText}
+                editable={!questionSubmitting}
                 multiline
                 maxLength={500}
                 autoFocus
               />
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12 }}>
+                <Text style={[styles.sheetSub, { color: colors.ink, flex: 1, marginBottom: 0 }]}>{t('questionModal.anonymous')}</Text>
+                <Switch accessibilityLabel={t('questionModal.anonymous')} value={readAnonymously} onValueChange={onReadAnonymouslyChange} disabled={questionSubmitting} />
+              </View>
               <TouchableOpacity
                 accessibilityRole="button"
                 accessibilityLabel={t('questionModal.submit')}

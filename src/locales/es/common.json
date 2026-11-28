@@ -132,5 +132,19 @@
   "admin": {
     "familySquaresByMeeting": "Family Squares, reunión por reunión",
     "membershipPath30d": "Camino a la membresía, últimos 30 días"
+  },
+  "monday": {
+    "welcome": "¿Es tu primera vez? Mira la bienvenida de Matt",
+    "welcomeError": "No se pudo abrir el video. Inténtalo de nuevo.",
+    "reflectionTitle": "¿Qué te gustaría poner en práctica esta semana?",
+    "reflectionPrivacy": "Solo para ti. Esta nota no se comparte con tu familia, tu coach ni los informes de asistencia.",
+    "save": "Guardar mi reflexión",
+    "saving": "Guardando…",
+    "saved": "Guardado en privado.",
+    "error": "No se pudo guardar. Tu texto sigue aquí; inténtalo de nuevo.",
+    "weeklySaved": "Tu preferencia de reserva semanal está activada",
+    "nextMonday": "Reservar mi lugar cada lunes",
+    "weeklyNote": "Activa las reservas semanales. Los recordatorios se eligen por separado en Ajustes; se omiten las semanas canceladas.",
+    "askQuestion": "Envía una pregunta para el lunes"
   }
 }

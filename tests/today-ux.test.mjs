@@ -174,9 +174,9 @@ test('both Today tiers do one job: call, check-in, one next step and needs, then
   assert.match(free, /\n\s+<TodayDisclosure title=\{t\('disclosure\.membership'\)\}>/);
   assert.ok(!paid[0].includes('<ExploreMembership'), 'a member with a plan sees no sales card');
   assert.ok(!source.includes('FreeTierPaywall'));
-  // The after-meeting invitation stays on the free Today, under the reminder ask, before the check-in.
-  assert.ok(free.indexOf('{reminderAskCard}') < free.indexOf('<ContextualMembershipInvitation'));
-  assert.ok(free.indexOf('<ContextualMembershipInvitation') < free.indexOf('{checkInCard}'));
+  // A meeting return prioritizes a private takeaway, not a membership pitch.
+  assert.ok(free.includes('<MondayReflection'));
+  assert.ok(!source.includes('placement="after-meeting"'));
   assert.match(source, /useToolOpened\('today'\)/);
   for (const lang of ['en', 'es']) {
     const locale = JSON.parse(readFileSync(new URL(`../src/locales/${lang}/today.json`, import.meta.url), 'utf8'));
@@ -211,11 +211,9 @@ test('winback push, check-in feedback and /guided-journey lead to Today with "Mo
   assert.match(today, /navigation\.setParams\(\{ more: undefined, n: undefined \} as never\);\s*\}, \[openMoreParam, openMoreNonce, navigation\]\);/);
 });
 
-test('a hard check-in today keeps the after-meeting invitation away, as it does the five-day card', () => {
+test('meeting returns never display an upsell, while hard check-ins still suppress the five-day ask', () => {
   const today = readFileSync(new URL('../app/(tabs)/index.tsx', import.meta.url), 'utf8');
-  assert.match(today, /const hardCheckInToday = !!todayCheckIn && isDifficultCheckIn\(\{\s+moodScore: todayCheckIn\.moodScore,\s+capacityScore: todayCheckIn\.capacityScore \?\? 3,\s+pressureScore: todayCheckIn\.pressureScore \?\? 3,\s+supportNeed: todayCheckIn\.supportNeed \?\? 'steady',\s+\}\);/);
-  // The moment is let go when it rises after a hard check-in ...
-  assert.match(today, /useAfterMeetingInvite\(\s+user\?\.id \?\? null,\s+welcome\.visible \|\| !!reminderAsk\.view \|\| hardCheckInToday,\s+\);/);
-  // ... and a card already up goes away when she checks in that way.
-  assert.match(today, /placement="after-meeting"\s+completed=\{afterMeeting && !hardCheckInToday\}/);
+  assert.ok(!today.includes('placement="after-meeting"'));
+  assert.ok(today.includes('<MondayReflection'));
+  assert.match(today, /!isDifficultCheckIn\(input\)/);
 });

@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -12,6 +12,7 @@ import { useSessionSchedule } from '../../hooks/useSessionSchedule';
 import { LA_SOBREMESA_CALL_LENGTH_MS, isFamilySquaresSession, isLaSobremesaSession, sessionDisplayTitle } from '../../lib/familySquaresSchedule';
 import { withAppContext } from '../../lib/websiteLinks';
 import { clearFamilySquaresJoin, markFamilySquaresJoin } from '../../lib/meetingAttendance';
+import { MondayMeetingDetails } from '../familySquares/MondayMeetingDetails';
 import { FamilySquaresSeatPanel } from '../familySquares/FamilySquaresSeatPanel';
 import { FamilySquaresFirstTimerNote } from '../familySquares/FamilySquaresFirstTimerNote';
 import { FamilySquaresSpotSavedLine } from '../familySquares/FamilySquaresSpotSavedLine';
@@ -62,6 +63,8 @@ export function SituationCard({ accountId = null, nextFreeCall, primaryDoor, wee
     ? scheduleFor(nextFreeCall)
     : t(i18n.language.startsWith('es') ? 'common:laSobremesa.scheduleFallback' : 'common:familySquares.scheduleFallback');
   const isFamilySquares = isFamilySquaresSession(nextFreeCall);
+  const [,tick]=useState(0);
+  useEffect(()=>{const timer=setInterval(()=>tick(n=>n+1),30000);return()=>clearInterval(timer);},[]);
   // What the card offers is decided in one place (familySquaresCard). A Monday
   // the website cancelled offers nothing for that date: only a calm line.
   // The cancelled date is compared with the coming meeting's date on every
@@ -142,7 +145,7 @@ export function SituationCard({ accountId = null, nextFreeCall, primaryDoor, wee
       activeOpacity={0.75}
       style={styles.quietLink}
     >
-      <Text style={[styles.quietLinkText, { color: colors.primary }]}>{t('situationCta.askQuestion')}</Text>
+      <Text style={[styles.quietLinkText, { color: colors.primary }]}>{t(isFamilySquaresSession(nextFreeCall) ? 'monday.askQuestion' : 'situationCta.askQuestion')}</Text>
     </TouchableOpacity>
   );
   // A call other than Family Squares keeps the tap its "You're going" button
@@ -156,6 +159,7 @@ export function SituationCard({ accountId = null, nextFreeCall, primaryDoor, wee
       <Text style={[styles.title, { color: colors.ink }]}>{title}</Text>
       <Text style={[styles.schedule, { color: colors.inkSoft }]}>{schedule}</Text>
 
+      {isFamilySquares && accountId && !view.cancelledLine && <MondayMeetingDetails key={accountId} accountId={accountId} />}
       {view.cancelledLine ? (
         <Text style={[styles.cancelledLine, { color: colors.ink }]} accessibilityLiveRegion="polite">
           {t('common:familySquares.cancelled.line')}

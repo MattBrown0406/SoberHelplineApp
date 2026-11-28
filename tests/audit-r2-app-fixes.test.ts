@@ -36,7 +36,7 @@ test('a meeting that is on: Save my spot leads until the meeting is near, then J
   // No link yet, not going: the big button saves her spot, whatever the clock says.
   for (const joinWindow of windows) {
     assert.deepEqual(callCardView({ ...on, answer: 'none', hasLink: false, joinWindow }), {
-      ...rest, join: false, joinProminence: 'quiet', saveSpot: true, saveProminence: 'main', confirmed: false, question: false,
+      ...rest, join: false, joinProminence: 'quiet', saveSpot: true, saveProminence: 'main', confirmed: false, question: true,
     }, joinWindow);
     // No link yet, going: the one confirmation and nothing to tap.
     assert.deepEqual(callCardView({ ...on, answer: 'going', hasLink: false, joinWindow }), {
@@ -47,7 +47,7 @@ test('a meeting that is on: Save my spot leads until the meeting is near, then J
   // The link is set, days before: Join would open an empty room, so "Save my
   // spot" is the big button. Join stays, smaller (an RSVP is never a gate).
   assert.deepEqual(callCardView({ ...on, answer: 'none', hasLink: true, joinWindow: 'outside' }), {
-    ...rest, join: true, joinProminence: 'quiet', saveSpot: true, saveProminence: 'main', confirmed: false, question: false,
+    ...rest, join: true, joinProminence: 'quiet', saveSpot: true, saveProminence: 'main', confirmed: false, question: true,
   });
   // Going, days before: the confirmation, with Join as a quiet action under it.
   assert.deepEqual(callCardView({ ...on, answer: 'going', hasLink: true, joinWindow: 'outside' }), {
@@ -58,7 +58,7 @@ test('a meeting that is on: Save my spot leads until the meeting is near, then J
   // when the start is not known (as before this rule existed): Join is the big button.
   for (const joinWindow of ['inside', 'unknown', undefined] as const) {
     assert.deepEqual(callCardView({ ...on, answer: 'none', hasLink: true, joinWindow }), {
-      ...rest, join: true, joinProminence: 'main', saveSpot: true, saveProminence: 'quiet', confirmed: false, question: false,
+      ...rest, join: true, joinProminence: 'main', saveSpot: true, saveProminence: 'quiet', confirmed: false, question: true,
     }, String(joinWindow));
     assert.deepEqual(callCardView({ ...on, answer: 'going', hasLink: true, joinWindow }), {
       ...rest, join: true, joinProminence: 'main', saveSpot: false, saveProminence: 'quiet', confirmed: true, question: true,
@@ -71,7 +71,7 @@ test('a meeting that is on: Save my spot leads until the meeting is near, then J
     const declined = callCardView({ ...on, answer: 'declined', hasLink, joinWindow });
     assert.deepEqual(declined, callCardView({ ...on, answer: 'none', hasLink, joinWindow }), `${hasLink} / ${joinWindow}`);
     assert.equal(declined.confirmed, false);
-    assert.equal(declined.question, false);
+    assert.equal(declined.question, true);
   }
 
   // Exactly one big button at most, and it is one the card is showing.
@@ -177,7 +177,7 @@ test('the call card, the Support entry and the welcome-back card all follow the 
   assert.match(support, /\{!view\.cancelledLine && \(\s+<View style=\{styles\.sessionActions\}>[\s\S]*?<FamilySquaresSpotSavedLine\s+confirmed=\{view\.confirmed\}[\s\S]*?\{joinLeads \? joinButton : saveLeads \? saveButton : null\}\s+<View style=\{styles\.sessionQuietRow\}>\s+\{!joinLeads && joinButton\}\s+\{!saveLeads && saveButton\}\s+<\/View>\s+<\/View>\s+\)\}/);
   assert.match(support, /\{view\.cancelledLine && \(\s+<Text style=\{\[styles\.cancelledLine, \{ color: colors\.ink \}\]\} accessibilityLiveRegion="polite">\s+\{t\('common:familySquares\.cancelled\.line'\)\}/);
   // No question for that date: not from the row, not from a reminder or Today's link.
-  assert.match(support, /\{sess\.rsvped && !view\.cancelledLine && !isLaSobremesaSession\(sess\) && \(/);
+  assert.match(support, /\{\(sess\.rsvped \|\| familySquares\) && !view\.cancelledLine && !isLaSobremesaSession\(sess\) && \(/);
   assert.match(support, /if \(!isLaSobremesaSession\(session\) && !isCancelledMeetingDate\(session\.cancelledDate\)\) setQuestionSession\(session\);/);
 
   // Fetched alongside the session, on both screens; only Family Squares rows carry it.

@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import { LiveGroupBansCard } from '../src/components/admin/LiveGroupBansCard';
@@ -22,6 +22,7 @@ import { isAdminEmail } from '../src/lib/admin';
 import { supabase } from '../src/lib/supabase';
 import { useAdminVideoSessions } from '../src/hooks/useAdminVideoSessions';
 import type { AdminBriefRow } from '../src/lib/situationBrief';
+import { MondayAttendanceAdmin } from '../src/components/admin/MondayAttendanceAdmin';
 import { FamilyCallTakeawayCard } from '../src/components/admin/FamilyCallTakeawayCard';
 import { ToolUsageCard } from '../src/components/admin/ToolUsageCard';
 import { InvitationPlacementsCard } from '../src/components/admin/InvitationPlacementsCard';
@@ -65,7 +66,7 @@ type ReferralResourceStats = {
   last_30_days: { monday_call_share_requests: number; boundary_print_requests: number };
 };
 type RsvpRow = { first_name: string; last_name: string; email: string; rsvped_at: string };
-type QuestionRow = { id: string; first_name: string; last_name: string; question: string; submitted_at: string; crisis_tier?: string | null; session_title?: string | null };
+type QuestionRow = { id: string; first_name: string; last_name: string; question: string; submitted_at: string; crisis_tier?: string | null; session_title?: string | null; answered_at?: string | null; read_anonymously?: boolean; meeting_date?: string | null };
 type ThreadRow = {
   thread_id: string;
   first_name: string;
@@ -92,7 +93,20 @@ export default function AdminScreen() {
 
   const [rsvps, setRsvps] = useState<RsvpRow[]>([]);
   const [loadingRsvps, setLoadingRsvps] = useState(true);
+  const [questionsError, setQuestionsError] = useState(false);
   const [questions, setQuestions] = useState<QuestionRow[]>([]);
+  const [showAnsweredQuestions, setShowAnsweredQuestions] = useState(false);
+  const [savingQuestion, setSavingQuestion] = useState<string | null>(null);
+  async function markQuestion(item: QuestionRow) {
+    if (savingQuestion) return;
+    setSavingQuestion(item.id);
+    try {
+      const { error } = await supabase.rpc('admin_answer_session_question', { p_id: item.id, p_answered: !item.answered_at });
+      if (error) throw error;
+      await loadData();
+    } catch { appAlert('Question not updated', 'Please try again. Its status has not been confirmed.'); }
+    finally { setSavingQuestion(null); }
+  }
   const [loadingQuestions, setLoadingQuestions] = useState(true);
   const [threads, setThreads] = useState<ThreadRow[]>([]);
   const [loadingThreads, setLoadingThreads] = useState(true);
@@ -143,6 +157,7 @@ export default function AdminScreen() {
     // Load questions
     setLoadingQuestions(true);
     const { data: qData, error: qError } = await supabase.rpc('admin_get_session_questions');
+    setQuestionsError(Boolean(qError));
     if (!qError && qData) setQuestions(qData as QuestionRow[]);
     setLoadingQuestions(false);
 
@@ -160,7 +175,19 @@ export default function AdminScreen() {
     setLoadingThreads(false);
   }, []);
 
-  useEffect(() => { if (isAdmin) void loadData(); }, [isAdmin, loadData]);
+  useFocusEffect(useCallback(() => {
+    if (!isAdmin) return;
+    void loadData();
+    let active = true;
+    const timer = setInterval(() => {
+      void Promise.resolve(supabase.rpc('admin_get_session_questions')).then(({data,error}) => {
+        if (!active) return;
+        setQuestionsError(Boolean(error));
+        if (!error && data) setQuestions(data as QuestionRow[]);
+      }).catch(() => { if (active) setQuestionsError(true); });
+    }, 30000);
+    return () => { active = false; clearInterval(timer); };
+  }, [isAdmin, loadData]));
 
   const saveZoomUrl = useCallback(async () => {
     if (!editingUrl.trim()) return;
@@ -203,6 +230,51 @@ export default function AdminScreen() {
       {/* First, so the "asked you to reach out" push lands on it. */}
       <ReachOutRequestsCard />
 
+      {/* ── Member Questions ── */}
+      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
+        <Text style={[styles.cardTitle, { color: colors.ink }]}>
+          Member Questions · {questions.filter(q => !q.answered_at).length} need an answer
+        </Text>
+
+        <TouchableOpacity accessibilityRole="button" onPress={() => setShowAnsweredQuestions(v => !v)} style={{ paddingVertical: 12 }}>
+          <Text style={{ color: colors.primary }}>{showAnsweredQuestions ? 'Show needs an answer' : 'Show answered questions'}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity accessibilityRole="button" onPress={() => void loadData()} style={{ paddingVertical: 12 }}><Text style={{ color: colors.primary }}>Refresh questions</Text></TouchableOpacity>
+        {questionsError && <Text accessibilityRole="alert" style={{ color: colors.coral }}>Could not refresh questions. The list may be out of date. Tap Refresh questions to retry.</Text>}
+        {loadingQuestions ? (
+          <ActivityIndicator color={colors.primary} style={{ marginTop: 16 }} />
+        ) : questions.filter(q => Boolean(q.answered_at) === showAnsweredQuestions).length === 0 ? (
+          <Text style={[styles.emptyText, { color: colors.inkSoft }]}>No questions in this list.</Text>
+        ) : (
+          <FlatList
+            data={questions.filter(q => Boolean(q.answered_at) === showAnsweredQuestions)}
+            keyExtractor={(item) => item.id}
+            scrollEnabled={false}
+            ItemSeparatorComponent={() => (
+              <View style={[styles.separator, { backgroundColor: colors.line }]} />
+            )}
+            renderItem={({ item }) => (
+              <View style={styles.questionRow}>
+                <Text style={{ color: colors.ink, fontWeight: '700', marginBottom: 8 }}>{item.answered_at ? 'Answered' : 'Needs an answer'}{item.meeting_date ? ` · Meeting ${item.meeting_date}` : ''}</Text>
+                {item.read_anonymously && <Text style={{ color: colors.inkSoft, marginBottom: 8 }}>Read without the member’s name.</Text>}
+                {item.crisis_tier ? (
+                  <Text accessibilityRole="alert" style={[styles.questionText, { color: colors.coral, fontWeight: '700', marginBottom: 4 }]}>
+                    Needs a look now: mentions a possible emergency
+                  </Text>
+                ) : null}
+                <Text style={[styles.questionText, { color: colors.ink }]}>"{item.question}"</Text>
+                <Text style={[styles.rsvpName, { color: colors.inkSoft, marginTop: 4 }]}>
+                  — {item.first_name} {item.last_name} · {new Date(item.submitted_at).toLocaleDateString()}{item.session_title ? ` · ${item.session_title}` : ''}
+                </Text>
+                <TouchableOpacity accessibilityRole="button" disabled={savingQuestion !== null} onPress={() => void markQuestion(item)} style={{ paddingVertical: 14 }}>
+                  <Text style={{ color: colors.primary }}>{savingQuestion === item.id ? 'Saving…' : item.answered_at ? 'Reopen question' : 'Mark answered'}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          />
+        )}
+      </View>
+
       <InvitationStatsCard />
       <ToolUsageCard />
 
@@ -225,7 +297,7 @@ export default function AdminScreen() {
                 {funnel.family_squares_weeks.map((week, index) => (
                   <Text key={week.meeting_date} style={[styles.funnelWeek, { color: colors.inkSoft }]}>
                     {meetingLabel(week.meeting_date)}{index === 0 ? ' (coming)' : ''}: {week.rsvps ?? '–'} RSVP&apos;d
-                    {week.declined ? ` (${week.declined} can't make it)` : ''} → {week.join_taps} tapped Join → {week.attended_10min} stayed 10+ min
+                    {week.declined ? ` (${week.declined} can't make it)` : ''} → {week.join_taps} tapped Join → {week.attended_10min} returned to app after 10+ min (unverified)
                   </Text>
                 ))}
                 <Text style={[styles.funnelStage, { color: colors.inkSoft, marginTop: 8 }]}>
@@ -366,6 +438,7 @@ export default function AdminScreen() {
         )}
       </View>
 
+      <MondayAttendanceAdmin />
       <FamilyCallTakeawayCard />
 
       {/* ── RSVP List ── */}
@@ -400,41 +473,6 @@ export default function AdminScreen() {
         <TouchableOpacity onPress={loadData} style={{ marginTop: 16 }}>
           <Text style={[styles.refreshText, { color: colors.primary }]}>Refresh</Text>
         </TouchableOpacity>
-      </View>
-
-      {/* ── Member Questions ── */}
-      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.line }]}>
-        <Text style={[styles.cardTitle, { color: colors.ink }]}>
-          Member Questions ({questions.length})
-        </Text>
-
-        {loadingQuestions ? (
-          <ActivityIndicator color={colors.primary} style={{ marginTop: 16 }} />
-        ) : questions.length === 0 ? (
-          <Text style={[styles.emptyText, { color: colors.inkSoft }]}>No questions submitted yet.</Text>
-        ) : (
-          <FlatList
-            data={questions}
-            keyExtractor={(item) => item.id}
-            scrollEnabled={false}
-            ItemSeparatorComponent={() => (
-              <View style={[styles.separator, { backgroundColor: colors.line }]} />
-            )}
-            renderItem={({ item }) => (
-              <View style={styles.questionRow}>
-                {item.crisis_tier ? (
-                  <Text accessibilityRole="alert" style={[styles.questionText, { color: colors.coral, fontWeight: '700', marginBottom: 4 }]}>
-                    Needs a look now: mentions a possible emergency
-                  </Text>
-                ) : null}
-                <Text style={[styles.questionText, { color: colors.ink }]}>"{item.question}"</Text>
-                <Text style={[styles.rsvpName, { color: colors.inkSoft, marginTop: 4 }]}>
-                  — {item.first_name} {item.last_name} · {new Date(item.submitted_at).toLocaleDateString()}{item.session_title ? ` · ${item.session_title}` : ''}
-                </Text>
-              </View>
-            )}
-          />
-        )}
       </View>
 
       {/* ── Situation Briefs ── */}

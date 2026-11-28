@@ -1,3 +1,4 @@
+import { fileURLToPath as localFilePath } from 'node:url';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -9,7 +10,7 @@ import { createRequire } from 'node:module';
 // part of Practice (its old tab route stays registered, hidden, and forwards);
 // the Tracker is a pushed screen with no tab of the same name.
 
-const root = new URL('..', import.meta.url).pathname;
+const root = localFilePath(new URL('..', import.meta.url));
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
 const locale = (lang, ns) => JSON.parse(read(`src/locales/${lang}/${ns}.json`));
 

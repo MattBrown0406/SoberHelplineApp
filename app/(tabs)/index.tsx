@@ -20,8 +20,8 @@ import { PathNextStepCard } from '../../src/components/today/PathNextStepCard';
 import { MoodChart } from '../../src/components/today/MoodChart';
 import { PlansTeaserCard } from '../../src/components/plans/PlansTeaserCard';
 import { ContextualMembershipInvitation } from '../../src/membershipInvitations/ContextualMembershipInvitation';
-import { useAfterMeetingInvite } from '../../src/hooks/useAfterMeetingInvite';
 import { isDifficultCheckIn } from '../../src/lib/reviewPromptPolicy';
+import { MondayReflection } from '../../src/components/familySquares/MondayReflection';
 import { noteVisitAsk } from '../../src/membershipInvitations/visitAsks';
 import { SituationCard, type WeeklyOneThing } from '../../src/components/today/SituationCard';
 import { NeedsRouter } from '../../src/components/today/NeedsRouter';
@@ -99,23 +99,6 @@ function TodayContent() {
   // (Nor "a reminder before Monday's meeting" in a week the website cancelled it.)
   const mondayCancelled = isFamilySquaresSession(nextFreeCall) && isCancelledMeetingDate(nextFreeCall?.cancelledDate);
   const reminderAsk = useTodayReminderAsk(user?.id ?? null, user?.joinedAt, !welcome.ready || welcome.returned, welcome.decided, mondayCancelled);
-  // A hard check-in today gets the support it asked for (the feedback card's
-  // meeting / "Matt can reach out" step), not an invitation: the same rule as
-  // the five-day card. The after-meeting moment is let go, and a card already
-  // up goes away once she checks in that way.
-  // (A part an older version did not save counts as not hard.)
-  const hardCheckInToday = !!todayCheckIn && isDifficultCheckIn({
-    moodScore: todayCheckIn.moodScore,
-    capacityScore: todayCheckIn.capacityScore ?? 3,
-    pressureScore: todayCheckIn.pressureScore ?? 3,
-    supportNeed: todayCheckIn.supportNeed ?? 'steady',
-  });
-  // Just back from Family Squares, and no rating prompt on this visit. Free
-  // members only (the invitation checks that).
-  const afterMeeting = useAfterMeetingInvite(
-    user?.id ?? null,
-    welcome.visible || !!reminderAsk.view || hardCheckInToday,
-  );
   // One ask per visit: once the reminder ask has been on Today, no membership
   // invitation is offered anywhere until she next leaves the app (visitAsks).
   const reminderAskOpen = reminderAsk.view === 'ask' || reminderAsk.view === 'settings';
@@ -415,13 +398,7 @@ function TodayContent() {
         {welcomeBackCard}
         {mondayCallCard}
         {reminderAskCard}
-        {/* One soft invitation when she is back from Family Squares: at most
-            once every 14 days, and one ask at a time on this screen. */}
-        <ContextualMembershipInvitation
-          accountId={user?.id ?? null}
-          placement="after-meeting"
-          completed={afterMeeting && !hardCheckInToday}
-        />
+        {user && !i18n.language.startsWith('es') && <MondayReflection key={user.id} accountId={user.id} />}
         <View onLayout={onCheckInLayout}>
           {checkInCard}
           <CheckInFeedbackCard checkIn={todayCheckIn} />
@@ -457,6 +434,8 @@ function TodayContent() {
       {welcomeBackCard}
       {mondayCallCard}
       {reminderAskCard}
+      {user && !i18n.language.startsWith('es') && <MondayReflection key={user.id} accountId={user.id} />}
+
       <View onLayout={onCheckInLayout}>
         {checkInCard}
         <CheckInFeedbackCard checkIn={todayCheckIn} />

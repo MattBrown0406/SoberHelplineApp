@@ -30,6 +30,9 @@ Deno.serve(async (req) => {
   if (!force && !isFamilySquaresReminderHour(new Date(started))) {
     return new Response('outside reminder hour');
   }
+  const sequence = await supabase.rpc('monday_reminders_enabled');
+  if (sequence.error) return new Response('sequence state unavailable', {status:503});
+  if (sequence.data === true) return new Response('handled by Monday coordinator');
   // Explicit operator force retains its off-schedule test contract. Its short
   // window is pinned once; normal scheduled requests use the actual call time.
   const deadline = force ? started + 15 * 60000 : sessionDeadline(started);

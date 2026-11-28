@@ -1,3 +1,4 @@
+import * as Crypto from 'expo-crypto';
 import { useToolOpened } from '../../src/hooks/useToolOpened';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -98,9 +99,23 @@ export default function SupportScreen() {
   const [questionCrisis, setQuestionCrisis] = useState<'sent' | 'unsent' | null>(null);
   // A reply that lands after the sheet was closed belongs to no sheet.
   const questionSheetGeneration = useRef(0);
+  const questionRequest = useRef<{ id: string; signature: string } | null>(null);
+  const sendingQuestion = useRef(false);
+  const [readAnonymously, setReadAnonymously] = useState(true);
+
+  useEffect(() => {
+    questionSheetGeneration.current += 1;
+    questionRequest.current = null;
+    sendingQuestion.current = false;
+    setQuestionSession(null); setQuestionText(''); setQuestionSubmitting(false);
+    setQuestionSubmitted(false); setQuestionCrisis(null); setReadAnonymously(true);
+  }, [user?.id]);
 
   function closeQuestionSheet() {
     // Orphans any send still in flight; the next sheet starts ready to send.
+    if (sendingQuestion.current) return;
+    questionRequest.current = null;
+    setReadAnonymously(true);
     questionSheetGeneration.current += 1;
     setQuestionSession(null);
     setQuestionText('');
@@ -110,18 +125,21 @@ export default function SupportScreen() {
   }
 
   async function submitQuestion() {
-    if (!questionText.trim() || !questionSession || !user?.id) return;
+    if (sendingQuestion.current || questionSubmitted || !questionText.trim() || !questionSession || !user?.id) return;
+    sendingQuestion.current = true;
     const generation = questionSheetGeneration.current;
     const current = () => generation === questionSheetGeneration.current;
     const text = questionText.trim();
-    const row = { account_id: user.id, session_id: questionSession.id, question: text };
+    const signature = JSON.stringify([user.id, questionSession.id, text, readAnonymously]);
+    if (questionRequest.current?.signature !== signature) questionRequest.current = { id: Crypto.randomUUID(), signature };
     setQuestionSubmitting(true);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
     try {
-      let { data, error } = await supabase.from('session_questions').insert(row).select('crisis_tier').single();
-      // A backend without the screen's column yet (42703 / PGRST204): plain insert.
-      if (error && (error.code === '42703' || error.code === 'PGRST204')) {
-        ({ data, error } = await supabase.from('session_questions').insert(row).select('id').single());
-      }
+      const { data, error } = await supabase.rpc('submit_session_question', {
+        p_id: questionRequest.current.id, p_account: user.id, p_session: questionSession.id,
+        p_question: text, p_read_anonymously: readAnonymously,
+      }).abortSignal(controller.signal);
       if (!current()) return;
       if (error) throw error;
       setQuestionSubmitted(true);
@@ -133,7 +151,7 @@ export default function SupportScreen() {
         AccessibilityInfo.announceForAccessibility(t('questionModal.crisisNote'));
         return;
       }
-      setTimeout(() => { if (current()) closeQuestionSheet(); }, 1500);
+
     } catch {
       if (!current()) return;
       // Unsent, so nothing screened it and no admin heard about it: the sheet
@@ -142,7 +160,8 @@ export default function SupportScreen() {
       setQuestionCrisis('unsent');
       AccessibilityInfo.announceForAccessibility(t('questionModal.crisisNotSent'));
     } finally {
-      if (current()) setQuestionSubmitting(false);
+      clearTimeout(timeout);
+      if (current()) { sendingQuestion.current = false; setQuestionSubmitting(false); }
     }
   }
 
@@ -309,7 +328,7 @@ export default function SupportScreen() {
             {t('common:familySquares.cancelled.line')}
           </Text>
         )}
-        {sess.rsvped && !view.cancelledLine && !isLaSobremesaSession(sess) && (
+        {(sess.rsvped || familySquares) && !view.cancelledLine && !isLaSobremesaSession(sess) && (
           <TouchableOpacity
             accessibilityRole="button"
             accessibilityLabel={t('questionModal.buttonLabel', { name })}
@@ -389,6 +408,8 @@ export default function SupportScreen() {
       <ProviderSheet visible={providerOpen} onClose={() => setProviderOpen(false)} />
       <QuestionSheet
         visible={questionSession !== null}
+        readAnonymously={readAnonymously}
+        onReadAnonymouslyChange={setReadAnonymously}
         questionText={questionText}
         onChangeText={setQuestionText}
         questionSubmitting={questionSubmitting}

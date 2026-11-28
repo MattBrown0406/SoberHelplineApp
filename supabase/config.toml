@@ -466,3 +466,10 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 # RevenueCat sends its configured shared-secret Authorization, not a Supabase JWT.
 [functions.revenuecat-webhook]
 verify_jwt = false
+
+# Admin JWT (checked through the admin RPC) or service-role reconciler.
+[functions.monday-zoom-attendance]
+verify_jwt = true
+
+[functions.monday-reminders]
+verify_jwt = true
