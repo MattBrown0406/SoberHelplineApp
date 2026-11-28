@@ -1,0 +1,60 @@
+BEGIN;
+CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
+SET search_path=public,extensions;
+SELECT no_plan();
+INSERT INTO auth.users(id,email,raw_app_meta_data,raw_user_meta_data,aud,role,email_confirmed_at) VALUES
+ ('18000000-0000-0000-0000-000000000001','monday-a@example.com','{}','{}','authenticated','authenticated',now()),
+ ('18000000-0000-0000-0000-000000000002','monday-b@example.com','{}','{}','authenticated','authenticated',now()),
+ ('18000000-0000-0000-0000-000000000003','matt@soberhelpline.com','{}','{}','authenticated','authenticated',now());
+UPDATE accounts SET id=('28000000-0000-0000-0000-00000000000'||right(user_id::text,1))::uuid,
+ push_token='ExponentPushToken[test-'||right(user_id::text,1)||']',family_call_reminders=true,timezone='America/Los_Angeles',locale='en'
+ WHERE user_id::text LIKE '18000000-0000-0000-0000-00000000000_';
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims','{"sub":"18000000-0000-0000-0000-000000000001","email":"monday-a@example.com","role":"authenticated"}',true);
+SELECT lives_ok($$SELECT submit_session_question('38000000-0000-0000-0000-000000000001','28000000-0000-0000-0000-000000000001',family_squares_session_id(),'How do I set a boundary?',true)$$,'member submits question');
+SELECT lives_ok($$SELECT submit_session_question('38000000-0000-0000-0000-000000000001','28000000-0000-0000-0000-000000000001',family_squares_session_id(),'How do I set a boundary?',true)$$,'same request retries safely');
+SELECT throws_ok($$SELECT submit_session_question('38000000-0000-0000-0000-000000000001','28000000-0000-0000-0000-000000000001',family_squares_session_id(),'Changed',true)$$,'P0001','request already used','retry cannot replace existing question');
+SELECT throws_ok($$SELECT submit_session_question('38000000-0000-0000-0000-000000000002','28000000-0000-0000-0000-000000000002',family_squares_session_id(),'Impersonation',true)$$,'P0001','not authorized','account fence rejects stale account');
+SELECT throws_ok($$SELECT admin_answer_session_question('38000000-0000-0000-0000-000000000001',true)$$,'P0001','not authorized','member cannot mark answered');
+SELECT throws_ok($$SELECT * FROM admin_get_session_questions()$$,'P0001','not authorized','member cannot read host queue');
+SELECT lives_ok($$SELECT monday_save_reflection(date_trunc('week',now())::date-7,'Private reflection','28000000-0000-0000-0000-000000000001')$$,'owner saves reflection');
+SELECT is(monday_reflection(date_trunc('week',now())::date-7),'Private reflection','owner reads reflection');
+SELECT ok(NOT has_table_privilege('authenticated','monday_reflections','SELECT'),'no direct reflection access');
+SELECT ok(NOT has_function_privilege('authenticated','service_monday_import_attendance(date,text,jsonb,integer)','EXECUTE'),'members cannot forge attendance');
+SELECT set_config('request.jwt.claims','{"sub":"18000000-0000-0000-0000-000000000002","email":"monday-b@example.com","role":"authenticated"}',true);
+SELECT is(monday_reflection(date_trunc('week',now())::date-7),NULL::text,'another member cannot see reflection');
+SELECT is((SELECT count(*)::integer FROM session_questions),0,'another member cannot see questions');
+RESET ROLE;
+SELECT is((SELECT count(*)::integer FROM push_outbox WHERE kind='admin_session_question'),1,'ordinary question and retry create exactly one admin alert');
+SELECT ok((SELECT body NOT LIKE '%boundary%' FROM push_outbox WHERE kind='admin_session_question'),'push does not expose question text');
+SELECT ok((SELECT read_anonymously AND answered_at IS NULL AND meeting_date IS NOT NULL FROM session_questions WHERE id='38000000-0000-0000-0000-000000000001'),'privacy preference and meeting tracked');
+UPDATE push_outbox SET processing_token='48000000-0000-0000-0000-000000000001',processing_at=now() WHERE kind='admin_session_question';
+SELECT ok(dispatcher_outbox_delivery((SELECT id FROM push_outbox WHERE kind='admin_session_question'),'48000000-0000-0000-0000-000000000001') IS NOT NULL,'ordinary question passes actual dispatcher delivery guard');
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims','{"sub":"18000000-0000-0000-0000-000000000003","email":"matt@soberhelpline.com","role":"authenticated"}',true);
+SELECT is((SELECT count(*)::integer FROM admin_get_session_questions() WHERE answered_at IS NULL),1,'admin sees unanswered question');
+SELECT lives_ok($$SELECT admin_answer_session_question('38000000-0000-0000-0000-000000000001',true)$$,'admin marks answered');
+SELECT is((SELECT count(*)::integer FROM admin_get_session_questions() WHERE answered_at IS NULL),0,'answered leaves open queue');
+SELECT is(monday_reflection(date_trunc('week',now())::date-7),NULL::text,'admin RPC cannot read member reflection');
+RESET ROLE;
+SELECT is(dispatcher_outbox_delivery((SELECT id FROM push_outbox WHERE kind='admin_session_question'),'48000000-0000-0000-0000-000000000001'),NULL::jsonb,'answered question suppresses stale push');
+SET LOCAL ROLE authenticated;
+SELECT lives_ok($$SELECT admin_answer_session_question('38000000-0000-0000-0000-000000000001',false)$$,'admin can reopen');
+RESET ROLE;
+INSERT INTO monday_meetings(meeting_date,zoom_uuid) VALUES('2026-11-23','occurrence-1');
+SELECT lives_ok($$SELECT service_monday_import_attendance('2026-11-23','occurrence-1','[{"email":"monday-a@example.com","seconds":700},{"email":"unknown@example.com","seconds":60}]',2)$$,'exact verified email reconciles');
+SELECT is((SELECT count(*)::integer FROM monday_zoom_attendance),1,'unknown identities never guessed');
+SELECT is((SELECT unmatched FROM monday_zoom_reports WHERE meeting_date='2026-11-23'),3,'unknown participants counted');
+SELECT throws_ok($$SELECT service_monday_import_attendance('2026-11-23','wrong','[]',0)$$,'P0001','unknown occurrence','wrong UUID rejected');
+SELECT is((SELECT seconds FROM monday_zoom_attendance),700,'failed import preserves attendance');
+UPDATE monday_settings SET reminders_enabled=true;
+SELECT ok(service_monday_reminder_delivery('28000000-0000-0000-0000-000000000001','2026-11-30','preview','2026-11-29 17:05 America/Los_Angeles') IS NOT NULL,'Sunday preview local window');
+SELECT is(service_monday_reminder_delivery('28000000-0000-0000-0000-000000000001','2026-11-30','morning','2026-11-30 09:05 America/Los_Angeles'),NULL::jsonb,'morning requires reserved seat');
+INSERT INTO session_rsvps(account_id,session_id,status,family_squares_meeting_date) VALUES('28000000-0000-0000-0000-000000000001',family_squares_session_id(),'going','2026-11-30');
+SELECT ok(service_monday_reminder_delivery('28000000-0000-0000-0000-000000000001','2026-11-30','morning','2026-11-30 09:05 America/Los_Angeles') IS NOT NULL,'morning for reserved seat');
+SELECT ok(service_monday_reminder_delivery('28000000-0000-0000-0000-000000000001','2026-11-30','join','2026-11-30 18:45 America/Los_Angeles') IS NOT NULL,'join begins fifteen minutes before');
+SELECT is(service_monday_reminder_delivery('28000000-0000-0000-0000-000000000001','2026-11-30','join','2026-11-30 19:00 America/Los_Angeles'),NULL::jsonb,'late join reminder expires');
+UPDATE session_rsvps SET status='declined' WHERE account_id='28000000-0000-0000-0000-000000000001';
+SELECT is(service_monday_reminder_delivery('28000000-0000-0000-0000-000000000001','2026-11-30','preview','2026-11-29 17:05 America/Los_Angeles'),NULL::jsonb,'decline suppresses preview too');
+SELECT * FROM finish();
+ROLLBACK;

@@ -108,17 +108,18 @@
     "button": "Ask a question",
     "buttonLabel": "Ask a question for {{name}}",
     "title": "Submit a question",
-    "sub": "Your question will be reviewed before the meeting.",
+    "sub": "Your host can see your account and question. Avoid names or identifying details about others. This inbox is not monitored for emergencies.",
     "placeholder": "What would you like answered on the call?",
     "submit": "Submit",
-    "submitted": "Question submitted!",
+    "submitted": "Your question is saved in the host’s answer queue. You can close this window.",
     "errorTitle": "Question not submitted",
     "errorBody": "Your question wasn't saved. Check your connection and try again.",
     "cancel": "Cancel",
     "crisisNote": "Your question was sent. If anyone is in danger right now, don't wait for Monday's call. Get help now:",
     "done": "Done",
     "crisisNotSent": "Your question wasn't sent. Check your connection and try again. If anyone is in danger right now, don't wait for Monday's call:",
-    "retry": "Try sending again"
+    "retry": "Try sending again",
+    "anonymous": "Please read my question without my name"
   },
   "groups": {
     "eyebrow": "Moderated groups",

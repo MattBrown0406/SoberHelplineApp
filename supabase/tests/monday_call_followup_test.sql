@@ -218,8 +218,8 @@ SELECT is((SELECT crisis_tier FROM public.session_questions WHERE id = '36000000
 SELECT isnt((SELECT crisis_tier FROM public.session_questions WHERE id = '36000000-0000-0000-0000-000000000002'), NULL,
   'an overdose question is flagged and the member can read the flag');
 RESET ROLE;
-SELECT is((SELECT count(*)::int FROM push_outbox WHERE kind = 'admin_session_question'), 1, 'one admin alert');
-SELECT is((SELECT metadata ->> 'question_id' FROM push_outbox WHERE kind = 'admin_session_question'),
+SELECT is((SELECT count(*)::int FROM push_outbox WHERE kind = 'admin_session_question'), 2, 'every question alerts the admin');
+SELECT is((SELECT metadata ->> 'question_id' FROM push_outbox WHERE kind = 'admin_session_question' AND metadata->>'question_id'='36000000-0000-0000-0000-000000000002'),
   '36000000-0000-0000-0000-000000000002', 'the alert names the question');
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claims', '{"sub":"16000000-0000-0000-0000-0000000000ff","email":"matt@soberhelpline.com","role":"authenticated"}', true);
@@ -236,7 +236,7 @@ SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claims', '{"sub":"16000000-0000-0000-0000-0000000000ff","email":"matt@soberhelpline.com","role":"authenticated"}', true);
 SELECT is((SELECT session_title FROM public.admin_get_session_questions() WHERE id = '36000000-0000-0000-0000-000000000003'),
   'La Sobremesa', 'a crisis question for another call is in the list, titled');
-SELECT is((SELECT count(*)::int FROM public.admin_get_session_questions() WHERE id = '36000000-0000-0000-0000-000000000004'), 0,
+SELECT is((SELECT count(*)::int FROM public.admin_get_session_questions() WHERE id = '36000000-0000-0000-0000-000000000004'), 1,
   'an ordinary one for another call is not');
 RESET ROLE;
 

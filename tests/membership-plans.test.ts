@@ -465,35 +465,12 @@ test('the after-meeting moment waits for the rating-prompt check and never share
   unsubscribe();
 });
 
-test('the invitation is wired to the real return from the meeting, on the free Today only', () => {
-  const layout = read('app/_layout.tsx');
-  // Attendance logged (ten minutes or more after Join) is the moment.
-  assert.match(layout, /flushFamilySquaresAttendance\(accountId\)\.then\(\(attended\) => \{\s+if \(attended && active\) noteMeetingReturn\(accountId\);/);
-  // The rating-prompt check reports its answer; the invitation waits for it.
-  assert.match(layout, /void flushQueuedSupportCallReview\(user\.id\)\.then\(\(outcome\) => noteReviewCheck\(user\.id, outcome\)\);/);
-  assert.match(layout, /const leftForeground = nextState === 'background';[\s\S]*?if \(leftForeground\) clearMeetingReturn\(\);/);
-  assert.match(read('src/lib/meetingAttendance.ts'), /logFunnelEventConfirmed\('attended_10min', \{ meeting_date: mark\.meetingDate, source: mark\.source \}\),[\s\S]*?if \(!logged\) return false;[\s\S]*?return true;/);
-
+test('meeting return offers a private reflection instead of a membership ask', () => {
   const today = read('app/(tabs)/index.tsx');
-  // Never beside another ask, nor after a hard check-in today (the support it asked for comes first).
-  assert.match(today, /useAfterMeetingInvite\(\s+user\?\.id \?\? null,\s+welcome\.visible \|\| !!reminderAsk\.view \|\| hardCheckInToday,\s+\);/);
-  const [beforeFree, afterFree] = today.split('if (!canAccessFullToday) {');
-  const [freeToday, paidToday] = afterFree.split("\n  return (\n    <ScreenContainer backgroundColor={colors.cream} scrollRef={scrollRef}>");
-  assert.ok(freeToday && paidToday, 'the free and paid Today are separate returns');
-  assert.match(freeToday, /<ContextualMembershipInvitation\s+accountId=\{user\?\.id \?\? null\}\s+placement="after-meeting"\s+completed=\{afterMeeting && !hardCheckInToday\}\s+\/>/);
-  assert.ok(!beforeFree.includes('<ContextualMembershipInvitation'), 'only in the free Today');
-  assert.ok(!paidToday.includes('<ContextualMembershipInvitation'), 'not on the paid Today');
-  // The card itself refuses anyone who is not a free member.
-  const card = read('src/membershipInvitations/ContextualMembershipInvitation.tsx');
-  assert.match(card, /!account\.isAdmin && !account\.isAttached && account\.accountState === 'direct-free';/);
-  assert.match(card, /'after-meeting': 'after_meeting',/);
-  for (const lang of ['en', 'es']) {
-    const invite = locale(lang, 'plans').invite;
-    assert.match(invite.afterMeeting, lang === 'es' ? /La Sobremesa/ : /Family Squares/);
-    assert.match(invite.afterMeeting, /coach/);
-    for (const key of ['title', 'body', 'cta', 'later', 'never', 'practiceCompleted', 'boundarySaved', 'afterMeetingTitle',
-      'toolFinished', 'checkinWeekTitle', 'checkinWeek', 'trial']) assert.ok(invite[key], `${lang}: invite.${key}`);
-  }
+  assert.doesNotMatch(today, /placement="after-meeting"|useAfterMeetingInvite/);
+  assert.equal((today.match(/<MondayReflection/g) ?? []).length, 2);
+  assert.match(read('src/components/familySquares/MondayReflection.tsx'), /monday_save_reflection/);
+  assert.match(read('src/lib/reviewPrompt.ts'), /support_call_attended.*not_eligible/);
 });
 
 // ── 15c. Two more moments (4.4) ─────────────────────────────────────────────

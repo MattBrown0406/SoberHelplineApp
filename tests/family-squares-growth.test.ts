@@ -293,7 +293,9 @@ test('declining changes only her own going Family Squares RSVP, and the reminder
   assert.match(sql, /REVOKE ALL ON FUNCTION public\.decline_family_squares_rsvp\(\) FROM PUBLIC, anon;\nGRANT EXECUTE ON FUNCTION public\.decline_family_squares_rsvp\(\) TO authenticated;/);
   assert.match(read('src/lib/familySquaresSeat.ts'), /rpc\('decline_family_squares_rsvp'\);\s+return !error && data === true;/);
   // The delivery rules in force: "seat is saved" needs going; the 6:30 PM invite skips going and declined.
-  const delivery = latestSql('dispatcher_job_delivery');
+  const coordinator = latestSql('dispatcher_job_delivery');
+  assert.match(coordinator, /_pre_monday_sequence_job_delivery/);
+  const delivery = read('supabase/migrations/20261114150000_family_squares_cancelled_week.sql');
   assert.match(delivery, /IF p_job='session_reminder' THEN\s+allowed:=allowed AND EXISTS\(SELECT 1 FROM session_rsvps WHERE account_id=a\.id AND session_id=p_session_id AND status='going'\);/);
   assert.match(delivery, /NOT EXISTS\(SELECT 1 FROM session_rsvps\s+WHERE account_id=a\.id AND session_id=p_session_id AND status IN \('going','declined'\)\);/);
   // The 15-minute reminder reads going RSVPs only.

@@ -1,3 +1,4 @@
+import { fileURLToPath as localFilePath } from 'node:url';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -37,7 +38,7 @@ function statementFrom(lines, index) {
 test('no supabase query builder is used as a fire-and-forget statement', () => {
   const offenders = [];
   for (const root of ROOTS) {
-    for (const file of sourceFiles(new URL(`../${root}`, import.meta.url).pathname)) {
+    for (const file of sourceFiles(localFilePath(new URL(`../${root}`, import.meta.url)))) {
       const lines = fs.readFileSync(file, 'utf8').split('\n');
       lines.forEach((line, i) => {
         if (!START.test(line)) return;

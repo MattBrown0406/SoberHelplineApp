@@ -132,5 +132,19 @@
   "admin": {
     "familySquaresByMeeting": "Family Squares, by meeting",
     "membershipPath30d": "Membership path, last 30 days"
+  },
+  "monday": {
+    "welcome": "First time? Watch Matt’s welcome",
+    "welcomeError": "Could not open the welcome video. Please try again.",
+    "reflectionTitle": "What is one thing you want to try this week?",
+    "reflectionPrivacy": "Private to you. This note is not shared with your family, coach, or attendance reports.",
+    "save": "Save my takeaway",
+    "saving": "Saving…",
+    "saved": "Saved privately.",
+    "error": "Could not save. Your text is still here; please try again.",
+    "weeklySaved": "Your weekly-seat preference is on",
+    "nextMonday": "Save my seat every Monday",
+    "weeklyNote": "This turns on weekly seat reservations. Meeting reminders are a separate choice in Settings; cancelled weeks are skipped.",
+    "askQuestion": "Ask a question for Monday"
   }
 }

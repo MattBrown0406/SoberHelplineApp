@@ -211,7 +211,7 @@ export function getPushDestination(data: PushData, options: PushRoutingOptions |
   // Admin-only: after a hard check-in a member asked Matt to reach out. Opens
   // Admin, where the reach-out requests card sits first (Admin redirects anyone
   // who is not staff; no member data beyond ids rides in the payload).
-  if (kind === 'admin_reach_out') {
+  if (kind === 'admin_reach_out' || kind === 'admin_session_question') {
     return { pathname: '/admin' };
   }
 

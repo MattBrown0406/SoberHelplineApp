@@ -255,3 +255,7 @@ test('an old 4.3 "a family lost their loved one" push opens Admin for staff, lik
   );
   assert.match(readFileSync('src/lib/pushRouting.ts', 'utf8'), /if \(kind === 'admin_bereavement'\) \{\s*return \{ pathname: '\/admin' \};/);
 });
+
+ test('meeting question alerts open the persistent admin answer queue', () => {
+  assert.deepEqual(getPushDestination({kind:'admin_session_question', question_id:'123e4567-e89b-42d3-a456-426614174111'}), {pathname:'/admin'});
+});

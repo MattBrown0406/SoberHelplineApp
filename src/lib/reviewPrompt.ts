@@ -76,7 +76,8 @@ export function maybeRequestReview({
   milestone: ReviewMilestone;
   safety?: ReviewSafetyContext;
 }): Promise<ReviewPromptOutcome> {
-  if (!accountId) return Promise.resolve('not_eligible');
+  // Returning from a meeting is for reflection and next week's seat, never a rating ask.
+  if (!accountId || milestone === 'support_call_attended') return Promise.resolve('not_eligible');
   const existing = requestsInFlight.get(accountId);
   if (existing) return existing;
 

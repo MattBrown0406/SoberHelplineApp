@@ -108,17 +108,18 @@
     "button": "Hacer una pregunta",
     "buttonLabel": "Hacer una pregunta para {{name}}",
     "title": "Enviar una pregunta",
-    "sub": "Tu pregunta será revisada antes de la reunión.",
+    "sub": "El anfitrión puede ver tu cuenta y pregunta. Evita nombres o datos que identifiquen a otras personas. Este buzón no se supervisa para emergencias.",
     "placeholder": "¿Qué te gustaría que se respondiera en la llamada?",
     "submit": "Enviar",
-    "submitted": "¡Pregunta enviada!",
+    "submitted": "Tu pregunta está guardada en la lista del anfitrión. Puedes cerrar esta ventana.",
     "errorTitle": "La pregunta no se envió",
     "errorBody": "Tu pregunta no se guardó. Revisa tu conexión e inténtalo de nuevo.",
     "cancel": "Cancelar",
     "crisisNote": "Tu pregunta se envió. Si alguien está en peligro ahora mismo, no esperes a la llamada del lunes. Busca ayuda ya:",
     "done": "Listo",
     "crisisNotSent": "Tu pregunta no se envió. Revisa tu conexión e inténtalo de nuevo. Si alguien está en peligro ahora mismo, no esperes a la llamada del lunes:",
-    "retry": "Intentar enviarla de nuevo"
+    "retry": "Intentar enviarla de nuevo",
+    "anonymous": "Por favor, lean mi pregunta sin decir mi nombre"
   },
   "groups": {
     "eyebrow": "Grupos moderados",

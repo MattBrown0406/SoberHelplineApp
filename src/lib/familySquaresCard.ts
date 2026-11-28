@@ -76,7 +76,7 @@ export function callCardView(input: CallCardInput): CallCardView {
     saveSpot,
     saveProminence: saveSpot && !joinLeads ? 'main' : 'quiet',
     confirmed: !cancelled && going,
-    question: !cancelled && input.familySquares && going,
+    question: !cancelled && input.familySquares,
     rsvpNote: !cancelled && input.familySquares,
     firstTimerNote: !cancelled && input.familySquares,
   };

@@ -1,3 +1,4 @@
+import { fileURLToPath as localFilePath } from 'node:url';
 import assert from 'node:assert/strict';
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -11,7 +12,7 @@ function run(table, ...args) {
   const dir = mkdtempSync(join(tmpdir(), 'migration-drift-'));
   const input = join(dir, 'migration-list.txt');
   writeFileSync(input, table);
-  return spawnSync(process.execPath, [script.pathname, input, ...args], { encoding: 'utf8' });
+  return spawnSync(process.execPath, [localFilePath(script), input, ...args], { encoding: 'utf8' });
 }
 
 const header = `\n Local            | Remote           | Time (UTC)\n------------------|------------------|-----------------------\n`;

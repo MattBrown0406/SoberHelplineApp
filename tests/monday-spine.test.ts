@@ -48,7 +48,8 @@ test('questions are screened server-side and a crisis question alerts admins', (
   assert.match(followupSql, /BEFORE INSERT OR UPDATE OF question, crisis_tier ON public\.session_questions/);
   assert.match(followupSql, /'admin_session_question', '🆘 A question for Monday mentions a crisis'/);
   const support = readFileSync('app/(tabs)/support.tsx', 'utf8');
-  assert.match(support, /\.select\('crisis_tier'\)\.single\(\)/);
+  assert.match(support, /rpc\('submit_session_question'/);
+  assert.match(support, /data as \{ crisis_tier/);
   // The sheet itself is its own file since 4.4; the tab hands it what the server answered.
   assert.match(support, /questionCrisis=\{questionCrisis\}/);
   assert.match(readFileSync('src/components/support/QuestionSheet.tsx', 'utf8'), /\{questionCrisis \? \([\s\S]*?<EmergencyActions prominent offline=\{questionCrisis === 'unsent'\} \/>/);
